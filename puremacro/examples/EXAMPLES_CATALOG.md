@@ -167,4 +167,6 @@ python -m puremacro.examples.narrative_indices_demo
 ```
 
 Most scripts print summary stats and save a figure to `output_figures/`.
-A few (the narrative-text and panel demos) require `data/processed/panel_Q.parquet`; see `README.md` for how to build it.
+A few (the narrative-text and panel demos) require a `panel_Q.parquet`
+materialized by the `build_panel` / `build_subnational_panel` fetchers
+(network + optional API keys); those demos skip cleanly when it is absent.
