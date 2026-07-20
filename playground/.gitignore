@@ -1,0 +1,5 @@
+dist/
+wheels/
+content/
+*.whl
+.jupyterlite.doit.db

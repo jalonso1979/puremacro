@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use puremacro in your research, please cite it as below."
+title: "puremacro: a Pyodide-compatible empirical and structural macroeconomics toolbox"
+abstract: >-
+  Pure-Python (numpy / scipy / pandas / matplotlib) toolbox for empirical and
+  structural macroeconomics: SVAR identification, local projections, staggered
+  DiD, GARCH, growth-at-risk, heterogeneous-agent VFI and Bayesian DSGE models,
+  and free narrative text-as-data uncertainty indices. Runs in the browser via
+  Pyodide; no MATLAB, Stata, or paid data feeds required.
+type: software
+authors:
+  - family-names: "Alonso Ortiz"
+    given-names: "Jorge"
+version: "0.92.0"
+date-released: "2026-07-18"
+license: MIT
+repository-code: "https://github.com/jalonso1979/puremacro"
+keywords:
+  - macroeconomics
+  - econometrics
+  - structural VAR
+  - local projections
+  - heterogeneous-agent models
+  - uncertainty
+  - Pyodide

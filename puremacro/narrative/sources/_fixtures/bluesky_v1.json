@@ -1,0 +1,14 @@
+{
+  "feed": [
+    {
+      "post": {
+        "uri": "at://did:plc:abc/app.bsky.feed.post/123",
+        "record": {
+          "$type": "app.bsky.feed.post",
+          "text": "Inflation expectations remain anchored.",
+          "createdAt": "2024-03-15T12:00:00Z"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rss version=\"2.0\">\n  <channel>\n    <title>Synthetic test feed</title>\n    <link>https://example.org/</link>\n    <description>Fixture for tests/test_narrative_offline.py</description>\n    <item>\n      <title>First item</title>\n      <link>https://example.org/items/1</link>\n      <pubDate>Tue, 04 Mar 2014 12:00:00 GMT</pubDate>\n      <description>First synthetic item description.</description>\n    </item>\n    <item>\n      <title>Second item</title>\n      <link>https://example.org/items/2</link>\n      <pubDate>Wed, 05 Mar 2014 12:00:00 GMT</pubDate>\n      <description>Second synthetic item description.</description>\n    </item>\n  </channel>\n</rss>\n",
+  "content_type": "application/rss+xml",
+  "encoding": "text",
+  "status": 200,
+  "url": "https://example.org/test-rss.xml"
+}

@@ -1,0 +1,22 @@
+{
+  "_meta": {
+    "generated_by": "tools/gen_validation_goldens_inference.py",
+    "reference": "statsmodels 0.14.6 OLS(y, X).fit(cov_type='HAC', cov_kwds={'maxlags': L}).bse",
+    "dgp": "puremacro.validation.cases_inference.hac_demo_data (AR(1) errors, seed=20260531, T=200, L=4)",
+    "regenerate": "python tools/gen_validation_goldens_inference.py"
+  },
+  "ols_hac_vs_statsmodels": {
+    "se": [
+      0.14705267557090876,
+      0.09800231377348272,
+      0.08375712564334227
+    ]
+  },
+  "newey_west_vs_statsmodels": {
+    "se": [
+      0.14705267557090876,
+      0.09800231377348272,
+      0.08375712564334227
+    ]
+  }
+}

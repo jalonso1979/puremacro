@@ -1,0 +1,112 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "puremacro"
+version = "0.92.0"
+description = "Pyodide-compatible empirical macro toolbox: SVAR + LP + GARCH + inference"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [{name = "Jorge Alonso Ortiz"}]
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+  "numpy>=1.26",
+  "scipy>=1.10",
+  "pandas>=2.0",
+  "matplotlib>=3.7",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "statsmodels>=0.14", "linearmodels>=5", "arch>=6", "mypy>=1.10", "pytest-cov>=5", "pyyaml>=6", "openpyxl>=3.1", "pyarrow>=15"]
+narrative = ["pypdf>=4.0", "beautifulsoup4>=4.12", "pdfplumber>=0.11"]
+backend = [
+  "numba>=0.59",
+  "mlx>=0.9; sys_platform == 'darwin'",
+]
+cuda = [
+  "cupy-cuda12x>=13",  # NVIDIA only; pick the wheel matching your CUDA toolkit
+]
+notebooks = [
+  "jupytext>=1.16",
+  "nbconvert>=7",
+  "ipykernel>=6",
+]
+data = [
+  "yfinance>=0.2",      # fetch.yahoo (equity / realized-vol market data)
+  "fredapi>=0.5",       # fetch.fred (FRED API-key path; the keyless CSV path needs nothing)
+  "xlrd>=2.0.1",        # fetch.gpr (reads the GPR .xls workbook)
+]
+llm = [
+  "anthropic>=0.40",    # narrative.indices LLM scoring (opt-in; default scoring is key-free)
+]
+embeddings = [
+  "sentence-transformers>=2.2",  # narrative.indices embedding scoring (opt-in; offline after one download)
+]
+local-llm = [
+  "llama-cpp-python>=0.3",                      # cross-platform GGUF (CPU/Metal/CUDA)
+  "mlx-lm>=0.20; sys_platform == 'darwin'",     # Apple-Silicon GPU
+]
+playground = [
+  "jupyterlite-core>=0.7,<0.8",
+  "jupyterlite-pyodide-kernel>=0.7,<0.8",
+]
+
+[tool.setuptools]
+license-files = ["LICENSE"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["puremacro*"]
+
+[tool.setuptools.package-data]
+"puremacro.dsge" = ["_sw07_data.csv"]
+"puremacro.validation.goldens" = ["*.json"]
+"puremacro.replication.data" = ["*.csv"]
+
+[tool.mypy]
+files = ["puremacro"]
+ignore_missing_imports = true
+# Optional / untyped third-party deps (statsmodels, linearmodels, arch,
+# beautifulsoup4, mlx_lm, llama_cpp, yfinance, ...) are treated as Any so the
+# package stays type-checkable with only the 4 core runtime deps installed.
+# puremacro's own code type-checks clean at mypy's default strictness (0.92.0).
+
+[tool.coverage.run]
+source = ["puremacro"]
+branch = false
+omit = [
+  "puremacro/examples/*",
+  "puremacro/teaching/*",
+  "puremacro/tests/*",
+  "puremacro/narrative/sources/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "raise NotImplementedError",
+  "if TYPE_CHECKING:",
+  "if __name__ == .__main__.:",
+]
+
+[tool.pytest.ini_options]
+addopts = ["-m", "not slow and not network and not reference and not replication"]
+markers = [
+    "network: tests requiring live network access (opt-in via `pytest -m network`)",
+    "pyodide_smoke: tests safe to run under Pyodide; opt-in via `pytest -m pyodide_smoke`",
+    "slow: long-running tests (minutes); opt-in via `pytest -m slow`",
+    "local_llm: opt-in tests that need a real local LLM engine (skip if absent)",
+    "reference: live cross-checks vs statsmodels/linearmodels/arch that guard the frozen validation goldens; opt-in via `pytest -m reference`",
+    "replication: opt-in replication cases that need a live data fetch; skip-on-empty (run via `pytest -m replication`)",
+]
+

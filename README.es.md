@@ -1,0 +1,176 @@
+> 🇬🇧 [English](README.md) · 🇪🇸 Español
+
+# puremacro
+
+Una **caja de herramientas de macroeconomía empírica compatible con Pyodide**: utiliza exclusivamente numpy, scipy, pandas y matplotlib en tiempo de ejecución; funciona en iPad / juno.sh igual que en una estación de trabajo convencional.
+
+## Contenido
+
+**Econometría central**
+
+- **VAR** — mínimos cuadrados ordinarios en forma reducida, BVAR (Minnesota), VECM (Engle-Granger / Johansen), TVP-VAR, VAR de panel; FRI / FEVD / GFEVD; bandas de confianza mediante bootstrap de residuos, por bloques, por bloques móviles y wild bootstrap.
+- **Identificación de SVAR** (`var.identify.*`) — Cholesky, Blanchard-Quah, restricciones de signo (Rubio-Ramirez-Waggoner-Zha), restricciones de signo y cero (Arias-Rubio Ramirez-Waggoner), bandas robustas a las restricciones de signo (Giacomini-Kitagawa), variables proxy / instrumentos externos, máxima participación espectral / noticias, heterocedasticidad (Rigobon), no gaussiano (Lanne-Meitz-Saikkonen). Todos los estimadores públicos devuelven objetos `…Result` de tipo dataclass congelado.
+- **Proyecciones locales** (`lp.*`) — LP-HAC para un solo país, LP-IV, LP con retardos aumentados (Plagborg-Møller-Wolf), LP de panel con errores estándar agrupados / Driscoll-Kraay, LP dependiente del estado, LP suavizada (B-splines de Barnichon-Brownlees), LP asimétrica (Tenreyro-Thwaites), LP-GARCH en estado, LP-GARCH en media, grupo medio, CCE, LP cuantílica.
+- **Inferencia** (`inference.*`) — MCO con HAC central, Newey-West, Kiefer-Vogelsang de b fijo, Driscoll-Kraay; diagnósticos de instrumentos débiles (Cragg-Donald, Kleibergen-Paap, Anderson-Rubin, Montiel Olea-Pflueger); Hansen-J / Stock-Yogo para sobreidentificación; CD de Pesaran, homogeneidad de pendientes de Swamy, quiebres estructurales de Quandt-Andrews, curvas de especificación.
+- **Otros estimadores** — índice de derrame de Diebold-Yilmaz; comparación de pronósticos Diebold-Mariano / Giacomini-White y evaluación de pronósticos en densidad (CRPS, log-score); quiebres de Bai-Perron; pruebas de raíz unitaria (ADF, KPSS, PP, Zivot-Andrews); solver QZ de Klein para DSGE lineales (condición de Blanchard-Kahn verificada).
+
+**Extensiones de macroeconomía moderna**
+
+- **DiD escalonado** (`did.*`) — Callaway-Sant'Anna, Sun-Abraham, Borusyak-Jaravel-Spiess, DiD sintético; bootstrap de errores estándar en todos los métodos.
+- **GMM de panel dinámico** (`dynpanel.*`) — Arellano-Bond, Blundell-Bond de dos etapas con corrección de Windmeijer + Hansen-J + AR(1)/AR(2) + colapso de Roodman.
+- **Sorpresas monetarias de alta frecuencia** (`hfi.*`) — Gertler-Karadi 2015, Nakamura-Steinsson 2018, Jarociński-Karadi 2020.
+- **Volatilidad** (`volatility.*`) — `SigmaObject` (traducción 1:1 de la clase MATLAB de MAV con API de descomposición extendida), BEKK, CCC, HAR-RV, basado en rango, diagnósticos ARCH-LM / Ljung-Box.
+- **Nowcasting** (`nowcast.*`) — DFM-Kalman (Doz-Giannone-Reichlin) con manejo de bordes irregulares, MF-VAR de Mariano-Murasawa, combinaciones de pronósticos, reglas de puntuación probabilísticas.
+- **Crecimiento en riesgo** (`gar.*`) — AR cuantílico, ajuste skew-t de ABG 2019, FCI al estilo NFCI.
+- **Ciclos / cointegración / factores** — filtro de tendencia-ciclo de Hamilton 2018 (`cycles`), FM-OLS de Phillips-Hansen / DOLS de Stock-Watson / Phillips-Ouliaris (`cointegration_modern`), factores PCA + criterio IC de Bai-Ng (`factor`), MIDAS (`midas`), GMM de sistema CES de KORV (2000) (`korv_gmm`), control sintético + inferencia placebo (`synthetic_control`).
+- **Espectral / wavelet** (`spectral`, `wavelet`) — PSD de Welch / espectro cruzado / coherencia (solo numpy.fft); descomposición de varianza wavelet MODWT-Haar.
+- **Volatilidad realizada** (`realized_vol`) — varianza realizada, variación bipotencial, HAR-RV de Corsi.
+- **Agentes heterogéneos / iteración sobre función de valor** (`vfi.*`) — iteración sobre la función de valor con EGM, ciclo de vida de horizonte finito, OLG, choques agregados de Krusell-Smith, entrada/salida de empresas de Hopenhayn, Epstein-Zin, tipos permanentes, trayectorias de transición y estimación por método de momentos; backend de referencia en numpy con aceleración opcional mediante numba / mlx / cupy. Véanse los cuadernos en `notebooks/` para una galería de ejemplos.
+
+**Econometría narrativa** (`narrative.*`)
+
+Pipeline de variables instrumentales narrativas para política fiscal, mercado laboral e incertidumbre: esquemas canónicos `NarrativeEvent` / `NarrativeInstrument`, deduplicación, clasificadores por palabras clave y puntuación manual, construcción de panel, cargadores de replicación para conjuntos de datos canónicos (Romer-Romer, Mertens-Ravn). El clasificador basado en LLM (`narrative.scoring.llm`) y los módulos de fuentes HTTP (`narrative.sources.*`) operan fuera de Pyodide como canales laterales.
+Las fuentes disponibles incluyen:
+- **Libro Beige** — corpus del Beige Book de la Fed a partir de las páginas modernas de federalreserve.gov y las páginas históricas del FOMC, con análisis por sección canónica y por distrito (`puremacro.narrative.sources.iter_beige_book`, `puremacro.narrative.indices.bbui`).
+- **Narrativa ejecutiva estadounidense** — Economic Report of the President (`iter_erp`), State of the Union (`iter_sotu`) e informes del CBO (`iter_cbo`); tres índices asociados `erpui`, `sotuui`, `cboui`. Las solicitudes de cuerpo al CBO recurren de forma transparente a la Wayback Machine cuando cbo.gov devuelve un desafío DataDome.
+- **Narrativa legislativa de la UE** — actos vinculantes de EUR-Lex (`iter_eurlex`) y debates plenarios verbatim del Parlamento Europeo (`iter_ep_debates`); dos índices trilingües EN/DE/FR `eurlex_ui` y `ep_ui`. Enumeración de EUR-Lex mediante el endpoint público SPARQL de Cellar (obtención por acto enrutada por Wayback debido a la protección AWS-WAF del sitio en vivo); PE mediante CDX de Wayback con cobertura desde la Legislatura 7 (2009-07-14).
+- **Archivo de Bluesky** — gobernadores de bancos centrales y ministros de finanzas mediante AT Protocol (`iter_bluesky_posts`, `bluesky_ui`). Lista semilla de 29 identificadores seleccionados manualmente (`BLUESKY_KNOWN_HANDLES`); 12 resueltos al 2026-05-25. Soporte multilingüe mediante el argumento `languages=...` del conector; el índice utiliza por defecto agregación mensual a nivel de actor (`aggregate_to="actor_month"`) para mitigar la degradación del LUI con textos cortos.
+- **Desacuerdo entre fuentes** — `consensus_disagreement` calcula la media y desviación estándar transversal sobre cualquier subconjunto de índices narrativos; `CROSS_SOURCE_GROUPS` documenta los subconjuntos temáticos.
+
+Los conectores bloqueados por WAF / protección anti-bot (EUR-Lex, Parlamento Europeo, CBO) recurren a la Wayback Machine mediante el helper compartido `puremacro.narrative.sources._wayback`. La cobertura está limitada por lo que Wayback haya archivado.
+
+**Pipelines de datos** (incorporados recientemente; véase `ARCHITECTURE.md`)
+
+- **Captadores** (`fetch.*`) — FRED / ALFRED (series en tiempo real por vintage), SDMX-CSV (OCDE, Eurostat, BCE, SDMX-Central del FMI), EPU / GPR / WUI / JLN / Fernald, OCDE-MEI / QNA / Energía / Tipos de cambio, ILOSTAT, Yahoo, hoja rosa del Banco Mundial, además de cargadores FRED por estado para el seguimiento subnacional de EE. UU.
+- **Constructores de panel** (`build_panel`, `build_subnational_panel`) — puntos de entrada únicos que materializan paneles trimestrales y mensuales de países y estados de EE. UU. a partir de los captadores, con etiquetado de regímenes, ajuste estacional (X-13 / STL como alternativa) y una pipeline de σ-GARCH derivada.
+- **Instrumentos** (`instruments.*`) — registro de instrumentos, composición y cargadores externos (ruta de clave API de FRED); columna vertebral de la maquinaria LP-IV.
+- **Bartik / shift-share** (`bartik.*`) — participaciones, sensibilidades, pesos de Rotemberg, exposición EPU a nivel de condado.
+- **Utilidades de datos misceláneas** — cargador EU-KLEMS 2023 (`klems`), agregador NEER del BIS (`bis_neer`), empalme homogéneo de vintage G9 (`long_panel`), participación laboral de Gollin (`labor_share`), series en tiempo real por vintage (`vintages`), ajuste estacional (`sa`).
+- **Flujos laborales** — transiciones E/U/N de tres estados a partir de los agregados CPS del BLS (`labor_flows`) y transiciones F/I/U/N de cuatro estados a partir de los microdatos ENOE para México (`labor_flows_enoe`).
+
+**Artefactos docentes**
+
+`teaching.*` es un canal lateral de investigación y docencia que envuelve intencionadamente `statsmodels` / `linearmodels` / `arch` para que los cuadernos puedan comparar los estimadores puros en numpy de puremacro con los paquetes canónicos. **No está cubierto por la promesa de compatibilidad con Pyodide.**
+
+## Instalación
+
+### Local (desarrollo)
+
+Desde el directorio del paquete `puremacro/` (el que contiene este `README.md` y `pyproject.toml`):
+
+```bash
+pip install -e .
+```
+
+Para ejecutar las pruebas de paridad del entorno de desarrollo, instale también las dependencias opcionales:
+
+```bash
+pip install -e '.[dev]'
+```
+
+Para utilizar el extractor de cuerpo PDF de `narrative.sources`:
+
+```bash
+pip install -e '.[narrative]'
+```
+
+Otros extras opcionales: `[backend]` (numba + Apple-Silicon mlx), `[cuda]` (NVIDIA cupy), `[data]` (captadores yfinance / fredapi / xlrd), `[llm]` (puntuación narrativa respaldada por Anthropic), `[embeddings]` (puntuación narrativa con sentence-transformers), `[notebooks]` (construcción de cuadernos con jupytext).
+
+Para los conectores que requieren caché en disco bajo demanda y regulación por host, las variantes `safe_get_bytes_cached` y `safe_get_text_cached` aplican una caché indexada por SHA-256 en `~/.cache/puremacro/http/`. Defina `PUREMACRO_HTTP_NO_CACHE=1` para omitirla.
+
+### juno.sh / iPad
+
+Suba el directorio `puremacro/` a su espacio de trabajo en juno.sh y luego, en una celda de cuaderno:
+
+```python
+%pip install ./puremacro
+```
+
+### Ejecutar las funciones LLM de forma gratuita (modelos locales)
+
+Las funciones LLM narrativas (`score_llm`, `llm_prob_kernel`) se ejecutan sobre un **modelo local** — sin clave de API, sin API de pago, $0. Todo lo demás en puremacro ya es gratuito; esto cierra el único componente que antes requería pago.
+
+Instale un motor una sola vez (cualquiera de los siguientes):
+
+```bash
+pip install "puremacro[local-llm]"     # MLX (Apple Silicon) + llama.cpp (cualquier SO)
+# o instale Ollama (https://ollama.com) — sin dependencias Python — y luego:  ollama pull qwen2.5:3b
+```
+
+Luego utilice un backend local (mismas firmas que los backends de pago):
+
+```python
+from puremacro.narrative.scoring import score_llm, LocalBackend
+events = score_llm(records, backend=LocalBackend("qwen2.5-3b-instruct", engine="auto"))
+
+from puremacro.narrative.indices import llm_prob_kernel, LocalProvider
+idx = llm_prob_kernel(records, provider=LocalProvider("qwen2.5-3b-instruct"),
+                      category="economic uncertainty")
+```
+
+`engine="auto"` selecciona el mejor motor instalado (GPU de Apple via MLX → llama.cpp → un servidor Ollama en ejecución; para LM Studio / vLLM / cualquier servidor compatible con OpenAI, pase `engine="openai"` con `base_url=`). Modelos disponibles: `qwen2.5-3b-instruct` (por defecto), `gemma2-2b` (Google), `llama3.2-3b` (Meta), `phi3.5` (Microsoft), o cualquier identificador de modelo del motor. Véanse `puremacro/examples/narrative_local_llm.py` y el cuaderno `local_llm_uncertainty`. (La inferencia local es solo para escritorio — no se ejecuta dentro del entorno de juego en el navegador.)
+
+## Compatibilidad con Pyodide
+
+La promesa de compatibilidad en tiempo de ejecución es: únicamente `numpy + scipy + pandas + matplotlib` serán importados por el código que se distribuye en la rueda. `statsmodels`, `linearmodels`, `arch`, `pypdf` y los captadores de red son todos exclusivos del entorno de desarrollo, están limitados a extras o se importan de forma diferida tras una verificación.
+
+La prueba de regresión correspondiente es `tests/test_pyodide_compat.py` — recorre cada submódulo distribuible y verifica que ningún módulo prohibido figure en `sys.modules`. Si agrega una nueva dependencia opcional, siga el patrón de importación diferida existente (véanse `narrative.scoring.llm` o `fetch._seasonal._x13_arima_analysis` como ejemplos canónicos).
+
+## Inicio rápido
+
+**Primeros 5 minutos — sin conexión, sin archivos de datos, sin clave de API.** La verificación más rápida de que la instalación funciona (un SVAR con restricciones de signo sobre un proceso generador de datos sintético de 3 variables; sin red, sin datos, semilla fija):
+
+```bash
+python -m puremacro.examples.sign_restrictions_uhlig
+```
+
+O bien, en Python, sobre un sistema sintético construido en tres líneas:
+
+```python
+import numpy as np
+import pandas as pd
+import puremacro as pm
+
+# Un pequeño sistema sintético de 3 variables (sin archivos de datos, sin clave de API).
+rng = np.random.default_rng(0)
+T = 200
+Y = rng.standard_normal((T, 3)).cumsum(0)          # ndarray, shape (T, 3)
+
+# SVAR identificado por Cholesky con bandas de confianza al 90% mediante bootstrap de residuos.
+from puremacro.var.identify.cholesky import cholesky_svar
+res = cholesky_svar(Y, p=2, horizon=20, n_boot=500, ci=0.9)
+print("IRF array shape (H+1, n, n):", res.irf_point.shape)   # (21, 3, 3)
+# también disponibles: res.irf_lower, res.irf_upper, res.n_boot, res.n_fail
+
+# LP-HAC para un solo país: respuesta de y a un choque sintético.
+panel = pd.DataFrame({"y": Y[:, 0], "shock": rng.standard_normal(T)})
+from puremacro.lp.jorda import lp_hac
+irf = lp_hac(panel, y="y", x="shock", horizons=range(0, 21), n_lags=2)
+print(irf.head())                       # columns: h, beta, se, t, lo, hi
+```
+
+Las claves de API opcionales se resuelven de forma centralizada (no se necesita ninguna para los ejemplos sintéticos anteriores):
+
+```python
+from puremacro import credentials
+credentials.status()                  # see what's configured (no values leaked)
+# credentials.require("fred")         # raises with a signup URL if the key is missing
+```
+
+Las replicaciones de extremo a extremo de artículos canónicos se encuentran en `puremacro/examples/` — Bloom 2009 (`bloom2009.py`), SVAR narrativo de Mertens-Ravn (`svariv_mertens_ravn.py`), narrativa monetaria de Romer-Romer (`romer_romer_*.py`) y aproximadamente 60 más. La mayoría (como el ejemplo de Uhlig anterior) son completamente sintéticos y no requieren datos ni claves; algunos leen datos incluidos en el paquete o descargados en línea.
+
+## Documentación
+
+- **`ARCHITECTURE.md`** — mapa de módulos, niveles de estabilidad, contrato con Pyodide, estándar de objetos de resultado. Léalo antes si va a contribuir o busca dónde vive algo.
+- **`CHANGELOG.md`** — diferencias por versión, incluidas las refactorizaciones internas.
+- **Docstrings por función** como referencia canónica; el docstring de módulo de cada subpaquete explica su alcance.
+
+## Convenciones
+
+- **API pública por subpaquete** curada mediante `__init__.py::__all__`; el paquete de nivel superior `puremacro` solo reexporta `__version__`.
+- **Objetos de resultado como dataclass congelado** para cualquier estimador que devuelva 3 o más campos o diagnósticos no triviales (véase `ARCHITECTURE.md` § Result-object standard). Los DataFrames con columnas nombradas quedan exentos.
+- **Errores de diagnóstico en lugar de resultados silenciosos incorrectos** — `X'X` singular, Σ no definida positiva, violaciones de la condición de Blanchard-Kahn y replicaciones bootstrap mal condicionadas generan excepciones o advertencias que identifican la función invocante y la causa probable.
+
+## Estado
+
+Pre-1.0; las APIs pueden renombrarse libremente con los consumidores actualizados en el mismo commit. Paquete de investigación de un solo autor. Los flujos de CI (tests, gate de Pyodide, mypy, guardia de deriva contra referencias, despliegue del playground, publicación en PyPI) están definidos en `.github/workflows/` y se activarán cuando el paquete se separe a su propio repositorio; mientras viva dentro del monorepo están inertes, así que ejecute `pytest` (o `python tools/release_check.py`) localmente antes de etiquetar una versión.

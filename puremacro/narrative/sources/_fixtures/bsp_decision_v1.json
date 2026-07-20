@@ -1,0 +1,156 @@
+{
+  "d": {
+    "results": [
+      {
+        "__metadata": {
+          "id": "40a7e49f-e640-4b8a-ad39-310e9d567a60",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'9b0a2117-49d8-4e96-80ba-8651a0e3e17a')/Items(7884)",
+          "etag": "\"3\"",
+          "type": "SP.Data.Media_x0020_Releases_x0020_and_x0020_AdvisoriesListItem"
+        },
+        "Id": 7884,
+        "Title": "Monetary Board raises Target RRP Rate by 25 basis points",
+        "PDate": "2026-04-22T16:00:00Z",
+        "Tag": "Media Releases",
+        "Status": "2",
+        "OData__ModerationStatus": 0,
+        "ID": 7884
+      },
+      {
+        "__metadata": {
+          "id": "b1c2d3e4-f5a6-7890-abcd-ef1234567890",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'9b0a2117-49d8-4e96-80ba-8651a0e3e17a')/Items(7853)",
+          "etag": "\"2\"",
+          "type": "SP.Data.Media_x0020_Releases_x0020_and_x0020_AdvisoriesListItem"
+        },
+        "Id": 7853,
+        "Title": "Monetary Board maintains vigilance against inflation risks",
+        "PDate": "2026-03-25T16:00:00Z",
+        "Tag": "Media Releases",
+        "Status": "2",
+        "OData__ModerationStatus": 0,
+        "ID": 7853
+      },
+      {
+        "__metadata": {
+          "id": "c2d3e4f5-a6b7-8901-bcde-f12345678901",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'9b0a2117-49d8-4e96-80ba-8651a0e3e17a')/Items(7823)",
+          "etag": "\"3\"",
+          "type": "SP.Data.Media_x0020_Releases_x0020_and_x0020_AdvisoriesListItem"
+        },
+        "Id": 7823,
+        "Title": "Monetary Board reduces target RRP rate by 25 basis points",
+        "PDate": "2026-02-18T16:00:00Z",
+        "Tag": "Media Releases",
+        "Status": "2",
+        "OData__ModerationStatus": 0,
+        "ID": 7823
+      },
+      {
+        "__metadata": {
+          "id": "d3e4f5a6-b7c8-9012-cdef-012345678901",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'9b0a2117-49d8-4e96-80ba-8651a0e3e17a')/Items(7767)",
+          "etag": "\"2\"",
+          "type": "SP.Data.Media_x0020_Releases_x0020_and_x0020_AdvisoriesListItem"
+        },
+        "Id": 7767,
+        "Title": "Monetary Board reduces target RRP rate by 25 basis points",
+        "PDate": "2025-12-10T16:00:00Z",
+        "Tag": "Media Releases",
+        "Status": "2",
+        "OData__ModerationStatus": 0,
+        "ID": 7767
+      },
+      {
+        "__metadata": {
+          "id": "e4f5a6b7-c8d9-0123-def0-123456789012",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'9b0a2117-49d8-4e96-80ba-8651a0e3e17a')/Items(7705)",
+          "etag": "\"3\"",
+          "type": "SP.Data.Media_x0020_Releases_x0020_and_x0020_AdvisoriesListItem"
+        },
+        "Id": 7705,
+        "Title": "Monetary Board Reduces Target RRP by 25 basis points",
+        "PDate": "2025-10-08T16:00:00Z",
+        "Tag": "Media Releases",
+        "Status": "2",
+        "OData__ModerationStatus": 0,
+        "ID": 7705
+      },
+      {
+        "__metadata": {
+          "id": "f5a6b7c8-d9e0-1234-ef01-234567890123",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'9b0a2117-49d8-4e96-80ba-8651a0e3e17a')/Items(7644)",
+          "etag": "\"2\"",
+          "type": "SP.Data.Media_x0020_Releases_x0020_and_x0020_AdvisoriesListItem"
+        },
+        "Id": 7644,
+        "Title": "Monetary Board reduces Target RRP Rate by 25 basis points",
+        "PDate": "2025-08-27T16:00:00Z",
+        "Tag": "Media Releases",
+        "Status": "2",
+        "OData__ModerationStatus": 0,
+        "ID": 7644
+      },
+      {
+        "__metadata": {
+          "id": "a6b7c8d9-e0f1-2345-f012-345678901234",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'9b0a2117-49d8-4e96-80ba-8651a0e3e17a')/Items(7556)",
+          "etag": "\"3\"",
+          "type": "SP.Data.Media_x0020_Releases_x0020_and_x0020_AdvisoriesListItem"
+        },
+        "Id": 7556,
+        "Title": "Monetary Board reduces Target RRP Rate by 25 basis points",
+        "PDate": "2025-06-18T16:00:00Z",
+        "Tag": "Media Releases",
+        "Status": "2",
+        "OData__ModerationStatus": 0,
+        "ID": 7556
+      },
+      {
+        "__metadata": {
+          "id": "b7c8d9e0-f1a2-3456-0123-456789012345",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'9b0a2117-49d8-4e96-80ba-8651a0e3e17a')/Items(7480)",
+          "etag": "\"2\"",
+          "type": "SP.Data.Media_x0020_Releases_x0020_and_x0020_AdvisoriesListItem"
+        },
+        "Id": 7480,
+        "Title": "Monetary Board reduces target RRP Rate by 25 basis points",
+        "PDate": "2025-04-09T16:00:00Z",
+        "Tag": "Media Releases",
+        "Status": "2",
+        "OData__ModerationStatus": 0,
+        "ID": 7480
+      },
+      {
+        "__metadata": {
+          "id": "c8d9e0f1-a2b3-4567-1234-567890123456",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'9b0a2117-49d8-4e96-80ba-8651a0e3e17a')/Items(7424)",
+          "etag": "\"3\"",
+          "type": "SP.Data.Media_x0020_Releases_x0020_and_x0020_AdvisoriesListItem"
+        },
+        "Id": 7424,
+        "Title": "Monetary Board Maintains Target RRP Rate",
+        "PDate": "2025-02-12T16:00:00Z",
+        "Tag": "Media Releases",
+        "Status": "2",
+        "OData__ModerationStatus": 0,
+        "ID": 7424
+      },
+      {
+        "__metadata": {
+          "id": "d9e0f1a2-b3c4-5678-2345-678901234567",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'9b0a2117-49d8-4e96-80ba-8651a0e3e17a')/Items(7364)",
+          "etag": "\"2\"",
+          "type": "SP.Data.Media_x0020_Releases_x0020_and_x0020_AdvisoriesListItem"
+        },
+        "Id": 7364,
+        "Title": "Monetary Board Reduces Target RRP Rate by 25 Basis Points",
+        "PDate": "2024-12-18T16:00:00Z",
+        "Tag": "Media Releases",
+        "Status": "2",
+        "OData__ModerationStatus": 0,
+        "ID": 7364
+      }
+    ]
+  }
+}

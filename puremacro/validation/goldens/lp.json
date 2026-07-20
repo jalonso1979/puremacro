@@ -1,0 +1,40 @@
+{
+  "_meta": {
+    "generated_by": "tools/gen_validation_goldens_lp.py",
+    "reference": "statsmodels 0.14.6 OLS(cov_type='HAC', use_correction=False); linearmodels 7.0 IV2SLS and PanelOLS(EntityEffects+TimeEffects)",
+    "dgp": "puremacro.validation.cases_lp: lp_ts_demo (seed=424242), lp_iv_demo (seed=20260531), lp_panel_demo (seed=7777); horizons=[0, 1, 2, 4], n_lags=2",
+    "regenerate": "python tools/gen_validation_goldens_lp.py"
+  },
+  "jorda_hac_beta_vs_statsmodels": {
+    "beta": [
+      0.7626748469949276,
+      0.798357506672251,
+      0.5243873945217482,
+      0.19843857339209295
+    ]
+  },
+  "jorda_hac_se_vs_statsmodels": {
+    "se": [
+      0.0548954644161924,
+      0.09344436877565619,
+      0.11164135433364371,
+      0.10590596234149872
+    ]
+  },
+  "iv_beta_vs_linearmodels_iv2sls": {
+    "beta": [
+      0.6587290323270384,
+      0.568214552529748,
+      0.3970819321668941,
+      0.11405741002659626
+    ]
+  },
+  "panel_two_way_fe_beta_vs_linearmodels": {
+    "beta": [
+      0.7017223851841279,
+      0.5271484654687894,
+      0.2557106520579633,
+      0.10038506895884339
+    ]
+  }
+}

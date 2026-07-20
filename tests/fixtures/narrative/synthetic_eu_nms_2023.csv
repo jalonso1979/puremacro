@@ -1,0 +1,5 @@
+country,year,category,impact_t,impact_t+1,impact_t+2,impact_t+3,impact_t+4,impact_t+5,gdp,endogeneity
+POL,2010,Personal income tax,2.0,1.5,1.0,0.0,0.0,0.0,400,exogenous
+POL,2010,Public investment,3.0,2.5,2.0,1.5,0.0,0.0,400,exogenous
+HUN,2012,Other widget,1.5,0.5,0.0,0.0,0.0,0.0,150,endogenous
+CZE,2015,VAT,2.5,2.0,0.0,0.0,0.0,0.0,200,endogenous

@@ -1,0 +1,7 @@
+{
+  "body": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<feed xmlns=\"http://www.w3.org/2005/Atom\">\n  <title>Synthetic Atom feed</title>\n  <link href=\"https://example.org/\"/>\n  <updated>2020-01-01T12:00:00Z</updated>\n  <id>https://example.org/atom-id</id>\n  <entry>\n    <title>Atom item 1</title>\n    <link href=\"https://example.org/atom/1\"/>\n    <id>https://example.org/atom/1</id>\n    <updated>2020-02-15T10:00:00Z</updated>\n    <summary>First synthetic atom entry.</summary>\n  </entry>\n  <entry>\n    <title>Atom item 2</title>\n    <link href=\"https://example.org/atom/2\"/>\n    <id>https://example.org/atom/2</id>\n    <updated>2020-03-15T10:00:00Z</updated>\n    <summary>Second synthetic atom entry.</summary>\n  </entry>\n</feed>\n",
+  "content_type": "application/atom+xml",
+  "encoding": "text",
+  "status": 200,
+  "url": "https://example.org/test-atom.xml"
+}

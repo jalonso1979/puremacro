@@ -1,0 +1,2795 @@
+{
+  "all": {
+    "puremacro._backend": [
+      "SUPPORTED",
+      "available_backends",
+      "backend_available",
+      "get_array_namespace",
+      "to_numpy"
+    ],
+    "puremacro._cache_db": [
+      "bootstrap_schema",
+      "close_conn",
+      "default_db_path",
+      "get_conn",
+      "migrate_from_flat_files"
+    ],
+    "puremacro._http": [
+      "DEFAULT_TIMEOUT",
+      "USER_AGENT",
+      "post_json",
+      "safe_get_bytes",
+      "safe_get_bytes_cached",
+      "safe_get_json",
+      "safe_get_text",
+      "safe_get_text_cached"
+    ],
+    "puremacro._http_cache": [
+      "cache_key",
+      "cache_read",
+      "cache_write",
+      "default_cache_dir"
+    ],
+    "puremacro._linalg": [
+      "inv_xtx",
+      "safe_cholesky"
+    ],
+    "puremacro.bartik": [
+      "build_base_year_shares",
+      "build_county_epu",
+      "build_exposure_iv",
+      "build_rolling_shares",
+      "estimate_industry_sensitivities",
+      "rotemberg_weights"
+    ],
+    "puremacro.bis_neer": [
+      "_BIS_TO_ISO3",
+      "fetch_bis_neer",
+      "fetch_bis_neer_panel"
+    ],
+    "puremacro.cache": [
+      "disk_cache",
+      "disk_cache_path",
+      "http_cache_clear",
+      "http_cache_size_bytes",
+      "http_list_urls"
+    ],
+    "puremacro.climate": [
+      "climate_annual_lp",
+      "climate_mediation_lp",
+      "compute_annual_cdd_hdd",
+      "compute_monthly_cdd_hdd",
+      "make_dl_lags",
+      "monthly_dl"
+    ],
+    "puremacro.climate.annual_lp": [
+      "climate_annual_lp"
+    ],
+    "puremacro.climate.degree_days": [
+      "compute_annual_cdd_hdd",
+      "compute_monthly_cdd_hdd"
+    ],
+    "puremacro.climate.mediation": [
+      "climate_mediation_lp"
+    ],
+    "puremacro.climate.monthly_dl": [
+      "make_dl_lags",
+      "monthly_dl"
+    ],
+    "puremacro.cointegration_modern": [
+      "DOLSResult",
+      "FMOLSResult",
+      "PhillipsOuliarisResult",
+      "dols",
+      "fm_ols",
+      "phillips_ouliaris"
+    ],
+    "puremacro.connectedness": [
+      "spillover_index"
+    ],
+    "puremacro.connectedness.diebold_yilmaz": [
+      "spillover_index"
+    ],
+    "puremacro.credentials": [
+      "MissingCredentialError",
+      "SERVICES",
+      "ServiceCredentialSpec",
+      "default_config_path",
+      "get",
+      "require",
+      "status"
+    ],
+    "puremacro.data": [
+      "align_yx",
+      "bk_filter",
+      "hamilton_filter",
+      "hp_filter",
+      "long_to_wide",
+      "slice_country"
+    ],
+    "puremacro.did": [
+      "BorusyakJaravelSpiessResult",
+      "CallawaySantannaResult",
+      "CdHResult",
+      "PanelDiD",
+      "SDIDMultiResult",
+      "SunAbrahamResult",
+      "SyntheticDiDResult",
+      "borusyak_jaravel_spiess",
+      "callaway_santanna",
+      "cdh_did",
+      "sdid_multi_cohort",
+      "sun_abraham",
+      "synthetic_did"
+    ],
+    "puremacro.did.borusyak_jaravel_spiess": [
+      "borusyak_jaravel_spiess"
+    ],
+    "puremacro.did.callaway_santanna": [
+      "callaway_santanna"
+    ],
+    "puremacro.did.cdh": [
+      "cdh_did"
+    ],
+    "puremacro.did.sdid_multi": [
+      "sdid_multi_cohort"
+    ],
+    "puremacro.did.sun_abraham": [
+      "sun_abraham"
+    ],
+    "puremacro.did.synthetic_did": [
+      "synthetic_did"
+    ],
+    "puremacro.did.types": [
+      "PanelDiD"
+    ],
+    "puremacro.dsge": [
+      "BlanchardKahnError",
+      "DSGEPosteriorResult",
+      "FertilitySolution",
+      "KleinSolution",
+      "SW07PosteriorResult",
+      "estimate_dsge",
+      "estimate_sw07",
+      "fertility_adj_costs",
+      "klein_solve",
+      "priors",
+      "solve_bgp",
+      "solve_fertility"
+    ],
+    "puremacro.dsge._results": [
+      "DSGEPosteriorResult",
+      "FertilitySolution",
+      "SW07PosteriorResult"
+    ],
+    "puremacro.dsge.estimate": [
+      "estimate_dsge"
+    ],
+    "puremacro.dsge.fertility_adj_costs": [
+      "FERTILITY_CALIB_TARGETS",
+      "FERTILITY_EXOGENOUS_PARAMS",
+      "FERTILITY_PINNED_CALIBRATION",
+      "FERTILITY_SHOCK_PROCESSES",
+      "N_FWD",
+      "N_PRE",
+      "N_SHOCKS",
+      "N_VARS",
+      "SHOCK_NAMES",
+      "VAR_NAMES",
+      "exact_steady_state",
+      "model_residuals",
+      "solve_bgp",
+      "solve_fertility"
+    ],
+    "puremacro.dsge.gensys": [
+      "GensysSolution",
+      "gensys"
+    ],
+    "puremacro.dsge.klein": [
+      "BlanchardKahnError",
+      "KleinSolution",
+      "klein_solve"
+    ],
+    "puremacro.dsge.priors": [
+      "log_prior",
+      "param_bounds",
+      "param_names",
+      "prior_means",
+      "prior_stds"
+    ],
+    "puremacro.dsge.sw07_estimate": [
+      "estimate_sw07"
+    ],
+    "puremacro.dsge.sw07_observation": [
+      "OBSERVED_VARS",
+      "make_state_space"
+    ],
+    "puremacro.dsge.sw07_priors": [
+      "PRIORS",
+      "log_prior",
+      "param_bounds",
+      "param_names",
+      "prior_means",
+      "prior_stds"
+    ],
+    "puremacro.dynpanel": [
+      "GMMResult",
+      "ab_gmm",
+      "bb_gmm"
+    ],
+    "puremacro.dynpanel._results": [
+      "GMMResult"
+    ],
+    "puremacro.dynpanel.ab_gmm": [
+      "ab_gmm"
+    ],
+    "puremacro.dynpanel.bb_gmm": [
+      "bb_gmm"
+    ],
+    "puremacro.dynpanel.diagnostics": [
+      "ar_test",
+      "hansen_j",
+      "windmeijer_correction"
+    ],
+    "puremacro.dynpanel.instruments": [
+      "build_H_block",
+      "build_diff_design",
+      "build_diff_instruments",
+      "build_instruments"
+    ],
+    "puremacro.experiment": [
+      "run_experiment"
+    ],
+    "puremacro.factor": [
+      "bai_ng_ic",
+      "pca_factors",
+      "static_dfm_fit"
+    ],
+    "puremacro.fetch": [
+      "fetch_eurostat_lfs_panel",
+      "fetch_fred",
+      "fetch_fred_alfred",
+      "fetch_ilostat_lfs_panel",
+      "fetch_ilostat_sectoral_panel",
+      "fetch_labor_panel_union",
+      "fetch_oecd_lfs_panel",
+      "fetch_sectoral_panel_union",
+      "oecd_sdmx_instrument",
+      "sdmx_get"
+    ],
+    "puremacro.fetch._classic": [
+      "fetch_fred",
+      "fetch_fred_alfred"
+    ],
+    "puremacro.fetch._oecd_sdmx": [
+      "get_sdmx_csv"
+    ],
+    "puremacro.fetch._seasonal": [
+      "x13_seasonal_adjust"
+    ],
+    "puremacro.fetch.bls_state_panel": [
+      "iter_state_employment_q",
+      "iter_state_participation_a",
+      "iter_state_participation_q",
+      "iter_state_urate_q"
+    ],
+    "puremacro.fetch.hrs_mpu": [
+      "fetch"
+    ],
+    "puremacro.fetch.imf_ifs": [
+      "ISO2_TO_ISO3",
+      "fetch"
+    ],
+    "puremacro.fetch.labor_ilostat": [
+      "fetch_ilostat_lfs_panel",
+      "fetch_ilostat_sectoral_panel"
+    ],
+    "puremacro.fetch.oecd_energy": [
+      "fetch_energy_cpi"
+    ],
+    "puremacro.fetch.oecd_fx": [
+      "fetch_xrate_monthly"
+    ],
+    "puremacro.fetch.oecd_mei": [
+      "fetch"
+    ],
+    "puremacro.fetch.oecd_qna_expenditure": [
+      "fetch_qna_expenditure"
+    ],
+    "puremacro.fetch.oecd_qna_labor": [
+      "fetch_qna_labor"
+    ],
+    "puremacro.fetch.oecd_qna_local": [
+      "fetch_extended"
+    ],
+    "puremacro.fetch.sdmx": [
+      "oecd_sdmx_instrument",
+      "sdmx_get"
+    ],
+    "puremacro.fetch.state_industry_panel": [
+      "STATE_AI_EXPOSURE_2019",
+      "STATE_DEMOGRAPHICS_2005",
+      "STATE_INDUSTRY_SHARES_2005",
+      "SUPERSECTORS",
+      "TOP_COUNTIES_BY_STATE",
+      "_FIPS",
+      "iter_county_urate_q",
+      "iter_national_industry_emp_q"
+    ],
+    "puremacro.fetch.wb_pink_sheet": [
+      "fetch"
+    ],
+    "puremacro.fetch.wui_extras": [
+      "fetch_extras_m",
+      "fetch_wpui_m",
+      "fetch_wtui_m",
+      "fetch_wui_m_full"
+    ],
+    "puremacro.forecast": [
+      "combine_forecasts",
+      "crps_ensemble",
+      "crps_gaussian",
+      "diebold_mariano",
+      "giacomini_white",
+      "klic_amisano_giacomini",
+      "pit",
+      "pit_uniformity_test"
+    ],
+    "puremacro.forecast.compare": [
+      "diebold_mariano",
+      "giacomini_white"
+    ],
+    "puremacro.forecast.density": [
+      "berkowitz_test",
+      "combine_forecasts",
+      "crps_ensemble",
+      "crps_gaussian",
+      "klic_amisano_giacomini",
+      "pit",
+      "pit_uniformity_test"
+    ],
+    "puremacro.gar": [
+      "SkewTFit",
+      "fci",
+      "fci_rolling",
+      "fit_skewt_to_quantiles",
+      "lp_quantile",
+      "qar",
+      "skewt_cdf",
+      "skewt_pdf",
+      "skewt_ppf"
+    ],
+    "puremacro.gar.fci": [
+      "fci",
+      "fci_rolling"
+    ],
+    "puremacro.gar.qar": [
+      "qar"
+    ],
+    "puremacro.gar.skewt": [
+      "SkewTFit",
+      "fit_skewt_to_quantiles",
+      "skewt_cdf",
+      "skewt_pdf",
+      "skewt_ppf"
+    ],
+    "puremacro.garch": [
+      "DCCResult",
+      "GARCH11Result",
+      "dcc_fit",
+      "garch11_fit"
+    ],
+    "puremacro.garch.dcc": [
+      "dcc_fit"
+    ],
+    "puremacro.garch.fit": [
+      "garch11_fit"
+    ],
+    "puremacro.hfi": [
+      "JKResult",
+      "aggregate_to_period",
+      "gk2015_surprise",
+      "jk_median_target",
+      "jk_poor_man",
+      "ns2018_first_pc"
+    ],
+    "puremacro.inference": [
+      "ARTestResult",
+      "LewbelIVResult",
+      "SupTBandResult",
+      "anderson_rubin_test",
+      "block_bootstrap",
+      "bootstrap_pvalue_median",
+      "bootstrap_resample",
+      "cragg_donald_f",
+      "enumerate_specs",
+      "hac_fixed_b",
+      "hansen_j",
+      "kleibergen_paap_f",
+      "lewbel_iv",
+      "llsw_critical_value",
+      "moving_block_bootstrap",
+      "msw_bands",
+      "newey_west",
+      "olea_pflueger_f",
+      "pesaran_cd",
+      "quandt_andrews_supF",
+      "run_spec_curve",
+      "stock_yogo_cv",
+      "supt_band",
+      "swamy_test",
+      "wild_bootstrap",
+      "wild_bootstrap_var"
+    ],
+    "puremacro.inference._ols_helpers": [
+      "ols_hac"
+    ],
+    "puremacro.inference.dk": [
+      "driscoll_kraay"
+    ],
+    "puremacro.inference.hac_fixed_b": [
+      "hac_fixed_b",
+      "llsw_critical_value"
+    ],
+    "puremacro.inference.lewbel_iv": [
+      "lewbel_iv"
+    ],
+    "puremacro.inference.over_id": [
+      "hansen_j",
+      "stock_yogo_cv"
+    ],
+    "puremacro.inference.quandt_andrews": [
+      "quandt_andrews_supF"
+    ],
+    "puremacro.inference.spec_curve": [
+      "bootstrap_pvalue_median",
+      "enumerate_specs",
+      "run_spec_curve"
+    ],
+    "puremacro.inference.supt": [
+      "SupTBandResult",
+      "supt_band"
+    ],
+    "puremacro.inference.weak_iv": [
+      "ARTestResult",
+      "anderson_rubin_band",
+      "anderson_rubin_test",
+      "cragg_donald_f",
+      "kleibergen_paap_f",
+      "msw_bands",
+      "olea_pflueger_f"
+    ],
+    "puremacro.instruments": [
+      "Instrument",
+      "InstrumentLike",
+      "InstrumentSpec",
+      "VALID_CATEGORIES",
+      "compose",
+      "describe",
+      "list_available",
+      "load",
+      "register"
+    ],
+    "puremacro.instruments._compose": [
+      "compose"
+    ],
+    "puremacro.instruments._core": [
+      "Instrument",
+      "InstrumentLike",
+      "VALID_CATEGORIES"
+    ],
+    "puremacro.instruments._helpers": [
+      "_csv_to_instrument",
+      "_json_to_instrument"
+    ],
+    "puremacro.instruments._registry": [
+      "InstrumentSpec",
+      "describe",
+      "list_available",
+      "load",
+      "register"
+    ],
+    "puremacro.instruments.external": [
+      "load_bis",
+      "load_fred",
+      "load_imf_weo"
+    ],
+    "puremacro.instruments.external.bis": [
+      "load"
+    ],
+    "puremacro.instruments.external.fred": [
+      "load"
+    ],
+    "puremacro.instruments.external.imf_weo": [
+      "load"
+    ],
+    "puremacro.instruments.literature": [
+      "load_bbd_epu",
+      "load_bloom_2009",
+      "load_caldara_iacoviello_gpr",
+      "load_romer_romer_2004"
+    ],
+    "puremacro.instruments.literature._helpers": [
+      "_csv_to_instrument"
+    ],
+    "puremacro.instruments.literature.bbd_epu": [
+      "load"
+    ],
+    "puremacro.instruments.literature.bloom_2009": [
+      "BLOOM_2009_EVENTS",
+      "load"
+    ],
+    "puremacro.instruments.literature.caldara_iacoviello_gpr": [
+      "load"
+    ],
+    "puremacro.instruments.literature.romer_romer_2004": [
+      "load"
+    ],
+    "puremacro.klems": [
+      "_KLEMS_TO_ISO3",
+      "load_klems_country",
+      "load_klems_panel"
+    ],
+    "puremacro.korv_gmm": [
+      "KorvFit",
+      "SymCESFit",
+      "_allen_sigma_es",
+      "_moments",
+      "_moments_m1m2",
+      "_moments_symmetric",
+      "build_inner_nest_aggregators",
+      "build_usercost_column",
+      "calibrate_nest_weights",
+      "fit_korv_country",
+      "fit_korv_pooled",
+      "fit_korv_pooled_2moments",
+      "fit_korv_pooled_usercost",
+      "fit_sigma_ie_pooled",
+      "fit_sigma_kl_pooled",
+      "fit_sigma_su_pooled",
+      "fit_symmetric_nested_ces_joint",
+      "fit_symmetric_nested_ces_pooled"
+    ],
+    "puremacro.labor_share": [
+      "gollin_adjusted_ls"
+    ],
+    "puremacro.lp": [
+      "LPDiDResult",
+      "cce_panel_lp",
+      "la_lp",
+      "lp_asymmetric",
+      "lp_did",
+      "lp_garch_in_mean",
+      "lp_garch_state",
+      "lp_hac",
+      "lp_iv",
+      "lp_iv_lewbel",
+      "lp_quantile",
+      "lp_smooth",
+      "lp_state_dep",
+      "mean_group_panel_lp",
+      "panel_lp",
+      "panel_lp_dk",
+      "panel_lp_iv"
+    ],
+    "puremacro.lp._panel_helpers": [
+      "_focal_cluster_se",
+      "_focal_dk_se",
+      "panel_lp_horizon_loop",
+      "two_way_fe_within"
+    ],
+    "puremacro.lp.asymmetric": [
+      "lp_asymmetric"
+    ],
+    "puremacro.lp.cce": [
+      "cce_panel_lp"
+    ],
+    "puremacro.lp.garch_in_mean": [
+      "lp_garch_in_mean"
+    ],
+    "puremacro.lp.garch_state": [
+      "lp_garch_state"
+    ],
+    "puremacro.lp.iv": [
+      "lp_iv"
+    ],
+    "puremacro.lp.iv_helpers": [
+      "gertler_karadi_surprise",
+      "romer_romer_clean"
+    ],
+    "puremacro.lp.iv_lewbel": [
+      "lp_iv_lewbel"
+    ],
+    "puremacro.lp.jorda": [
+      "lp_hac"
+    ],
+    "puremacro.lp.la_lp": [
+      "la_lp"
+    ],
+    "puremacro.lp.lp_did": [
+      "LPDiDResult",
+      "lp_did"
+    ],
+    "puremacro.lp.mean_group": [
+      "mean_group_panel_lp"
+    ],
+    "puremacro.lp.panel": [
+      "lp_panel_regime_interaction",
+      "panel_lp"
+    ],
+    "puremacro.lp.panel_dk": [
+      "panel_lp_dk"
+    ],
+    "puremacro.lp.panel_iv": [
+      "panel_lp_iv"
+    ],
+    "puremacro.lp.quantile": [
+      "lp_quantile"
+    ],
+    "puremacro.lp.smooth": [
+      "lp_smooth"
+    ],
+    "puremacro.lp.state_dep": [
+      "lp_smooth_transition_irf",
+      "lp_state_dep"
+    ],
+    "puremacro.mcmc": [
+      "autocorrelations",
+      "effective_sample_size",
+      "gelman_rubin",
+      "geweke_z",
+      "random_walk_metropolis",
+      "trace_summary"
+    ],
+    "puremacro.midas": [
+      "BetaMidasResult",
+      "UMidasResult",
+      "beta_midas",
+      "u_midas"
+    ],
+    "puremacro.models": [
+      "DMPParameters",
+      "DMPState",
+      "dmp_irf",
+      "dmp_steady_state"
+    ],
+    "puremacro.models.nested_dmp": [
+      "ComparativeStatics",
+      "EmpiricalIRFTargets",
+      "EstimationResult",
+      "FitReport",
+      "IRFResult",
+      "NestedDMPParameters",
+      "RecursiveSolution",
+      "SteadyState",
+      "WelfareReport",
+      "WelfareResult",
+      "ablate_beliefs",
+      "available_backends",
+      "backend_available",
+      "belief_path",
+      "belief_transition",
+      "belief_update",
+      "bellman_iterate",
+      "calibrate_mu",
+      "calibrate_mu_to_f",
+      "comparative_statics",
+      "effective_discount",
+      "ergodic_welfare",
+      "estimate_shape_match",
+      "expected_discount",
+      "f_theta",
+      "fit_report",
+      "free_entry_theta",
+      "get_array_namespace",
+      "load_empirical_irf_targets",
+      "match_value",
+      "matching_rate",
+      "model_regime_irfs",
+      "nash_wage",
+      "optimal_phi_sigma",
+      "participation_rate",
+      "q_theta",
+      "regime_transition",
+      "rouwenhorst",
+      "sigma_process",
+      "sigma_scaled_process",
+      "simulate_irf",
+      "solve_recursive",
+      "solve_steady_state",
+      "stationary_distribution",
+      "tauchen_transition",
+      "to_numpy",
+      "worker_values"
+    ],
+    "puremacro.models.nested_dmp.backend": [
+      "SUPPORTED",
+      "available_backends",
+      "backend_available",
+      "get_array_namespace",
+      "to_numpy"
+    ],
+    "puremacro.models.nested_dmp.dynamics": [
+      "IRFResult",
+      "_P_sigma",
+      "_bellman_step",
+      "_fixed_grid",
+      "_forward_sim",
+      "_grid_steady_state",
+      "_phi_step",
+      "_stationary_phi",
+      "_theta_given",
+      "_theta_sweep",
+      "_x_threshold",
+      "belief_path",
+      "calibrate_mu",
+      "simulate_irf"
+    ],
+    "puremacro.models.nested_dmp.equilibrium": [
+      "ComparativeStatics",
+      "SteadyState",
+      "comparative_statics",
+      "effective_discount",
+      "free_entry_theta",
+      "match_value",
+      "nash_wage",
+      "participation_rate",
+      "sigma_scaled_process",
+      "solve_steady_state",
+      "stationary_distribution",
+      "worker_values"
+    ],
+    "puremacro.models.nested_dmp.estimation": [
+      "EmpiricalIRFTargets",
+      "EstimationResult",
+      "FitReport",
+      "MEAN_URATE_PP",
+      "ablate_beliefs",
+      "baseline_calibration",
+      "calibrate_mu_to_f",
+      "default_baseline",
+      "estimate_shape_match",
+      "fit_report",
+      "load_empirical_irf_targets",
+      "model_regime_irfs"
+    ],
+    "puremacro.models.nested_dmp.kernels": [
+      "belief_update",
+      "bellman_iterate",
+      "expected_discount",
+      "f_theta",
+      "matching_rate",
+      "q_theta",
+      "rouwenhorst",
+      "tauchen_transition"
+    ],
+    "puremacro.models.nested_dmp.params": [
+      "NestedDMPParameters"
+    ],
+    "puremacro.models.nested_dmp.welfare": [
+      "RecursiveSolution",
+      "WelfareReport",
+      "WelfareResult",
+      "belief_transition",
+      "ergodic_welfare",
+      "optimal_phi_sigma",
+      "regime_transition",
+      "sigma_process",
+      "solve_recursive"
+    ],
+    "puremacro.narrative": [
+      "BLUESKY_KNOWN_HANDLES",
+      "CROSS_SOURCE_GROUPS",
+      "DGLP_17",
+      "HomogeneousFiscalPanel",
+      "NarrativeEvent",
+      "NarrativeInstrument",
+      "NarrativeReport",
+      "NarrativeSpecificationCurve",
+      "NarrativeStabilityReport",
+      "RiskIndex",
+      "adler_csv_to_events",
+      "bbui",
+      "bluesky_ui",
+      "cboui",
+      "cloyne_csv_to_events",
+      "cluster_events",
+      "compare_to",
+      "consensus_disagreement",
+      "deduplicate",
+      "devries_csv_to_events",
+      "dglp_csv_to_events",
+      "ep_ui",
+      "epu",
+      "erpui",
+      "eu_nms_csv_to_events",
+      "eurlex_ui",
+      "event_density",
+      "events_to_quarterly",
+      "gap_filler",
+      "gpr",
+      "guajardo_csv_to_events",
+      "imf_covid_2022_csv_to_events",
+      "index_to_quarterly",
+      "iter_beige_book",
+      "iter_bluesky_posts",
+      "iter_cbo",
+      "iter_ep_debates",
+      "iter_erp",
+      "iter_eurlex",
+      "iter_frdb_strikes",
+      "iter_sotu",
+      "iter_us_warn",
+      "load_adler_2024",
+      "load_cloyne_2013_uk",
+      "load_devries_2011",
+      "load_dglp_2011",
+      "load_eu_nms_2023",
+      "load_guajardo_2011",
+      "load_imf_covid_2022",
+      "load_mertens_ravn_2013",
+      "load_mitchell_historical",
+      "load_ramey_2011_defense",
+      "load_romer_romer_2010",
+      "load_romer_romer_2017",
+      "ltui",
+      "ltui_down",
+      "ltui_up",
+      "lui",
+      "lwui",
+      "lwui_wage",
+      "mertens_ravn_csv_to_events",
+      "mitchell_csv_to_events",
+      "mpu",
+      "ramey_csv_to_events",
+      "representative",
+      "romer_romer_2010_csv_to_events",
+      "romer_romer_2017_csv_to_events",
+      "sotuui",
+      "tone",
+      "weak_iv_summary",
+      "wui"
+    ],
+    "puremacro.narrative.aggregate": [
+      "events_to_quarterly",
+      "index_to_quarterly"
+    ],
+    "puremacro.narrative.dedup": [
+      "cluster_events",
+      "deduplicate",
+      "representative"
+    ],
+    "puremacro.narrative.indices": [
+      "AnthropicProvider",
+      "CROSS_SOURCE_GROUPS",
+      "DISTRICT_NAMES",
+      "DISTRICT_NUMBER",
+      "FED_DISTRICTS",
+      "FedDistrict",
+      "LEXICONS",
+      "LLMProvider",
+      "LocalProvider",
+      "MockProvider",
+      "OllamaProvider",
+      "SPLIT_STATES",
+      "STATE_TO_DISTRICT",
+      "STATE_TO_DISTRICTS_FULL",
+      "TERRITORY_TO_DISTRICT",
+      "bbui",
+      "bluesky_ui",
+      "build_seed_prototype",
+      "canonicalize_weights",
+      "cboui",
+      "consensus_disagreement",
+      "district_crosswalk",
+      "district_states",
+      "embedding_similarity_kernel",
+      "ep_ui",
+      "epu",
+      "erpui",
+      "eurlex_ui",
+      "get_default_provider",
+      "gpr",
+      "llm_prob_kernel",
+      "ltui",
+      "ltui_down",
+      "ltui_up",
+      "lui",
+      "lwui",
+      "lwui_wage",
+      "make_sentence_transformer_embedder",
+      "mnl_kernel",
+      "mpu",
+      "sotuui",
+      "state_district",
+      "tone",
+      "wui"
+    ],
+    "puremacro.narrative.indices._embedding_kernel": [
+      "EmbedFn",
+      "build_seed_prototype",
+      "embedding_similarity_kernel",
+      "make_sentence_transformer_embedder"
+    ],
+    "puremacro.narrative.indices._fed_districts": [
+      "DISTRICT_NAMES",
+      "DISTRICT_NUMBER",
+      "FED_DISTRICTS",
+      "FedDistrict",
+      "SPLIT_STATES",
+      "STATE_TO_DISTRICT",
+      "STATE_TO_DISTRICTS_FULL",
+      "TERRITORY_TO_DISTRICT",
+      "district_crosswalk",
+      "district_states",
+      "state_district"
+    ],
+    "puremacro.narrative.indices._kernels": [
+      "_split_paragraphs",
+      "_split_sentences",
+      "cooccurrence_kernel",
+      "count_keywords",
+      "keyword_count_kernel",
+      "normalize_series",
+      "sentence_cooccurrence_kernel",
+      "tone_kernel",
+      "triple_cooccurrence_kernel"
+    ],
+    "puremacro.narrative.indices._lexicons": [
+      "LEXICONS"
+    ],
+    "puremacro.narrative.indices._lexicons_expanded": [
+      "LEXICONS_EXPANDED"
+    ],
+    "puremacro.narrative.indices._llm_kernel": [
+      "AnthropicProvider",
+      "LLMProvider",
+      "LocalProvider",
+      "MockProvider",
+      "OllamaProvider",
+      "get_default_provider",
+      "llm_prob_kernel"
+    ],
+    "puremacro.narrative.indices._mnl_kernel": [
+      "canonicalize_weights",
+      "mnl_kernel"
+    ],
+    "puremacro.narrative.indices.beige_book": [
+      "bbui"
+    ],
+    "puremacro.narrative.indices.bluesky": [
+      "bluesky_ui"
+    ],
+    "puremacro.narrative.indices.cross_source": [
+      "GROUPS",
+      "consensus_disagreement"
+    ],
+    "puremacro.narrative.indices.epu": [
+      "epu"
+    ],
+    "puremacro.narrative.indices.eu_legislative": [
+      "ep_ui",
+      "eurlex_ui"
+    ],
+    "puremacro.narrative.indices.gpr": [
+      "gpr"
+    ],
+    "puremacro.narrative.indices.ltui": [
+      "ltui",
+      "ltui_down",
+      "ltui_up"
+    ],
+    "puremacro.narrative.indices.lui": [
+      "lui"
+    ],
+    "puremacro.narrative.indices.lwui": [
+      "lwui",
+      "lwui_wage"
+    ],
+    "puremacro.narrative.indices.mpu": [
+      "mpu"
+    ],
+    "puremacro.narrative.indices.tone": [
+      "tone"
+    ],
+    "puremacro.narrative.indices.us_executive": [
+      "cboui",
+      "erpui",
+      "sotuui"
+    ],
+    "puremacro.narrative.indices.wui": [
+      "wui"
+    ],
+    "puremacro.narrative.panel": [
+      "DGLP_17",
+      "HomogeneousFiscalPanel"
+    ],
+    "puremacro.narrative.quality": [
+      "BUDGET_MONTHS",
+      "MagnitudeHarmonizer",
+      "SurpriseFilter",
+      "TargetAuditor",
+      "run_pipeline"
+    ],
+    "puremacro.narrative.quality.magnitude_harmonizer": [
+      "MagnitudeHarmonizer"
+    ],
+    "puremacro.narrative.quality.pipeline": [
+      "run_pipeline"
+    ],
+    "puremacro.narrative.quality.surprise_filter": [
+      "BUDGET_MONTHS",
+      "SurpriseFilter"
+    ],
+    "puremacro.narrative.quality.target_auditor": [
+      "TargetAuditor"
+    ],
+    "puremacro.narrative.replication": [
+      "adler_csv_to_events",
+      "cloyne_csv_to_events",
+      "devries_csv_to_events",
+      "dglp_csv_to_events",
+      "eu_nms_csv_to_events",
+      "guajardo_csv_to_events",
+      "imf_covid_2022_csv_to_events",
+      "load_adler_2024",
+      "load_cloyne_2013_uk",
+      "load_devries_2011",
+      "load_dglp_2011",
+      "load_eu_nms_2023",
+      "load_guajardo_2011",
+      "load_imf_covid_2022",
+      "load_mertens_ravn_2013",
+      "load_mitchell_historical",
+      "load_ramey_2011_defense",
+      "load_romer_romer_2010",
+      "load_romer_romer_2017",
+      "mertens_ravn_csv_to_events",
+      "mitchell_csv_to_events",
+      "ramey_csv_to_events",
+      "romer_romer_2010_csv_to_events",
+      "romer_romer_2017_csv_to_events"
+    ],
+    "puremacro.narrative.replication._within_year": [
+      "FY_START_MONTH",
+      "annualize_to_quarters"
+    ],
+    "puremacro.narrative.replication.adler_2024_consolidations": [
+      "adler_csv_to_events",
+      "load"
+    ],
+    "puremacro.narrative.replication.cloyne_2013_uk": [
+      "load"
+    ],
+    "puremacro.narrative.replication.devries_2011_consolidations": [
+      "devries_csv_to_events",
+      "load"
+    ],
+    "puremacro.narrative.replication.dglp_2011_consolidations": [
+      "load"
+    ],
+    "puremacro.narrative.replication.eu_nms_2023_consolidations": [
+      "eu_nms_csv_to_events",
+      "load"
+    ],
+    "puremacro.narrative.replication.guajardo_2011_aeipf": [
+      "guajardo_csv_to_events",
+      "load"
+    ],
+    "puremacro.narrative.replication.imf_covid_2022_announcements": [
+      "imf_covid_2022_csv_to_events",
+      "load"
+    ],
+    "puremacro.narrative.replication.mertens_ravn_2013": [
+      "load"
+    ],
+    "puremacro.narrative.replication.mitchell_historical": [
+      "load",
+      "mitchell_csv_to_events"
+    ],
+    "puremacro.narrative.replication.ramey_2011_defense": [
+      "load"
+    ],
+    "puremacro.narrative.replication.romer_romer_2010": [
+      "load"
+    ],
+    "puremacro.narrative.replication.romer_romer_2017": [
+      "load"
+    ],
+    "puremacro.narrative.scoring": [
+      "AnthropicBackend",
+      "DEFAULT_FISCAL_LEXICON",
+      "LocalBackend",
+      "MockBackend",
+      "OllamaBackend",
+      "OpenAIBackend",
+      "get_default_backend",
+      "load_manual_csv",
+      "regex_billions",
+      "score_keyword",
+      "score_llm",
+      "validate_events"
+    ],
+    "puremacro.narrative.scoring.keyword": [
+      "DEFAULT_FISCAL_LEXICON",
+      "DEFAULT_MONETARY_LEXICON",
+      "regex_basis_points",
+      "regex_billions",
+      "score_keyword"
+    ],
+    "puremacro.narrative.scoring.manual": [
+      "REQUIRED_COLS",
+      "load_manual_csv",
+      "validate_events"
+    ],
+    "puremacro.narrative.types": [
+      "BenchmarkScore",
+      "EventPanelScore",
+      "NarrativeEvent",
+      "NarrativeInstrument",
+      "RiskIndex",
+      "SignalQualityReport",
+      "SurveyScore",
+      "VALID_KINDS",
+      "VALID_RISKINDEX_METHODS",
+      "VALID_RISKINDEX_NORMALIZATION",
+      "VALID_SCORERS",
+      "VALID_SIGNS",
+      "VALID_TARGETS",
+      "VALID_TARGETS_BY_KIND"
+    ],
+    "puremacro.narrative.validate": [
+      "compare_to",
+      "event_density",
+      "weak_iv_summary"
+    ],
+    "puremacro.narrative.validation": [
+      "NarrativeReport",
+      "NarrativeSpecificationCurve",
+      "NarrativeStabilityReport",
+      "fetch_ahir_bloom_furceri_wui_panel",
+      "fetch_bbd_ai_epu_monthly",
+      "fetch_bbd_country_epu_monthly",
+      "fetch_caldara_iacoviello_gpr_monthly",
+      "gap_filler"
+    ],
+    "puremacro.narrative.validation.external_benchmarks": [
+      "fetch_ahir_bloom_furceri_wui_panel",
+      "fetch_bbd_ai_epu_monthly",
+      "fetch_bbd_country_epu_monthly",
+      "fetch_caldara_iacoviello_gpr_monthly"
+    ],
+    "puremacro.narrative.validation.gap_filler": [
+      "find_gaps"
+    ],
+    "puremacro.narrative.validation.report": [
+      "NarrativeReport"
+    ],
+    "puremacro.narrative.validation.spec_curve": [
+      "NarrativeSpecificationCurve"
+    ],
+    "puremacro.narrative.validation.stability": [
+      "NarrativeStabilityReport"
+    ],
+    "puremacro.nowcast": [
+      "bai_ng_ic",
+      "bates_granger",
+      "beta_midas",
+      "brier_score",
+      "crps_ensemble",
+      "crps_gaussian",
+      "equal_weight",
+      "inverse_mse",
+      "kalman_dfm",
+      "log_score_gaussian",
+      "mf_var",
+      "model_confidence_set",
+      "pca_factors",
+      "pit_histogram",
+      "rank_weight",
+      "static_dfm_fit",
+      "u_midas"
+    ],
+    "puremacro.nowcast.combine": [
+      "bates_granger",
+      "equal_weight",
+      "inverse_mse",
+      "model_confidence_set",
+      "rank_weight"
+    ],
+    "puremacro.nowcast.dfm": [
+      "kalman_dfm"
+    ],
+    "puremacro.nowcast.mfvar": [
+      "mf_var"
+    ],
+    "puremacro.nowcast.scoring": [
+      "brier_score",
+      "crps_ensemble",
+      "crps_gaussian",
+      "log_score_gaussian",
+      "pit_histogram"
+    ],
+    "puremacro.numerics": [
+      "mle_fit",
+      "numerical_gradient",
+      "numerical_hessian",
+      "sandwich_vcov"
+    ],
+    "puremacro.plot": [
+      "plot_fan",
+      "plot_fan_from_paths",
+      "plot_fevd",
+      "plot_irf_multi",
+      "plot_irf_single",
+      "plot_spillover"
+    ],
+    "puremacro.posterior": [
+      "fan_chart_quantiles",
+      "simulate_var_paths"
+    ],
+    "puremacro.realized_vol": [
+      "bipower_variation",
+      "daily_rv_panel",
+      "har_rv",
+      "realized_jump",
+      "realized_variance"
+    ],
+    "puremacro.regimes": [
+      "breaks_to_regimes",
+      "dates_to_regimes",
+      "regime_dummies",
+      "smoothed_to_indicator"
+    ],
+    "puremacro.regress": [
+      "lp_panel"
+    ],
+    "puremacro.regress.lp": [
+      "_dk_default_lag",
+      "lp_panel"
+    ],
+    "puremacro.replication": [
+      "CaseResult",
+      "ReplicationCase",
+      "TargetKind",
+      "Tol",
+      "run",
+      "run_all",
+      "scorecard"
+    ],
+    "puremacro.reports": [
+      "IRFResult",
+      "LPResult",
+      "coef_table",
+      "irf_to_markdown",
+      "summary_to_markdown"
+    ],
+    "puremacro.sa": [
+      "deseasonalize",
+      "deseasonalize_stl",
+      "deseasonalize_x13",
+      "residual_seasonality_F",
+      "x13_available"
+    ],
+    "puremacro.sa.x13": [
+      "deseasonalize_x13",
+      "residual_seasonality_F",
+      "x13_available"
+    ],
+    "puremacro.scale": [
+      "RATE_OUTCOMES",
+      "is_rate_outcome",
+      "peak_irf",
+      "to_1sd_pct"
+    ],
+    "puremacro.sigma": [
+      "SigmaObject",
+      "shapley_factors",
+      "shapley_table",
+      "shapley_var"
+    ],
+    "puremacro.sigma.shapley": [
+      "shapley_factors",
+      "shapley_table",
+      "shapley_var"
+    ],
+    "puremacro.spectral": [
+      "WelchCrossResult",
+      "business_cycle_band_power",
+      "welch_cross",
+      "welch_psd"
+    ],
+    "puremacro.state_space": [
+      "StateSpaceModel",
+      "kalman_filter",
+      "kalman_smoother",
+      "simulation_smoother"
+    ],
+    "puremacro.synthetic_control": [
+      "SyntheticControlResult",
+      "synthetic_control"
+    ],
+    "puremacro.teaching.experiment": [
+      "run_experiment"
+    ],
+    "puremacro.teaching.garch_iv": [
+      "GarchFit",
+      "fit_argarch",
+      "fit_argarchx",
+      "lp_level_vs_sigma",
+      "lp_sigma_iv",
+      "lp_two_shocks",
+      "panel_lp_level_vs_sigma",
+      "panel_lp_sigma_iv",
+      "panel_lp_two_shocks",
+      "simulate_garch_irf"
+    ],
+    "puremacro.teaching.integration_checks": [
+      "adf_test",
+      "fevd_from_var",
+      "fevd_table",
+      "johansen_rank",
+      "kpss_test",
+      "unit_root_table"
+    ],
+    "puremacro.teaching.irf_scale": [
+      "RATE_OUTCOMES",
+      "is_rate_outcome",
+      "peak_irf",
+      "to_1sd_pct"
+    ],
+    "puremacro.teaching.recipes": [
+      "available_countries",
+      "coverage_heatmap",
+      "load_recipe"
+    ],
+    "puremacro.uncertainty": [
+      "BreakResult",
+      "CALENDAR_REGIMES",
+      "DEFAULT_PROXIES",
+      "add_calendar_regime",
+      "bai_perron_breaks",
+      "between_within_share",
+      "build_backbone",
+      "build_composite",
+      "build_innovation",
+      "correlation_with_clustering",
+      "derive_innovation_shock",
+      "lp_per_country",
+      "lp_state_dependent",
+      "pooled_with_dk_se",
+      "rolling_between_within_share",
+      "state_indicator_smooth"
+    ],
+    "puremacro.uncertainty.composite": [
+      "DEFAULT_PROXIES",
+      "build_backbone",
+      "build_composite",
+      "build_innovation"
+    ],
+    "puremacro.uncertainty.decomposition": [
+      "between_within_share",
+      "correlation_with_clustering",
+      "rolling_between_within_share"
+    ],
+    "puremacro.uncertainty.diagnostics": [
+      "build_diagnostics"
+    ],
+    "puremacro.uncertainty.lp_long": [
+      "derive_innovation_shock",
+      "lp_per_country",
+      "lp_state_dependent",
+      "pooled_with_dk_se"
+    ],
+    "puremacro.uncertainty.regimes": [
+      "BreakResult",
+      "CALENDAR_REGIMES",
+      "add_calendar_regime",
+      "bai_perron_breaks",
+      "state_indicator_smooth"
+    ],
+    "puremacro.validation": [
+      "CaseResult",
+      "Mechanism",
+      "Tol",
+      "ValidationCase",
+      "run",
+      "run_all",
+      "scorecard"
+    ],
+    "puremacro.var": [
+      "VarEstimateResult",
+      "bootstrap_bands",
+      "companion",
+      "fevd",
+      "fit_var",
+      "gfevd",
+      "historical_decomp",
+      "irf",
+      "is_stable",
+      "lag_select",
+      "minnesota_gibbs",
+      "minnesota_posterior",
+      "peak_distribution",
+      "peak_summary"
+    ],
+    "puremacro.var.bvar": [
+      "minnesota_gibbs",
+      "minnesota_optimal_lambda",
+      "minnesota_posterior"
+    ],
+    "puremacro.var.diagnostics": [
+      "block_exogeneity",
+      "granger_causality"
+    ],
+    "puremacro.var.identify": [
+      "BQSVARResult",
+      "CholeskySVARResult",
+      "GKRobustBandsResult",
+      "HeteroResult",
+      "MagMavSVARResult",
+      "MaxShareResult",
+      "NarrativeRestriction",
+      "NarrativeSignSVARResult",
+      "NonGaussianSVARResult",
+      "PanelSVARResult",
+      "ProxySVARResult",
+      "SignRestrictionResult",
+      "SignZeroResult",
+      "bq",
+      "cholesky",
+      "compute_chol_shocks",
+      "gk_robust_bands",
+      "gk_robust_bands_from_gibbs",
+      "hetero",
+      "identify_maxshare",
+      "magmav_svar",
+      "maxshare",
+      "mean_group_svar",
+      "narrative_sign_svar",
+      "news_maxshare",
+      "non_gaussian_svar",
+      "proxy",
+      "sign_restrictions",
+      "sign_zero"
+    ],
+    "puremacro.var.identify.magmav": [
+      "magmav_svar"
+    ],
+    "puremacro.var.identify.maxshare": [
+      "identify_maxshare",
+      "maxshare",
+      "news_maxshare"
+    ],
+    "puremacro.var.identify.narrative_sign": [
+      "NarrativeRestriction",
+      "narrative_sign_svar"
+    ],
+    "puremacro.var.identify.non_gaussian": [
+      "gaussian_lr_test",
+      "non_gaussian_svar",
+      "variance_decomposition_consistency"
+    ],
+    "puremacro.var.identify.panel": [
+      "mean_group_svar"
+    ],
+    "puremacro.var.identify.sign_robust": [
+      "gk_robust_bands",
+      "gk_robust_bands_from_gibbs"
+    ],
+    "puremacro.var.identify.sign_zero": [
+      "sign_zero"
+    ],
+    "puremacro.var.regime": [
+      "RegimeGIRFResult",
+      "girf",
+      "ms_var_fit",
+      "tvar_fit",
+      "tvecm_fit"
+    ],
+    "puremacro.var.regime.girf": [
+      "RegimeGIRFResult",
+      "girf"
+    ],
+    "puremacro.var.regime.ms_var": [
+      "MSVARResult",
+      "ms_var_fit"
+    ],
+    "puremacro.var.regime.threshold": [
+      "TVARResult",
+      "tvar_fit"
+    ],
+    "puremacro.var.regime.tvecm": [
+      "TVECMResult",
+      "tvecm_fit"
+    ],
+    "puremacro.var.tvp": [
+      "TVPVARResult",
+      "TVPVARSVResult",
+      "tvp_var_fit",
+      "tvp_var_sv_fit"
+    ],
+    "puremacro.var.vecm": [
+      "engle_granger",
+      "fit_vecm",
+      "johansen"
+    ],
+    "puremacro.vfi": [
+      "Case2Problem",
+      "Case2Solution",
+      "EGMSolution",
+      "EpsteinZinProblem",
+      "EpsteinZinSolution",
+      "EquilibriumResult",
+      "EstimationResult",
+      "FiniteHorizonProblem",
+      "FiniteHorizonSolution",
+      "FirmEntryExitEquilibrium",
+      "KSEquilibrium",
+      "OLGEquilibrium",
+      "PermanentTypesEquilibrium",
+      "PermanentTypesSolution",
+      "TransitionPath",
+      "VFIProblem",
+      "VFISolution",
+      "age_profile",
+      "aggregate",
+      "aiyagari_steady_state",
+      "combine_markov_chains",
+      "cross_section",
+      "empirical_distribution",
+      "estimate_method_of_moments",
+      "evaluate_on_grid",
+      "farmer_toda",
+      "firm_stationary_distribution",
+      "firm_value_with_exit",
+      "free_entry_price",
+      "hopenhayn_equilibrium",
+      "huggett_steady_state",
+      "joint_transition_matrix",
+      "krusell_smith",
+      "ks_exog_transition",
+      "ks_simulate",
+      "life_cycle_distribution",
+      "life_cycle_profile",
+      "lorenz_and_gini",
+      "lottery_distribution",
+      "lottery_push",
+      "markov_stationary",
+      "neoclassical_growth",
+      "olg_aggregate",
+      "olg_stationary_equilibrium",
+      "push_distribution",
+      "rouwenhorst",
+      "simulate_panel",
+      "solve_egm",
+      "solve_permanent_types",
+      "stationary_age_weights",
+      "stationary_distribution",
+      "stationary_equilibrium",
+      "stationary_equilibrium_types",
+      "tauchen",
+      "transition_path",
+      "two_asset_profile",
+      "value_fn_iter_case1",
+      "weighted_quantile"
+    ],
+    "puremacro.vfi.aggregate": [
+      "aggregate",
+      "evaluate_on_grid",
+      "lorenz_and_gini",
+      "weighted_quantile"
+    ],
+    "puremacro.vfi.case2": [
+      "Case2Problem",
+      "Case2Solution"
+    ],
+    "puremacro.vfi.compat": [
+      "value_fn_iter_case1"
+    ],
+    "puremacro.vfi.discretize": [
+      "combine_markov_chains",
+      "farmer_toda",
+      "markov_stationary",
+      "rouwenhorst",
+      "tauchen"
+    ],
+    "puremacro.vfi.distribution": [
+      "joint_transition_matrix",
+      "lottery_distribution",
+      "lottery_push",
+      "push_distribution",
+      "stationary_distribution"
+    ],
+    "puremacro.vfi.egm": [
+      "EGMSolution",
+      "solve_egm"
+    ],
+    "puremacro.vfi.epstein_zin": [
+      "EpsteinZinProblem",
+      "EpsteinZinSolution"
+    ],
+    "puremacro.vfi.equilibrium": [
+      "EquilibriumResult",
+      "PermanentTypesEquilibrium",
+      "stationary_equilibrium",
+      "stationary_equilibrium_types"
+    ],
+    "puremacro.vfi.estimate": [
+      "EstimationResult",
+      "estimate_method_of_moments"
+    ],
+    "puremacro.vfi.examples": [
+      "aiyagari_steady_state",
+      "hopenhayn_equilibrium",
+      "huggett_steady_state",
+      "life_cycle_profile",
+      "neoclassical_growth",
+      "two_asset_profile"
+    ],
+    "puremacro.vfi.finite_horizon": [
+      "FiniteHorizonProblem",
+      "FiniteHorizonSolution",
+      "age_profile",
+      "cross_section",
+      "life_cycle_distribution"
+    ],
+    "puremacro.vfi.firm_dynamics": [
+      "FirmEntryExitEquilibrium",
+      "firm_stationary_distribution",
+      "firm_value_with_exit",
+      "free_entry_price"
+    ],
+    "puremacro.vfi.kernels": [
+      "bellman_step"
+    ],
+    "puremacro.vfi.krusell_smith": [
+      "KSEquilibrium",
+      "krusell_smith",
+      "ks_exog_transition",
+      "ks_simulate"
+    ],
+    "puremacro.vfi.olg": [
+      "OLGEquilibrium",
+      "olg_aggregate",
+      "olg_stationary_equilibrium",
+      "stationary_age_weights"
+    ],
+    "puremacro.vfi.permanent_types": [
+      "PermanentTypesSolution",
+      "solve_permanent_types"
+    ],
+    "puremacro.vfi.problem": [
+      "VFIProblem",
+      "VFISolution"
+    ],
+    "puremacro.vfi.returnfn": [
+      "build_return_tensor"
+    ],
+    "puremacro.vfi.simulate": [
+      "empirical_distribution",
+      "simulate_panel"
+    ],
+    "puremacro.vfi.solve": [
+      "solve_vfi"
+    ],
+    "puremacro.vfi.transition": [
+      "TransitionPath",
+      "transition_path"
+    ],
+    "puremacro.vintages": [
+      "AlfredVintageStore",
+      "align_vintages",
+      "as_of",
+      "as_of_from_store",
+      "forecast_revision"
+    ],
+    "puremacro.volatility": [
+      "SigmaObject",
+      "arch_lm_test",
+      "bekk_fit",
+      "ccc_fit",
+      "clean_correlation",
+      "garman_klass",
+      "har_rv",
+      "ljung_box_squared",
+      "parkinson",
+      "project_psd",
+      "rogers_satchell"
+    ],
+    "puremacro.volatility.diagnostics": [
+      "arch_lm_test",
+      "ljung_box_squared"
+    ],
+    "puremacro.volatility.har": [
+      "har_rv"
+    ],
+    "puremacro.volatility.multivariate": [
+      "bekk_fit",
+      "ccc_fit"
+    ],
+    "puremacro.volatility.range": [
+      "garman_klass",
+      "parkinson",
+      "rogers_satchell"
+    ],
+    "puremacro.volatility.sigma": [
+      "SigmaObject",
+      "clean_correlation",
+      "project_psd"
+    ],
+    "puremacro.wavelet": [
+      "WaveletCoherenceResult",
+      "WaveletVarianceResult",
+      "dwt_haar",
+      "idwt_haar",
+      "modwt_haar",
+      "wavelet_coherence",
+      "wavelet_variance"
+    ]
+  },
+  "result_classes": {
+    "puremacro.cointegration_modern.DOLSResult": [
+      "alpha",
+      "alpha_se",
+      "beta",
+      "n_obs",
+      "se"
+    ],
+    "puremacro.cointegration_modern.FMOLSResult": [
+      "Lambda",
+      "Omega",
+      "Sigma",
+      "alpha",
+      "beta",
+      "residuals",
+      "se"
+    ],
+    "puremacro.cointegration_modern.PhillipsOuliarisResult": [
+      "lag_used",
+      "residuals",
+      "rho",
+      "z_alpha",
+      "z_t"
+    ],
+    "puremacro.credentials.ServiceCredentialSpec": [
+      "description",
+      "env_vars",
+      "name",
+      "signup_url"
+    ],
+    "puremacro.cross_nest.CrossNestFit": [
+      "estimator",
+      "first_stage_F",
+      "n_country",
+      "n_obs",
+      "pair",
+      "se",
+      "sigma"
+    ],
+    "puremacro.did._results.BorusyakJaravelSpiessResult": [
+      "att_event_study",
+      "att_overall",
+      "tau_it"
+    ],
+    "puremacro.did._results.CallawaySantannaResult": [
+      "att_event_study",
+      "att_gt",
+      "att_overall"
+    ],
+    "puremacro.did._results.CdHResult": [
+      "att_M",
+      "att_M_l",
+      "horizons",
+      "n_boot",
+      "n_switchers",
+      "names",
+      "placebo_p",
+      "se_M",
+      "se_M_l"
+    ],
+    "puremacro.did._results.SDIDMultiResult": [
+      "aggregation",
+      "att",
+      "att_g_t",
+      "cohort_atts",
+      "cohort_times",
+      "cohort_weights",
+      "n_boot",
+      "names",
+      "se"
+    ],
+    "puremacro.did._results.SunAbrahamResult": [
+      "att_event_study",
+      "att_gt",
+      "att_overall"
+    ],
+    "puremacro.did._results.SyntheticDiDResult": [
+      "hi",
+      "lambda_w",
+      "lo",
+      "omega",
+      "se",
+      "tau",
+      "treatment_time"
+    ],
+    "puremacro.did.types.PanelDiD": [
+      "df",
+      "outcome",
+      "time",
+      "treat_time",
+      "unit"
+    ],
+    "puremacro.dsge._results.DSGEPosteriorResult": [
+      "accept_rates",
+      "data_n_obs",
+      "draws",
+      "log_posterior_trace",
+      "mode",
+      "mode_hessian_inv",
+      "model_name",
+      "n_burn_in",
+      "param_names",
+      "seed"
+    ],
+    "puremacro.dsge._results.FertilitySolution": [
+      "F",
+      "G",
+      "L",
+      "N",
+      "klein_solution",
+      "params",
+      "shock_names",
+      "ss",
+      "var_names"
+    ],
+    "puremacro.dsge._results.SW07PosteriorResult": [
+      "accept_rates",
+      "data_n_obs",
+      "draws",
+      "log_posterior_trace",
+      "mode",
+      "mode_hessian_inv",
+      "model_name",
+      "n_burn_in",
+      "param_names",
+      "seed"
+    ],
+    "puremacro.dsge.gensys.GensysSolution": [
+      "G",
+      "Impact",
+      "eigenvalues",
+      "eu"
+    ],
+    "puremacro.dsge.klein.KleinSolution": [
+      "F",
+      "G",
+      "L",
+      "N",
+      "eigenvalues",
+      "eu"
+    ],
+    "puremacro.dsge.load_dynare.DynareFEVD": [
+      "horizons",
+      "shares",
+      "shock_names",
+      "var_names"
+    ],
+    "puremacro.dsge.load_dynare.DynareIRF": [
+      "horizon",
+      "ir",
+      "shock_names",
+      "var_names"
+    ],
+    "puremacro.dsge.smets_wouters.SWResult": [
+      "G",
+      "Impact",
+      "control_names",
+      "eigenvalues",
+      "eu",
+      "params",
+      "shock_names",
+      "state_names"
+    ],
+    "puremacro.dynpanel._results.GMMResult": [
+      "ar1_p",
+      "ar2_p",
+      "coefs",
+      "converged",
+      "cov",
+      "estimator",
+      "hansen_j",
+      "hansen_j_df",
+      "hansen_j_p",
+      "n_instruments",
+      "n_obs",
+      "n_panels",
+      "names",
+      "se",
+      "step",
+      "windmeijer"
+    ],
+    "puremacro.gar.skewt.SkewTFit": [
+      "alpha",
+      "mu",
+      "nu",
+      "sigma",
+      "success",
+      "target_quantiles"
+    ],
+    "puremacro.garch._results.DCCResult": [
+      "H",
+      "Qbar",
+      "R",
+      "a",
+      "b",
+      "converged",
+      "garch_params",
+      "loglik",
+      "sigma"
+    ],
+    "puremacro.garch._results.GARCH11Result": [
+      "alpha",
+      "beta",
+      "converged",
+      "loglik",
+      "omega",
+      "persistence",
+      "sigma"
+    ],
+    "puremacro.hfi._results.JKResult": [
+      "info_shock",
+      "method",
+      "mp_shock",
+      "n_admissible",
+      "rotation"
+    ],
+    "puremacro.inference._results.ARTestResult": [
+      "df_den",
+      "df_num",
+      "p_value",
+      "residual_ss",
+      "stat"
+    ],
+    "puremacro.inference._results.LewbelIVResult": [
+      "beta",
+      "first_stage_F",
+      "lewbel_diagnostic",
+      "n_iv_constructed",
+      "n_obs",
+      "se",
+      "t"
+    ],
+    "puremacro.inference._results.SupTBandResult": [
+      "alpha",
+      "center",
+      "crit_value",
+      "lower",
+      "method",
+      "n_draws",
+      "scale",
+      "upper"
+    ],
+    "puremacro.instruments._core.Instrument": [
+      "category",
+      "frequency",
+      "metadata",
+      "name",
+      "series",
+      "source"
+    ],
+    "puremacro.instruments._registry.InstrumentSpec": [
+      "category",
+      "country",
+      "description",
+      "frequency",
+      "key",
+      "loader",
+      "name",
+      "reference",
+      "requires_fixture",
+      "requires_network"
+    ],
+    "puremacro.korv_gmm.KorvFit": [
+      "converged",
+      "hansen_J",
+      "hansen_p",
+      "n_country",
+      "n_obs",
+      "obj_value",
+      "se_sigma_eu",
+      "se_sigma_su",
+      "sigma_es",
+      "sigma_eu",
+      "sigma_su"
+    ],
+    "puremacro.korv_gmm.SymCESFit": [
+      "converged",
+      "hansen_J",
+      "hansen_p",
+      "n_country",
+      "n_obs",
+      "obj_value",
+      "se_sigma_ie",
+      "se_sigma_kl",
+      "se_sigma_su",
+      "sigma_ie",
+      "sigma_kl",
+      "sigma_su"
+    ],
+    "puremacro.labor_flows.TransitionPanel": [
+      "monthly",
+      "quarterly",
+      "stocks"
+    ],
+    "puremacro.lp.lp_did.LPDiDResult": [
+      "alpha",
+      "clean_controls",
+      "cluster",
+      "estimates",
+      "group_weights",
+      "n_events",
+      "n_units",
+      "pre_window",
+      "weights"
+    ],
+    "puremacro.midas.BetaMidasResult": [
+      "R2",
+      "beta",
+      "converged",
+      "fitted",
+      "intercept",
+      "residuals",
+      "theta1",
+      "theta2",
+      "weights"
+    ],
+    "puremacro.midas.UMidasResult": [
+      "R2",
+      "beta",
+      "fitted",
+      "intercept",
+      "n_obs",
+      "residuals"
+    ],
+    "puremacro.models.dmp_regime_dependent.DMPIRF": [
+      "horizons",
+      "log_lfpr",
+      "log_theta",
+      "log_u",
+      "log_v"
+    ],
+    "puremacro.models.dmp_regime_dependent.DMPParameters": [
+      "alpha",
+      "alpha_N",
+      "alpha_k",
+      "alpha_react",
+      "beta_bar",
+      "c",
+      "eta",
+      "eta_b",
+      "kappa",
+      "lambda_N",
+      "lambda_k",
+      "lambda_mu",
+      "mu",
+      "nu_lfpr",
+      "phi_AD",
+      "phi_v",
+      "psi",
+      "rho_sigma",
+      "s",
+      "y_bar",
+      "z"
+    ],
+    "puremacro.models.dmp_regime_dependent.DMPState": [
+      "J",
+      "free_entry_residual",
+      "theta",
+      "u",
+      "v",
+      "w"
+    ],
+    "puremacro.models.nested_dmp.dynamics.IRFResult": [
+      "fed_type",
+      "horizons",
+      "log_lfpr",
+      "log_theta",
+      "log_urate",
+      "log_v"
+    ],
+    "puremacro.models.nested_dmp.equilibrium.ComparativeStatics": [
+      "pi_grid",
+      "pi_star",
+      "sigma_grid",
+      "states",
+      "theta",
+      "urate",
+      "x_sep"
+    ],
+    "puremacro.models.nested_dmp.equilibrium.SteadyState": [
+      "J",
+      "N",
+      "W_E",
+      "W_U",
+      "beta_bar",
+      "converged",
+      "free_entry_residual",
+      "grid",
+      "jd_rate",
+      "jf_rate",
+      "lfpr",
+      "n",
+      "output",
+      "phi",
+      "pi",
+      "s_eff",
+      "sigma",
+      "theta",
+      "u",
+      "urate",
+      "v",
+      "x_post",
+      "x_sep"
+    ],
+    "puremacro.models.nested_dmp.estimation.EmpiricalIRFTargets": [
+      "horizons",
+      "loose",
+      "loose_hi",
+      "loose_lo",
+      "loose_se",
+      "tight",
+      "tight_hi",
+      "tight_lo",
+      "tight_se"
+    ],
+    "puremacro.models.nested_dmp.estimation.EstimationResult": [
+      "estimated",
+      "params",
+      "report",
+      "shape_distance"
+    ],
+    "puremacro.models.nested_dmp.estimation.FitReport": [
+      "magnitude_ratio",
+      "shape_distance",
+      "sign_match",
+      "within_band"
+    ],
+    "puremacro.models.nested_dmp.params.NestedDMPParameters": [
+      "alpha",
+      "b",
+      "beta",
+      "c_convex",
+      "delta",
+      "f_fixed",
+      "h_max",
+      "mu",
+      "n_x",
+      "p_regime",
+      "phi_D",
+      "phi_H",
+      "phi_sigma",
+      "prior_pi0",
+      "psi_down",
+      "r_star",
+      "rho_sigma",
+      "rho_x",
+      "s_bar",
+      "sigma_bar",
+      "sigma_innov_sd",
+      "sigma_x",
+      "sigma_x_loading",
+      "signal_sd"
+    ],
+    "puremacro.models.nested_dmp.welfare.RecursiveSolution": [
+      "J",
+      "Ppi_dove",
+      "Ppi_hawk",
+      "Psig",
+      "erg",
+      "pi_grid",
+      "sigma_grid",
+      "theta",
+      "x_grid"
+    ],
+    "puremacro.models.nested_dmp.welfare.WelfareReport": [
+      "cev_pct",
+      "phi_sigma_grid",
+      "phi_sigma_star",
+      "welfare_curve",
+      "welfare_star",
+      "welfare_zero"
+    ],
+    "puremacro.models.nested_dmp.welfare.WelfareResult": [
+      "mean_theta",
+      "mean_urate",
+      "std_urate",
+      "welfare"
+    ],
+    "puremacro.narrative.indices._fed_districts.FedDistrict": [
+      "name",
+      "number",
+      "partial_states",
+      "states"
+    ],
+    "puremacro.narrative.panel.HomogeneousFiscalPanel": [
+      "audit",
+      "countries",
+      "events",
+      "metadata"
+    ],
+    "puremacro.narrative.types.NarrativeEvent": [
+      "confidence",
+      "country",
+      "date",
+      "implementation_profile",
+      "kind",
+      "language",
+      "magnitude",
+      "magnitude_unit",
+      "metadata",
+      "scoring_method",
+      "sign",
+      "source_text",
+      "source_url",
+      "subtarget",
+      "target"
+    ],
+    "puremacro.narrative.types.NarrativeInstrument": [
+      "aggregation",
+      "announcement_series",
+      "events",
+      "implementation_series",
+      "metadata",
+      "target"
+    ],
+    "puremacro.narrative.types.RiskIndex": [
+      "corpus",
+      "country",
+      "draws",
+      "language",
+      "metadata",
+      "method",
+      "name",
+      "normalization",
+      "quality",
+      "series"
+    ],
+    "puremacro.narrative.types.SignalQualityReport": [
+      "avg_doc_length",
+      "benchmark_scores",
+      "corpus_loo_max_swing",
+      "coverage_gaps",
+      "doc_bootstrap_sd",
+      "event_panel",
+      "kernel_agreement",
+      "metadata",
+      "multilingual_parity",
+      "n_docs_per_period",
+      "survey_scores"
+    ],
+    "puremacro.narrative.validation.spec_curve.NarrativeSpecificationCurve": [
+      "_results",
+      "df",
+      "horizon",
+      "max_specs",
+      "n_boot",
+      "panel",
+      "seed",
+      "x_consume",
+      "x_invest",
+      "y"
+    ],
+    "puremacro.narrative.validation.stability.NarrativeStabilityReport": [
+      "_run_results",
+      "benchmark_name",
+      "benchmark_series",
+      "country",
+      "index_fn",
+      "language",
+      "max_cells",
+      "perturbations",
+      "seed",
+      "text_iter_factory"
+    ],
+    "puremacro.regime_dates.Regime": [
+      "end",
+      "name",
+      "start"
+    ],
+    "puremacro.replication._model.CaseResult": [
+      "citation",
+      "error",
+      "family",
+      "id",
+      "margin",
+      "metrics",
+      "network",
+      "paper",
+      "passed",
+      "source",
+      "target_kind",
+      "tol"
+    ],
+    "puremacro.replication._model.ReplicationCase": [
+      "citation",
+      "estimate",
+      "family",
+      "id",
+      "network",
+      "notes",
+      "paper",
+      "source",
+      "target",
+      "target_kind",
+      "title",
+      "title_es",
+      "tol"
+    ],
+    "puremacro.reports.IRFResult": [
+      "alpha",
+      "lower",
+      "method",
+      "point",
+      "upper",
+      "var_names"
+    ],
+    "puremacro.reports.LPResult": [
+      "alpha",
+      "df",
+      "method",
+      "n_obs"
+    ],
+    "puremacro.shock_atlas.ShockSpec": [
+      "category",
+      "label",
+      "loader",
+      "name"
+    ],
+    "puremacro.sigma.sigma_numpy.SigmaObject": [
+      "R",
+      "Sigma",
+      "country",
+      "labels",
+      "period",
+      "psd_enforce",
+      "psd_tol",
+      "sigma"
+    ],
+    "puremacro.spectral.WelchCrossResult": [
+      "Pxx",
+      "Pxy",
+      "Pyy",
+      "coherence",
+      "f",
+      "gain",
+      "phase"
+    ],
+    "puremacro.state_space.StateSpaceModel": [
+      "H",
+      "Q",
+      "R",
+      "T",
+      "Z",
+      "c",
+      "d"
+    ],
+    "puremacro.synthetic_control.SyntheticControlResult": [
+      "actual",
+      "placebo_gaps",
+      "rmse_pre",
+      "synthetic",
+      "treatment_effect",
+      "weights"
+    ],
+    "puremacro.teaching.garch_iv.GarchFit": [
+      "eps",
+      "params",
+      "sigma",
+      "summary",
+      "z"
+    ],
+    "puremacro.validation._model.CaseResult": [
+      "citation",
+      "error",
+      "id",
+      "max_margin",
+      "mechanism",
+      "metrics",
+      "passed",
+      "subsystem",
+      "tol"
+    ],
+    "puremacro.validation._model.ValidationCase": [
+      "citation",
+      "compute",
+      "id",
+      "mechanism",
+      "notes",
+      "reference",
+      "subsystem",
+      "title",
+      "title_es",
+      "tol"
+    ],
+    "puremacro.var._results.VarEstimateResult": [
+      "A_list",
+      "Sigma",
+      "X",
+      "c",
+      "resid"
+    ],
+    "puremacro.var.identify._results.BQSVARResult": [
+      "ci",
+      "irf_lower",
+      "irf_point",
+      "irf_upper",
+      "n_boot",
+      "n_fail"
+    ],
+    "puremacro.var.identify._results.CholeskySVARResult": [
+      "ci",
+      "irf_lower",
+      "irf_point",
+      "irf_upper",
+      "n_boot",
+      "n_fail"
+    ],
+    "puremacro.var.identify._results.GKRobustBandsResult": [
+      "irf_lower",
+      "irf_median",
+      "irf_upper",
+      "n_accepted_per_draw"
+    ],
+    "puremacro.var.identify._results.MagMavSVARResult": [
+      "B",
+      "ci",
+      "eu",
+      "irf_lower",
+      "irf_point",
+      "irf_upper",
+      "k_breaks",
+      "n_boot",
+      "n_fail",
+      "variance_change_dates"
+    ],
+    "puremacro.var.identify._results.MaxShareResult": [
+      "B",
+      "ci",
+      "fev_share_at_target",
+      "fevd",
+      "irf_lower",
+      "irf_upper",
+      "irfs",
+      "max_fev_at",
+      "q"
+    ],
+    "puremacro.var.identify._results.NarrativeSignSVARResult": [
+      "ci",
+      "ess",
+      "irf_lower",
+      "irf_median",
+      "irf_upper",
+      "n_draws",
+      "n_narrative_accepted",
+      "n_traditional_accepted",
+      "restriction_fail_counts",
+      "restriction_labels",
+      "weights"
+    ],
+    "puremacro.var.identify._results.NonGaussianSVARResult": [
+      "B0",
+      "Q",
+      "consistency_check",
+      "irf",
+      "kurtosis",
+      "lr_test",
+      "ordering_by_kurt"
+    ],
+    "puremacro.var.identify._results.PanelSVARResult": [
+      "ci",
+      "country_ids",
+      "country_irfs",
+      "horizon",
+      "identification",
+      "irf_lower",
+      "irf_mean",
+      "irf_upper",
+      "p"
+    ],
+    "puremacro.var.identify._results.ProxySVARResult": [
+      "B",
+      "ci",
+      "first_stage_F",
+      "irf_lower",
+      "irf_point",
+      "irf_upper",
+      "n_boot"
+    ],
+    "puremacro.var.identify._results.SignRestrictionResult": [
+      "ci",
+      "irf_lower",
+      "irf_median",
+      "irf_upper",
+      "n_accepted",
+      "n_draws"
+    ],
+    "puremacro.var.identify._results.SignZeroResult": [
+      "B0",
+      "Q",
+      "n_draws_used",
+      "success"
+    ],
+    "puremacro.var.identify.hetero.HeteroResult": [
+      "B",
+      "fevd",
+      "irfs",
+      "lower",
+      "point",
+      "upper",
+      "variance_ratios"
+    ],
+    "puremacro.var.identify.narrative_sign.NarrativeRestriction": [
+      "date",
+      "dominance",
+      "kind",
+      "shock",
+      "sign",
+      "variable",
+      "window"
+    ],
+    "puremacro.var.panel.PanelSVARResult": [
+      "ci",
+      "country_ids",
+      "country_irfs",
+      "horizon",
+      "identification",
+      "irf_hi",
+      "irf_lo",
+      "irf_mean",
+      "p"
+    ],
+    "puremacro.var.regime.girf.RegimeGIRFResult": [
+      "band",
+      "difference",
+      "difference_hi",
+      "difference_lo",
+      "girf_by_regime",
+      "girf_pooled",
+      "horizon",
+      "model",
+      "n_boot",
+      "n_hist",
+      "n_sim",
+      "pooled_weights",
+      "regime_labels",
+      "shock",
+      "shock_sizes"
+    ],
+    "puremacro.var.regime.ms_var.MSVARResult": [
+      "A",
+      "K",
+      "P",
+      "Sigma",
+      "converged",
+      "filtered_probs",
+      "loglik",
+      "mu",
+      "n_iter",
+      "smoothed_probs"
+    ],
+    "puremacro.var.regime.threshold.TVARResult": [
+      "A_high",
+      "A_low",
+      "Sigma_high",
+      "Sigma_low",
+      "delay",
+      "grid",
+      "intercept_high",
+      "intercept_low",
+      "n_high",
+      "n_low",
+      "rss_total",
+      "threshold",
+      "threshold_var_idx"
+    ],
+    "puremacro.var.regime.tvecm.TVECMResult": [
+      "Gamma_high",
+      "Gamma_low",
+      "Sigma_high",
+      "Sigma_low",
+      "alpha_high",
+      "alpha_low",
+      "beta",
+      "delay",
+      "intercept_high",
+      "intercept_low",
+      "n_high",
+      "n_low",
+      "rss_total",
+      "threshold"
+    ],
+    "puremacro.var.tvp.TVPVARResult": [
+      "Q_draws",
+      "Sigma_draws",
+      "T_eff",
+      "beta_draws",
+      "n",
+      "n_draws",
+      "p"
+    ],
+    "puremacro.var.tvp.TVPVARSVResult": [
+      "A_draws",
+      "Q_draws",
+      "T_eff",
+      "W_draws",
+      "beta_draws",
+      "log_h_draws",
+      "n",
+      "n_draws",
+      "p"
+    ],
+    "puremacro.vfi.case2.Case2Problem": [
+      "P_z",
+      "a_grid",
+      "aprime_fn",
+      "beta",
+      "d_grid",
+      "options",
+      "params",
+      "return_fn",
+      "z_grid"
+    ],
+    "puremacro.vfi.case2.Case2Solution": [
+      "V",
+      "n_iter",
+      "policy_d",
+      "sup_norm"
+    ],
+    "puremacro.vfi.egm.EGMSolution": [
+      "aprime",
+      "c",
+      "n_iter",
+      "sup_norm"
+    ],
+    "puremacro.vfi.epstein_zin.EpsteinZinProblem": [
+      "P_z",
+      "a_grid",
+      "beta",
+      "d_grid",
+      "gamma",
+      "options",
+      "params",
+      "psi",
+      "return_fn",
+      "z_grid"
+    ],
+    "puremacro.vfi.epstein_zin.EpsteinZinSolution": [
+      "V",
+      "n_iter",
+      "policy_aprime",
+      "policy_d",
+      "sup_norm"
+    ],
+    "puremacro.vfi.equilibrium.EquilibriumResult": [
+      "distribution",
+      "n_evals",
+      "price",
+      "problem",
+      "residual",
+      "solution"
+    ],
+    "puremacro.vfi.equilibrium.PermanentTypesEquilibrium": [
+      "n_evals",
+      "price",
+      "pt_solution",
+      "residual"
+    ],
+    "puremacro.vfi.estimate.EstimationResult": [
+      "moments",
+      "n_evals",
+      "objective",
+      "success",
+      "theta"
+    ],
+    "puremacro.vfi.finite_horizon.FiniteHorizonProblem": [
+      "P_z",
+      "a_grid",
+      "beta",
+      "d_grid",
+      "horizon",
+      "options",
+      "params",
+      "return_fn",
+      "survival",
+      "terminal_value",
+      "z_grid"
+    ],
+    "puremacro.vfi.finite_horizon.FiniteHorizonSolution": [
+      "V",
+      "endo_shape",
+      "horizon",
+      "policy_aprime",
+      "policy_d"
+    ],
+    "puremacro.vfi.firm_dynamics.FirmEntryExitEquilibrium": [
+      "entry_value",
+      "n_evals",
+      "price",
+      "residual",
+      "survive",
+      "value"
+    ],
+    "puremacro.vfi.krusell_smith.KSEquilibrium": [
+      "K_path",
+      "b0",
+      "b1",
+      "converged",
+      "mean_K",
+      "n_outer",
+      "no_agg_risk_K",
+      "r_squared"
+    ],
+    "puremacro.vfi.olg.OLGEquilibrium": [
+      "age_weights",
+      "life_cycle_dist",
+      "n_evals",
+      "price",
+      "problem",
+      "residual",
+      "solution"
+    ],
+    "puremacro.vfi.permanent_types.PermanentTypesSolution": [
+      "distributions",
+      "problems",
+      "solutions",
+      "weights"
+    ],
+    "puremacro.vfi.problem.VFIProblem": [
+      "P_z",
+      "a_grid",
+      "beta",
+      "d_grid",
+      "options",
+      "params",
+      "return_fn",
+      "z_grid"
+    ],
+    "puremacro.vfi.problem.VFISolution": [
+      "V",
+      "backend",
+      "endo_shape",
+      "n_iter",
+      "policy_aprime",
+      "policy_d",
+      "sup_norm"
+    ],
+    "puremacro.vfi.transition.TransitionPath": [
+      "distributions",
+      "gap",
+      "n_iter",
+      "policies",
+      "price_path"
+    ],
+    "puremacro.volatility.sigma.SigmaObject": [
+      "R",
+      "Sigma",
+      "code",
+      "enforce_psd",
+      "period",
+      "sectors",
+      "sig",
+      "tol"
+    ],
+    "puremacro.wavelet.WaveletCoherenceResult": [
+      "coherence_per_scale",
+      "period_bands"
+    ],
+    "puremacro.wavelet.WaveletVarianceResult": [
+      "period_bands",
+      "share",
+      "total",
+      "variance_per_scale"
+    ]
+  }
+}

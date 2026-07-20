@@ -1,0 +1,266 @@
+{
+  "d": {
+    "results": [
+      {
+        "__metadata": {
+          "id": "d6ec0b16-2e6c-4836-ac2a-b72938735aeb",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'daf350f6-f7f4-4f4a-8ed7-547107524b3b')/Items(1124)",
+          "etag": "\"4\"",
+          "type": "SP.Data.Speeches_x0020_listListItem"
+        },
+        "Id": 1124,
+        "Title": "Monetary Policy Stance Briefing (April) ",
+        "SDate": "2026-04-22T16:00:00Z",
+        "OData__ModerationStatus": 0,
+        "ID": 1124
+      },
+      {
+        "__metadata": {
+          "id": "a7aa4b66-089d-457b-bb1a-02cd510fd7fe",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'daf350f6-f7f4-4f4a-8ed7-547107524b3b')/Items(1123)",
+          "etag": "\"8\"",
+          "type": "SP.Data.Speeches_x0020_listListItem"
+        },
+        "Id": 1123,
+        "Title": "Beyond Access: The Road to Financial Health",
+        "SDate": "2026-04-08T16:00:00Z",
+        "OData__ModerationStatus": 0,
+        "ID": 1123
+      },
+      {
+        "__metadata": {
+          "id": "0570f10e-5498-4657-b9e2-709d46dc9003",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'daf350f6-f7f4-4f4a-8ed7-547107524b3b')/Items(1122)",
+          "etag": "\"8\"",
+          "type": "SP.Data.Speeches_x0020_listListItem"
+        },
+        "Id": 1122,
+        "Title": "Closing the Gap: Growing the Resilience Dividend for ASEAN",
+        "SDate": "2026-04-07T16:00:00Z",
+        "OData__ModerationStatus": 0,
+        "ID": 1122
+      },
+      {
+        "__metadata": {
+          "id": "5fa57f28-f728-434e-bd0e-25458bac6013",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'daf350f6-f7f4-4f4a-8ed7-547107524b3b')/Items(1121)",
+          "etag": "\"4\"",
+          "type": "SP.Data.Speeches_x0020_listListItem"
+        },
+        "Id": 1121,
+        "Title": "BSP Current Account Book Launch",
+        "SDate": "2026-03-01T16:00:00Z",
+        "OData__ModerationStatus": 0,
+        "ID": 1121
+      },
+      {
+        "__metadata": {
+          "id": "59480cc1-8f3f-4388-b1a7-564c33bab1c0",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'daf350f6-f7f4-4f4a-8ed7-547107524b3b')/Items(1119)",
+          "etag": "\"6\"",
+          "type": "SP.Data.Speeches_x0020_listListItem"
+        },
+        "Id": 1119,
+        "Title": "Monetary Policy Stance Briefing (February)",
+        "SDate": "2026-02-18T16:00:00Z",
+        "OData__ModerationStatus": 0,
+        "ID": 1119
+      },
+      {
+        "__metadata": {
+          "id": "c4b2a9c3-f8a5-4d98-933e-4abdec61bf61",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'daf350f6-f7f4-4f4a-8ed7-547107524b3b')/Items(1120)",
+          "etag": "\"4\"",
+          "type": "SP.Data.Speeches_x0020_listListItem"
+        },
+        "Id": 1120,
+        "Title": "Virtual Signing Ceremony of the BSP-CBUAE MoU",
+        "SDate": "2026-02-17T16:00:00Z",
+        "OData__ModerationStatus": 0,
+        "ID": 1120
+      },
+      {
+        "__metadata": {
+          "id": "8742f827-eb87-4927-9877-3be360cf68ba",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'daf350f6-f7f4-4f4a-8ed7-547107524b3b')/Items(1117)",
+          "etag": "\"12\"",
+          "type": "SP.Data.Speeches_x0020_listListItem"
+        },
+        "Id": 1117,
+        "Title": "MAP Economic Briefing and General Membership Meeting ",
+        "SDate": "2026-02-10T16:00:00Z",
+        "OData__ModerationStatus": 0,
+        "ID": 1117
+      },
+      {
+        "__metadata": {
+          "id": "4757aee3-7c47-45c1-9d9f-c92fb587d35c",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'daf350f6-f7f4-4f4a-8ed7-547107524b3b')/Items(1115)",
+          "etag": "\"4\"",
+          "type": "SP.Data.Speeches_x0020_listListItem"
+        },
+        "Id": 1115,
+        "Title": "Keynote Message during the Opening of Bloomberg Manila Office",
+        "SDate": "2026-02-03T16:00:00Z",
+        "OData__ModerationStatus": 0,
+        "ID": 1115
+      },
+      {
+        "__metadata": {
+          "id": "5ddde78d-5052-441e-b0a2-739d4d4d9699",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'daf350f6-f7f4-4f4a-8ed7-547107524b3b')/Items(1114)",
+          "etag": "\"10\"",
+          "type": "SP.Data.Speeches_x0020_listListItem"
+        },
+        "Id": 1114,
+        "Title": "Speech for the 2026 Annual Reception for the Banking Community",
+        "SDate": "2026-01-22T16:00:00Z",
+        "OData__ModerationStatus": 0,
+        "ID": 1114
+      },
+      {
+        "__metadata": {
+          "id": "17de97d4-07ae-42df-adad-4efee9a0d424",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'daf350f6-f7f4-4f4a-8ed7-547107524b3b')/Items(1118)",
+          "etag": "\"14\"",
+          "type": "SP.Data.Speeches_x0020_listListItem"
+        },
+        "Id": 1118,
+        "Title": "Big Bold Reforms: The Philippines 2026",
+        "SDate": "2026-01-15T16:00:00Z",
+        "OData__ModerationStatus": 0,
+        "ID": 1118
+      },
+      {
+        "__metadata": {
+          "id": "b47c4a9b-9716-48dc-a7db-c32860a9e053",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'daf350f6-f7f4-4f4a-8ed7-547107524b3b')/Items(1113)",
+          "etag": "\"12\"",
+          "type": "SP.Data.Speeches_x0020_listListItem"
+        },
+        "Id": 1113,
+        "Title": "Rotary Club of Manila 16th Weekly Membership Meeting",
+        "SDate": "2026-01-07T16:00:00Z",
+        "OData__ModerationStatus": 0,
+        "ID": 1113
+      },
+      {
+        "__metadata": {
+          "id": "77214866-874d-4f6a-844d-1586b1c505e9",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'daf350f6-f7f4-4f4a-8ed7-547107524b3b')/Items(1112)",
+          "etag": "\"10\"",
+          "type": "SP.Data.Speeches_x0020_listListItem"
+        },
+        "Id": 1112,
+        "Title": "4th Digital Financial Inclusion Awards",
+        "SDate": "2025-12-11T16:00:00Z",
+        "OData__ModerationStatus": 0,
+        "ID": 1112
+      },
+      {
+        "__metadata": {
+          "id": "c9f3bfad-76fa-4e4f-8f58-de0572c92592",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'daf350f6-f7f4-4f4a-8ed7-547107524b3b')/Items(1111)",
+          "etag": "\"6\"",
+          "type": "SP.Data.Speeches_x0020_listListItem"
+        },
+        "Id": 1111,
+        "Title": "Statement during the Monetary Policy Press Briefing, December 2025",
+        "SDate": "2025-12-10T16:00:00Z",
+        "OData__ModerationStatus": 0,
+        "ID": 1111
+      },
+      {
+        "__metadata": {
+          "id": "db1ec738-2fee-464a-8087-4092eb092056",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'daf350f6-f7f4-4f4a-8ed7-547107524b3b')/Items(1110)",
+          "etag": "\"13\"",
+          "type": "SP.Data.Speeches_x0020_listListItem"
+        },
+        "Id": 1110,
+        "Title": "2025 Financial Education Stakeholders’ Congress",
+        "SDate": "2025-11-16T16:00:00Z",
+        "OData__ModerationStatus": 0,
+        "ID": 1110
+      },
+      {
+        "__metadata": {
+          "id": "a1b03252-406e-437e-9ef1-d682a630da81",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'daf350f6-f7f4-4f4a-8ed7-547107524b3b')/Items(1109)",
+          "etag": "\"6\"",
+          "type": "SP.Data.Speeches_x0020_listListItem"
+        },
+        "Id": 1109,
+        "Title": "ACI Phils-FMAP-IHAP-MART-NASBI-TOAP Joint General Assembly",
+        "SDate": "2025-10-22T16:00:00Z",
+        "OData__ModerationStatus": 0,
+        "ID": 1109
+      },
+      {
+        "__metadata": {
+          "id": "cbd132ed-f1fb-4093-a317-311fdf8b245f",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'daf350f6-f7f4-4f4a-8ed7-547107524b3b')/Items(1107)",
+          "etag": "\"14\"",
+          "type": "SP.Data.Speeches_x0020_listListItem"
+        },
+        "Id": 1107,
+        "Title": "Signing of the Revised Memorandum of Agreement on Bank Examination",
+        "SDate": "2025-10-16T16:00:00Z",
+        "OData__ModerationStatus": 0,
+        "ID": 1107
+      },
+      {
+        "__metadata": {
+          "id": "56ed1a08-330e-4178-80e2-f004e84530f7",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'daf350f6-f7f4-4f4a-8ed7-547107524b3b')/Items(1108)",
+          "etag": "\"16\"",
+          "type": "SP.Data.Speeches_x0020_listListItem"
+        },
+        "Id": 1108,
+        "Title": "Financing Adaptation: Nourishing the Roots of Resilience",
+        "SDate": "2025-10-14T16:00:00Z",
+        "OData__ModerationStatus": 0,
+        "ID": 1108
+      },
+      {
+        "__metadata": {
+          "id": "8607ee70-a8ac-40c6-a061-44f53435442c",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'daf350f6-f7f4-4f4a-8ed7-547107524b3b')/Items(1106)",
+          "etag": "\"4\"",
+          "type": "SP.Data.Speeches_x0020_listListItem"
+        },
+        "Id": 1106,
+        "Title": "Speech during the Signing of the Memorandum of Understanding on Data Sharing between the Bangko Sentral ng Pilipinas and the Department of Labor and Employment",
+        "SDate": "2025-08-28T16:00:00Z",
+        "OData__ModerationStatus": 0,
+        "ID": 1106
+      },
+      {
+        "__metadata": {
+          "id": "0873a951-b58a-459a-8c07-2c2cb578ee7d",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'daf350f6-f7f4-4f4a-8ed7-547107524b3b')/Items(1105)",
+          "etag": "\"4\"",
+          "type": "SP.Data.Speeches_x0020_listListItem"
+        },
+        "Id": 1105,
+        "Title": "Statement during the Monetary Policy Press Briefing, August 2025",
+        "SDate": "2025-08-27T16:00:00Z",
+        "OData__ModerationStatus": 0,
+        "ID": 1105
+      },
+      {
+        "__metadata": {
+          "id": "e535349a-653d-44ee-9ebe-4921c577f476",
+          "uri": "https://www.bsp.gov.ph/_api/Web/Lists(guid'daf350f6-f7f4-4f4a-8ed7-547107524b3b')/Items(1104)",
+          "etag": "\"4\"",
+          "type": "SP.Data.Speeches_x0020_listListItem"
+        },
+        "Id": 1104,
+        "Title": "Speech during the Manila Tech Summit",
+        "SDate": "2025-08-25T16:00:00Z",
+        "OData__ModerationStatus": 0,
+        "ID": 1104
+      }
+    ]
+  }
+}

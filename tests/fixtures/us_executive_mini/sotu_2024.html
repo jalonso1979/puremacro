@@ -1,0 +1,619 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML+RDFa 1.0//EN"
+  "http://www.w3.org/MarkUp/DTD/xhtml-rdfa-1.dtd">
+<html lang="en" dir="ltr" prefix="content: http://purl.org/rss/1.0/modules/content/ dc: http://purl.org/dc/terms/ foaf: http://xmlns.com/foaf/0.1/ og: http://ogp.me/ns# rdfs: http://www.w3.org/2000/01/rdf-schema# sioc: http://rdfs.org/sioc/ns# sioct: http://rdfs.org/sioc/types# skos: http://www.w3.org/2004/02/skos/core# xsd: http://www.w3.org/2001/XMLSchema#">
+<head profile="http://www.w3.org/1999/xhtml/vocab">
+  <meta charset="utf-8"><script type="text/javascript">(window.NREUM||(NREUM={})).init={ajax:{deny_list:["bam.nr-data.net"]},feature_flags:["soft_nav"]};(window.NREUM||(NREUM={})).loader_config={licenseKey:"dee899de70",applicationID:"80106271",browserID:"133825811"};;/*! For license information please see nr-loader-rum-1.314.0.min.js.LICENSE.txt */
+(()=>{var e,t,r={163:(e,t,r)=>{"use strict";r.d(t,{j:()=>T});var n=r(384),i=r(1741);var s=r(2555);r(860).K7.genericEvents;const o="experimental.resources",a="register",c=e=>{if(!e||"string"!=typeof e)return!1;try{document.createDocumentFragment().querySelector(e)}catch{return!1}return!0};var u=r(2614),d=r(944),l=r(8122);const f="[data-nr-mask]",g=e=>(0,l.a)(e,(()=>{const e={feature_flags:[],experimental:{register:!1,resources:!1},mask_selector:"*",block_selector:"[data-nr-block]",mask_input_options:{color:!1,date:!1,"datetime-local":!1,email:!1,month:!1,number:!1,range:!1,search:!1,tel:!1,text:!1,time:!1,url:!1,week:!1,textarea:!1,select:!1,password:!0}};return{ajax:{deny_list:void 0,block_internal:!0,enabled:!0,autoStart:!0},api:{register:{get enabled(){return e.feature_flags.includes(a)||e.experimental.register},set enabled(t){e.experimental.register=t},duplicate_data_to_container:!1}},browser_consent_mode:{enabled:!1},distributed_tracing:{enabled:void 0,exclude_newrelic_header:void 0,cors_use_newrelic_header:void 0,cors_use_tracecontext_headers:void 0,allowed_origins:void 0},get feature_flags(){return e.feature_flags},set feature_flags(t){e.feature_flags=t},generic_events:{enabled:!0,autoStart:!0},harvest:{interval:30},jserrors:{enabled:!0,autoStart:!0},logging:{enabled:!0,autoStart:!0},metrics:{enabled:!0,autoStart:!0},obfuscate:void 0,page_action:{enabled:!0},page_view_event:{enabled:!0,autoStart:!0},page_view_timing:{enabled:!0,autoStart:!0},performance:{capture_marks:!1,capture_measures:!1,capture_detail:!0,resources:{get enabled(){return e.feature_flags.includes(o)||e.experimental.resources},set enabled(t){e.experimental.resources=t},asset_types:[],first_party_domains:[],ignore_newrelic:!0}},privacy:{cookies_enabled:!0},proxy:{assets:void 0,beacon:void 0},session:{expiresMs:u.wk,inactiveMs:u.BB},session_replay:{autoStart:!0,enabled:!1,preload:!1,sampling_rate:10,error_sampling_rate:100,collect_fonts:!1,inline_images:!1,fix_stylesheets:!0,mask_all_inputs:!0,get mask_text_selector(){return e.mask_selector},set mask_text_selector(t){c(t)?e.mask_selector="".concat(t,",").concat(f):""===t||null===t?e.mask_selector=f:(0,d.R)(5,t)},get block_class(){return"nr-block"},get ignore_class(){return"nr-ignore"},get mask_text_class(){return"nr-mask"},get block_selector(){return e.block_selector},set block_selector(t){c(t)?e.block_selector+=",".concat(t):""!==t&&(0,d.R)(6,t)},get mask_input_options(){return e.mask_input_options},set mask_input_options(t){t&&"object"==typeof t?e.mask_input_options={...t,password:!0}:(0,d.R)(7,t)}},session_trace:{enabled:!0,autoStart:!0},soft_navigations:{enabled:!0,autoStart:!0},ssl:void 0,user_actions:{enabled:!0,elementAttributes:["id","className","tagName","type"]}}})());var p=r(6154),m=r(9324);let h=0;const v={buildEnv:m.F3,distMethod:m.Xs,version:m.xv,originTime:p.WN},b={consented:!1},y={activatedFeatures:void 0,appMetadata:{},configured:!1,get consented(){return this.session?.state?.consent||b.consented},set consented(e){b.consented=e},customTransaction:void 0,denyList:[],disabled:!1,drainRegistry:new Map,harvester:void 0,isolatedBacklog:!1,isRecording:!1,loaderType:void 0,maxBytes:3e4,obfuscator:void 0,onerror:void 0,ptid:void 0,releaseIds:{},session:void 0,timeKeeper:void 0,registeredEntities:[],jsAttributesMetadata:{bytes:0},get harvestCount(){return++h}},_=e=>{const t=(0,l.a)(e,y),r=Object.keys(v).reduce((e,t)=>(e[t]={value:v[t],writable:!1,configurable:!0,enumerable:!0},e),{});return Object.defineProperties(t,r)},w=e=>{const t=e.startsWith("http");e+="/",r.p=t?e:"https://"+e};var x=r(7836),R=r(3241);const k={accountID:void 0,trustKey:void 0,agentID:void 0,licenseKey:void 0,applicationID:void 0,xpid:void 0},A=e=>(0,l.a)(e,k);function T(e,t={},r,o){let{init:a,info:c,loader_config:u,runtime:d={},exposed:l=!0}=t;if(!c){const e=(0,n.pV)();a=e.init,c=e.info,u=e.loader_config}e.init=g(a||{}),e.loader_config=A(u||{}),c.jsAttributes??={},p.bv&&(c.jsAttributes.isWorker=!0),e.info=(0,s.D)(c);const f=e.init;e.runtime??=_(d),f.proxy.assets&&w(f.proxy.assets),e.runtime.configured||(Object.defineProperty(e,"beacons",{get:()=>[e.info.beacon,e.info.errorBeacon,e.init.proxy.assets,e.init.proxy.beacon].filter(Boolean)}),Object.defineProperty(e.runtime,"denyList",{get:()=>[...e.init.ajax.deny_list||[],...e.init.ajax.block_internal?e.beacons:[]]}),e.runtime.ptid=e.agentIdentifier,function(e){const t=(0,n.pV)();Object.getOwnPropertyNames(i.W.prototype).forEach(r=>{const n=i.W.prototype[r];if("function"!=typeof n||"constructor"===n)return;let s=t[r];e[r]&&!1!==e.exposed&&"micro-agent"!==e.runtime?.loaderType&&(t[r]=(...t)=>{const n=e[r](...t);return s?s(...t):n})})}(e),e.runtime.loaderType=r,e.ee=x.ee.get(e.agentIdentifier),e.exposed=l,(0,R.W)({drained:!!e.runtime.activatedFeatures,type:"lifecycle",name:"initialize",feature:void 0,data:e.config}),e.runtime.configured=!0)}},384:(e,t,r)=>{"use strict";r.d(t,{NT:()=>a,Zm:()=>c,bQ:()=>d,dV:()=>u,pV:()=>l});var n=r(6154),i=r(1863),s=r(944),o=r(1910);const a={beacon:"bam.nr-data.net",errorBeacon:"bam.nr-data.net"};function c(){return n.gm.NREUM||(n.gm.NREUM={}),void 0===n.gm.newrelic&&(n.gm.newrelic=n.gm.NREUM),n.gm.NREUM}function u(){let e=c();return e.o||(e.o={ST:n.gm.setTimeout,SI:n.gm.setImmediate||n.gm.setInterval,CT:n.gm.clearTimeout,XHR:n.gm.XMLHttpRequest,REQ:n.gm.Request,EV:n.gm.Event,PR:n.gm.Promise,MO:n.gm.MutationObserver,FETCH:n.gm.fetch,WS:n.gm.WebSocket},(0,o.i)(...Object.values(e.o))),e}function d(e,t){let r=c();r.initializedAgents??={},t.initializedAt={ms:(0,i.t)(),date:new Date},r.initializedAgents[e]=t,2===Object.keys(r.initializedAgents).length&&(0,s.R)(69)}function l(){return function(){let e=c();const t=e.info||{};e.info={beacon:a.beacon,errorBeacon:a.errorBeacon,...t}}(),function(){let e=c();const t=e.init||{};e.init={...t}}(),u(),function(){let e=c();const t=e.loader_config||{};e.loader_config={...t}}(),c()}},782:(e,t,r)=>{"use strict";r.d(t,{T:()=>n});const n=r(860).K7.pageViewTiming},860:(e,t,r)=>{"use strict";r.d(t,{$J:()=>d,K7:()=>c,P3:()=>u,XX:()=>i,Yy:()=>a,df:()=>s,qY:()=>n,v4:()=>o});const n="events",i="jserrors",s="browser/blobs",o="rum",a="browser/logs",c={ajax:"ajax",genericEvents:"generic_events",jserrors:i,logging:"logging",metrics:"metrics",pageAction:"page_action",pageViewEvent:"page_view_event",pageViewTiming:"page_view_timing",sessionReplay:"session_replay",sessionTrace:"session_trace",softNav:"soft_navigations"},u={[c.pageViewEvent]:1,[c.pageViewTiming]:2,[c.metrics]:3,[c.jserrors]:4,[c.softNav]:5,[c.ajax]:6,[c.sessionTrace]:7,[c.sessionReplay]:8,[c.logging]:9,[c.genericEvents]:10},d={[c.pageViewEvent]:o,[c.pageViewTiming]:n,[c.ajax]:n,[c.softNav]:n,[c.metrics]:i,[c.jserrors]:i,[c.sessionTrace]:s,[c.sessionReplay]:s,[c.logging]:a,[c.genericEvents]:"ins"}},944:(e,t,r)=>{"use strict";r.d(t,{R:()=>i});var n=r(3241);function i(e,t){"function"==typeof console.debug&&(console.debug("New Relic Warning: https://github.com/newrelic/newrelic-browser-agent/blob/main/docs/warning-codes.md#".concat(e),t),(0,n.W)({drained:null,type:"data",name:"warn",feature:"warn",data:{code:e,secondary:t}}))}},1687:(e,t,r)=>{"use strict";r.d(t,{Ak:()=>a,Ze:()=>u,x3:()=>c});var n=r(3241),i=r(3606),s=r(860),o=r(2646);function a(e,t){if(!e)return;const r={staged:!1,priority:s.P3[t]||0};e.runtime.drainRegistry.get(t)||e.runtime.drainRegistry.set(t,r)}function c(e,t){if(!e)return;const r=e.runtime.drainRegistry;r&&(r.get(t)&&r.delete(t),l(e,t,!1),r.size&&d(e))}function u(e,t="feature",r=!1){if(e){if(!e.runtime.drainRegistry.get(t)||r)return l(e,t);e.runtime.drainRegistry.get(t).staged=!0,d(e)}}function d(e){if(!e)return;const t=Array.from(e.runtime.drainRegistry);t.every(([e,t])=>t.staged)&&(t.sort((e,t)=>e[1].priority-t[1].priority),t.forEach(([t])=>{e.runtime.drainRegistry.delete(t),l(e,t)}))}function l(e,t,r=!0){if(!e)return;const s=e.ee,a=i.i.handlers;if(s&&!s.aborted&&s.backlog&&a){if((0,n.W)({type:"lifecycle",name:"drain",feature:t}),r){const e=s.backlog[t],r=a[t];if(r){for(let t=0;e&&t<e.length;++t)f(e[t],r);Object.entries(r).forEach(([e,t])=>{Object.values(t||{}).forEach(t=>{t[0]?.on&&t[0].context()instanceof o.y&&!t[0].listeners(e).includes(t[1])&&t[0].on(e,t[1])})})}}s.isolatedBacklog||delete a[t],s.backlog[t]=null,s.emit("drain-"+t,[])}}function f(e,t){var r=e[1];Object.values(t[r]||{}).forEach(t=>{var r=e[0];if(t[0]===r){var n=t[1],i=e[3],s=e[2];n.apply(i,s)}})}},1738:(e,t,r)=>{"use strict";r.d(t,{U:()=>f,Y:()=>l});var n=r(3241),i=r(9908),s=r(1863),o=r(944),a=r(3969),c=r(8362),u=r(860),d=r(4261);function l(e,t,r,s){const l=s||r;!l||l[e]&&l[e]!==c.d.prototype[e]||(l[e]=function(){(0,i.p)(a.xV,["API/"+e+"/called"],void 0,u.K7.metrics,r.ee),(0,n.W)({drained:!!r.runtime?.activatedFeatures,type:"data",name:"api",feature:d.Pl+e,data:{}});try{return t.apply(this,arguments)}catch(e){(0,o.R)(23,e)}})}function f(e,t,r,n,o){const a=e.info;null===r?delete a.jsAttributes[t]:a.jsAttributes[t]=r,(o||null===r)&&(0,i.p)(d.Pl+n,[(0,s.t)(),t,r],void 0,"session",e.ee)}},1741:(e,t,r)=>{"use strict";r.d(t,{W:()=>s});var n=r(944),i=r(4261);class s{#e(e,...t){if(this[e]!==s.prototype[e])return this[e](...t);(0,n.R)(35,e)}addPageAction(e,t){return this.#e(i.hG,e,t)}register(e){return this.#e(i.eY,e)}recordCustomEvent(e,t){return this.#e(i.fF,e,t)}setPageViewName(e,t){return this.#e(i.Fw,e,t)}setCustomAttribute(e,t,r){return this.#e(i.cD,e,t,r)}noticeError(e,t){return this.#e(i.o5,e,t)}setUserId(e,t=!1){return this.#e(i.Dl,e,t)}setApplicationVersion(e){return this.#e(i.nb,e)}setErrorHandler(e){return this.#e(i.bt,e)}addRelease(e,t){return this.#e(i.k6,e,t)}log(e,t){return this.#e(i.$9,e,t)}start(){return this.#e(i.d3)}finished(e){return this.#e(i.BL,e)}recordReplay(){return this.#e(i.CH)}pauseReplay(){return this.#e(i.Tb)}addToTrace(e){return this.#e(i.U2,e)}setCurrentRouteName(e){return this.#e(i.PA,e)}interaction(e){return this.#e(i.dT,e)}wrapLogger(e,t,r){return this.#e(i.Wb,e,t,r)}measure(e,t){return this.#e(i.V1,e,t)}consent(e){return this.#e(i.Pv,e)}}},1863:(e,t,r)=>{"use strict";function n(){return Math.floor(performance.now())}r.d(t,{t:()=>n})},1910:(e,t,r)=>{"use strict";r.d(t,{i:()=>s});var n=r(944);const i=new Map;function s(...e){return e.every(e=>{if(i.has(e))return i.get(e);const t="function"==typeof e?e.toString():"",r=t.includes("[native code]"),s=t.includes("nrWrapper");return r||s||(0,n.R)(64,e?.name||t),i.set(e,r),r})}},2555:(e,t,r)=>{"use strict";r.d(t,{D:()=>a,f:()=>o});var n=r(384),i=r(8122);const s={beacon:n.NT.beacon,errorBeacon:n.NT.errorBeacon,licenseKey:void 0,applicationID:void 0,sa:void 0,queueTime:void 0,applicationTime:void 0,ttGuid:void 0,user:void 0,account:void 0,product:void 0,extra:void 0,jsAttributes:{},userAttributes:void 0,atts:void 0,transactionName:void 0,tNamePlain:void 0};function o(e){try{return!!e.licenseKey&&!!e.errorBeacon&&!!e.applicationID}catch(e){return!1}}const a=e=>(0,i.a)(e,s)},2614:(e,t,r)=>{"use strict";r.d(t,{BB:()=>o,H3:()=>n,g:()=>u,iL:()=>c,tS:()=>a,uh:()=>i,wk:()=>s});const n="NRBA",i="SESSION",s=144e5,o=18e5,a={STARTED:"session-started",PAUSE:"session-pause",RESET:"session-reset",RESUME:"session-resume",UPDATE:"session-update"},c={SAME_TAB:"same-tab",CROSS_TAB:"cross-tab"},u={OFF:0,FULL:1,ERROR:2}},2646:(e,t,r)=>{"use strict";r.d(t,{y:()=>n});class n{constructor(e){this.contextId=e}}},2843:(e,t,r)=>{"use strict";r.d(t,{G:()=>s,u:()=>i});var n=r(3878);function i(e,t=!1,r,i){(0,n.DD)("visibilitychange",function(){if(t)return void("hidden"===document.visibilityState&&e());e(document.visibilityState)},r,i)}function s(e,t,r){(0,n.sp)("pagehide",e,t,r)}},3241:(e,t,r)=>{"use strict";r.d(t,{W:()=>s});var n=r(6154);const i="newrelic";function s(e={}){try{n.gm.dispatchEvent(new CustomEvent(i,{detail:e}))}catch(e){}}},3606:(e,t,r)=>{"use strict";r.d(t,{i:()=>s});var n=r(9908);s.on=o;var i=s.handlers={};function s(e,t,r,s){o(s||n.d,i,e,t,r)}function o(e,t,r,i,s){s||(s="feature"),e||(e=n.d);var o=t[s]=t[s]||{};(o[r]=o[r]||[]).push([e,i])}},3878:(e,t,r)=>{"use strict";function n(e,t){return{capture:e,passive:!1,signal:t}}function i(e,t,r=!1,i){window.addEventListener(e,t,n(r,i))}function s(e,t,r=!1,i){document.addEventListener(e,t,n(r,i))}r.d(t,{DD:()=>s,jT:()=>n,sp:()=>i})},3969:(e,t,r)=>{"use strict";r.d(t,{TZ:()=>n,XG:()=>a,rs:()=>i,xV:()=>o,z_:()=>s});const n=r(860).K7.metrics,i="sm",s="cm",o="storeSupportabilityMetrics",a="storeEventMetrics"},4234:(e,t,r)=>{"use strict";r.d(t,{W:()=>i});var n=r(1687);class i{constructor(e,t){this.agentRef=e,this.ee=e?.ee,this.featureName=t,this.blocked=!1}deregisterDrain(){(0,n.x3)(this.agentRef,this.featureName)}}},4261:(e,t,r)=>{"use strict";r.d(t,{$9:()=>u,BL:()=>a,CH:()=>g,Dl:()=>_,Fw:()=>y,PA:()=>h,Pl:()=>n,Pv:()=>k,Tb:()=>l,U2:()=>s,V1:()=>R,Wb:()=>x,bt:()=>b,cD:()=>v,d3:()=>w,dT:()=>c,eY:()=>p,fF:()=>f,hG:()=>i,k6:()=>o,nb:()=>m,o5:()=>d});const n="api-",i="addPageAction",s="addToTrace",o="addRelease",a="finished",c="interaction",u="log",d="noticeError",l="pauseReplay",f="recordCustomEvent",g="recordReplay",p="register",m="setApplicationVersion",h="setCurrentRouteName",v="setCustomAttribute",b="setErrorHandler",y="setPageViewName",_="setUserId",w="start",x="wrapLogger",R="measure",k="consent"},5289:(e,t,r)=>{"use strict";r.d(t,{GG:()=>o,Qr:()=>c,sB:()=>a});var n=r(3878),i=r(6389);function s(){return"undefined"==typeof document||"complete"===document.readyState}function o(e,t){if(s())return e();const r=(0,i.J)(e),o=setInterval(()=>{s()&&(clearInterval(o),r())},500);(0,n.sp)("load",r,t)}function a(e){if(s())return e();(0,n.DD)("DOMContentLoaded",e)}function c(e){if(s())return e();(0,n.sp)("popstate",e)}},5607:(e,t,r)=>{"use strict";r.d(t,{W:()=>n});const n=(0,r(9566).bz)()},6154:(e,t,r)=>{"use strict";r.d(t,{OF:()=>u,RI:()=>i,WN:()=>l,bv:()=>s,gm:()=>o,m:()=>c,mw:()=>a,sb:()=>d,zk:()=>f});var n=r(1863);const i="undefined"!=typeof window&&!!window.document,s="undefined"!=typeof WorkerGlobalScope&&("undefined"!=typeof self&&self instanceof WorkerGlobalScope&&self.navigator instanceof WorkerNavigator||"undefined"!=typeof globalThis&&globalThis instanceof WorkerGlobalScope&&globalThis.navigator instanceof WorkerNavigator),o=i?window:"undefined"!=typeof WorkerGlobalScope&&("undefined"!=typeof self&&self instanceof WorkerGlobalScope&&self||"undefined"!=typeof globalThis&&globalThis instanceof WorkerGlobalScope&&globalThis),a=Boolean("hidden"===o?.document?.visibilityState),c=""+o?.location,u=/iPad|iPhone|iPod/.test(o.navigator?.userAgent),d=u&&"undefined"==typeof SharedWorker,l=((()=>{const e=o.navigator?.userAgent?.match(/Firefox[/\s](\d+\.\d+)/);Array.isArray(e)&&e.length>=2&&e[1]})(),Date.now()-(0,n.t)()),f=()=>{const e=o?.performance?.getEntriesByType?.("navigation")?.[0];if(e&&e.responseStart>0&&e.responseStart<o.performance.now())return e}},6389:(e,t,r)=>{"use strict";function n(e,t=500,r={}){const n=r?.leading||!1;let i;return(...r)=>{n&&void 0===i&&(e.apply(this,r),i=setTimeout(()=>{i=clearTimeout(i)},t)),n||(clearTimeout(i),i=setTimeout(()=>{e.apply(this,r)},t))}}function i(e){let t=!1;return(...r)=>{t||(t=!0,e.apply(this,r))}}r.d(t,{J:()=>i,s:()=>n})},6630:(e,t,r)=>{"use strict";r.d(t,{T:()=>n});const n=r(860).K7.pageViewEvent},7699:(e,t,r)=>{"use strict";r.d(t,{It:()=>s,KC:()=>a,No:()=>i,qh:()=>o});var n=r(860);const i=16e3,s=1e6,o="SESSION_ERROR",a={[n.K7.logging]:!0,[n.K7.genericEvents]:!0,[n.K7.jserrors]:!0,[n.K7.ajax]:!0}},7836:(e,t,r)=>{"use strict";r.d(t,{P:()=>a,ee:()=>c});var n=r(384),i=r(8990),s=r(2646),o=r(5607);const a="nr@context:".concat(o.W),c=function e(t,r){var n={},o={},d={},l=!1;try{l=16===r.length&&u.initializedAgents?.[r]?.runtime.isolatedBacklog}catch(e){}var f={on:p,addEventListener:p,removeEventListener:function(e,t){var r=n[e];if(!r)return;for(var i=0;i<r.length;i++)r[i]===t&&r.splice(i,1)},emit:function(e,r,n,i,s){!1!==s&&(s=!0);if(c.aborted&&!i)return;t&&s&&t.emit(e,r,n);var a=g(n);m(e).forEach(e=>{e.apply(a,r)});var u=v()[o[e]];u&&u.push([f,e,r,a]);return a},get:h,listeners:m,context:g,buffer:function(e,t){const r=v();if(t=t||"feature",f.aborted)return;Object.entries(e||{}).forEach(([e,n])=>{o[n]=t,t in r||(r[t]=[])})},abort:function(){f._aborted=!0,Object.keys(f.backlog).forEach(e=>{delete f.backlog[e]})},isBuffering:function(e){return!!v()[o[e]]},debugId:r,backlog:l?{}:t&&"object"==typeof t.backlog?t.backlog:{},isolatedBacklog:l};return Object.defineProperty(f,"aborted",{get:()=>{let e=f._aborted||!1;return e||(t&&(e=t.aborted),e)}}),f;function g(e){return e&&e instanceof s.y?e:e?(0,i.I)(e,a,()=>new s.y(a)):new s.y(a)}function p(e,t){n[e]=m(e).concat(t)}function m(e){return n[e]||[]}function h(t){return d[t]=d[t]||e(f,t)}function v(){return f.backlog}}(void 0,"globalEE"),u=(0,n.Zm)();u.ee||(u.ee=c)},8122:(e,t,r)=>{"use strict";r.d(t,{a:()=>i});var n=r(944);function i(e,t){try{if(!e||"object"!=typeof e)return(0,n.R)(3);if(!t||"object"!=typeof t)return(0,n.R)(4);const r=Object.create(Object.getPrototypeOf(t),Object.getOwnPropertyDescriptors(t)),s=0===Object.keys(r).length?e:r;for(let o in s)if(void 0!==e[o])try{if(null===e[o]){r[o]=null;continue}Array.isArray(e[o])&&Array.isArray(t[o])?r[o]=Array.from(new Set([...e[o],...t[o]])):e[o]instanceof Map||e[o]instanceof Set||e[o]instanceof Date||e[o]instanceof RegExp?r[o]=e[o]:"object"==typeof e[o]&&"object"==typeof t[o]?r[o]=i(e[o],t[o]):r[o]=e[o]}catch(e){r[o]||(0,n.R)(1,e)}return r}catch(e){(0,n.R)(2,e)}}},8362:(e,t,r)=>{"use strict";r.d(t,{d:()=>s});var n=r(9566),i=r(1741);class s extends i.W{agentIdentifier=(0,n.LA)(16)}},8374:(e,t,r)=>{r.nc=(()=>{try{return document?.currentScript?.nonce}catch(e){}return""})()},8990:(e,t,r)=>{"use strict";r.d(t,{I:()=>i});var n=Object.prototype.hasOwnProperty;function i(e,t,r){if(n.call(e,t))return e[t];var i=r();if(Object.defineProperty&&Object.keys)try{return Object.defineProperty(e,t,{value:i,writable:!0,enumerable:!1}),i}catch(e){}return e[t]=i,i}},9324:(e,t,r)=>{"use strict";r.d(t,{F3:()=>i,Xs:()=>s,xv:()=>n});const n="1.314.0",i="PROD",s="CDN"},9566:(e,t,r)=>{"use strict";r.d(t,{LA:()=>a,bz:()=>o});var n=r(6154);const i="xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx";function s(e,t){return e?15&e[t]:16*Math.random()|0}function o(){const e=n.gm?.crypto||n.gm?.msCrypto;let t,r=0;return e&&e.getRandomValues&&(t=e.getRandomValues(new Uint8Array(30))),i.split("").map(e=>"x"===e?s(t,r++).toString(16):"y"===e?(3&s()|8).toString(16):e).join("")}function a(e){const t=n.gm?.crypto||n.gm?.msCrypto;let r,i=0;t&&t.getRandomValues&&(r=t.getRandomValues(new Uint8Array(e)));const o=[];for(var a=0;a<e;a++)o.push(s(r,i++).toString(16));return o.join("")}},9908:(e,t,r)=>{"use strict";r.d(t,{d:()=>n,p:()=>i});var n=r(7836).ee.get("handle");function i(e,t,r,i,s){s?(s.buffer([e],i),s.emit(e,t,r)):(n.buffer([e],i),n.emit(e,t,r))}}},n={};function i(e){var t=n[e];if(void 0!==t)return t.exports;var s=n[e]={exports:{}};return r[e](s,s.exports,i),s.exports}i.m=r,i.d=(e,t)=>{for(var r in t)i.o(t,r)&&!i.o(e,r)&&Object.defineProperty(e,r,{enumerable:!0,get:t[r]})},i.f={},i.e=e=>Promise.all(Object.keys(i.f).reduce((t,r)=>(i.f[r](e,t),t),[])),i.u=e=>"nr-rum-1.314.0.min.js",i.o=(e,t)=>Object.prototype.hasOwnProperty.call(e,t),e={},t="NRBA-1.314.0.PROD:",i.l=(r,n,s,o)=>{if(e[r])e[r].push(n);else{var a,c;if(void 0!==s)for(var u=document.getElementsByTagName("script"),d=0;d<u.length;d++){var l=u[d];if(l.getAttribute("src")==r||l.getAttribute("data-webpack")==t+s){a=l;break}}if(!a){c=!0;var f={296:"sha512-FbQYvzpOfwjph/QfB76yraYvsPfIoLIoXmbBPgOSL90m11LUnHqHPaz/B+tzU1w8bIavuZOM2X1VS11GuaaFBA=="};(a=document.createElement("script")).charset="utf-8",i.nc&&a.setAttribute("nonce",i.nc),a.setAttribute("data-webpack",t+s),a.src=r,0!==a.src.indexOf(window.location.origin+"/")&&(a.crossOrigin="anonymous"),f[o]&&(a.integrity=f[o])}e[r]=[n];var g=(t,n)=>{a.onerror=a.onload=null,clearTimeout(p);var i=e[r];if(delete e[r],a.parentNode&&a.parentNode.removeChild(a),i&&i.forEach(e=>e(n)),t)return t(n)},p=setTimeout(g.bind(null,void 0,{type:"timeout",target:a}),12e4);a.onerror=g.bind(null,a.onerror),a.onload=g.bind(null,a.onload),c&&document.head.appendChild(a)}},i.r=e=>{"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(e,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(e,"__esModule",{value:!0})},i.p="https://js-agent.newrelic.com/",(()=>{var e={374:0,840:0};i.f.j=(t,r)=>{var n=i.o(e,t)?e[t]:void 0;if(0!==n)if(n)r.push(n[2]);else{var s=new Promise((r,i)=>n=e[t]=[r,i]);r.push(n[2]=s);var o=i.p+i.u(t),a=new Error;i.l(o,r=>{if(i.o(e,t)&&(0!==(n=e[t])&&(e[t]=void 0),n)){var s=r&&("load"===r.type?"missing":r.type),o=r&&r.target&&r.target.src;a.message="Loading chunk "+t+" failed: ("+s+": "+o+")",a.name="ChunkLoadError",a.type=s,a.request=o,n[1](a)}},"chunk-"+t,t)}};var t=(t,r)=>{var n,s,[o,a,c]=r,u=0;if(o.some(t=>0!==e[t])){for(n in a)i.o(a,n)&&(i.m[n]=a[n]);if(c)c(i)}for(t&&t(r);u<o.length;u++)s=o[u],i.o(e,s)&&e[s]&&e[s][0](),e[s]=0},r=self["webpackChunk:NRBA-1.314.0.PROD"]=self["webpackChunk:NRBA-1.314.0.PROD"]||[];r.forEach(t.bind(null,0)),r.push=t.bind(null,r.push.bind(r))})(),(()=>{"use strict";i(8374);var e=i(8362),t=i(860);const r=Object.values(t.K7);var n=i(163);var s=i(9908),o=i(1863),a=i(4261),c=i(1738);var u=i(1687),d=i(4234),l=i(5289),f=i(6154),g=i(944),p=i(384);const m=e=>f.RI&&!0===e?.privacy.cookies_enabled;function h(e){return!!(0,p.dV)().o.MO&&m(e)&&!0===e?.session_trace.enabled}var v=i(6389),b=i(7699);class y extends d.W{constructor(e,t){super(e,t),this.abortHandler=void 0,this.featAggregate=void 0,this.loadedSuccessfully=void 0,this.onAggregateImported=new Promise(e=>{this.loadedSuccessfully=e}),this.deferred=Promise.resolve(),!1===e.init[this.featureName].autoStart?this.deferred=new Promise((t,r)=>{this.ee.on("manual-start-all",(0,v.J)(()=>{(0,u.Ak)(e,this.featureName),t()}))}):(0,u.Ak)(e,t)}importAggregator(e,t,r={}){if(this.featAggregate)return;const n=async()=>{let n;await this.deferred;try{if(m(e.init)){const{setupAgentSession:t}=await i.e(296).then(i.bind(i,2612));n=t(e)}}catch(e){(0,g.R)(20,e),this.ee.emit("internal-error",[e]),(0,s.p)(b.qh,[e],void 0,this.featureName,this.ee)}try{if(!this.#t(this.featureName,n,e.init))return(0,u.Ze)(this.agentRef,this.featureName),void this.loadedSuccessfully(!1);const{Aggregate:i}=await t();this.featAggregate=new i(e,r),e.runtime.harvester.initializedAggregates.push(this.featAggregate),this.loadedSuccessfully(!0)}catch(e){(0,g.R)(34,e),this.abortHandler?.(),(0,u.Ze)(this.agentRef,this.featureName,!0),this.loadedSuccessfully(!1),this.ee&&this.ee.abort()}};f.RI?(0,l.GG)(()=>n(),!0):n()}#t(e,r,n){if(this.blocked)return!1;switch(e){case t.K7.sessionReplay:return h(n)&&!!r;case t.K7.sessionTrace:return!!r;default:return!0}}}var _=i(6630),w=i(2614),x=i(3241);class R extends y{static featureName=_.T;constructor(e){var t;super(e,_.T),this.setupInspectionEvents(),t=e,(0,c.Y)(a.Fw,function(e,r){"string"==typeof e&&("/"!==e.charAt(0)&&(e="/"+e),t.runtime.customTransaction=(r||"http://custom.transaction")+e,(0,s.p)(a.Pl+a.Fw,[(0,o.t)()],void 0,void 0,t.ee))},t),this.importAggregator(e,()=>i.e(296).then(i.bind(i,146)))}setupInspectionEvents(){const e=(e,t)=>{e&&(0,x.W)({timeStamp:e.timeStamp,loaded:"complete"===e.target.readyState,type:"window",name:t,data:e.target.location+""})};(0,l.sB)(t=>{e(t,"DOMContentLoaded")}),(0,l.GG)(t=>{e(t,"load")}),(0,l.Qr)(t=>{e(t,"navigate")}),this.ee.on(w.tS.UPDATE,(e,t)=>{(0,x.W)({type:"lifecycle",name:"session",data:t})})}}class k extends e.d{constructor(e){var t;(super(),f.gm)?(this.features={},(0,p.bQ)(this.agentIdentifier,this),this.desiredFeatures=new Set(e.features||[]),this.desiredFeatures.add(R),(0,n.j)(this,e,e.loaderType||"agent"),t=this,(0,c.Y)(a.cD,function(e,r,n=!1){if("string"==typeof e){if(["string","number","boolean"].includes(typeof r)||null===r)return(0,c.U)(t,e,r,a.cD,n);(0,g.R)(40,typeof r)}else(0,g.R)(39,typeof e)},t),function(e){(0,c.Y)(a.Dl,function(t,r=!1){if("string"!=typeof t&&null!==t)return void(0,g.R)(41,typeof t);const n=e.info.jsAttributes["enduser.id"];r&&null!=n&&n!==t?(0,s.p)(a.Pl+"setUserIdAndResetSession",[t],void 0,"session",e.ee):(0,c.U)(e,"enduser.id",t,a.Dl,!0)},e)}(this),function(e){(0,c.Y)(a.nb,function(t){if("string"==typeof t||null===t)return(0,c.U)(e,"application.version",t,a.nb,!1);(0,g.R)(42,typeof t)},e)}(this),function(e){(0,c.Y)(a.d3,function(){e.ee.emit("manual-start-all")},e)}(this),function(e){(0,c.Y)(a.Pv,function(t=!0){if("boolean"==typeof t){if((0,s.p)(a.Pl+a.Pv,[t],void 0,"session",e.ee),e.runtime.consented=t,t){const t=e.features.page_view_event;t.onAggregateImported.then(e=>{const r=t.featAggregate;e&&!r.sentRum&&r.sendRum()})}}else(0,g.R)(65,typeof t)},e)}(this),this.run()):(0,g.R)(21)}get config(){return{info:this.info,init:this.init,loader_config:this.loader_config,runtime:this.runtime}}get api(){return this}run(){try{const e=function(e){const t={};return r.forEach(r=>{t[r]=!!e[r]?.enabled}),t}(this.init),n=[...this.desiredFeatures];n.sort((e,r)=>t.P3[e.featureName]-t.P3[r.featureName]),n.forEach(r=>{if(!e[r.featureName]&&r.featureName!==t.K7.pageViewEvent)return;const n=function(e){switch(e){case t.K7.ajax:return[t.K7.jserrors];case t.K7.sessionTrace:return[t.K7.ajax,t.K7.pageViewEvent];case t.K7.sessionReplay:return[t.K7.sessionTrace];case t.K7.pageViewTiming:return[t.K7.pageViewEvent];default:return[]}}(r.featureName).filter(e=>!(e in this.features));n.length>0&&(0,g.R)(36,{targetFeature:r.featureName,missingDependencies:n}),this.features[r.featureName]=new r(this)})}catch(e){(0,g.R)(22,e);for(const e in this.features)this.features[e].abortHandler?.();const t=(0,p.Zm)();delete t.initializedAgents[this.agentIdentifier]?.features,delete this.sharedAggregator;return t.ee.get(this.agentIdentifier).abort(),!1}}}var A=i(2843),T=i(782);class E extends y{static featureName=T.T;constructor(e){super(e,T.T),f.RI&&((0,A.u)(()=>(0,s.p)("docHidden",[(0,o.t)()],void 0,T.T,this.ee),!0),(0,A.G)(()=>(0,s.p)("winPagehide",[(0,o.t)()],void 0,T.T,this.ee)),this.importAggregator(e,()=>i.e(296).then(i.bind(i,2117))))}}var S=i(3969);class j extends y{static featureName=S.TZ;constructor(e){super(e,S.TZ),this.importAggregator(e,()=>i.e(296).then(i.bind(i,9623)))}}new k({features:[R,E,j],loaderType:"lite"})})()})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="Generator" content="Drupal 7 (http://drupal.org)" />
+<link rel="canonical" href="/documents/address-before-joint-session-the-congress-the-state-the-union-30" />
+<link rel="shortlink" href="/node/370531" />
+<link rel="shortcut icon" href="https://www.presidency.ucsb.edu/sites/default/files/favicon-app_0.png" type="image/png" />
+  <title>Address Before a Joint Session of the Congress on the State of the Union | The American Presidency Project</title>
+  <link href='//fonts.googleapis.com/css?family=Open+Sans:400,400italic,800,700,600,300|Dosis:400,200,300,500,600,700,800' rel='stylesheet' type='text/css'>
+  <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css" rel="stylesheet">
+  <link type="text/css" rel="stylesheet" href="https://www.presidency.ucsb.edu/sites/default/files/css/css_lQaZfjVpwP_oGNqdtWCSpJT1EMqXdMiU84ekLLxQnc4.css" media="all" />
+<link type="text/css" rel="stylesheet" href="https://www.presidency.ucsb.edu/sites/default/files/css/css_mYX-LIOky8FYFaNbVXROeK1zvNeJONS8NAoDGq4dBHI.css" media="all" />
+<link type="text/css" rel="stylesheet" href="https://www.presidency.ucsb.edu/sites/default/files/css/css_vbEgx2XLR7Zv4cooqCR003JQm8ctJxS8MDvX_FsFGUs.css" media="all" />
+<link type="text/css" rel="stylesheet" href="https://www.presidency.ucsb.edu/sites/default/files/css/css_oeHWMYUNGpyVpvA5OI5WFwKyBOcHdcrAoQuKZFMe0ng.css" media="all" />
+<link type="text/css" rel="stylesheet" href="https://www.presidency.ucsb.edu/sites/default/files/css/css_1cMLkzIU-HroF2SDTi9FvBd5lDl10ohMXkEVkqMZYXY.css" media="all" />
+<link type="text/css" rel="stylesheet" href="https://www.presidency.ucsb.edu/sites/default/files/css/css_DW59q6nX-P3-D4cA08_V2iLlMJIaFdPFYT8X6nSFpV8.css" media="print" />
+  <!-- HTML5 element support for IE6-8 -->
+  <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <script src="//ajax.aspnetcdn.com/ajax/jQuery/jquery-1.12.4.min.js"></script>
+<script>window.jQuery || document.write("<script src='/sites/default/modules/contrib/jquery_update/replace/jquery/1.12/jquery.min.js'>\x3C/script>")</script>
+<script src="https://www.presidency.ucsb.edu/sites/default/files/js/js_GOikDsJOX04Aww72M-XK1hkq4qiL_1XgGsRdkL0XlDo.js"></script>
+<script src="//ajax.aspnetcdn.com/ajax/jquery.ui/1.13.3/jquery-ui.min.js"></script>
+<script>window.jQuery.ui || document.write("<script src='/sites/default/modules/contrib/jquery_update/replace/ui/ui/minified/jquery-ui.min.js'>\x3C/script>")</script>
+<script src="https://www.presidency.ucsb.edu/sites/default/files/js/js_WTy6zf5zQPuw7Qev9Bqqjq6rBaImLElWFeaLIJvl-p8.js"></script>
+<script src="https://www.presidency.ucsb.edu/sites/default/files/js/js_gHk2gWJ_Qw_jU2qRiUmSl7d8oly1Cx7lQFrqcp3RXcI.js"></script>
+<script src="https://www.presidency.ucsb.edu/sites/default/files/js/js_OnsvYlQ_LTosJ-SxmHIq3Rw7eH2XmXi69Q68wgclccA.js"></script>
+<script src="https://www.googletagmanager.com/gtag/js?id=UA-86410002-1"></script>
+<script>window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments)};gtag("js", new Date());gtag("set", "developer_id.dMDhkMT", true);gtag("config", "UA-86410002-1", {"groups":"default","linker":{"domains":["dev-wwwpresidencyucsbedu.pantheonsite.io","www.presidency.ucsb.edu"]},"anonymize_ip":true});gtag("config", "G-86B9KEYGFJ", {"groups":"default","linker":{"domains":["dev-wwwpresidencyucsbedu.pantheonsite.io","www.presidency.ucsb.edu"]},"anonymize_ip":true});</script>
+<script src="https://www.presidency.ucsb.edu/sites/default/files/js/js_4UHkAEHWA-zVs1WaYjkskGwFX9NFDHBzppIxoKVDC4E.js"></script>
+<script src="https://www.presidency.ucsb.edu/sites/default/files/js/js_gvpxcPEErmaiJn8qGSGx2O87lReivTR09hs10gIG3Yg.js"></script>
+<script>jQuery.extend(Drupal.settings, {"basePath":"\/","pathPrefix":"","setHasJsCookie":0,"ajaxPageState":{"theme":"app","theme_token":"Z2lBeGLhuNYh6Sg8zVfyAi2aJ3MhMUJDLhVI606vIfU","js":{"sites\/default\/libraries\/jquery-ui-multiselect-widget\/src\/jquery.multiselect.js":1,"sites\/default\/libraries\/jquery-ui-multiselect-widget\/src\/jquery.multiselect.filter.js":1,"sites\/default\/modules\/contrib\/jquery_ui_multiselect_widget\/jquery_ui_multiselect_widget.js":1,"modules\/statistics\/statistics.js":1,"sites\/default\/themes\/bootstrap\/js\/bootstrap.js":1,"\/\/ajax.aspnetcdn.com\/ajax\/jQuery\/jquery-1.12.4.min.js":1,"0":1,"misc\/jquery-extend-3.4.0.js":1,"misc\/jquery-html-prefilter-3.5.0-backport.js":1,"misc\/jquery.once.js":1,"misc\/drupal.js":1,"sites\/default\/modules\/contrib\/jquery_update\/js\/jquery_browser.js":1,"\/\/ajax.aspnetcdn.com\/ajax\/jquery.ui\/1.13.3\/jquery-ui.min.js":1,"1":1,"sites\/default\/modules\/custom\/udb\/includes\/expiredStorage\/expired_storage.js":1,"sites\/default\/modules\/custom\/udb\/includes\/jspanel\/jspanel.min.js":1,"sites\/default\/modules\/custom\/udb\/includes\/jspanel\/extensions\/modal\/jspanel.modal.min.js":1,"misc\/form-single-submit.js":1,"sites\/default\/modules\/contrib\/entityreference\/js\/entityreference.js":1,"sites\/default\/modules\/contrib\/better_exposed_filters\/better_exposed_filters.js":1,"sites\/default\/modules\/contrib\/google_analytics\/googleanalytics.js":1,"https:\/\/www.googletagmanager.com\/gtag\/js?id=UA-86410002-1":1,"2":1,"sites\/default\/modules\/custom\/udb\/includes\/udb.behaviors.js":1,"sites\/default\/modules\/contrib\/field_group\/field_group.js":1,"sites\/default\/modules\/contrib\/rrssb\/rrssb.init.js":1,"sites\/default\/libraries\/rrssb-plus\/js\/rrssb.min.js":1,"sites\/default\/modules\/contrib\/extlink\/js\/extlink.js":1,"sites\/default\/themes\/app\/bootstrap\/js\/affix.js":1,"sites\/default\/themes\/app\/bootstrap\/js\/alert.js":1,"sites\/default\/themes\/app\/bootstrap\/js\/button.js":1,"sites\/default\/themes\/app\/bootstrap\/js\/carousel.js":1,"sites\/default\/themes\/app\/bootstrap\/js\/collapse.js":1,"sites\/default\/themes\/app\/bootstrap\/js\/dropdown.js":1,"sites\/default\/themes\/app\/bootstrap\/js\/modal.js":1,"sites\/default\/themes\/app\/bootstrap\/js\/tooltip.js":1,"sites\/default\/themes\/app\/bootstrap\/js\/popover.js":1,"sites\/default\/themes\/app\/bootstrap\/js\/scrollspy.js":1,"sites\/default\/themes\/app\/bootstrap\/js\/tab.js":1,"sites\/default\/themes\/app\/bootstrap\/js\/transition.js":1,"sites\/default\/themes\/app\/scripts\/scripts.js":1},"css":{"modules\/system\/system.base.css":1,"misc\/ui\/jquery.ui.core.css":1,"misc\/ui\/jquery.ui.theme.css":1,"misc\/ui\/jquery.ui.accordion.css":1,"sites\/default\/modules\/custom\/udb\/includes\/jspanel\/jspanel.min.css":1,"sites\/default\/modules\/custom\/udb\/includes\/theme\/udb-popup-default.css":1,"sites\/default\/modules\/contrib\/date\/date_repeat_field\/date_repeat_field.css":1,"modules\/field\/theme\/field.css":1,"modules\/node\/node.css":1,"sites\/default\/modules\/contrib\/extlink\/css\/extlink.css":1,"sites\/default\/modules\/contrib\/views\/css\/views.css":1,"sites\/default\/modules\/contrib\/ctools\/css\/ctools.css":1,"sites\/default\/libraries\/jquery-ui-multiselect-widget\/jquery.multiselect.css":1,"sites\/default\/libraries\/jquery-ui-multiselect-widget\/jquery.multiselect.filter.css":1,"sites\/default\/modules\/contrib\/jquery_ui_multiselect_widget\/jquery_ui_multiselect_widget.css":1,"sites\/default\/modules\/contrib\/vefl\/css\/vefl-layouts.css":1,"sites\/default\/modules\/contrib\/date\/date_api\/date.css":1,"public:\/\/rrssb\/rrssb.63dce718.css":1,"sites\/default\/libraries\/rrssb-plus\/css\/rrssb.css":1,"sites\/default\/themes\/app\/css\/style.css":1,"sites\/default\/themes\/app\/css\/oog.css":1,"sites\/default\/themes\/app\/css\/print.css":1}},"jquery_ui_multiselect_widget":{"module_path":"sites\/default\/modules\/contrib\/jquery_ui_multiselect_widget","multiple":1,"filter":1,"subselector":"#edit-category2","selectedlist":"4","autoOpen":0,"header":1,"height":"auto","classes":"app-uberselect","filter_auto_reset":1,"filter_width":"auto","jquery_ui_multiselect_widget_path_match_exclude":"admin\/*\r\nmedia\/*\r\nfile\/*\r\nsystem\/ajax"},"better_exposed_filters":{"datepicker":false,"slider":false,"settings":[],"autosubmit":false,"views":{"dpg_docs_media":{"displays":{"block_2":{"filters":[]}}},"report_a_typo":{"displays":{"block":{"filters":[]}}},"document_attached_files":{"displays":{"block":{"filters":[]},"block_1":{"filters":[]}}}}},"urlIsAjaxTrusted":{"\/advanced-search":true},"googleanalytics":{"account":["UA-86410002-1","G-86B9KEYGFJ"],"trackOutbound":1,"trackMailto":1,"trackDownload":1,"trackDownloadExtensions":"7z|aac|arc|arj|asf|asx|avi|bin|csv|doc(x|m)?|dot(x|m)?|exe|flv|gif|gz|gzip|hqx|jar|jpe?g|js|mp(2|3|4|e?g)|mov(ie)?|msi|msp|pdf|phps|png|ppt(x|m)?|pot(x|m)?|pps(x|m)?|ppam|sld(x|m)?|thmx|qtm?|ra(m|r)?|sea|sit|tar|tgz|torrent|txt|wav|wma|wmv|wpd|xls(x|m|b)?|xlt(x|m)|xlam|xml|z|zip","trackDomainMode":2,"trackCrossDomains":["dev-wwwpresidencyucsbedu.pantheonsite.io","www.presidency.ucsb.edu"]},"udb":{"popup_title":"       We need your help!","popup_donation_message":"\u003Ctable align=\u0022center\u0022 border=\u00220\u0022 cellpadding=\u00221\u0022 cellspacing=\u00221\u0022\u003E\u003Ctbody\u003E\u003Ctr\u003E\u003Ctd align=\u0022center\u0022\u003E\u003Cp\u003E\u003Cstrong\u003E\u003Cem\u003EHELP US CELEBRATE 25 YEARS OF THE APP!!\u003Cbr \/\u003EFOR LARGE GIFTS, WE HAVE A MUG\u0026gt;\u0026gt;\u0026gt;\u003C\/em\u003E\u003C\/strong\u003E\u003Cbr \/\u003E\u003Cstrong\u003E(Gifts received by December 31, 2026.)\u003C\/strong\u003E\u003C\/p\u003E\u003Cp\u003E\u003Cspan style=\u0022text-align: center;\u0022\u003E\u0026gt;\u0026gt;We welcome gifts of any size!!\u0026lt;\u0026lt;\u003C\/span\u003E\u003C\/p\u003E\u003C\/td\u003E\u003Ctd align=\u0022center\u0022 rowspan=\u00222\u0022 valign=\u0022middle\u0022\u003E\u003Cp\u003E\u0026nbsp;\u003C\/p\u003E\u003Cp\u003E\u003Cspan style=\u0022width: 150px; text-align: center; vertical-align: middle;\u0022\u003E\u003Cimg alt=\u0022\u0022 src=\u0022\/sites\/default\/files\/2026-03-27_10-35-30_mug.png\u0022 style=\u0022width: 175px; height: 161px;\u0022 \/\u003E\u003C\/span\u003E\u003C\/p\u003E\u003C\/td\u003E\u003C\/tr\u003E\u003Ctr\u003E\u003Ctd align=\u0022center\u0022\u003E\u003Cp\u003E\u003Ca href=\u0022https:\/\/give.ucsb.edu\/campaigns\/58728\/donations\/new\u0022\u003E\u003Cstrong\u003EPlease contribute! GIVE NOW!\u003C\/strong\u003E\u003C\/a\u003E\u003C\/p\u003E\u003C\/td\u003E\u003C\/tr\u003E\u003C\/tbody\u003E\u003C\/table\u003E\u003Cp style=\u0022text-align: center;\u0022\u003E\u003Ca href=\u0022https:\/\/give.ucsb.edu\/campaigns\/58728\/donations\/new\u0022 id=\u0022udb_ucsb_giving_platform_web_link\u0022 rel=\u0022nofollow\u0022\u003EGIVE NOW\u003C\/a\u003E\u003C\/p\u003E\u003Cp align=\u0022center\u0022\u003E\u0026nbsp;\u003C\/p\u003E\u003Cp align=\u0022center\u0022\u003E**\u003C\/p\u003E\u003Cp align=\u0022center\u0022\u003E\u0026nbsp;\u003C\/p\u003E\u003Cp align=\u0022center\u0022\u003E\u003Csection id=\u0022udb_visitor_optout_container\u0022\u003E\n  \u003Cinput type=\u0022checkbox\u0022 id=\u0022udb_visitor_optout\u0022 name=\u0022udb_visitor_optout\u0022\u003E\n  \u003Clabel for=\u0022udb_visitor_optout\u0022\u003Edismiss for 30 days\u003C\/label\u003E\n\u003C\/section\u003E\u003C\/p\u003E","optout_duration":30,"cooldown_interval":10,"max_donation_requests_per_day":5,"titlebar_bgcolor":"#418dbf","titlebar_fgcolor":"#FFFFFF","content_bgcolor":"#FFFFFF","content_fgcolor":"#FF0000","popup_type":"standard","content_text_size":"2"},"statistics":{"data":{"nid":"370531"},"url":"\/modules\/statistics\/statistics.php"},"field_group":{"div":"full"},"rrssb":{"size":"1","shrink":"1","regrow":"","minRows":"1","maxRows":"1","prefixReserve":"1em","prefixHide":"1em","alignRight":0},"extlink":{"extTarget":"_blank","extClass":0,"extLabel":"(link is external)","extImgClass":0,"extIconPlacement":"append","extSubdomains":1,"extExclude":"","extInclude":"","extCssExclude":"","extCssExplicit":"","extAlert":0,"extAlertText":"This link will take you to an external web site.","mailtoClass":0,"mailtoLabel":"(link sends e-mail)","extUseFontAwesome":false},"bootstrap":{"anchorsFix":1,"anchorsSmoothScrolling":1,"formHasError":1,"popoverEnabled":0,"popoverOptions":{"animation":1,"html":0,"placement":"right","selector":"","trigger":"click","triggerAutoclose":1,"title":"","content":"","delay":0,"container":"body"},"tooltipEnabled":1,"tooltipOptions":{"animation":1,"html":0,"placement":"auto left","selector":"","trigger":"hover focus","delay":0,"container":"body"}}});</script>
+</head>
+<body class="html not-front not-logged-in one-sidebar sidebar-first page-node page-node- page-node-370531 node-type-documents" >
+  <div id="skip-link">
+    <a href="#main-content" class="element-invisible element-focusable">Skip to main content</a>
+  </div>
+    <div class="wrapper"> <!-- Wrapper for Sticky Footer -->
+
+      <div class="branding-region">
+      <div class="container">
+                  <div class="region region-branding">
+    <section id="block-block-1" class="block block-block site-title-block clearfix">
+
+      
+  <div class="site-title"><a href="https://www.presidency.ucsb.edu/">The American Presidency Project</a></div>
+
+</section>
+<section id="block-block-2" class="block block-block top-link-buttons clearfix">
+
+      
+  <p><a class="btn btn-default" href="https://www.presidency.ucsb.edu/about">About</a><a class="btn btn-default" href="/advanced-search"><span class="glyphicon glyphicon-search"></span> Search</a></p>
+<p id="ucScript"><a href="https://www.ucsb.edu/" target="_blank"><img alt="ucsb wordmark black" src="https://www.presidency.ucsb.edu/sites/default/files/pictures/uc_santa_barbara_wordmark_black_rgb.svg" style="width: 175px; height: 13px;" /></a></p>
+
+</section>
+  </div>
+      </div>
+    </div>
+  
+  <div id="navbar" role="banner" class="navbar navbar-default"><!-- Only way to remove "container" class -->
+    <div class="container">
+      <div class="navbar-header">
+
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+      </div>
+
+              <div class="navbar-collapse collapse">
+          <nav role="navigation">
+                          <ul class="menu nav navbar-nav"><li class="first expanded active-trail active dropdown"><a href="/documents" class="active-trail dropdown-toggle" data-toggle="dropdown">Documents <span class="caret"></span></a><ul class="dropdown-menu"><li class="first leaf"><a href="/documents/presidential-documents-archive-guidebook">Guidebook</a></li>
+<li class="last leaf"><a href="/documents/category-attributes">Category Attributes</a></li>
+</ul></li>
+<li class="collapsed"><a href="/statistics">Statistics</a></li>
+<li class="leaf"><a href="/media" title="">Media Archive</a></li>
+<li class="leaf"><a href="/presidents" title="">Presidents</a></li>
+<li class="leaf"><a href="/analyses" title="">Analyses</a></li>
+<li class="last leaf"><a href="https://give.ucsb.edu/campaigns/58728/donations/new" title="">GIVE</a></li>
+</ul>                                              </nav>
+        </div>
+          </div>
+  </div>
+
+  <div role="banner" id="page-header" class="site-header">
+      </div>
+
+  <div class="main-container container">
+    <div class="row">
+
+          <aside class="col-sm-3 no-print" role="complementary">
+            <div class="region region-sidebar-first well">
+    <section id="block-menu-block-8" class="block block-menu-block doc-sub clearfix">
+
+        <h2 class="block-title">Documents</h2>
+    
+  <div class="menu-block-wrapper menu-block-8 menu-name-menu-documents parent-mlid-0 menu-level-1">
+  <ul class="menu nav"><li class="first leaf menu-mlid-10329"><a href="/documents/presidential-documents-archive-guidebook" title="">Archive Guidebook</a></li>
+<li class="leaf active-trail menu-mlid-10330 active"><a href="/documents" title="" class="active-trail">Categories</a></li>
+<li class="last leaf menu-mlid-10791"><a href="/documents/category-attributes" title="">Attributes</a></li>
+</ul></div>
+
+</section>
+<section id="block-menu-block-7" class="block block-menu-block dropdown clearfix">
+
+        <h2 class="block-title">Categories</h2>
+    
+  <div class="menu-block-wrapper menu-block-7 menu-name-menu-doc-cat-menu parent-mlid-0 menu-level-1">
+    <ul class="menu nav"><li class="first expanded menu-mlid-10954 dropdown"><a href="/documents/app-categories/presidential" title="Presidential (73842)" class="dropdown-toggle" data-toggle="dropdown">Presidential (254233) <span class="caret"></span></a><ul class="dropdown-menu"><li class="first leaf menu-mlid-10910"><a href="/documents/app-categories/spoken-addresses-and-remarks/presidential/eulogies" title="Eulogies (55)">Eulogies (69)</a></li>
+<li class="leaf menu-mlid-10930"><a href="/documents/app-categories/written-presidential-orders/presidential/executive-orders" title="Executive Orders (5885)">Executive Orders (10846)</a></li>
+<li class="leaf menu-mlid-10912"><a href="/documents/app-categories/spoken-addresses-and-remarks/presidential/fireside-chats" title="Fireside Chats (27)">Fireside Chats (27)</a></li>
+<li class="leaf menu-mlid-10906"><a href="/documents/app-categories/presidential/interviews" title="Interviews (950)">Interviews (1038)</a></li>
+<li class="leaf menu-mlid-10894"><a href="/documents/app-categories/presidential/letters" title="Letters (4363)">Letters (4795)</a></li>
+<li class="leaf menu-mlid-10899"><a href="/documents/app-categories/presidential/miscellaneous-written" title="Miscellaneous Written (741)">Miscellaneous Written (112)</a></li>
+<li class="leaf menu-mlid-10907"><a href="/documents/app-categories/presidential/news-conferences" title="News Conferences (2096)">News Conferences (2526)</a></li>
+<li class="collapsed menu-mlid-10909"><a href="/documents/app-categories/presidential/spoken-addresses-and-remarks" title="Spoken Addresses and Remarks (5428)">Spoken Addresses and Remarks (35445)</a></li>
+<li class="leaf menu-mlid-10911"><a href="/documents/app-categories/spoken-addresses-and-remarks/presidential/farewell-addresses" title="Farewell Address (10)">Farewell Addresses (12)</a></li>
+<li class="leaf menu-mlid-10913"><a href="/documents/app-categories/spoken-addresses-and-remarks/presidential/inaugural-addresses" title="Inaugural Addresses (61)">Inaugural Addresses (63)</a></li>
+<li class="leaf menu-mlid-10895"><a href="/documents/app-categories/presidential/memoranda" title="Memoranda (1828)">Memoranda (3480)</a></li>
+<li class="leaf menu-mlid-10927"><a href="/documents/app-categories/citations/presidential/messages" title="Messages (11049)">Messages (12817)</a></li>
+<li class="leaf menu-mlid-10931"><a href="/documents/app-categories/written-presidential-orders/presidential/proclamations" title="Proclamations (7974)">Proclamations (11117)</a></li>
+<li class="leaf menu-mlid-10919"><a href="/documents/app-categories/spoken-addresses-and-remarks/presidential/saturday-weekly-addresses" title="Saturday Addresses (Radio and Webcast) (1629)">Saturday Weekly Addresses (1639)</a></li>
+<li class="leaf menu-mlid-10920"><a href="/documents/app-categories/spoken-addresses-and-remarks/presidential/state-dinners" title="State Dinners (953)">State Dinners (263)</a></li>
+<li class="leaf menu-mlid-10921"><a href="/documents/app-categories/spoken-addresses-and-remarks/presidential/state-the-union-addresses" title="State of the Union Addresses (98)">State of the Union Addresses (101)</a></li>
+<li class="leaf menu-mlid-10928"><a href="/documents/app-categories/citations/presidential/state-the-union-written-messages" title="State of the Union Messages (1)">State of the Union Written Messages (140)</a></li>
+<li class="expanded menu-mlid-10934"><a href="/documents/app-categories/statements" title="Statements (8647)">Statements (14717)</a></li>
+<li class="leaf menu-mlid-10924"><a href="/documents/app-categories/presidential/vetoes" title="Vetoes (266)">Vetoes (1230)</a></li>
+<li class="collapsed menu-mlid-10925"><a href="/documents/app-categories/presidential/citations" title="Written Messages (11021)">Citations (13185)</a></li>
+<li class="last expanded menu-mlid-10929"><a href="/documents/app-categories/presidential/written-presidential-orders" title="Written Presidential Orders (13858)">Written Presidential Orders (50267)</a></li>
+</ul></li>
+<li class="leaf menu-mlid-10897"><a href="/documents/app-categories/remarks-administration-officials" title="Miscellaneous Press Secretary (23298)">Remarks by Administration Officials (189)</a></li>
+<li class="expanded menu-mlid-10887 dropdown"><a href="/documents/app-categories/elections-and-transitions" title="Elections and Transitions (16448)" class="dropdown-toggle" data-toggle="dropdown">Elections and Transitions (50266) <span class="caret"></span></a><ul class="dropdown-menu"><li class="first leaf menu-mlid-10888"><a href="/documents/app-categories/elections-and-transitions/campaign-documents" title="Campaign Documents (2747)">Campaign Documents (23622)</a></li>
+<li class="expanded menu-mlid-10889"><a href="/documents/app-categories/elections-and-transitions/convention-speeches" title="Convention Speeches (50)">Convention Speeches (128)</a></li>
+<li class="expanded menu-mlid-10890"><a href="/documents/app-categories/elections-and-transitions/debates" title="Debates (152)">Debates (191)</a></li>
+<li class="leaf menu-mlid-10892"><a href="/documents/app-categories/elections-and-transitions/party-platforms" title="Party Platforms (98)">Party Platforms (105)</a></li>
+<li class="last leaf menu-mlid-10893"><a href="/documents/app-categories/elections-and-transitions/transition-documents" title="Transition Documents (346)">Transition Documents (744)</a></li>
+</ul></li>
+<li class="last leaf menu-mlid-10883"><a href="/documents/app-categories/congressional" title="Congressional (3)">Congressional (13)</a></li>
+</ul></div>
+
+</section>
+  </div>
+        </aside>  <!-- /#sidebar-first -->
+      
+      <section class="col-sm-9">
+                        <a id="main-content"></a>
+                
+                          
+                          <div class="region region-content">
+    <section id="block-system-main" class="block block-system clearfix">
+
+      
+  
+
+<div  about="/documents/address-before-joint-session-the-congress-the-state-the-union-30" typeof="sioc:Item foaf:Document" class="node node-documents view-mode-full ">
+    <div class="row">
+    <div class="col-sm-8 ">
+      
+  <div class="field-docs-person">
+    <div  about="/people/president/joseph-r-biden-jr" typeof="sioc:Item foaf:Document" class="ds-1col node node-prez-diet view-mode-for_documents  clearfix">
+
+  
+  
+  <div class="field-diet-pictures">
+    <img typeof="foaf:Image" class="img-responsive" src="https://www.presidency.ucsb.edu/sites/default/files/styles/doc_img/public/people/joseph-r-biden.jpg?itok=7s5me69i" width="170" height="230" alt="Joe Biden" />  </div>
+
+  <div class="field-title">
+    <h3 class="diet-title"><a href="/people/president/joseph-r-biden-jr">Joseph R. Biden, Jr.</a></h3>  </div>
+
+  <div class="field-ds-byline">
+    
+  <div class="field-resuable-byline">
+    <div class="diet-by-line president">46th President of the United States: 2021—2025</div>
+  </div>
+  </div>
+
+  <div class="field-ds-doc-title">
+    <h1>Address Before a Joint Session of the Congress on the State of the Union</h1>
+  </div>
+</div>
+
+  </div>
+
+  <div class="field-docs-start-date-time">
+    <span  property="dc:date" datatype="xsd:dateTime" content="2024-03-07T00:00:00+00:00" class="date-display-single">March 07, 2024</span>  </div>
+
+  <div class="field-docs-content">
+    <p>[<i>Before speaking, the President presented his prepared remarks to Speaker of the House of Representatives J. Michael Johnson.</i>]</p>
+<p><i>The President.</i> Your bedtime reading.</p>
+<p>Tony! Thank you. Looking for Jill.</p>
+<p>Good evening. Good evening. If I were smart, I'd go home now. [<i>Laughter</i>]</p>
+<p>Mr. Speaker, Madam Vice President, Members of Congress, my fellow Americans: In January 1941, Franklin Roosevelt came to this Chamber to speak to the Nation. And he said, "I address you at a moment unprecedented in the history of the Union." Hitler was on the march. War was raging in Europe. President Roosevelt's purpose was to wake up Congress and alert the American people that this was no ordinary time. Freedom and democracy were under assault in the world.</p>
+<p>Tonight I come to the same Chamber to address the Nation. Now it's we who face an unprecedented moment in the history of the Union. And yes, my purpose tonight is to wake up the Congress and alert the American people that this is no ordinary moment either. Not since President Lincoln and the Civil War have freedom and democracy been under assault at home as they are today.</p>
+<p>What makes our moment rare is that freedom and democracy are under attack at—both at home and overseas at the very same time. Overseas, Putin of Russia is on the march, invading Ukraine and sowing chaos throughout Europe and beyond. If anybody in this room thinks Putin will stop at Ukraine, I assure you: He will not.</p>
+<p>But Ukraine—[<i>applause</i>]. Ukraine can stop Putin. Ukraine can stop Putin if we stand with Ukraine and provide the weapons that it needs to defend itself. That is all—that is all—Ukraine is asking. They're not asking for American soldiers. In fact, there are no American soldiers at war in Ukraine, and I'm determined to keep it that way.</p>
+<p>But now assistance to Ukraine is being blocked by those who want to walk away from our world leadership. It wasn't long ago when a Republican President named Ronald Reagan thundered, "Mr. Gorbachev, tear down this wall." Now—[<i>applause</i>]. Now my predecessor, a former Republican President, tells Putin, quote, "Do whatever the hell you want."</p>
+<p><i>Audience members.</i> Boo!</p>
+<p><i>The President.</i> That's a quote. A former President actually said that, bowing down to a Russian leader. I think it's outrageous, it's dangerous, and it's unacceptable.</p>
+<p>America is a founding member of NATO, the military alliance of democratic nations created after World War II prevent—to prevent war and keep the peace. And today we've made NATO stronger than ever. We welcomed Finland to the alliance last year. And just this morning Sweden officially joined, and their Minister is here tonight. Come here, stand up. Welcome. Welcome, welcome, welcome. And they know how to fight.</p>
+<p>Mr. Prime Minister, welcome to NATO, the strongest military alliance the world has ever seen.</p>
+<p>I say this to Congress: We have to stand up to Putin. Send me a bipartisan national security bill. History is literally watching. History is watching. If the United States walks away, it will put Ukraine at risk. Europe is at risk. The free world will be at risk, emboldening others to do what they wish to do us harm.</p>
+<p>My message to President Putin, who I've known for a long time, is simple: We will not walk away. We will not bow down. I will not bow down.</p>
+<p>In a literal sense, history is watching. History is watching, just like history watched 3 years ago on January 6, when insurrectionists stormed this very Capitol and placed a dagger to the throat of American democracy.</p>
+<p>Many of you were here on that darkest of days. We all saw with our own eyes, the insurrectionists were not patriots. They had come to stop the peaceful transfer of power, to overturn the will of the people.</p>
+<p>January 6 lies about the 2020 election and the plots to steal the election posed a great—gravest threat to U.S. democracy since the Civil War. But they failed. America stood—[<i>applause</i>]. America stood strong, and democracy prevailed. We must be honest: The threat to democracy must be defended [defeated; White House correction].</p>
+<p>My predecessor and some of you here seek to bury the truth about January 6. I will not do that. This is a moment to speak the truth and to bury the lies. Here's the simple truth: You can't love your country only when you win.</p>
+<p>As I've done ever since being elected to office, I ask all of you, without regard to party, to join together and defend democracy. Remember your oath of office to defend against all threats foreign and domestic. Respect—respect—free and fair elections, restore trust in our institutions, and make clear political violence has absolutely no place—no place—in America. Zero place.</p>
+<p>Again, it's not hyperbole to suggest history is watching. They're watching. Your children and grandchildren will read about this day and what we do.</p>
+<p>History is watching another assault on freedom. Joining us tonight is Latorya Beasley, a social worker from Birmingham, Alabama.</p>
+<p>Fourteen months ago—fourteen months ago, she and her husband welcomed a baby girl thanks to the miracle of IVF. She scheduled treatments to have that second child, but the Alabama Supreme Court shut down IVF treatments across the State, unleashed by a Supreme Court decision overturning <i>Roe</i> v. <i>Wade</i>. She was told her dream would have to wait.</p>
+<p>What her family had gone through should never have happened. Unless Congress acts, it could happen again. So tonight let's stand up for families like hers. To my friends across the aisle, don't keep this waiting any longer. Guarantee the right to IVF. Guarantee it nationwide.</p>
+<p>Like most Americans, I believe <i>Roe</i> v. <i>Wade</i> got it right.</p>
+<p>I thank Vice President Harris for being an incredible leader defending reproductive freedom and so much more. [<i>Applause</i>] Thank you.</p>
+<p>My predecessor came to office determined to see <i>Roe</i> v. <i>Wade</i> overturned. He's the reason it was overturned, and he brags about it. Look at the chaos that has resulted.</p>
+<p>Joining us tonight is Kate Cox, a wife and mother from Dallas. She'd become pregnant again and had a fetus with a fatal condition. Her doctor told Kate that her own life and her ability to have future in the—children in the future were at risk if she didn't act. Because Texas law banned her ability to act, Kate and her husband had to leave the State to get what she needed.</p>
+<p>What her family had gone through should have never happened as well. But it's happening to too many others. There are State laws banning the freedom to choose, criminalizing doctors, forcing survivors of rape and incest to leave their States to get the treatment they need.</p>
+<p>Many of you in this Chamber and my predecessor are promising to pass a national ban on reproductive freedom.</p>
+<p><i>Audience members.</i> Boo!</p>
+<p><i>The President.</i> My God, what freedom else would you take away?</p>
+<p>Look, its decision to overturn <i>Roe</i> v. <i>Wade</i>, the Supreme Court majority wrote the following—and with all due respect, Justices—"Women are not without electoral power"—excuse me—"electoral or political power." You're about to realize just how much you were right about that.</p>
+<p>Clearly—[<i>applause</i>]. Clearly, those bragging about overturning <i>Roe</i> v. <i>Wade</i> have no clue about the power of women. But they found out. When reproductive freedom was on the ballot, we won in 2022 and 2023. And we'll win again in 2024.</p>
+<p>If you—if you, the American people—send me a Congress that supports the right to choose, I promise you I will restore <i>Roe</i> v. <i>Wade</i> as the law of the land again.</p>
+<p>Folks, America cannot go back.</p>
+<p>I am here tonight to show what I believe is the way forward, because I know how far we've come. Four years ago next week, before I came to office, the country was hit by the worst pandemic and the worst economic crisis in a century. Remember the fear, record losses?</p>
+<p>Remember the spikes in crime and the murder rate? A raging virus that took more than 1 million American lives of loved ones, millions left behind. A mental health crisis of isolation and loneliness.</p>
+<p>A President, my predecessor, failed in the most basic Presidential duty that he owes to American people: the duty to care.</p>
+<p><i>Representative Derrick Van Orden.</i> Lies!</p>
+<p><i>The President.</i> I think that's unforgivable.</p>
+<p>I came to office determined to get us through one of the toughest periods in the Nation's history. We have. It doesn't make new, but in a—news—in a thousand cities and towns, the American people are writing the greatest comeback story never told.</p>
+<p>So let's tell the story here—tell it here and now. America's comeback is building a future of American possibilities; building an economy from the middle out and the bottom up, not the top down; investing in all of America, in all Americans to make every—sure everyone has a fair shot and we leave no one—no one—behind.</p>
+<p>The pandemic no longer controls our lives. The vaccine that saved us from COVID is—are now being used to beat cancer. Turning setback into comeback—that's what America does. That's what America does.</p>
+<p>Folks, I inherited an economy that was on the brink. Now, our economy is literally the envy of the world: 15 million new jobs in just 3 years—a record, a record; unemployment at 50-year lows.</p>
+<p>A record 16 million Americans are starting small businesses, and each one is a literal act of hope, with historic job growth and small-business growth for Black and Hispanics and Asian Americans. Eight hundred thousand new manufacturing jobs in America and counting. Where is it written we can't be the manufacturing capital of the world? We are, and we will.</p>
+<p>More people have health insurance today—[<i>applause</i>]. More people have health insurance today than ever before. The racial wealth gap is the smallest it's been in 20 years. Wages keep going up. Inflation keeps coming down. Inflation has dropped from 9 percent to 3 percent, the lowest in the world and tending [trending; White House correction] lower.</p>
+<p>The landing is and will be soft. And now, instead of importing foreign products and exporting American jobs, we're exporting American products and creating American jobs, right here in America, where they belong.</p>
+<p>And it takes time, but the American people are beginning to feel it. Consumer studies show consumer confidence is soaring.</p>
+<p>"Buy America" has been the law of the land since the 1930s. Past administrations, including my predecessor—including some Democrats, as well, in the past—failed to buy American. Not anymore.</p>
+<p>On my watch, Federal projects that you fund—like helping build American roads, bridges, and highways—will be made with American products and built by American workers, creating good-paying American jobs.</p>
+<p>And thanks to our CHIPS and Science Act, the United States is investing more in research and development than ever before. During the pandemic, a shortage of semiconductors, chips that drove up the price of everything from cell phones to automobiles—and by the way, we invented those chips right here in America.</p>
+<p>Well, instead of having to import them, instead of—private companies are now investing billions of dollars to build new chip factories here in America, creating tens of thousands of jobs, many of those jobs paying $100,000 a year and don't require a college degree.</p>
+<p>In fact, my policies have attracted $650 billion in private-sector investment in clean energy, advanced manufacturing, creating tens of thousands of jobs here in America. And thanks—[<i>applause</i>]. And thanks to our bipartisan infrastructure law, 46,000 new projects have been announced all across your communities.</p>
+<p>And by the way, I noticed some of you who've strongly voted against it are there cheering on that money coming in. [<i>Laughter</i>] And I like it. I'm with you. I'm with you. And if any of you don't want that money in your district, just let me know. [<i>Laughter</i>]</p>
+<p>Modernizing our roads and bridges, ports and airports, public transit systems; removing poisonous lead pipes so every child can drink clean water without risk of brain damage; providing affordable—affordable—high-speed internet for every American, no matter where you live—urban, suburban, or rural communities in red States and blue States; record investments in Tribal communities.</p>
+<p>Because of my investment in family farms—[<i>applause</i>]—because I invested in family farms—led by my Secretary of Agriculture, who knows more about this than anybody I know—we're better able to stay in the family for the—those farms so their—and their children and grandchildren won't have to leave home to make a living. It's transformative.</p>
+<p>The great comeback story is Belvidere, Illinois. Home to an auto plant for nearly 60 years. Before I came to office, the plant was on its way to shutting down. Thousands of workers feared for their livelihoods. Hope was fading.</p>
+<p>Then, I was elected to office, and we raised the Belvidere repeatedly with auto companies, knowing unions would make all the difference. The UAW worked like hell to keep the plant open and get these jobs back. And together, we succeeded.</p>
+<p>Instead of auto factories shutting down, auto factories are reopening, and a new state-of-the-art battery factory is being built to power those cars there at the same—[<i>applause</i>]. Folks—[<i>applause</i>]. To the folks of Belvidere, I say: Instead of your town being left behind, your community is moving forward again. Because instead of watching auto jobs of the future go overseas, 4,000 union jobs with higher wages are building a future in Belvidere right here in America.</p>
+<p>Here tonight is UAW President Shawn Fain, a great friend and a great labor leader. Shawn, where are you? Stand up. And Dawn—and Dawn Simms, a third-generation worker—UAW worker at Belvidere. Shawn, I was proud to be the first President to stand in the picket line. And today, Dawn has a good job in her hometown, providing stability for her family and pride and dignity as well.</p>
+<p>Showing once again, Wall Street didn't build America. They're not bad guys. They didn't build it, though. The middle class built the country, and unions built the middle class.</p>
+<p>I say to the American people: When America gets knocked down, we get back up. We keep going. That's America. That's you, the American people. It's because of you America is coming back. It's because of you our future is brighter. It's because of you that tonight we can proudly say the state of our Union is strong and getting stronger.</p>
+<p><i>Audience members.</i> Four more years! Four more years! Four more years!</p>
+<p><i>The President.</i> Tonight—tonight, I want to talk about the future of possibilities that we can build together, a future where the days of trickle-down economics are over and the wealthy and the biggest corporations no longer get the—all the tax breaks.</p>
+<p>And by the way, I understand corporations. I come from a State that has more corporations invested—[<i>laughter</i>]—than every one of your States in the State—the United States combined. And I represented it for 36 years. I'm not anticorporation.</p>
+<p>But I grew up in a home where trickle-down economics didn't put much on my dad's kitchen table. That's why I determined to turn things around so the middle class does well. When they do well, the poor have a way up and the wealthy still do very well. We all do well.</p>
+<p>And there's more to do to make sure you're feeling the benefits of all we're doing.</p>
+<p>Americans pay more for prescription drugs than anywhere in the world. It's wrong, and I'm ending it. With a law that I proposed and signed—and not one of your Republican buddies work—voted for it—we finally beat Big Pharma. Instead of paying $400 a month or thereabouts for insulin with diabetes—and it only costs 10 bucks to make—they only get paid $35 a month now and still make a healthy profit.</p>
+<p>And I want to—and what to do next, I want to cap the cost of insulin at $35 a month for every American who needs it—everyone.</p>
+<p>For years, people have talked about it. But finally, we got it done and gave Medicare the power to negotiate lower prices on prescription drugs, just like the VA is able to do for veterans.</p>
+<p>That's not just saving seniors money. It's saving taxpayers money. We cut the Federal deficit by $160 billion, because Medicare will no longer have to pay those exorbitant prices to Big Pharma.</p>
+<p>This year, Medicare is negotiating lower prices for some of the costliest drugs on the market that treat everything from heart disease to arthritis. It's now time to go further and give Medicare the power to negotiate lower prices for 500 different drugs over the next decade.</p>
+<p>They're making a lot of money, guys. And they'll still be extremely profitable. It will not only save lives, it will save taxpayers another $200 billion.</p>
+<p>Starting next year, the same law caps total prescription drug costs for seniors on Medicare at $200—at $2,000 a year, even for expensive cancer drugs that cost $10-, $12-, $15,000. Now I want to cap prescription drug costs at $2,000 a year for everyone.</p>
+<p>Folks, I'm going to get in trouble for saying that, but any of you want to get in Air Force One with me and fly to Toronto, Berlin, Moscow—I mean, excuse me. [<i>Laughter</i>] Well, even Moscow, probably. [<i>Laughter</i>] And bring your prescription with you, and I promise you, I'll get it for you for 40-percent the cost you're paying now. Same company, same drug, same place.</p>
+<p>Folks, the Affordable Care Act—the old "Obamacare"—is still a very big deal. [<i>Laughter</i>] Over 100 million of you can no longer be denied health insurance because of a preexisting condition. But my predecessor and many in this Chamber want to take the—that prescription drug away by repealing Affordable Care Act.</p>
+<p><i>Audience members.</i> Boo!</p>
+<p><i>The President.</i> I'm not going to let that happen. We stopped you 50 times before, and we'll stop you again.</p>
+<p>In fact, I'm not only protecting it, I'm expanding it. The—we enacted tax credits of $800 per person per year [to; White House correction] reduce health care costs for millions of working families. That tax credit expires next year. I want to make that savings permanent.</p>
+<p>To state the obvious: Women are more than half of our population, but research on women's health has always been underfunded. That's why we're launching the first ever White House Initiative on Women's Health Research, led by Jill—doing an incredible job as First Lady—to pass my plan for $12 billion to transform women's health research and benefit millions of lives all across America.</p>
+<p>I know the cost of housing is so important to you. If inflation keeps coming down, mortgage rates will come down as well, and the Fed acknowledges that.</p>
+<p>But I'm not waiting. I want to provide an annual tax credit that will give Americans $400 a month for the next 2 years as mortgage rates come down to put toward their mortgages when they buy their first home or trade up for a little more space. Just for 2 years.</p>
+<p>And my administration is also eliminating title insurance [fees; White House correction] on federally backed mortgages. When you refinance your home, you can save $1,000 or more as a consequence.</p>
+<p>For millions of renters, we're cracking down on big landlords who use antitrust law—using antitrust—who break antitrust laws—by price-fixing and driving up rents. We've cut redtape so builders can get federally financing, which is already helping build a record 1.7 million new house—housing units nationwide.</p>
+<p>Now pass—[<i>applause</i>]—now pass [my plan; White House correction] and build and renovate 2 million affordable homes and bring those rents down.</p>
+<p>To remain the strongest economy in the world, we need to have the best education system in the world. And I, like I suspect all of you, want to give a child—every child a good start by providing access to preschool for 3- and 4-years-old.</p>
+<p>You know, I think I pointed out last year—[<i>applause</i>]. I think I pointed out last year that children coming from broken homes where there's no books, they're not read to, not spoken to very often start school—kindergarten or first grade hearing—having heard a million fewer words spoken.</p>
+<p>Well, studies show that children who go to preschool are nearly 50-percent more likely to finish high school and go on to earn a 2- and 4-year degree no matter what their background is.</p>
+<p>I met a year and a half ago with the leaders of the Business Roundtable. They were mad that I was ever—angry—I—well, they were discussing—[<i>laughter</i>]—why I wanted to spend money on education.</p>
+<p>I pointed out to them: As Vice President, I met with over eight—I think it was 182 of those folks—don't hold me to the exact number—and I asked them what they need most—the CEOs. And you've had the same experience on both sides of the aisle. They say, "A better educated workforce," right?</p>
+<p>So I looked at them. And I say: "I come from Delaware. DuPont used to be the eighth largest corporation in the world. And every new enterprise they bought, they educated the workforce to that enterprise. But none of you do that anymore. Why are you angry with me providing you the opportunity for the best educated workforce in the world?"</p>
+<p>And they all looked at me and said, "I think you're right."</p>
+<p>I want to expand high-quality tutoring and summer learning to see that every child learns to read by third grade. I'm also connecting local businesses and high schools so students get hands-on experience and a path to a good-paying job whether or not they go to college.</p>
+<p>And I want to make sure that college is more affordable. Let's continue increasing the Pell grants to working and middle class families and increase record investments in HBCUs and minority-serving institutions, including Hispanic institutions.</p>
+<p>When I was told I couldn't universally just change the way in which we did—dealt with student loans, I fixed two student loan programs that already existed to reduce the burden of student debt for nearly 4 million Americans, including nurses, firefighters, and others in public service.</p>
+<p>Like Keenan Jones, a public educator in Minnesota, who's here with us tonight. Keenan, where are you? Keenan, thank you. He's educated hundreds of students so they can go to college. Now he's able to help, after debt forgiveness, get his own daughter to college.</p>
+<p>And, folks, look, such relief is good for the economy because folks are now able to buy a home, start a business, start a family.</p>
+<p>And while we're at it, I want to give public school teachers a raise.</p>
+<p>And by the way, the first couple of years, we cut the deficit.</p>
+<p>Now let me speak to the question of fundamental fairness for all Americans. I've been delivering real results in fiscally responsible ways. We've already cut the Federal deficit—[<i>laughter</i>]. We've already cut the Federal deficit over $1 trillion.</p>
+<p>I signed a bipartisan deal to cut another trillion dollars in the next decade. It's my goal to cut the Federal deficit another $3 trillion by making big corporations and the very wealthy finally beginning to pay their fair share.</p>
+<p>Look, I'm a capitalist. If you want to make or can make a million or millions of bucks, that's great. Just pay your fair share in taxes.</p>
+<p>A fair Tax Code is how we invest in things that make this country great: health care, education, defense, and so much more.</p>
+<p>But here's the deal. The last administration enacted a $2 trillion tax cut overwhelmingly benefit the top 1 percent—the very wealthy——</p>
+<p><i>Audience members.</i> Boo!</p>
+<p><i>The President. </i>——and the biggest corporations—and exploded the Federal deficit.</p>
+<p>They added more to the national debt than any Presidential term in American history. Check the numbers.</p>
+<p>Folks at home, does anybody really think the Tax Code is fair?</p>
+<p><i>Audience members.</i> No!</p>
+<p><i>The President.</i> Do you really think the wealthy and big corporations need another $2 trillion tax break?</p>
+<p><i>Audience members.</i> No!</p>
+<p><i>The President.</i> I sure don't. I'm going to keep fighting like hell to make it fair. Under my plan, nobody earning less than $400,000 a year will pay an additional penny in Federal taxes—nobody—not one penny. And they haven't yet.</p>
+<p>In fact, the child tax credit I passed during the pandemic cut taxes for millions of working families and cut child poverty in half. Restore that child tax credit. No child should go hungry in this country.</p>
+<p>The way to make the Tax Code fair is to make big corporations and the very wealthy begin to pay their fair share. Remember in 2020, 55 of the biggest companies in America made $40 billion and paid zero in Federal income tax. Zero.</p>
+<p><i>Audience members.</i> Boo!</p>
+<p><i>The President</i>. Not anymore.</p>
+<p>Thanks to the law I wrote and we signed, big companies now have to pay a minimum of 15 percent. But that's still less than working people pay in Federal taxes. It's time to raise the corporate minimum tax to at least 21 percent so every big corporation finally begins to pay their fair share.</p>
+<p>I also want to end tax breaks for Big Pharma, Big Oil, private jets, massive executive pay when it was only supposed to be a million—a million dollars that could be deducted. They can pay them $20 million if they want, but deduct a million. End it now.</p>
+<p>You know, there are 1,000 billionaires in America. You know what the average Federal tax is for those billionaires?</p>
+<p><i>Audience member.</i> Zero!</p>
+<p><i>The President.</i> No. [<i>Laughter</i>] They're making great sacrifices—8.2 percent.</p>
+<p><i>Audience members.</i> Boo!</p>
+<p><i>The President.</i> That's far less than the vast majority of Americans pay. No billionaire should pay a lower Federal tax rate than a teacher, a sanitation worker, or a nurse.</p>
+<p>I proposed a minimum tax for billionaires of 25 percent—just 25 percent. You know what that would raise? That would raise $500 billion over the next 10 years.</p>
+<p>And imagine what that could do for America. Imagine a future with affordable childcare, millions of families can get what they need to go to work to help grow the economy. Imagine a future with paid leave, because no one should have to choose between working and taking care of their sick family member. Imagine—imagine—a future with home care and eldercare, and people's living with disabilities so they can stay in their homes and family caregivers can finally get the pay they deserve.</p>
+<p>Tonight let's all agree once again to stand up for seniors. Many of my friends on the other side of the aisle want to put Social Security on the chopping block. If anyone here tries to cut Social Security or Medicare or raise the retirement age, I will stop you.</p>
+<p>The working people—[<i>applause</i>]. The working people who built this country pay more into Social Security than millionaires and billionaires do. It's not fair.</p>
+<p>We have two ways to go. Republicans can cut Social Security and give more tax breaks to the wealthy. I will——</p>
+<p><i>Audience member.</i> [<i>Inaudible</i>]</p>
+<p><i>The President.</i> That's the proposal. Oh, no? You guys don't want another $2 trillion tax cut?</p>
+<p><i>Audience member.</i> Liar!</p>
+<p><i>The President.</i> I kind of thought that's what your plan was. [<i>Laughter</i>] Well, that's good to hear. You're not going to cut another $2 trillion for the superwealthy? That's good to hear.</p>
+<p>I'll protect and strengthen Social Security and make the wealthy pay their fair share.</p>
+<p>Look——</p>
+<p><i>Audience members.</i> Joe! Joe! Joe!</p>
+<p><i>The President. </i>——too many corporations raise prices to pad their profits, charging more and more for less and less. That's why we're cracking down on corporations that engage in price gouging and deceptive pricing, from food to health care to housing.</p>
+<p>In fact, the snack companies think you won't notice if they change the size of the bag and put a hell of a lot fewer—[<i>laughter</i>]—same size bag—put fewer chips in it. No, I'm not joking. It's called "shrink-flation." Pass Bobby Casey's bill, and stop this. I really mean it.</p>
+<p>You probably all saw that commercial on Snickers bars. [<i>Laughter</i>] And you get—you get charged the same amount, and you've got about, I don't know, 10-percent fewer Snickers in it. [<i>Laughter</i>]</p>
+<p>Look, I'm also getting rid of junk fees, those hidden fees at the end of your bill that are there without your knowledge. My administration announced we're cutting credit card late fees from $32 to $8.</p>
+<p>Banks and credit card companies are allowed to charge what it costs them to instigate the collection. And that's more—a hell of a lot like $8 than 30-some dollars.</p>
+<p>But they don't like it. The credit card companies don't like it, but I'm saving American families $20 billion a year with all of the junk fees I'm eliminating. Folks at home, that's why the banks are so mad. It's $20 billion in profit.</p>
+<p>I'm not stopping there. My administration has proposed rules to make cable, travel, utilities, and online ticket sellers tell you the total price up front so there are no surprises. It matters. It matters.</p>
+<p>And so does this. In November, my team began serious negotiations with a bipartisan group of Senators. The result was a bipartisan bill with the toughest set of border security reforms we've ever seen.</p>
+<p><i>Audience members.</i> Boo!</p>
+<p><i>The President.</i> Oh, you don't think so?</p>
+<p><i>Audience members.</i> Boo!</p>
+<p><i>The President.</i> Oh, you don't like that bill—huh?—that conservatives got together and said was a good bill? I'll be darned. That's amazing.</p>
+<p>That bipartisan bill would hire 1,500 more security agents and officers, 100 more immigration judges to help tackle the backload of 2 million cases, 4,300 more asylum officers, and new policies so they can resolve cases in 6 months instead of 6 years now. What are you against?</p>
+<p>One hundred more high-tech drug detection machines to significantly increase the ability to screen and stop vehicles smuggling fentanyl into America that's killing thousands of children.</p>
+<p>This bill would save lives and bring order to the border. It would also give me and any new President new emergency authority to temporarily shut down the border when the number of migrants at the border is overwhelming.</p>
+<p>The Border Patrol union has endorsed this bill.</p>
+<p>[<i>At this point, members of the audience spoke over the President.</i>]</p>
+<p>The Federal Chamber of Commerce has—yes, yes. You're saying "no." Look at the facts. [<i>Laughter</i>] I know—[<i>applause</i>]. I know you know how to read.</p>
+<p>I believe that given the opportunity—for—a majority in the House and Senate would endorse the bill as well—a majority right now.</p>
+<p><i>Audience member.</i> Yes!</p>
+<p><i>The President.</i> But unfortunately, politics has derailed this bill so far.</p>
+<p>I'm told my predecessor called Members of Congress in the Senate to demand they block the bill. He feels political win—he viewed it as a—it would be a political win for me and a political loser for him. It's not about him. It's not about me. I'd be a winner—not really. I——</p>
+<p><i>Representative Marjorie Taylor Greene.</i> What about Laken Riley?</p>
+<p>[<i>Members of the audience spoke over the President.</i>]</p>
+<p><i>Audience members.</i> Boo!</p>
+<p><i>Rep. Greene</i>. Say her name!</p>
+<p>[<i>The President held up a pin reading: "Say Her Name, Laken Riley."</i>]</p>
+<p><i>The President.</i> Lanken—Lanken [Laken; White House correction] Riley, an innocent young woman who was killed.</p>
+<p><i>Rep. Greene</i>. By an illegal!</p>
+<p><i>The President.</i> By an illegal. That's right. But how many of thousands of people are being killed by legals?</p>
+<p>[<i>Members of the audience spoke over the President.</i>]</p>
+<p>To her parents, I say: My heart goes out to you. Having lost children myself, I understand.</p>
+<p>But look, if we change the dynamic at the border—people pay people—people pay these smugglers 8,000 bucks to get across the border because they know if they get by—if they get by and let into the country, it's 6 to 8 years before they have a hearing. And it's worth the—taking the chance of the $8,000.</p>
+<p>[<i>Members of the audience spoke over the President.</i>]</p>
+<p>But—but—if it's only 6 months—6 weeks, the idea is it's highly unlikely that people will pay that money and come all that way knowing that they'll be—able to be kicked out quickly.</p>
+<p>Folks, I would respectfully suggest to my friend in—my Republican friends owe it to the American people. Get this bill done. We need to act now.</p>
+<p><i>Audience members.</i> Get it done! Get it done! Get it done!</p>
+<p><i>Audience member.</i> Build the wall.</p>
+<p><i>The President.</i> And if my predecessor is watching: Instead of paying [playing; White House correction] politics and pressuring Members of Congress to block the bill, join me in telling the Congress to pass it. We can do it together. But that's what he apparently—here's what he will not do.</p>
+<p>I will not demonize immigrants, saying they are "poison in the blood of our country." I will not separate families. I will not ban people because of their faith.</p>
+<p>Unlike my predecessor, on my first day in office, I introduced a comprehensive bill to fix our immigration system. Take a look at it. It has all these and more: secure the border, provide a pathway to citizenship for "Dreamers," and so much more.</p>
+<p>But, unlike my predecessor, I know who we are as Americans. We're the only nation in the world with a heart and soul that draws from old and new.</p>
+<p>Home to Native Americans whose ancestors have been here for thousands of years. Home to people of every place—from every place on Earth. They came freely. Some came in chains. Some came when famine struck, like my ancestral family in Ireland. Some to flee persecution, to chase dreams that are impossible anywhere but here in America.</p>
+<p>That's America. And we all come from somewhere, but we're all Americans.</p>
+<p>Look, folks, we have a simple choice: We can fight about fixing the border, or we can fix it. I'm ready to fix it. Send me the border bill now.</p>
+<p><i>Audience members.</i> Fix it! Fix it! Fix it!</p>
+<p><i>The President.</i> A transformational history—moment in history happened 58—59 years ago today in Selma, Alabama. Hundreds of foot soldiers for justice marched across the Edmund Pettus Bridge, named after the Grand Dragon of the Ku Klux Klan, to claim their fundamental right to vote.</p>
+<p>They were beaten. They were bloodied and left for dead. Our late friend and former colleague John Lewis was on that march. We miss him.</p>
+<p>But joining us tonight are other marchers, both in the gallery and on the floor, including Bettie Mae Fikes, known as the "Voice of Selma." The daughter of gospel singers and preachers, she sang songs of prayer and protest on that Bloody Sunday to help shake the Nation's conscience.</p>
+<p>Five months later, the Voting Rights Act passed and was signed into law. Thank you. Thank you, thank you, thank you. But 59 years later, there are forces taking us back in time: voter suppression, election subversion, unlimited dark money, extreme gerrymandering.</p>
+<p>John Lewis was a great friend to many of us here. But if you truly want to honor him and all the heroes who marched with him, then it's time to do more than talk. Pass the Freedom To Vote Act, the John Lewis Voting Right [Rights; White House correction] Act.</p>
+<p>And stop—stop denying another core value of America: our diversity across American life. Banning books, it's wrong. Instead of erasing history, let's make history.</p>
+<p>I want to protect fundamental rights. Pass the Equality Act. And my message to transgender Americans is, I have your back.</p>
+<p>Pass the PRO Act for workers' rights. Raise the Federal minimum wage, because every worker has the right to a decent living more than eight—7 bucks an hour.</p>
+<p>We're also making history by confronting the climate crisis, not denying it. I don't think any of you think there's no longer a climate crisis. At least, I hope you don't. [<i>Laughter</i>] I'm taking the most significant action ever on climate in the history of the world.</p>
+<p>I'm cutting our carbon emissions in half by 2030, creating tens of thousands of clean energy jobs, like the IBEW workers building and installing 500,000 electric vehicle charging stations; conserving 30 percent of America's lands and waters by 2030; and taking action on environmental justice—fenceline communities smothered by the legacy of pollution.</p>
+<p>And patterned after the Peace Corps and AmericaCorps [AmeriCorps; White House correction], I launched the Climate Corps to put 20,000 young people to work in the forefront of our clean energy future. I'll triple that number in a decade.</p>
+<p>To state the obvious, all Americans deserve the freedom to be safe. And America is safer today than when I took office.</p>
+<p>The year before I took office, murder rates went up 30 percent.</p>
+<p><i>Norco, CA, resident and Gold Star father Steven Nikoui</i>. Remember Abbey Gate!</p>
+<p><i>The President.</i> Thirty percent, they went up——</p>
+<p><i>Mr. Nikoui</i>. United States Marines! Kareem Mae'Lee Nikoui!</p>
+<p><i>The President. </i>——the biggest increase in history.</p>
+<p><i>Mr. Nikoui.</i> [<i>Inaudible</i>]</p>
+<p><i>The President.</i> It was then, through no—through my American Rescue Plan—which every American [Republican; White House correction] voted against, I might add—we made the largest investment in public safety ever.</p>
+<p>Last year, the murder rate saw the sharpest decrease in history. Violent crime fell to one of its lowest levels in more than 50 years.</p>
+<p>But we have more to do. We have to help cities invest in more community police officers, more mental health workers, more community violence intervention.</p>
+<p>Give communities the tools to crack down on gun crime, retail crime, and carjacking. Keep building trust, as I've been doing, by taking executive action on police reform and calling for it to be the law of the land.</p>
+<p>Directing my Cabinet to review the Federal classification of marijuana and expunging thousands of convictions for the mere possession, because no one should be jailed for simply using or have it on their record.</p>
+<p>Take on crimes of domestic violence. I'm ramping up the Federal enforcement of the Violence Against Women Act that I proudly wrote when I was a Senator so we can finally—finally end the scourge against women in America.</p>
+<p>There are other kinds of violence I want to stop. With us tonight is Jazmin whose 9-year-old sister Jackie was murdered with 21 classmates and teachers in her elementary school in Uvalde, Texas.</p>
+<p>Very soon after that happened, Jill and I went to Uvalde for a couple days. We spent hours and hours with each of the families. We heard their message so everyone in this room, in this Chamber could hear the same message.</p>
+<p>The constant refrain—and I was there for hours, meeting with every family. They said, "Do something." "Do something."</p>
+<p>Well, I did do something by establishing the first ever Office of Gun Violence Prevention in the White House, that the Vice President is leading the charge. Thank you for doing it.</p>
+<p>Meanwhile—[<i>applause</i>]. Meanwhile, my predecessor told the NRA he's proud he did nothing on guns when he was President.</p>
+<p><i>Audience members.</i> Boo!</p>
+<p><i>The President.</i> After another shooting in Iowa recently, he said—when asked what to do about it, he said, just "get over it." That was his quote. Just "get over it." I say stop it. Stop it, stop it, stop it.</p>
+<p>I'm proud we beat the NRA when I signed the most significant gun safety law in nearly 30 years because of this Congress. We now must beat the NRA again.</p>
+<p>I'm demanding a ban on assault weapons and high-capacity magazines. Pass universal background checks. None of this—none of this—I taught the Second Amendment for 12 years. None of this violates the Second Amendment or vilifies responsible gun owners.</p>
+<p>[<i>Members of the audience spoke over the President.</i>]</p>
+<p>You know, as we manage challenges at home, we're also managing crises abroad, including in the Middle East. I know the last 5 months have been gut-wrenching for so many people: for the Israeli people, for the Palestinian people, and so many here in America.</p>
+<p>This crisis began on October 7 with a massacre by a terrorist group called Hamas, as you all know. One thousand two hundred innocent people—women and girls, men and boys—slaughtered after enduring sexual violence. The deadliest day of the—for the Jewish people since the Holocaust. And 250 hostages taken.</p>
+<p>Here in this Chamber tonight are families whose loved ones are still being held by Hamas. I pledge to all the families that we will not rest until we bring every one of your loved ones home.</p>
+<p>We also—we will also work around the clock to bring home Evan and Paul, Americans being unjustly detained by the Russians—and others around the world.</p>
+<p>Israel has a right to go after Hamas. Hamas ended this conflict by releasing the hostages, laying down arms—could end it by releasing the hostages, laying down arms, and surrendering those responsible for October 7.</p>
+<p>But Israel has a—excuse me. Israel has a added burden because Hamas hides and operates among the civilian population like cowards, under hospitals, daycare centers, and all the like.</p>
+<p>Israel also has a fundamental responsibility, though, to protect innocent civilians in Gaza. This war has taken a greater toll on innocent civilians than all previous wars in Gaza combined. More than 30,000 Palestinians have been killed——</p>
+<p><i>Audience member.</i> Says who?</p>
+<p><i>The President. </i>——most of whom are not Hamas. Thousands and thousands of innocents—women and children. Girls and boys also orphaned.</p>
+<p>Nearly 2 million more Palestinians under bombardment or displacement. Homes destroyed, neighborhoods in rubble, cities in ruin. Families without food, water, medicine. It's heartbreaking.</p>
+<p>I've been working nonstop to establish an immediate cease-fire that would last for 6 weeks to get all the prisoners released—all the hostages released and to get the hostages home and ease the intolerable and—humanitarian crisis and build toward an enduring—a more—something more enduring.</p>
+<p>The United States has been leading international efforts to get more humanitarian assistance into Gaza. Tonight I'm directing the U.S. military to lead an emergency mission to establish a temporary pier in the Mediterranean on the coast of Gaza that can receive large shipments carrying food, water, medicine, and temporary shelters.</p>
+<p>No U.S. boots will be on the ground.</p>
+<p>A temporary pier will enable a massive increase in the amount of humanitarian assistance getting into Gaza every day.</p>
+<p>And Israel must do its part. Israel must allow more aid into Gaza and ensure humanitarian workers aren't caught in the crossfire. And they're announcing they're going to—they're going to have a crossing in Northern Gaza.</p>
+<p>To the leadership of Israel, I say this: Humanitarian assistance cannot be a secondary consideration or a bargaining chip. Protecting and saving innocent lives has to be a priority.</p>
+<p>As we look to the future, the only real solution to the situation is a two-state solution over time. And I say this as a lifelong supporter of Israel, my entire career. No one has a stronger record with Israel than I do. I challenge any of you here. I'm the only American President to visit Israel in wartime.</p>
+<p>But there is no other path that guarantees Israel's security and democracy. There is no other path that guarantees that Palestinians can live in peace with—with peace and dignity. And there is no other path that guarantees peace between Israel and all of its neighbors, including Saudi Arabia, with whom I'm talking.</p>
+<p>Creating stability in the Middle East also means containing the threat posed by Iran. That's why I built a coalition of more than a dozen countries to defend international shipping and freedom of navigation in the Red Sea.</p>
+<p>I've ordered strikes to degrade the Houthi capability and defend U.S. forces in the region. As Commander in Chief, I will not hesitate to direct further measures to protect our people and our military personnel.</p>
+<p>For years, I've heard many of my Republican and Democratic friends say that China is on the rise and America is falling behind. They've got it backwards. I've been saying it for over 4 years, even when I wasn't President.</p>
+<p>America is rising. We have the best economy in the world. And since I've come to office, our GTB [GDP; White House correction] is up, our trade deficit with China is down to the lowest point in over a decade. And we're standing up against China's unfair economic practices.</p>
+<p>We're standing up for peace and stability across the Taiwan Straits. I've revitalized our partnership and alliance in the Pacific: India, Australia, Japan, South Korea, the Pacific Islands. I've made sure that the most advanced American technologies can't be used in China—not allowing to trade them there.</p>
+<p>Frankly, for all his tough talk on China, it never occurred to my predecessor to do any of that.</p>
+<p>I want competition with China, not conflict. And we're in a stronger position to win the conflict [competition; White House correction] of the 21st century against China than anyone else for that matter—than at any time as well.</p>
+<p>Here at home, I've signed over 400 bipartisan bills. But there's more to pass my unity agenda.</p>
+<p>Strengthen penalties on fentanyl trafficking.</p>
+<p><i>Audience member.</i> Boo!</p>
+<p><i>The President. </i>You don't want to do that, huh? [<i>Laughter</i>]</p>
+<p>Pass bipartisan privacy legislation to protect our children online.</p>
+<p>Harness—[<i>applause</i>]. Harness the promise of AI to protect us from peril. Ban AI voice impersonations and more.</p>
+<p>And keep our truly sacred obligation to train and equip those we send into harm's way and care for them and their families when they come home and when they don't.</p>
+<p>That's why, with the strong support and help of Denis and the VA, I signed the PACT Act, one of the most significant laws ever, helping millions of veterans exposed to toxins who now are battling more than 100 different cancers. Many of them don't come home, but we owe them and their families support.</p>
+<p>And we owe it to ourselves to keep supporting our new health research agency called ARPA-H—and remind us—to remind us that we can do big things, like end cancer as we know it. And we will.</p>
+<p>Let me close with this. [<i>Applause</i>] Yay! [<i>Laughter</i>] I know you don't want to hear anymore, Lindsey, but I've got to say a few more things. [<i>Laughter</i>]</p>
+<p>I know I may not look like it, but I've been around a while. [<i>Laughter</i>] When you get to be my age, certain things become clearer than ever.</p>
+<p>I know the American story. Again and again, I've seen the contest between competing forces in the battle for the soul of our Nation, between those who want to pull America back to the past and those who want to move America into the future.</p>
+<p>My lifetime has taught me to embrace freedom and democracy, a future based on core values that have defined America—honesty, decency, dignity, and equality—to respect everyone; to give everyone a fair shot; to give hate no safe harbor.</p>
+<p>Now, other people my age see it differently. [<i>Laughter</i>] The American story of resentment, revenge, and retribution.</p>
+<p>That's not me. I was born amid World War II, when America stood for the freedom of the world. I grew up in Scranton, Pennsylvania, and Claymont, Delaware, among working class people who built this country.</p>
+<p>I watched in horror as two of my heroes—like many of you did—Dr. King and Bobby Kennedy, were assassinated. And their legacies inspired me to pursue a career of service.</p>
+<p>I left a law firm and became a public defender because my city of Wilmington was the only city in America occupied by the National Guard after Dr. King was assassinated because of the riots. And I became a county councilman almost by accident.</p>
+<p>I got elected to the United States Senate when I had no intention of running, at age 29. Then Vice President to our first Black President. Now a President to the first woman Vice President. In my career, I've been told I was too young. [<i>Laughter</i>] By the way, they didn't let me on the Senate elevators for votes sometimes. They—not a joke. [<i>Laughter</i>]</p>
+<p>And I've been told I am too old. [<i>Laughter</i>] Whether young or old, I've always been known—I've always known what endures. I've known our North Star. The very idea of America is that we're all created equal—deserves to be treated equally throughout our lives.</p>
+<p>We've never fully lived up to that idea, but we've never walked away from it either. And I won't walk away from it now.</p>
+<p>I'm optimistic. I really am. I'm optimistic, Nancy.</p>
+<p><i>Audience members.</i> Four more years! Four more years! Four more years!</p>
+<p><i>The President.</i> My fellow Americans, the issue facing our Nation isn't how old we are, it's how old are our ideas.</p>
+<p>Hate, anger, revenge, retribution are the oldest of ideas. But you can't lead America with ancient ideas that only take us back. To lead America, the land of possibilities, you need a vision for the future and what can and should be done.</p>
+<p>Tonight you've heard mine. I see a future where [we're; White House correction] defending democracy, you don't diminish it. I see a future where we restore the right to choose and protect our freedoms, not take them away. I see a future where the middle class has—finally has a fair shot and the wealthy have to pay their fair share in taxes. I see a future where we save the planet from the climate crisis and our country from gun violence.</p>
+<p>Above all, I see a future for all Americans. I see a country for all Americans. And I will always be President for all Americans because I believe in America. I believe in you, the American people. You're the reason we've never been more optimistic about our future than I am now.</p>
+<p>So let's build the future together. Let's remember who we are. We are the United States of America. And there is nothing—nothing—beyond our capacity when we act together.</p>
+<p>God bless you all, and may God protect our troops. Thank you, thank you, thank you.</p>
+  </div>
+<div class="field-docs-media-video-hosted">
+<div class="embedded-video">
+  <div class="player">
+    <iframe class="" width="640" height="360" src="//www.youtube.com/embed/nFVUPAEF-sw?width%3D640%26amp%3Bheight%3D360%26amp%3Btheme%3Ddark%26amp%3Bautoplay%3D0%26amp%3Bvq%3Dlarge%26amp%3Brel%3D0%26amp%3Bshowinfo%3D0%26amp%3Bmodestbranding%3D1%26amp%3Biv_load_policy%3D3%26amp%3Bcontrols%3D0%26amp%3Bautohide%3D2%26amp%3Bwmode%3Dopaque" frameborder="0" allowfullscreen></iframe>  </div>
+</div>
+</div><a name="docmedia"></a>
+  <div class="field-docs-footnote">
+    <p>NOTE: The President spoke at 9:26 p.m. in the House Chamber of the U.S. Capitol. In his remarks, he referred to Secretary of State Antony J. Blinken; former Presidents Donald J. Trump and Barack Obama; Prime Minister Ulf Kristersson of Sweden; Damla G. Karsan, obstetrician/gynecologist, Comprehensive Women's Healthcare in Houston, TX; Dallas, TX, resident Justin Cox; Keenan Jones, family partnership lead, Wayzata Public Schools in Hennepin County, MN; Sens. Kyrsten L. Sinema, Christopher S. Murphy, and James P. Lankford; Jose Ibarra, a Venezuelan citizen suspected in the death of Laken H. Riley, an Augusta University nursing student who was killed on the University of Georgia campus in Athens, GA, on February 22; Allyson Phillips and John Riley, parents of Ms. Riley; Jazmin Cazares, whose sister Jackie was killed in the shooting at Uvalde Elementary School in Uvalde, TX, on May 24, 2022; Evan Gershkovich, a Wall Street Journal reporter and U.S. citizen who was arrested by Russian authorities on March 29, 2023; Paul N. Whelan, a U.S. citizen who was arrested and held on espionage charges by Russian security services in Moscow, Russia, on December 28, 2018; Secretary of Veterans Affairs Denis R. McDonough; Sen. Lindsey O. Graham; and Rep. Nancy Pelosi. He also referred to H.R. 815. The transcript was released by the Office of the Press Secretary on March 8.</p>
+  </div>
+
+  <div class="field-prez-document-citation">
+    <p class="ucsbapp_citation">Joseph R. Biden, Jr., Address Before a Joint Session of the Congress on the State of the Union Online by Gerhard Peters and John T. Woolley, The American Presidency Project https://www.presidency.ucsb.edu/node/370531</p>  </div>
+    </div>
+    <div class="col-sm-4 ">
+      <div class="group-meta">
+  <div class="field-ds-filed-under-">
+    <h3 class="oog-label">Filed Under</h3>  </div>
+<h3 class="label-above oog-label ds ">Categories</h3><div><a href="/documents/app-categories/presidential" typeof="skos:Concept" property="rdfs:label skos:prefLabel" datatype="">Presidential</a></div><div><a href="/documents/app-categories/presidential/spoken-addresses-and-remarks" typeof="skos:Concept" property="rdfs:label skos:prefLabel" datatype="">Spoken Addresses and Remarks</a></div><div><a href="/documents/app-categories/spoken-addresses-and-remarks/presidential/state-the-union-addresses" typeof="skos:Concept" property="rdfs:label skos:prefLabel" datatype="">State of the Union Addresses</a></div><h3 class="label-above oog-label ds">Attributes</h3><div><a href="/documents/app-attributes/the-congress" typeof="skos:Concept" property="rdfs:label skos:prefLabel" datatype="">to the Congress</a></div><div class="jump"><div class="view view-dpg-docs-media view-id-dpg_docs_media view-display-id-block_2 view-dom-id-f96f872d4069157874dff6b4437fc32a">
+        
+    
+      <div class="view-content">
+        <div>
+      
+          <a class="smoothScroll" href="#docmedia">Watch Video</a>    </div>
+    </div>
+  
+  
+  
+  
+  
+  
+</div></div>
+  <div class="field-docs-location">
+    
+
+<div  about="/node/200009" typeof="sioc:Item foaf:Document" class="node node-location-flag view-mode-for_documents ">
+    <div class="row">
+    <div class="col-sm-12 ">
+        <h3 class="field-label">
+    Location  </h3>
+
+  <div class="field-spot-state">
+    Washington, DC  </div>
+
+  <div class="field-spot-flag">
+    <img typeof="foaf:Image" class="img-responsive" src="https://www.presidency.ucsb.edu/sites/default/files/location-flags/DC.jpg" width="120" height="60" alt="" />  </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Needed to activate display suite support on forms -->
+  </div>
+</div><div class="rrssb"><ul class="rrssb-buttons"><li class="rrssb-twitter"><a href="https://twitter.com/intent/tweet?text=Address%20Before%20a%20Joint%20Session%20of%20the%20Congress%20on%20the%20State%20of%20the%20Union&url=https%3A%2F%2Fwww.presidency.ucsb.edu%2Fdocuments%2Faddress-before-joint-session-the-congress-the-state-the-union-30" class="popup"><span class="rrssb-icon"></span><span class="rrssb-text">twitter</span></a></li><li class="rrssb-facebook"><a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fwww.presidency.ucsb.edu%2Fdocuments%2Faddress-before-joint-session-the-congress-the-state-the-union-30" class="popup"><span class="rrssb-icon"></span><span class="rrssb-text">facebook</span></a></li><li class="rrssb-linkedin"><a href="http://www.linkedin.com/shareArticle?mini=true&url=https%3A%2F%2Fwww.presidency.ucsb.edu%2Fdocuments%2Faddress-before-joint-session-the-congress-the-state-the-union-30&title=Address%20Before%20a%20Joint%20Session%20of%20the%20Congress%20on%20the%20State%20of%20the%20Union" class="popup"><span class="rrssb-icon"></span><span class="rrssb-text">linkedin</span></a></li><li class="rrssb-googleplus"><a href="https://plus.google.com/share?url=https%3A%2F%2Fwww.presidency.ucsb.edu%2Fdocuments%2Faddress-before-joint-session-the-congress-the-state-the-union-30" class="popup"><span class="rrssb-icon"></span><span class="rrssb-text">google+</span></a></li><li class="rrssb-email"><a href="mailto:?subject=Address%20Before%20a%20Joint%20Session%20of%20the%20Congress%20on%20the%20State%20of%20the%20Union&body=https%3A%2F%2Fwww.presidency.ucsb.edu%2Fdocuments%2Faddress-before-joint-session-the-congress-the-state-the-union-30" ><span class="rrssb-icon"></span><span class="rrssb-text">email</span></a></li></ul></div>
+  <div class="field-ds-big-search-block">
+    <section id="block-views-5c12edf56060306972111336e0789cf4" class="block block-views other-frontpage-block clearfix">
+
+        <h2 class="block-title">Simple Search of Our Archives</h2>
+    
+  <form action="/advanced-search" method="get" id="views-exposed-form-prez-documents-archive-search2-page-1" accept-charset="UTF-8"><div>  <div class="views-exposed-form vefl-layout bootstrap-6-6-stacked">
+    <div class="views-exposed-widgets clearfix">
+              <div class="vefl-region vefl-region-top">
+                      
+<div id="edit-field-keywords-wrapper" class="views-exposed-widget views-widget-edit-field-keywords">
+    
+  <div class="views-widget">    <div class="form-item form-item-field-keywords form-type-textfield form-group"><input class="form-control form-text" type="text" id="edit-field-keywords" name="field-keywords" value="" size="30" maxlength="128" /></div>  </div>
+  </div>
+                  </div>
+              <div class="vefl-region vefl-region-left">
+                  </div>
+              <div class="vefl-region vefl-region-right">
+                  </div>
+              <div class="vefl-region vefl-region-bottom">
+                      
+<div id="items-per-page-wrapper" class="views-exposed-widget views-widget-items-per-page">
+    
+      <div class="form-item form-item-items-per-page form-type-select form-group"> <label class="control-label" for="edit-items-per-page"># per page</label>
+<select class="form-control form-select" id="edit-items-per-page" name="items_per_page"><option value="5">5</option><option value="10">10</option><option value="25" selected="selected">25</option><option value="50">50</option><option value="100">100</option></select></div>  
+  </div>
+                      
+<div id="button-wrapper" class="views-exposed-widget views-widget-button views-submit-button">
+    
+      <button type="submit" id="edit-submit-prez-documents-archive-search2" name="" value="Apply" class="btn btn-default form-submit">Apply</button>
+  
+  </div>
+                  </div>
+          </div>
+  </div>
+</div></form>
+</section>
+  </div>
+
+  <div class="field-ds-typo">
+    <div class="view view-report-a-typo view-id-report_a_typo view-display-id-block view-dom-id-594fecd6399e3294b5135ed0c51b3de2">
+        
+    
+      <div class="view-content">
+        <div class="views-row views-row-1 views-row-odd views-row-first views-row-last">
+      
+  <div class="views-field views-field-title">        <span class="field-content"><a href="/report-a-typo?content_id=370531&amp;title=Address%20Before%20a%20Joint%20Session%20of%20the%20Congress%20on%20the%20State%20of%20the%20Union" class="report-typo" target="_blank"><h3>Report a Typo</h3></a></span>  </div>  </div>
+    </div>
+  
+  
+  
+  
+  
+  
+</div>  </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Needed to activate display suite support on forms -->
+
+</section>
+  </div>
+<!-- Content -->
+      </section>
+
+      
+    </div>
+  </div>
+  
+  
+</div>
+<footer class="site-footer no-print">
+  <div class="container">
+      <div class="region region-footer">
+    <section id="block-block-4" class="block block-block attribution clearfix">
+
+      
+  <p><span>The American Presidency Project</span><br />John Woolley and Gerhard Peters<br /><strong><a href="https://www.presidency.ucsb.edu/contact">Contact</a></strong></p>
+
+</section>
+<section id="block-block-6" class="block block-block foot ucsb clearfix">
+
+      
+  <p style="text-align: center;display:inline-block;"><a class="twitter" href="https://twitter.com/presidency_proj" target="_blank">Twitter</a> <a class="facebook" href="https://www.facebook.com/pg/american.presidency.project/" target="_blank">Facebook</a></p>
+
+</section>
+<section id="block-block-5" class="block block-block copyright clearfix">
+
+      
+  <p>Copyright &copy; The American Presidency Project<br /><a href="http://www.ucsb.edu/terms-of-use" target="_blank">Terms of Service</a> | <a href="https://www.privacy.ucsb.edu/information-privacy/website-privacy" target="_blank">Privacy</a> | <a href="/accessibility">Accessibility</a></p><p><img alt="uc santa barbara logo" src="/sites/default/files/pictures/uc-santa-barbara-wordmark-white1x.svg" style="width: 197px; min-width: 150px; height: 14px;object-fit:cover;" /></p>
+</section>
+  </div>
+  </div>
+  </footer>
+  <script src="https://www.presidency.ucsb.edu/sites/default/files/js/js_NKBfN5q_T2fdeVG6tE3pdNU7glYkyzgPuDTc4K3Ne1w.js"></script>
+<script src="https://www.presidency.ucsb.edu/sites/default/files/js/js_MRdvkC2u4oGsp5wVxBG1pGV5NrCPW3mssHxIn6G9tGE.js"></script>
+<script type="text/javascript">window.NREUM||(NREUM={});NREUM.info={"beacon":"bam.nr-data.net","licenseKey":"dee899de70","applicationID":"80106271","transactionName":"bl1XYxNYWkVYVxFdWVcXYEUIFhtfV1AATBhJUEU=","queueTime":0,"applicationTime":499,"atts":"QhpUFVtCSUs=","errorBeacon":"bam.nr-data.net","agent":""}</script></body>
+</html>

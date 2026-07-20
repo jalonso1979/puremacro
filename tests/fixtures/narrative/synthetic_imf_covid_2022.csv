@@ -1,0 +1,8 @@
+country,date,policy,policy_class,magnitude_pct_gdp,description
+USA,2020-04-15,unemployment_benefits,fiscal,2.5,$2.2T CARES Act enhanced UI
+USA,2020-04-15,health_spending,fiscal,0.5,Public health response funding
+USA,2020-05-01,unemployment_benefits,fiscal,1.0,PUA extension
+DEU,2020-03-25,wage_subsidies,fiscal,3.2,Kurzarbeit expansion
+BRA,2020-04-02,cash_transfers,fiscal,1.8,Auxílio Emergencial
+USA,2020-03-15,policy_rate_cut,monetary,0.0,Fed rate cut to 0-0.25%
+DEU,2020-04-01,bank_capital_relief,prudential,0.0,Counter-cyclical capital buffer release

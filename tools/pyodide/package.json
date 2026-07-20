@@ -1,0 +1,9 @@
+{
+  "name": "puremacro-pyodide-runner",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Headless Pyodide harness for puremacro Gate 6 (release_check.py --pyodide).",
+  "dependencies": {
+    "pyodide": "0.28.3"
+  }
+}

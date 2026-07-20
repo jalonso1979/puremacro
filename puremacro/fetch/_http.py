@@ -1,0 +1,79 @@
+"""Tiny HTTP cache for fetch modules.
+
+Each URL is mirrored into CACHE_ROOT/<host>/<path-with-underscores>. A manifest
+tracks fetch timestamps for reproducibility.
+"""
+
+from __future__ import annotations
+
+import datetime as dt
+import hashlib
+import json
+import re
+from pathlib import Path
+from typing import Optional
+from urllib.parse import urlparse
+
+import requests
+
+CACHE_ROOT = Path(__file__).resolve().parent.parent.parent / "data" / "raw"
+_MANIFEST_FILE = "_manifest.json"
+
+
+def _path_for(url: str) -> Path:
+    u = urlparse(url)
+    safe_path = re.sub(r"[^A-Za-z0-9._-]", "_", (u.path + ("?" + u.query if u.query else "")))
+    safe_path = safe_path.strip("_") or "root"
+    # Truncate long paths and append hash to disambiguate.
+    if len(safe_path) > 120:
+        digest = hashlib.sha1(safe_path.encode()).hexdigest()[:8]
+        safe_path = safe_path[:100] + "_" + digest
+    return CACHE_ROOT / u.netloc / safe_path
+
+
+def _load_manifest() -> dict:
+    f = CACHE_ROOT / _MANIFEST_FILE
+    if f.exists():
+        return json.loads(f.read_text())
+    return {}
+
+
+def _write_manifest(d: dict) -> None:
+    CACHE_ROOT.mkdir(parents=True, exist_ok=True)
+    (CACHE_ROOT / _MANIFEST_FILE).write_text(json.dumps(d, indent=2, sort_keys=True))
+
+
+def cached_get(
+    url: str,
+    *,
+    refresh: bool = False,
+    headers: Optional[dict] = None,
+    timeout: int = 60,
+) -> bytes:
+    """GET the URL, cache the bytes on disk, return bytes.
+
+    Re-fetches if ``refresh=True`` or the cache file is missing.
+    Updates the manifest with the fetch timestamp each time bytes are written.
+    """
+    target = _path_for(url)
+    if target.exists() and not refresh:
+        return target.read_bytes()
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    # Many federal data hosts (BLS Akamai, FRB) block default python-requests UA.
+    # Set a research-identifying default; callers can override via headers=.
+    final_headers = {"User-Agent": "uncertainty_examples/1.0 (research@itam.mx)"}
+    if headers:
+        final_headers.update(headers)
+    resp = requests.get(url, headers=final_headers, timeout=timeout)
+    resp.raise_for_status()
+    target.write_bytes(resp.content)
+
+    manifest = _load_manifest()
+    manifest[str(target.relative_to(CACHE_ROOT))] = {
+        "url": url,
+        "fetched_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "size_bytes": len(resp.content),
+    }
+    _write_manifest(manifest)
+    return resp.content

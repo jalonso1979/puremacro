@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+  <title>Congressional Budget Office — Publications</title>
+  <link>https://www.cbo.gov/publications</link>
+  <description>Recent CBO reports and analyses.</description>
+  <item>
+    <title>The Budget and Economic Outlook: 2024 to 2034</title>
+    <link>https://www.cbo.gov/publication/59710</link>
+    <pubDate>Wed, 07 Feb 2024 12:00:00 EST</pubDate>
+    <description>CBO's annual report on the federal budget...</description>
+  </item>
+</channel>
+</rss>

@@ -1,0 +1,49 @@
+"""Modern staggered Difference-in-Differences estimators.
+
+The headline estimators in the post-2020 literature, all in one place:
+
+  ``callaway_santanna``        — Callaway-Sant'Anna 2021 ATT(g, t)
+                                  with not-yet-treated / never-treated controls.
+  ``sun_abraham``              — Sun-Abraham 2021 cohort-share-weighted
+                                  event-study (a CS aggregation).
+  ``borusyak_jaravel_spiess``  — BJS 2022 imputation estimator.
+  ``synthetic_did``            — Arkhangelsky-Athey-Hirshberg-Imbens-
+                                  Wager 2021 SDID (single-cohort).
+  ``cdh_did``                  — de Chaisemartin-D'Haultfoeuille 2020
+                                  DID_M / DID_M^l (switchers estimator).
+  ``sdid_multi_cohort``        — Multi-cohort SDID aggregation
+                                  (wraps ``synthetic_did``).
+
+The CS / SA / BJS / SDID estimators take a long-format DataFrame with
+columns ``(unit, time, outcome, treat_time)`` where ``treat_time`` is
+the first-treatment period for a unit (NaN for never-treated controls).
+
+The CdH and multi-cohort SDID estimators take **four 1-D arrays**
+``(y, treatment, panel_id, time_id)`` instead — see their docstrings.
+"""
+from .types import PanelDiD
+from .callaway_santanna import callaway_santanna
+from .sun_abraham import sun_abraham
+from .borusyak_jaravel_spiess import borusyak_jaravel_spiess
+from .synthetic_did import synthetic_did
+from .cdh import cdh_did
+from .sdid_multi import sdid_multi_cohort
+from ._results import (
+    CallawaySantannaResult,
+    SunAbrahamResult,
+    BorusyakJaravelSpiessResult,
+    SyntheticDiDResult,
+    CdHResult,
+    SDIDMultiResult,
+)
+
+__all__ = [
+    "PanelDiD",
+    "callaway_santanna", "sun_abraham",
+    "borusyak_jaravel_spiess", "synthetic_did",
+    "cdh_did", "sdid_multi_cohort",
+    # Result dataclasses
+    "CallawaySantannaResult", "SunAbrahamResult",
+    "BorusyakJaravelSpiessResult", "SyntheticDiDResult",
+    "CdHResult", "SDIDMultiResult",
+]
