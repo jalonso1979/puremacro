@@ -27,8 +27,6 @@ from typing import Iterable
 
 import pandas as pd
 
-from ._http import cached_get
-
 _FREDGRAPH = "https://fred.stlouisfed.org/graph/fredgraph.csv?id={}"
 
 _ELEMENTS: dict[str, str] = {
@@ -62,6 +60,11 @@ __all__ = ["fetch_jolts", "INDUSTRY_CODES"]
 
 
 def _series(sid: str, *, refresh: bool) -> pd.Series:
+    # Lazy import: fetch._http pulls `requests`, which the Pyodide
+    # import gate treats as an absent scraper dep — the module must
+    # stay importable without it (same pattern as the lazy fredapi
+    # import in fetch/fred.py).
+    from ._http import cached_get
     raw = cached_get(_FREDGRAPH.format(sid), refresh=refresh)
     df = pd.read_csv(BytesIO(raw))
     s = pd.to_numeric(df[df.columns[1]], errors="coerce")

@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import puremacro.fetch.jolts as jolts_mod
+import puremacro.fetch._http as fetch_http
 from puremacro.fetch.jolts import INDUSTRY_CODES, fetch_jolts
 from puremacro.fetch.vacancies_eurostat import fetch_eurostat_vacancies
 
@@ -32,7 +32,8 @@ def fake_fredgraph(monkeypatch):
         base = 100.0 if sid.endswith("L") else 3.0
         return _fredgraph_csv(sid, [base + i * 0.5 for i in range(24)])
 
-    monkeypatch.setattr(jolts_mod, "cached_get", fake)
+    # jolts imports cached_get lazily (Pyodide gate), so patch the source.
+    monkeypatch.setattr(fetch_http, "cached_get", fake)
     return served
 
 
