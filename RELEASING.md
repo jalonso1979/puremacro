@@ -3,28 +3,18 @@
 How to ship puremacro to real users. Pick **one release path** (§2), then follow
 its steps; §3 (GitHub Pages playground) and §4 (what only you can do) apply to all.
 
-## PyPI trusted publishing — one-time registration (DIAGNOSED 2026-07-22)
+## PyPI trusted publishing — RESOLVED (2026-07-22)
 
-The v0.92.0 "Release to PyPI" run failed with PyPI's `invalid-publisher`:
-GitHub minted a correct OIDC token (`sub:
-repo:jalonso1979/puremacro:environment:pypi`, workflow
-`release.yml@refs/tags/v0.92.0`) but **no Trusted Publisher is registered
-on pypi.org for the `puremacro` project**. The workflow itself is correct
-— do NOT change it. The fix is a 2-minute, account-owner-only step:
-
-1. Log in at https://pypi.org → Account → Publishing → "Add a pending
-   publisher" (pending, because the project does not exist on production
-   PyPI yet). Enter EXACTLY:
-   - PyPI Project Name: `puremacro`
-   - Owner: `jalonso1979`
-   - Repository name: `puremacro`
-   - Workflow name: `release.yml`
-   - Environment name: `pypi`
-2. Re-run the failed workflow (`gh run rerun 29778656048 --repo
-   jalonso1979/puremacro`) or push the next release tag. The first
-   successful publish converts the pending publisher into the project's
-   permanent trusted publisher.
-
+Status: **working**. `puremacro 0.92.0` is live on production PyPI and the
+trusted publisher is verified: rerunning the originally-failed v0.92.0
+workflow after the owner registered the publisher completed the OIDC
+token exchange and failed only with the benign `400 File already exists`
+(0.92.0 was already published). Timeline for the archaeology-minded: the
+2026-07-20 tag push failed with `invalid-publisher` because the
+registration happened after it. Nothing to configure; the next release
+tag (`git tag v0.X.Y && git push --tags`) publishes cleanly. Reruns of
+already-published tags will fail with `File already exists` by design —
+that failure mode is informative, do not add `skip-existing`.
 ## 1. Current state (verified 2026-05-31)
 
 - **Remote:** `github.com/jalonso1979/uncertainty_examples` (public). Working "main"
