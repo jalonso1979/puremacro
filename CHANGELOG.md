@@ -6,6 +6,18 @@ not a development diary.
 
 ## Unreleased
 
+### Added — data fetchers (2026-07-22)
+- **JOLTS** (`fetch.jolts.fetch_jolts`): openings, hires, quits, layoffs &
+  discharges and total separations — level and rate, SA or NSA, monthly from
+  2000-12 — via the key-free FRED fredgraph mirror; total nonfarm plus 13
+  live-verified industry supersectors (unverified BLS codes deliberately
+  absent; raw 4-digit codes accepted and fail loudly).
+- **Eurostat job vacancies** (`fetch.vacancies_eurostat.
+  fetch_eurostat_vacancies`): `jvs_q_nace2` through the built-in SDMX layer —
+  JVR / JOBVAC / JOBOCC by NACE aggregate and size class, SA or NSA with no
+  silent substitution, ISO-3 geo normalization, `csv_path=` for offline use.
+  The natural pair with JOLTS for cross-country Beveridge curves.
+
 ### Added — econometrics
 - **Sup-t simultaneous confidence bands** (`inference.supt`): Montiel Olea &
   Plagborg-Møller (2019) plug-in / bootstrap / Bayes constructions with a

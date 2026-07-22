@@ -247,10 +247,12 @@
     ],
     "puremacro.fetch": [
       "fetch_eurostat_lfs_panel",
+      "fetch_eurostat_vacancies",
       "fetch_fred",
       "fetch_fred_alfred",
       "fetch_ilostat_lfs_panel",
       "fetch_ilostat_sectoral_panel",
+      "fetch_jolts",
       "fetch_labor_panel_union",
       "fetch_oecd_lfs_panel",
       "fetch_sectoral_panel_union",
@@ -279,6 +281,10 @@
     "puremacro.fetch.imf_ifs": [
       "ISO2_TO_ISO3",
       "fetch"
+    ],
+    "puremacro.fetch.jolts": [
+      "INDUSTRY_CODES",
+      "fetch_jolts"
     ],
     "puremacro.fetch.labor_ilostat": [
       "fetch_ilostat_lfs_panel",
@@ -315,6 +321,9 @@
       "_FIPS",
       "iter_county_urate_q",
       "iter_national_industry_emp_q"
+    ],
+    "puremacro.fetch.vacancies_eurostat": [
+      "fetch_eurostat_vacancies"
     ],
     "puremacro.fetch.wb_pink_sheet": [
       "fetch"

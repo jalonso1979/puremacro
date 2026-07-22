@@ -35,6 +35,8 @@ from .labor_ilostat import (
     fetch_ilostat_lfs_panel,
     fetch_ilostat_sectoral_panel,
 )
+from .jolts import fetch_jolts
+from .vacancies_eurostat import fetch_eurostat_vacancies
 
 __all__ = [
     "fetch_fred",
@@ -47,4 +49,6 @@ __all__ = [
     "fetch_ilostat_lfs_panel",
     "fetch_ilostat_sectoral_panel",
     "fetch_sectoral_panel_union",
+    "fetch_jolts",
+    "fetch_eurostat_vacancies",
 ]
