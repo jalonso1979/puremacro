@@ -6,6 +6,8 @@ not a development diary.
 
 ## Unreleased
 
+## 0.94.0 — 2026-07-24
+
 ### Added — unit-root tests
 - **GLS-detrended unit-root tests** (`tests.unit_root.dfgls_test`,
   `ng_perron_test`): the DF-GLS test (Elliott, Rothenberg & Stock 1996) and the
