@@ -6,6 +6,27 @@ not a development diary.
 
 ## Unreleased
 
+## 0.93.0 — 2026-07-24
+
+### Added — seasonal adjustment
+- **Native X-11/ARIMA engine** (`sa.x11`): a pure-Python
+  Shiskin-Young-Musgrave X-11 decomposition with an airline-model regARIMA
+  fore/backcast extension, validated against the real X-13ARIMA-SEATS binary
+  via frozen goldens. `sa.deseasonalize_x13` now falls back
+  binary → native X-11 → STL, so the Pyodide/browser build gets a genuine
+  X-11-class adjuster instead of the STL last resort. Exposes `x11_arima`,
+  `deseasonalize_x11`, `henderson_weights`, and the frozen `X11Result`.
+
+### Added — forecast evaluation
+- **Model Confidence Set** (`forecast.mcs.model_confidence_set`): the Hansen,
+  Lunde & Nason (2011) bootstrap elimination procedure — stationary/moving
+  block bootstrap of the equivalence statistic (t_max range / semi-quadratic),
+  iterative removal of the worst model, running-max MCS p-values, returning the
+  set of models statistically indistinguishable from the best. The multi-model
+  generalization of the pairwise Diebold-Mariano / Giacomini-White tests in
+  `forecast.compare`; `losses_from_forecasts` builds the loss matrix. The
+  validation gallery is now 63 cases.
+
 ### Added — data fetchers (2026-07-22)
 - **JOLTS** (`fetch.jolts.fetch_jolts`): openings, hires, quits, layoffs &
   discharges and total separations — level and rate, SA or NSA, monthly from

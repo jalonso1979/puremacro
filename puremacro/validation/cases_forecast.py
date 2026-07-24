@@ -139,6 +139,29 @@ def _pit_calibration() -> dict:
     }
 
 
+def _mcs_planted_truth() -> dict:
+    """Planted horse race: one uniformly-best model, one uniformly-worst.
+
+    Model 0 has the lowest loss level in every period, model 4 the highest, so
+    the MCS must (i) retain the dominant model and (ii) eliminate the dominant-
+    worst model first — two construction identities that hold for any seed.
+    """
+    from puremacro.forecast import model_confidence_set
+
+    rng = np.random.default_rng(20260724)
+    T = 250
+    levels = np.array([1.0, 1.4, 1.8, 2.4, 3.2])
+    common = 0.3 * rng.standard_normal((T, 1))
+    idio = 0.4 * rng.standard_normal((T, levels.size))
+    losses = np.abs(levels[None, :] + common + idio)
+    res = model_confidence_set(losses, alpha=0.10, statistic="tmax",
+                               n_boot=1000, seed=7)
+    return {
+        "best_retained": float(0 in res["included"].tolist()),
+        "worst_eliminated_first": float(res["elimination_order"][0] == 4),
+    }
+
+
 def _dm_sign_and_tie() -> dict:
     from puremacro.forecast.compare import diebold_mariano
 
@@ -229,6 +252,23 @@ CASES: list[ValidationCase] = [
             "Diebold & Mariano (1995, J. Bus. Econ. Stat. 13:253-263): the test "
             "statistic is d_bar / sqrt(LRV/T) on the loss differential d_t = L(e1_t) - L(e2_t); "
             "sign tracks which forecast has larger expected loss."
+        ),
+    ),
+    ValidationCase(
+        id="forecast.mcs_retains_best_eliminates_worst",
+        subsystem="forecast",
+        title="MCS retains the dominant model and eliminates the worst first",
+        title_es="El MCS retiene al modelo dominante y elimina primero al peor",
+        mechanism=Mechanism.INTERNAL,
+        compute=_mcs_planted_truth,
+        reference=lambda: {"best_retained": 1.0, "worst_eliminated_first": 1.0},
+        tol=Tol.EXACT,
+        citation=(
+            "Hansen, Lunde & Nason (2011, Econometrica 79:453-497): the Model "
+            "Confidence Set retains the best model(s) with prob. 1-alpha and "
+            "sequentially eliminates the worst (largest standardized excess "
+            "loss); with a uniformly-dominant and a uniformly-worst model these "
+            "are construction identities."
         ),
     ),
 ]
