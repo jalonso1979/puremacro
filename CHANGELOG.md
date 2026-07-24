@@ -6,6 +6,20 @@ not a development diary.
 
 ## Unreleased
 
+### Added — unit-root tests
+- **GLS-detrended unit-root tests** (`tests.unit_root.dfgls_test`,
+  `ng_perron_test`): the DF-GLS test (Elliott, Rothenberg & Stock 1996) and the
+  Ng-Perron (2001) M-tests (MZa / MZt / MSB / MPT), joining the existing
+  ADF / KPSS / PP / Zivot-Andrews suite. Local-to-unity GLS detrending
+  (c̄ = −7 constant / −13.5 trend) delivers substantially more power near the
+  unit root than ADF — e.g. on 1889–2015 log US real GDP, ADF cannot reject a
+  unit root but DF-GLS does at 10%. Three new validation cases (gallery → 66).
+
+### Added — teaching notebooks
+- Showcase notebooks **17** (identification spec-curve), **18** (Beveridge
+  curve), **19** (Model Confidence Set), and **20** (unit roots with power),
+  each in English and Spanish, with their frozen offline datasets.
+
 ## 0.93.0 — 2026-07-24
 
 ### Added — seasonal adjustment

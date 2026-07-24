@@ -25,6 +25,6 @@ def _load(path: Path, name: str):
 def test_all_notebooks_execute():
     bn = _load(PROJ / "tools" / "build_notebooks.py", "build_notebooks_slow")
     srcs = bn.discover_sources()
-    assert len(srcs) == 38, [p.name for p in srcs]
+    assert len(srcs) == 46, [p.name for p in srcs]
     rc = bn.main(["--check"])
     assert rc == 0, "one or more notebooks failed to execute (see output above)"
