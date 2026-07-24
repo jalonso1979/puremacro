@@ -16,7 +16,7 @@ authors:
 affiliations:
   - name: Instituto Tecnológico Autónomo de México (ITAM), Mexico City, Mexico
     index: 1
-date: 31 May 2026
+date: 24 July 2026
 bibliography: paper.bib
 ---
 
@@ -34,8 +34,9 @@ ARCH/GARCH volatility models [@engle1982; @bollerslev1986],
 heteroskedasticity- and autocorrelation-consistent inference [@neweywest1987],
 dynamic-panel and weak-instrument estimators, difference-in-differences and
 synthetic control, value-function iteration and heterogeneous-agent equilibria
-[@aiyagari1994], linear DSGE solution [@smetswouters2007], and text-based
-uncertainty indices [@bbd2016].
+[@aiyagari1994], linear DSGE solution [@smetswouters2007], a native pure-Python
+X-11/ARIMA seasonal-adjustment engine, forecast-evaluation and model-comparison
+tests, and text-based uncertainty indices [@bbd2016].
 
 # Statement of need
 
@@ -51,11 +52,11 @@ local-projection impulse response, or an Aiyagari equilibrium at zero cost, with
 nothing to install.
 
 Breadth alone is not trustworthy, so `puremacro` ships its own evidence. A
-built-in **validation gallery** contains 62 cases that continuously check the
+built-in **validation gallery** contains 66 cases that continuously check the
 library's estimators against independent references — statsmodels [@statsmodels2010],
 `arch`, and `linearmodels` where a canonical implementation exists, and
 closed-form solutions, published numbers, or internal cross-method identities
-elsewhere — across eleven subsystems (\autoref{fig:scorecard}). A companion
+elsewhere — across twelve subsystems (\autoref{fig:scorecard}). A companion
 **replication gallery** reproduces published results from heterogeneous-agent and
 DSGE models. Both are wired into the CI workflows shipped with the package and
 re-run in a single line, `puremacro.validation.scorecard()`, including in the
@@ -74,10 +75,14 @@ continuously verified, self-contained correctness record.
   difference-in-differences, and synthetic control.
 - **Computational macro:** value-function iteration, the endogenous grid method,
   Aiyagari and Huggett equilibria, and linear DSGE solution.
+- **Seasonal adjustment, unit roots, and forecasting:** a native pure-Python
+  X-11/ARIMA engine validated against X-13ARIMA-SEATS, GLS-detrended unit-root
+  tests (DF-GLS, Ng-Perron), and forecast-evaluation tools including
+  Diebold–Mariano and the Model Confidence Set.
 - **Reproducibility and teaching:** an in-browser JupyterLite playground and
   bilingual (English/Spanish) documentation and example notebooks.
 
-![Validation coverage: 62 cases across 11 subsystems, each checked against an independent reference.\label{fig:scorecard}](scorecard.png){ width=70% }
+![Validation coverage: 66 cases across 12 subsystems, each checked against an independent reference.\label{fig:scorecard}](scorecard.png){ width=70% }
 
 # Acknowledgements
 

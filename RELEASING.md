@@ -109,7 +109,7 @@ The JupyterLite playground (`playground/`) is one build from live and now bundle
 The paper is prepared at `paper/paper.md` (+ `paper.bib`, `scorecard.png`). JOSS
 requires the software to be public and archived, so submit **after** a release path
 (§2) is live:
-1. Fill the author **ORCID** in `paper/paper.md` (currently a `0000-…` placeholder).
+1. Confirm the author **ORCID** in `paper/paper.md` (currently `0000-0002-5941-9928`).
 2. Tag a release and archive the repo to get a **Zenodo DOI** (Zenodo ↔ GitHub integration).
 3. Open a submission at https://joss.theoj.org/papers/new (repo URL + the Zenodo DOI).
 4. Regenerate the figure if the validation gallery changed: `python paper/make_scorecard_fig.py`.
