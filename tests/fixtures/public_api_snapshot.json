@@ -1274,11 +1274,21 @@
       "summary_to_markdown"
     ],
     "puremacro.sa": [
+      "X11Result",
       "deseasonalize",
       "deseasonalize_stl",
+      "deseasonalize_x11",
       "deseasonalize_x13",
+      "henderson_weights",
       "residual_seasonality_F",
+      "x11_arima",
       "x13_available"
+    ],
+    "puremacro.sa.x11": [
+      "X11Result",
+      "deseasonalize_x11",
+      "henderson_weights",
+      "x11_arima"
     ],
     "puremacro.sa.x13": [
       "deseasonalize_x13",
@@ -2348,6 +2358,29 @@
       "df",
       "method",
       "n_obs"
+    ],
+    "puremacro.sa._airline.AirlineFit": [
+      "Theta",
+      "converged",
+      "loglik",
+      "n_obs",
+      "period",
+      "sigma2",
+      "theta"
+    ],
+    "puremacro.sa.x11.X11Result": [
+      "arima",
+      "henderson",
+      "ic_ratio",
+      "irregular",
+      "mode",
+      "msr",
+      "period",
+      "sa",
+      "seasonal",
+      "seasonal_filter",
+      "transform_diag",
+      "trend"
     ],
     "puremacro.shock_atlas.ShockSpec": [
       "category",

@@ -1,0 +1,60 @@
+{
+  "pinned_spec": "log|none + airline + no outlier + maxlead 60 / maxback 0 + x11 msr",
+  "binary": "X-13ARIMA-SEATS 1.1 build 57 (x13org/x13prebuilt mac-arm64)",
+  "series": {
+    "allegheny_pa_u": {
+      "period": 12,
+      "n": 437,
+      "transform": "log",
+      "start": "1990-01-01"
+    },
+    "fayette_ky_u": {
+      "period": 12,
+      "n": 437,
+      "transform": "log",
+      "start": "1990-01-01"
+    },
+    "marquette_mi_u": {
+      "period": 12,
+      "n": 437,
+      "transform": "log",
+      "start": "1990-01-01"
+    },
+    "caddo_la_u": {
+      "period": 12,
+      "n": 437,
+      "transform": "log",
+      "start": "1990-01-01"
+    },
+    "keweenaw_mi_u": {
+      "period": 12,
+      "n": 437,
+      "transform": "log",
+      "start": "1990-01-01"
+    },
+    "hidalgo_nm_u": {
+      "period": 12,
+      "n": 437,
+      "transform": "log",
+      "start": "1990-01-01"
+    },
+    "indpro_nsa": {
+      "period": 12,
+      "n": 720,
+      "transform": "log",
+      "start": "1966-07-01"
+    },
+    "allegheny_pa_u_q": {
+      "period": 4,
+      "n": 146,
+      "transform": "log",
+      "start": "1990-01-01"
+    },
+    "keweenaw_mi_u_q": {
+      "period": 4,
+      "n": 146,
+      "transform": "log",
+      "start": "1990-01-01"
+    }
+  }
+}

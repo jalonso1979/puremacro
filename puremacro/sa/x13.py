@@ -1,19 +1,24 @@
-"""Per-unit X-13ARIMA-SEATS seasonal adjustment.
+"""Per-unit seasonal adjustment with a three-tier engine fallback.
 
-Mirrors the :mod:`src.sa.stl` API so call sites can swap method via
-``deseasonalize_x13`` (preferred) and fall back to STL when the X-13
-binary is unavailable or rejects a series (too short, too noisy, etc.).
+``deseasonalize_x13`` adjusts each unit's series preferring, in order:
 
-The X-13 binary is located via:
-1. The ``X13PATH`` environment variable (directory containing ``x13as``);
-2. ``shutil.which('x13as')`` on the user's PATH;
-3. ``~/.local/bin`` as a last resort.
+1. the external **X-13ARIMA-SEATS binary** (statsmodels wrapper), when
+   reachable and the series is long and gap-free enough for it;
+2. the native pure-Python **X-11/ARIMA engine** (:mod:`puremacro.sa.x11`)
+   --- the Pyodide/browser default, since no binary can run there;
+3. **STL** (:mod:`puremacro.sa.stl`), the universal last resort for
+   series too short for the airline fit.
 
-If none of those succeed, callers receive a :class:`RuntimeError` and
-should catch it to fall back to STL.
+This makes the browser default a genuine X-11-class adjuster rather than
+STL. Pass ``engines={}`` to learn which tier ran for each unit.
+
+The X-13 binary is located via the ``X13PATH`` environment variable
+(directory containing ``x13as``), ``shutil.which('x13as')`` on PATH, or
+``~/.local/bin``; when none succeed the native engine takes over
+automatically.
 
 Public API:
-    deseasonalize_x13(df, value_col, by, date_col, freq='Q') -> pd.Series
+    deseasonalize_x13(df, value_col, by, date_col, freq='Q', engines=None)
     residual_seasonality_F(...)                              -> re-exported
 """
 from __future__ import annotations
@@ -62,58 +67,91 @@ def x13_available() -> bool:
     return _X13_DIR is not None
 
 
-def _x13_one(values: np.ndarray, dates: pd.DatetimeIndex, period: int) -> np.ndarray:
-    """Run x13 on a single series; fall back to STL on failure.
+def _x11_native_one(values: np.ndarray, dates: pd.DatetimeIndex,
+                    period: int) -> np.ndarray | None:
+    """Native X-11/ARIMA on one series (:mod:`puremacro.sa.x11`).
 
-    Returns the seasonally-adjusted series aligned 1:1 with ``values``.
-    NaNs in input are preserved in output.
-    """
+    Returns the seasonally-adjusted array (1:1 with ``values``, NaNs
+    preserved) or ``None`` if the series cannot be adjusted natively
+    (all-NaN, too short for the airline fit, uninterpolable gaps), so the
+    caller can fall back to STL. Pure Python — the browser default when
+    no X-13 binary is present."""
+    s = pd.Series(values, index=dates)
+    nan_mask = s.isna()
+    if nan_mask.all():
+        return None
+    s_interp = s.interpolate(limit_direction="both")
+    # airline fit needs (1-B)(1-B^s)y plus a few residuals: s+1 lost to
+    # differencing, then >= 3s for the MLE.
+    if s_interp.isna().any() or len(s_interp) < 4 * period + 1:
+        return None
+    try:
+        from .x11 import x11_arima
+        res = x11_arima(s_interp.to_numpy(dtype=float), period=period,
+                        mode="auto")
+        sa = res.sa
+    except Exception as e:  # pragma: no cover - depends on series shape
+        logger.debug("native X-11 failed (%s); falling back to STL", e)
+        return None
+    return np.where(nan_mask.values, np.nan, sa)
+
+
+def _x13_one(values: np.ndarray, dates: pd.DatetimeIndex, period: int,
+             *, engine: list | None = None) -> np.ndarray:
+    """Seasonally adjust one series, preferring the X-13 binary, then the
+    native X-11 engine, then STL.
+
+    Returns the SA series aligned 1:1 with ``values`` (NaNs preserved).
+    If ``engine`` is a list it is appended the tag of the engine that
+    actually ran (``'binary'`` / ``'native'`` / ``'stl'``)."""
+    def _rec(tag: str) -> None:
+        if engine is not None:
+            engine.append(tag)
+
     s = pd.Series(values, index=dates).copy()
     nan_mask = s.isna()
     if nan_mask.all():
+        _rec("stl")
         return values.astype(float)
     s_interp = s.interpolate(limit_direction="both")
     if s_interp.isna().any():
+        _rec("stl")
         return values.astype(float)
 
-    if _X13_DIR is None:
-        return _stl_one(values, period=period)
+    # 1) The genuine X-13 binary, when reachable. statsmodels'
+    # x13_arima_analysis needs a regular gap-free DatetimeIndex with a
+    # known frequency and >= 3 full years; series failing that skip to
+    # the native engine rather than STL.
+    if _X13_DIR is not None and len(s_interp) >= 3 * period:
+        period_letter = "Q" if period == 4 else "M"
+        s_x = s_interp.copy()
+        s_x.index = (pd.DatetimeIndex(s_x.index).to_period(period_letter)
+                     .to_timestamp(how="start"))
+        if not s_x.index.has_duplicates:
+            try:
+                from statsmodels.tsa.x13 import x13_arima_analysis
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    res = x13_arima_analysis(
+                        s_x, x12path=_X13_DIR, outlier=True, trading=False,
+                        forecast_periods=0, print_stdout=False,
+                    )
+                sa = pd.Series(res.seasadj.values, index=res.seasadj.index)
+                sa = sa.reindex(s_x.index).to_numpy(dtype=float)
+                _rec("binary")
+                return np.where(nan_mask.values, np.nan, sa)
+            except Exception as e:  # pragma: no cover - series-shape dependent
+                logger.debug("X-13 binary failed (%s); trying native X-11", e)
 
-    # statsmodels.x13_arima_analysis is fussy: it requires a regular
-    # DatetimeIndex with a known frequency, no missing periods, and at
-    # least 3 full years. Skip series that don't satisfy this.
-    if len(s_interp) < 3 * period:
-        return _stl_one(values, period=period)
+    # 2) The native X-11/ARIMA engine (pure Python; the Pyodide default).
+    nat = _x11_native_one(values, dates, period)
+    if nat is not None:
+        _rec("native")
+        return nat
 
-    period_letter = "Q" if period == 4 else "M"
-    s_x = s_interp.copy()
-    s_x.index = pd.DatetimeIndex(s_x.index).to_period(period_letter).to_timestamp(how="start")
-    if s_x.index.has_duplicates:
-        return _stl_one(values, period=period)
-
-    try:
-        from statsmodels.tsa.x13 import x13_arima_analysis
-
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            res = x13_arima_analysis(
-                s_x,
-                x12path=_X13_DIR,
-                outlier=True,
-                trading=False,
-                forecast_periods=0,
-                print_stdout=False,
-            )
-        # ``res.seasadj`` aligns with the input index (may be slightly
-        # shorter if X-13 dropped leading/trailing NaNs).
-        sa = pd.Series(res.seasadj.values, index=res.seasadj.index)
-        sa = sa.reindex(s_x.index).to_numpy(dtype=float)
-    except Exception as e:  # pragma: no cover - depends on series shape
-        logger.debug("X-13 failed (%s); falling back to STL", e)
-        return _stl_one(values, period=period)
-
-    sa = np.where(nan_mask.values, np.nan, sa)
-    return sa
+    # 3) STL, the universal last resort.
+    _rec("stl")
+    return _stl_one(values, period=period)
 
 
 def deseasonalize_x13(
@@ -124,14 +162,19 @@ def deseasonalize_x13(
     date_col: str = "date",
     freq: Literal["Q", "M"] = "Q",
     min_obs: int = 24,
+    engines: dict | None = None,
 ) -> pd.Series:
-    """Return a seasonally-adjusted Series aligned to ``df.index`` (X-13 first).
+    """Return a seasonally-adjusted Series aligned to ``df.index``.
 
-    Same contract as :func:`src.sa.stl.deseasonalize` but uses X-13 ARIMA
-    SEATS per unit; if X-13 is unavailable or fails on a series, the
-    function falls back to STL silently. Units below ``min_obs`` are
-    returned as NaN.
-    """
+    Per unit, adjustment prefers the external X-13ARIMA-SEATS binary,
+    falls back to the native pure-Python X-11/ARIMA engine
+    (:mod:`puremacro.sa.x11`) when the binary is unavailable or declines,
+    and to STL only when neither applies. This makes the browser default
+    a genuine X-11-class adjuster rather than STL. Same group contract as
+    :func:`puremacro.sa.stl.deseasonalize`; units below ``min_obs`` are
+    returned as NaN. Pass ``engines`` as a dict to receive, per unit, the
+    tag of the engine that actually ran (``'binary'`` / ``'native'`` /
+    ``'stl'``) --- so callers can assert ``'stl'`` never sneaks in."""
     if freq not in _PERIOD:
         raise ValueError(f"freq must be 'Q' or 'M', got {freq!r}")
     period = _PERIOD[freq]
@@ -146,7 +189,10 @@ def deseasonalize_x13(
         if np.isfinite(v).sum() < min_obs:
             continue
         d = pd.DatetimeIndex(sub[date_col].to_numpy())
-        sa = _x13_one(v, d, period=period)
+        tag: list = []
+        sa = _x13_one(v, d, period=period, engine=tag)
+        if engines is not None and tag:
+            engines[unit] = tag[-1]
         out.loc[sub["_orig_idx"].values] = sa
 
     return out
