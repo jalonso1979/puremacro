@@ -91,7 +91,7 @@ def _moments(theta: np.ndarray, dat: dict) -> np.ndarray:
     instrument equal to the right-hand-side variable gives the standard
     IV/GMM 'score' moment condition:
 
-      g1 = E[Δlog(w_s/w_u) · (Δlog(L_s/L_u) - σ_su · Δlog(w_s/w_u))]
+      g1 = E[Δlog(w_s/w_u) · (Δlog(L_s/L_u) + σ_su · Δlog(w_s/w_u))]
       g2 = E[Δlog(w_u/P_K) · (Δlog(K_e/L_u) - σ_eu · Δlog(w_u/P_K))]
       g3 = E[Δlog(P_K/P_C) · (Δlog(LS_u) - (1-σ_eu) · Δlog(P_K/P_C))]
 
@@ -102,7 +102,10 @@ def _moments(theta: np.ndarray, dat: dict) -> np.ndarray:
     (z_t · r_t) so the weighting matrix operates on the sample mean.
     """
     sigma_su, sigma_eu = theta
-    r1 = dat['dlog_ls_lu']    - sigma_su        * dat['dlog_ws_wu']
+    # CES relative demand is dlog(L_s/L_u) = -sigma_su * dlog(w_s/w_u): the
+    # quantity and price ratios run in the SAME direction here, unlike r2/r3
+    # where the price ratio is inverted, so the residual carries a plus sign.
+    r1 = dat['dlog_ls_lu']    + sigma_su        * dat['dlog_ws_wu']
     r2 = dat['dlog_ke_lu']    - sigma_eu        * dat['dlog_wu_pk']
     r3 = dat['dlog_lsushare'] - (1 - sigma_eu)  * dat['dlog_pk_pc']
     g1 = dat['dlog_ws_wu']  * r1
@@ -262,11 +265,11 @@ def _moments_m1m2(theta: np.ndarray, dat: dict) -> np.ndarray:
 
     Drops m3 (labor-share FOC).  Returns (n_obs, 2) matrix.
 
-    g1 = Δlog(w_s/w_u) · (Δlog(L_s/L_u) − σ_su · Δlog(w_s/w_u))
+    g1 = Δlog(w_s/w_u) · (Δlog(L_s/L_u) + σ_su · Δlog(w_s/w_u))
     g2 = Δlog(w_u/P_K) · (Δlog(K_e/L_u) − σ_eu · Δlog(w_u/P_K))
     """
     sigma_su, sigma_eu = theta
-    r1 = dat['dlog_ls_lu'] - sigma_su * dat['dlog_ws_wu']
+    r1 = dat['dlog_ls_lu'] + sigma_su * dat['dlog_ws_wu']
     r2 = dat['dlog_ke_lu'] - sigma_eu * dat['dlog_wu_pk']
     return np.column_stack([dat['dlog_ws_wu'] * r1, dat['dlog_wu_pk'] * r2])
 
@@ -461,7 +464,13 @@ def fit_sigma_su_pooled(
 ) -> SymCESFit:
     """Block A: pooled 2SLS for σ_su from m_1 alone.
 
-    m_1: Δlog(L_s/L_u) = σ_su · Δlog(w_s/w_u) + ε
+    m_1: Δlog(L_s/L_u) = -σ_su · Δlog(w_s/w_u) + ε
+
+    CES relative demand slopes DOWN: relative skilled employment falls when the
+    skill premium rises. The 2SLS slope beta therefore estimates -σ_su, and
+    σ_su = -beta. A positive beta -- relative quantity rising with relative
+    price -- traces a supply relation rather than the demand curve, and should
+    be read as a failure of the supply-shift instrument, not as a large σ_su.
 
     Identification: instrument Δlog(w_s/w_u) with Δlog(N_s/N_u), the
     cohort-population skilled-share change (Katz–Murphy IV).
@@ -498,7 +507,7 @@ def fit_sigma_su_pooled(
     var_den = (np.mean(z * x)) ** 2
     se = float(np.sqrt(var_num / max(var_den, 1e-12)))
     return SymCESFit(
-        sigma_kl=np.nan, sigma_ie=np.nan, sigma_su=float(beta),
+        sigma_kl=np.nan, sigma_ie=np.nan, sigma_su=float(-beta),
         se_sigma_kl=np.nan, se_sigma_ie=np.nan, se_sigma_su=se,
         obj_value=0.0, hansen_J=None, hansen_p=None,
         n_obs=len(df), n_country=df['code'].nunique(), converged=True,
@@ -776,7 +785,7 @@ def _moments_symmetric(
       g4 (m_4, σ_KL): IV = cumulated ISTC shock
     """
     sigma_kl, sigma_ie, sigma_su = theta
-    r1 = dat['dlog_ls_lu'] - sigma_su * dat['dlog_ws_wu']
+    r1 = dat['dlog_ls_lu'] + sigma_su * dat['dlog_ws_wu']
     r2 = dat['dlog_ki_ke'] - sigma_ie * dat['dlog_re_ri']
     r3 = dat['dlog_k_l']   - sigma_kl * dat['dlog_w_r']
     r4 = dat['dlog_ls']    - (1 - sigma_kl) * dat['dlog_pk_pc']

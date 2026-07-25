@@ -70,7 +70,7 @@ def _make_korv_panel(
     dlog_ws_wu  = rng.standard_normal(n)
     dlog_wu_pk  = rng.standard_normal(n)
     dlog_pk_pc  = rng.standard_normal(n)
-    dlog_ls_lu    = sigma_su        * dlog_ws_wu  + noise * rng.standard_normal(n)
+    dlog_ls_lu    = -sigma_su       * dlog_ws_wu  + noise * rng.standard_normal(n)
     dlog_ke_lu    = sigma_eu        * dlog_wu_pk  + noise * rng.standard_normal(n)
     dlog_lsushare = (1 - sigma_eu)  * dlog_pk_pc  + noise * rng.standard_normal(n)
     return pd.DataFrame({
@@ -666,7 +666,7 @@ class TestFitSigmaSuPooled:
         for code in codes:
             z    = rng.standard_normal(n_per)
             x    = 0.8 * z + 0.2 * rng.standard_normal(n_per)
-            y    = beta_true * x + 0.1 * rng.standard_normal(n_per)
+            y    = -beta_true * x + 0.1 * rng.standard_normal(n_per)
             df_c = pd.DataFrame({
                 'code': code,
                 'dlog_ls_lu': y,
