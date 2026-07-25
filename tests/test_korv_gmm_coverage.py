@@ -801,7 +801,7 @@ class TestMomentsSymmetric:
             'dlog_re_ri':  rng.standard_normal(n),
             'dlog_k_l':    rng.standard_normal(n),
             'dlog_w_r':    rng.standard_normal(n),
-            'dlog_ls':     rng.standard_normal(n),
+            'dlog_ls_ratio': rng.standard_normal(n),
             'dlog_pk_pc':  rng.standard_normal(n),
             'z_su':        rng.standard_normal(n),
             'z_kl':        rng.standard_normal(n),
@@ -824,16 +824,16 @@ class TestFitSigmaKlPooled:
             # m3: dlog_k_l = sigma_kl * dlog_w_r + e3
             dlog_w_r  = rng.standard_normal(n_per)
             dlog_k_l  = sigma_kl_true * dlog_w_r + 0.1 * rng.standard_normal(n_per)
-            # m4: dlog_ls = (1 - sigma_kl) * dlog_pk_pc + e4
+            # m4: dlog_ls_ratio = (1 - sigma_kl) * dlog_pk_pc + e4
             dlog_pk_pc = rng.standard_normal(n_per)
-            dlog_ls    = (1 - sigma_kl_true) * dlog_pk_pc + 0.1 * rng.standard_normal(n_per)
+            dlog_ls_ratio    = (1 - sigma_kl_true) * dlog_pk_pc + 0.1 * rng.standard_normal(n_per)
             # Instrument for m4
             z_kl = dlog_pk_pc + 0.1 * rng.standard_normal(n_per)
             chunks.append(pd.DataFrame({
                 'code': code,
                 'dlog_k_l': dlog_k_l,
                 'dlog_w_r': dlog_w_r,
-                'dlog_ls': dlog_ls,
+                'dlog_ls_ratio': dlog_ls_ratio,
                 'dlog_pk_pc': dlog_pk_pc,
                 'z_kl': z_kl,
             }))
@@ -897,7 +897,7 @@ class TestFitSymmetricNestedCesPooled:
                 # Block C columns
                 'dlog_k_l':    rng.standard_normal(n),
                 'dlog_w_r':    rng.standard_normal(n),
-                'dlog_ls':     rng.standard_normal(n),
+                'dlog_ls_ratio': rng.standard_normal(n),
                 'dlog_pk_pc':  rng.standard_normal(n),
                 'iv_kl':       rng.standard_normal(n),
             })
@@ -948,7 +948,7 @@ class TestFitSymmetricNestedCesJoint:
                 'dlog_re_ri':  rng.standard_normal(n),
                 'dlog_k_l':    rng.standard_normal(n),
                 'dlog_w_r':    rng.standard_normal(n),
-                'dlog_ls':     rng.standard_normal(n),
+                'dlog_ls_ratio': rng.standard_normal(n),
                 'dlog_pk_pc':  rng.standard_normal(n),
                 'iv_su':       rng.standard_normal(n),
                 'iv_kl':       rng.standard_normal(n),
@@ -1032,3 +1032,70 @@ class TestDataclasses:
         )
         with pytest.raises((AttributeError, TypeError)):
             fit.sigma_kl = 999.0  # type: ignore[misc]
+
+
+class TestShareRatioMoment:
+    """The m_4 moment is stated on the capital-to-labor SHARE RATIO.
+
+    Passing a labor share instead inverts the sign of the implied departure
+    from Cobb-Douglas, so the wrong usage must fail loudly rather than return
+    a plausible-looking number.
+    """
+
+    def test_log_share_ratio_matches_definition(self):
+        from puremacro.korv_gmm import log_share_ratio
+        ls = np.array([0.40, 0.50, 0.65])
+        got = log_share_ratio(ls)
+        want = np.log(1 - ls) - np.log(ls)
+        np.testing.assert_allclose(got, want)
+        # A labor share of one half puts the two shares level.
+        assert abs(log_share_ratio(np.array([0.5]))[0]) < 1e-12
+
+    @pytest.mark.parametrize("bad", [0.0, 1.0, -0.2, 1.5, np.nan])
+    def test_log_share_ratio_rejects_out_of_range(self, bad):
+        from puremacro.korv_gmm import log_share_ratio
+        with pytest.raises(ValueError):
+            log_share_ratio(np.array([bad]))
+
+    def test_labor_share_column_is_rejected(self):
+        """The pre-0.95 default silently inverted sigma_KL; it must now raise."""
+        from puremacro.korv_gmm import fit_sigma_kl_pooled
+        rng = np.random.default_rng(0)
+        n = 60
+        panel = pd.DataFrame({
+            'code': ['A'] * n,
+            'dlog_k_l': rng.standard_normal(n),
+            'dlog_w_r': rng.standard_normal(n),
+            'dlog_ls': rng.standard_normal(n),
+            'dlog_pk_pc': rng.standard_normal(n),
+            'iv': rng.standard_normal(n),
+        })
+        with pytest.raises(ValueError, match="share ratio"):
+            fit_sigma_kl_pooled(panel, iv_col='iv', m4_lhs='dlog_ls')
+
+    def test_share_ratio_recovers_sigma_kl(self):
+        """With the ratio planted correctly, sigma_KL comes back with the right sign."""
+        from puremacro.korv_gmm import fit_sigma_kl_pooled
+        sigma_true = 1.20
+        frames = []
+        for c in range(6):
+            rng = np.random.default_rng(100 + c)
+            n = 120
+            iv = rng.standard_normal(n)
+            dlog_pk_pc = 0.8 * iv + 0.2 * rng.standard_normal(n)
+            dlog_w_r = rng.standard_normal(n)
+            frames.append(pd.DataFrame({
+                'code': f'C{c}',
+                'dlog_k_l': sigma_true * dlog_w_r + 0.01 * rng.standard_normal(n),
+                'dlog_w_r': dlog_w_r,
+                'dlog_ls_ratio': (1 - sigma_true) * dlog_pk_pc
+                                 + 0.01 * rng.standard_normal(n),
+                'dlog_pk_pc': dlog_pk_pc,
+                'iv': iv,
+            }))
+        panel = pd.concat(frames, ignore_index=True)
+        fit = fit_sigma_kl_pooled(panel, iv_col='iv')
+        assert fit.converged
+        assert abs(fit.sigma_kl - sigma_true) < 0.05, fit.sigma_kl
+        # And the sign of the departure from Cobb-Douglas is preserved.
+        assert fit.sigma_kl > 1.0

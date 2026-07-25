@@ -83,6 +83,19 @@ class SymCESFit:
     converged: bool
 
 
+def log_share_ratio(labor_share) -> np.ndarray:
+    """log(s_K/s_L) from a labor share, for the m_4 moment.
+
+    The share-ratio form dlog(s_K/s_L) = (1-sigma) dlog(P_K/P_C) is exact and
+    needs no capital-share weight, unlike the labor-share form. Values outside
+    (0, 1) are rejected rather than silently propagated.
+    """
+    ls = np.asarray(labor_share, dtype=float)
+    if np.any(~np.isfinite(ls)) or np.any((ls <= 0.0) | (ls >= 1.0)):
+        raise ValueError("labor_share must be finite and strictly inside (0, 1)")
+    return np.log1p(-ls) - np.log(ls)
+
+
 def _moments(theta: np.ndarray, dat: dict) -> np.ndarray:
     """Stack three IV-moment conditions at parameters (sigma_su, sigma_eu).
 
@@ -662,13 +675,19 @@ def fit_sigma_kl_pooled(
     iv_col: str,
     m3_lhs: str = 'dlog_k_l',
     m3_rhs: str = 'dlog_w_r',
-    m4_lhs: str = 'dlog_ls',
+    m4_lhs: str = 'dlog_ls_ratio',
     m4_rhs: str = 'dlog_pk_pc',
 ) -> SymCESFit:
     """Block C: joint pooled GMM for σ_KL from m_3 and m_4.
 
-    m_3: Δlog(K/L) = σ_KL · Δlog(w/r) + ε_3
-    m_4: Δlog LS    = (1 - σ_KL) · Δlog(P_K/P_C) + ε_4
+    m_3: Δlog(K/L)       = σ_KL · Δlog(w/r) + ε_3
+    m_4: Δlog(s_K/s_L)   = (1 - σ_KL) · Δlog(P_K/P_C) + ε_4
+
+    m_4 is stated on the CAPITAL-TO-LABOR SHARE RATIO. The labor share obeys
+    Δlog s_L = s_K (σ_KL - 1) Δlog(P_K/P_C) instead -- opposite in sign and
+    scaled by the capital share -- so passing a labor-share column here
+    inverts the implied departure from Cobb-Douglas. Build the ratio with
+    :func:`log_share_ratio`.
 
     Instruments:
       - For m_3, demeaned RHS (no separate IV; the quantity-FOC variation
@@ -678,6 +697,13 @@ def fit_sigma_kl_pooled(
 
     Two moments, one parameter → over-identified by 1 (Hansen J on df=1).
     """
+    if m4_lhs == 'dlog_ls':
+        raise ValueError(
+            "m4_lhs='dlog_ls' passes a LABOR SHARE to a moment stated on the "
+            "capital-to-labor share ratio, which inverts the sign of the "
+            "implied sigma_KL. Pass 'dlog_ls_ratio' (see log_share_ratio), or "
+            "rescale by the capital share explicitly."
+        )
     needed = ('code', m3_lhs, m3_rhs, m4_lhs, m4_rhs, iv_col)
     df = panel.dropna(subset=list(needed)).copy()
     for col in (m3_lhs, m3_rhs, m4_lhs, m4_rhs, iv_col):
@@ -788,7 +814,12 @@ def _moments_symmetric(
     r1 = dat['dlog_ls_lu'] + sigma_su * dat['dlog_ws_wu']
     r2 = dat['dlog_ki_ke'] - sigma_ie * dat['dlog_re_ri']
     r3 = dat['dlog_k_l']   - sigma_kl * dat['dlog_w_r']
-    r4 = dat['dlog_ls']    - (1 - sigma_kl) * dat['dlog_pk_pc']
+    # m_4 in SHARE-RATIO form: dlog(s_K/s_L) = (1-sigma_KL) dlog(P_K/P_C).
+    # The labor share does NOT satisfy this relation -- it satisfies
+    # dlog s_L = s_K (sigma_KL - 1) dlog(P_K/P_C), which differs in sign and
+    # carries a capital-share weight. Passing a labor share here inverts the
+    # implied departure from Cobb-Douglas.
+    r4 = dat['dlog_ls_ratio'] - (1 - sigma_kl) * dat['dlog_pk_pc']
     g1 = dat['z_su']      * r1
     g2 = dat['dlog_re_ri'] * r2
     g3 = dat['dlog_w_r']   * r3
@@ -805,11 +836,15 @@ def fit_symmetric_nested_ces_joint(
     """Block D: joint GMM over all four moments with Hansen J on df=1.
 
     Inputs must have columns dlog_ls_lu, dlog_ws_wu, dlog_ki_ke,
-    dlog_re_ri, dlog_k_l, dlog_w_r, dlog_ls, dlog_pk_pc plus iv_su, iv_kl
-    and a 'code' column. NaN rows are dropped.
+    dlog_re_ri, dlog_k_l, dlog_w_r, dlog_ls_ratio, dlog_pk_pc plus iv_su,
+    iv_kl and a 'code' column. NaN rows are dropped.
+
+    ``dlog_ls_ratio`` is the change in log(s_K/s_L), NOT the change in the
+    labor share; build it with :func:`log_share_ratio`.
     """
     cols = ('code', 'dlog_ls_lu', 'dlog_ws_wu', 'dlog_ki_ke', 'dlog_re_ri',
-            'dlog_k_l', 'dlog_w_r', 'dlog_ls', 'dlog_pk_pc', iv_su, iv_kl)
+            'dlog_k_l', 'dlog_w_r', 'dlog_ls_ratio', 'dlog_pk_pc',
+            iv_su, iv_kl)
     df = panel.dropna(subset=list(cols)).copy()
     # Country-demean.
     for c in cols[1:]:
@@ -821,7 +856,7 @@ def fit_symmetric_nested_ces_joint(
         'dlog_re_ri':  df['dlog_re_ri_d'].to_numpy(),
         'dlog_k_l':    df['dlog_k_l_d'].to_numpy(),
         'dlog_w_r':    df['dlog_w_r_d'].to_numpy(),
-        'dlog_ls':     df['dlog_ls_d'].to_numpy(),
+        'dlog_ls_ratio': df['dlog_ls_ratio_d'].to_numpy(),
         'dlog_pk_pc':  df['dlog_pk_pc_d'].to_numpy(),
         'z_su':        df[iv_su + '_d'].to_numpy(),
         'z_kl':        df[iv_kl + '_d'].to_numpy(),

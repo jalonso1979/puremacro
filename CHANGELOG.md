@@ -6,6 +6,53 @@ not a development diary.
 
 ## Unreleased
 
+## 0.95.0 — 2026-07-25
+
+**Correctness release for `korv_gmm`. Two sign errors are fixed. If you have
+used this module, re-run: previously reported `sigma_su` values carry the wrong
+sign, and `sigma_KL` estimated from a labor-share column carries the wrong sign
+and scale.**
+
+### Fixed — the `m_1` skill-margin moment
+
+CES relative demand is `dlog(L_s/L_u) = -sigma_su * dlog(w_s/w_u)`: the quantity
+and price ratios run in the same direction, unlike `m_2`/`m_3` where the price
+ratio is inverted, so the residual carries a plus sign. The estimator coded the
+minus sign, returning `sigma_su` negated.
+
+Because `r1_correct(s) == r1_old(-s)`, the whole GMM objective surface is
+invariant under `s -> -s`: **`sigma_eu`, the standard errors and the Hansen J
+are unchanged; only `sigma_su` flips.** `fit_sigma_su_pooled` (Katz–Murphy IV)
+returned the raw 2SLS slope and now returns `-beta`. A positive slope traces a
+supply relation rather than the demand curve and should be read as instrument
+failure, not as a large elasticity.
+
+### Fixed — the `m_4` capital–labor moment (**breaking**)
+
+`m_4` is stated on the capital-to-labor **share ratio**:
+
+    dlog(s_K/s_L) = (1 - sigma_KL) * dlog(P_K/P_C)      [exact]
+
+The labor share obeys `dlog s_L = s_K (sigma_KL - 1) dlog(P_K/P_C)` instead —
+opposite in sign and scaled by the capital share — so feeding a labor share to
+this moment inverts the implied departure from Cobb–Douglas and compresses it
+toward unity by a factor of roughly two at observed factor shares.
+
+- `fit_symmetric_nested_ces_joint` now requires a **`dlog_ls_ratio`** column in
+  place of `dlog_ls`.
+- `fit_sigma_kl_pooled`'s `m4_lhs` default changes from `'dlog_ls'` to
+  `'dlog_ls_ratio'`, and passing `m4_lhs='dlog_ls'` now raises `ValueError`
+  rather than silently returning an inverted estimate.
+- New helper **`korv_gmm.log_share_ratio(labor_share)`** builds `log(s_K/s_L)`
+  and rejects shares outside `(0, 1)`.
+
+### Internal
+
+The planted-truth tests had been generating their synthetic data with the same
+wrong signs, so they passed by sharing the bugs; their data-generating
+processes are corrected, and eight tests are added covering the new guard, the
+helper, and sign-preserving recovery of `sigma_KL`.
+
 ## 0.94.0 — 2026-07-24
 
 ### Added — unit-root tests
