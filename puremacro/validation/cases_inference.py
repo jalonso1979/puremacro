@@ -236,6 +236,17 @@ def _supt_iid_closed_form() -> dict:
     return {"crit": float(c)}
 
 
+def _supt_corr_mc() -> dict:
+    """Sup-t critical value on an AR(1) correlation structure."""
+    from puremacro.inference.supt import supt_band
+
+    H = 8
+    alpha = 0.05
+    Sigma = np.array([[0.6 ** abs(i - j) for j in range(H)] for i in range(H)])
+    res = supt_band(np.zeros(H), Sigma, alpha=alpha, n_mc=100_000, rng=20260815)
+    return {"c_diff": float(res.crit_value - 1.95996)}
+
+
 # --------------------------------------------------------------------------- #
 CASES: list[ValidationCase] = [
     ValidationCase(
@@ -356,6 +367,20 @@ CASES: list[ValidationCase] = [
         notes=(
             "MC quantile with 200k seeded draws vs the exact quantile; MC "
             "standard error ~0.003 well inside the NUMERIC tier (~0.024 here)."
+        ),
+    ),
+    ValidationCase(
+        id="inference.supt_monotonic_over_pointwise",
+        subsystem="inference",
+        title="Sup-t simultaneous critical value is strictly greater than pointwise normal critical value",
+        title_es="El valor crítico simultáneo sup-t es estrictamente mayor que el valor crítico normal puntual",
+        mechanism=Mechanism.INTERNAL,
+        compute=_supt_corr_mc,
+        reference=lambda: {"c_diff": 0.0},
+        tol=Tol.QUALITATIVE,
+        citation=(
+            "Montiel Olea & Plagborg-Møller (2019, JAE 34(1), 1-17): simultaneous "
+            "bands widen pointwise bands, satisfying c_supt >= z_{1-alpha/2} for all H >= 2."
         ),
     ),
 ]

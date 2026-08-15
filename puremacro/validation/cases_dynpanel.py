@@ -177,6 +177,15 @@ def _hansen_exact_id() -> dict:
     return {"J": float(r.hansen_j), "df": float(r.hansen_j_df)}
 
 
+def _windmeijer_ratio() -> dict:
+    from puremacro.dynpanel import ab_gmm
+
+    d = dynpanel_demo_data(**_EXACTID)
+    r_wm = ab_gmm(d["y"], d["panel_id"], d["time_id"], two_step=True, windmeijer=True)
+    r_no = ab_gmm(d["y"], d["panel_id"], d["time_id"], two_step=True, windmeijer=False)
+    return {"se_ratio": float(r_wm.se[0] / r_no.se[0])}
+
+
 # ---------------------------------------------------------------------
 # Cases
 # ---------------------------------------------------------------------
@@ -293,6 +302,21 @@ CASES: list[ValidationCase] = [
         notes=(
             "One collapsed lag-2 instrument for one lagged-y regressor (gmm_lag_window=(2,2), "
             "collapse=True). Observed J ~ 4e-30 (< EXACT atol 1e-12), df=0."
+        ),
+    ),
+    ValidationCase(
+        id="dynpanel.windmeijer_corrects_finite_sample_variance",
+        subsystem="dynpanel",
+        title="Windmeijer finite-sample correction inflates downward-biased two-step variance",
+        title_es="La corrección de muestras finitas de Windmeijer infla la varianza sesgada hacia abajo en dos etapas",
+        mechanism=Mechanism.INTERNAL,
+        compute=_windmeijer_ratio,
+        reference=lambda: {"se_ratio": 1.0},
+        tol=Tol.QUALITATIVE,
+        citation=(
+            "Windmeijer, F. (2005, J. Econometrics 126, 25-51): uncorrected two-step "
+            "GMM standard errors are severely downward-biased in finite samples; "
+            "the correction accounts for weight-matrix estimation, yielding se_wm >= se_uncorrected."
         ),
     ),
 ]

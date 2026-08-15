@@ -42,7 +42,10 @@ import xml.etree.ElementTree as ET
 from datetime import date as _date, datetime
 from typing import Iterator
 
-import pdfplumber
+try:
+    import pdfplumber
+except ImportError:
+    pdfplumber = None  # type: ignore[assignment]
 
 from ._fallback import fetch_with_fallback, FallbackExhaustedError
 from ._http import safe_get_bytes, safe_get_text
@@ -139,6 +142,11 @@ def _find_pdf_link(pub_html: str, pub_id: int | None = None) -> str | None:
 
 
 def _extract_cbo_pdf_text(pdf_bytes: bytes) -> str:
+    if pdfplumber is None:
+        raise ImportError(
+            "pdfplumber is required to extract CBO PDF text. "
+            "Install via `pip install puremacro[narrative]`."
+        )
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
         pages = [p.extract_text() or "" for p in pdf.pages]
     return "\n".join(pages).strip()

@@ -63,6 +63,12 @@ from .validation.spec_curve import NarrativeSpecificationCurve
 from .validation.report import NarrativeReport
 from .validation.stability import NarrativeStabilityReport
 
+from .topics import TfidfVectorizer, NMF, DynamicTopicModel, DynamicTopicModelResult
+from .scoring.explain import shapley_keyword_attribution, explain_sentence_contributions
+from .scoring.lexicons_es import SPANISH_MACRO_LEXICON, SpanishSentimentResult, score_spanish_macro_sentiment
+from .anomalies import NarrativeBurstResult, detect_narrative_bursts
+from .crowd_expert import CrowdExpertSpreadResult, compute_crowd_expert_spread
+
 # β.1 event-source connectors are re-exported LAZILY (see __getattr__ below):
 # each pulls scraper/network deps (bs4/requests) at import, so eager-importing
 # them here would break `import puremacro.narrative` under Pyodide.
@@ -78,6 +84,12 @@ __all__ = [
     "bluesky_ui", "bbui", "cboui", "ep_ui", "erpui", "eurlex_ui", "sotuui",
     "consensus_disagreement", "CROSS_SOURCE_GROUPS",
     "epu", "mpu", "gpr", "tone", "wui", "lui", "ltui", "ltui_up", "ltui_down", "lwui", "lwui_wage",
+    # Topic modeling, anomalies & forum/discussion analytics
+    "TfidfVectorizer", "NMF", "DynamicTopicModel", "DynamicTopicModelResult",
+    "shapley_keyword_attribution", "explain_sentence_contributions",
+    "SPANISH_MACRO_LEXICON", "SpanishSentimentResult", "score_spanish_macro_sentiment",
+    "NarrativeBurstResult", "detect_narrative_bursts",
+    "CrowdExpertSpreadResult", "compute_crowd_expert_spread",
     # Replication
     "load_ramey_2011_defense", "ramey_csv_to_events",
     "load_romer_romer_2010", "romer_romer_2010_csv_to_events",

@@ -1,0 +1,128 @@
+{
+  "mode": "full",
+  "replication_gate_max_absdiff": 1.1796119636642288e-16,
+  "cluster_check": {
+    "national_h12": {
+      "alone_district": {
+        "beta": 0.0354,
+        "se_dk": 0.0183,
+        "p_wc": 0.008,
+        "n_clusters": 12
+      },
+      "alone_quarter": {
+        "beta": 0.0354,
+        "se_dk": 0.0183,
+        "p_wc": 0.194,
+        "n_clusters": 120
+      },
+      "alone_twoway": {
+        "beta": 0.0354,
+        "se_dk": 0.0183,
+        "p_wc": 0.243,
+        "n_clusters": 12
+      },
+      "hr_district": {
+        "beta": 0.0343,
+        "se_dk": 0.02,
+        "p_wc": 0.039,
+        "n_clusters": 12
+      },
+      "hr_quarter": {
+        "beta": 0.0343,
+        "se_dk": 0.02,
+        "p_wc": 0.221,
+        "n_clusters": 120
+      },
+      "hr_twoway": {
+        "beta": 0.0343,
+        "se_dk": 0.02,
+        "p_wc": 0.293,
+        "n_clusters": 12
+      }
+    },
+    "own_h9": {
+      "hr_district": {
+        "beta": 0.0245,
+        "se_dk": 0.0177,
+        "p_wc": 0.128,
+        "n_clusters": 12
+      },
+      "hr_quarter": {
+        "beta": 0.0245,
+        "se_dk": 0.0177,
+        "p_wc": 0.211,
+        "n_clusters": 123
+      },
+      "hr_twoway": {
+        "beta": 0.0245,
+        "se_dk": 0.0177,
+        "p_wc": 0.197,
+        "n_clusters": 12
+      }
+    }
+  },
+  "common_window": {
+    "own_base_h9": {
+      "beta": 0.0396,
+      "se_dk": 0.0184,
+      "p_wc": 0.158,
+      "n_clusters": 12
+    },
+    "hr_own_h9": {
+      "beta": 0.0234,
+      "se_dk": 0.0169,
+      "p_wc": 0.13,
+      "n_clusters": 12
+    },
+    "hr_loo_h12": {
+      "beta": 0.0342,
+      "se_dk": 0.0199,
+      "p_wc": 0.039,
+      "n_clusters": 12
+    },
+    "own_survival_ratio_h9": 0.591
+  },
+  "runtime_seconds": 38.8,
+  "sentiment_cluster_check": {
+    "uncertainty_h7": {
+      "hr_district": {
+        "beta": 0.0221,
+        "se_dk": 0.0186,
+        "p_wc": 0.05,
+        "n_clusters": 12
+      },
+      "hr_quarter": {
+        "beta": 0.0221,
+        "se_dk": 0.0186,
+        "p_wc": 0.256,
+        "n_clusters": 125
+      },
+      "hr_twoway": {
+        "beta": 0.0221,
+        "se_dk": 0.0186,
+        "p_wc": 0.224,
+        "n_clusters": 12
+      }
+    },
+    "distress_h9": {
+      "hr_district": {
+        "beta": 0.0432,
+        "se_dk": 0.0188,
+        "p_wc": 0.166,
+        "n_clusters": 12
+      },
+      "hr_quarter": {
+        "beta": 0.0432,
+        "se_dk": 0.0188,
+        "p_wc": 0.048,
+        "n_clusters": 123
+      },
+      "hr_twoway": {
+        "beta": 0.0432,
+        "se_dk": 0.0188,
+        "p_wc": 0.045,
+        "n_clusters": 12
+      }
+    }
+  }
+}

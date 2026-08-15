@@ -1,0 +1,20 @@
+[    0.0s] clusters: 12 districts, 136 quarters; B=999
+[    1.6s] replication gate PASSED (national coef vs frozen Phase-4 1.2e-16)
+[   38.8s] === CLUSTER DIMENSION (national, h=12) ===
+[   38.8s]   district-clustered: {'beta': 0.0354, 'se_dk': 0.0183, 'p_wc': 0.008, 'n_clusters': 12}
+[   38.8s]   quarter-clustered : {'beta': 0.0354, 'se_dk': 0.0183, 'p_wc': 0.194, 'n_clusters': 120}
+[   38.8s]   two-way (DxQ)     : {'beta': 0.0354, 'se_dk': 0.0183, 'p_wc': 0.243, 'n_clusters': 12}
+[   38.8s]   horse race district: {'beta': 0.0343, 'se_dk': 0.02, 'p_wc': 0.039, 'n_clusters': 12}
+[   38.8s]   horse race quarter : {'beta': 0.0343, 'se_dk': 0.02, 'p_wc': 0.221, 'n_clusters': 120}
+[   38.8s]   horse race two-way : {'beta': 0.0343, 'se_dk': 0.02, 'p_wc': 0.293, 'n_clusters': 12}
+[   38.8s] === COMMON-WINDOW STANDARDIZATION (own, h=9) ===
+[   38.8s]   own baseline: {'beta': 0.0396, 'se_dk': 0.0184, 'p_wc': 0.158, 'n_clusters': 12}
+[   38.8s]   own | national: {'beta': 0.0234, 'se_dk': 0.0169, 'p_wc': 0.13, 'n_clusters': 12} (survival ratio 0.591)
+[   38.8s]   national | own (h=12): {'beta': 0.0342, 'se_dk': 0.0199, 'p_wc': 0.039, 'n_clusters': 12}
+[   38.8s] === SENTIMENT HORSE RACE cluster check ===
+[   38.8s]   uncertainty|distress (h=7) district: {'beta': 0.0221, 'se_dk': 0.0186, 'p_wc': 0.05, 'n_clusters': 12}
+[   38.8s]   uncertainty|distress (h=7) quarter : {'beta': 0.0221, 'se_dk': 0.0186, 'p_wc': 0.256, 'n_clusters': 125}
+[   38.8s]   uncertainty|distress (h=7) two-way : {'beta': 0.0221, 'se_dk': 0.0186, 'p_wc': 0.224, 'n_clusters': 12}
+[   38.8s]   distress|uncertainty (h=9) district: {'beta': 0.0432, 'se_dk': 0.0188, 'p_wc': 0.166, 'n_clusters': 12}
+[   38.8s]   distress|uncertainty (h=9) quarter : {'beta': 0.0432, 'se_dk': 0.0188, 'p_wc': 0.048, 'n_clusters': 123}
+[   38.8s]   distress|uncertainty (h=9) two-way : {'beta': 0.0432, 'se_dk': 0.0188, 'p_wc': 0.045, 'n_clusters': 12}

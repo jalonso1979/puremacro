@@ -1,0 +1,7 @@
+decade,span,quarters_covered,quarters_possible_in_span,quarters_all_12_districts,district_quarter_cells,docs_parsed,mean_docs_per_cell
+1970s,1970Q2-1979Q4,39,39,38,467,1496,3.2
+1980s,1980Q1-1989Q4,40,40,40,480,3414,7.1
+1990s,1990Q1-1999Q4,40,40,40,480,4749,9.9
+2000s,2000Q1-2009Q4,40,40,40,480,6491,13.5
+2010s,2010Q1-2019Q4,40,40,40,480,6830,14.2
+2020s,2020Q1-2025Q4,24,24,24,288,5097,17.7

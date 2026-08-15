@@ -85,9 +85,11 @@ def test_load_ca_historical_returns_concatenated_frame(tmp_path):
         ["08/01/2019", "10/01/2019", "Beta LLC", "San Diego", "75", "Closure"],
     ]
     fake_pdf = _FakePdf(pages=[_FakePage(tables=[fake_table])])
+    fake_plumber = mock.MagicMock()
+    fake_plumber.open.return_value = fake_pdf
 
     with mock.patch.object(us_warn, "safe_get_bytes", return_value=b"FAKEPDF"), \
-         mock.patch.object(us_warn.pdfplumber, "open", return_value=fake_pdf), \
+         mock.patch.object(us_warn, "pdfplumber", fake_plumber), \
          mock.patch.object(us_warn, "_CA_HISTORICAL_PDF_URLS",
                             ["http://example/fy19-20.pdf"]), \
          mock.patch.object(us_warn, "_CA_HIST_CACHE", tmp_path / "hist.parquet"):
@@ -294,8 +296,11 @@ def test_load_ca_historical_skips_repeated_header_on_page_2(tmp_path):
     page2_table = [header, ["08/01/2019", "Beta", "SD"]]
     fake_pdf = _FakePdf(pages=[_FakePage([page1_table]),
                                 _FakePage([page2_table])])
+    fake_plumber = mock.MagicMock()
+    fake_plumber.open.return_value = fake_pdf
+
     with mock.patch.object(us_warn, "safe_get_bytes", return_value=b"FAKE"), \
-         mock.patch.object(us_warn.pdfplumber, "open", return_value=fake_pdf), \
+         mock.patch.object(us_warn, "pdfplumber", fake_plumber), \
          mock.patch.object(us_warn, "_CA_HISTORICAL_PDF_URLS", ["x"]), \
          mock.patch.object(us_warn, "_CA_HIST_CACHE", tmp_path / "h.parquet"):
         df = us_warn._load_ca_historical(refetch=True)

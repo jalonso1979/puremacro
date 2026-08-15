@@ -2,24 +2,37 @@
 
 Wraps puremacro's local-LLM engines so a learner can ask questions or check
 answers fully offline ($0, no API key). Degrades gracefully when no engine is
-available (or in the browser), pointing to the lesson's AI-exploration prompts.
+installed, pointing to the lesson's AI-exploration prompts.
 Never raises — a tutor failure must not break a lesson notebook.
 """
 from __future__ import annotations
 
 _SYSTEM = (
-    "You are a concise teaching assistant for a graduate macroeconomics course "
-    "that uses the puremacro Python library. Explain clearly, show the key step, "
-    "and keep answers short. When asked to check an answer, say whether it is "
-    "correct and briefly why."
+    "Eres un asistente de enseñanza conciso para un curso de posgrado de "
+    "macroeconomía que usa la biblioteca de Python puremacro. RESPONDE SIEMPRE "
+    "EN ESPAÑOL, aunque la pregunta venga en otro idioma. Explica con claridad, "
+    "muestra el paso clave y sé breve. Cuando te pidan revisar una respuesta, di "
+    "si es correcta y por qué, en pocas palabras."
 )
 
 _FALLBACK = (
-    "[tutor offline] No local LLM engine is available here (expected in the "
-    "browser). Install one with `pip install puremacro[local-llm]` and a small "
-    "model (e.g. via Ollama or MLX), or use the AI-exploration prompts below with "
-    "any AI assistant."
+    "[tutor sin conexión] No hay ningún motor de LLM local disponible en esta "
+    "instalación (el tutor es opcional). Puedes instalar uno con "
+    "`pip install puremacro[local-llm]` más un modelo pequeño (por ejemplo vía "
+    "Ollama o MLX), o bien usar las indicaciones de la sección «Explora con IA» "
+    "de esta lección con cualquier asistente de IA."
 )
+
+# Motivos frecuentes por los que el motor no arranca, en español y sin filtrar el
+# nombre crudo de la excepción de Python al alumno.
+_MOTIVOS = {
+    "ImportError": "faltan las dependencias del motor local",
+    "ModuleNotFoundError": "faltan las dependencias del motor local",
+    "FileNotFoundError": "no se encontró el modelo en disco",
+    "OSError": "no se pudo leer el modelo en disco",
+    "ConnectionError": "no se pudo contactar al servidor local (¿Ollama apagado?)",
+    "TimeoutError": "el motor local tardó demasiado en responder",
+}
 
 
 def tutor(question: str, *, context: str = "", model: str = "qwen2.5:3b-instruct",
@@ -32,9 +45,10 @@ def tutor(question: str, *, context: str = "", model: str = "qwen2.5:3b-instruct
         return _FALLBACK
     prompt = _SYSTEM + "\n\n"
     if context:
-        prompt += f"Lesson context:\n{context}\n\n"
-    prompt += f"Question: {question}"
+        prompt += f"Contexto de la lección:\n{context}\n\n"
+    prompt += f"Pregunta: {question}"
     try:
         return chat(model, prompt, engine=engine, max_tokens=512, temperature=0.2)
     except Exception as exc:  # graceful: any backend/availability error -> fallback
-        return f"{_FALLBACK}\n(engine note: {type(exc).__name__})"
+        motivo = _MOTIVOS.get(type(exc).__name__, "el motor local no está disponible")
+        return f"{_FALLBACK}\n(motivo: {motivo})"

@@ -3,18 +3,6 @@
 How to ship puremacro to real users. Pick **one release path** (§2), then follow
 its steps; §3 (GitHub Pages playground) and §4 (what only you can do) apply to all.
 
-## PyPI trusted publishing — RESOLVED (2026-07-22)
-
-Status: **working**. `puremacro 0.92.0` is live on production PyPI and the
-trusted publisher is verified: rerunning the originally-failed v0.92.0
-workflow after the owner registered the publisher completed the OIDC
-token exchange and failed only with the benign `400 File already exists`
-(0.92.0 was already published). Timeline for the archaeology-minded: the
-2026-07-20 tag push failed with `invalid-publisher` because the
-registration happened after it. Nothing to configure; the next release
-tag (`git tag v0.X.Y && git push --tags`) publishes cleanly. Reruns of
-already-published tags will fail with `File already exists` by design —
-that failure mode is informative, do not add `skip-existing`.
 ## 1. Current state (verified 2026-05-31)
 
 - **Remote:** `github.com/jalonso1979/uncertainty_examples` (public). Working "main"
@@ -109,7 +97,7 @@ The JupyterLite playground (`playground/`) is one build from live and now bundle
 The paper is prepared at `paper/paper.md` (+ `paper.bib`, `scorecard.png`). JOSS
 requires the software to be public and archived, so submit **after** a release path
 (§2) is live:
-1. Confirm the author **ORCID** in `paper/paper.md` (currently `0000-0002-5941-9928`).
+1. Fill the author **ORCID** in `paper/paper.md` (currently a `0000-…` placeholder).
 2. Tag a release and archive the repo to get a **Zenodo DOI** (Zenodo ↔ GitHub integration).
 3. Open a submission at https://joss.theoj.org/papers/new (repo URL + the Zenodo DOI).
 4. Regenerate the figure if the validation gallery changed: `python paper/make_scorecard_fig.py`.

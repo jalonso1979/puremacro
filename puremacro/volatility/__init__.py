@@ -11,6 +11,9 @@ Multivariate GARCH:
 Realised-volatility regressions:
     har_rv
 
+Mixed-frequency volatility (GARCH-MIDAS):
+    garch_midas, GarchMidasResult
+
 Range-based volatility (OHLC → variance):
     parkinson, garman_klass, rogers_satchell
 
@@ -22,11 +25,13 @@ from .multivariate import bekk_fit, ccc_fit
 from .har import har_rv
 from .range import parkinson, garman_klass, rogers_satchell
 from .diagnostics import arch_lm_test, ljung_box_squared
+from ..midas import garch_midas, GarchMidasResult
 
 __all__ = [
     "SigmaObject", "project_psd", "clean_correlation",
     "bekk_fit", "ccc_fit",
     "har_rv",
+    "garch_midas", "GarchMidasResult",
     "parkinson", "garman_klass", "rogers_satchell",
     "arch_lm_test", "ljung_box_squared",
 ]

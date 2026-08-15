@@ -74,13 +74,33 @@ async function main() {
     try {
         await pyodide.runPythonAsync(`
 import micropip
-await micropip.install("emfs:/tmp/${wheel_basename}")
+# deps=False is mandatory here: since 0.94.0 puremacro declares six base
+# dependencies, and one of them (pyarrow) has no Pyodide wheel, so a
+# dependency-resolving install can never succeed under Pyodide and would leave
+# this gate reporting wheel_installed=false. numpy / scipy / pandas /
+# matplotlib are already provided by the loadPackage() call above.
+await micropip.install("emfs:/tmp/${wheel_basename}", deps=False)
 import puremacro
 _ = puremacro.__version__  # touch the attribute to confirm import worked
         `);
         wheel_installed = true;
     } catch (e) {
         console.error("wheel install failed:", e.message);
+    }
+
+    // `requests` is the other base dependency skipped by deps=False. It is pure
+    // Python and does install under Pyodide, and puremacro.fetch.* / the
+    // narrative sources import it at module level. Best-effort: it needs
+    // network access, and a failure here must not flip wheel_installed.
+    if (wheel_installed) {
+        try {
+            await pyodide.runPythonAsync(`
+import micropip
+await micropip.install("requests")
+            `);
+        } catch (e) {
+            console.error("optional 'requests' install skipped:", e.message);
+        }
     }
 
     // Run the marked pytest subset.

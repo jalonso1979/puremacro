@@ -1,0 +1,6 @@
+[    0.2s] real-time panel: 51 states with any first-release quarters (51 with urate); 3881 state-quarters
+[    0.2s] common window: 2005-07-01 .. 2025-07-01, 3779 state-quarters (51 states)
+[    7.0s] own_h5: frozen +0.0275 | window-matched cv +0.0664 (p 0.02) | first-release rt +0.0607 (p 0.14)
+[    7.0s] own_h9: frozen +0.0245 | window-matched cv +0.0665 (p 0.08) | first-release rt +0.0679 (p 0.18)
+[    7.0s] loo_h12: frozen +0.0343 | window-matched cv +0.0415 (p 0.08) | first-release rt +0.0375 (p 0.00)
+[    7.4s] figure written

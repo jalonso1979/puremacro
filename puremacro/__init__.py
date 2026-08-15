@@ -1,8 +1,9 @@
 """puremacro — Pyodide-compatible empirical macro toolbox.
 
-See README.md for the iPad / juno.sh quickstart and module-by-module
-overview. Public API is curated in submodules; nothing is exported at
-the top level beyond the version string.
+See README.md for the install instructions (a local install is the
+supported target) and the module-by-module overview. Public API is
+curated in submodules; nothing is exported at the top level beyond the
+version string.
 """
-__version__ = "0.95.0"
+__version__ = "1.0.0"
 __all__ = ["__version__"]

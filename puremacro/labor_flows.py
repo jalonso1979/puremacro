@@ -51,8 +51,11 @@ class TransitionPanel:
 CPS_FLOW_SERIES: dict[str, str] = {
     # FRED IDs for CPS aggregate flow counts (in thousands, seasonally adjusted).
     # Origin-to-destination flow counts published monthly by BLS CPS.
-    # NN (Not-in-LF to Not-in-LF) is not published directly; it is computed
-    # as residual from stocks: N_t - NE_{t+1} - NU_{t+1}, then row-normalised.
+    # NN (Not-in-LF to Not-in-LF) is not published by the BLS, so it is NOT
+    # a key here (only 8 entries). transitions_from_cps_flows() builds it as
+    # the residual of the N row against the lagged N stock,
+    #     NN_t = N_{t-1} - NE_t - NU_t,
+    # and then row-normalises.
     "EE": "LNS17000000",  # employed -> employed
     "EU": "LNS17400000",  # employed -> unemployed
     "EN": "LNS17800000",  # employed -> not in labor force
@@ -81,25 +84,51 @@ def transitions_from_cps_flows(flows: pd.DataFrame, stocks: pd.DataFrame) -> Tra
     Parameters
     ----------
     flows : DataFrame
-        Index=monthly date, columns must include all 9 of EE,EU,EN,UE,UU,UN,NE,NU,NN
-        (flow counts in thousands).
+        Index=monthly date, columns must include the **8 published** CPS
+        flows — the keys of :data:`CPS_FLOW_SERIES`: EE, EU, EN, UE, UU,
+        UN, NE, NU (flow counts in thousands).
+
+        The ninth cell of the matrix, ``NN`` (not-in-labor-force to
+        not-in-labor-force), is **not published by the BLS**. If the
+        column is absent it is constructed here as the residual of the
+        N row against the lagged N stock,
+
+            NN_t = N_{t-1} − NE_t − NU_t,
+
+        which is exactly the construction documented on
+        :data:`CPS_FLOW_SERIES`; the row-normalisation below then leaves
+        the N row summing to 1 by construction. Passing your own ``NN``
+        column overrides the residual and is still accepted.
     stocks : DataFrame
         Index=monthly date, columns must include E, U, N (origin-state stocks
         in thousands at the start of the month, i.e. lagged once if the flow
         is published as during-the-month).
     """
-    required_flow = list(CPS_FLOW_SERIES.keys())
+    required_flow = list(CPS_FLOW_SERIES.keys())   # the 8 published flows
     required_stock = list(CPS_STOCK_SERIES.keys())
     missing_f = [c for c in required_flow if c not in flows.columns]
     missing_s = [c for c in required_stock if c not in stocks.columns]
     if missing_f or missing_s:
         raise ValueError(
             f"Missing columns: flows={missing_f}, stocks={missing_s}. "
-            f"Use fetch_cps_flow_series() to obtain CPS LNS17* and stock LNS15* series."
+            f"`flows` needs the 8 published CPS flow counts "
+            f"{sorted(CPS_FLOW_SERIES)} (FRED LNS17*) and `stocks` needs "
+            f"{sorted(CPS_STOCK_SERIES)} (FRED CE16OV / UNEMPLOY / "
+            f"LNS15000000). The BLS does not publish an N->N flow, so `NN` "
+            f"is optional: when absent it is built here as the residual "
+            f"stocks['N'].shift(1) - flows['NE'] - flows['NU']."
         )
 
     # Origin stocks lagged by one month so they correspond to start-of-month.
     s_lag = stocks.shift(1)
+
+    # NN is never published by the BLS: build it as the N-row residual so
+    # that indexing flows["NN"] below cannot raise a bare KeyError on the
+    # 8-column frame that CPS_FLOW_SERIES actually produces.
+    flows = flows.copy()
+    if "NN" not in flows.columns:
+        flows["NN"] = s_lag["N"] - flows["NE"] - flows["NU"]
+
     p = pd.DataFrame(index=flows.index)
     for origin, dest_letters in [
         ("E", ["E", "U", "N"]),

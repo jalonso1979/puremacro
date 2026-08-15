@@ -47,7 +47,10 @@ def qar(
     horizons : iterable of int, default (1, 4)
         Forecast horizons (in periods of ``y``).
     p : int, default 4
-        AR lag length.
+        AR lag length. The conditioning set for the row indexed by ``t`` is
+        ``y_t, y_{t-1}, …, y_{t-p+1}`` (the contemporaneous ``y_t`` counts
+        as the first of the ``p`` lags), so estimation starts at ``t = p``
+        and the effective sample has ``T − p − h`` rows.
     controls : (T, k) array-like, optional
         Extra regressors aligned with ``y``.
     n_boot : int, default 200
@@ -86,7 +89,21 @@ def qar(
             continue
         cols = [np.ones(T_eff)]
         for lag in range(1, p + 1):
-            cols.append(y[max_lag - lag: T - lag - h])
+            # Row i of the design corresponds to t = max_lag + i (its target
+            # is y_{t+h} = y[max_lag + h + i]). The documented conditioning
+            # set is y_t, y_{t-1}, …, y_{t-p+1}, so regressor number `lag`
+            # must be y_{t-lag+1} = y[max_lag + i - lag + 1] — hence the
+            # "+ 1" in both slice bounds.
+            #
+            # The previous slice, y[max_lag - lag : T - lag - h], started the
+            # block at y_{t-1} and so dropped the contemporaneous y_t that
+            # the docstring promises (and that, at h = 1, is the only lag a
+            # one-step forecast can actually use). It was also inconsistent
+            # with `x_last` below, which already stacks y[T-1], …, y[T-p] —
+            # i.e. the t = T-1 row under the docstring's convention, with the
+            # matching control Z[T-1] = z_{T-1}. Design and predictor now
+            # agree; `x_last` is unchanged.
+            cols.append(y[max_lag - lag + 1: T - lag - h + 1])
         if Z is not None:
             for j in range(Z.shape[1]):
                 cols.append(Z[max_lag: T - h, j])

@@ -108,3 +108,25 @@ def test_estimate_dsge_kalman_singular_returns_neg_inf_in_log_posterior():
         fixed_params={},
     )
     assert nlp(np.array([0.5])) == np.inf
+
+
+def test_estimate_dsge_hessian_overflow_falls_back_to_prior_stds(monkeypatch):
+    """OverflowError inside the numerical Hessian (seen on some platforms
+    when finite-differencing an exploding posterior) must not kill the
+    estimation — it falls back to diag(prior_stds**2) proposals."""
+    import puremacro.dsge.estimate as est_mod
+    from puremacro.dsge.estimate import estimate_dsge
+
+    def exploding_hessian(f, x, h=1e-4):
+        raise OverflowError("math range error (simulated scipy numdiff)")
+
+    monkeypatch.setattr(est_mod, "numerical_hessian", exploding_hessian)
+    data = _simulate_ar1(0.7, 0.5, T=200, seed=0)
+    with pytest.warns(UserWarning, match="OverflowError.*falling back"):
+        res = estimate_dsge(
+            data, observation_eq=_ar1_state_space, priors=_AR1_PRIORS,
+            observed_vars=["y"], initial_params={"rho": 0.5, "sigma": 0.4},
+            n_chains=1, n_draws=200, burn_in=50, seed=0,
+        )
+    assert res.draws.shape == (1, 200, 2)
+    assert np.isfinite(res.draws).all()

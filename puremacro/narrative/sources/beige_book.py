@@ -547,10 +547,13 @@ def _extract_pdf_text(pdf_bytes: bytes) -> str:
     """Extract concatenated text from all pages of a Beige Book PDF.
 
     Uses pdfplumber which preserves layout. Empty pages return empty strings.
-    Returns an empty string if pdfplumber is not installed.
+    Raises ImportError if pdfplumber is not installed.
     """
     if not _PDFPLUMBER_AVAILABLE:
-        return ""
+        raise ImportError(
+            "pdfplumber is required to extract Beige Book PDF text. "
+            "Install via `pip install puremacro[narrative]`."
+        )
     with _pdfplumber.open(_io.BytesIO(pdf_bytes)) as pdf:
         pages = [p.extract_text() or "" for p in pdf.pages]
     return "\n".join(pages).strip()
@@ -690,6 +693,15 @@ def _iter_fomc_historical(year: int, month: int, *,
 def _fomc_listing(year: int) -> list[tuple[int, int, str]]:
     """Scrape the FOMC historical index page for (year, month, pdf_url) triples.
 
+    Matches BOTH the modern ``…beige…`` filename (1983Q3 onward) and the
+    predecessor ``…redbook…`` filename (the "Current Economic Comment by
+    District" / Redbook, May 1970 through May 1983). The two documents are
+    the same object under two names --- a consolidated national report with
+    the twelve districts as internal sections --- and parse identically
+    through ``_parse_fomc_pdf`` (the "FIRST DISTRICT - BOSTON" ordinal
+    headers are unchanged across the naming flip). Year 1983 lists a mix of
+    both and is merged transparently.
+
     Returns an empty list if pdfplumber is not installed or the page is
     unreachable.
     """
@@ -703,8 +715,9 @@ def _fomc_listing(year: int) -> list[tuple[int, int, str]]:
     issues: list[tuple[int, int, str]] = []
     for a in soup.find_all("a", href=True):
         href = str(a["href"])
-        m = re.search(r"fomc(\d{4})(\d{2})\d{2}beige(\d{4})(\d{2})\d{2}\.pdf",
-                      href, re.IGNORECASE)
+        m = re.search(
+            r"fomc(\d{4})(\d{2})\d{2}(?:beige|redbook)(\d{4})(\d{2})\d{2}\.pdf",
+            href, re.IGNORECASE)
         if m:
             ry, rm = int(m.group(3)), int(m.group(4))
             if 1 <= rm <= 12:
@@ -1017,8 +1030,8 @@ def iter_beige_book(
     Parameters
     ----------
     since, until : ISO date strings. ``until=None`` means present.
-        Note: pre-1983 is not digitally available; ``since`` is clamped
-        to 1983-01-01.
+        Coverage begins May 1970 (the first Redbook, the Beige Book's
+        predecessor); requests earlier than that yield nothing.
     refetch : currently a no-op (kept for backwards-compat). To bypass
         the on-disk HTTP cache (live as of 0.60.0) set the env var
         ``PUREMACRO_HTTP_NO_CACHE=1``.
@@ -1041,9 +1054,11 @@ def iter_beige_book(
     since_dt = dt.date.fromisoformat(since)
     until_dt = dt.date.fromisoformat(until) if until else dt.date.today()
 
-    # Pre-1996: FOMC historical materials (1983-1995).
+    # Pre-1996: FOMC historical materials. The Redbook predecessor
+    # (May 1970 through May 1983) shares the index pages and the parser
+    # with the 1983Q3+ Beige Book, so the floor is 1970, not 1983.
     if since_dt.year < 1996:
-        for year in range(max(1983, since_dt.year), min(1996, until_dt.year + 1)):
+        for year in range(max(1970, since_dt.year), min(1996, until_dt.year + 1)):
             for year_, month, pdf_url in _fomc_listing(year):
                 release = _date(year_, month, 1)
                 if release < since_dt or release > until_dt:

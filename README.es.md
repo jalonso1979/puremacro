@@ -2,7 +2,7 @@
 
 # puremacro
 
-Una **caja de herramientas de macroeconomía empírica compatible con Pyodide**: utiliza exclusivamente numpy, scipy, pandas y matplotlib en tiempo de ejecución; funciona en iPad / juno.sh igual que en una estación de trabajo convencional.
+Una **caja de herramientas de macroeconomía empírica compatible con Pyodide**: el código de los estimadores corre sobre numpy + scipy + pandas + matplotlib puros, de modo que el núcleo numérico sigue siendo importable bajo Pyodide (iPad / juno.sh, en la medida de lo posible — véase «juno.sh / iPad» más abajo). El destino soportado es una **instalación local** en una estación de trabajo convencional.
 
 ## Contenido
 
@@ -54,6 +54,14 @@ Los conectores bloqueados por WAF / protección anti-bot (EUR-Lex, Parlamento Eu
 
 ## Instalación
 
+### Desde PyPI (usuarios)
+
+```bash
+pip install puremacro
+```
+
+Esto instala las **seis dependencias base** (numpy, scipy, pandas, matplotlib, requests, pyarrow) — todo lo que necesitan los estimadores, la capa `fetch` y las rutas de código en parquet. Los extras cubren únicamente las funciones opcionales que se listan más abajo.
+
 ### Local (desarrollo)
 
 Desde el directorio del paquete `puremacro/` (el que contiene este `README.md` y `pyproject.toml`):
@@ -78,13 +86,23 @@ Otros extras opcionales: `[backend]` (numba + Apple-Silicon mlx), `[cuda]` (NVID
 
 Para los conectores que requieren caché en disco bajo demanda y regulación por host, las variantes `safe_get_bytes_cached` y `safe_get_text_cached` aplican una caché indexada por SHA-256 en `~/.cache/puremacro/http/`. Defina `PUREMACRO_HTTP_NO_CACHE=1` para omitirla.
 
-### juno.sh / iPad
+### juno.sh / iPad (no soportado; en la medida de lo posible)
 
 Suba el directorio `puremacro/` a su espacio de trabajo en juno.sh y luego, en una celda de cuaderno:
 
 ```python
 %pip install ./puremacro
 ```
+
+**Advertencia desde que `pyarrow` es dependencia base:** ese comando resuelve el conjunto completo de dependencias y `pyarrow` no tiene rueda para Pyodide, así que bajo un núcleo Pyodide falla. Instale el núcleo de estimadores sin resolución de dependencias y añada a mano sólo lo que necesite:
+
+```python
+import micropip
+await micropip.install("puremacro", deps=False)
+await micropip.install(["numpy", "scipy", "pandas", "matplotlib", "requests"])
+```
+
+Las rutas de código en parquet (`cache`, `fetch.labor*`, `shock_atlas`, `build_panel`) quedan indisponibles en el navegador. El navegador **no** es un destino de despliegue soportado: el material docente presupone una instalación local.
 
 ### Ejecutar las funciones LLM de forma gratuita (modelos locales)
 
@@ -108,11 +126,18 @@ idx = llm_prob_kernel(records, provider=LocalProvider("qwen2.5-3b-instruct"),
                       category="economic uncertainty")
 ```
 
-`engine="auto"` selecciona el mejor motor instalado (GPU de Apple via MLX → llama.cpp → un servidor Ollama en ejecución; para LM Studio / vLLM / cualquier servidor compatible con OpenAI, pase `engine="openai"` con `base_url=`). Modelos disponibles: `qwen2.5-3b-instruct` (por defecto), `gemma2-2b` (Google), `llama3.2-3b` (Meta), `phi3.5` (Microsoft), o cualquier identificador de modelo del motor. Véanse `puremacro/examples/narrative_local_llm.py` y el cuaderno `local_llm_uncertainty`. (La inferencia local es solo para escritorio — no se ejecuta dentro del entorno de juego en el navegador.)
+`engine="auto"` selecciona el mejor motor instalado (GPU de Apple via MLX → llama.cpp → un servidor Ollama en ejecución; para LM Studio / vLLM / cualquier servidor compatible con OpenAI, pase `engine="openai"` con `base_url=`). Modelos disponibles: `qwen2.5-3b-instruct` (por defecto), `gemma2-2b` (Google), `llama3.2-3b` (Meta), `phi3.5` (Microsoft), o cualquier identificador de modelo del motor. Véanse `puremacro/examples/narrative_local_llm.py` y el cuaderno `local_llm_uncertainty`. (La inferencia local es solo para escritorio: requiere una instalación local de Python y no funciona bajo Pyodide.)
 
 ## Compatibilidad con Pyodide
 
-La promesa de compatibilidad en tiempo de ejecución es: únicamente `numpy + scipy + pandas + matplotlib` serán importados por el código que se distribuye en la rueda. `statsmodels`, `linearmodels`, `arch`, `pypdf` y los captadores de red son todos exclusivos del entorno de desarrollo, están limitados a extras o se importan de forma diferida tras una verificación.
+La promesa de compatibilidad en tiempo de ejecución es: únicamente `numpy + scipy + pandas + matplotlib` serán importados por el código de los *estimadores* que se distribuye en la rueda. `statsmodels`, `linearmodels`, `arch` y `pypdf` son todos exclusivos del entorno de desarrollo, están limitados a extras o se importan de forma diferida tras una verificación.
+
+Otros dos paquetes están declarados como dependencias base en `pyproject.toml` —**seis en total**— porque la rueda no puede funcionar sin ellos, aunque ninguno toque la ruta de los estimadores:
+
+- `requests` — importado a nivel de módulo por `puremacro.fetch.*` y por las fuentes narrativas. Python puro; se instala bajo Pyodide.
+- `pyarrow` — el motor parquet que necesita `pandas.read_parquet` (`cache`, `fetch.labor*`, `shock_atlas`, `build_panel` y los conjuntos de datos en parquet que usa el material docente). pandas lo importa de forma diferida, así que nunca aparece en `sys.modules` en un barrido de importaciones. No tiene rueda para Pyodide: en el navegador use `micropip.install("puremacro", deps=False)`.
+
+Véase `ARCHITECTURE.md` → «contrato de compatibilidad con Pyodide» para la justificación completa.
 
 La prueba de regresión correspondiente es `tests/test_pyodide_compat.py` — recorre cada submódulo distribuible y verifica que ningún módulo prohibido figure en `sys.modules`. Si agrega una nueva dependencia opcional, siga el patrón de importación diferida existente (véanse `narrative.scoring.llm` o `fetch._seasonal._x13_arima_analysis` como ejemplos canónicos).
 
@@ -156,6 +181,25 @@ from puremacro import credentials
 credentials.status()                  # see what's configured (no values leaked)
 # credentials.require("fred")         # raises with a signup URL if the key is missing
 ```
+
+## Piedra de Rosetta — Guía de equivalencias para macroeconomistas
+
+Si proviene de Stata, MATLAB/Dynare o statsmodels:
+
+| Tarea / Estimador | Stata | MATLAB / Dynare | statsmodels / linearmodels | **`puremacro`** |
+|---|---|---|---|---|
+| **SVAR de Cholesky** | `var y1 y2, lags(1/4)` + `irf create` | `varm` / VAR Toolbox | `VAR(Y).fit(4).irf(20)` | `var.identify.cholesky_svar(Y, p=4, horizon=20)` |
+| **SVAR de Blanchard–Quah** | `svar y1 y2, lreq(...)` | VAR Toolbox `bq_svar` | `SVAR(..., svar_type='B')` | `var.identify.bq_svar(Y, p=4, horizon=20)` |
+| **Restricciones de signo** | Plugin de usuario | Rubio-Ramírez / VAR Toolbox | — | `var.identify.sign_restrictions(Y, signs, p=4)` |
+| **SVAR con Proxy / IV externo** | `svariv` | Mertens & Ravn SVAR-IV | — | `var.identify.proxy_svar(Y, p=4, instrument_series=z)` |
+| **Proyecciones locales (HAC)** | `jorda` / MCO manual | Código de Jordà (2005) | `OLS(y_h, X).fit(cov_type='HAC')` | `lp.jorda.lp_hac(df, y="y", x="shock", horizons=range(21))` |
+| **PL de panel (Driscoll–Kraay)** | `xtscc` | Panel LP toolbox | `PanelOLS(..., cov_type='driscoll-kraay')` | `regress.lp.lp_panel(df, y="y", shock="z", se="driscoll_kraay")` |
+| **GMM de panel dinámico** | `xtabond2 y L.y, gmm(y) two robust` | Arellano–Bond MATLAB | — | `dynpanel.ab_gmm(y, panel_id, time_id, two_step=True, windmeijer=True)` |
+| **DiD escalonado** | `csdid y, ivar(id) time(t) gvar(g)` | — | — | `did.callaway_santanna(df, unit="id", time="t", outcome="y", treat_time="g")` |
+| **Iteración de función de valor** | — | VFIToolkit `ValueFnIter_Case1` | — | `vfi.VFIProblem(a_grid, z_grid, P_z, return_fn, beta).solve()` |
+| **DSGE lineal (QZ / BK)** | — | Dynare `stoch_simul` / Klein `solab` | — | `dsge.klein.klein_solve(A, B, C, n_pre=...)` |
+| **Raíz unitaria GLS (DF-GLS)** | `dfgls y, maxlag(4)` | Código ERS (1996) | `adfuller` | `tests.unit_root.dfgls_test(y, regression="ct")` |
+| **Ajuste estacional** | `x13 y` | Wrapper X-13 | `STL` / `x13` | `sa.stl.stl_sa(y)` / `sa.x11.x11_sa(y)` |
 
 Las replicaciones de extremo a extremo de artículos canónicos se encuentran en `puremacro/examples/` — Bloom 2009 (`bloom2009.py`), SVAR narrativo de Mertens-Ravn (`svariv_mertens_ravn.py`), narrativa monetaria de Romer-Romer (`romer_romer_*.py`) y aproximadamente 60 más. La mayoría (como el ejemplo de Uhlig anterior) son completamente sintéticos y no requieren datos ni claves; algunos leen datos incluidos en el paquete o descargados en línea.
 

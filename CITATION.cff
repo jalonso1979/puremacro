@@ -11,8 +11,8 @@ type: software
 authors:
   - family-names: "Alonso Ortiz"
     given-names: "Jorge"
-version: "0.92.0"
-date-released: "2026-07-18"
+version: "1.0.0"
+date-released: "2026-08-15"
 license: MIT
 repository-code: "https://github.com/jalonso1979/puremacro"
 keywords:

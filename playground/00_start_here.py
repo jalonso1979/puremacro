@@ -30,8 +30,11 @@ print("puremacro", puremacro.__version__, "— ready in the browser")
 #
 # **Empirical econometrics:** `06_svar_identification` · `07_local_projections`
 # · `08_garch_volatility` · `09_growth_at_risk` · `10_staggered_did` ·
-# `14_tax_multiplier_three_ways` — the same tax multiplier via proxy-SVAR,
-# LP-IV and narrative event study, on frozen US fiscal data
+# `14_tax_multiplier_three_ways` · `24_synthetic_control` · `25_frequency_connectedness`
+# · `26_cycles_and_bandpass` — Baxter-King, Christiano-Fitzgerald & Beveridge-Nelson cycle filtering
+# · `27_garch_midas_macro_risk` — GARCH-MIDAS two-component mixed-frequency volatility
+# · `28_weak_iv_anderson_rubin` — Weak-IV robust Anderson-Rubin confidence sets for LP-IV
+# · `29_synthetic_did` — Arkhangelsky et al. (2021) Synthetic DiD evaluation
 #
 # **Text-as-data:** `11_narrative_uncertainty` — build an EPU/MPU uncertainty
 # index from a text corpus with no API key and no language model — and

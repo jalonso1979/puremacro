@@ -1,10 +1,15 @@
 """Pyodide-compatibility regression test.
 
-`puremacro`'s pitch is "pure-numpy + scipy + pandas + matplotlib, runs
-on the iPad via Pyodide / juno.sh." That promise is **load-bearing** —
-if a contributor adds a top-level ``import statsmodels`` (or
-``linearmodels`` / ``arch``) the package silently stops working on the
-intended deployment target.
+`puremacro`'s numerical core is "pure numpy + scipy + pandas +
+matplotlib", which is what keeps it importable under Pyodide (iPad /
+juno.sh). That promise is **load-bearing** — if a contributor adds a
+top-level ``import statsmodels`` (or ``linearmodels`` / ``arch``) the
+package silently stops working on the intended deployment target.
+
+Note the distinction the last test in this file makes explicit: the
+*import* contract (four packages) is narrower than the set of *declared*
+runtime dependencies (six — ``requests`` and ``pyarrow`` are also
+required to install, and are documented in ``ARCHITECTURE.md``).
 
 This test imports every shippable submodule and asserts none of the
 dev-only optional dependencies leaked into ``sys.modules``. The
@@ -26,6 +31,7 @@ from __future__ import annotations
 import importlib
 import json
 import pkgutil
+import re
 import subprocess
 import sys
 
@@ -182,9 +188,60 @@ def test_shippable_modules_import_with_forbidden_deps_absent():
     )
 
 
+# The four packages a shippable estimator module may import at top level. This
+# is the *import* contract the two sweeps above enforce; it is deliberately
+# narrower than the set of declared runtime dependencies (see below).
+_PYODIDE_IMPORT_CORE = frozenset({"numpy", "scipy", "pandas", "matplotlib"})
+
+
+def _dep_name(spec: str) -> str:
+    """'numpy   >= 1.26' / 'numpy>=1.26' -> 'numpy'."""
+    return re.split(r"[<>=!~;\[\s]", spec.strip(), maxsplit=1)[0].strip()
+
+
+def _documented_runtime_deps() -> list[str]:
+    """Parse the fenced dependency block under ARCHITECTURE.md's
+    '### Allowed runtime dependencies' heading."""
+    from pathlib import Path
+
+    arch = Path(__file__).resolve().parent.parent / "ARCHITECTURE.md"
+    text = arch.read_text(encoding="utf-8")
+    m = re.search(
+        r"^### Allowed runtime dependencies\s*$(.*?)^```\s*$(.*?)^```\s*$",
+        text,
+        re.MULTILINE | re.DOTALL,
+    )
+    assert m, (
+        "ARCHITECTURE.md no longer has a fenced code block under "
+        "'### Allowed runtime dependencies'. That block is the single source of "
+        "truth this test compares pyproject.toml against — restore it (or update "
+        "this parser deliberately), do not delete the contract."
+    )
+    return [_dep_name(ln) for ln in m.group(2).splitlines() if ln.strip()]
+
+
 def test_pyproject_runtime_deps_match_documentation():
-    """The ARCHITECTURE.md Pyodide section names exactly four runtime
-    deps: numpy, scipy, pandas, matplotlib. The pyproject must agree."""
+    """`pyproject.toml [project.dependencies]` must match, exactly, the list
+    documented in ARCHITECTURE.md -> 'Allowed runtime dependencies'.
+
+    The package advertises a runtime contract; the contract is only worth
+    something if the metadata users actually install agrees with the prose they
+    actually read. Rather than hard-coding the expected set here (which silently
+    goes stale the moment the docs change), we *parse* the documented block, so
+    widening the contract requires editing the documentation — the point of the
+    guard.
+
+    Two separate invariants:
+
+    1. The declared set equals the documented set (no silent drift either way).
+    2. The Pyodide import core (numpy/scipy/pandas/matplotlib) is still declared.
+       Extra declared deps beyond it are allowed — `requests` (imported at module
+       level by ``fetch/*`` by design) and `pyarrow` (pandas' parquet engine,
+       imported lazily by pandas) are documented cases. What they may NOT do is
+       enter ``sys.modules`` through an estimator import chain; that is what the
+       two sweeps above enforce, and it is the invariant that actually protects
+       the browser target.
+    """
     import tomllib
     from pathlib import Path
 
@@ -192,11 +249,21 @@ def test_pyproject_runtime_deps_match_documentation():
     pyproject = here.parent.parent / "pyproject.toml"
     with pyproject.open("rb") as fh:
         cfg = tomllib.load(fh)
-    deps = cfg["project"]["dependencies"]
-    names = {d.split(">=")[0].split("==")[0].split("<")[0].strip() for d in deps}
-    assert names == {"numpy", "scipy", "pandas", "matplotlib"}, (
-        f"Runtime dependency set drifted from documented Pyodide "
-        f"contract. Got {names}; expected {{numpy, scipy, pandas, "
-        f"matplotlib}}. Update ARCHITECTURE.md *and* pyproject.toml "
-        "together if this is intentional."
+    declared = {_dep_name(d) for d in cfg["project"]["dependencies"]}
+    documented = set(_documented_runtime_deps())
+
+    assert declared == documented, (
+        f"Runtime dependency set drifted from the documented contract.\n"
+        f"  pyproject.toml declares : {sorted(declared)}\n"
+        f"  ARCHITECTURE.md documents: {sorted(documented)}\n"
+        f"  only in pyproject       : {sorted(declared - documented)}\n"
+        f"  only in ARCHITECTURE.md : {sorted(documented - declared)}\n"
+        "Update ARCHITECTURE.md ('Allowed runtime dependencies'), README.md "
+        "('Pyodide compatibility') and pyproject.toml in the SAME commit."
+    )
+
+    missing_core = _PYODIDE_IMPORT_CORE - declared
+    assert not missing_core, (
+        f"The Pyodide import core is no longer fully declared: {sorted(missing_core)} "
+        "missing from [project.dependencies]. These four are not optional."
     )

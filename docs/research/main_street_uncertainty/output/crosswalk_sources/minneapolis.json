@@ -1,0 +1,10 @@
+{
+  "district": "Minneapolis",
+  "source_urls": [
+    "https://www.minneapolisfed.org/about-us/the-ninth-district",
+    "https://www.federalreserve.gov/boarddocs/RptCongress/annual09/maps/district9.htm"
+  ],
+  "notes": "Transcribed verbatim from minneapolisfed.org 'The Ninth District' footnote lists, fetched 2026-07-21. WI=26 (matches page's own count and Board annual report); MI=15 (full geographic Upper Peninsula, no exclusions). Complements: WI remainder -> Chicago, MI remainder -> Chicago.",
+  "WI": ["Ashland", "Barron", "Bayfield", "Buffalo", "Burnett", "Chippewa", "Douglas", "Dunn", "Eau Claire", "Florence", "Forest", "Iron", "La Crosse", "Lincoln", "Oneida", "Pepin", "Pierce", "Polk", "Price", "Rusk", "Sawyer", "St. Croix", "Taylor", "Trempealeau", "Vilas", "Washburn"],
+  "MI": ["Alger", "Baraga", "Chippewa", "Delta", "Dickinson", "Gogebic", "Houghton", "Iron", "Keweenaw", "Luce", "Mackinac", "Marquette", "Menominee", "Ontonagon", "Schoolcraft"]
+}

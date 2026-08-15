@@ -24,7 +24,11 @@ from pathlib import Path
 from typing import Iterator, Literal
 
 import pandas as pd
-import pdfplumber  # type: ignore[import-untyped]
+
+try:
+    import pdfplumber  # type: ignore[import-untyped]
+except ImportError:
+    pdfplumber = None  # type: ignore[assignment]
 
 from ._http import safe_get_bytes
 
@@ -157,6 +161,11 @@ def _extract_pdf_rows(raw: bytes) -> list[list[str]]:
     tables' rows are appended as body if their column-count matches; a
     repeated header row is skipped.
     """
+    if pdfplumber is None:
+        raise ImportError(
+            "pdfplumber is required to parse PDF WARN filings. "
+            "Install via `pip install puremacro[narrative]`."
+        )
     rows: list[list[str]] = []
     header: list[str] | None = None
     with pdfplumber.open(BytesIO(raw)) as pdf:

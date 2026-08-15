@@ -279,4 +279,266 @@ def beta_midas(
     )
 
 
-__all__ = ["u_midas", "beta_midas", "UMidasResult", "BetaMidasResult"]
+@dataclass(frozen=True)
+class GarchMidasResult:
+    """Result of :func:`garch_midas` (Engle, Ghysels & Sohn 2013).
+
+    Attributes
+    ----------
+    mu : float
+        Estimated unconditional mean return.
+    m : float
+        Long-run log-tau intercept.
+    theta : float
+        MIDAS slope parameter on the low-frequency driver.
+    w2 : float
+        Beta polynomial decay parameter (with w1=1.0 fixed).
+    alpha : float
+        Short-run ARCH parameter in ``g_{i,t}``.
+    beta : float
+        Short-run GARCH parameter in ``g_{i,t}``.
+    weights : np.ndarray
+        Beta polynomial weights across the L low-frequency lags, sum to 1.
+    tau : pd.Series | np.ndarray
+        Low-frequency long-run variance component ``tau_t`` (expanded to HF length).
+    g : pd.Series | np.ndarray
+        High-frequency short-run variance component ``g_{i,t}``.
+    sigma : pd.Series | np.ndarray
+        Total conditional standard deviation ``sqrt(tau * g)``.
+    loglik : float
+        Maximized Gaussian log-likelihood.
+    converged : bool
+        Whether optimizer converged.
+    n_obs : int
+        Number of high-frequency observations.
+    n_low : int
+        Number of low-frequency periods.
+    """
+
+    mu: float
+    m: float
+    theta: float
+    w2: float
+    alpha: float
+    beta: float
+    weights: np.ndarray
+    tau: pd.Series | np.ndarray
+    g: pd.Series | np.ndarray
+    sigma: pd.Series | np.ndarray
+    loglik: float
+    converged: bool
+    n_obs: int
+    n_low: int
+
+    def summary(self) -> str:
+        return (
+            f"GARCH-MIDAS (Engle-Ghysels-Sohn 2013)\n"
+            f"  mu (mean)         : {self.mu:+.4f}\n"
+            f"  m (log-tau const) : {self.m:+.4f}\n"
+            f"  theta (macro)     : {self.theta:+.4f}\n"
+            f"  w2 (decay)        : {self.w2:.3f}\n"
+            f"  alpha (ARCH)      : {self.alpha:.4f}\n"
+            f"  beta (GARCH)      : {self.beta:.4f}\n"
+            f"  persistence       : {self.alpha + self.beta:.4f}\n"
+            f"  log-likelihood    : {self.loglik:.2f}\n"
+            f"  converged         : {self.converged}\n"
+            f"  n_obs (HF)        : {self.n_obs}\n"
+        )
+
+
+def _beta_weights_decay(L: int, w2: float) -> np.ndarray:
+    """One-parameter Beta polynomial weights with w1=1.0 fixed (monotonic decay)."""
+    j = np.arange(1, L + 1)
+    raw = (1.0 - j / (L + 1.0)) ** (w2 - 1.0)
+    s = np.sum(raw)
+    return raw / s if s > 0 else np.full(L, 1.0 / L)
+
+
+def garch_midas(
+    returns_hf: np.ndarray | pd.Series,
+    x_lf: np.ndarray | pd.Series | None = None,
+    K: int = 22,
+    L: int = 12,
+    *,
+    w2_init: float = 3.0,
+) -> GarchMidasResult:
+    """Fit GARCH-MIDAS model for mixed-frequency volatility (Engle, Ghysels & Sohn 2013).
+
+    Decomposes conditional variance into a short-run daily GARCH component ``g_{i,t}``
+    and a low-frequency macroeconomic/realized volatility trend ``tau_t``:
+    ``r_{i,t} = mu + sqrt(tau_t * g_{i,t}) * eps_{i,t}``
+    where ``log(tau_t) = m + theta * sum_{l=1}^L w(l; w2) * X_{t-l}``.
+
+    Parameters
+    ----------
+    returns_hf : np.ndarray or pd.Series
+        High-frequency (e.g. daily) return series.
+    x_lf : np.ndarray or pd.Series, optional
+        Low-frequency (e.g. monthly/quarterly) macro variable or driver.
+        If None, uses low-frequency realized volatility (sum of squared returns per period).
+    K : int, default 22
+        Sub-periods per low-frequency period (e.g. 22 trading days per month).
+    L : int, default 12
+        Number of low-frequency lags included in the MIDAS polynomial.
+    w2_init : float, default 3.0
+        Initial value for the Beta polynomial decay parameter (>= 1.0).
+
+    Returns
+    -------
+    GarchMidasResult
+        Frozen dataclass with parameters, filtered components (tau, g, sigma),
+        log-likelihood, and convergence status.
+
+    References
+    ----------
+    Engle, R.F., Ghysels, E., and Sohn, B. (2013). Stock Market Volatility and
+        Macroeconomic Fundamentals. The Review of Economics and Statistics 95(3), 776-798.
+    """
+    if isinstance(returns_hf, pd.Series):
+        hf_idx = returns_hf.index
+        r_arr = returns_hf.to_numpy(dtype=float)
+    else:
+        hf_idx = None
+        r_arr = np.asarray(returns_hf, dtype=float).ravel()
+
+    N = len(r_arr)
+    T = N // K
+    if T <= L:
+        raise ValueError(
+            f"GARCH-MIDAS requires T > L low-frequency periods (got T={T}, L={L}; N={N}, K={K})."
+        )
+
+    # Trim to exact multiple of K
+    N_usable = T * K
+    r_arr = r_arr[:N_usable]
+    if hf_idx is not None:
+        hf_idx = hf_idx[:N_usable]
+
+    if x_lf is None:
+        reshaped = r_arr.reshape(T, K)
+        x_arr = np.sum(reshaped ** 2, axis=1)
+    else:
+        if isinstance(x_lf, pd.Series):
+            x_arr = x_lf.to_numpy(dtype=float)
+        else:
+            x_arr = np.asarray(x_lf, dtype=float).ravel()
+        if len(x_arr) < T:
+            raise ValueError(f"x_lf length ({len(x_arr)}) must be >= T ({T}).")
+        x_arr = x_arr[:T]
+
+    mu_init = float(np.mean(r_arr))
+    var_init = float(np.var(r_arr))
+    m_init = float(np.log(max(var_init, 1e-6)))
+
+    x0 = [mu_init, m_init, 0.0, float(w2_init), 0.05, 0.90]
+
+    def _neg_loglik(params):
+        mu, m, theta, w2, alpha, beta = params
+        if alpha <= 0 or beta < 0 or alpha + beta >= 0.999 or w2 < 1.0:
+            return 1e10
+
+        weights = _beta_weights_decay(L, w2)
+        tau = np.empty(T)
+        for t in range(L, T):
+            window = x_arr[t - L : t][::-1]
+            tau[t] = np.exp(m + theta * np.dot(weights, window))
+
+        ll = 0.0
+        g_prev = 1.0
+        r_prev = r_arr[L * K - 1]
+        tau_prev = tau[L]
+
+        for t in range(L, T):
+            tau_t = tau[t]
+            for i in range(K):
+                idx = t * K + i
+                r_curr = r_arr[idx]
+                eps_prev2 = (r_prev - mu) ** 2 / tau_prev
+                g_curr = (1.0 - alpha - beta) + alpha * eps_prev2 + beta * g_prev
+                g_curr = max(g_curr, 1e-8)
+
+                var_curr = tau_t * g_curr
+                ll += 0.5 * (np.log(2 * np.pi) + np.log(var_curr) + (r_curr - mu) ** 2 / var_curr)
+
+                g_prev = g_curr
+                r_prev = r_curr
+                tau_prev = tau_t
+
+        return float(ll)
+
+    bounds = [
+        (None, None),
+        (None, None),
+        (None, None),
+        (1.0, 50.0),
+        (1e-6, 0.5),
+        (1e-6, 0.999),
+    ]
+
+    opt = minimize(_neg_loglik, x0, bounds=bounds, method="L-BFGS-B")
+    mu, m, theta, w2, alpha, beta = opt.x
+    weights = _beta_weights_decay(L, w2)
+
+    tau_full = np.empty(T)
+    for t in range(min(L, T)):
+        tau_full[t] = np.exp(m)
+    for t in range(L, T):
+        window = x_arr[t - L : t][::-1]
+        tau_full[t] = np.exp(m + theta * np.dot(weights, window))
+
+    g_full = np.empty(N_usable)
+    g_prev = 1.0
+    r_prev = r_arr[0]
+    tau_prev = tau_full[0]
+
+    for t in range(T):
+        tau_t = tau_full[t]
+        for i in range(K):
+            idx = t * K + i
+            r_curr = r_arr[idx]
+            eps_prev2 = (r_prev - mu) ** 2 / tau_prev
+            g_curr = (1.0 - alpha - beta) + alpha * eps_prev2 + beta * g_prev
+            g_curr = max(g_curr, 1e-8)
+            g_full[idx] = g_curr
+            g_prev = g_curr
+            r_prev = r_curr
+            tau_prev = tau_t
+
+    tau_hf = np.repeat(tau_full, K)
+    sigma = np.sqrt(tau_hf * g_full)
+
+    if hf_idx is not None:
+        tau_out = pd.Series(tau_hf, index=hf_idx)
+        g_out = pd.Series(g_full, index=hf_idx)
+        sigma_out = pd.Series(sigma, index=hf_idx)
+    else:
+        tau_out = tau_hf
+        g_out = g_full
+        sigma_out = sigma
+
+    return GarchMidasResult(
+        mu=float(mu),
+        m=float(m),
+        theta=float(theta),
+        w2=float(w2),
+        alpha=float(alpha),
+        beta=float(beta),
+        weights=weights,
+        tau=tau_out,
+        g=g_out,
+        sigma=sigma_out,
+        loglik=float(-opt.fun),
+        converged=bool(opt.success),
+        n_obs=N_usable,
+        n_low=T,
+    )
+
+
+__all__ = [
+    "u_midas",
+    "beta_midas",
+    "garch_midas",
+    "UMidasResult",
+    "BetaMidasResult",
+    "GarchMidasResult",
+]

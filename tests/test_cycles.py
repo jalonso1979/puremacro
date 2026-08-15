@@ -82,3 +82,72 @@ def test_accepts_pandas_series():
     assert cycle.shape == (60,)
     assert trend.shape == (60,)
     np.testing.assert_allclose(cycle[11:], 0.0, atol=1e-9)
+
+
+def test_baxter_king_filter_properties():
+    from puremacro.cycles import baxter_king_filter
+
+    rng = np.random.default_rng(42)
+    T = 100
+    K = 12
+    y = np.cumsum(rng.standard_normal(T))
+    cycle, trend = baxter_king_filter(y, low=6, high=32, K=K)
+
+    assert cycle.shape == (T,)
+    assert trend.shape == (T,)
+    assert np.all(np.isnan(cycle[:K]))
+    assert np.all(np.isnan(cycle[T - K :]))
+    valid = ~np.isnan(cycle)
+    assert np.sum(valid) == T - 2 * K
+    np.testing.assert_allclose(cycle[valid] + trend[valid], y[valid], atol=1e-10)
+
+
+def test_christiano_fitzgerald_filter_properties():
+    from puremacro.cycles import christiano_fitzgerald_filter
+
+    rng = np.random.default_rng(101)
+    T = 80
+    y = np.cumsum(rng.standard_normal(T)) + 2.0 * np.arange(T)
+    cycle, trend = christiano_fitzgerald_filter(y, low=6, high=32, drift=True)
+
+    assert cycle.shape == (T,)
+    assert trend.shape == (T,)
+    assert np.all(np.isfinite(cycle))
+    assert np.all(np.isfinite(trend))
+    np.testing.assert_allclose(cycle + trend, y, atol=1e-10)
+
+
+def test_beveridge_nelson_filter_properties():
+    from puremacro.cycles import beveridge_nelson_filter
+
+    rng = np.random.default_rng(99)
+    T = 120
+    p = 4
+    # Stationary AR(1) in first differences
+    e = rng.normal(0, 1, T)
+    dy = np.empty(T)
+    dy[0] = 0.5
+    for t in range(1, T):
+        dy[t] = 0.4 * dy[t - 1] + e[t]
+    y = np.cumsum(dy)
+
+    cycle, trend = beveridge_nelson_filter(y, p=p)
+    assert cycle.shape == (T,)
+    assert trend.shape == (T,)
+    valid = ~np.isnan(cycle)
+    assert np.sum(valid) == T - p
+    np.testing.assert_allclose(cycle[valid] + trend[valid], y[valid], atol=1e-10)
+
+
+def test_filter_errors():
+    from puremacro.cycles import baxter_king_filter, christiano_fitzgerald_filter, beveridge_nelson_filter
+
+    y_short = np.arange(10, dtype=float)
+    with pytest.raises(ValueError, match="too short"):
+        baxter_king_filter(y_short, K=12)
+    with pytest.raises(ValueError, match="require 1 < low < high"):
+        baxter_king_filter(np.ones(50), low=32, high=6)
+    with pytest.raises(ValueError, match="too short"):
+        christiano_fitzgerald_filter(np.ones(2))
+    with pytest.raises(ValueError, match="too short"):
+        beveridge_nelson_filter(np.ones(5), p=4)

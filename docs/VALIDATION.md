@@ -46,20 +46,21 @@ Tolerance tiers: `EXACT` (rtol 1e-10) · `TIGHT` (1e-6) · `NUMERIC` (1e-2) ·
 
 ## Coverage
 
-**62 cases across 11 subsystems — all passing.** By mechanism: internal 29,
-analytical 16, package 11, scipy 5, published 1. By tier: tight 26, exact 15,
-numeric 11, qualitative 7, coarse 3.
+**73 cases across 13 subsystems — all passing.** By mechanism: internal 34,
+analytical 21, package 11, scipy 6, published 1.
 
 | Subsystem | Cases | Reference(s) |
 |---|---|---|
 | `var` | 3 | Cholesky IRF vs statsmodels `orth_irfs`; FEVD-sums-to-1 and stability ⇔ companion spectral radius < 1 (identities) |
 | `lp` | 5 | Jordà LP coefficients/HAC SE vs statsmodels OLS-HAC; LP-IV vs linearmodels `IV2SLS`; two-way FE vs `PanelOLS`; IV-reduces-to-OLS identity |
-| `garch` | 6 | GARCH(1,1) params/vols vs `arch`; simulate-then-recover; stationarity identities |
-| `inference` | 7 | Newey–West / OLS-HAC SE vs statsmodels HAC; Stock–Yogo critical-value table (published); sup-t plug-in critical value vs its i.i.d. closed form; analytical + internal anchors |
+| `garch` | 7 | GARCH(1,1) params/vols vs `arch`; simulate-then-recover; GARCH-MIDAS variance decomposition identity |
+| `inference` | 8 | Newey–West / OLS-HAC SE vs statsmodels HAC; Stock–Yogo critical-value table (published); sup-t plug-in critical value vs its i.i.d. closed form; sup-t monotonicity over pointwise critical values |
 | `state_space` | 6 | Kalman filter/smoother states + log-likelihood vs statsmodels state space; smoother-variance identities |
-| `dynpanel` | 6 | Arellano–Bond / Blundell–Bond GMM recover a known ρ on a simulated panel; exact-identification J = 0 |
+| `dynpanel` | 7 | Arellano–Bond / Blundell–Bond GMM recover known ρ; exact-identification J = 0; Windmeijer finite-sample variance inflation |
+| `did` | 4 | Callaway–Sant'Anna recovers 2x2 DiD analytically; Sun–Abraham equals Callaway–Sant'Anna on 2x2; Borusyak–Jaravel–Spiess imputation recovers 2x2; Synthetic DiD recovers treatment effect |
+| `unit_root` | 3 | ERS GLS detrending recovers deterministic trend & constant mean analytically; Ng–Perron MZt = MZa · MSB cross-statistic identity |
 | `spectral` | 6 | Welch PSD / cross-spectrum / coherence vs `scipy.signal`; band-power partition-of-unity; coherence ∈ [0,1] |
-| `forecast` | 5 | Gaussian CRPS closed form (Gneiting–Raftery); fair-ensemble convergence; PIT calibration; Diebold–Mariano sign/tie |
+| `forecast` | 6 | Gaussian CRPS closed form (Gneiting–Raftery); fair-ensemble convergence; PIT calibration; Diebold–Mariano sign/tie; MCS retention |
 | `vfi` | 5 | Tauchen/Rouwenhorst reproduce AR(1) moments; Brock–Mirman closed-form policy; Markov stationary vs scipy left eigenvector; EGM = VFI |
 | `dsge` | 6 | Klein = gensys on a known model; closed-form forward-looking solution; Kalman log-likelihood vs the AR(1) analytical likelihood |
 | `narrative` | 7 | Known-value lexicon scoring on crafted text; index monotonicity / standardization identities |
@@ -69,6 +70,34 @@ in the `citation` column of `scorecard()`. Key references include Lütkepohl (20
 Newey & West (1987), Stock & Yogo (2005), Gneiting & Raftery (2007), Diebold &
 Mariano (1995), Brock & Mirman (1972), Rouwenhorst (1995), Tauchen (1986), Engle
 (2002), Arellano & Bond (1991), and Blundell & Bond (1998).
+
+## Native X-11/ARIMA vs the real X-13ARIMA-SEATS binary
+
+`puremacro.sa.x11` (native, pure-Python, Pyodide-safe) is validated
+against the genuine Census X-13ARIMA-SEATS binary (v1.1.57) via frozen
+goldens: `tools/gen_validation_goldens_sa.py` runs the binary with the
+spec pinned to the native v1 configuration (log/level by AICC, airline
+model, no outlier regressors, 60-period ARIMA extension, X-11 with
+MSR-selected seasonal filter) on nine real series — six county LAUS
+unemployment levels spanning large to tiny (Keweenaw MI, ~2k
+population), NSA industrial production, and two quarterly aggregates —
+and `tests/test_sa_x11_native.py` asserts agreement within tolerances
+that were **measured, then frozen with headroom** (re-measured
+2026-07-22 after the genuine B17/B20 weight cascade landed — extreme
+weights from each stage's irregular forming weight-modified originals
+that feed the next stage's trends, the structure the v1 chain had
+condensed away): interior medians 0.08–0.83%, interior maxima under
+0.7% on smooth macro series and up to ~7% at extreme-replaced outlier
+months of wild small-count series (roughly HALF the v1 gaps),
+seasonal-filter selection matching the binary on every monthly series.
+The remaining divergence sources are documented rather than hidden:
+the binary applies asymmetric filters at the series start (it does not
+use backcasts inside X-11) where the native engine uses
+symmetric-over-backcasts, and residual replacement-value details at
+flagged outliers. CI never runs the
+binary — only the frozen goldens. This is what the naming
+"X-11/ARIMA-style, X-13-validated" promises: exactly what the frozen
+tolerances measured, no more.
 
 ## Honest scope
 

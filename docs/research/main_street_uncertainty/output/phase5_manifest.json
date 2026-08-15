@@ -1,0 +1,20 @@
+{
+  "created_utc": "2026-07-23T17:11:39.413402+00:00",
+  "inputs": {
+    "alfred": "api.stlouisfed.org fred/series/observations output_type=4 (initial release), series {ST}UR + {ST}NA x 51; key via puremacro.credentials('fred') \u2014 never written to outputs",
+    "state_district_panel_quarterly.csv": {
+      "sha256": "d5070014b4509c1ff8d6f22e6c2eb5e48072394c44b265118feb1d00b9a033dd"
+    },
+    "exposure_state.csv": {
+      "sha256": "d2fd4172512e1d3718209803fdc1b48258e2adabd41b74fe8a2d22a1c833b0d8"
+    },
+    "phase4_summary.json": {
+      "sha256": "6b8adbbd4370f066b324a51db02bc1d4f6e50a95188200d49151b301ba1b224c"
+    }
+  },
+  "first_release_rule": "pub_lag <= 120 days; quarters require all 3 months",
+  "long_difference_convention": "Croushore-Stark first-release diagonal: y(t+h) and y(t-1) both first-release",
+  "estimator": "imported from run_main_street_phase3/4",
+  "wc_draws": 999,
+  "seed": 42
+}

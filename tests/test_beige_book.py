@@ -406,6 +406,7 @@ class TestFomcOrchestratorRefactor:
         from datetime import date as _date
 
         listing_calls = []
+        monkeypatch.setattr(beige_book, "_PDFPLUMBER_AVAILABLE", True)
         monkeypatch.setattr(beige_book, "_fomc_listing",
                             lambda y: (listing_calls.append(y) or []))
         # Stub the PDF byte fetch + text extraction to a tiny known body.
@@ -464,3 +465,45 @@ class TestBeigeBookUsesCachedHttp:
         from puremacro.narrative.sources import beige_book
         from puremacro._http import safe_get_bytes_cached
         assert beige_book.safe_get_bytes is safe_get_bytes_cached
+
+
+class TestRedbookBackend:
+    """The pre-1983 Redbook (Beige Book predecessor, May 1970-May 1983)
+    shares the FOMC index pages and the PDF parser with the modern Beige
+    Book. These tests lock in (a) that the listing regex accepts the
+    ``redbook`` filename and (b) that a real Redbook PDF parses into the
+    twelve districts via the unchanged ``_parse_fomc_pdf``."""
+
+    def test_listing_regex_matches_both_names(self):
+        import re
+        # The exact pattern used inside _fomc_listing.
+        pat = re.compile(
+            r"fomc(\d{4})(\d{2})\d{2}(?:beige|redbook)(\d{4})(\d{2})\d{2}"
+            r"\.pdf", re.IGNORECASE)
+        beige = pat.search("/monetarypolicy/files/fomc19850109beige19850102.pdf")
+        red = pat.search("/monetarypolicy/files/fomc19780418redbook19780412.pdf")
+        assert beige and (int(beige.group(3)), int(beige.group(4))) == (1985, 1)
+        assert red and (int(red.group(3)), int(red.group(4))) == (1978, 4)
+
+    def test_parse_1978_redbook(self):
+        from puremacro.narrative.sources.beige_book import (
+            _extract_pdf_text, _parse_fomc_pdf, DISTRICTS,
+        )
+        pdf_path = FIXTURE_DIR / "fomc_1978_redbook.pdf"
+        if not pdf_path.exists():
+            pytest.skip("fomc_1978_redbook.pdf fixture not present")
+        try:
+            text = _extract_pdf_text(pdf_path.read_bytes())
+        except ImportError:
+            pytest.skip("pdfplumber not installed")
+        assert text.strip()
+        assert "DISTRICT" in text.upper()
+        records = list(_parse_fomc_pdf(
+            text, release_date=dt.date(1978, 4, 1),
+            source_url="https://test-redbook"))
+        districts = {r[1] for r in records}
+        # The full 12-district panel must come through the predecessor format.
+        assert set(DISTRICTS).issubset(districts), (
+            f"missing districts: {set(DISTRICTS) - districts}")
+        for r in records:
+            assert len(r) == 6

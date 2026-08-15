@@ -1,0 +1,11 @@
+[    0.0s] BBUI panel: 13 districts x 223 quarters (1970-04-01..2025-10-01)
+[    0.0s] state panel: 51 states x 202 quarters
+[    0.0s] coverage table written; 1 quarters with <12 districts
+[    0.0s] AR(2) innovations: 12 districts, 2651 district-quarters
+[    0.1s] merged panel: 51 states x 200 quarters, 10194 rows (1976-01-01..2025-10-01)
+[    0.3s] pooled LP [urate]: h0=+0.0008 (se 0.0081), h8=+0.0577, h12=+0.0542  (n=10194)
+[   67.5s] sup-t [urate]: crit=2.03 (300 usable draws), excl. zero at h: [1, 4, 5, 6, 7, 8]
+[   67.8s] pooled LP [emp100]: h0=+0.0128 (se 0.0171), h8=-0.0332, h12=-0.0559  (n=7344)
+[  128.5s] sup-t [emp100]: crit=2.22 (300 usable draws), excl. zero at h: []
+[  128.7s] per-district LPs: 12 districts
+[  129.7s] figures written

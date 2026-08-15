@@ -68,7 +68,10 @@ class TestErpParser:
         pdf_path = FIXTURE_DIR / "erp_2024.pdf"
         if not pdf_path.exists():
             pytest.skip("erp_2024.pdf fixture not yet fetched")
-        pages = _extract_erp_pages(pdf_path.read_bytes())
+        try:
+            pages = _extract_erp_pages(pdf_path.read_bytes())
+        except ImportError:
+            pytest.skip("pdfplumber not installed")
         assert len(pages) > 100, f"expected 100+ pages, got {len(pages)}"
         chapters = _split_chapters(pages)
         assert len(chapters) >= 3, (
@@ -172,7 +175,10 @@ class TestCboParser:
         if not candidates:
             pytest.skip("no cbo_pub_*.pdf fixture")
         pdf_bytes = open(candidates[0], "rb").read()
-        text = _extract_cbo_pdf_text(pdf_bytes)
+        try:
+            text = _extract_cbo_pdf_text(pdf_bytes)
+        except ImportError:
+            pytest.skip("pdfplumber not installed")
         assert len(text) > 1000, f"CBO PDF body text suspiciously short: {len(text)}"
 
 

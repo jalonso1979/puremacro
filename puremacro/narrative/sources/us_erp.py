@@ -40,7 +40,10 @@ import re
 from datetime import date as _date
 from typing import Iterator
 
-import pdfplumber
+try:
+    import pdfplumber
+except ImportError:
+    pdfplumber = None  # type: ignore[assignment]
 
 from ._http import safe_get_bytes, safe_get_text
 
@@ -63,6 +66,11 @@ _INLINE_CHAPTER_RX = re.compile(
 
 
 def _extract_erp_pages(pdf_bytes: bytes) -> list[str]:
+    if pdfplumber is None:
+        raise ImportError(
+            "pdfplumber is required to extract ERP PDF pages. "
+            "Install via `pip install puremacro[narrative]`."
+        )
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
         return [p.extract_text() or "" for p in pdf.pages]
 

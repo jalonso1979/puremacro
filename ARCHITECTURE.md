@@ -263,18 +263,27 @@ These are the load-bearing imports. If you change one of these arrows, double-ch
 
 ## Pyodide-compatibility contract
 
-The package's tagline ("pure-numpy + scipy + pandas + matplotlib, runs on iPad / juno.sh") is **load-bearing**. If you add an `import` that breaks it, you are deleting the user's intended deployment target.
+The package's numerical core is **pure numpy + scipy + pandas + matplotlib** — no statsmodels / linearmodels / arch anywhere in the estimator path. That is **load-bearing**: if you add an `import` that breaks it, you are deleting the whole point of the package, and the estimator core stops being importable under Pyodide.
 
 ### Allowed runtime dependencies
 
-Declared in `pyproject.toml [project.dependencies]`:
+Declared in `pyproject.toml [project.dependencies]`. This block is parsed and asserted verbatim by `tests/test_pyodide_compat.py::test_pyproject_runtime_deps_match_documentation`, so the two must be edited in the same commit:
 
 ```
 numpy   >= 1.26
 scipy   >= 1.10
 pandas  >= 2.0
 matplotlib >= 3.7
+requests >= 2.31
+pyarrow >= 15
 ```
+
+The first four are the **Pyodide import core**: the only third-party modules a shippable estimator module may import at top level. The last two widen the *install* contract, not the import contract, and each is here for a concrete reason:
+
+- `requests` — the whole `puremacro.fetch` layer (OECD/SDMX, EPU, FRED-CSV, IMF, BEA) and the narrative sources `import requests` at module level by design. Without it a clean `pip install puremacro` dies with `ModuleNotFoundError` on the first fetch call. It is pure Python and installs fine under Pyodide (there are no sockets there, but the offline CSV paths never touch it).
+- `pyarrow` — the parquet engine `pandas.read_parquet` needs. `cache.py`, `fetch/labor*.py`, `shock_atlas.py`, `build_panel` / `build_subnational_panel` and the ENOE datasets shipped with the teaching material are all parquet. pandas imports it lazily, so it never lands in `sys.modules` during an import sweep, but it is a hard requirement to *use* those code paths — and the documented student install is a bare `pip install puremacro`, so it cannot live in an extra. **Caveat:** pyarrow has no Pyodide wheel, so an in-browser install must go through `micropip.install("puremacro", deps=False)` plus the deps actually needed; the browser is not a supported deployment target of the teaching material.
+
+**Consequence for the opt-in Pyodide gate:** `tools/pyodide/runner.js` installs the built wheel with `micropip.install("emfs:/tmp/<wheel>")`, i.e. with dependency resolution ON. Since `pyarrow` became a base dependency that resolution can no longer succeed in the browser, so `python tools/release_check.py --pyodide` (gate 6) fails at the install step, not at the import sweep. The runner has to switch to `deps=False` and preload the import core explicitly (`numpy`, `scipy`, `pandas`, `matplotlib` are already `loadPackage`d a few lines above; `requests` would need `micropip`). The in-process guarantee is unaffected: the two sweeps in `tests/test_pyodide_compat.py` are green, because nothing shippable imports `pyarrow` at module level.
 
 Anything else is **dev-only or extra-only** (pytest, statsmodels, linearmodels, arch, pypdf, beautifulsoup4, pdfplumber). These are declared in `[project.optional-dependencies]`:
 
@@ -543,21 +552,14 @@ These are tracked, not bugs: they sit in the design map as TODOs rather than sme
 The 0.43.0 + 0.44.0 releases retired the `svar/*`, `lp/lp_*.py`, and
 `inference/legacy/*` shim layers. The remaining low-priority candidates:
 
-- **`regress/lp.py`** — independent pure-numpy panel-LP implementation
-  with a different signature (`shock` / `unit` / `date`) than canonical
-  `lp.panel.panel_lp`. 3 active callers in `tools/run_logurate_revision.py`,
-  `tools/run_paper_extensions.py`, and `tools/make_notebook_R3_02.py`.
-  Retirement deferred to a future release once a canonical LP with the
-  same signature ships.
+- **`regress/lp.py`** — provides a convenient flat-DataFrame panel-LP interface
+  (`y=`, `shock=`, `unit=`, `date=`, `controls=`) with Driscoll-Kraay SEs.
+  Complementary to canonical `lp.panel.panel_lp` which expects multi-indexed DataFrames.
 - **`lp/garch_utils.py`** — public helper used by `R1_02_lp_menu` to
   fit σ_t before calling lp-garch variants. Could be renamed to
-  `_garch_utils.py` (private) once the 3 external callers
-  (`tests/test_garch_utils.py`, `tools/make_notebook_R1_02.py`,
-  `R1_02_lp_menu.ipynb`) are migrated.
-- **`ProxySVARResult` axis** — uses `(n, n, H+1)` while other
-  `var/identify/*` result classes use `(H+1, n, n)`. Cosmetic
-  inconsistency. Fix scheduled with the next paper-refresh window
-  alongside R1_04 cleanup.
+  `_garch_utils.py` (private) once external notebook callers migrate.
+- **`ProxySVARResult` axis** — resolved (standardized to `(H+1, n, n)`
+  matching all other SVAR identification result classes).
 
 ---
 

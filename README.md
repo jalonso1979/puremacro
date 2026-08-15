@@ -2,9 +2,11 @@
 
 # puremacro
 
-A **Pyodide-compatible empirical macroeconomics toolbox**: pure-numpy +
-scipy + pandas + matplotlib at runtime, runs on iPad / juno.sh as well
-as a regular workstation.
+A **Pyodide-compatible empirical macroeconomics toolbox**: the estimator
+code runs on pure numpy + scipy + pandas + matplotlib, so the numerical
+core stays importable under Pyodide (iPad / juno.sh, best-effort — see
+"juno.sh / iPad" below). The supported target is a local install on a
+regular workstation.
 
 ## What's in it
 
@@ -138,6 +140,17 @@ covered by the Pyodide promise.**
 
 ## Installation
 
+### From PyPI (users)
+
+```bash
+pip install puremacro
+```
+
+This pulls the six base dependencies (numpy, scipy, pandas, matplotlib,
+requests, pyarrow) — everything the estimators, the `fetch` layer and the
+parquet code paths need. Extras are only for the optional features listed
+below.
+
 ### Local (development)
 
 From the `puremacro/` package directory (the one containing this `README.md`
@@ -169,7 +182,7 @@ the variants `safe_get_bytes_cached` and `safe_get_text_cached` apply
 a SHA-256-keyed cache at `~/.cache/puremacro/http/`. Set
 `PUREMACRO_HTTP_NO_CACHE=1` to bypass.
 
-### juno.sh / iPad
+### juno.sh / iPad (unsupported, best-effort)
 
 Upload the `puremacro/` directory to your juno.sh workspace, then in a
 notebook cell:
@@ -177,6 +190,21 @@ notebook cell:
 ```python
 %pip install ./puremacro
 ```
+
+**Caveat since `pyarrow` became a base dependency:** that command resolves
+the full dependency set and `pyarrow` has no Pyodide wheel, so under a
+Pyodide kernel it fails. Install the estimator core without dependency
+resolution instead, and add by hand only what you need:
+
+```python
+import micropip
+await micropip.install("puremacro", deps=False)
+await micropip.install(["numpy", "scipy", "pandas", "matplotlib", "requests"])
+```
+
+Parquet code paths (`cache`, `fetch.labor*`, `shock_atlas`, `build_panel`)
+stay unavailable in the browser. The browser is **not** a supported
+deployment target: teaching material assumes a local install.
 
 ### Run the LLM features for free (local models)
 
@@ -213,9 +241,25 @@ run inside the browser playground.)
 ## Pyodide compatibility
 
 The runtime promise is: only `numpy + scipy + pandas + matplotlib`
-ever get imported by code that ships in the wheel. `statsmodels`,
-`linearmodels`, `arch`, `pypdf`, and the network fetchers are all
-either dev-only / extras-only or lazy-imported behind a guard.
+ever get imported by the *estimator* code that ships in the wheel.
+`statsmodels`, `linearmodels`, `arch` and `pypdf` are dev-only /
+extras-only or lazy-imported behind a guard.
+
+Two further packages are declared as base dependencies in
+`pyproject.toml` — six in all — because the wheel cannot function
+without them, even though neither touches the estimator path:
+
+- `requests` — imported at module level by `puremacro.fetch.*` and the
+  narrative sources. Pure Python; installs under Pyodide.
+- `pyarrow` — the parquet engine `pandas.read_parquet` needs
+  (`cache`, `fetch.labor*`, `shock_atlas`, `build_panel`, and the
+  parquet datasets used by the teaching material). pandas imports it
+  lazily, so it never lands in `sys.modules` on an import sweep. It has
+  no Pyodide wheel: in the browser use
+  `micropip.install("puremacro", deps=False)`.
+
+See `ARCHITECTURE.md` → "Pyodide-compatibility contract" for the full
+rationale.
 
 The regression test is `tests/test_pyodide_compat.py` — it walks every
 shippable submodule and asserts no forbidden module lands in
@@ -266,6 +310,25 @@ from puremacro import credentials
 credentials.status()                  # see what's configured (no values leaked)
 # credentials.require("fred")         # raises with a signup URL if the key is missing
 ```
+
+## Rosetta Stone — Macroeconomist's Cheatsheet
+
+If you are transitioning from Stata, MATLAB/Dynare, or statsmodels:
+
+| Task / Estimator | Stata | MATLAB / Dynare | statsmodels / linearmodels | **`puremacro`** |
+|---|---|---|---|---|
+| **Cholesky SVAR** | `var y1 y2, lags(1/4)` + `irf create` | `varm` / VAR Toolbox | `VAR(Y).fit(4).irf(20)` | `var.identify.cholesky_svar(Y, p=4, horizon=20)` |
+| **Blanchard–Quah SVAR** | `svar y1 y2, lreq(...)` | VAR Toolbox `bq_svar` | `SVAR(..., svar_type='B')` | `var.identify.bq_svar(Y, p=4, horizon=20)` |
+| **Sign Restrictions** | User plugin | Rubio-Ramírez / VAR Toolbox | — | `var.identify.sign_restrictions(Y, signs, p=4)` |
+| **Proxy / External IV SVAR** | `svariv` | Mertens & Ravn SVAR-IV | — | `var.identify.proxy_svar(Y, p=4, instrument_series=z)` |
+| **Local Projections (HAC)** | `jorda` / manual OLS | Jordà (2005) code | `OLS(y_h, X).fit(cov_type='HAC')` | `lp.jorda.lp_hac(df, y="y", x="shock", horizons=range(21))` |
+| **Panel LP (Driscoll–Kraay)** | `xtscc` | Panel LP toolbox | `PanelOLS(..., cov_type='driscoll-kraay')` | `regress.lp.lp_panel(df, y="y", shock="z", se="driscoll_kraay")` |
+| **Dynamic Panel GMM** | `xtabond2 y L.y, gmm(y) two robust` | Arellano–Bond MATLAB | — | `dynpanel.ab_gmm(y, panel_id, time_id, two_step=True, windmeijer=True)` |
+| **Staggered DiD** | `csdid y, ivar(id) time(t) gvar(g)` | — | — | `did.callaway_santanna(df, unit="id", time="t", outcome="y", treat_time="g")` |
+| **Value Function Iteration** | — | VFIToolkit `ValueFnIter_Case1` | — | `vfi.VFIProblem(a_grid, z_grid, P_z, return_fn, beta).solve()` |
+| **Linear DSGE (QZ / BK)** | — | Dynare `stoch_simul` / Klein `solab` | — | `dsge.klein.klein_solve(A, B, C, n_pre=...)` |
+| **GLS Unit Root (DF-GLS)** | `dfgls y, maxlag(4)` | ERS (1996) code | `adfuller` | `tests.unit_root.dfgls_test(y, regression="ct")` |
+| **Seasonal Adjustment** | `x13 y` | X-13 wrapper | `STL` / `x13` | `sa.stl.stl_sa(y)` / `sa.x11.x11_sa(y)` |
 
 End-to-end replications of canonical papers live under `puremacro/examples/`
 — Bloom 2009 (`bloom2009.py`), Mertens-Ravn narrative SVAR

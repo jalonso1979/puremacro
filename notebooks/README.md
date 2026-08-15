@@ -24,6 +24,19 @@ not the `.ipynb`** — the `.ipynb` is a build artifact, regenerated with output
 | `14_tax_multiplier_three_ways` | The US tax multiplier three ways on one frozen dataset — Blanchard-Perotti SVAR (−1), Romer-Romer narrative LP (−3), Mertens-Ravn narrative-as-instrument (between, with the effective first-stage F) — plus a spec curve showing identification, not estimation, drives the answer |
 | `15_lp_did` | DiD meets local projections — why naive TWFE event studies break under staggered heterogeneous adoption, and LP-DiD (Dube-Girardi-Jordà-Taylor) as the fix; side-by-side with Callaway-Sant'Anna and Sun-Abraham agreeing on one panel |
 | `16_regime_girf` | State-dependent transmission done right — Koop-Pesaran-Potter generalized IRFs for TVAR/MS-VAR with endogenous regime switching; the frozen-regime IRF overstates stress-state losses by ~33% |
+| `17_sign_restricted_svar` | Uhlig (2005) / Rubio-Ramírez et al. (2010) sign-restricted VAR identification |
+| `18_epstein_zin_asset_pricing` | Epstein-Zin recursive preferences & asset pricing equity premium puzzle |
+| `19_krusell_smith_approx_agg` | Krusell-Smith (1998) general equilibrium with aggregate uncertainty |
+| `20_unit_roots_with_power` | Elliott-Rothenberg-Stock DF-GLS unit root test with superior local power |
+| `21_dynare_vfi_dsl` | Declarative Dynare-like Automated VFI specification with Howard acceleration & panel inequality simulation |
+| `22_continuous_time_hjb` | Achdou et al. (2022) Continuous-Time HJB finite difference upwind scheme for consumption-saving models |
+| `23_aiyagari_endogenous_labor` | Aiyagari GE incomplete markets model with endogenous intra-temporal labor choice |
+| `24_synthetic_control` | Abadie et al. (2010) Synthetic Control Method for causal policy evaluation with donor placebos |
+| `25_frequency_connectedness` | Baruník & Křehlík (2018) frequency-domain variance decomposition spillover networks |
+| `26_cycles_and_bandpass` | Baxter-King, Christiano-Fitzgerald & Beveridge-Nelson vs Hamilton & HP cycle filtering |
+| `27_garch_midas_macro_risk` | Engle-Ghysels-Sohn (2013) GARCH-MIDAS two-component mixed-frequency macro volatility |
+| `28_weak_iv_anderson_rubin` | Weak-IV robust Anderson-Rubin (1949) quadratic HAC confidence sets for LP-IV |
+| `29_synthetic_did` | Arkhangelsky et al. (2021) Synthetic DiD combining SCM unit weights and DiD time weights |
 
 The deepened showcases (`01`, `06`, `11`, `14`, `15`, `16`) follow the structure in
 [`_TEMPLATE.md`](./_TEMPLATE.md): motivating question → the method in math → intuition →

@@ -1,0 +1,78 @@
+# puremacro Batch 4 — Main Street Phase 4 (LOO shock + border pairs), Spec-Curve Phase 3 (Type II/III + event sweep), Notebook 17
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Attack the two honest weaknesses batch 3 headlined. (A) Main Street: the shuffle placebo is half-alive because cross-district BBUI innovations correlate at ρ≈+0.10 — purge the national component with a leave-own-district-out shock and exploit the 14 split states as within-state border contrasts. (B) Spec curve: the narrative scheme's AD-RR weights are constant (Type I only), so ESS is uninformative and the four event months are an unswept specification choice — add Type II/III historical-decomposition restrictions and a leave-one-event-out sweep. (C) Teach what the research just used: Notebook 17 "One shock, ten identifications" (EN+ES). (D) Two noted housekeeping debts.
+
+**Architecture:** Legs A and B extend the two existing self-contained tools (`tools/run_main_street_phase3.py` grows a `--phase4` mode or a sibling `tools/run_main_street_phase4.py` — sibling preferred, phase 3 outputs are frozen inputs; `tools/run_uncertainty_ident_spec_curve.py` grows the Type II/III cells and the event sweep behind its existing deterministic rerun gate). No new public API symbols anywhere: `narrative_sign_svar` already ships `NarrativeRestriction(kind='hd_dominance', dominance='most'|'overwhelming')`; the crosswalk already exposes `SPLIT_STATES` / `district_crosswalk()`; county LAUS already has `state_industry_panel.iter_county_urate_q`. Leg C follows the Notebook 14 pattern: jupytext `.py` source pair + frozen CSV + `tools/gen_notebook_data_*.py` generator.
+
+**Tech Stack:** numpy / scipy / pandas / matplotlib + `puremacro` internals. Tools and notebooks are outside the public-API snapshot; `tests/fixtures/public_api_snapshot.json` must NOT be regenerated this batch.
+
+---
+
+## File map
+
+### New files
+- `tools/run_main_street_phase4.py` — LOO-shock horse race + placebo/lead closure (argparse: `--wc-draws`, `--placebo`, `--seed`, `--fast`, mirroring phase 3; frozen-input-only, fully deterministic).
+- `tools/run_main_street_phase4_border.py` — split-state border-contrast pipeline (county LAUS via cached fredgraph; chunked wild-cluster bootstrap). Split from the LOO tool so the deterministic gate stays network-free. [decided during execution]
+- `tools/build_fed_county_crosswalk.py` + `docs/research/main_street_uncertainty/output/crosswalk_sources/*.json` — county→district crosswalk builder + per-Reserve-Bank source files (verbatim county lists with source URLs).
+- `docs/research/main_street_uncertainty/output/` adds: `county_district_crosswalk.csv`, `bbui_loo_innovations.csv`, `irf_loo_horserace.csv`, `placebo_shuffle_loo.csv`, `county_border_panel.csv.gz` (gzipped — 137k county-quarter rows), `irf_border_pairs.csv`, `fig_phase4_loo.{png,pdf}`, `fig_phase4_border.{png,pdf}`, `phase4_manifest.json`, `phase4_summary.json`, `phase4b_manifest.json`, `phase4b_summary.json`, `run_log_phase4.txt`, `run_log_phase4b.txt`.
+- `notebooks/17_identification_spec_curve.py` + `notebooks/17_identification_spec_curve_es.py` (jupytext sources; `.ipynb` built by `tools/build_notebooks.py`).
+- `tools/gen_notebook_data_speccurve17.py` + frozen CSV(s) under `puremacro/replication/data/` (reuse the spec-curve panel freeze if identical — do not freeze the same bytes twice).
+- `docs/plans/2026-07-21-puremacro-batch4-plan.md` — this plan.
+
+### Modified files
+- `tools/run_uncertainty_ident_spec_curve.py` — Type II/III narrative cells + event sweep (additive; existing cell IDs, seeds and outputs must reproduce bit-for-bit when the new flags are off).
+- `docs/research/uncertainty_identification/DRAFT.md` — results + limitations updated (the "not yet swept" and "ESS uninformative" sentences must be replaced by numbers, not deleted).
+- `docs/research/main_street_uncertainty/DRAFT.md` — phase-4 section with the LOO verdict, honest either way; limitations re-ranked.
+- `tests/test_notebooks/test_notebooks_execute.py:28` — source-count guard 38 → 40.
+- `puremacro/dsge/smets_wouters.py` (or wherever mode refinement calls scipy numdiff) — catch `OverflowError`, fall through to the existing prior-std proposal fallback; regression test with a monkeypatched exploding objective.
+- `tools/build_playground.sh` (playground build script) — `rm -rf dist` before rebuild (stale-0.91.0-wheel incident, changelog 2026-07-20).
+- `CHANGELOG.md` — batch 4 section under Unreleased.
+
+### Working assumptions (verified 2026-07-21 by code inspection; re-probe anything marked ⚠ before relying on it)
+- `puremacro/var/identify/narrative_sign.py` accepts `NarrativeRestriction(kind='hd_dominance', variable=..., dominance='most'|'overwhelming', window>=0)`; importance weights go MC (non-constant) as soon as one Type II/III restriction enters, making Kish `ess` informative. Result carries `n_narrative_accepted`, `n_traditional_accepted`, `ess`.
+- `tools/run_uncertainty_ident_spec_curve.py` keeps `NARRATIVE_EVENTS` as a module-level dict (4 events), runs narrative only under `lt` detrending (11 fd cells logged as skipped), and asserts bit-for-bit reproduction from the frozen CSV on every run — the new cells must extend, not perturb, that gate.
+- `puremacro/narrative/indices/_fed_districts.py` exposes `SPLIT_STATES` (14 states) and `district_crosswalk()`, but the mapping is **state-level only** — the module docstring itself notes Fed boundaries are defined at the *county* level (verified 2026-07-21). The border-pair leg therefore REQUIRES a county→district assignment for the 14 split states, built from the Fed's own branch-territory descriptions (budget half a day; freeze as `county_district_crosswalk.csv` under `docs/research/main_street_uncertainty/output/` with a provenance note per district). This is Task A3's first step, not a contingency.
+- `puremacro/fetch/state_industry_panel.iter_county_urate_q` yields county quarterly LAUS through the key-free fredgraph mirror with the on-disk HTTP cache. ⚠ Probe ~10 counties across 3 split states for coverage span before committing to the design.
+- Phase-3 shock = per-district AR(2)-purged BBUI innovation, built inside `run_main_street_phase3.py` from `data/processed/bbui_district_panel.csv`; phase 4 re-derives it identically (import the helper or copy with a provenance comment — do not re-tune).
+- Notebook guard is `assert len(srcs) == 38` at `tests/test_notebooks/test_notebooks_execute.py:28`; EN+ES pair takes it to 40. Notebooks must execute offline from frozen data (house rule since nb14).
+- Playground rebuild is NOT in this batch (batch-3 convention: playground ships on release, not per-batch).
+
+---
+
+## Leg A — Main Street phase 4: does the differential survive purging the national component?
+
+- [x] **Task A1: LOO shock + horse race.** DONE 2026-07-21 — replication gate 1e-16; @ h=9 baseline +0.0385 → horse-race own +0.0217 (ratio 0.56, WC p=0.115): SURVIVES the pre-registered rule, barely; own peak moves to h=5 (+0.0252, WC p=0.048); LOO-national alone +0.0349 at h=12 (WC p=0.007) — the more robust term. Build `bbui_loo_{d,t}` = mean of the 11 other districts' AR(2)-purged innovations (purge first, then average — preserves per-district AR dynamics; record the decision in the manifest). Estimate three interacted LPs on the phase-3 design (state FE + district×quarter FE, 1992Q1+, DK + wild-cluster side by side): (i) phase-3 baseline `expo × own`, (ii) `expo × loo` alone, (iii) horse race with both. **Decision rule, pre-registered here:** if in (iii) the own-district coefficient at h=9 keeps ≥half its baseline magnitude with the same sign, the "own-district uncertainty" reading survives; if the LOO term absorbs it, the paper's framing changes from "district uncertainty" to "national uncertainty loading on exposed states" — either way DRAFT.md states it in the abstract, not a footnote.
+- [x] **Task A2: placebo closure.** DONE 2026-07-21 — paired 200 derangements: phase-3 mean +0.0187 → +0.0000 with the LOO control. Full closure; lead h=−2 WC p 0.04 → 0.13 (magnitude −0.014 persists). Re-run the 200-derangement shuffle placebo under specification (iii). Success criterion: placebo mean at h=9 collapses from +0.019 toward 0 (the mechanical overlap is what the LOO term controls). If it does not collapse, that is a finding about the design and goes in the draft verbatim.
+- [x] **Task A3: split-state border pairs.** DONE 2026-07-21 — crosswalk frozen from the banks' own county lists (1,009 counties; 5 source JSONs with provenance; builder hard-fails on unmatched names); all 1,009 counties have usable LAUS from 1990; G=11 districts (San Francisco has no split state — above the FRAGILE threshold). Result: wrong-signed null; no positive estimate > +0.010 pp at any horizon; border-only h≥6 all negative. Betas identical across fast/full runs (only WC p refines with B); chunked==unchunked self-check in-run.
+- [x] **Task A4: draft update.** DONE — abstract carries the horse-race verdict per the decision rule; new §5 "What exactly is 'district' about the differential?"; limitations re-ranked (LOO + border resolved; ALFRED vintages now top candidate, targeting the h=5 survivor); FINDINGS.md status header bumped. Phase-4 section in DRAFT.md with the horse-race verdict as headline; limitations list re-ranked (whatever phase 4 resolves comes out, what it reveals goes in); FINDINGS.md status header bumped.
+
+## Leg B — Spec-curve phase 3: make the narrative scheme earn its ESS
+
+- [x] **Task B1: Type II/III cells.** DONE 2026-07-21 — `--narrative-hd`; all 240 pre-existing cells bit-for-bit; t2 h12 band 31% tighter than Type I, ESS 206/463 (t3: 38%, 181/380). For Lehman 2008 and COVID 2020 (the two events where "uncertainty was the dominant shock that month" is defensible from the literature), add `hd_dominance` restrictions on the uncertainty-proxy variable, `dominance='most'` (Type II), `window=0`; one variant with `'overwhelming'` (Type III) for COVID only. Wire into the menu and the baseline grid cells as new scheme variants (`narrative-t2`, `narrative-t3`), NOT replacements — every existing cell ID, seed and number must reproduce bit-for-bit. Report Kish ESS per variant; the DRAFT sentence "ESS equals the surviving-draw count" gets replaced by the actual ESS ratios.
+- [x] **Task B2: event sweep.** DONE 2026-07-21 — `--event-sweep`, 9 configs, ALL exclude zero at h12; Black Monday is the binding event (drop → width 3.57→4.11), dropping COVID slightly tightens. 9 configs of the Type-I event set: all four, each alone, each left out. Report h=12 band width and zero-exclusion per config in a compact panel (`fig_event_sweep`); the summary JSON records which single event drives the 13.2→7.3 pp tightening from phase 2.
+- [x] **Task B3: GK note.** DONE — narrative-truncated set still not computable (documented limitation stands); no overlay crossing to report. Do NOT attempt the narrative-truncated identified set (`gk_robust_bands` API cannot express it — documented limitation stands); add one sentence to DRAFT.md if the Type II/III bands cross the existing GK overlay.
+- [x] **Task B4: rerun gate.** DONE — in-run determinism check passed + pre/post CSV diff bit-for-bit on all 240 prior cells; DRAFT.md abstract/results/limitations updated (median composition shift −1.4→−2.1 flagged explicitly). Full pipeline rerun from the frozen CSV twice; assert bit-for-bit equality including the new cells; update DRAFT.md numbers and limitations.
+
+## Leg C — Notebook 17 "One shock, ten identifications" (EN + ES)
+
+- [x] **Task C1: scope.** DONE 2026-07-21 — six schemes (chol, sign, narrative I, narrative II, max-share, proxy-JLN) at quick draws, ~30 s/language; R² punchline quoted from the 207-cell run with provenance. (Deviation: named `17_identification_spec_curve` with title "One shock, six identifications" — ten was the plan's shorthand, six is what fits the runtime budget.) The notebook does NOT run the 178-cell grid. It runs the *menu* on the frozen baseline dataset at `--quick`-tier draws: recursive, sign, narrative Type I, narrative Type II (new), max-share, proxy — six schemes, one figure in the house 8-slot palette, ending with the family-vs-data-choices R² punchline (0.25 vs 0.38) read from the shipped phase-2/3 summary JSON rather than recomputed. Target runtime ≤ 90 s per language in the notebook execution test.
+- [x] **Task C2: pedagogy.** DONE — one-sentence-per-assumption table, ESS-becomes-informative arc, choose-your-own-events fill-in wired to the B2 sweep; ES twin translated by substance. Follow the nb14 arc: one question ("what does an uncertainty shock do to industrial production?"), each scheme gets its identifying assumption in one honest sentence + one line of code, the spec-curve figure is the destination; fill-in exercise = choose your own event set for the narrative scheme (connects to the B2 sweep). ES twin is a translation of substance, not a transliteration (house EN+ES conventions from nb01–16).
+- [x] **Task C3: plumbing.** DONE — `speccurve17_panel.csv` frozen byte-identical to the pipeline panel (gen tool hash-verifies); guard 38→40; both .ipynb built and executed offline; build-tooling tests green. Frozen data via `tools/gen_notebook_data_speccurve17.py` (reuse the spec-curve panel freeze if byte-identical); guard 38→40; `tools/build_notebooks.py` roundtrip; both notebooks green in `tests/test_notebooks/test_notebooks_execute.py` offline.
+
+## Leg D — housekeeping debts (small, do last)
+
+- [x] **Task D1: SW07 OverflowError.** DONE — the gap was `numerical_hessian` OUTSIDE the try at `dsge/estimate.py` step 4; now caught (OverflowError + FloatingPointError) with prior-std fallback; regression test added. Catch `OverflowError` from scipy numdiff during mode refinement and fall through to the existing prior-std proposal fallback (the changelog's "known issue noted for later"); regression test monkeypatches an objective that overflows on the second call.
+- [x] **Task D2: playground build hygiene.** DONE — `rm -rf ./dist` before `jupyter lite build` with the incident documented in a comment. `rm -rf dist` at the top of the playground build script (incremental jupyterlite builds shipped a stale 0.91.0 wheel once already).
+- [x] **Task D3: changelog.** DONE — batch-4 section under Unreleased; no version bump, no snapshot regeneration, no playground rebuild. Batch-4 section under Unreleased, same granularity as batches 2–3; no version bump, no snapshot regeneration, no playground rebuild.
+
+---
+
+## Out of scope (deliberately)
+
+Real-time ALFRED vintages, pre-1983 FRASER archival OCR, the full shift-share exposure vector (needs a keyed BEA/QCEW source; the bundled fallback is synthetic and banned for research use), the spec-curve p/H sweep (its own phase), stochastic-volatility-in-mean joint estimation (breaks the Pyodide-pure runtime target), and any `puremacro.teaching` / course-material changes.
+
+## Execution order and verification
+
+A1–A2 first (highest expected value; the horse-race verdict may rewrite the Main Street abstract), then B1–B2 (independent; can run as a parallel worker), then C (depends on B1 for the Type-II menu cell), then D. Each leg's gate: leg A/B tools rerun deterministically from frozen inputs twice with identical manifests; leg C is the notebook execution test at guard 40; leg D is the targeted regression tests. Full-suite `pytest` + `mypy` green before the batch commit; commit style follows batch 3 (`feat(puremacro): batch 4 — ...`).

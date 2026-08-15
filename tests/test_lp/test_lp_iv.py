@@ -40,3 +40,37 @@ def test_lp_iv_recovers_iv_slope_under_endogeneity():
     out = lp_iv(df, y="y", x="x", z="z", horizons=[0, 1, 2, 3], n_lags=1)
     # IV should recover ≈ -0.4 at h=1 (within wide tolerance for finite T)
     assert abs(out.loc[out["h"] == 1, "beta"].iloc[0] - (-0.4)) < 0.25
+
+
+def test_lp_iv_anderson_rubin_strong_and_weak():
+    rng = np.random.default_rng(42)
+    T = 250
+    # Strong instrument case
+    z_strong = rng.standard_normal(T)
+    x_strong = 1.2 * z_strong + 0.3 * rng.standard_normal(T)
+    y = np.zeros(T)
+    for t in range(1, T):
+        y[t] = 0.6 * y[t - 1] + 1.0 * x_strong[t - 1] + rng.standard_normal()
+    df_strong = pd.DataFrame({"x": x_strong, "y": y, "z": z_strong})
+
+    out_s = lp_iv(df_strong, y="y", x="x", z="z", horizons=range(3), n_lags=1, anderson_rubin=True)
+    assert {"ar_lo", "ar_hi", "ar_set_type"} <= set(out_s.columns)
+    # Strong IV produces bounded AR intervals
+    assert out_s.loc[out_s["h"] == 1, "ar_set_type"].iloc[0] == "bounded"
+    ar_lo_1 = out_s.loc[out_s["h"] == 1, "ar_lo"].iloc[0]
+    ar_hi_1 = out_s.loc[out_s["h"] == 1, "ar_hi"].iloc[0]
+    assert ar_lo_1 < 1.0 < ar_hi_1
+
+    # Weak instrument case (instrument is pure noise uncorrelated with x)
+    rng_w = np.random.default_rng(99)
+    T_w = 150
+    z_weak = rng_w.standard_normal(T_w)
+    x_weak = rng_w.standard_normal(T_w)
+    y_weak = np.zeros(T_w)
+    for t in range(1, T_w):
+        y_weak[t] = 0.6 * y_weak[t - 1] + 1.0 * x_weak[t - 1] + rng_w.standard_normal()
+    df_weak = pd.DataFrame({"x": x_weak, "y": y_weak, "z": z_weak})
+    out_w = lp_iv(df_weak, y="y", x="x", z="z", horizons=range(3), n_lags=1, anderson_rubin=True)
+    # Weak IV should produce unbounded or all_real AR confidence set
+    assert out_w["ar_set_type"].isin(["unbounded_rays", "all_real"]).all()
+

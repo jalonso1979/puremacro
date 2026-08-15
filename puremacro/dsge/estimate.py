@@ -191,16 +191,21 @@ def estimate_dsge(
     use_hessian = False
     inv_H: np.ndarray
     if converged_mle:
-        H = numerical_hessian(neg_log_post, mode_vec, h=1e-4)
         try:
+            # numerical_hessian is inside the try: finite-differencing an
+            # exploding posterior can raise OverflowError in plain-float
+            # arithmetic on some platforms (not just LinAlgError later).
+            H = numerical_hessian(neg_log_post, mode_vec, h=1e-4)
             H_pd = _nearest_pd(H)
             inv_H = np.linalg.inv(H_pd)
             np.linalg.cholesky(inv_H)
             use_hessian = True
-        except (np.linalg.LinAlgError, RuntimeError):
+        except (np.linalg.LinAlgError, RuntimeError, OverflowError,
+                FloatingPointError) as e:
             warnings.warn(
-                "estimate_dsge: Hessian non-PD even after _nearest_pd; "
-                "falling back to diag(prior_stds**2).",
+                f"estimate_dsge: Hessian-based proposal failed "
+                f"({type(e).__name__}); falling back to "
+                "diag(prior_stds**2).",
                 UserWarning,
             )
     if not use_hessian:

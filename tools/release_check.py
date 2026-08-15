@@ -99,7 +99,7 @@ def run_pytest_collect_failures(repo_root: Path) -> set[str]:
         "--no-header",
     ]
     proc = subprocess.run(
-        cmd, cwd=repo_root, capture_output=True, text=True, timeout=600,
+        cmd, cwd=repo_root, capture_output=True, text=True, timeout=1200,
     )
     if proc.returncode not in (0, 1):
         raise RuntimeError(
@@ -147,7 +147,7 @@ def gate_test_baseline(repo_root: Path) -> dict:
         return {
             "name": "test_baseline",
             "passed": False,
-            "report": "  Gate 1 (test baseline): FAIL — pytest exceeded 600s timeout",
+            "report": "  Gate 1 (test baseline): FAIL — pytest exceeded 1200s timeout",
             "new": set(),
             "recovered": set(),
         }

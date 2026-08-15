@@ -117,6 +117,20 @@ def _loglik_self_consistency() -> dict:
     return {"loglik": float(r.loglik), "loglik_recomputed": float(ll)}
 
 
+def _garch_midas_components_identity() -> dict:
+    from puremacro.midas import garch_midas
+
+    rng = np.random.default_rng(20260815)
+    returns = rng.normal(0, 0.02, 600)
+    res = garch_midas(returns, x_lf=None, K=20, L=6)
+    tau = np.asarray(res.tau)
+    g = np.asarray(res.g)
+    sigma = np.asarray(res.sigma)
+    max_gap = float(np.max(np.abs(sigma**2 - tau * g)))
+    w_sum_gap = float(abs(np.sum(res.weights) - 1.0))
+    return {"max_gap": max_gap, "w_sum_gap": w_sum_gap}
+
+
 _BOLLERSLEV = (
     "Bollerslev, T. (1986). Generalized autoregressive conditional "
     "heteroskedasticity. Journal of Econometrics 31(3), 307-327."
@@ -216,6 +230,20 @@ CASES: list[ValidationCase] = [
         citation=(
             "Gaussian GARCH(1,1) log-likelihood "
             "ℓ = -½ Σ_t [log 2π + log σ²_t + u²_t / σ²_t] (" + _BOLLERSLEV + ")."
+        ),
+    ),
+    ValidationCase(
+        id="garch.midas_variance_decomposition_identity",
+        subsystem="garch",
+        title="GARCH-MIDAS total conditional variance equals product of long-run and short-run components",
+        title_es="La varianza condicional total de GARCH-MIDAS equivale al producto de las componentes de largo y corto plazo",
+        mechanism=Mechanism.ANALYTICAL,
+        compute=_garch_midas_components_identity,
+        reference=lambda: {"max_gap": 0.0, "w_sum_gap": 0.0},
+        tol=Tol.EXACT,
+        citation=(
+            "Engle, Ghysels & Sohn (2013, RESTAT 95(3), 776-798): conditional variance "
+            "decomposes as sigma_{i,t}^2 = tau_t * g_{i,t} with Beta weights summing to 1."
         ),
     ),
 ]

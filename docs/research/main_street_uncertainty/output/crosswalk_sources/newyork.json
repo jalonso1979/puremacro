@@ -1,0 +1,10 @@
+{
+  "district": "New York",
+  "source_urls": [
+    "https://www.newyorkfed.org/medialibrary/media/outreach-and-education/high-school-fed-challenge-rule-book-2022-2023",
+    "https://www.federalreserve.gov/aboutthefed/federal-reserve-system-new-york.htm"
+  ],
+  "notes": "Verbatim from the NY Fed's own publication: 12 northern NJ counties + Fairfield County CT (+ NY state, PR, USVI). NJ complement (9 southern counties) -> Philadelphia; CT complement (7 counties) -> Boston. CT caveat: the Fed defines the boundary by the historical Fairfield County; Census/LAUS moved CT to planning regions in the 2020s, so legacy-county LAUS series may truncate in the early 2020s.",
+  "NJ": ["Bergen", "Essex", "Hudson", "Hunterdon", "Middlesex", "Monmouth", "Morris", "Passaic", "Somerset", "Sussex", "Union", "Warren"],
+  "CT": ["Fairfield"]
+}

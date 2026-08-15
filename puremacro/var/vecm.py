@@ -4,9 +4,13 @@
 - Johansen (1988, 1991) trace test for cointegrating rank.
 - VECM fit via reduced-rank regression.
 
-Critical values: simplified MacKinnon-Haug-Michelis (1999) approximation
-for the trace statistic at the 5% level, no deterministic terms case.
-For pedagogical use; for publication use a full critical-value table.
+Critical values: MacKinnon-Haug-Michelis (1999) response-surface 5%
+values for the trace statistic, **unrestricted-constant** case (Johansen's
+Case III: a linear trend in the data, an intercept in the cointegrating
+relation, no trend in the CE) — which is what :func:`johansen` actually
+estimates, since its auxiliary regression carries an intercept.
+For pedagogical use; for publication use a full critical-value table
+(all significance levels and all five deterministic cases).
 """
 from __future__ import annotations
 
@@ -17,22 +21,60 @@ from scipy.stats import norm
 from .._linalg import inv_xtx
 
 
-# Simplified Johansen trace 5% critical values for n - r remaining
-# unrestricted dimensions, no deterministic case (n_minus_r maps to CV).
-# Source: MacKinnon-Haug-Michelis (1999), Table 1, "no deterministic"
-# values rounded to 1 decimal.
-_JOHANSEN_TRACE_CV_5PCT = {
-    1: 3.84,
-    2: 12.32,
-    3: 24.28,
-    4: 40.17,
-    5: 60.06,
-    6: 83.94,
-    7: 111.78,
-    8: 143.61,
-    9: 179.41,
-    10: 219.18,
+# Johansen trace 5% critical values, keyed by n - r (the number of
+# remaining common-stochastic-trend dimensions under H_0: rank <= r).
+#
+# Source: MacKinnon, J.G., Haug, A.A. and Michelis, L. (1999), "Numerical
+# distribution functions of likelihood ratio tests for cointegration",
+# Journal of Applied Econometrics 14(5), 563-577 — response-surface
+# quantiles, as tabulated in ``statsmodels.tsa.coint_tables`` (verified
+# against ``c_sjt(n - r, det_order)[1]``, statsmodels 0.14.6).
+#
+# TWO cases are kept because they are easy to confuse, and mixing them is
+# exactly the bug this table used to have (it carried 3.84 from the
+# constant case and 12.32, 24.28, ... from the no-deterministic case, so
+# johansen() over-rejected H_0: r = 0 by ~3 points of the trace statistic):
+#
+#   "const"  — unrestricted constant (Johansen Case III, statsmodels
+#              det_order=0). THIS IS WHAT :func:`johansen` ESTIMATES: its
+#              auxiliary regression on lagged differences includes an
+#              intercept (``row = [1.0]``), so the constant is concentrated
+#              out unrestrictedly.
+#   "none"   — no deterministic term at all (statsmodels det_order=-1).
+#              Kept for reference / future use; NOT what johansen() fits.
+_JOHANSEN_TRACE_CV_5PCT_BY_DET: dict[str, dict[int, float]] = {
+    "const": {
+        1: 3.8415,
+        2: 15.4943,
+        3: 29.7961,
+        4: 47.8545,
+        5: 69.8189,
+        6: 95.7542,
+        7: 125.6185,
+        8: 159.5290,
+        9: 197.3772,
+        10: 239.2468,
+        11: 285.1402,
+        12: 334.9795,
+    },
+    "none": {
+        1: 4.1296,
+        2: 12.3212,
+        3: 24.2761,
+        4: 40.1749,
+        5: 60.0627,
+        6: 83.9383,
+        7: 111.7797,
+        8: 143.6691,
+        9: 179.5199,
+        10: 219.4051,
+        11: 263.2603,
+        12: 311.1288,
+    },
 }
+
+# Default table used by johansen(): the deterministic case it truly fits.
+_JOHANSEN_TRACE_CV_5PCT = _JOHANSEN_TRACE_CV_5PCT_BY_DET["const"]
 
 
 def _adf_residual_test(u: np.ndarray, max_lag: int = 4) -> dict:
@@ -116,6 +158,13 @@ def johansen(Y: pd.DataFrame, p: int = 2) -> dict:
       4. Trace statistic at rank r: −T Σ_{i=r+1}^{n} log(1 − λ_i).
       5. Compare against tabulated 5% critical values; report r̂.
 
+    Deterministic specification: the auxiliary regression in step 2
+    includes an **unrestricted constant** (Johansen's Case III, i.e.
+    ``det_order=0`` in ``statsmodels.tsa.vector_ar.vecm.coint_johansen``),
+    so the critical values used are the MacKinnon-Haug-Michelis (1999)
+    5% quantiles for that case: 3.84, 15.49, 29.80, 47.85, 69.82, … for
+    ``n − r = 1, 2, 3, 4, 5, …``.
+
     Returns
     -------
     dict with keys:
@@ -184,9 +233,11 @@ def johansen(Y: pd.DataFrame, p: int = 2) -> dict:
         for r in range(n)
     ])
 
-    # Critical values (5%, no det case)
+    # Critical values (5%, unrestricted-constant case = what we estimate,
+    # since Z carries an intercept above). MacKinnon-Haug-Michelis (1999).
+    cv_table = _JOHANSEN_TRACE_CV_5PCT_BY_DET["const"]
     crit = np.array([
-        _JOHANSEN_TRACE_CV_5PCT.get(n - r, 9999.0)
+        cv_table.get(n - r, 9999.0)
         for r in range(n)
     ])
 

@@ -64,6 +64,7 @@ from puremacro.vfi.firm_dynamics import (
     firm_value_with_exit,
     free_entry_price,
 )
+from puremacro.vfi.model import Model
 from puremacro.vfi.krusell_smith import (
     KSEquilibrium,
     krusell_smith,
@@ -95,4 +96,5 @@ __all__ = [
     "firm_value_with_exit", "firm_stationary_distribution",
     "free_entry_price", "FirmEntryExitEquilibrium",
     "ks_exog_transition", "ks_simulate", "krusell_smith", "KSEquilibrium",
+    "Model",
 ]

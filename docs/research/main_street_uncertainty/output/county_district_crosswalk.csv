@@ -1,0 +1,1010 @@
+state,county_fips,county_name,district,assignment
+CT,09001,Fairfield County,New York,listed
+CT,09003,Hartford County,Boston,complement
+CT,09005,Litchfield County,Boston,complement
+CT,09007,Middlesex County,Boston,complement
+CT,09009,New Haven County,Boston,complement
+CT,09011,New London County,Boston,complement
+CT,09013,Tolland County,Boston,complement
+CT,09015,Windham County,Boston,complement
+IL,17001,Adams County,St. Louis,listed
+IL,17003,Alexander County,St. Louis,listed
+IL,17005,Bond County,St. Louis,listed
+IL,17007,Boone County,Chicago,complement
+IL,17009,Brown County,St. Louis,listed
+IL,17011,Bureau County,Chicago,complement
+IL,17013,Calhoun County,St. Louis,listed
+IL,17015,Carroll County,Chicago,complement
+IL,17017,Cass County,Chicago,complement
+IL,17019,Champaign County,Chicago,complement
+IL,17021,Christian County,Chicago,complement
+IL,17023,Clark County,Chicago,complement
+IL,17025,Clay County,St. Louis,listed
+IL,17027,Clinton County,St. Louis,listed
+IL,17029,Coles County,Chicago,complement
+IL,17031,Cook County,Chicago,complement
+IL,17033,Crawford County,St. Louis,listed
+IL,17035,Cumberland County,Chicago,complement
+IL,17037,DeKalb County,Chicago,complement
+IL,17039,De Witt County,Chicago,complement
+IL,17041,Douglas County,Chicago,complement
+IL,17043,DuPage County,Chicago,complement
+IL,17045,Edgar County,Chicago,complement
+IL,17047,Edwards County,St. Louis,listed
+IL,17049,Effingham County,St. Louis,listed
+IL,17051,Fayette County,St. Louis,listed
+IL,17053,Ford County,Chicago,complement
+IL,17055,Franklin County,St. Louis,listed
+IL,17057,Fulton County,Chicago,complement
+IL,17059,Gallatin County,St. Louis,listed
+IL,17061,Greene County,St. Louis,listed
+IL,17063,Grundy County,Chicago,complement
+IL,17065,Hamilton County,St. Louis,listed
+IL,17067,Hancock County,Chicago,complement
+IL,17069,Hardin County,St. Louis,listed
+IL,17071,Henderson County,Chicago,complement
+IL,17073,Henry County,Chicago,complement
+IL,17075,Iroquois County,Chicago,complement
+IL,17077,Jackson County,St. Louis,listed
+IL,17079,Jasper County,St. Louis,listed
+IL,17081,Jefferson County,St. Louis,listed
+IL,17083,Jersey County,St. Louis,listed
+IL,17085,Jo Daviess County,Chicago,complement
+IL,17087,Johnson County,St. Louis,listed
+IL,17089,Kane County,Chicago,complement
+IL,17091,Kankakee County,Chicago,complement
+IL,17093,Kendall County,Chicago,complement
+IL,17095,Knox County,Chicago,complement
+IL,17097,Lake County,Chicago,complement
+IL,17099,LaSalle County,Chicago,complement
+IL,17101,Lawrence County,St. Louis,listed
+IL,17103,Lee County,Chicago,complement
+IL,17105,Livingston County,Chicago,complement
+IL,17107,Logan County,Chicago,complement
+IL,17109,McDonough County,Chicago,complement
+IL,17111,McHenry County,Chicago,complement
+IL,17113,McLean County,Chicago,complement
+IL,17115,Macon County,Chicago,complement
+IL,17117,Macoupin County,St. Louis,listed
+IL,17119,Madison County,St. Louis,listed
+IL,17121,Marion County,St. Louis,listed
+IL,17123,Marshall County,Chicago,complement
+IL,17125,Mason County,Chicago,complement
+IL,17127,Massac County,St. Louis,listed
+IL,17129,Menard County,Chicago,complement
+IL,17131,Mercer County,Chicago,complement
+IL,17133,Monroe County,St. Louis,listed
+IL,17135,Montgomery County,St. Louis,listed
+IL,17137,Morgan County,St. Louis,listed
+IL,17139,Moultrie County,Chicago,complement
+IL,17141,Ogle County,Chicago,complement
+IL,17143,Peoria County,Chicago,complement
+IL,17145,Perry County,St. Louis,listed
+IL,17147,Piatt County,Chicago,complement
+IL,17149,Pike County,St. Louis,listed
+IL,17151,Pope County,St. Louis,listed
+IL,17153,Pulaski County,St. Louis,listed
+IL,17155,Putnam County,Chicago,complement
+IL,17157,Randolph County,St. Louis,listed
+IL,17159,Richland County,St. Louis,listed
+IL,17161,Rock Island County,Chicago,complement
+IL,17163,St. Clair County,St. Louis,listed
+IL,17165,Saline County,St. Louis,listed
+IL,17167,Sangamon County,Chicago,complement
+IL,17169,Schuyler County,Chicago,complement
+IL,17171,Scott County,St. Louis,listed
+IL,17173,Shelby County,Chicago,complement
+IL,17175,Stark County,Chicago,complement
+IL,17177,Stephenson County,Chicago,complement
+IL,17179,Tazewell County,Chicago,complement
+IL,17181,Union County,St. Louis,listed
+IL,17183,Vermilion County,Chicago,complement
+IL,17185,Wabash County,St. Louis,listed
+IL,17187,Warren County,Chicago,complement
+IL,17189,Washington County,St. Louis,listed
+IL,17191,Wayne County,St. Louis,listed
+IL,17193,White County,St. Louis,listed
+IL,17195,Whiteside County,Chicago,complement
+IL,17197,Will County,Chicago,complement
+IL,17199,Williamson County,St. Louis,listed
+IL,17201,Winnebago County,Chicago,complement
+IL,17203,Woodford County,Chicago,complement
+IN,18001,Adams County,Chicago,complement
+IN,18003,Allen County,Chicago,complement
+IN,18005,Bartholomew County,Chicago,complement
+IN,18007,Benton County,Chicago,complement
+IN,18009,Blackford County,Chicago,complement
+IN,18011,Boone County,Chicago,complement
+IN,18013,Brown County,Chicago,complement
+IN,18015,Carroll County,Chicago,complement
+IN,18017,Cass County,Chicago,complement
+IN,18019,Clark County,St. Louis,listed
+IN,18021,Clay County,Chicago,complement
+IN,18023,Clinton County,Chicago,complement
+IN,18025,Crawford County,St. Louis,listed
+IN,18027,Daviess County,St. Louis,listed
+IN,18029,Dearborn County,Chicago,complement
+IN,18031,Decatur County,Chicago,complement
+IN,18033,DeKalb County,Chicago,complement
+IN,18035,Delaware County,Chicago,complement
+IN,18037,Dubois County,St. Louis,listed
+IN,18039,Elkhart County,Chicago,complement
+IN,18041,Fayette County,Chicago,complement
+IN,18043,Floyd County,St. Louis,listed
+IN,18045,Fountain County,Chicago,complement
+IN,18047,Franklin County,Chicago,complement
+IN,18049,Fulton County,Chicago,complement
+IN,18051,Gibson County,St. Louis,listed
+IN,18053,Grant County,Chicago,complement
+IN,18055,Greene County,St. Louis,listed
+IN,18057,Hamilton County,Chicago,complement
+IN,18059,Hancock County,Chicago,complement
+IN,18061,Harrison County,St. Louis,listed
+IN,18063,Hendricks County,Chicago,complement
+IN,18065,Henry County,Chicago,complement
+IN,18067,Howard County,Chicago,complement
+IN,18069,Huntington County,Chicago,complement
+IN,18071,Jackson County,St. Louis,listed
+IN,18073,Jasper County,Chicago,complement
+IN,18075,Jay County,Chicago,complement
+IN,18077,Jefferson County,St. Louis,listed
+IN,18079,Jennings County,Chicago,complement
+IN,18081,Johnson County,Chicago,complement
+IN,18083,Knox County,St. Louis,listed
+IN,18085,Kosciusko County,Chicago,complement
+IN,18087,LaGrange County,Chicago,complement
+IN,18089,Lake County,Chicago,complement
+IN,18091,LaPorte County,Chicago,complement
+IN,18093,Lawrence County,St. Louis,listed
+IN,18095,Madison County,Chicago,complement
+IN,18097,Marion County,Chicago,complement
+IN,18099,Marshall County,Chicago,complement
+IN,18101,Martin County,St. Louis,listed
+IN,18103,Miami County,Chicago,complement
+IN,18105,Monroe County,Chicago,complement
+IN,18107,Montgomery County,Chicago,complement
+IN,18109,Morgan County,Chicago,complement
+IN,18111,Newton County,Chicago,complement
+IN,18113,Noble County,Chicago,complement
+IN,18115,Ohio County,Chicago,complement
+IN,18117,Orange County,St. Louis,listed
+IN,18119,Owen County,Chicago,complement
+IN,18121,Parke County,Chicago,complement
+IN,18123,Perry County,St. Louis,listed
+IN,18125,Pike County,St. Louis,listed
+IN,18127,Porter County,Chicago,complement
+IN,18129,Posey County,St. Louis,listed
+IN,18131,Pulaski County,Chicago,complement
+IN,18133,Putnam County,Chicago,complement
+IN,18135,Randolph County,Chicago,complement
+IN,18137,Ripley County,Chicago,complement
+IN,18139,Rush County,Chicago,complement
+IN,18141,St. Joseph County,Chicago,complement
+IN,18143,Scott County,St. Louis,listed
+IN,18145,Shelby County,Chicago,complement
+IN,18147,Spencer County,St. Louis,listed
+IN,18149,Starke County,Chicago,complement
+IN,18151,Steuben County,Chicago,complement
+IN,18153,Sullivan County,St. Louis,listed
+IN,18155,Switzerland County,St. Louis,listed
+IN,18157,Tippecanoe County,Chicago,complement
+IN,18159,Tipton County,Chicago,complement
+IN,18161,Union County,Chicago,complement
+IN,18163,Vanderburgh County,St. Louis,listed
+IN,18165,Vermillion County,Chicago,complement
+IN,18167,Vigo County,Chicago,complement
+IN,18169,Wabash County,Chicago,complement
+IN,18171,Warren County,Chicago,complement
+IN,18173,Warrick County,St. Louis,listed
+IN,18175,Washington County,St. Louis,listed
+IN,18177,Wayne County,Chicago,complement
+IN,18179,Wells County,Chicago,complement
+IN,18181,White County,Chicago,complement
+IN,18183,Whitley County,Chicago,complement
+KY,21001,Adair County,St. Louis,listed
+KY,21003,Allen County,St. Louis,listed
+KY,21005,Anderson County,St. Louis,listed
+KY,21007,Ballard County,St. Louis,listed
+KY,21009,Barren County,St. Louis,listed
+KY,21011,Bath County,Cleveland,listed
+KY,21013,Bell County,Cleveland,listed
+KY,21015,Boone County,Cleveland,listed
+KY,21017,Bourbon County,Cleveland,listed
+KY,21019,Boyd County,Cleveland,listed
+KY,21021,Boyle County,St. Louis,listed
+KY,21023,Bracken County,Cleveland,listed
+KY,21025,Breathitt County,Cleveland,listed
+KY,21027,Breckinridge County,St. Louis,listed
+KY,21029,Bullitt County,St. Louis,listed
+KY,21031,Butler County,St. Louis,listed
+KY,21033,Caldwell County,St. Louis,listed
+KY,21035,Calloway County,St. Louis,listed
+KY,21037,Campbell County,Cleveland,listed
+KY,21039,Carlisle County,St. Louis,listed
+KY,21041,Carroll County,St. Louis,listed
+KY,21043,Carter County,Cleveland,listed
+KY,21045,Casey County,St. Louis,listed
+KY,21047,Christian County,St. Louis,listed
+KY,21049,Clark County,Cleveland,listed
+KY,21051,Clay County,Cleveland,listed
+KY,21053,Clinton County,St. Louis,listed
+KY,21055,Crittenden County,St. Louis,listed
+KY,21057,Cumberland County,St. Louis,listed
+KY,21059,Daviess County,St. Louis,listed
+KY,21061,Edmonson County,St. Louis,listed
+KY,21063,Elliott County,Cleveland,listed
+KY,21065,Estill County,Cleveland,listed
+KY,21067,Fayette County,Cleveland,listed
+KY,21069,Fleming County,Cleveland,listed
+KY,21071,Floyd County,Cleveland,listed
+KY,21073,Franklin County,St. Louis,listed
+KY,21075,Fulton County,St. Louis,listed
+KY,21077,Gallatin County,St. Louis,listed
+KY,21079,Garrard County,Cleveland,listed
+KY,21081,Grant County,Cleveland,listed
+KY,21083,Graves County,St. Louis,listed
+KY,21085,Grayson County,St. Louis,listed
+KY,21087,Green County,St. Louis,listed
+KY,21089,Greenup County,Cleveland,listed
+KY,21091,Hancock County,St. Louis,listed
+KY,21093,Hardin County,St. Louis,listed
+KY,21095,Harlan County,Cleveland,listed
+KY,21097,Harrison County,Cleveland,listed
+KY,21099,Hart County,St. Louis,listed
+KY,21101,Henderson County,St. Louis,listed
+KY,21103,Henry County,St. Louis,listed
+KY,21105,Hickman County,St. Louis,listed
+KY,21107,Hopkins County,St. Louis,listed
+KY,21109,Jackson County,Cleveland,listed
+KY,21111,Jefferson County,St. Louis,listed
+KY,21113,Jessamine County,Cleveland,listed
+KY,21115,Johnson County,Cleveland,listed
+KY,21117,Kenton County,Cleveland,listed
+KY,21119,Knott County,Cleveland,listed
+KY,21121,Knox County,Cleveland,listed
+KY,21123,Larue County,St. Louis,listed
+KY,21125,Laurel County,Cleveland,listed
+KY,21127,Lawrence County,Cleveland,listed
+KY,21129,Lee County,Cleveland,listed
+KY,21131,Leslie County,Cleveland,listed
+KY,21133,Letcher County,Cleveland,listed
+KY,21135,Lewis County,Cleveland,listed
+KY,21137,Lincoln County,Cleveland,listed
+KY,21139,Livingston County,St. Louis,listed
+KY,21141,Logan County,St. Louis,listed
+KY,21143,Lyon County,St. Louis,listed
+KY,21145,McCracken County,St. Louis,listed
+KY,21147,McCreary County,Cleveland,listed
+KY,21149,McLean County,St. Louis,listed
+KY,21151,Madison County,Cleveland,listed
+KY,21153,Magoffin County,Cleveland,listed
+KY,21155,Marion County,St. Louis,listed
+KY,21157,Marshall County,St. Louis,listed
+KY,21159,Martin County,Cleveland,listed
+KY,21161,Mason County,Cleveland,listed
+KY,21163,Meade County,St. Louis,listed
+KY,21165,Menifee County,Cleveland,listed
+KY,21167,Mercer County,St. Louis,listed
+KY,21169,Metcalfe County,St. Louis,listed
+KY,21171,Monroe County,St. Louis,listed
+KY,21173,Montgomery County,Cleveland,listed
+KY,21175,Morgan County,Cleveland,listed
+KY,21177,Muhlenberg County,St. Louis,listed
+KY,21179,Nelson County,St. Louis,listed
+KY,21181,Nicholas County,Cleveland,listed
+KY,21183,Ohio County,St. Louis,listed
+KY,21185,Oldham County,St. Louis,listed
+KY,21187,Owen County,St. Louis,listed
+KY,21189,Owsley County,Cleveland,listed
+KY,21191,Pendleton County,Cleveland,listed
+KY,21193,Perry County,Cleveland,listed
+KY,21195,Pike County,Cleveland,listed
+KY,21197,Powell County,Cleveland,listed
+KY,21199,Pulaski County,Cleveland,listed
+KY,21201,Robertson County,Cleveland,listed
+KY,21203,Rockcastle County,Cleveland,listed
+KY,21205,Rowan County,Cleveland,listed
+KY,21207,Russell County,St. Louis,listed
+KY,21209,Scott County,Cleveland,listed
+KY,21211,Shelby County,St. Louis,listed
+KY,21213,Simpson County,St. Louis,listed
+KY,21215,Spencer County,St. Louis,listed
+KY,21217,Taylor County,St. Louis,listed
+KY,21219,Todd County,St. Louis,listed
+KY,21221,Trigg County,St. Louis,listed
+KY,21223,Trimble County,St. Louis,listed
+KY,21225,Union County,St. Louis,listed
+KY,21227,Warren County,St. Louis,listed
+KY,21229,Washington County,St. Louis,listed
+KY,21231,Wayne County,St. Louis,listed
+KY,21233,Webster County,St. Louis,listed
+KY,21235,Whitley County,Cleveland,listed
+KY,21237,Wolfe County,Cleveland,listed
+KY,21239,Woodford County,Cleveland,listed
+LA,22001,Acadia Parish,Atlanta,complement
+LA,22003,Allen Parish,Atlanta,complement
+LA,22005,Ascension Parish,Atlanta,complement
+LA,22007,Assumption Parish,Atlanta,complement
+LA,22009,Avoyelles Parish,Atlanta,complement
+LA,22011,Beauregard Parish,Atlanta,complement
+LA,22013,Bienville Parish,Dallas,listed
+LA,22015,Bossier Parish,Dallas,listed
+LA,22017,Caddo Parish,Dallas,listed
+LA,22019,Calcasieu Parish,Atlanta,complement
+LA,22021,Caldwell Parish,Dallas,listed
+LA,22023,Cameron Parish,Atlanta,complement
+LA,22025,Catahoula Parish,Dallas,listed
+LA,22027,Claiborne Parish,Dallas,listed
+LA,22029,Concordia Parish,Dallas,listed
+LA,22031,De Soto Parish,Dallas,listed
+LA,22033,East Baton Rouge Parish,Atlanta,complement
+LA,22035,East Carroll Parish,Dallas,listed
+LA,22037,East Feliciana Parish,Atlanta,complement
+LA,22039,Evangeline Parish,Atlanta,complement
+LA,22041,Franklin Parish,Dallas,listed
+LA,22043,Grant Parish,Dallas,listed
+LA,22045,Iberia Parish,Atlanta,complement
+LA,22047,Iberville Parish,Atlanta,complement
+LA,22049,Jackson Parish,Dallas,listed
+LA,22051,Jefferson Parish,Atlanta,complement
+LA,22053,Jefferson Davis Parish,Atlanta,complement
+LA,22055,Lafayette Parish,Atlanta,complement
+LA,22057,Lafourche Parish,Atlanta,complement
+LA,22059,La Salle Parish,Dallas,listed
+LA,22061,Lincoln Parish,Dallas,listed
+LA,22063,Livingston Parish,Atlanta,complement
+LA,22065,Madison Parish,Dallas,listed
+LA,22067,Morehouse Parish,Dallas,listed
+LA,22069,Natchitoches Parish,Dallas,listed
+LA,22071,Orleans Parish,Atlanta,complement
+LA,22073,Ouachita Parish,Dallas,listed
+LA,22075,Plaquemines Parish,Atlanta,complement
+LA,22077,Pointe Coupee Parish,Atlanta,complement
+LA,22079,Rapides Parish,Atlanta,complement
+LA,22081,Red River Parish,Dallas,listed
+LA,22083,Richland Parish,Dallas,listed
+LA,22085,Sabine Parish,Dallas,listed
+LA,22087,St. Bernard Parish,Atlanta,complement
+LA,22089,St. Charles Parish,Atlanta,complement
+LA,22091,St. Helena Parish,Atlanta,complement
+LA,22093,St. James Parish,Atlanta,complement
+LA,22095,St. John the Baptist Parish,Atlanta,complement
+LA,22097,St. Landry Parish,Atlanta,complement
+LA,22099,St. Martin Parish,Atlanta,complement
+LA,22101,St. Mary Parish,Atlanta,complement
+LA,22103,St. Tammany Parish,Atlanta,complement
+LA,22105,Tangipahoa Parish,Atlanta,complement
+LA,22107,Tensas Parish,Dallas,listed
+LA,22109,Terrebonne Parish,Atlanta,complement
+LA,22111,Union Parish,Dallas,listed
+LA,22113,Vermilion Parish,Atlanta,complement
+LA,22115,Vernon Parish,Atlanta,complement
+LA,22117,Washington Parish,Atlanta,complement
+LA,22119,Webster Parish,Dallas,listed
+LA,22121,West Baton Rouge Parish,Atlanta,complement
+LA,22123,West Carroll Parish,Dallas,listed
+LA,22125,West Feliciana Parish,Atlanta,complement
+LA,22127,Winn Parish,Dallas,listed
+MI,26001,Alcona County,Chicago,complement
+MI,26003,Alger County,Minneapolis,listed
+MI,26005,Allegan County,Chicago,complement
+MI,26007,Alpena County,Chicago,complement
+MI,26009,Antrim County,Chicago,complement
+MI,26011,Arenac County,Chicago,complement
+MI,26013,Baraga County,Minneapolis,listed
+MI,26015,Barry County,Chicago,complement
+MI,26017,Bay County,Chicago,complement
+MI,26019,Benzie County,Chicago,complement
+MI,26021,Berrien County,Chicago,complement
+MI,26023,Branch County,Chicago,complement
+MI,26025,Calhoun County,Chicago,complement
+MI,26027,Cass County,Chicago,complement
+MI,26029,Charlevoix County,Chicago,complement
+MI,26031,Cheboygan County,Chicago,complement
+MI,26033,Chippewa County,Minneapolis,listed
+MI,26035,Clare County,Chicago,complement
+MI,26037,Clinton County,Chicago,complement
+MI,26039,Crawford County,Chicago,complement
+MI,26041,Delta County,Minneapolis,listed
+MI,26043,Dickinson County,Minneapolis,listed
+MI,26045,Eaton County,Chicago,complement
+MI,26047,Emmet County,Chicago,complement
+MI,26049,Genesee County,Chicago,complement
+MI,26051,Gladwin County,Chicago,complement
+MI,26053,Gogebic County,Minneapolis,listed
+MI,26055,Grand Traverse County,Chicago,complement
+MI,26057,Gratiot County,Chicago,complement
+MI,26059,Hillsdale County,Chicago,complement
+MI,26061,Houghton County,Minneapolis,listed
+MI,26063,Huron County,Chicago,complement
+MI,26065,Ingham County,Chicago,complement
+MI,26067,Ionia County,Chicago,complement
+MI,26069,Iosco County,Chicago,complement
+MI,26071,Iron County,Minneapolis,listed
+MI,26073,Isabella County,Chicago,complement
+MI,26075,Jackson County,Chicago,complement
+MI,26077,Kalamazoo County,Chicago,complement
+MI,26079,Kalkaska County,Chicago,complement
+MI,26081,Kent County,Chicago,complement
+MI,26083,Keweenaw County,Minneapolis,listed
+MI,26085,Lake County,Chicago,complement
+MI,26087,Lapeer County,Chicago,complement
+MI,26089,Leelanau County,Chicago,complement
+MI,26091,Lenawee County,Chicago,complement
+MI,26093,Livingston County,Chicago,complement
+MI,26095,Luce County,Minneapolis,listed
+MI,26097,Mackinac County,Minneapolis,listed
+MI,26099,Macomb County,Chicago,complement
+MI,26101,Manistee County,Chicago,complement
+MI,26103,Marquette County,Minneapolis,listed
+MI,26105,Mason County,Chicago,complement
+MI,26107,Mecosta County,Chicago,complement
+MI,26109,Menominee County,Minneapolis,listed
+MI,26111,Midland County,Chicago,complement
+MI,26113,Missaukee County,Chicago,complement
+MI,26115,Monroe County,Chicago,complement
+MI,26117,Montcalm County,Chicago,complement
+MI,26119,Montmorency County,Chicago,complement
+MI,26121,Muskegon County,Chicago,complement
+MI,26123,Newaygo County,Chicago,complement
+MI,26125,Oakland County,Chicago,complement
+MI,26127,Oceana County,Chicago,complement
+MI,26129,Ogemaw County,Chicago,complement
+MI,26131,Ontonagon County,Minneapolis,listed
+MI,26133,Osceola County,Chicago,complement
+MI,26135,Oscoda County,Chicago,complement
+MI,26137,Otsego County,Chicago,complement
+MI,26139,Ottawa County,Chicago,complement
+MI,26141,Presque Isle County,Chicago,complement
+MI,26143,Roscommon County,Chicago,complement
+MI,26145,Saginaw County,Chicago,complement
+MI,26147,St. Clair County,Chicago,complement
+MI,26149,St. Joseph County,Chicago,complement
+MI,26151,Sanilac County,Chicago,complement
+MI,26153,Schoolcraft County,Minneapolis,listed
+MI,26155,Shiawassee County,Chicago,complement
+MI,26157,Tuscola County,Chicago,complement
+MI,26159,Van Buren County,Chicago,complement
+MI,26161,Washtenaw County,Chicago,complement
+MI,26163,Wayne County,Chicago,complement
+MI,26165,Wexford County,Chicago,complement
+MO,29001,Adair County,St. Louis,listed
+MO,29003,Andrew County,Kansas City,complement
+MO,29005,Atchison County,Kansas City,complement
+MO,29007,Audrain County,St. Louis,listed
+MO,29009,Barry County,St. Louis,listed
+MO,29011,Barton County,Kansas City,complement
+MO,29013,Bates County,Kansas City,complement
+MO,29015,Benton County,Kansas City,complement
+MO,29017,Bollinger County,St. Louis,listed
+MO,29019,Boone County,St. Louis,listed
+MO,29021,Buchanan County,Kansas City,complement
+MO,29023,Butler County,St. Louis,listed
+MO,29025,Caldwell County,Kansas City,complement
+MO,29027,Callaway County,St. Louis,listed
+MO,29029,Camden County,St. Louis,listed
+MO,29031,Cape Girardeau County,St. Louis,listed
+MO,29033,Carroll County,Kansas City,complement
+MO,29035,Carter County,St. Louis,listed
+MO,29037,Cass County,Kansas City,complement
+MO,29039,Cedar County,Kansas City,complement
+MO,29041,Chariton County,Kansas City,complement
+MO,29043,Christian County,St. Louis,listed
+MO,29045,Clark County,St. Louis,listed
+MO,29047,Clay County,Kansas City,complement
+MO,29049,Clinton County,Kansas City,complement
+MO,29051,Cole County,St. Louis,listed
+MO,29053,Cooper County,Kansas City,complement
+MO,29055,Crawford County,St. Louis,listed
+MO,29057,Dade County,St. Louis,listed
+MO,29059,Dallas County,St. Louis,listed
+MO,29061,Daviess County,Kansas City,complement
+MO,29063,DeKalb County,Kansas City,complement
+MO,29065,Dent County,St. Louis,listed
+MO,29067,Douglas County,St. Louis,listed
+MO,29069,Dunklin County,St. Louis,listed
+MO,29071,Franklin County,St. Louis,listed
+MO,29073,Gasconade County,St. Louis,listed
+MO,29075,Gentry County,Kansas City,complement
+MO,29077,Greene County,St. Louis,listed
+MO,29079,Grundy County,Kansas City,complement
+MO,29081,Harrison County,Kansas City,complement
+MO,29083,Henry County,Kansas City,complement
+MO,29085,Hickory County,Kansas City,complement
+MO,29087,Holt County,Kansas City,complement
+MO,29089,Howard County,Kansas City,complement
+MO,29091,Howell County,St. Louis,listed
+MO,29093,Iron County,St. Louis,listed
+MO,29095,Jackson County,Kansas City,complement
+MO,29097,Jasper County,Kansas City,complement
+MO,29099,Jefferson County,St. Louis,listed
+MO,29101,Johnson County,Kansas City,complement
+MO,29103,Knox County,St. Louis,listed
+MO,29105,Laclede County,St. Louis,listed
+MO,29107,Lafayette County,Kansas City,complement
+MO,29109,Lawrence County,St. Louis,listed
+MO,29111,Lewis County,St. Louis,listed
+MO,29113,Lincoln County,St. Louis,listed
+MO,29115,Linn County,Kansas City,complement
+MO,29117,Livingston County,Kansas City,complement
+MO,29119,McDonald County,Kansas City,complement
+MO,29121,Macon County,St. Louis,listed
+MO,29123,Madison County,St. Louis,listed
+MO,29125,Maries County,St. Louis,listed
+MO,29127,Marion County,St. Louis,listed
+MO,29129,Mercer County,Kansas City,complement
+MO,29131,Miller County,St. Louis,listed
+MO,29133,Mississippi County,St. Louis,listed
+MO,29135,Moniteau County,St. Louis,listed
+MO,29137,Monroe County,St. Louis,listed
+MO,29139,Montgomery County,St. Louis,listed
+MO,29141,Morgan County,Kansas City,complement
+MO,29143,New Madrid County,St. Louis,listed
+MO,29145,Newton County,Kansas City,complement
+MO,29147,Nodaway County,Kansas City,complement
+MO,29149,Oregon County,St. Louis,listed
+MO,29151,Osage County,St. Louis,listed
+MO,29153,Ozark County,St. Louis,listed
+MO,29155,Pemiscot County,St. Louis,listed
+MO,29157,Perry County,St. Louis,listed
+MO,29159,Pettis County,Kansas City,complement
+MO,29161,Phelps County,St. Louis,listed
+MO,29163,Pike County,St. Louis,listed
+MO,29165,Platte County,Kansas City,complement
+MO,29167,Polk County,St. Louis,listed
+MO,29169,Pulaski County,St. Louis,listed
+MO,29171,Putnam County,Kansas City,complement
+MO,29173,Ralls County,St. Louis,listed
+MO,29175,Randolph County,St. Louis,listed
+MO,29177,Ray County,Kansas City,complement
+MO,29179,Reynolds County,St. Louis,listed
+MO,29181,Ripley County,St. Louis,listed
+MO,29183,St. Charles County,St. Louis,listed
+MO,29185,St. Clair County,Kansas City,complement
+MO,29186,Ste. Genevieve County,St. Louis,listed
+MO,29187,St. Francois County,St. Louis,listed
+MO,29189,St. Louis County,St. Louis,listed
+MO,29195,Saline County,Kansas City,complement
+MO,29197,Schuyler County,St. Louis,listed
+MO,29199,Scotland County,St. Louis,listed
+MO,29201,Scott County,St. Louis,listed
+MO,29203,Shannon County,St. Louis,listed
+MO,29205,Shelby County,St. Louis,listed
+MO,29207,Stoddard County,St. Louis,listed
+MO,29209,Stone County,St. Louis,listed
+MO,29211,Sullivan County,Kansas City,complement
+MO,29213,Taney County,St. Louis,listed
+MO,29215,Texas County,St. Louis,listed
+MO,29217,Vernon County,Kansas City,complement
+MO,29219,Warren County,St. Louis,listed
+MO,29221,Washington County,St. Louis,listed
+MO,29223,Wayne County,St. Louis,listed
+MO,29225,Webster County,St. Louis,listed
+MO,29227,Worth County,Kansas City,complement
+MO,29229,Wright County,St. Louis,listed
+MO,29510,St. Louis city,St. Louis,listed
+MS,28001,Adams County,Atlanta,complement
+MS,28003,Alcorn County,St. Louis,listed
+MS,28005,Amite County,Atlanta,complement
+MS,28007,Attala County,St. Louis,listed
+MS,28009,Benton County,St. Louis,listed
+MS,28011,Bolivar County,St. Louis,listed
+MS,28013,Calhoun County,St. Louis,listed
+MS,28015,Carroll County,St. Louis,listed
+MS,28017,Chickasaw County,St. Louis,listed
+MS,28019,Choctaw County,St. Louis,listed
+MS,28021,Claiborne County,Atlanta,complement
+MS,28023,Clarke County,Atlanta,complement
+MS,28025,Clay County,St. Louis,listed
+MS,28027,Coahoma County,St. Louis,listed
+MS,28029,Copiah County,Atlanta,complement
+MS,28031,Covington County,Atlanta,complement
+MS,28033,DeSoto County,St. Louis,listed
+MS,28035,Forrest County,Atlanta,complement
+MS,28037,Franklin County,Atlanta,complement
+MS,28039,George County,Atlanta,complement
+MS,28041,Greene County,Atlanta,complement
+MS,28043,Grenada County,St. Louis,listed
+MS,28045,Hancock County,Atlanta,complement
+MS,28047,Harrison County,Atlanta,complement
+MS,28049,Hinds County,Atlanta,complement
+MS,28051,Holmes County,St. Louis,listed
+MS,28053,Humphreys County,St. Louis,listed
+MS,28055,Issaquena County,Atlanta,complement
+MS,28057,Itawamba County,St. Louis,listed
+MS,28059,Jackson County,Atlanta,complement
+MS,28061,Jasper County,Atlanta,complement
+MS,28063,Jefferson County,Atlanta,complement
+MS,28065,Jefferson Davis County,Atlanta,complement
+MS,28067,Jones County,Atlanta,complement
+MS,28069,Kemper County,Atlanta,complement
+MS,28071,Lafayette County,St. Louis,listed
+MS,28073,Lamar County,Atlanta,complement
+MS,28075,Lauderdale County,Atlanta,complement
+MS,28077,Lawrence County,Atlanta,complement
+MS,28079,Leake County,Atlanta,complement
+MS,28081,Lee County,St. Louis,listed
+MS,28083,Leflore County,St. Louis,listed
+MS,28085,Lincoln County,Atlanta,complement
+MS,28087,Lowndes County,St. Louis,listed
+MS,28089,Madison County,Atlanta,complement
+MS,28091,Marion County,Atlanta,complement
+MS,28093,Marshall County,St. Louis,listed
+MS,28095,Monroe County,St. Louis,listed
+MS,28097,Montgomery County,St. Louis,listed
+MS,28099,Neshoba County,Atlanta,complement
+MS,28101,Newton County,Atlanta,complement
+MS,28103,Noxubee County,St. Louis,listed
+MS,28105,Oktibbeha County,St. Louis,listed
+MS,28107,Panola County,St. Louis,listed
+MS,28109,Pearl River County,Atlanta,complement
+MS,28111,Perry County,Atlanta,complement
+MS,28113,Pike County,Atlanta,complement
+MS,28115,Pontotoc County,St. Louis,listed
+MS,28117,Prentiss County,St. Louis,listed
+MS,28119,Quitman County,St. Louis,listed
+MS,28121,Rankin County,Atlanta,complement
+MS,28123,Scott County,Atlanta,complement
+MS,28125,Sharkey County,Atlanta,complement
+MS,28127,Simpson County,Atlanta,complement
+MS,28129,Smith County,Atlanta,complement
+MS,28131,Stone County,Atlanta,complement
+MS,28133,Sunflower County,St. Louis,listed
+MS,28135,Tallahatchie County,St. Louis,listed
+MS,28137,Tate County,St. Louis,listed
+MS,28139,Tippah County,St. Louis,listed
+MS,28141,Tishomingo County,St. Louis,listed
+MS,28143,Tunica County,St. Louis,listed
+MS,28145,Union County,St. Louis,listed
+MS,28147,Walthall County,Atlanta,complement
+MS,28149,Warren County,Atlanta,complement
+MS,28151,Washington County,St. Louis,listed
+MS,28153,Wayne County,Atlanta,complement
+MS,28155,Webster County,St. Louis,listed
+MS,28157,Wilkinson County,Atlanta,complement
+MS,28159,Winston County,St. Louis,listed
+MS,28161,Yalobusha County,St. Louis,listed
+MS,28163,Yazoo County,Atlanta,complement
+NJ,34001,Atlantic County,Philadelphia,complement
+NJ,34003,Bergen County,New York,listed
+NJ,34005,Burlington County,Philadelphia,complement
+NJ,34007,Camden County,Philadelphia,complement
+NJ,34009,Cape May County,Philadelphia,complement
+NJ,34011,Cumberland County,Philadelphia,complement
+NJ,34013,Essex County,New York,listed
+NJ,34015,Gloucester County,Philadelphia,complement
+NJ,34017,Hudson County,New York,listed
+NJ,34019,Hunterdon County,New York,listed
+NJ,34021,Mercer County,Philadelphia,complement
+NJ,34023,Middlesex County,New York,listed
+NJ,34025,Monmouth County,New York,listed
+NJ,34027,Morris County,New York,listed
+NJ,34029,Ocean County,Philadelphia,complement
+NJ,34031,Passaic County,New York,listed
+NJ,34033,Salem County,Philadelphia,complement
+NJ,34035,Somerset County,New York,listed
+NJ,34037,Sussex County,New York,listed
+NJ,34039,Union County,New York,listed
+NJ,34041,Warren County,New York,listed
+NM,35001,Bernalillo County,Kansas City,complement
+NM,35003,Catron County,Dallas,listed
+NM,35005,Chaves County,Dallas,listed
+NM,35006,Cibola County,Kansas City,complement
+NM,35007,Colfax County,Kansas City,complement
+NM,35009,Curry County,Dallas,listed
+NM,35011,De Baca County,Dallas,listed
+NM,35013,Dona Ana County,Dallas,listed
+NM,35015,Eddy County,Dallas,listed
+NM,35017,Grant County,Dallas,listed
+NM,35019,Guadalupe County,Dallas,listed
+NM,35021,Harding County,Kansas City,complement
+NM,35023,Hidalgo County,Dallas,listed
+NM,35025,Lea County,Dallas,listed
+NM,35027,Lincoln County,Dallas,listed
+NM,35028,Los Alamos County,Kansas City,complement
+NM,35029,Luna County,Dallas,listed
+NM,35031,McKinley County,Kansas City,complement
+NM,35033,Mora County,Kansas City,complement
+NM,35035,Otero County,Dallas,listed
+NM,35037,Quay County,Dallas,listed
+NM,35039,Rio Arriba County,Kansas City,complement
+NM,35041,Roosevelt County,Dallas,listed
+NM,35043,Sandoval County,Kansas City,complement
+NM,35045,San Juan County,Kansas City,complement
+NM,35047,San Miguel County,Kansas City,complement
+NM,35049,Santa Fe County,Kansas City,complement
+NM,35051,Sierra County,Dallas,listed
+NM,35053,Socorro County,Dallas,listed
+NM,35055,Taos County,Kansas City,complement
+NM,35057,Torrance County,Dallas,listed
+NM,35059,Union County,Kansas City,complement
+NM,35061,Valencia County,Kansas City,complement
+PA,42001,Adams County,Philadelphia,complement
+PA,42003,Allegheny County,Cleveland,listed
+PA,42005,Armstrong County,Cleveland,listed
+PA,42007,Beaver County,Cleveland,listed
+PA,42009,Bedford County,Philadelphia,complement
+PA,42011,Berks County,Philadelphia,complement
+PA,42013,Blair County,Philadelphia,complement
+PA,42015,Bradford County,Philadelphia,complement
+PA,42017,Bucks County,Philadelphia,complement
+PA,42019,Butler County,Cleveland,listed
+PA,42021,Cambria County,Philadelphia,complement
+PA,42023,Cameron County,Philadelphia,complement
+PA,42025,Carbon County,Philadelphia,complement
+PA,42027,Centre County,Philadelphia,complement
+PA,42029,Chester County,Philadelphia,complement
+PA,42031,Clarion County,Cleveland,listed
+PA,42033,Clearfield County,Philadelphia,complement
+PA,42035,Clinton County,Philadelphia,complement
+PA,42037,Columbia County,Philadelphia,complement
+PA,42039,Crawford County,Cleveland,listed
+PA,42041,Cumberland County,Philadelphia,complement
+PA,42043,Dauphin County,Philadelphia,complement
+PA,42045,Delaware County,Philadelphia,complement
+PA,42047,Elk County,Philadelphia,complement
+PA,42049,Erie County,Cleveland,listed
+PA,42051,Fayette County,Cleveland,listed
+PA,42053,Forest County,Cleveland,listed
+PA,42055,Franklin County,Philadelphia,complement
+PA,42057,Fulton County,Philadelphia,complement
+PA,42059,Greene County,Cleveland,listed
+PA,42061,Huntingdon County,Philadelphia,complement
+PA,42063,Indiana County,Cleveland,listed
+PA,42065,Jefferson County,Cleveland,listed
+PA,42067,Juniata County,Philadelphia,complement
+PA,42069,Lackawanna County,Philadelphia,complement
+PA,42071,Lancaster County,Philadelphia,complement
+PA,42073,Lawrence County,Cleveland,listed
+PA,42075,Lebanon County,Philadelphia,complement
+PA,42077,Lehigh County,Philadelphia,complement
+PA,42079,Luzerne County,Philadelphia,complement
+PA,42081,Lycoming County,Philadelphia,complement
+PA,42083,McKean County,Philadelphia,complement
+PA,42085,Mercer County,Cleveland,listed
+PA,42087,Mifflin County,Philadelphia,complement
+PA,42089,Monroe County,Philadelphia,complement
+PA,42091,Montgomery County,Philadelphia,complement
+PA,42093,Montour County,Philadelphia,complement
+PA,42095,Northampton County,Philadelphia,complement
+PA,42097,Northumberland County,Philadelphia,complement
+PA,42099,Perry County,Philadelphia,complement
+PA,42101,Philadelphia County,Philadelphia,complement
+PA,42103,Pike County,Philadelphia,complement
+PA,42105,Potter County,Philadelphia,complement
+PA,42107,Schuylkill County,Philadelphia,complement
+PA,42109,Snyder County,Philadelphia,complement
+PA,42111,Somerset County,Cleveland,listed
+PA,42113,Sullivan County,Philadelphia,complement
+PA,42115,Susquehanna County,Philadelphia,complement
+PA,42117,Tioga County,Philadelphia,complement
+PA,42119,Union County,Philadelphia,complement
+PA,42121,Venango County,Cleveland,listed
+PA,42123,Warren County,Cleveland,listed
+PA,42125,Washington County,Cleveland,listed
+PA,42127,Wayne County,Philadelphia,complement
+PA,42129,Westmoreland County,Cleveland,listed
+PA,42131,Wyoming County,Philadelphia,complement
+PA,42133,York County,Philadelphia,complement
+TN,47001,Anderson County,Atlanta,complement
+TN,47003,Bedford County,Atlanta,complement
+TN,47005,Benton County,St. Louis,listed
+TN,47007,Bledsoe County,Atlanta,complement
+TN,47009,Blount County,Atlanta,complement
+TN,47011,Bradley County,Atlanta,complement
+TN,47013,Campbell County,Atlanta,complement
+TN,47015,Cannon County,Atlanta,complement
+TN,47017,Carroll County,St. Louis,listed
+TN,47019,Carter County,Atlanta,complement
+TN,47021,Cheatham County,Atlanta,complement
+TN,47023,Chester County,St. Louis,listed
+TN,47025,Claiborne County,Atlanta,complement
+TN,47027,Clay County,Atlanta,complement
+TN,47029,Cocke County,Atlanta,complement
+TN,47031,Coffee County,Atlanta,complement
+TN,47033,Crockett County,St. Louis,listed
+TN,47035,Cumberland County,Atlanta,complement
+TN,47037,Davidson County,Atlanta,complement
+TN,47039,Decatur County,St. Louis,listed
+TN,47041,DeKalb County,Atlanta,complement
+TN,47043,Dickson County,Atlanta,complement
+TN,47045,Dyer County,St. Louis,listed
+TN,47047,Fayette County,St. Louis,listed
+TN,47049,Fentress County,Atlanta,complement
+TN,47051,Franklin County,Atlanta,complement
+TN,47053,Gibson County,St. Louis,listed
+TN,47055,Giles County,Atlanta,complement
+TN,47057,Grainger County,Atlanta,complement
+TN,47059,Greene County,Atlanta,complement
+TN,47061,Grundy County,Atlanta,complement
+TN,47063,Hamblen County,Atlanta,complement
+TN,47065,Hamilton County,Atlanta,complement
+TN,47067,Hancock County,Atlanta,complement
+TN,47069,Hardeman County,St. Louis,listed
+TN,47071,Hardin County,St. Louis,listed
+TN,47073,Hawkins County,Atlanta,complement
+TN,47075,Haywood County,St. Louis,listed
+TN,47077,Henderson County,St. Louis,listed
+TN,47079,Henry County,St. Louis,listed
+TN,47081,Hickman County,Atlanta,complement
+TN,47083,Houston County,Atlanta,complement
+TN,47085,Humphreys County,Atlanta,complement
+TN,47087,Jackson County,Atlanta,complement
+TN,47089,Jefferson County,Atlanta,complement
+TN,47091,Johnson County,Atlanta,complement
+TN,47093,Knox County,Atlanta,complement
+TN,47095,Lake County,St. Louis,listed
+TN,47097,Lauderdale County,St. Louis,listed
+TN,47099,Lawrence County,Atlanta,complement
+TN,47101,Lewis County,Atlanta,complement
+TN,47103,Lincoln County,Atlanta,complement
+TN,47105,Loudon County,Atlanta,complement
+TN,47107,McMinn County,Atlanta,complement
+TN,47109,McNairy County,St. Louis,listed
+TN,47111,Macon County,Atlanta,complement
+TN,47113,Madison County,St. Louis,listed
+TN,47115,Marion County,Atlanta,complement
+TN,47117,Marshall County,Atlanta,complement
+TN,47119,Maury County,Atlanta,complement
+TN,47121,Meigs County,Atlanta,complement
+TN,47123,Monroe County,Atlanta,complement
+TN,47125,Montgomery County,Atlanta,complement
+TN,47127,Moore County,Atlanta,complement
+TN,47129,Morgan County,Atlanta,complement
+TN,47131,Obion County,St. Louis,listed
+TN,47133,Overton County,Atlanta,complement
+TN,47135,Perry County,Atlanta,complement
+TN,47137,Pickett County,Atlanta,complement
+TN,47139,Polk County,Atlanta,complement
+TN,47141,Putnam County,Atlanta,complement
+TN,47143,Rhea County,Atlanta,complement
+TN,47145,Roane County,Atlanta,complement
+TN,47147,Robertson County,Atlanta,complement
+TN,47149,Rutherford County,Atlanta,complement
+TN,47151,Scott County,Atlanta,complement
+TN,47153,Sequatchie County,Atlanta,complement
+TN,47155,Sevier County,Atlanta,complement
+TN,47157,Shelby County,St. Louis,listed
+TN,47159,Smith County,Atlanta,complement
+TN,47161,Stewart County,Atlanta,complement
+TN,47163,Sullivan County,Atlanta,complement
+TN,47165,Sumner County,Atlanta,complement
+TN,47167,Tipton County,St. Louis,listed
+TN,47169,Trousdale County,Atlanta,complement
+TN,47171,Unicoi County,Atlanta,complement
+TN,47173,Union County,Atlanta,complement
+TN,47175,Van Buren County,Atlanta,complement
+TN,47177,Warren County,Atlanta,complement
+TN,47179,Washington County,Atlanta,complement
+TN,47181,Wayne County,Atlanta,complement
+TN,47183,Weakley County,St. Louis,listed
+TN,47185,White County,Atlanta,complement
+TN,47187,Williamson County,Atlanta,complement
+TN,47189,Wilson County,Atlanta,complement
+WI,55001,Adams County,Chicago,complement
+WI,55003,Ashland County,Minneapolis,listed
+WI,55005,Barron County,Minneapolis,listed
+WI,55007,Bayfield County,Minneapolis,listed
+WI,55009,Brown County,Chicago,complement
+WI,55011,Buffalo County,Minneapolis,listed
+WI,55013,Burnett County,Minneapolis,listed
+WI,55015,Calumet County,Chicago,complement
+WI,55017,Chippewa County,Minneapolis,listed
+WI,55019,Clark County,Chicago,complement
+WI,55021,Columbia County,Chicago,complement
+WI,55023,Crawford County,Chicago,complement
+WI,55025,Dane County,Chicago,complement
+WI,55027,Dodge County,Chicago,complement
+WI,55029,Door County,Chicago,complement
+WI,55031,Douglas County,Minneapolis,listed
+WI,55033,Dunn County,Minneapolis,listed
+WI,55035,Eau Claire County,Minneapolis,listed
+WI,55037,Florence County,Minneapolis,listed
+WI,55039,Fond du Lac County,Chicago,complement
+WI,55041,Forest County,Minneapolis,listed
+WI,55043,Grant County,Chicago,complement
+WI,55045,Green County,Chicago,complement
+WI,55047,Green Lake County,Chicago,complement
+WI,55049,Iowa County,Chicago,complement
+WI,55051,Iron County,Minneapolis,listed
+WI,55053,Jackson County,Chicago,complement
+WI,55055,Jefferson County,Chicago,complement
+WI,55057,Juneau County,Chicago,complement
+WI,55059,Kenosha County,Chicago,complement
+WI,55061,Kewaunee County,Chicago,complement
+WI,55063,La Crosse County,Minneapolis,listed
+WI,55065,Lafayette County,Chicago,complement
+WI,55067,Langlade County,Chicago,complement
+WI,55069,Lincoln County,Minneapolis,listed
+WI,55071,Manitowoc County,Chicago,complement
+WI,55073,Marathon County,Chicago,complement
+WI,55075,Marinette County,Chicago,complement
+WI,55077,Marquette County,Chicago,complement
+WI,55078,Menominee County,Chicago,complement
+WI,55079,Milwaukee County,Chicago,complement
+WI,55081,Monroe County,Chicago,complement
+WI,55083,Oconto County,Chicago,complement
+WI,55085,Oneida County,Minneapolis,listed
+WI,55087,Outagamie County,Chicago,complement
+WI,55089,Ozaukee County,Chicago,complement
+WI,55091,Pepin County,Minneapolis,listed
+WI,55093,Pierce County,Minneapolis,listed
+WI,55095,Polk County,Minneapolis,listed
+WI,55097,Portage County,Chicago,complement
+WI,55099,Price County,Minneapolis,listed
+WI,55101,Racine County,Chicago,complement
+WI,55103,Richland County,Chicago,complement
+WI,55105,Rock County,Chicago,complement
+WI,55107,Rusk County,Minneapolis,listed
+WI,55109,St. Croix County,Minneapolis,listed
+WI,55111,Sauk County,Chicago,complement
+WI,55113,Sawyer County,Minneapolis,listed
+WI,55115,Shawano County,Chicago,complement
+WI,55117,Sheboygan County,Chicago,complement
+WI,55119,Taylor County,Minneapolis,listed
+WI,55121,Trempealeau County,Minneapolis,listed
+WI,55123,Vernon County,Chicago,complement
+WI,55125,Vilas County,Minneapolis,listed
+WI,55127,Walworth County,Chicago,complement
+WI,55129,Washburn County,Minneapolis,listed
+WI,55131,Washington County,Chicago,complement
+WI,55133,Waukesha County,Chicago,complement
+WI,55135,Waupaca County,Chicago,complement
+WI,55137,Waushara County,Chicago,complement
+WI,55139,Winnebago County,Chicago,complement
+WI,55141,Wood County,Chicago,complement
+WV,54001,Barbour County,Richmond,complement
+WV,54003,Berkeley County,Richmond,complement
+WV,54005,Boone County,Richmond,complement
+WV,54007,Braxton County,Richmond,complement
+WV,54009,Brooke County,Cleveland,listed
+WV,54011,Cabell County,Richmond,complement
+WV,54013,Calhoun County,Richmond,complement
+WV,54015,Clay County,Richmond,complement
+WV,54017,Doddridge County,Richmond,complement
+WV,54019,Fayette County,Richmond,complement
+WV,54021,Gilmer County,Richmond,complement
+WV,54023,Grant County,Richmond,complement
+WV,54025,Greenbrier County,Richmond,complement
+WV,54027,Hampshire County,Richmond,complement
+WV,54029,Hancock County,Cleveland,listed
+WV,54031,Hardy County,Richmond,complement
+WV,54033,Harrison County,Richmond,complement
+WV,54035,Jackson County,Richmond,complement
+WV,54037,Jefferson County,Richmond,complement
+WV,54039,Kanawha County,Richmond,complement
+WV,54041,Lewis County,Richmond,complement
+WV,54043,Lincoln County,Richmond,complement
+WV,54045,Logan County,Richmond,complement
+WV,54047,McDowell County,Richmond,complement
+WV,54049,Marion County,Richmond,complement
+WV,54051,Marshall County,Cleveland,listed
+WV,54053,Mason County,Richmond,complement
+WV,54055,Mercer County,Richmond,complement
+WV,54057,Mineral County,Richmond,complement
+WV,54059,Mingo County,Richmond,complement
+WV,54061,Monongalia County,Richmond,complement
+WV,54063,Monroe County,Richmond,complement
+WV,54065,Morgan County,Richmond,complement
+WV,54067,Nicholas County,Richmond,complement
+WV,54069,Ohio County,Cleveland,listed
+WV,54071,Pendleton County,Richmond,complement
+WV,54073,Pleasants County,Richmond,complement
+WV,54075,Pocahontas County,Richmond,complement
+WV,54077,Preston County,Richmond,complement
+WV,54079,Putnam County,Richmond,complement
+WV,54081,Raleigh County,Richmond,complement
+WV,54083,Randolph County,Richmond,complement
+WV,54085,Ritchie County,Richmond,complement
+WV,54087,Roane County,Richmond,complement
+WV,54089,Summers County,Richmond,complement
+WV,54091,Taylor County,Richmond,complement
+WV,54093,Tucker County,Richmond,complement
+WV,54095,Tyler County,Cleveland,listed
+WV,54097,Upshur County,Richmond,complement
+WV,54099,Wayne County,Richmond,complement
+WV,54101,Webster County,Richmond,complement
+WV,54103,Wetzel County,Cleveland,listed
+WV,54105,Wirt County,Richmond,complement
+WV,54107,Wood County,Richmond,complement
+WV,54109,Wyoming County,Richmond,complement

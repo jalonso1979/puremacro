@@ -99,6 +99,14 @@
       "require",
       "status"
     ],
+    "puremacro.cycles": [
+      "CycleResult",
+      "baxter_king_filter",
+      "beveridge_nelson_filter",
+      "christiano_fitzgerald_filter",
+      "hamilton_filter",
+      "hp_filter"
+    ],
     "puremacro.data": [
       "align_yx",
       "bk_filter",
@@ -658,8 +666,10 @@
     ],
     "puremacro.midas": [
       "BetaMidasResult",
+      "GarchMidasResult",
       "UMidasResult",
       "beta_midas",
+      "garch_midas",
       "u_midas"
     ],
     "puremacro.models": [
@@ -795,14 +805,22 @@
     "puremacro.narrative": [
       "BLUESKY_KNOWN_HANDLES",
       "CROSS_SOURCE_GROUPS",
+      "CrowdExpertSpreadResult",
       "DGLP_17",
+      "DynamicTopicModel",
+      "DynamicTopicModelResult",
       "HomogeneousFiscalPanel",
+      "NMF",
+      "NarrativeBurstResult",
       "NarrativeEvent",
       "NarrativeInstrument",
       "NarrativeReport",
       "NarrativeSpecificationCurve",
       "NarrativeStabilityReport",
       "RiskIndex",
+      "SPANISH_MACRO_LEXICON",
+      "SpanishSentimentResult",
+      "TfidfVectorizer",
       "adler_csv_to_events",
       "bbui",
       "bluesky_ui",
@@ -810,8 +828,10 @@
       "cloyne_csv_to_events",
       "cluster_events",
       "compare_to",
+      "compute_crowd_expert_spread",
       "consensus_disagreement",
       "deduplicate",
+      "detect_narrative_bursts",
       "devries_csv_to_events",
       "dglp_csv_to_events",
       "ep_ui",
@@ -821,6 +841,7 @@
       "eurlex_ui",
       "event_density",
       "events_to_quarterly",
+      "explain_sentence_contributions",
       "gap_filler",
       "gpr",
       "guajardo_csv_to_events",
@@ -860,6 +881,8 @@
       "representative",
       "romer_romer_2010_csv_to_events",
       "romer_romer_2017_csv_to_events",
+      "score_spanish_macro_sentiment",
+      "shapley_keyword_attribution",
       "sotuui",
       "tone",
       "weak_iv_summary",
@@ -868,6 +891,14 @@
     "puremacro.narrative.aggregate": [
       "events_to_quarterly",
       "index_to_quarterly"
+    ],
+    "puremacro.narrative.anomalies": [
+      "NarrativeBurstResult",
+      "detect_narrative_bursts"
+    ],
+    "puremacro.narrative.crowd_expert": [
+      "CrowdExpertSpreadResult",
+      "compute_crowd_expert_spread"
     ],
     "puremacro.narrative.dedup": [
       "cluster_events",
@@ -1118,12 +1149,21 @@
       "MockBackend",
       "OllamaBackend",
       "OpenAIBackend",
+      "SPANISH_MACRO_LEXICON",
+      "SpanishSentimentResult",
+      "explain_sentence_contributions",
       "get_default_backend",
       "load_manual_csv",
       "regex_billions",
       "score_keyword",
       "score_llm",
+      "score_spanish_macro_sentiment",
+      "shapley_keyword_attribution",
       "validate_events"
+    ],
+    "puremacro.narrative.scoring.explain": [
+      "explain_sentence_contributions",
+      "shapley_keyword_attribution"
     ],
     "puremacro.narrative.scoring.keyword": [
       "DEFAULT_FISCAL_LEXICON",
@@ -1132,10 +1172,21 @@
       "regex_billions",
       "score_keyword"
     ],
+    "puremacro.narrative.scoring.lexicons_es": [
+      "SPANISH_MACRO_LEXICON",
+      "SpanishSentimentResult",
+      "score_spanish_macro_sentiment"
+    ],
     "puremacro.narrative.scoring.manual": [
       "REQUIRED_COLS",
       "load_manual_csv",
       "validate_events"
+    ],
+    "puremacro.narrative.topics": [
+      "DynamicTopicModel",
+      "DynamicTopicModelResult",
+      "NMF",
+      "TfidfVectorizer"
     ],
     "puremacro.narrative.types": [
       "BenchmarkScore",
@@ -1551,6 +1602,7 @@
       "FiniteHorizonSolution",
       "FirmEntryExitEquilibrium",
       "KSEquilibrium",
+      "Model",
       "OLGEquilibrium",
       "PermanentTypesEquilibrium",
       "PermanentTypesSolution",
@@ -1695,9 +1747,6 @@
       "empirical_distribution",
       "simulate_panel"
     ],
-    "puremacro.vfi.solve": [
-      "solve_vfi"
-    ],
     "puremacro.vfi.transition": [
       "TransitionPath",
       "transition_path"
@@ -1710,11 +1759,13 @@
       "forecast_revision"
     ],
     "puremacro.volatility": [
+      "GarchMidasResult",
       "SigmaObject",
       "arch_lm_test",
       "bekk_fit",
       "ccc_fit",
       "clean_correlation",
+      "garch_midas",
       "garman_klass",
       "har_rv",
       "ljung_box_squared",
@@ -1791,6 +1842,12 @@
       "pair",
       "se",
       "sigma"
+    ],
+    "puremacro.cycles.CycleResult": [
+      "cycle",
+      "method",
+      "params",
+      "trend"
     ],
     "puremacro.did._results.BorusyakJaravelSpiessResult": [
       "att_event_study",
@@ -2047,6 +2104,12 @@
       "quarterly",
       "stocks"
     ],
+    "puremacro.labor_flows_enoe.TransitionPanelENOE": [
+      "monthly",
+      "quarterly",
+      "quarterly_observed",
+      "stocks"
+    ],
     "puremacro.lp.lp_did.LPDiDResult": [
       "alpha",
       "clean_controls",
@@ -2067,6 +2130,22 @@
       "residuals",
       "theta1",
       "theta2",
+      "weights"
+    ],
+    "puremacro.midas.GarchMidasResult": [
+      "alpha",
+      "beta",
+      "converged",
+      "g",
+      "loglik",
+      "m",
+      "mu",
+      "n_low",
+      "n_obs",
+      "sigma",
+      "tau",
+      "theta",
+      "w2",
       "weights"
     ],
     "puremacro.midas.UMidasResult": [
@@ -2231,6 +2310,30 @@
       "std_urate",
       "welfare"
     ],
+    "puremacro.models.smm.MomentVector": [
+      "cross_section",
+      "horizons_ts",
+      "horizons_xs",
+      "time_series",
+      "weights_cross_section",
+      "weights_time_series"
+    ],
+    "puremacro.narrative.anomalies.NarrativeBurstResult": [
+      "baseline_mean",
+      "baseline_std",
+      "burst_magnitude",
+      "current_freq",
+      "term",
+      "z_score"
+    ],
+    "puremacro.narrative.crowd_expert.CrowdExpertSpreadResult": [
+      "crowd_leads_expert",
+      "crowd_series",
+      "expert_series",
+      "lead_lag_correlations",
+      "optimal_lead_months",
+      "spread_series"
+    ],
     "puremacro.narrative.indices._fed_districts.FedDistrict": [
       "name",
       "number",
@@ -2242,6 +2345,24 @@
       "countries",
       "events",
       "metadata"
+    ],
+    "puremacro.narrative.scoring.lexicons_es.SpanishSentimentResult": [
+      "dovish_count",
+      "hawkish_count",
+      "matched_dovish",
+      "matched_hawkish",
+      "matched_stress",
+      "matched_uncertainty",
+      "net_stance",
+      "stress_count",
+      "uncertainty_count"
+    ],
+    "puremacro.narrative.topics.DynamicTopicModelResult": [
+      "components",
+      "document_topics",
+      "feature_names",
+      "topic_keywords",
+      "topic_shares"
     ],
     "puremacro.narrative.types.NarrativeEvent": [
       "confidence",
@@ -2581,6 +2702,8 @@
       "date",
       "dominance",
       "kind",
+      "max_magnitude",
+      "min_magnitude",
       "shock",
       "sign",
       "variable",

@@ -91,20 +91,21 @@ from ..estimate import estimate_var
 from ..irf import irf as compute_irf
 from ._results import NarrativeSignSVARResult
 
-_VALID_KINDS = {"shock_sign", "hd_dominance"}
+_VALID_KINDS = {"shock_sign", "hd_dominance", "shock_bound"}
 _VALID_DOMINANCE = {"most", "overwhelming"}
 
 
 @dataclass(frozen=True)
 class NarrativeRestriction:
-    """One narrative restriction in the sense of AD-RR (2018).
+    """One narrative restriction in the sense of AD-RR (2018) or Ludvigson-Ma-Ng (2021).
 
     Attributes
     ----------
     kind : str
-        ``'shock_sign'`` (AD-RR Type I) or ``'hd_dominance'``
+        ``'shock_sign'`` (AD-RR Type I), ``'hd_dominance'``
         (AD-RR Type II with ``dominance='most'``, Type III with
-        ``dominance='overwhelming'``).
+        ``dominance='overwhelming'``), or ``'shock_bound'``
+        (Ludvigson, Ma, and Ng 2021 magnitude inequality restrictions).
     date : int or datetime-like
         The restricted date. An integer is interpreted as a **row index
         into Y** (0-based; must be ``>= p`` so a residual exists) when
@@ -112,8 +113,8 @@ class NarrativeRestriction:
         else is coerced with ``pd.Timestamp`` and located in ``dates``.
     shock : int
         Structural-shock column the restriction refers to.
-    sign : int
-        +1 or -1; only used by ``'shock_sign'``.
+    sign : int or None
+        +1 or -1 for signed shocks; None or 0 for unsigned magnitude bounds.
     variable : int or None
         Variable index whose historical decomposition is restricted;
         required by ``'hd_dominance'``.
@@ -123,6 +124,12 @@ class NarrativeRestriction:
         used by ``'hd_dominance'``.
     dominance : str
         ``'most'`` (Type II) or ``'overwhelming'`` (Type III).
+    min_magnitude : float or None
+        Lower bound on structural shock absolute magnitude ``|eps_{t,j}| >= min_magnitude``.
+        Used by ``'shock_bound'``.
+    max_magnitude : float or None
+        Upper bound on structural shock absolute magnitude ``|eps_{t,j}| <= max_magnitude``.
+        Used by ``'shock_bound'``.
     """
 
     kind: str
@@ -132,6 +139,8 @@ class NarrativeRestriction:
     variable: int | None = None
     window: int = 0
     dominance: str = "most"
+    min_magnitude: float | None = None
+    max_magnitude: float | None = None
 
     def __post_init__(self):
         if self.kind not in _VALID_KINDS:
@@ -157,11 +166,30 @@ class NarrativeRestriction:
                 raise ValueError(
                     f"NarrativeRestriction: window must be >= 0; got {self.window!r}"
                 )
+        if self.kind == "shock_bound":
+            if self.min_magnitude is None and self.max_magnitude is None:
+                raise ValueError(
+                    "NarrativeRestriction: shock_bound requires at least one of "
+                    "`min_magnitude` or `max_magnitude`"
+                )
+            if self.min_magnitude is not None and self.min_magnitude < 0:
+                raise ValueError("NarrativeRestriction: min_magnitude must be >= 0")
+            if self.max_magnitude is not None and self.max_magnitude < 0:
+                raise ValueError("NarrativeRestriction: max_magnitude must be >= 0")
 
     def label(self) -> str:
         if self.kind == "shock_sign":
             return (f"shock_sign(date={self.date!r}, shock={self.shock}, "
                     f"sign={'+' if self.sign > 0 else '-'}1)")
+        if self.kind == "shock_bound":
+            bounds = []
+            if self.min_magnitude is not None:
+                bounds.append(f"|eps| >= {self.min_magnitude}")
+            if self.max_magnitude is not None:
+                bounds.append(f"|eps| <= {self.max_magnitude}")
+            if self.sign in (+1, -1):
+                bounds.append(f"sign={'+' if self.sign > 0 else '-'}1")
+            return f"shock_bound(date={self.date!r}, shock={self.shock}, {', '.join(bounds)})"
         return (f"hd_dominance(date={self.date!r}, shock={self.shock}, "
                 f"variable={self.variable}, window={self.window}, "
                 f"dominance={self.dominance!r})")
@@ -324,6 +352,16 @@ def _eval_restrictions(specs, eps_rows: np.ndarray, ir_full: np.ndarray,
         if spec.kind == "shock_sign":
             vals = eps_rows[:, row_loc[t_eps], spec.shock]
             out[:, r] = np.sign(vals) == spec.sign
+        elif spec.kind == "shock_bound":
+            vals = eps_rows[:, row_loc[t_eps], spec.shock]
+            ok = np.ones(S, dtype=bool)
+            if spec.min_magnitude is not None:
+                ok &= (np.abs(vals) >= spec.min_magnitude)
+            if spec.max_magnitude is not None:
+                ok &= (np.abs(vals) <= spec.max_magnitude)
+            if spec.sign in (+1, -1):
+                ok &= (np.sign(vals) == spec.sign)
+            out[:, r] = ok
         else:  # hd_dominance
             L = int(spec.window)
             t1 = t_eps + L
@@ -342,6 +380,51 @@ def _eval_restrictions(specs, eps_rows: np.ndarray, ir_full: np.ndarray,
     return out
 
 
+def _is_stable_var(A_list: list[np.ndarray]) -> bool:
+    """Check stability of VAR(p) companion matrix (spectral radius < 1)."""
+    p = len(A_list)
+    n = A_list[0].shape[0]
+    if p == 1:
+        eigs = np.linalg.eigvals(A_list[0])
+        return bool(np.max(np.abs(eigs)) < 0.999)
+    comp = np.zeros((n * p, n * p))
+    comp[:n, :] = np.hstack(A_list)
+    comp[n:, :-n] = np.eye(n * (p - 1))
+    eigs = np.linalg.eigvals(comp)
+    return bool(np.max(np.abs(eigs)) < 0.999)
+
+
+def _draw_niw_posterior(
+    B_hat: np.ndarray,
+    S_inv: np.ndarray,
+    L_S_inv: np.ndarray,
+    L_XtX_inv: np.ndarray,
+    df: int,
+    p: int,
+    n: int,
+    k_reg: int,
+    rng: np.random.Generator,
+) -> tuple[list[np.ndarray], np.ndarray, np.ndarray]:
+    """Draw (A_list, c, Sigma) from conjugate Normal-Inverse-Wishart posterior."""
+    # Bartlett decomposition for Inverse-Wishart draw
+    A = np.zeros((n, n))
+    for i in range(n):
+        A[i, i] = np.sqrt(rng.chisquare(max(1, df - i)))
+        for j in range(i):
+            A[i, j] = rng.standard_normal()
+    Z = L_S_inv @ A
+    W = Z @ Z.T
+    Sigma_draw = np.linalg.inv(W)
+    L_Sigma = np.linalg.cholesky(Sigma_draw)
+    
+    # Draw coefficients B ~ MN(B_hat, Sigma_draw, XtX_inv)
+    Z_B = rng.standard_normal((k_reg, n))
+    B_draw = B_hat + L_XtX_inv @ Z_B @ L_Sigma.T
+    c_draw = B_draw[0, :]
+    A_list_draw = [B_draw[1 + l * n : 1 + (l + 1) * n, :].T for l in range(p)]
+    return A_list_draw, c_draw, Sigma_draw
+
+
 def narrative_sign_svar(
     Y: np.ndarray,
     *,
@@ -350,12 +433,13 @@ def narrative_sign_svar(
     sign_matrix,
     restrictions,
     dates=None,
+    bayes_draws: bool = False,
     n_draws: int = 2000,
     n_weight_sims: int = 500,
     ci: float = 0.9,
     seed: int = 0,
 ) -> NarrativeSignSVARResult:
-    """Sign-restricted SVAR sharpened with AD-RR (2018) narrative restrictions.
+    """Sign-restricted SVAR sharpened with AD-RR (2018) / LMN (2021) narrative restrictions.
 
     Parameters
     ----------
@@ -382,6 +466,10 @@ def narrative_sign_svar(
     dates : array-like of datetime-like, length T, optional
         Calendar stamps for the rows of ``Y``. Required when any
         restriction date is not an integer row index.
+    bayes_draws : bool, default False
+        If True, samples reduced-form VAR parameters (A_list, Sigma) from
+        the conjugate Normal-Inverse-Wishart posterior (AD-RR full Bayesian
+        algorithm) for each draw. If False, conditions on OLS point estimates.
     n_draws : int
         Haar rotation draws.
     n_weight_sims : int
@@ -428,9 +516,22 @@ def narrative_sign_svar(
                 f"match T={T} rows of Y"
             )
 
-    A_list, c, Sigma, resid, _ = estimate_var(Y, p)
-    P = safe_cholesky(Sigma, name="narrative_sign_svar")
-    T_eff = resid.shape[0]
+    A_list_ols, c_ols, Sigma_ols, resid_ols, X_design = estimate_var(Y, p)
+    P_ols = safe_cholesky(Sigma_ols, name="narrative_sign_svar")
+    T_eff = resid_ols.shape[0]
+    
+    if bayes_draws:
+        Y_dep = Y[p:]
+        XtX = X_design.T @ X_design
+        XtX_inv = np.linalg.inv(XtX)
+        B_hat = XtX_inv @ (X_design.T @ Y_dep)
+        U_hat = Y_dep - X_design @ B_hat
+        S_hat = U_hat.T @ U_hat
+        df = max(n + 1, T_eff - X_design.shape[1])
+        S_inv = np.linalg.inv(S_hat)
+        L_S_inv = np.linalg.cholesky(S_inv)
+        L_XtX_inv = np.linalg.cholesky(XtX_inv)
+        k_reg = X_design.shape[1]
 
     # Resolve restriction dates to eps rows; validate shock/variable indices.
     specs: list[tuple[NarrativeRestriction, int]] = []
@@ -459,7 +560,7 @@ def narrative_sign_svar(
     touched: set[int] = set()
     max_L = 0
     for spec, t_eps in specs:
-        if spec.kind == "shock_sign":
+        if spec.kind in ("shock_sign", "shock_bound"):
             touched.add(t_eps)
         else:
             touched.update(range(t_eps, t_eps + spec.window + 1))
@@ -478,11 +579,28 @@ def narrative_sign_svar(
     fail_counts = np.zeros(len(specs), dtype=int)
 
     for _ in range(n_draws):
+        if bayes_draws:
+            # Sample (A_list, c, Sigma) from NIW posterior until stable
+            for _attempt in range(50):
+                A_list_cur, c_cur, Sigma_cur = _draw_niw_posterior(
+                    B_hat, S_inv, L_S_inv, L_XtX_inv, df, p, n, k_reg, rng
+                )
+                if _is_stable_var(A_list_cur):
+                    break
+            P_cur = safe_cholesky(Sigma_cur, name="narrative_sign_svar_bayes")
+            # Calculate current residuals
+            B_cur = np.vstack([c_cur[None, :]] + [A_list_cur[l].T for l in range(p)])
+            resid_cur = Y_dep - X_design @ B_cur
+        else:
+            A_list_cur = A_list_ols
+            P_cur = P_ols
+            resid_cur = resid_ols
+
         A = rng.standard_normal((n, n))
         Q, R = np.linalg.qr(A)
         Q = Q @ np.diag(np.sign(np.diag(R)))
-        B = P @ Q
-        ir_full = compute_irf(A_list, B, H_full)  # (H_full+1, n, n)
+        B = P_cur @ Q
+        ir_full = compute_irf(A_list_cur, B, H_full)  # (H_full+1, n, n)
         if not _check_sign_matrix(ir_full, targets):
             continue
         n_trad += 1
@@ -490,7 +608,7 @@ def narrative_sign_svar(
             accepted_ir.append(ir_full[: horizon + 1])
             weights.append(1.0)
             continue
-        eps = resid @ np.linalg.inv(B).T  # (T_eff, n) structural shocks
+        eps = resid_cur @ np.linalg.inv(B).T  # (T_eff, n) structural shocks
         eps_rows = eps[rows][None, :, :]  # (1, n_rows, n)
         ok = _eval_restrictions(specs, eps_rows, ir_full, row_loc)[0]
         fail_counts += ~ok

@@ -331,7 +331,12 @@ STATE_DEMOGRAPHICS_2005: dict[str, dict[str, float]] = {
 # the underlying AIOE construct. Values are approximations matching
 # the BLS-OES May-2019 state-level pattern; exact values may differ
 # by ±0.3 pp from published BLS tables but the rank ordering is
-# correct (DC/VA/MD/WA/CA/MA/CO highest; MS/AR/WV/MT lowest).
+# correct. Top 7 of the dictionary below, in order: DC (.099), VA (.073),
+# MD (.064), WA (.063), MA (.062), CO (.061), NJ (.054) — CA (.052) is
+# eighth. Bottom 4, ascending: MS (.015), WV (.015), ND (.018), WY (.018).
+# (This line used to read "DC/VA/MD/WA/CA/MA/CO highest; MS/AR/WV/MT
+# lowest", which the dictionary itself contradicts; cite the values, not
+# that old string.)
 # Schema: STATE_AI_EXPOSURE_2019[state_code] -> computer_math_share (∈ [0, 1]).
 # ---------------------------------------------------------------------------
 STATE_AI_EXPOSURE_2019: dict[str, float] = {
