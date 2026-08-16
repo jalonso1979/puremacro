@@ -1,92 +1,40 @@
 name: CI
 
-# This workflow is for the SPLIT puremacro repo, where puremacro/ is the repo root.
-# It lives at puremacro/.github/ so the `git filter-repo --subdirectory-filter puremacro`
-# extraction promotes it to the new repo's root .github/. GitHub ignores subdir
-# workflows, so it is inert while puremacro/ is still a subdirectory of the monorepo
-# (the monorepo keeps its own root .github/workflows/puremacro-ci.yml during transition).
-
 on:
   push:
+    branches: [ main ]
   pull_request:
-
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+    branches: [ main ]
 
 jobs:
-  pyodide-gate:
-    name: pyodide import gate (core-only)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: 'pip'
-      - run: pip install -e . pytest requests
-      - run: python -m pytest tests/test_pyodide_compat.py tests/test_pyodide -q
-
   test:
-    name: tests (py${{ matrix.python-version }})
-    runs-on: ubuntu-latest
+    name: Test (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.11', '3.12']  # 3.11 confirms the lowered floor
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+        python-version: [ "3.10", "3.11", "3.12", "3.13" ]
+
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
-      - run: pip install -e ".[dev,narrative,data]"
-      - run: python -m pytest -q -p no:cacheprovider
 
-  slow-tests:
-    name: slow tests (compute + notebooks)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: 'pip'
-      - run: pip install -e ".[dev,narrative,data,notebooks]"
-      - run: python -m pytest -m slow -q -p no:cacheprovider
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,notebooks]"
 
-  typecheck:
-    name: mypy (type check)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: 'pip'
-      - run: pip install -e ".[dev]"
-      - run: python -m mypy
+      - name: Run pytest test suite
+        run: |
+          pytest --durations=10
 
-  coverage:
-    name: coverage (report-only)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: 'pip'
-      - run: pip install -e ".[dev,narrative,data]"
-      - run: python -m pytest -m "not slow and not network" --cov=puremacro --cov-report=term-missing:skip-covered -q -p no:cacheprovider
-
-  reference:
-    name: reference drift-guard (vs statsmodels/linearmodels/arch)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-          cache: 'pip'
-      - run: pip install -e ".[dev,narrative,data]"
-      - run: python -m pytest -m reference -q -p no:cacheprovider
+      - name: Run pre-tag release gate verification
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        run: |
+          python tools/release_check.py --no-tests

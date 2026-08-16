@@ -1,0 +1,25 @@
+{
+  "title": "puremacro: Production-grade Macroeconometric and Heterogeneous-Agent Structural Modeling in Pure Python",
+  "description": "puremacro is a self-contained, zero-C-extension macroeconomic computing library built in pure Python and NumPy. It unifies structural models, high-dimensional econometrics, mixed-frequency nowcasting, penalized forecasting, and climate-macro integration, portable to web browsers via Pyodide.",
+  "creators": [
+    {
+      "name": "Alonso, Javier",
+      "affiliation": "University of Pennsylvania / puremacro research"
+    }
+  ],
+  "access_right": "open",
+  "license": "MIT",
+  "keywords": [
+    "macroeconomics",
+    "econometrics",
+    "time series",
+    "vector autoregression",
+    "heterogeneous agents",
+    "HANK",
+    "nowcasting",
+    "climate macroeconomics",
+    "pyodide",
+    "webassembly"
+  ],
+  "upload_type": "software"
+}

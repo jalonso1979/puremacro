@@ -1,45 +1,48 @@
-name: Deploy playground to GitHub Pages
-
-# Builds the JupyterLite playground (now bilingual EN+ES) and deploys it to Pages.
-# For the SPLIT puremacro repo (puremacro/ as root). Enable once: repo Settings →
-# Pages → Source = GitHub Actions.
+name: Deploy Playground & Docs to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
 concurrency:
-  group: pages
+  group: "pages"
   cancel-in-progress: false
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-      - name: Build playground (wheel + JupyterLite over all EN/ES notebooks)
-        run: |
-          pip install -e ".[playground,notebooks]"
-          bash playground/build_playground.sh
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: playground/dist
+          fetch-depth: 0
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[notebooks]"
+          pip install jupyterlite-core jupyterlite-xeus-python mkdocs-material
+
+      - name: Build JupyterLite Playground
+        run: |
+          bash playground/build_playground.sh
+          touch playground/dist/.nojekyll
+
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./playground/dist
+          publish_branch: gh-pages
+          force_orphan: true

@@ -1,25 +1,30 @@
 cff-version: 1.2.0
-message: "If you use puremacro in your research, please cite it as below."
-title: "puremacro: a Pyodide-compatible empirical and structural macroeconomics toolbox"
-abstract: >-
-  Pure-Python (numpy / scipy / pandas / matplotlib) toolbox for empirical and
-  structural macroeconomics: SVAR identification, local projections, staggered
-  DiD, GARCH, growth-at-risk, heterogeneous-agent VFI and Bayesian DSGE models,
-  and free narrative text-as-data uncertainty indices. Runs in the browser via
-  Pyodide; no MATLAB, Stata, or paid data feeds required.
-type: software
-authors:
-  - family-names: "Alonso Ortiz"
-    given-names: "Jorge"
-version: "1.0.0"
-date-released: "2026-08-15"
+message: "If you use puremacro in your research or teaching, please cite it as below."
+title: "puremacro: Production-grade Macroeconometric and Heterogeneous-Agent Structural Modeling in Pure Python"
+version: 1.0.0
+date-released: 2026-08-15
 license: MIT
 repository-code: "https://github.com/jalonso1979/puremacro"
+url: "https://jalonso1979.github.io/puremacro/"
+authors:
+  - family-names: "Alonso"
+    given-names: "Javier"
+    affiliation: "University of Pennsylvania / puremacro research"
 keywords:
-  - macroeconomics
-  - econometrics
-  - structural VAR
-  - local projections
-  - heterogeneous-agent models
-  - uncertainty
-  - Pyodide
+  - "macroeconomics"
+  - "econometrics"
+  - "vector autoregression"
+  - "HANK"
+  - "nowcasting"
+  - "climate macroeconomics"
+  - "DICE"
+  - "pyodide"
+  - "webassembly"
+abstract: >-
+  puremacro is a self-contained, zero-C-extension macroeconomic computing library
+  built in pure Python and NumPy. It unifies structural models (Sequence-Space HANK,
+  DMP search-and-matching, continuous-time HJB), high-dimensional econometrics
+  (FAVAR, Minnesota BVAR, Narrative Signs), mixed-frequency nowcasting, penalized
+  forecasting (Elastic Net, Adaptive Lasso), and climate-macro integration (DICE).
+  It runs identically in local environments, cloud clusters, and client-side in
+  the browser via Pyodide.
