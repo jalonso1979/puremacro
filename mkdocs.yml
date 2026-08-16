@@ -1,0 +1,59 @@
+site_name: puremacro
+site_description: Production-grade Macroeconometric and Heterogeneous-Agent Structural Modeling Engine in Pure Python
+site_author: puremacro contributors
+site_url: https://jalonso1979.github.io/puremacro/
+
+repo_name: jalonso1979/puremacro
+repo_url: https://github.com/jalonso1979/puremacro
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.arithmatex:
+      generic: true
+  - admonition
+  - pymdownx.details
+  - tables
+
+nav:
+  - Overview: index.md
+  - Quickstart: quickstart.md
+  - Econometric Engines:
+      - VAR & FAVAR: var.md
+      - GDP Nowcasting: nowcast.md
+      - Penalized Forecasting: forecast.md
+  - Structural Models:
+      - Sequence-Space HANK: models.md
+      - Climate Macro (DICE): climate.md
+  - Performance & Benchmarks: benchmarks.md

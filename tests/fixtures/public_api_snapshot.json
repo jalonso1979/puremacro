@@ -343,16 +343,8 @@
       "fetch_wui_m_full"
     ],
     "puremacro.forecast": [
-      "combine_forecasts",
-      "crps_ensemble",
-      "crps_gaussian",
-      "diebold_mariano",
-      "giacomini_white",
-      "klic_amisano_giacomini",
-      "losses_from_forecasts",
-      "model_confidence_set",
-      "pit",
-      "pit_uniformity_test"
+      "PenalizedForecastResult",
+      "forecast_penalized"
     ],
     "puremacro.forecast.compare": [
       "diebold_mariano",
@@ -370,6 +362,10 @@
     "puremacro.forecast.mcs": [
       "losses_from_forecasts",
       "model_confidence_set"
+    ],
+    "puremacro.forecast.penalized": [
+      "PenalizedForecastResult",
+      "forecast_penalized"
     ],
     "puremacro.gar": [
       "SkewTFit",
@@ -1244,9 +1240,8 @@
       "NarrativeStabilityReport"
     ],
     "puremacro.nowcast": [
-      "bai_ng_ic",
+      "NowcastResult",
       "bates_granger",
-      "beta_midas",
       "brier_score",
       "crps_ensemble",
       "crps_gaussian",
@@ -1256,11 +1251,9 @@
       "log_score_gaussian",
       "mf_var",
       "model_confidence_set",
-      "pca_factors",
+      "nowcast_gdp",
       "pit_histogram",
-      "rank_weight",
-      "static_dfm_fit",
-      "u_midas"
+      "rank_weight"
     ],
     "puremacro.nowcast.combine": [
       "bates_granger",
@@ -1271,6 +1264,10 @@
     ],
     "puremacro.nowcast.dfm": [
       "kalman_dfm"
+    ],
+    "puremacro.nowcast.dfm_nowcast": [
+      "NowcastResult",
+      "nowcast_gdp"
     ],
     "puremacro.nowcast.mfvar": [
       "mf_var"
@@ -2009,6 +2006,16 @@
       "step",
       "windmeijer"
     ],
+    "puremacro.forecast.penalized.PenalizedForecastResult": [
+      "bic_path",
+      "coefficients",
+      "forecast",
+      "horizon",
+      "in_sample_r2",
+      "intercept",
+      "optimal_lambda",
+      "selected_features"
+    ],
     "puremacro.gar.skewt.SkewTFit": [
       "alpha",
       "mu",
@@ -2467,6 +2474,14 @@
       "perturbations",
       "seed",
       "text_iter_factory"
+    ],
+    "puremacro.nowcast.dfm_nowcast.NowcastResult": [
+      "factors",
+      "loadings",
+      "model_r2",
+      "news_decomposition",
+      "nowcast",
+      "target_quarter"
     ],
     "puremacro.regime_dates.Regime": [
       "end",

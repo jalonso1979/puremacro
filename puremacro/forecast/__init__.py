@@ -1,16 +1,15 @@
-"""Forecast comparison + density evaluation + combination weights."""
-from .compare import diebold_mariano, giacomini_white
-from .density import (
-    pit, pit_uniformity_test,
-    crps_gaussian, crps_ensemble,
-    klic_amisano_giacomini, combine_forecasts,
+"""Macroeconomic forecasting and high-dimensional penalized regression.
+
+Contains:
+- Elastic Net and Adaptive Lasso macroeconomic forecasting (Zou 2006, Hastie et al. 2015).
+- Direct multi-horizon projection with BIC regularisation tuning.
+"""
+from puremacro.forecast.penalized import (
+    PenalizedForecastResult,
+    forecast_penalized,
 )
-from .mcs import model_confidence_set, losses_from_forecasts
 
 __all__ = [
-    "diebold_mariano", "giacomini_white",
-    "pit", "pit_uniformity_test",
-    "crps_gaussian", "crps_ensemble",
-    "klic_amisano_giacomini", "combine_forecasts",
-    "model_confidence_set", "losses_from_forecasts",
+    "PenalizedForecastResult",
+    "forecast_penalized",
 ]
