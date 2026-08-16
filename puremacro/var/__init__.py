@@ -4,6 +4,7 @@ from .irf import irf, fevd, gfevd, historical_decomp
 from .bootstrap import bootstrap_bands
 from .bvar import minnesota_posterior, minnesota_gibbs
 from .peak import peak_summary, peak_distribution
+from .favar import favar, FAVARResult
 from ._results import VarEstimateResult  # noqa: F401
 
 __all__ = [
@@ -11,5 +12,6 @@ __all__ = [
     "irf", "fevd", "gfevd", "historical_decomp", "bootstrap_bands",
     "minnesota_posterior", "minnesota_gibbs",
     "peak_summary", "peak_distribution",
+    "favar", "FAVARResult",
     "VarEstimateResult",
 ]

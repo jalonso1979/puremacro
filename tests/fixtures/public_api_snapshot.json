@@ -1480,9 +1480,11 @@
       "scorecard"
     ],
     "puremacro.var": [
+      "FAVARResult",
       "VarEstimateResult",
       "bootstrap_bands",
       "companion",
+      "favar",
       "fevd",
       "fit_var",
       "gfevd",
@@ -1503,6 +1505,10 @@
     "puremacro.var.diagnostics": [
       "block_exogeneity",
       "granger_causality"
+    ],
+    "puremacro.var.favar": [
+      "FAVARResult",
+      "favar"
     ],
     "puremacro.var.identify": [
       "BQSVARResult",
@@ -2611,6 +2617,18 @@
       "X",
       "c",
       "resid"
+    ],
+    "puremacro.var.favar.FAVARResult": [
+      "explained_variance_ratio",
+      "factors",
+      "horizon",
+      "irf_factors",
+      "irf_lower_panel",
+      "irf_panel",
+      "irf_policy",
+      "irf_upper_panel",
+      "loadings",
+      "variable_names"
     ],
     "puremacro.var.identify._results.BQSVARResult": [
       "ci",
