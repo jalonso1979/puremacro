@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc 3.10.2" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="dcterms.date" content="2026-05-31" />
+  <title>puremacro: browser-runnable empirical macroeconomics in pure Python</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      white-space: pre-wrap;
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for citations */
+    div.csl-bib-body { }
+    div.csl-entry {
+      clear: both;
+    }
+    .hanging-indent div.csl-entry {
+      margin-left:2em;
+      text-indent:-2em;
+    }
+    div.csl-left-margin {
+      min-width:2em;
+      float:left;
+    }
+    div.csl-right-inline {
+      margin-left:2em;
+      padding-left:1em;
+    }
+    div.csl-indent {
+      margin-left: 2em;
+    }  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">puremacro: browser-runnable empirical macroeconomics
+in pure Python</h1>
+<p class="date">31 May 2026</p>
+</header>
+<h1 id="summary">Summary</h1>
+<p><code>puremacro</code> is a Python library for empirical
+macroeconomics and quantitative macro modeling, implemented entirely on
+the scientific-Python core — NumPy <span class="citation"
+data-cites="numpy2020">(<span class="nocase">Harris et al.</span>
+2020)</span>, SciPy <span class="citation" data-cites="scipy2020">(<span
+class="nocase">Virtanen et al.</span> 2020)</span>, pandas, and
+Matplotlib — with no compiled or specialized dependencies at runtime.
+Because it avoids heavier libraries, it executes unchanged in the
+browser through Pyodide <span class="citation" data-cites="pyodide">(The
+Pyodide development team 2024)</span>, on a tablet, or in a JupyterLite
+notebook, as readily as on a workstation. The library spans the methods
+an applied macroeconomist reaches for: reduced-form and structural
+vector autoregressions <span class="citation"
+data-cites="sims1980 blanchardquah1989">(Sims 1980; Blanchard and Quah
+1989)</span>, local projections <span class="citation"
+data-cites="jorda2005">(Jordà 2005)</span>, ARCH/GARCH volatility models
+<span class="citation" data-cites="engle1982 bollerslev1986">(Engle
+1982; Bollerslev 1986)</span>, heteroskedasticity- and
+autocorrelation-consistent inference <span class="citation"
+data-cites="neweywest1987">(Newey and West 1987)</span>, dynamic-panel
+and weak-instrument estimators, difference-in-differences and synthetic
+control, value-function iteration and heterogeneous-agent equilibria
+<span class="citation" data-cites="aiyagari1994">(Aiyagari 1994)</span>,
+linear DSGE solution <span class="citation"
+data-cites="smetswouters2007">(Smets and Wouters 2007)</span>, and
+text-based uncertainty indices <span class="citation"
+data-cites="bbd2016">(Baker et al. 2016)</span>.</p>
+<h1 id="statement-of-need">Statement of need</h1>
+<p>Macroeconometrics and computational macro are usually taught and
+practiced with tools that demand a substantial local installation — the
+statsmodels <span class="citation" data-cites="statsmodels2010">(Seabold
+and Perktold 2010)</span>, <code>arch</code>, and
+<code>linearmodels</code> stack — or commercial software, such as MATLAB
+for Dynare and most heterogeneous-agent toolkits. That barrier is
+invisible to well-resourced users and decisive for everyone else:
+students on tablets, instructors in low-bandwidth classrooms, and
+researchers without budgets or administrative rights.
+<code>puremacro</code> removes it. Because the library is pure
+scientific-Python, a reader can open a browser and reproduce a
+structural VAR, a local-projection impulse response, or an Aiyagari
+equilibrium at zero cost, with nothing to install.</p>
+<p>Breadth alone is not trustworthy, so <code>puremacro</code> ships its
+own evidence. A built-in <strong>validation gallery</strong> contains 73
+cases that continuously check the library’s estimators against
+independent references — statsmodels <span class="citation"
+data-cites="statsmodels2010">(Seabold and Perktold 2010)</span>,
+<code>arch</code>, and <code>linearmodels</code> where a canonical
+implementation exists, and closed-form solutions, published numbers, or
+internal cross-method identities elsewhere — across thirteen subsystems
+(). A companion <strong>replication gallery</strong> reproduces
+published results from heterogeneous-agent and DSGE models. Both are
+wired into the CI workflows shipped with the package and re-run in a
+single line, <code>puremacro.validation.scorecard()</code>, including in
+the browser, so a user can verify the library on the same machine that
+runs it. No existing macro-econometrics package, to our knowledge,
+combines this breadth with browser portability and a continuously
+verified, self-contained correctness record.</p>
+<h1 id="features">Features</h1>
+<ul>
+<li><strong>Time series and identification:</strong> VAR, BVAR
+(Minnesota), VECM, and TVP-VAR; structural identification via Cholesky,
+long-run (Blanchard–Quah), sign and sign-zero restrictions,
+proxy/external instruments, and heteroskedasticity; impulse responses,
+variance decompositions, and bootstrap bands.</li>
+<li><strong>Single-equation and panel:</strong> local projections
+(including IV and panel), dynamic-panel GMM, HAC and
+weak-instrument-robust inference, difference-in-differences, and
+synthetic control.</li>
+<li><strong>Computational macro:</strong> value-function iteration, the
+endogenous grid method, Aiyagari and Huggett equilibria, and linear DSGE
+solution.</li>
+<li><strong>Reproducibility and teaching:</strong> an in-browser
+JupyterLite playground and bilingual (English/Spanish) documentation and
+example notebooks.</li>
+</ul>
+<figure>
+<img src="scorecard.png" style="width:70.0%"
+alt="Validation coverage: 73 cases across 13 subsystems, each checked against an independent reference." />
+<figcaption aria-hidden="true">Validation coverage: 73 cases across 13
+subsystems, each checked against an independent reference.</figcaption>
+</figure>
+<h1 id="acknowledgements">Acknowledgements</h1>
+<p>The author thanks the scientific-Python and Pyodide communities,
+whose work makes a browser-runnable macroeconometrics library
+possible.</p>
+<h1 class="unnumbered" id="references">References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent"
+role="list">
+<div id="ref-aiyagari1994" class="csl-entry" role="listitem">
+Aiyagari, S. Rao. 1994. <span>“Uninsured Idiosyncratic Risk and
+Aggregate Saving.”</span> <em>The Quarterly Journal of Economics</em>
+109 (3): 659–84. <a
+href="https://doi.org/10.2307/2118417">https://doi.org/10.2307/2118417</a>.
+</div>
+<div id="ref-bbd2016" class="csl-entry" role="listitem">
+Baker, Scott R., Nicholas Bloom, and Steven J. Davis. 2016.
+<span>“Measuring Economic Policy Uncertainty.”</span> <em>The Quarterly
+Journal of Economics</em> 131 (4): 1593–636. <a
+href="https://doi.org/10.1093/qje/qjw024">https://doi.org/10.1093/qje/qjw024</a>.
+</div>
+<div id="ref-blanchardquah1989" class="csl-entry" role="listitem">
+Blanchard, Olivier Jean, and Danny Quah. 1989. <span>“The Dynamic
+Effects of Aggregate Demand and Supply Disturbances.”</span> <em>The
+American Economic Review</em> 79 (4): 655–73.
+</div>
+<div id="ref-bollerslev1986" class="csl-entry" role="listitem">
+Bollerslev, Tim. 1986. <span>“Generalized Autoregressive Conditional
+Heteroskedasticity.”</span> <em>Journal of Econometrics</em> 31 (3):
+307–27. <a
+href="https://doi.org/10.1016/0304-4076(86)90063-1">https://doi.org/10.1016/0304-4076(86)90063-1</a>.
+</div>
+<div id="ref-engle1982" class="csl-entry" role="listitem">
+Engle, Robert F. 1982. <span>“Autoregressive Conditional
+Heteroscedasticity with Estimates of the Variance of United Kingdom
+Inflation.”</span> <em>Econometrica</em> 50 (4): 987–1007. <a
+href="https://doi.org/10.2307/1912773">https://doi.org/10.2307/1912773</a>.
+</div>
+<div id="ref-numpy2020" class="csl-entry" role="listitem">
+<span class="nocase">Harris, Charles R. et al.</span> 2020. <span>“Array
+Programming with <span>NumPy</span>.”</span> <em>Nature</em> 585:
+357–62. <a
+href="https://doi.org/10.1038/s41586-020-2649-2">https://doi.org/10.1038/s41586-020-2649-2</a>.
+</div>
+<div id="ref-jorda2005" class="csl-entry" role="listitem">
+Jordà, Òscar. 2005. <span>“Estimation and Inference of Impulse Responses
+by Local Projections.”</span> <em>The American Economic Review</em> 95
+(1): 161–82. <a
+href="https://doi.org/10.1257/0002828053828518">https://doi.org/10.1257/0002828053828518</a>.
+</div>
+<div id="ref-neweywest1987" class="csl-entry" role="listitem">
+Newey, Whitney K., and Kenneth D. West. 1987. <span>“A Simple, Positive
+Semi-Definite, Heteroskedasticity and Autocorrelation Consistent
+Covariance Matrix.”</span> <em>Econometrica</em> 55 (3): 703–8. <a
+href="https://doi.org/10.2307/1913610">https://doi.org/10.2307/1913610</a>.
+</div>
+<div id="ref-statsmodels2010" class="csl-entry" role="listitem">
+Seabold, Skipper, and Josef Perktold. 2010. <span>“Statsmodels:
+Econometric and Statistical Modeling with <span>Python</span>.”</span>
+<em>Proceedings of the 9th Python in Science Conference</em>, 92–96. <a
+href="https://doi.org/10.25080/Majora-92bf1922-011">https://doi.org/10.25080/Majora-92bf1922-011</a>.
+</div>
+<div id="ref-sims1980" class="csl-entry" role="listitem">
+Sims, Christopher A. 1980. <span>“Macroeconomics and Reality.”</span>
+<em>Econometrica</em> 48 (1): 1–48. <a
+href="https://doi.org/10.2307/1912017">https://doi.org/10.2307/1912017</a>.
+</div>
+<div id="ref-smetswouters2007" class="csl-entry" role="listitem">
+Smets, Frank, and Rafael Wouters. 2007. <span>“Shocks and Frictions in
+<span>US</span> Business Cycles: A <span>Bayesian</span>
+<span>DSGE</span> Approach.”</span> <em>The American Economic
+Review</em> 97 (3): 586–606. <a
+href="https://doi.org/10.1257/aer.97.3.586">https://doi.org/10.1257/aer.97.3.586</a>.
+</div>
+<div id="ref-pyodide" class="csl-entry" role="listitem">
+The Pyodide development team. 2024. <em>Pyodide: <span>Python</span>
+with the Scientific Stack, Compiled to <span>WebAssembly</span></em>. <a
+href="https://pyodide.org" class="uri">Https://pyodide.org</a>. <a
+href="https://doi.org/10.5281/zenodo.5156931">https://doi.org/10.5281/zenodo.5156931</a>.
+</div>
+<div id="ref-scipy2020" class="csl-entry" role="listitem">
+<span class="nocase">Virtanen, Pauli et al.</span> 2020.
+<span>“<span>SciPy</span> 1.0: Fundamental Algorithms for Scientific
+Computing in <span>Python</span>.”</span> <em>Nature Methods</em> 17:
+261–72. <a
+href="https://doi.org/10.1038/s41592-019-0686-2">https://doi.org/10.1038/s41592-019-0686-2</a>.
+</div>
+</div>
+</body>
+</html>

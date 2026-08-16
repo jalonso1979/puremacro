@@ -55,12 +55,8 @@
       "http_list_urls"
     ],
     "puremacro.climate": [
-      "climate_annual_lp",
-      "climate_mediation_lp",
-      "compute_annual_cdd_hdd",
-      "compute_monthly_cdd_hdd",
-      "make_dl_lags",
-      "monthly_dl"
+      "DICEResult",
+      "simulate_dice_model"
     ],
     "puremacro.climate.annual_lp": [
       "climate_annual_lp"
@@ -68,6 +64,10 @@
     "puremacro.climate.degree_days": [
       "compute_annual_cdd_hdd",
       "compute_monthly_cdd_hdd"
+    ],
+    "puremacro.climate.dice": [
+      "DICEResult",
+      "simulate_dice_model"
     ],
     "puremacro.climate.mediation": [
       "climate_mediation_lp"
@@ -675,8 +675,14 @@
     "puremacro.models": [
       "DMPParameters",
       "DMPState",
+      "SequenceSpaceHANKResult",
       "dmp_irf",
-      "dmp_steady_state"
+      "dmp_steady_state",
+      "solve_hank_sequence_space"
+    ],
+    "puremacro.models.hank_sequence_space": [
+      "SequenceSpaceHANKResult",
+      "solve_hank_sequence_space"
     ],
     "puremacro.models.nested_dmp": [
       "ComparativeStatics",
@@ -1805,6 +1811,12 @@
     ]
   },
   "result_classes": {
+    "puremacro.climate.dice.DICEResult": [
+      "end_century_damages",
+      "peak_temperature",
+      "scc_initial",
+      "trajectories"
+    ],
     "puremacro.cointegration_modern.DOLSResult": [
       "alpha",
       "alpha_se",
@@ -2193,6 +2205,18 @@
       "u",
       "v",
       "w"
+    ],
+    "puremacro.models.hank_sequence_space.SequenceSpaceHANKResult": [
+      "asset_grid",
+      "irf_consumption",
+      "irf_inflation",
+      "irf_output",
+      "irf_rate",
+      "jacobian_c_r",
+      "jacobian_c_y",
+      "mpc_distribution",
+      "steady_state_mpc",
+      "steady_state_wealth_dist"
     ],
     "puremacro.models.nested_dmp.dynamics.IRFResult": [
       "fed_type",
