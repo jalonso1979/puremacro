@@ -23,12 +23,13 @@ def load_gali1999() -> pd.DataFrame:
 
     Columns:
     - 'dlprod': Growth rate of labor productivity (d log(Y/N))
-    - 'hours': Log hours worked per capita (detrended / level)
+    - 'hours': Log hours worked per capita (level)
+    - Raw components: 'ophnfb', 'hoanbs', 'cnp16ov'
 
     Returns
     -------
     pd.DataFrame
-        Indexed by quarterly PeriodIndex ('1948Q1' to '1994Q4').
+        Indexed by quarterly PeriodIndex ('1948Q2' to '1994Q4').
     """
     path = _DATA_DIR / "gali1999.csv"
     if not path.exists():
@@ -38,6 +39,15 @@ def load_gali1999() -> pd.DataFrame:
         df["date"] = pd.to_datetime(df["date"])
         df = df.set_index("date")
         df.index = df.index.to_period("Q")
+
+    if "ophnfb" in df.columns:
+        df["dlprod"] = np.log(df["ophnfb"]).diff() * 100.0
+        if "cnp16ov" in df.columns and "hoanbs" in df.columns:
+            df["hours"] = np.log(df["hoanbs"] / df["cnp16ov"]) * 100.0
+        elif "hoanbs" in df.columns:
+            df["hours"] = np.log(df["hoanbs"]) * 100.0
+        df = df.dropna()
+
     return df
 
 
@@ -45,22 +55,30 @@ def load_narrative_tax_shocks() -> pd.DataFrame:
     """Load Mertens & Ravn (2013, AER) narrative tax liability shocks.
 
     Columns:
-    - 'unanticipated': Exogenous unanticipated tax changes (% of GDP)
-    - 'anticipated': Anticipated future tax changes (% of GDP)
+    - 'unanticipated' / 'mtr_u': Exogenous unanticipated tax changes (% of GDP)
+    - 'anticipated' / 'mtr_a': Anticipated future tax changes (% of GDP)
+    - 'romer_romer_exog' / 'rr_exog': Romer & Romer (2010) narrative tax series
 
     Returns
     -------
     pd.DataFrame
-        Indexed by quarterly PeriodIndex ('1950Q1' to '2006Q4').
+        Indexed by quarterly PeriodIndex ('1945Q1' to '2007Q4').
     """
     path = _DATA_DIR / "tax14_narrative_tax_shocks.csv"
     if not path.exists():
         raise FileNotFoundError(f"Dataset tax14_narrative_tax_shocks.csv not found at {path}")
     df = pd.read_csv(path)
     if "date" in df.columns:
-        df["date"] = pd.to_datetime(df["date"])
+        df["date"] = pd.PeriodIndex(df["date"], freq="Q")
         df = df.set_index("date")
-        df.index = df.index.to_period("Q")
+
+    if "mtr_u" in df.columns:
+        df["unanticipated"] = df["mtr_u"]
+    if "mtr_a" in df.columns:
+        df["anticipated"] = df["mtr_a"]
+    if "rr_exog" in df.columns:
+        df["romer_romer_exog"] = df["rr_exog"]
+
     return df
 
 
