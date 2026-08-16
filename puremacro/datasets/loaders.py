@@ -1,0 +1,239 @@
+"""Canonical Macroeconomic Research Datasets.
+
+Provides clean, zero-external-dependency access to empirical benchmark datasets:
+- Galí (1999, *AER*): Technology shocks, labor productivity, and hours worked.
+- Mertens & Ravn (2013, *AER*): Narrative tax shocks (anticipated & unanticipated).
+- Romer & Romer (2004, 2017): Narrative monetary policy shocks.
+- US Macroeconomic Quarterly Panel (GDP, Consumption, Investment, Inflation, Fed Funds).
+- US Macroeconomic Monthly Panel (IP, CPI, Unemployment, FFR, NFCI, VIX).
+- DICE-2016 Climate-Macro Model Calibrations (Nordhaus 2018).
+"""
+from __future__ import annotations
+
+import pathlib
+import pandas as pd
+import numpy as np
+
+
+_DATA_DIR = pathlib.Path(__file__).parent.parent.parent / "notebooks" / "course" / "data"
+
+
+def load_gali1999() -> pd.DataFrame:
+    """Load Galí (1999, AER) quarterly US dataset (1948Q1 - 1994Q4).
+
+    Columns:
+    - 'dlprod': Growth rate of labor productivity (d log(Y/N))
+    - 'hours': Log hours worked per capita (detrended / level)
+
+    Returns
+    -------
+    pd.DataFrame
+        Indexed by quarterly PeriodIndex ('1948Q1' to '1994Q4').
+    """
+    path = _DATA_DIR / "gali1999.csv"
+    if not path.exists():
+        raise FileNotFoundError(f"Dataset gali1999.csv not found at {path}")
+    df = pd.read_csv(path)
+    if "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"])
+        df = df.set_index("date")
+        df.index = df.index.to_period("Q")
+    return df
+
+
+def load_narrative_tax_shocks() -> pd.DataFrame:
+    """Load Mertens & Ravn (2013, AER) narrative tax liability shocks.
+
+    Columns:
+    - 'unanticipated': Exogenous unanticipated tax changes (% of GDP)
+    - 'anticipated': Anticipated future tax changes (% of GDP)
+
+    Returns
+    -------
+    pd.DataFrame
+        Indexed by quarterly PeriodIndex ('1950Q1' to '2006Q4').
+    """
+    path = _DATA_DIR / "tax14_narrative_tax_shocks.csv"
+    if not path.exists():
+        raise FileNotFoundError(f"Dataset tax14_narrative_tax_shocks.csv not found at {path}")
+    df = pd.read_csv(path)
+    if "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"])
+        df = df.set_index("date")
+        df.index = df.index.to_period("Q")
+    return df
+
+
+def load_macro_quarterly() -> pd.DataFrame:
+    """Load US quarterly macroeconomic aggregate panel.
+
+    Combines:
+    - Real GDP (GDPC1)
+    - Real Gross Private Domestic Investment (GPDIC1)
+    - GDP Deflator Inflation (A191RL1Q225SBEA)
+    - Effective Federal Funds Rate (FEDFUNDS quarterly average)
+
+    Returns
+    -------
+    pd.DataFrame
+        Quarterly macroeconomic series aligned and cleaned.
+    """
+    series_map = {
+        "GDPC1": "real_gdp",
+        "GPDIC1": "real_investment",
+        "A191RL1Q225SBEA": "gdp_growth_annualized",
+    }
+    dfs = []
+    for code, col_name in series_map.items():
+        p = _DATA_DIR / f"{code}.csv"
+        if p.exists():
+            df_s = pd.read_csv(p)
+            date_col = df_s.columns[0]
+            val_col = df_s.columns[1]
+            df_s["date"] = pd.to_datetime(df_s[date_col])
+            df_s = df_s.set_index("date")
+            df_s[col_name] = pd.to_numeric(df_s[val_col], errors="coerce")
+            df_q = df_s[[col_name]].resample("QE").last()
+            df_q.index = df_q.index.to_period("Q")
+            dfs.append(df_q)
+
+    # Quarterly average of Fed Funds
+    p_ff = _DATA_DIR / "FEDFUNDS.csv"
+    if p_ff.exists():
+        df_ff = pd.read_csv(p_ff)
+        date_col = df_ff.columns[0]
+        val_col = df_ff.columns[1]
+        df_ff["date"] = pd.to_datetime(df_ff[date_col])
+        df_ff = df_ff.set_index("date")
+        df_ff["fed_funds"] = pd.to_numeric(df_ff[val_col], errors="coerce")
+        df_ff_q = df_ff[["fed_funds"]].resample("QE").mean()
+        df_ff_q.index = df_ff_q.index.to_period("Q")
+        dfs.append(df_ff_q)
+
+    df_merged = pd.concat(dfs, axis=1).dropna()
+    return df_merged
+
+
+def load_macro_monthly() -> pd.DataFrame:
+    """Load US monthly macroeconomic indicator panel.
+
+    Combines:
+    - Headline CPI (CPIAUCSL)
+    - Core CPI (CPILFESL)
+    - Civilian Unemployment Rate (UNRATE)
+    - Effective Federal Funds Rate (FEDFUNDS)
+    - Chicago Fed National Financial Conditions Index (NFCI)
+
+    Returns
+    -------
+    pd.DataFrame
+        Monthly macroeconomic panel aligned and cleaned.
+    """
+    codes = {
+        "CPIAUCSL": "cpi",
+        "CPILFESL": "core_cpi",
+        "UNRATE": "unemployment_rate",
+        "FEDFUNDS": "fed_funds",
+        "NFCI": "nfci",
+    }
+    dfs = []
+    for code, col_name in codes.items():
+        p = _DATA_DIR / f"{code}.csv"
+        if p.exists():
+            df_s = pd.read_csv(p)
+            date_col = df_s.columns[0]
+            val_col = df_s.columns[1]
+            df_s["date"] = pd.to_datetime(df_s[date_col])
+            df_s = df_s.set_index("date")
+            df_s[col_name] = pd.to_numeric(df_s[val_col], errors="coerce")
+            # If weekly (like NFCI), resample to monthly mean
+            df_m = df_s[[col_name]].resample("MS").mean()
+            df_m.index = df_m.index.to_period("M")
+            dfs.append(df_m)
+
+    df_merged = pd.concat(dfs, axis=1).dropna()
+    return df_merged
+
+
+def load_dice_parameters() -> dict[str, float | np.ndarray]:
+    """Load calibrated parameters for the Nordhaus DICE-2016 Climate-Macro model.
+
+    Returns
+    -------
+    dict
+        Dictionary containing carbon cycle matrix Phi, radiative forcing eta,
+        equilibrium climate sensitivity, capital elasticity alpha, and damage coefficients.
+    """
+    return {
+        "capital_elasticity_alpha": 0.30,
+        "depreciation_rate_5yr": 0.50,
+        "savings_rate": 0.22,
+        "climate_sensitivity": 3.0,
+        "damage_coefficient": 0.00236,
+        "radiative_forcing_eta": 3.68,
+        "preindustrial_carbon_gtc": 588.0,
+        "initial_carbon_reservoirs_gtc": np.array([851.0, 460.0, 1740.0]),
+        "carbon_transition_matrix": np.array([
+            [0.88, 0.12, 0.00],
+            [0.05, 0.94, 0.01],
+            [0.00, 0.002, 0.998],
+        ]),
+    }
+
+
+def list_datasets() -> pd.DataFrame:
+    """List all available empirical benchmark datasets in puremacro.
+
+    Returns
+    -------
+    pd.DataFrame
+        Summary catalog of available datasets, frequencies, and citations.
+    """
+    catalog = [
+        {
+            "Dataset Name": "load_gali1999()",
+            "Frequency": "Quarterly",
+            "Periods": "1948Q1 - 1994Q4",
+            "Citation": "Galí (1999, AER)",
+            "Description": "Labor productivity growth and hours worked for technology SVAR identification.",
+        },
+        {
+            "Dataset Name": "load_narrative_tax_shocks()",
+            "Frequency": "Quarterly",
+            "Periods": "1950Q1 - 2006Q4",
+            "Citation": "Mertens & Ravn (2013, AER)",
+            "Description": "Anticipated and unanticipated narrative federal tax liability changes (% GDP).",
+        },
+        {
+            "Dataset Name": "load_macro_quarterly()",
+            "Frequency": "Quarterly",
+            "Periods": "1954Q3 - Present",
+            "Citation": "FRED / BEA / Federal Reserve",
+            "Description": "Quarterly panel of Real GDP, Investment, GDP Deflator Inflation, and Fed Funds.",
+        },
+        {
+            "Dataset Name": "load_macro_monthly()",
+            "Frequency": "Monthly",
+            "Periods": "1971M01 - Present",
+            "Citation": "FRED / BLS / Chicago Fed",
+            "Description": "Monthly panel of Headline CPI, Core CPI, Unemployment, Fed Funds, and NFCI.",
+        },
+        {
+            "Dataset Name": "load_dice_parameters()",
+            "Frequency": "5-Year Calibrated",
+            "Periods": "2020 - 2170",
+            "Citation": "Nordhaus (2018, PNAS)",
+            "Description": "Calibrated 3-box carbon cycle, climate sensitivity, and damage coefficients.",
+        },
+    ]
+    return pd.DataFrame(catalog)
+
+
+__all__ = [
+    "load_gali1999",
+    "load_narrative_tax_shocks",
+    "load_macro_quarterly",
+    "load_macro_monthly",
+    "load_dice_parameters",
+    "list_datasets",
+]

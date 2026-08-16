@@ -115,6 +115,22 @@
       "long_to_wide",
       "slice_country"
     ],
+    "puremacro.datasets": [
+      "list_datasets",
+      "load_dice_parameters",
+      "load_gali1999",
+      "load_macro_monthly",
+      "load_macro_quarterly",
+      "load_narrative_tax_shocks"
+    ],
+    "puremacro.datasets.loaders": [
+      "list_datasets",
+      "load_dice_parameters",
+      "load_gali1999",
+      "load_macro_monthly",
+      "load_macro_quarterly",
+      "load_narrative_tax_shocks"
+    ],
     "puremacro.did": [
       "BorusyakJaravelSpiessResult",
       "CallawaySantannaResult",
