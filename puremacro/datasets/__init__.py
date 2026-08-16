@@ -12,6 +12,7 @@ from puremacro.datasets.loaders import (
     load_narrative_tax_shocks,
     load_macro_quarterly,
     load_macro_monthly,
+    load_banxico_stance,
     load_dice_parameters,
     list_datasets,
 )
@@ -21,6 +22,7 @@ __all__ = [
     "load_narrative_tax_shocks",
     "load_macro_quarterly",
     "load_macro_monthly",
+    "load_banxico_stance",
     "load_dice_parameters",
     "list_datasets",
 ]

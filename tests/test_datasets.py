@@ -49,6 +49,15 @@ def test_load_macro_monthly():
     assert len(df) > 100
 
 
+def test_load_banxico_stance():
+    from puremacro.datasets import load_banxico_stance
+    df = load_banxico_stance()
+    assert isinstance(df, pd.DataFrame)
+    assert not df.empty
+    assert "banxico_direction" in df.columns
+    assert len(df) > 100
+
+
 def test_load_dice_parameters():
     params = load_dice_parameters()
     assert isinstance(params, dict)

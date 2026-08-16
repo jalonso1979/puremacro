@@ -117,6 +117,7 @@
     ],
     "puremacro.datasets": [
       "list_datasets",
+      "load_banxico_stance",
       "load_dice_parameters",
       "load_gali1999",
       "load_macro_monthly",

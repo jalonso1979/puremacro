@@ -199,6 +199,30 @@ def load_dice_parameters() -> dict[str, float | np.ndarray]:
     }
 
 
+def load_banxico_stance() -> pd.DataFrame:
+    """Load Bank of Mexico monetary policy stance and narrative direction series.
+
+    Columns:
+    - 'banxico_direction': Directional decision indicator (+1 hike, 0 hold, -1 cut)
+    - 'banxico_stance_signed': Cumulative policy stance
+    - 'tight_stance_narr': Narrative tight stance dummy (1 if restrictive)
+
+    Returns
+    -------
+    pd.DataFrame
+        Monthly PeriodIndex ('2000M01' to '2024M12').
+    """
+    path = _DATA_DIR / "banxico_stance_monthly.csv"
+    if not path.exists():
+        raise FileNotFoundError(f"Dataset banxico_stance_monthly.csv not found at {path}")
+    df = pd.read_csv(path)
+    if "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"])
+        df = df.set_index("date")
+        df.index = df.index.to_period("M")
+    return df
+
+
 def list_datasets() -> pd.DataFrame:
     """List all available empirical benchmark datasets in puremacro.
 
