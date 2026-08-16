@@ -1,0 +1,15 @@
+{
+  "jupyter.lab.shortcuts": [],
+  "title": "jupyterlab-google-analytics",
+  "description": "jupyterlab-google-analytics settings.",
+  "type": "object",
+  "properties": {
+    "trackingId": {
+      "type": "string",
+      "title": "Tracking ID",
+      "description": "Google Analytics Tracking ID",
+      "default": "G-XXXXXXXXX"
+    }
+  },
+  "additionalProperties": false
+}

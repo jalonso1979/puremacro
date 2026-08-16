@@ -1,0 +1,8 @@
+{
+  "jupyter.lab.shortcuts": [],
+  "title": "@datalayer/jupyter-admin",
+  "description": "@datalayer/datalayer settings.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

@@ -1,0 +1,121 @@
+{
+  "additionalProperties": false,
+  "definitions": {
+    "favorite": {
+      "properties": {
+        "contentType": {
+          "type": "string"
+        },
+        "default": {
+          "type": "boolean"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "iconLabel": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "root": {
+          "type": "string",
+          "description": "Root path used for filtering out favorites from instances of JupyterLab launched in a different root directory. If not given the favorite will be shown if the associated file exists."
+        }
+      },
+      "required": ["path"],
+      "type": "object"
+    }
+  },
+  "description": "Favorites settings.",
+  "jupyter.lab.menus": {
+    "context": [
+      {
+        "command": "jupyterlab-favorites:remove-favorite",
+        "rank": 0,
+        "selector": ".jp-Favorites-item"
+      },
+      {
+        "command": "jupyterlab-favorites:rename-favorite",
+        "rank": 1,
+        "selector": ".jp-Favorites-item"
+      },
+      {
+        "command": "jupyterlab-favorites:add-or-remove-favorite",
+        "rank": 3,
+        "selector": ".jp-DirListing-item[data-isdir]"
+      }
+    ],
+    "main": [
+      {
+        "id": "jp-mainmenu-view",
+        "rank": 10,
+        "items": [
+          {
+            "command": "jupyterlab-favorites:toggle-cell-visibility"
+          }
+        ]
+      }
+    ]
+  },
+  "jupyter.lab.toolbars": {
+    "Cell": [
+      {
+        "name": "cellFavoriteToggle",
+        "rank": 110
+      }
+    ]
+  },
+  "jupyter.lab.setting-icon": "jupyterlab-favorites:filledStar",
+  "jupyter.lab.setting-icon-label": "Favorites",
+  "properties": {
+    "favorites": {
+      "default": [],
+      "description": "The list of favorites.",
+      "items": {
+        "$ref": "#/definitions/favorite"
+      },
+      "title": "Favorites",
+      "type": "array"
+    },
+    "showWidget": {
+      "default": true,
+      "description": "Toggles the favorites widget above the filebrowser breadcrumbs.",
+      "title": "Show Widget",
+      "type": "boolean"
+    },
+    "showStarsOnCells": {
+      "type": "string",
+      "title": "Show Stars on Cells",
+      "description": "Controls the visibility of star icons on cells.",
+      "default": "onlyFavoriteCells",
+      "oneOf": [
+        { "const": "allCells", "title": "All Cells" },
+        { "const": "onlyFavoriteCells", "title": "Only favorite Cells" },
+        { "const": "never", "title": "Never" }
+      ]
+    },
+    "sortOrder": {
+      "type": "string",
+      "title": "Sort Order",
+      "description": "How to sort favorites in the list.",
+      "default": "name",
+      "oneOf": [
+        { "const": "unsorted", "title": "By Creation Order" },
+        { "const": "name", "title": "By Display Name" },
+        { "const": "path", "title": "By Path" }
+      ]
+    },
+    "groupByType": {
+      "type": "boolean",
+      "title": "Group by Type",
+      "description": "Group directories before files when sorting.",
+      "default": true
+    }
+  },
+  "title": "Favorites",
+  "type": "object"
+}
