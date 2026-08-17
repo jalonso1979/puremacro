@@ -37,6 +37,16 @@ not the `.ipynb`** — the `.ipynb` is a build artifact, regenerated with output
 | `27_garch_midas_macro_risk` | Engle-Ghysels-Sohn (2013) GARCH-MIDAS two-component mixed-frequency macro volatility |
 | `28_weak_iv_anderson_rubin` | Weak-IV robust Anderson-Rubin (1949) quadratic HAC confidence sets for LP-IV |
 | `29_synthetic_did` | Arkhangelsky et al. (2021) Synthetic DiD combining SCM unit weights and DiD time weights |
+| `30_narrative_bursts_and_transcripts` | Kleinberg (2002) burst detection & high-frequency communication density |
+| `31_sequence_space_hank` | Auclert et al. (2021) Sequence-Space Jacobian method for HANK models |
+| `32_climate_macro_dice` | Nordhaus DICE integrated assessment model & optimal carbon taxation |
+| `33_gdp_nowcasting_news` | Giannone-Reichlin-Small (2008) DFM GDP nowcasting & news decomposition |
+| `34_penalized_macro_forecasting` | Elastic Net & Adaptive Lasso penalized macroeconomic forecasting |
+| `35_empirical_benchmark_replications` | Benchmark replication scorecard across SVAR, LP, and DiD literatures |
+| `36_climate_sovereign_debt_risk` | Physical/transition climate risk transmission to sovereign debt sustainability |
+| `37_central_bank_narrative_sentiment` | Central bank communication tone extraction & high-frequency monetary LP |
+| `38_real_time_vintages_and_revisions` | Real-time QNA vintages across 45+ countries, revision triangles $(T \times V)$, & Mankiw-Shapiro (1986) news vs. noise test |
+| `39_multilingual_narrative_harvesting` | Multi-source narrative harvesting (50+ connectors), 8-language macro scoring, realization lags, & structured policy classification |
 
 The deepened showcases (`01`, `06`, `11`, `14`, `15`, `16`) follow the structure in
 [`_TEMPLATE.md`](./_TEMPLATE.md): motivating question → the method in math → intuition →

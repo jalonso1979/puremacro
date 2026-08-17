@@ -2,6 +2,40 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## 1.1.0 (2026-08-16)
+
+**Quarterly National Accounts (QNA) Historical Vintages, Mankiw-Shapiro News vs. Noise Econometric Testing, and Automated Multilingual Narrative Harvesting Across 50+ Institutional Sources.**
+
+### Added
+- **Quarterly National Accounts (QNA) Historical Vintages (`puremacro.fetch.qna_vintages`, `puremacro.vintages`)**:
+  - Implemented multi-country historical publication vintage retrieval across **45+ economies** (all 38 OECD member states, G7, G20, and key emerging markets) from the 1960s to present.
+  - Standardized core macroeconomic expenditure variables: `gdp_real`, `con_real`, `gfcf_real` (investment), `govcon_real`, `exports_real`, `imports_real`, `deflator`, and `gdp_nom`.
+  - Added [`get_qna_vintage_catalog()`](file:///Users/jalonso/Documents/RESEARCH/puremacro/puremacro/fetch/qna_vintages.py) returning full metadata catalogs.
+  - Added [`QNAVintagePanel`](file:///Users/jalonso/Documents/RESEARCH/puremacro/puremacro/fetch/qna_vintages.py) analytics engine:
+    - `.as_of(vintage_date)`: Point-in-time real-time dataset slicing as known on historical publication dates (Orphanides 2001, Croushore & Stark 2001).
+    - `.revision_matrix(country, variable)`: $(T \times V)$ observation-by-vintage historical revision triangle.
+    - `.first_release()` vs. `.latest_release()` series extraction.
+    - `.revision_stats()`: Mankiw & Shapiro (1986, *JBES*) news vs. noise OLS regression test ($\text{Revision}_t = \alpha + \beta y_{0,t} + \varepsilon_t$), slope $t$-statistics, $p$-values, and hypothesis categorization.
+    - `.to_panel_q()`: Seamless export to puremacro standard quarterly panel format.
+  - Backed by persistent SQLite caching (`AlfredVintageStore`).
+- **Automated Institutional Narrative Harvester (`puremacro.narrative.harvest`)**:
+  - Unified `SOURCE_REGISTRY` mapping 50+ connectors across central banks (Fed, ECB, BoE, BoJ, Banxico, BCB, BanRep, BCRA, BOK, RBA, PBoC, etc.), fiscal ministries (CBO, US Treasury, DE BMF, FR Trésor, IT MEF, UK HMT), and multilateral bodies (IMF Article IV, OECD Surveys).
+  - `harvest_narrative_corpus()`: Multi-source orchestrator with automated body text extraction and incremental caching.
+  - `NarrativeCorpus` & `NarrativeDocument`: Structured containers supporting multi-attribute filtering, summary statistics, and shock conversion.
+- **Multilingual Macroeconomic Policy Lexicons (8 Languages) (`puremacro.narrative.scoring.multilingual`)**:
+  - Policy stance and sentiment lexicons across English (`en`), Spanish (`es`), Portuguese (`pt`), German (`de`), French (`fr`), Italian (`it`), Japanese (`ja`), and Chinese (`zh`).
+  - `score_multilingual()`: Computes net sentiment, expansion/contraction intensities per 1,000 tokens, uncertainty intensity, and keyword attribution.
+  - `infer_policy_stance()`: Discrete policy sign inference (+1 expansionary, -1 contractionary, 0 neutral) with confidence scoring.
+- **Implementation Schedules & Empirical Realization Lags (`puremacro.narrative.quality.schedule_estimator`)**:
+  - `estimate_implementation_profile()`: Models empirical multi-quarter realization profiles (5-quarter S-curve for public infrastructure, 2-quarter front-loaded for direct transfers, 4-quarter uniform for tax changes, immediate for monetary decisions).
+- **Structured Policy Action Classifier (`puremacro.narrative.classifier`)**:
+  - `PolicyActionClassifier`: Automated regex extraction of magnitudes (`% of GDP`, billions, bps), target classification, sign inference, and assignment of realization schedules into validated `NarrativeEvent` objects.
+- **Forecast Inference & Comparison Subsystem (`puremacro.forecast`)**:
+  - Re-exported Hansen-Lunde-Nason (2011) Model Confidence Set (`model_confidence_set`), forecast loss comparison tests (`diebold_mariano`, `giacomini_white`), and density evaluation (`crps_gaussian`, `pit_uniformity_test`, `berkowitz_test`).
+- **Two New Bilingual Interactive Showcase Notebooks (`notebooks/`)**:
+  - `38_real_time_vintages_and_revisions` (`38_..._es`): Historical vintage triangles, real-time dataset slicing, and the Mankiw-Shapiro test.
+  - `39_multilingual_narrative_harvesting` (`39_..._es`): Multi-source harvesting, 8-language policy scoring, realization schedules, and structured action classification.
+
 ## 1.0.0 (2026-08-15)
 
 **Major Milestone: puremacro 1.0.0.** Production release featuring mixed-frequency GARCH-MIDAS volatility modeling, business-cycle bandpass filters and Beveridge-Nelson permanent-transitory decomposition, weak-IV robust Anderson-Rubin confidence sets for LP-IV, panel LP block bootstrap with simultaneous sup-t bands, an expanded 73-case validation gallery across 13 subsystems, and a multi-language Rosetta Stone syntax cheatsheet.

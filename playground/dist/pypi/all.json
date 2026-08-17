@@ -5,19 +5,19 @@
         {
           "comment_text": "",
           "digests": {
-            "md5": "4de5e06cbe904f8605baa1b4e4b51142",
-            "sha256": "59e99aab1f021f05e27e18bebe82f004896cb5810942a39f0a34d23c5ba370f7"
+            "md5": "8ac71ebb07071d70ed2ff9fe45583f20",
+            "sha256": "03e5aad2ac5a1614957ea324246ab525b85203875a01f15a83e3f1178d6bde51"
           },
           "downloads": -1,
           "filename": "puremacro-1.0.0-py3-none-any.whl",
           "has_sig": false,
-          "md5_digest": "4de5e06cbe904f8605baa1b4e4b51142",
+          "md5_digest": "8ac71ebb07071d70ed2ff9fe45583f20",
           "packagetype": "bdist_wheel",
           "python_version": "py3",
           "requires_python": ">=3.11",
-          "size": 1586292,
-          "upload_time": "2026-08-16T00:58:57.047803Z",
-          "upload_time_iso_8601": "2026-08-16T00:58:57.047803Z",
+          "size": 1597807,
+          "upload_time": "2026-08-16T04:37:15.993311Z",
+          "upload_time_iso_8601": "2026-08-16T04:37:15.993311Z",
           "url": "./puremacro-1.0.0-py3-none-any.whl",
           "yanked": false,
           "yanked_reason": null

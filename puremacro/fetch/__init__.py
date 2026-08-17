@@ -37,10 +37,18 @@ from .labor_ilostat import (
 )
 from .jolts import fetch_jolts
 from .vacancies_eurostat import fetch_eurostat_vacancies
+from .qna_vintages import (
+    fetch_qna_vintages,
+    QNAVintagePanel,
+    get_qna_vintage_catalog,
+)
 
 __all__ = [
     "fetch_fred",
     "fetch_fred_alfred",
+    "fetch_qna_vintages",
+    "QNAVintagePanel",
+    "get_qna_vintage_catalog",
     "sdmx_get",
     "oecd_sdmx_instrument",
     "fetch_oecd_lfs_panel",

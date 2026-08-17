@@ -271,6 +271,7 @@
       "static_dfm_fit"
     ],
     "puremacro.fetch": [
+      "QNAVintagePanel",
       "fetch_eurostat_lfs_panel",
       "fetch_eurostat_vacancies",
       "fetch_fred",
@@ -280,7 +281,9 @@
       "fetch_jolts",
       "fetch_labor_panel_union",
       "fetch_oecd_lfs_panel",
+      "fetch_qna_vintages",
       "fetch_sectoral_panel_union",
+      "get_qna_vintage_catalog",
       "oecd_sdmx_instrument",
       "sdmx_get"
     ],
@@ -333,6 +336,14 @@
     "puremacro.fetch.oecd_qna_local": [
       "fetch_extended"
     ],
+    "puremacro.fetch.qna_vintages": [
+      "COUNTRY_METADATA",
+      "QNAVintagePanel",
+      "VARIABLE_ALIASES",
+      "VARIABLE_MAP",
+      "fetch_qna_vintages",
+      "get_qna_vintage_catalog"
+    ],
     "puremacro.fetch.sdmx": [
       "oecd_sdmx_instrument",
       "sdmx_get"
@@ -361,7 +372,18 @@
     ],
     "puremacro.forecast": [
       "PenalizedForecastResult",
-      "forecast_penalized"
+      "berkowitz_test",
+      "combine_forecasts",
+      "crps_ensemble",
+      "crps_gaussian",
+      "diebold_mariano",
+      "forecast_penalized",
+      "giacomini_white",
+      "klic_amisano_giacomini",
+      "losses_from_forecasts",
+      "model_confidence_set",
+      "pit",
+      "pit_uniformity_test"
     ],
     "puremacro.forecast.compare": [
       "diebold_mariano",
@@ -829,14 +851,20 @@
       "DynamicTopicModel",
       "DynamicTopicModelResult",
       "HomogeneousFiscalPanel",
+      "MULTILINGUAL_LEXICONS",
+      "MultilingualScoreResult",
       "NMF",
       "NarrativeBurstResult",
+      "NarrativeCorpus",
+      "NarrativeDocument",
       "NarrativeEvent",
       "NarrativeInstrument",
       "NarrativeReport",
       "NarrativeSpecificationCurve",
       "NarrativeStabilityReport",
+      "PolicyActionClassifier",
       "RiskIndex",
+      "SOURCE_REGISTRY",
       "SPANISH_MACRO_LEXICON",
       "SpanishSentimentResult",
       "TfidfVectorizer",
@@ -856,6 +884,7 @@
       "ep_ui",
       "epu",
       "erpui",
+      "estimate_implementation_profile",
       "eu_nms_csv_to_events",
       "eurlex_ui",
       "event_density",
@@ -864,8 +893,10 @@
       "gap_filler",
       "gpr",
       "guajardo_csv_to_events",
+      "harvest_narrative_corpus",
       "imf_covid_2022_csv_to_events",
       "index_to_quarterly",
+      "infer_policy_stance",
       "iter_beige_book",
       "iter_bluesky_posts",
       "iter_cbo",
@@ -900,6 +931,7 @@
       "representative",
       "romer_romer_2010_csv_to_events",
       "romer_romer_2017_csv_to_events",
+      "score_multilingual",
       "score_spanish_macro_sentiment",
       "shapley_keyword_attribution",
       "sotuui",
@@ -915,6 +947,9 @@
       "NarrativeBurstResult",
       "detect_narrative_bursts"
     ],
+    "puremacro.narrative.classifier": [
+      "PolicyActionClassifier"
+    ],
     "puremacro.narrative.crowd_expert": [
       "CrowdExpertSpreadResult",
       "compute_crowd_expert_spread"
@@ -923,6 +958,12 @@
       "cluster_events",
       "deduplicate",
       "representative"
+    ],
+    "puremacro.narrative.harvest": [
+      "NarrativeCorpus",
+      "NarrativeDocument",
+      "SOURCE_REGISTRY",
+      "harvest_narrative_corpus"
     ],
     "puremacro.narrative.indices": [
       "AnthropicProvider",
@@ -1082,6 +1123,9 @@
     "puremacro.narrative.quality.pipeline": [
       "run_pipeline"
     ],
+    "puremacro.narrative.quality.schedule_estimator": [
+      "estimate_implementation_profile"
+    ],
     "puremacro.narrative.quality.surprise_filter": [
       "BUDGET_MONTHS",
       "SurpriseFilter"
@@ -1200,6 +1244,12 @@
       "REQUIRED_COLS",
       "load_manual_csv",
       "validate_events"
+    ],
+    "puremacro.narrative.scoring.multilingual": [
+      "MULTILINGUAL_LEXICONS",
+      "MultilingualScoreResult",
+      "infer_policy_stance",
+      "score_multilingual"
     ],
     "puremacro.narrative.topics": [
       "DynamicTopicModel",
@@ -1779,10 +1829,13 @@
     ],
     "puremacro.vintages": [
       "AlfredVintageStore",
+      "QNAVintagePanel",
       "align_vintages",
       "as_of",
       "as_of_from_store",
-      "forecast_revision"
+      "fetch_qna_vintages",
+      "forecast_revision",
+      "get_qna_vintage_catalog"
     ],
     "puremacro.volatility": [
       "GarchMidasResult",
@@ -2022,6 +2075,10 @@
       "se",
       "step",
       "windmeijer"
+    ],
+    "puremacro.fetch.qna_vintages.QNAVintagePanel": [
+      "df",
+      "metadata"
     ],
     "puremacro.forecast.penalized.PenalizedForecastResult": [
       "bic_path",
@@ -2388,6 +2445,24 @@
       "optimal_lead_months",
       "spread_series"
     ],
+    "puremacro.narrative.harvest.NarrativeCorpus": [
+      "docs",
+      "metadata"
+    ],
+    "puremacro.narrative.harvest.NarrativeDocument": [
+      "country",
+      "date",
+      "doc_id",
+      "doc_type",
+      "language",
+      "magnitude",
+      "metadata",
+      "policy_domain",
+      "source",
+      "text",
+      "title",
+      "url"
+    ],
     "puremacro.narrative.indices._fed_districts.FedDistrict": [
       "name",
       "number",
@@ -2410,6 +2485,17 @@
       "net_stance",
       "stress_count",
       "uncertainty_count"
+    ],
+    "puremacro.narrative.scoring.multilingual.MultilingualScoreResult": [
+      "contraction_intensity",
+      "expansion_intensity",
+      "language",
+      "matched_contraction_terms",
+      "matched_expansion_terms",
+      "matched_uncertainty_terms",
+      "net_sentiment",
+      "token_count",
+      "uncertainty_intensity"
     ],
     "puremacro.narrative.topics.DynamicTopicModelResult": [
       "components",

@@ -2,11 +2,11 @@
   "content": [
     {
       "content": null,
-      "created": "2026-08-16T00:59:00.466361Z",
+      "created": "2026-08-16T04:37:19.752830Z",
       "format": null,
       "hash": null,
       "hash_algorithm": null,
-      "last_modified": "2026-08-16T00:59:00.506747Z",
+      "last_modified": "2026-08-16T04:37:19.785250Z",
       "mimetype": null,
       "name": "data",
       "path": "course/data",
@@ -15,11 +15,11 @@
       "writable": true
     }
   ],
-  "created": "2026-08-16T00:59:00.466302Z",
+  "created": "2026-08-16T04:37:19.752788Z",
   "format": "json",
   "hash": null,
   "hash_algorithm": null,
-  "last_modified": "2026-08-16T00:59:00.466366Z",
+  "last_modified": "2026-08-16T04:37:19.752831Z",
   "mimetype": null,
   "name": "course",
   "path": "course",

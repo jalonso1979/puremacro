@@ -69,6 +69,21 @@ from .scoring.lexicons_es import SPANISH_MACRO_LEXICON, SpanishSentimentResult, 
 from .anomalies import NarrativeBurstResult, detect_narrative_bursts
 from .crowd_expert import CrowdExpertSpreadResult, compute_crowd_expert_spread
 
+from .scoring.multilingual import (
+    MULTILINGUAL_LEXICONS,
+    MultilingualScoreResult,
+    score_multilingual,
+    infer_policy_stance,
+)
+from .quality.schedule_estimator import estimate_implementation_profile
+from .classifier import PolicyActionClassifier
+from .harvest import (
+    SOURCE_REGISTRY,
+    NarrativeDocument,
+    NarrativeCorpus,
+    harvest_narrative_corpus,
+)
+
 # β.1 event-source connectors are re-exported LAZILY (see __getattr__ below):
 # each pulls scraper/network deps (bs4/requests) at import, so eager-importing
 # them here would break `import puremacro.narrative` under Pyodide.
@@ -84,6 +99,11 @@ __all__ = [
     "bluesky_ui", "bbui", "cboui", "ep_ui", "erpui", "eurlex_ui", "sotuui",
     "consensus_disagreement", "CROSS_SOURCE_GROUPS",
     "epu", "mpu", "gpr", "tone", "wui", "lui", "ltui", "ltui_up", "ltui_down", "lwui", "lwui_wage",
+    # Harvesting & Corpus
+    "SOURCE_REGISTRY", "NarrativeDocument", "NarrativeCorpus", "harvest_narrative_corpus",
+    # Multilingual & Classification
+    "MULTILINGUAL_LEXICONS", "MultilingualScoreResult", "score_multilingual", "infer_policy_stance",
+    "PolicyActionClassifier", "estimate_implementation_profile",
     # Topic modeling, anomalies & forum/discussion analytics
     "TfidfVectorizer", "NMF", "DynamicTopicModel", "DynamicTopicModelResult",
     "shapley_keyword_attribution", "explain_sentence_contributions",

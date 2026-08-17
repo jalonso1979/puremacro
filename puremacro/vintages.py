@@ -111,7 +111,32 @@ def forecast_revision(
     return s
 
 
-__all__ = ["as_of", "align_vintages", "forecast_revision", "AlfredVintageStore", "as_of_from_store"]
+__all__ = [
+    "as_of",
+    "align_vintages",
+    "forecast_revision",
+    "AlfredVintageStore",
+    "as_of_from_store",
+    "QNAVintagePanel",
+    "fetch_qna_vintages",
+    "get_qna_vintage_catalog",
+]
+
+
+def __getattr__(name: str):
+    if name in {"QNAVintagePanel", "fetch_qna_vintages", "get_qna_vintage_catalog"}:
+        from .fetch.qna_vintages import (
+            QNAVintagePanel as _QNAVintagePanel,
+            fetch_qna_vintages as _fetch_qna_vintages,
+            get_qna_vintage_catalog as _get_qna_vintage_catalog,
+        )
+        mapping = {
+            "QNAVintagePanel": _QNAVintagePanel,
+            "fetch_qna_vintages": _fetch_qna_vintages,
+            "get_qna_vintage_catalog": _get_qna_vintage_catalog,
+        }
+        return mapping[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 # ── AlfredVintageStore (0.66.0+) ────────────────────────────────────

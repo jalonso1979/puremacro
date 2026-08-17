@@ -7,8 +7,8 @@ name = "puremacro"
 # Release version. It must be bumped in the SAME commit in all three places
 # `tools/release_check.py` gate 4 compares: pyproject.toml,
 # puremacro/__init__.py (`__version__`) and the top `## X.Y.Z` heading in
-# CHANGELOG.md. All three read 1.0.0.
-version = "1.0.0"
+# CHANGELOG.md. All three read 1.1.0.
+version = "1.1.0"
 description = "Pyodide-compatible empirical macro toolbox: SVAR + LP + GARCH + inference"
 readme = "README.md"
 requires-python = ">=3.11"
