@@ -4,6 +4,9 @@ This file records user-visible changes per release. Internal refactors that don'
 
 ## 1.3.0 (2026-08-20)
 
+### Fixed
+- **Every OECD fetcher raised `ImportError` instead of returning an empty frame when `requests` was not installed.** `puremacro.fetch._oecd_sdmx` imported `requests` and `._http` at module scope, so on a tablet build (Juno) or under Pyodide — where the scraper stack may simply be absent — `qna_panel`, `fetch_xrate_monthly` and every other SDMX caller blew up at the fetch, *despite* each documenting an empty frame as its failure mode. That took down notebooks holding a perfectly good frozen snapshot to fall back to. Both imports are now guarded inside `get_sdmx_csv`, so a missing HTTP stack reads as "the download failed" and callers reach their offline path. `qna_countries()` already degraded correctly and still returns its frozen list. Covered by four new cases in `tests/test_sandboxed_filesystem.py`.
+
 **All three measurements of GDP in one panel, and everything you have to do after the fetch: availability-driven country discovery, one price reference year across countries, the expenditure, output and income identities scored inside their own flows, and growth decomposed into chain-consistent contributions.**
 
 ### Added

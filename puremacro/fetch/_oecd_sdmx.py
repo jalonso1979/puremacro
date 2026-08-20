@@ -18,9 +18,6 @@ import io
 import time
 
 import pandas as pd
-import requests
-
-from ._http import cached_get
 
 _BASE = "https://sdmx.oecd.org/public/rest/data"
 _FMT = "csvfilewithlabels"
@@ -42,8 +39,26 @@ def get_sdmx_csv(agency_flow: str, key: str, start_period: str,
     Returns
     -------
     DataFrame parsed from the CSV-with-labels response. Empty DataFrame on
-    HTTP error / 429 / parse error / empty response (after one retry).
+    HTTP error / 429 / parse error / empty response (after one retry), and
+    also when there is no HTTP stack to fetch with at all.
+
+    Notes
+    -----
+    ``requests`` is imported here rather than at module scope, and its absence
+    is treated as "the download failed" rather than allowed to propagate. On a
+    tablet build (Juno) or under Pyodide the scraper stack may not be installed
+    at all, and every caller in this package documents an empty frame — not an
+    exception — as the failure mode. Letting ``ImportError`` out of a fetch
+    takes down callers that have a perfectly good frozen snapshot to fall back
+    to, which is exactly the situation the course notebooks are in.
     """
+    try:
+        import requests
+
+        from ._http import cached_get
+    except ImportError:
+        return pd.DataFrame()
+
     url = f"{_BASE}/{agency_flow}/{key}?startPeriod={start_period}&format={_FMT}"
     for attempt in (1, 2):
         try:
