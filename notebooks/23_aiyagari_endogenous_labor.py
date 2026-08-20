@@ -55,8 +55,8 @@ results = solve_aiyagari_endogenous(
     delta=0.08,
     rho_e=0.90,
     sigma_e=0.20,
-    Na=45,
-    Ne=5,
+    Na=150,
+    Ne=21,
     r_guess=0.035
 )
 
@@ -74,11 +74,13 @@ print(f"Equilibrium Wage Rate w*: {w_star:.4f}")
 print(f"Aggregate Capital K*: {K_star:.4f}")
 print(f"Aggregate Labor L*: {L_star:.4f}")
 print(f"Capital-Labor Ratio K/L: {(K_star / L_star):.4f}")
+print(f"Market clearing |K - K_demand| / K: {abs(results['excess_demand']) / K_star:.2e}"
+      f"  ({results['n_evals']} household solves)")
 
 # Headline assertions
 assert r_star < 1/0.95 - 1.0, f"r* must be strictly below 1/beta - 1: {r_star}"
 assert K_star > 0.0 and L_star > 0.0, "Aggregate factors must be positive"
-assert policy_n.shape == (45, 5), "Labor policy shape mismatch"
+assert policy_n.shape == (150, 21), "Labor policy shape mismatch"
 
 # %% [markdown]
 # ## Hero Figure — Endogenous labor supply policy rules n(a, e)
@@ -110,7 +112,7 @@ plt.tight_layout()
 plt.show()
 
 # %% [markdown]
-# **Reading the output.** Work hours $n(a, e)$ decline with wealth $a$ due to the negative wealth effect: poorer households work longer hours to buffer against income risk, whereas wealthier households choose leisure. High-productivity households ($e_{\max}$) work more than low-productivity households at all wealth levels due to the positive substitution effect of higher wages.
+# **Reading the output.** Work hours $n(a, e)$ decline with wealth $a$ due to the negative wealth effect: poorer households work longer hours to buffer against income risk, whereas wealthier households choose leisure. Higher productivity raises hours on average, through the substitution effect of a higher wage — though not at every point: at the bottom of the wealth grid the least productive households are pinned against the $n \le 1$ time endowment, and because $n$ is read at the chosen $a'$, which is a grid index, the policy inherits that discreteness.
 
 # %% [markdown]
 # ## Your turn — Frisch elasticity and labor market responsiveness
@@ -133,8 +135,8 @@ res_yt = solve_aiyagari_endogenous(
     delta=0.08,
     rho_e=0.90,
     sigma_e=0.20,
-    Na=40,
-    Ne=5
+    Na=150,
+    Ne=21
 )
 
 print(f"New Frisch Elasticity frisch = {frisch_yt:.2f}")

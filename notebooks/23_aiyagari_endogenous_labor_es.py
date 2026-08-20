@@ -55,8 +55,8 @@ results = solve_aiyagari_endogenous(
     delta=0.08,
     rho_e=0.90,
     sigma_e=0.20,
-    Na=45,
-    Ne=5,
+    Na=150,
+    Ne=21,
     r_guess=0.035
 )
 
@@ -74,11 +74,13 @@ print(f"Tasa de Salario de Equilibrio w*: {w_star:.4f}")
 print(f"Capital Agregado K*: {K_star:.4f}")
 print(f"Trabajo Agregado L*: {L_star:.4f}")
 print(f"Razón Capital-Trabajo K/L: {(K_star / L_star):.4f}")
+print(f"Vaciado del mercado |K - K_demanda| / K: {abs(results['excess_demand']) / K_star:.2e}"
+      f"  ({results['n_evals']} soluciones del hogar)")
 
 # Afirmaciones clave
 assert r_star < 1/0.95 - 1.0, f"r* debe estar estrictamente por debajo de 1/beta - 1: {r_star}"
 assert K_star > 0.0 and L_star > 0.0, "Los factores agregados deben ser positivos"
-assert policy_n.shape == (45, 5), "Discrepancia en la forma de la política laboral"
+assert policy_n.shape == (150, 21), "Discrepancia en la forma de la política laboral"
 
 # %% [markdown]
 # ## Figura Principal — Reglas de política de oferta laboral endógena n(a, e)
@@ -110,7 +112,7 @@ plt.tight_layout()
 plt.show()
 
 # %% [markdown]
-# **Leyendo el resultado.** Las horas de trabajo $n(a, e)$ disminuyen con la riqueza $a$ debido al efecto riqueza negativo: los hogares más pobres trabajan más horas para amortiguar el riesgo de ingresos, mientras que los hogares más ricos eligen ocio. Los hogares de alta productividad ($e_{\max}$) trabajan más que los hogares de baja productividad en todos los niveles de riqueza debido al efecto sustitución positivo de salarios más altos.
+# **Leyendo el resultado.** Las horas de trabajo $n(a, e)$ disminuyen con la riqueza $a$ debido al efecto riqueza negativo: los hogares más pobres trabajan más horas para amortiguar el riesgo de ingresos, mientras que los hogares más ricos eligen ocio. Una productividad más alta eleva las horas en promedio, por el efecto sustitución de un salario mayor — aunque no en todos los puntos: en la parte baja de la malla de riqueza los hogares menos productivos quedan contra la dotación de tiempo $n \le 1$, y como $n$ se lee en el $a'$ elegido, que es un índice de malla, la política hereda esa discretización.
 
 # %% [markdown]
 # ## Tu turno — elasticidad de Frisch y capacidad de respuesta del mercado laboral
@@ -133,8 +135,8 @@ res_yt = solve_aiyagari_endogenous(
     delta=0.08,
     rho_e=0.90,
     sigma_e=0.20,
-    Na=40,
-    Ne=5
+    Na=150,
+    Ne=21
 )
 
 print(f"Nueva Elasticidad de Frisch frisch = {frisch_yt:.2f}")
