@@ -281,12 +281,19 @@
       "static_dfm_fit"
     ],
     "puremacro.fetch": [
+      "APPROACH_GDP",
       "IDENTITY_TERMS",
+      "INCOME_TERMS",
+      "OUTPUT_TERMS",
       "QNAVintagePanel",
+      "QNA_ACTIVITIES",
       "QNA_AGGREGATES",
       "QNA_ASSETS",
       "QNA_COMPONENTS",
       "QNA_DURABILITY",
+      "QNA_INCOME",
+      "QNA_VA_ADDITIVE",
+      "QNA_VA_MEMO",
       "fetch_eurostat_lfs_panel",
       "fetch_eurostat_vacancies",
       "fetch_fred",
@@ -359,16 +366,22 @@
       "fetch_extended"
     ],
     "puremacro.fetch.oecd_qna_panel": [
+      "QNA_ACTIVITIES",
       "QNA_AGGREGATES",
       "QNA_ASSETS",
       "QNA_COMPONENTS",
       "QNA_DURABILITY",
+      "QNA_INCOME",
+      "QNA_VA_ADDITIVE",
+      "QNA_VA_MEMO",
       "qna_countries",
       "qna_meta",
       "qna_panel"
     ],
     "puremacro.fetch.oecd_qna_tools": [
       "IDENTITY_TERMS",
+      "INCOME_TERMS",
+      "OUTPUT_TERMS",
       "qna_contributions",
       "qna_identity",
       "qna_rebase"
