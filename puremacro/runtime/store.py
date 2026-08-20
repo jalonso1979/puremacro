@@ -321,9 +321,12 @@ def _decode_frame(arrays, meta: dict) -> pd.DataFrame:
             name = tuple(name)
         values = _decode_values(schema, f"c{i}", arrays)
         # Keep the pandas array, never np.asarray: that would flatten an
-        # Int64/string/Categorical column back to float64/object.
+        # Int64/string/Categorical column back to float64/object. State the
+        # dtype too: pandas 3 infers `str` from an object array of strings,
+        # so a column stored as object would silently come back as `str`.
         payload = values.array if isinstance(values, (pd.Series, pd.Index)) else values
-        data[i] = pd.Series(payload, index=index, copy=False)
+        data[i] = pd.Series(payload, index=index, copy=False,
+                            dtype=getattr(payload, "dtype", None))
         names.append(name)
 
     df = pd.DataFrame(data, index=index, copy=False)

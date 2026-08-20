@@ -231,6 +231,10 @@ def _frames():
             {"when": pd.period_range("2020Q1", periods=3, freq="Q")}),
         "int_columns": pd.DataFrame(np.arange(6.0).reshape(3, 2), columns=[10, 20]),
         "empty": pd.DataFrame({"a": pd.Series([], dtype=float)}),
+        # Deliberately object, not str: pandas 3 would infer `str` from the
+        # same list, and an object column must survive as one.
+        "object_strings": pd.DataFrame(
+            {"s": pd.Series(["a", None, "c"], dtype=object)}),
     }
 
 
