@@ -13,7 +13,7 @@ Public API
                               (nominal SA levels + implicit deflators, OECD QNA)
 - :func:`qna_countries`     — every reference area that flow actually covers
 - :func:`qna_rebase`        — put every country on one price reference year
-- :func:`qna_identity`      — score Y = C + G + I + X - M, nominal and volume
+- :func:`qna_identity`      — score all three GDP identities the panel carries
 - :func:`qna_contributions` — component contributions to real GDP growth
 - :func:`fetch_xrate_monthly` — OECD nominal exchange rates (LCU per USD), monthly
 - :func:`sdmx_get`          — generic SDMX-CSV (OECD, Eurostat, ECB, IMF SDMX Central)
@@ -49,6 +49,10 @@ from .oecd_qna_panel import (
     qna_meta,
     qna_countries,
     QNA_AGGREGATES,
+    QNA_ACTIVITIES,
+    QNA_INCOME,
+    QNA_VA_ADDITIVE,
+    QNA_VA_MEMO,
     QNA_COMPONENTS,
     QNA_ASSETS,
     QNA_DURABILITY,
@@ -59,6 +63,9 @@ from .oecd_qna_tools import (
     qna_identity,
     qna_contributions,
     IDENTITY_TERMS,
+    OUTPUT_TERMS,
+    INCOME_TERMS,
+    APPROACH_GDP,
 )
 from .qna_vintages import (
     fetch_qna_vintages,
@@ -77,6 +84,13 @@ __all__ = [
     "qna_identity",
     "qna_contributions",
     "IDENTITY_TERMS",
+    "OUTPUT_TERMS",
+    "INCOME_TERMS",
+    "APPROACH_GDP",
+    "QNA_ACTIVITIES",
+    "QNA_INCOME",
+    "QNA_VA_ADDITIVE",
+    "QNA_VA_MEMO",
     "QNA_COMPONENTS",
     "QNA_ASSETS",
     "QNA_DURABILITY",

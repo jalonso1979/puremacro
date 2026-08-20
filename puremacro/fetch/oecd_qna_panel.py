@@ -1,4 +1,4 @@
-"""One-call cross-country quarterly national accounts: nominal SA + deflators.
+r"""One-call cross-country quarterly national accounts: nominal SA + deflators.
 
 ``qna_panel(["USA", "ESP", "MEX"])`` returns a ready-to-use quarterly panel
 indexed by ``(code, date)`` with the expenditure side of the national accounts
@@ -12,7 +12,18 @@ so that ``real = nominal / deflator * 100`` and the expenditure identity
 
 .. math:: Y = C_{hh} + C_{gov} + I + X - M
 
-closes up to the statistical discrepancy. Everything is one SDMX round-trip
+closes up to the statistical discrepancy. ``output=True`` and ``income=True``
+join the other two approaches to the same GDP — value added by industry, and
+the income it is paid out as — so all three of
+
+.. math::
+
+    Y = C + G + I + X - M, \qquad
+    Y = \sum_j \text{VA}_j + (D21 - D31), \qquad
+    Y = D1 + B2A3G + (D2 - D3)
+
+sit in one frame and can be scored against each other with
+:func:`puremacro.fetch.qna_identity`. Everything is one SDMX round-trip
 per institutional sector per chunk of ten countries, on-disk cached by
 :func:`puremacro.fetch._oecd_sdmx.get_sdmx_csv`.
 
@@ -76,12 +87,80 @@ QNA_DURABILITY: dict[str, tuple[str, str]] = {
     "cons_serv":    ("P314", "Services"),
 }
 
+_OUTPUT_FLOW = "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_BY_ACTIVITY_OUTPUT,"
+
+#: column name -> (SDMX TRANSACTION, SDMX ACTIVITY, human description). The
+#: **output (production) approach**: gross value added by ISIC Rev.4 activity,
+#: plus the taxes that stand between value added and GDP at market prices.
+#:
+#: .. math:: Y = \sum_j \text{VA}_j + (D21 - D31) + \text{YA1}
+#:
+#: **Two of these columns are memo items, not addends.** ``va_mfg``
+#: (manufacturing) sits *inside* ``va_ind`` (industry), and ``va_services`` is
+#: the sum of the seven service activities that already appear separately.
+#: Adding every column would count roughly a third of the economy twice, so
+#: the additive subset is published separately as :data:`QNA_VA_ADDITIVE`.
+QNA_ACTIVITIES: dict[str, tuple[str, str, str]] = {
+    "gdp_output":  ("B1GQ",   "_Z",  "GDP as this flow publishes it"),
+    "va_total":    ("B1G",    "_T",  "Gross value added, all activities"),
+    "va_agri":     ("B1G",    "A",   "Agriculture, forestry and fishing"),
+    "va_ind":      ("B1G",    "BTE", "Industry except construction (B-E)"),
+    "va_mfg":      ("B1G",    "C",   "Manufacturing (memo: inside va_ind)"),
+    "va_constr":   ("B1G",    "F",   "Construction"),
+    "va_trade":    ("B1G",    "GTI", "Trade, transport, accommodation, food (G-I)"),
+    "va_ict":      ("B1G",    "J",   "Information and communication"),
+    "va_fin":      ("B1G",    "K",   "Financial and insurance activities"),
+    "va_realest":  ("B1G",    "L",   "Real estate activities"),
+    "va_prof":     ("B1G",    "M_N", "Professional, scientific, admin (M-N)"),
+    "va_public":   ("B1G",    "OTQ", "Public admin, education, health (O-Q)"),
+    "va_other":    ("B1G",    "RTU", "Other services (R-U)"),
+    "va_services": ("B1G",    "GTU", "All services (memo: sum of G-U above)"),
+    "taxes_prod":  ("D21X31", "_Z",  "Taxes less subsidies on products"),
+    "chainlink_disc": ("YA1", "_Z",  "Chain-linking discrepancy, where published"),
+}
+
+#: The value-added columns that actually sum to ``va_total``. Excludes the two
+#: memo items in :data:`QNA_ACTIVITIES` (``va_mfg``, ``va_services``).
+QNA_VA_ADDITIVE: tuple[str, ...] = (
+    "va_agri", "va_ind", "va_constr", "va_trade", "va_ict", "va_fin",
+    "va_realest", "va_prof", "va_public", "va_other")
+
+#: Value-added columns that are subsets or aggregates of the additive ones.
+QNA_VA_MEMO: tuple[str, ...] = ("va_mfg", "va_services")
+
+_INCOME_FLOW = "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_INCOME,"
+
+#: column name -> (SDMX TRANSACTION, SDMX ACTIVITY, human description). The
+#: **income approach**: what GDP is paid out as.
+#:
+#: .. math:: Y = D1 + B2A3G + (D2 - D3)
+#:
+#: ``comp_emp`` over GDP is the *unadjusted* labour share. It is unadjusted in
+#: a way that matters: the labour income of the self-employed is not in ``D1``
+#: at all, it sits inside ``surplus_mixed`` (B2A3G is gross operating surplus
+#: **and mixed income** together, and the accounts do not split them), which is
+#: exactly the problem Gollin (2002) is about. Italy reads 39% and the United
+#: States 54% largely because of how much self-employment each has.
+#:
+#: These series exist **only in current prices** — there is no volume measure
+#: of compensation of employees — so they get no deflator and no ``_real``
+#: column, and ``real=True`` does not change that.
+QNA_INCOME: dict[str, tuple[str, str, str]] = {
+    "gdp_income":    ("B1GQ",  "_Z", "GDP as this flow publishes it"),
+    "comp_emp":      ("D1",    "_T", "Compensation of employees"),
+    "surplus_mixed": ("B2A3G", "_T", "Gross operating surplus and mixed income"),
+    "taxes_prod_imp_net": ("D2X3", "_Z",
+                           "Taxes less subsidies on production and imports"),
+    "taxes_prod_imp": ("D2",   "_Z", "Taxes on production and imports"),
+    "subsidies":     ("D3",    "_Z", "Subsidies (enter negatively)"),
+}
+
 _SECTORS = sorted({s for _, s, _ in QNA_COMPONENTS.values()})
 _TRANSACTIONS = {t for t, _, _ in QNA_COMPONENTS.values()}
 
 #: components whose volume can legitimately cross zero, so no implicit
 #: deflator is published for them (inventory changes swing sign).
-_NO_DEFLATOR: frozenset[str] = frozenset()
+_NO_DEFLATOR: frozenset[str] = frozenset(QNA_INCOME)
 
 #: SDMX reference areas that are country groupings rather than countries.
 #: The QNA dataflows publish them alongside the members, and a panel that
@@ -271,7 +350,10 @@ def _tidy(raw: pd.DataFrame, lookup: dict[tuple, str],
 
     df = raw[(raw["UNIT_MEASURE"] == "XDC")
              & (raw["PRICE_BASE"].isin(["V", "L", "Q"]))].copy()
-    if "ACTIVITY" in df.columns:
+    if "ACTIVITY" in df.columns and "ACTIVITY" not in dims:
+        # Expenditure-side flows publish one row per activity and we want the
+        # economy-wide total. The output flow keys *on* activity, so there the
+        # filter would throw away the entire point of the request.
         df = df[df["ACTIVITY"].isin(["_T", "_Z"]) | df["ACTIVITY"].isna()]
     if "TRANSFORMATION" in df.columns:
         df = df[(df["TRANSFORMATION"] == "N") | df["TRANSFORMATION"].isna()]
@@ -380,12 +462,14 @@ def qna_panel(codes: Iterable[str] | None = None,
               start: str = "1995",
               assets: bool = False,
               durability: bool = False,
+              output: bool = False,
+              income: bool = False,
               sa: str = "prefer",
               sa_min_gain: int | None = None,
               real: bool = False,
               long: bool = False,
               refresh: bool = False) -> pd.DataFrame:
-    """Quarterly national accounts panel: nominal SA levels + implicit deflators.
+    r"""Quarterly national accounts panel: nominal SA levels + implicit deflators.
 
     Parameters
     ----------
@@ -409,6 +493,42 @@ def qna_panel(codes: Iterable[str] | None = None,
         institutional sector is ``S14`` (households) rather than the ``S1M``
         (households + NPISH) of the headline ``cons_hh``, and that the United
         States and Chile publish no semi-durable category.
+    output
+        Also join the **output (production) approach**: gross value added by
+        ISIC Rev.4 activity plus taxes less subsidies on products, with their
+        own deflators, so that
+        :math:`Y = \sum_j \text{VA}_j + (D21 - D31) + \text{YA1}`.
+
+        Coverage is 46 of the 49 reference areas — Argentina, Iceland and
+        **the United States** publish nothing in this flow at all, the US
+        industry accounts being a separate BEA release rather than part of the
+        OECD QNA. Of those 46, four (Australia, Canada, Israel, New Zealand)
+        publish value added **only in volume terms**, so they arrive with
+        ``va_*_real`` columns and no current-price ones, and the output
+        identity can be scored in current prices for 42.
+
+        Beware the two memo columns: ``va_mfg`` is inside ``va_ind`` and
+        ``va_services`` is the sum of the seven service activities already
+        listed, so sum :data:`QNA_VA_ADDITIVE`, not every ``va_*`` column.
+
+        Note also that this flow publishes **its own GDP** (``gdp_output``),
+        which is not always the same number as the expenditure flow's ``gdp``
+        — see :data:`puremacro.fetch.APPROACH_GDP`.
+    income
+        Also join the **income approach**: compensation of employees, gross
+        operating surplus and mixed income, and taxes less subsidies on
+        production and imports, so that :math:`Y = D1 + B2A3G + (D2 - D3)`.
+
+        Coverage is 40 of 49 reference areas, 39 of which publish
+        compensation of employees (New Zealand is in the flow but does not).
+        Japan publishes GDP and compensation but neither operating surplus nor
+        net taxes, so its income identity cannot be closed at all — which
+        :func:`~puremacro.fetch.qna_identity` reports as NaN rather than as a
+        large fake gap. These series exist only in current prices —
+        there is no volume measure of compensation of employees — so they
+        carry no deflator and no ``_real`` column even with ``real=True``.
+        ``comp_emp / gdp`` is the *unadjusted* labour share; see
+        :data:`QNA_INCOME` for why that adjective is load-bearing.
     sa
         How to handle seasonal adjustment. ``"prefer"`` (default) takes the
         series the source publishes adjusted and falls back to the unadjusted
@@ -482,14 +602,22 @@ def qna_panel(codes: Iterable[str] | None = None,
     # them cannot widen the index.
     for wanted, flow, registry, dim in (
             (assets, _ASSET_FLOW, QNA_ASSETS, "INSTR_ASSET"),
-            (durability, _DURABILITY_FLOW, QNA_DURABILITY, "TRANSACTION")):
+            (durability, _DURABILITY_FLOW, QNA_DURABILITY, "TRANSACTION"),
+            (output, _OUTPUT_FLOW, QNA_ACTIVITIES, ("TRANSACTION", "ACTIVITY")),
+            (income, _INCOME_FLOW, QNA_INCOME, ("TRANSACTION", "ACTIVITY"))):
         if not wanted:
             continue
         raw_x = _download_flow(flow, codes_list, start, refresh)
         if raw_x.empty:
             continue
-        lookup_x = {(v,): name for name, (v, _) in registry.items()}
-        tidy_x = _tidy(raw_x, lookup_x, (dim,), sa=sa, min_gain=sa_min_gain)
+        if isinstance(dim, tuple):
+            # Two-dimensional key: the registry stores (TRANSACTION, ACTIVITY).
+            lookup_x = {(t, a): name for name, (t, a, _) in registry.items()}
+            dims_x = dim
+        else:
+            lookup_x = {(v,): name for name, (v, _) in registry.items()}
+            dims_x = (dim,)
+        tidy_x = _tidy(raw_x, lookup_x, dims_x, sa=sa, min_gain=sa_min_gain)
         if not tidy_x.empty:
             tidy = pd.concat([tidy, tidy_x[tidy_x["code"].isin(core_codes)]],
                              ignore_index=True)
@@ -520,7 +648,8 @@ def qna_panel(codes: Iterable[str] | None = None,
 
     # Implicit deflator: 100 * current prices / volume, only where both legs
     # are strictly positive (inventory-inclusive aggregates can cross zero).
-    for name in list(QNA_COMPONENTS) + list(QNA_ASSETS) + list(QNA_DURABILITY):
+    for name in (list(QNA_COMPONENTS) + list(QNA_ASSETS) + list(QNA_DURABILITY)
+             + list(QNA_ACTIVITIES) + list(QNA_INCOME)):
         if name in _NO_DEFLATOR or name not in out or f"{name}_real" not in out:
             continue
         num, den = out[name], out[f"{name}_real"]
@@ -530,7 +659,8 @@ def qna_panel(codes: Iterable[str] | None = None,
     meta = _build_meta(tidy, nominal, vol_base, out)
     if not real:
         out = out.drop(columns=[c for c in out.columns if c.endswith("_real")])
-    out = out[[c for c in _ordered_columns(real, assets, durability)
+    out = out[[c for c in _ordered_columns(real, assets, durability,
+                                          output, income)
                if c in out.columns]]
     out = out.dropna(how="all")
 
@@ -544,10 +674,13 @@ def qna_panel(codes: Iterable[str] | None = None,
 
 
 def _ordered_columns(real: bool, assets: bool = False,
-                     durability: bool = False) -> list[str]:
+                     durability: bool = False, output: bool = False,
+                     income: bool = False) -> list[str]:
     names = (list(QNA_COMPONENTS)
              + (list(QNA_ASSETS) if assets else [])
-             + (list(QNA_DURABILITY) if durability else []))
+             + (list(QNA_DURABILITY) if durability else [])
+             + (list(QNA_ACTIVITIES) if output else [])
+             + (list(QNA_INCOME) if income else []))
     cols = list(names)
     cols += [f"{c}_defl" for c in names if c not in _NO_DEFLATOR]
     if real:
@@ -584,7 +717,8 @@ def _build_meta(tidy: pd.DataFrame, nominal: pd.DataFrame,
     rows = []
     for code, g in nominal.groupby("code"):
         g_core = g[g["name"].isin(QNA_COMPONENTS)]
-        g_ast = g[g["name"].isin(list(QNA_ASSETS) + list(QNA_DURABILITY))]
+        g_ast = g[g["name"].isin(list(QNA_ASSETS) + list(QNA_DURABILITY)
+                                 + list(QNA_ACTIVITIES) + list(QNA_INCOME))]
         gv = tidy[(tidy["code"] == code) & (tidy["PRICE_BASE"] == vol_base.get(code))]
         ref_year = pd.to_numeric(gv.get("REF_YEAR_PRICE"), errors="coerce")
         if ref_year is not None and ref_year.notna().any():
@@ -615,4 +749,5 @@ def _build_meta(tidy: pd.DataFrame, nominal: pd.DataFrame,
 
 __all__ = ["qna_panel", "qna_meta", "qna_countries",
            "QNA_COMPONENTS", "QNA_ASSETS", "QNA_AGGREGATES",
-           "QNA_DURABILITY"]
+           "QNA_DURABILITY", "QNA_ACTIVITIES", "QNA_INCOME",
+           "QNA_VA_ADDITIVE", "QNA_VA_MEMO"]

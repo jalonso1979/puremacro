@@ -11,7 +11,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from puremacro.fetch import (IDENTITY_TERMS, qna_contributions, qna_identity,
+from puremacro.fetch import (APPROACH_GDP, IDENTITY_TERMS, INCOME_TERMS,
+                             OUTPUT_TERMS, qna_contributions, qna_identity,
                              qna_rebase)
 from puremacro.fetch.oecd_qna_panel import (QNA_AGGREGATES, _fetch_ref_areas,
                                             qna_countries)
@@ -153,6 +154,107 @@ def test_identity_reports_a_volume_gap_that_widens_away_from_the_base_year():
     gap = (panel["gdp_real"]
            - sum(s * panel[f"{n}_real"] for n, s in IDENTITY_TERMS.items()))
     assert gap.abs().iloc[0] < gap.abs().iloc[-1]
+
+
+def _approach_panel(*, code: str = "USA", output_gap: float = 0.0,
+                    income_gap: float = 0.0, crossflow: float = 0.0,
+                    chainlink: bool = True, drop_income: bool = False,
+                    drop_output: bool = False) -> pd.DataFrame:
+    """Panel carrying all three approaches, each with a planted residual.
+
+    ``crossflow`` shifts the output/income flows' *own* GDP away from the
+    headline expenditure GDP, which is what the real OECD data does (Japan
+    0.61%, Germany 1.77%). The point of the tests below is that this must land
+    in ``crossflow_*`` and must NOT be charged to the approach's components.
+    """
+    base = _panel(ref_year={code: 2015})
+    gdp = base["gdp"]
+
+    if not drop_output:
+        base["gdp_output"] = gdp * (1.0 + crossflow)
+        base["taxes_prod"] = 0.10 * gdp
+        base["chainlink_disc"] = (0.01 * gdp) if chainlink else np.nan
+        # va_total absorbs whatever the other output terms do not cover, so
+        # the identity misses by exactly `output_gap` of that flow's own GDP.
+        base["va_total"] = (base["gdp_output"] * (1.0 - output_gap)
+                            - base["taxes_prod"]
+                            - (base["chainlink_disc"] if chainlink else 0.0))
+    if not drop_income:
+        base["gdp_income"] = gdp * (1.0 + crossflow)
+        base["comp_emp"] = 0.52 * base["gdp_income"]
+        base["taxes_prod_imp_net"] = 0.11 * base["gdp_income"]
+        base["surplus_mixed"] = (base["gdp_income"] * (1.0 - income_gap)
+                                 - base["comp_emp"]
+                                 - base["taxes_prod_imp_net"])
+    return base
+
+
+def test_identity_scores_all_three_approaches():
+    scored = qna_identity(_approach_panel(output_gap=0.02, income_gap=-0.01))
+
+    assert scored.loc["USA", "output_mean"] == pytest.approx(2.0, rel=1e-6)
+    assert scored.loc["USA", "income_mean"] == pytest.approx(-1.0, rel=1e-6)
+    # the expenditure identity is untouched by any of it
+    assert scored.loc["USA", "nominal_absmax"] == pytest.approx(0.0, abs=1e-9)
+
+
+def test_each_approach_is_scored_against_its_own_flows_gdp():
+    """A flow whose GDP differs from the headline must not be charged for it.
+
+    This is the Japan/Germany case: the OECD publishes GDP separately in each
+    QNA flow and the numbers disagree. Scoring against the expenditure flow's
+    GDP would report a 5% output-side discrepancy that does not exist.
+    """
+    scored = qna_identity(_approach_panel(crossflow=0.05))
+
+    assert scored.loc["USA", "output_absmax"] == pytest.approx(0.0, abs=1e-6)
+    assert scored.loc["USA", "income_absmax"] == pytest.approx(0.0, abs=1e-6)
+    assert scored.loc["USA", "crossflow_output"] == pytest.approx(5.0, rel=1e-6)
+    assert scored.loc["USA", "crossflow_income"] == pytest.approx(5.0, rel=1e-6)
+
+
+def test_chainlink_discrepancy_is_optional_but_used_when_published():
+    """Japan closes only with YA1; Germany does not publish it at all."""
+    with_ya1 = qna_identity(_approach_panel(chainlink=True))
+    assert with_ya1.loc["USA", "output_absmax"] == pytest.approx(0.0, abs=1e-6)
+
+    # Same accounts, YA1 absent: treated as zero rather than making the whole
+    # score NaN, so the country is still comparable.
+    without = qna_identity(_approach_panel(chainlink=False))
+    assert np.isfinite(without.loc["USA", "output_absmax"])
+
+
+def test_a_country_that_does_not_publish_an_approach_comes_back_nan():
+    """The real mixed case: the US is absent from the OECD by-activity flow.
+
+    The columns exist because *other* countries populate them, and the
+    non-publisher must read NaN rather than a spurious 100% gap.
+    """
+    usa = _approach_panel(code="USA", drop_output=True)
+    esp = _approach_panel(code="ESP")
+    panel = pd.concat([usa, esp]).sort_index()
+    scored = qna_identity(panel)
+
+    assert "output_mean" in scored.columns          # ESP supplies the column
+    assert np.isnan(scored.loc["USA", "output_mean"])
+    assert np.isnan(scored.loc["USA", "output_absmax"])
+    assert scored.loc["ESP", "output_absmax"] == pytest.approx(0.0, abs=1e-6)
+    # the approach it *does* publish, and the expenditure identity, still score
+    assert np.isfinite(scored.loc["USA", "income_mean"])
+    assert scored.loc["USA", "nominal_absmax"] == pytest.approx(0.0, abs=1e-9)
+
+
+def test_approach_columns_are_absent_from_an_expenditure_only_panel():
+    scored = qna_identity(_panel(ref_year={"USA": 2015}))
+    assert not [c for c in scored.columns
+                if c.startswith(("output_", "income_", "crossflow_"))]
+
+
+def test_approach_registries_agree_with_the_gdp_map():
+    assert set(APPROACH_GDP) == {"output", "income"}
+    assert "va_total" in OUTPUT_TERMS and "comp_emp" in INCOME_TERMS
+    # every addend is a plain column name, never a gdp column
+    assert not (set(OUTPUT_TERMS) | set(INCOME_TERMS)) & set(APPROACH_GDP.values())
 
 
 def test_identity_returns_nan_real_columns_without_volumes():

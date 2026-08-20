@@ -33,6 +33,34 @@ IDENTITY_TERMS: dict[str, int] = {
     "cons_hh": +1, "cons_gov": +1, "capform": +1, "exports": +1, "imports": -1,
 }
 
+#: Output-approach terms: :math:`Y = \sum_j \text{VA}_j + (D21 - D31) + \text{YA1}`.
+#: Written with ``va_total`` rather than the ten separate activities because a
+#: country can be missing one activity and still publish the total, and because
+#: summing the ``va_*`` columns naively double-counts (``va_mfg`` is inside
+#: ``va_ind``; ``va_services`` aggregates seven columns already listed).
+#: ``chainlink_disc`` is published by only some countries; it is treated as
+#: zero where absent, which is what the accounts intend.
+OUTPUT_TERMS: dict[str, int] = {
+    "va_total": +1, "taxes_prod": +1, "chainlink_disc": +1,
+}
+
+#: Which GDP column each approach is scored against. **Not** the headline
+#: ``gdp``: the OECD publishes GDP separately in each QNA flow, from different
+#: source tables, and the figures are not always the same number. Japan's
+#: output-flow GDP differs from its expenditure-flow GDP by up to 0.61% and
+#: Germany's income-flow GDP by up to 1.77%. Scoring an approach against a
+#: *different* flow's GDP would charge that disagreement to the approach's own
+#: components, so each identity is scored inside its own flow and the
+#: disagreement between flows is reported separately as ``crossflow_*``.
+APPROACH_GDP: dict[str, str] = {"output": "gdp_output", "income": "gdp_income"}
+
+#: Income-approach terms: :math:`Y = D1 + B2A3G + (D2 - D3)`. ``D2 - D3`` is
+#: taken as the single published net series rather than rebuilt from its two
+#: legs, which more countries publish separately than net.
+INCOME_TERMS: dict[str, int] = {
+    "comp_emp": +1, "surplus_mixed": +1, "taxes_prod_imp_net": +1,
+}
+
 
 def _codes(panel: pd.DataFrame) -> list[str]:
     return list(panel.index.get_level_values("code").unique())
@@ -151,10 +179,32 @@ def qna_rebase(panel: pd.DataFrame, year: int | str,
 
 
 def qna_identity(panel: pd.DataFrame, *, as_share: bool = True) -> pd.DataFrame:
-    """Score :math:`Y = C_{hh} + C_{gov} + I + X - M` on both sides of the panel.
+    r"""Score every GDP identity the panel carries, approach by approach.
 
-    Two very different numbers come out, and telling them apart is the whole
-    point of holding current prices as the primitive:
+    Up to four columns pairs come back, and they measure genuinely different
+    things. The expenditure identity is always scored; ``output_*`` and
+    ``income_*`` appear when the panel was built with ``output=True`` /
+    ``income=True``, on the countries that publish those flows.
+
+    ``output_*``
+        :math:`Y = \sum_j 	ext{VA}_j + (D21 - D31) + 	ext{YA1}`. Value added
+        is measured industry by industry and grossed up by the taxes that sit
+        between basic and market prices. Japan's closes to zero only once
+        ``chainlink_disc`` is included, which is why that term is in
+        :data:`OUTPUT_TERMS` rather than dropped as an oddity.
+
+    ``income_*``
+        :math:`Y = D1 + B2A3G + (D2 - D3)`. This is the one whose residual has
+        a name and a literature: the **GDP–GDI statistical discrepancy**, two
+        independent measurements of the same quantity that do not agree. For
+        the United States it runs to :math:`\pm 2\%` of GDP and is informative
+        about the business cycle in its own right (Nalewaik 2010); most
+        European offices force it to zero instead, which is a choice about
+        presentation rather than a difference in measurement quality.
+
+    The two expenditure-side columns are the ones documented below, and
+    telling them apart is the whole point of holding current prices as the
+    primitive:
 
     ``nominal_*``
         The published **statistical discrepancy**, plus whatever seasonal
@@ -190,8 +240,10 @@ def qna_identity(panel: pd.DataFrame, *, as_share: bool = True) -> pd.DataFrame:
     pandas.DataFrame
         One row per country, indexed by ``code``:
         ``nominal_mean``, ``nominal_absmax``, ``real_mean``, ``real_absmax``,
-        ``real_last``, ``n_obs``. Real columns are ``NaN`` when the panel
-        carries no volume measures.
+        ``real_last``, then ``output_*`` / ``income_*`` where the panel carries
+        them, and ``n_obs``. Real columns are ``NaN`` when the panel carries no
+        volume measures; an approach's columns are ``NaN`` for a country that
+        does not publish it, never a spurious 100% gap.
 
     Examples
     --------
@@ -204,29 +256,72 @@ def qna_identity(panel: pd.DataFrame, *, as_share: bool = True) -> pd.DataFrame:
     have_real = all(f"{n}_real" in panel.columns for n in IDENTITY_TERMS)
     have_real = have_real and "gdp_real" in panel.columns
 
-    def _gap(suffix: str) -> pd.Series:
-        gdp = panel[f"gdp{suffix}"]
-        total = sum(sign * panel[f"{name}{suffix}"]
-                    for name, sign in IDENTITY_TERMS.items())
+    def _gap(terms: dict[str, int], suffix: str = "",
+             optional: frozenset[str] = frozenset(),
+             gdp_col: str = "gdp") -> pd.Series:
+        """Gap between GDP and the sum of ``terms``; NaN if a term is absent.
+
+        Terms in ``optional`` are treated as zero when the country does not
+        publish them, which is the accounts' own convention for the
+        chain-linking adjustment — but a *required* term that is missing makes
+        the whole score NaN rather than silently understating the sum.
+        """
+        if gdp_col not in panel.columns:
+            return pd.Series(np.nan, index=panel.index)
+        gdp = panel[f"{gdp_col}{suffix}"]
+        total = None
+        for name, sign in terms.items():
+            col = f"{name}{suffix}"
+            if col not in panel.columns:
+                if name in optional:
+                    continue
+                return pd.Series(np.nan, index=panel.index)
+            series = panel[col]
+            if name in optional:
+                series = series.fillna(0.0)
+            total = series * sign if total is None else total + sign * series
         gap = gdp - total
         return 100.0 * gap / gdp if as_share else gap
 
-    nom = _gap("")
-    rows = pd.DataFrame({
-        "nominal_mean": nom.groupby(level="code").mean(),
-        "nominal_absmax": nom.abs().groupby(level="code").max(),
-    })
+    def _score(gap: pd.Series, stem: str, rows: dict) -> None:
+        rows[f"{stem}_mean"] = gap.groupby(level="code").mean()
+        rows[f"{stem}_absmax"] = gap.abs().groupby(level="code").max()
+
+    rows: dict = {}
+    _score(_gap(IDENTITY_TERMS), "nominal", rows)
     if have_real:
-        rl = _gap("_real")
-        rows["real_mean"] = rl.groupby(level="code").mean()
-        rows["real_absmax"] = rl.abs().groupby(level="code").max()
+        rl = _gap(IDENTITY_TERMS, "_real")
+        _score(rl, "real", rows)
         rows["real_last"] = rl.groupby(level="code").apply(
             lambda s: s.dropna().iloc[-1] if s.notna().any() else np.nan)
     else:
-        rows["real_mean"] = rows["real_absmax"] = rows["real_last"] = np.nan
-    rows["n_obs"] = panel["gdp"].groupby(level="code").count()
-    rows.attrs["units"] = "% of GDP" if as_share else panel.attrs.get("units", "")
-    return rows
+        empty = pd.Series(np.nan, index=panel["gdp"].groupby(level="code").count().index)
+        rows["real_mean"] = rows["real_absmax"] = rows["real_last"] = empty
+
+    # The other two approaches, when the panel carries them. Each is scored
+    # only on the countries that actually publish it: 46 of 49 for output
+    # (the United States is not in the OECD's by-activity flow at all), 40 for
+    # income. Absent blocks come back NaN rather than as a spurious 100% gap.
+    for terms, stem, optional in (
+            (OUTPUT_TERMS, "output", frozenset({"chainlink_disc"})),
+            (INCOME_TERMS, "income", frozenset())):
+        gdp_col = APPROACH_GDP[stem]
+        if not any(n in panel.columns for n in terms):
+            continue
+        _score(_gap(terms, optional=optional, gdp_col=gdp_col), stem, rows)
+        # How far this flow's own GDP sits from the headline expenditure GDP.
+        # Reported rather than folded in, because it is a disagreement between
+        # source tables and says nothing about the approach's components.
+        if gdp_col in panel.columns:
+            cross = panel[gdp_col] - panel["gdp"]
+            if as_share:
+                cross = 100.0 * cross / panel["gdp"]
+            rows[f"crossflow_{stem}"] = cross.abs().groupby(level="code").max()
+
+    out = pd.DataFrame(rows)
+    out["n_obs"] = panel["gdp"].groupby(level="code").count()
+    out.attrs["units"] = "% of GDP" if as_share else panel.attrs.get("units", "")
+    return out
 
 
 def qna_contributions(panel: pd.DataFrame, *, annualise: bool = False,
@@ -330,4 +425,5 @@ def qna_contributions(panel: pd.DataFrame, *, annualise: bool = False,
     return res
 
 
-__all__ = ["qna_rebase", "qna_identity", "qna_contributions", "IDENTITY_TERMS"]
+__all__ = ["qna_rebase", "qna_identity", "qna_contributions",
+           "IDENTITY_TERMS", "OUTPUT_TERMS", "INCOME_TERMS"]
