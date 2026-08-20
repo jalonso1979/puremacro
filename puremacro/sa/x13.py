@@ -43,19 +43,30 @@ _FREQ_TS = {"Q": "QS", "M": "MS"}
 
 
 def _resolve_x13_dir() -> str | None:
-    env = os.environ.get("X13PATH", "")
-    if env:
-        p = Path(env)
-        if p.is_file():
-            return str(p.parent)
-        if p.is_dir() and any((p / n).exists() for n in ("x13as", "x13ashtml")):
-            return str(p)
-    which = shutil.which("x13as") or shutil.which("x13ashtml")
-    if which:
-        return str(Path(which).parent)
-    home_local = Path.home() / ".local" / "bin"
-    if (home_local / "x13as").exists():
-        return str(home_local)
+    """Locate the X-13 binary, or None.
+
+    Every probe is guarded: this runs at import time, and on a sandboxed
+    filesystem (iOS) a stat outside the sandbox raises ``PermissionError``
+    rather than returning False — pathlib only swallows ENOENT / ENOTDIR /
+    EBADF / ELOOP. An unreadable path must mean "no binary here", never an
+    ``import puremacro.sa`` that blows up.
+    """
+    try:
+        env = os.environ.get("X13PATH", "")
+        if env:
+            p = Path(env)
+            if p.is_file():
+                return str(p.parent)
+            if p.is_dir() and any((p / n).exists() for n in ("x13as", "x13ashtml")):
+                return str(p)
+        which = shutil.which("x13as") or shutil.which("x13ashtml")
+        if which:
+            return str(Path(which).parent)
+        home_local = Path.home() / ".local" / "bin"
+        if (home_local / "x13as").exists():
+            return str(home_local)
+    except OSError:
+        return None
     return None
 
 

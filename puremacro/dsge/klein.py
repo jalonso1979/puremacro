@@ -103,24 +103,32 @@ def _solve_F_sylvester(
     ``cond(Z11)`` remains small. The remedy is to recover F directly
     from the equilibrium condition that any valid solution must satisfy.
 
-    For the control rows of  ``A E_t z_{t+1} = B z_t``  with the
-    substitutions ``y_t = F x_t``  and ``x_{t+1} = G x_t``:
+    Substituting ``y_t = F x_t`` and ``x_{t+1} = G x_t`` into *every*
+    equation of ``A E_t z_{t+1} = B z_t`` and collecting the ``x_t``
+    terms:
 
-        A21 @ G + A22 @ F @ G  =  B21 + B22 @ F
+        (A1 + A2 @ F) @ G  =  B1 + B2 @ F
 
-    Rearranging:
+    where ``A1 = A[:, :n_pre]`` and ``A2 = A[:, n_pre:]`` (and likewise
+    for B) split the matrices by *variable*, i.e. by column. Rearranging:
 
-        A22 @ F @ G - B22 @ F  =  B21 - A21 @ G                  (*)
+        A2 @ F @ G - B2 @ F  =  B1 - A1 @ G                       (*)
 
     This is a generalised Sylvester equation in F. Vectorising with the
     identity ``vec(M X N) = (N^T ⊗ M) vec(X)`` gives the linear system
 
-        (G^T ⊗ A22 − I ⊗ B22) vec(F) = vec(B21 − A21 @ G)
+        (G^T ⊗ A2 − I ⊗ B2) vec(F) = vec(B1 − A1 @ G)
 
-    of size ``n_fwd * n_pre`` (480 for SW07: 24*20). Solved via
-    ``np.linalg.lstsq`` for robustness against rank-deficient A22 (which
-    is the SW07 case — half of the control rows are static, so A22 has
-    16 zero rows).
+    of ``n * n_pre`` equations in ``n_fwd * n_pre`` unknowns — over-
+    determined, and solved by ``np.linalg.lstsq``, which also absorbs a
+    rank-deficient ``A2`` (the SW07 case: half the control rows are
+    static, so ``A2`` has 16 zero rows).
+
+    All ``n`` rows enter. Rows of A and B are *equations*, while the
+    ``n_pre`` / ``n_fwd`` split partitions *variables*, so there is no
+    general correspondence between "the last n_fwd rows" and "the
+    control equations" — restricting the system to ``rows[n_pre:]``
+    drops equations that constrain F and can leave it underdetermined.
 
     Parameters
     ----------
@@ -145,17 +153,16 @@ def _solve_F_sylvester(
     n = A.shape[0]
     n_fwd = n - n_pre
 
-    A21 = A[n_pre:, :n_pre]
-    A22 = A[n_pre:, n_pre:]
-    B21 = B[n_pre:, :n_pre]
-    B22 = B[n_pre:, n_pre:]
+    A1 = A[:, :n_pre]
+    A2 = A[:, n_pre:]
+    B1 = B[:, :n_pre]
+    B2 = B[:, n_pre:]
 
-    # Vectorised form: (G^T kron A22 - I kron B22) vec(F) = vec(B21 - A21 G).
-    # Use Fortran ordering for column-major vec convention used in the
-    # SW07 reference implementation (matches np.kron's semantics).
+    # Vectorised form: (G^T kron A2 - I kron B2) vec(F) = vec(B1 - A1 G).
+    # Fortran ordering matches np.kron's column-major vec convention.
     I_pre = np.eye(n_pre)
-    M = np.kron(G.T, A22) - np.kron(I_pre, B22)        # (n_fwd*n_pre, n_fwd*n_pre)
-    rhs_mat = B21 - A21 @ G                            # (n_fwd, n_pre)
+    M = np.kron(G.T, A2) - np.kron(I_pre, B2)          # (n*n_pre, n_fwd*n_pre)
+    rhs_mat = B1 - A1 @ G                              # (n, n_pre)
     rhs = rhs_mat.flatten(order="F")
 
     f_vec, *_ = np.linalg.lstsq(M, rhs, rcond=None)
@@ -271,70 +278,67 @@ def klein_solve(
                 S11_inv = np.linalg.pinv(S11)
             G = Z11 @ S11_inv @ T11 @ Z11_inv
             G = G.real
-            try:
-                Z22_inv = np.linalg.inv(Z22)
-            except np.linalg.LinAlgError:
-                Z22_inv = np.linalg.pinv(Z22)
-            F = (-Z22_inv @ Z21).real
+            # Policy function. The stable subspace is spanned by the
+            # first n_pre columns of Z, so a point on it is x_t = Z11 s,
+            # y_t = Z21 s, giving y_t = Z21 inv(Z11) x_t. This is the
+            # partner of the G formula two lines up (both read the
+            # solution off the same Z11-parameterised subspace); the
+            # -inv(Z22) Z21 form used before 1.2.0 belongs to a
+            # different partition convention and does not satisfy the
+            # model's own equilibrium condition — see
+            # tests/test_dsge/test_klein_analytic.py.
+            F = (Z21 @ Z11_inv).real
 
-            # Z-partition degeneracy detection. The closed-form
-            # F = -inv(Z22) Z21 above is exact when the QZ stable block
-            # cleanly aligns with the predetermined subspace, but it is
-            # corrupted when systems with many static-control rows
-            # (A[row,:] = 0, producing inf generalised eigenvalues) mix
-            # the resulting near-zero finite-side counterparts into the
-            # stable block. cond(Z11) does NOT diagnose this — SW07 has
-            # cond(Z11) ~ 16 yet closed-form residuals of O(10). The
-            # principled test is whether the closed-form F satisfies
-            # the equilibrium condition derived from the control rows:
+            # Verify F against the condition every solution must satisfy,
+            # collecting the x_t terms of A E_t z_{t+1} = B z_t after
+            # substituting y_t = F x_t and x_{t+1} = G x_t:
             #
-            #   A21 G + A22 F G  =  B21 + B22 F           (residual r)
+            #   (A1 + A2 F) G = B1 + B2 F            (residual r)
             #
-            # If ||r||_inf exceeds a tolerance, recover F by solving
-            # the equilibrium Sylvester equation directly.
+            # A1/A2 split A by *column* (variable), and all n rows
+            # (equations) enter: there is no general correspondence
+            # between "the last n_fwd rows" and "the control equations",
+            # so the row-subset check used before 1.2.0 could pass an F
+            # that solves nothing. If ||r||_inf is too large — the
+            # degenerate case where the QZ stable block does not cleanly
+            # align with the predetermined subspace, as in SW07's many
+            # static-control rows — recover F from the Sylvester
+            # equation instead.
             if n_fwd > 0:
-                A21 = A[n_pre:, :n_pre]
-                A22 = A[n_pre:, n_pre:]
-                B21 = B[n_pre:, :n_pre]
-                B22 = B[n_pre:, n_pre:]
-                resid = A21 @ G + A22 @ F @ G - B21 - B22 @ F
-                # Scale by the magnitude of the input matrices so the
-                # tolerance is relative rather than absolute.
-                scale_candidates = [1.0]
-                if A21.size:
-                    scale_candidates.append(float(np.max(np.abs(A21))))
-                if B21.size:
-                    scale_candidates.append(float(np.max(np.abs(B21))))
-                scale = max(scale_candidates)
+                A1 = A[:, :n_pre]
+                A2 = A[:, n_pre:]
+                B1 = B[:, :n_pre]
+                B2 = B[:, n_pre:]
+                resid = (A1 + A2 @ F) @ G - B1 - B2 @ F
+                # Relative tolerance: scale by the inputs' magnitude.
+                scale = max(1.0, float(np.max(np.abs(A))), float(np.max(np.abs(B))))
                 if float(np.max(np.abs(resid))) > 1e-6 * scale:
                     F = _solve_F_sylvester(A, B, G, n_pre=n_pre)
 
-            # Shock loadings (impact response). For a generic Klein
-            # form with C != 0, the response is found by solving for
-            # forward-looking decisions under the unstable block.
+            # Shock loadings. Collecting the u_t terms of the same
+            # substitution (E_t y_{t+1} = F(G x_t + N u_t), so u_{t+1}
+            # drops out under E_t):
+            #
+            #   (A1 + A2 F) N - B2 L = C
+            #
+            # which is n equations in the n unknowns [N; L] per shock —
+            # exactly determined, and correct whether the shock enters
+            # through a state transition (N), contemporaneously through
+            # a control equation (L), or both. The pre-1.2.0 expressions
+            # returned L = 0 for the contemporaneous case.
             if n_u > 0:
-                Q_ = Q.conj().T  # Klein notation: Q' A Z = S
-                QC = Q_ @ C
-                Q1C = QC[:n_pre]
-                Q2C = QC[n_pre:]
-                S22 = S[n_pre:, n_pre:]
-                T22 = T[n_pre:, n_pre:]
-                # Forward-block decision: y impact uses (S22, T22) inversion.
-                # Following Klein (2000) eq. (33): when shocks are iid the
-                # forward-looking impact reduces to
-                #     L = -inv(Z22) inv(S22) Q2C  (state-impact-free part).
+                A1 = A[:, :n_pre]
+                A2 = A[:, n_pre:]
+                B2 = B[:, n_pre:]
+                M_shock = np.hstack([A1 + A2 @ F, -B2])
                 try:
-                    L = -Z22_inv @ np.linalg.solve(S22, Q2C)
+                    NL = np.linalg.solve(M_shock, C)
                 except np.linalg.LinAlgError:
-                    L = np.zeros((n_fwd, n_u))
-                # State response: N = inv(S11) (Q1C + T11 inv(Z11) ... ) — for iid u_t
-                # the simplest correct expression for state-only impact is
-                #     N = Z11 inv(S11) Q1C
-                try:
-                    N = (Z11 @ np.linalg.solve(S11, Q1C)).real
-                except np.linalg.LinAlgError:
-                    N = np.zeros((n_pre, n_u))
-                L = L.real
+                    # Singular impact system (redundant equations): the
+                    # least-squares solution is the informative answer.
+                    NL, *_ = np.linalg.lstsq(M_shock, C, rcond=None)
+                N = np.asarray(NL[:n_pre]).real
+                L = np.asarray(NL[n_pre:]).real
             else:
                 N = np.zeros((n_pre, 0))
                 L = np.zeros((n_fwd, 0))

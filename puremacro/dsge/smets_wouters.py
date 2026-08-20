@@ -23,9 +23,12 @@ Solution strategy — Klein (2000) QZ:
 
   The state-transition G is taken directly from klein_solve (numerically
   correct — verified to equal G1_x + G1_y @ F at machine precision).
-  The policy function F is taken directly from sol_klein.F; klein_solve's
-  Sylvester fallback fires automatically for SW07 (unit-eigenvalue residual
-  ~9.4 >> 1e-6 threshold) and corrects F to machine precision (~9e-15).
+  The policy function F is taken directly from sol_klein.F. Through 1.1.0
+  this needed klein_solve's Sylvester fallback (equilibrium residual ~9.4
+  >> the 1e-6 threshold); that residual turned out to be an artefact of
+  klein_solve's closed form, which used -inv(Z22) Z21 rather than the
+  Z21 inv(Z11) consistent with its own G. Since 1.2.0 the closed form is
+  exact for SW07 and the fallback no longer fires.
 
 IRF variable interpretation:
   y, c, inve, w are LOG-LEVEL deviations from the BGP steady state.

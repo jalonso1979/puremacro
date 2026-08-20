@@ -33,14 +33,21 @@ def _path_for(url: str) -> Path:
 
 def _load_manifest() -> dict:
     f = CACHE_ROOT / _MANIFEST_FILE
-    if f.exists():
-        return json.loads(f.read_text())
+    try:
+        if f.exists():
+            return json.loads(f.read_text())
+    except (OSError, ValueError):
+        pass
     return {}
 
 
 def _write_manifest(d: dict) -> None:
-    CACHE_ROOT.mkdir(parents=True, exist_ok=True)
-    (CACHE_ROOT / _MANIFEST_FILE).write_text(json.dumps(d, indent=2, sort_keys=True))
+    try:
+        CACHE_ROOT.mkdir(parents=True, exist_ok=True)
+        (CACHE_ROOT / _MANIFEST_FILE).write_text(
+            json.dumps(d, indent=2, sort_keys=True))
+    except OSError:
+        pass
 
 
 def cached_get(
@@ -56,10 +63,20 @@ def cached_get(
     Updates the manifest with the fetch timestamp each time bytes are written.
     """
     target = _path_for(url)
-    if target.exists() and not refresh:
-        return target.read_bytes()
+    # The cache is a convenience, never a requirement: on a read-only or
+    # sandboxed install (an iPad, a container with the package baked into the
+    # image) the directory may be unwritable, or even unreadable — note that
+    # pathlib only swallows ENOENT/ENOTDIR/EBADF/ELOOP, so a permission denial
+    # raises out of `.exists()` rather than returning False. Degrade to a plain
+    # uncached fetch instead of failing.
+    cacheable = True
+    try:
+        if target.exists() and not refresh:
+            return target.read_bytes()
+        target.parent.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        cacheable = False
 
-    target.parent.mkdir(parents=True, exist_ok=True)
     # Many federal data hosts (BLS Akamai, FRB) block default python-requests UA.
     # Set a research-identifying default; callers can override via headers=.
     final_headers = {"User-Agent": "uncertainty_examples/1.0 (research@itam.mx)"}
@@ -67,7 +84,12 @@ def cached_get(
         final_headers.update(headers)
     resp = requests.get(url, headers=final_headers, timeout=timeout)
     resp.raise_for_status()
-    target.write_bytes(resp.content)
+    if not cacheable:
+        return resp.content
+    try:
+        target.write_bytes(resp.content)
+    except OSError:
+        return resp.content
 
     manifest = _load_manifest()
     manifest[str(target.relative_to(CACHE_ROOT))] = {

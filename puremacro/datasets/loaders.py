@@ -15,7 +15,37 @@ import pandas as pd
 import numpy as np
 
 
-_DATA_DIR = pathlib.Path(__file__).parent.parent.parent / "notebooks" / "course" / "data"
+# Datasets ship *inside* the wheel. Before 1.2.0 this pointed three levels up
+# at <repo>/notebooks/course/data, which is not packaged — so every loader here
+# raised FileNotFoundError (or a bare "No objects to concatenate") on any
+# install that was not the author's own checkout, the iPad included.
+_DATA_DIR = pathlib.Path(__file__).parent / "data"
+
+# Kept as a fallback so a working tree still resolves files that have not been
+# vendored into the package.
+_REPO_DATA_DIR = pathlib.Path(__file__).parent.parent.parent / "notebooks" / "course" / "data"
+
+
+def _resolve(filename: str) -> pathlib.Path:
+    """Locate a bundled dataset file, packaged copy first.
+
+    Raises
+    ------
+    FileNotFoundError
+        Naming the file and both places that were searched — a missing
+        dataset is a packaging bug, and the message should say so rather
+        than surfacing later as an empty concat.
+    """
+    for base in (_DATA_DIR, _REPO_DATA_DIR):
+        candidate = base / filename
+        if candidate.exists():
+            return candidate
+    raise FileNotFoundError(
+        f"bundled dataset {filename!r} is missing from this puremacro "
+        f"install (looked in {_DATA_DIR} and {_REPO_DATA_DIR}). "
+        f"Reinstall the package, or report it: the file should ship in "
+        f"the wheel."
+    )
 
 
 def load_gali1999() -> pd.DataFrame:
@@ -31,9 +61,7 @@ def load_gali1999() -> pd.DataFrame:
     pd.DataFrame
         Indexed by quarterly PeriodIndex ('1948Q2' to '1994Q4').
     """
-    path = _DATA_DIR / "gali1999.csv"
-    if not path.exists():
-        raise FileNotFoundError(f"Dataset gali1999.csv not found at {path}")
+    path = _resolve("gali1999.csv")
     df = pd.read_csv(path)
     if "date" in df.columns:
         df["date"] = pd.to_datetime(df["date"])
@@ -64,9 +92,7 @@ def load_narrative_tax_shocks() -> pd.DataFrame:
     pd.DataFrame
         Indexed by quarterly PeriodIndex ('1945Q1' to '2007Q4').
     """
-    path = _DATA_DIR / "tax14_narrative_tax_shocks.csv"
-    if not path.exists():
-        raise FileNotFoundError(f"Dataset tax14_narrative_tax_shocks.csv not found at {path}")
+    path = _resolve("tax14_narrative_tax_shocks.csv")
     df = pd.read_csv(path)
     if "date" in df.columns:
         df["date"] = pd.PeriodIndex(df["date"], freq="Q")
@@ -103,30 +129,28 @@ def load_macro_quarterly() -> pd.DataFrame:
     }
     dfs = []
     for code, col_name in series_map.items():
-        p = _DATA_DIR / f"{code}.csv"
-        if p.exists():
-            df_s = pd.read_csv(p)
-            date_col = df_s.columns[0]
-            val_col = df_s.columns[1]
-            df_s["date"] = pd.to_datetime(df_s[date_col])
-            df_s = df_s.set_index("date")
-            df_s[col_name] = pd.to_numeric(df_s[val_col], errors="coerce")
-            df_q = df_s[[col_name]].resample("QE").last()
-            df_q.index = df_q.index.to_period("Q")
-            dfs.append(df_q)
+        p = _resolve(f"{code}.csv")
+        df_s = pd.read_csv(p)
+        date_col = df_s.columns[0]
+        val_col = df_s.columns[1]
+        df_s["date"] = pd.to_datetime(df_s[date_col])
+        df_s = df_s.set_index("date")
+        df_s[col_name] = pd.to_numeric(df_s[val_col], errors="coerce")
+        df_q = df_s[[col_name]].resample("QE").last()
+        df_q.index = df_q.index.to_period("Q")
+        dfs.append(df_q)
 
     # Quarterly average of Fed Funds
-    p_ff = _DATA_DIR / "FEDFUNDS.csv"
-    if p_ff.exists():
-        df_ff = pd.read_csv(p_ff)
-        date_col = df_ff.columns[0]
-        val_col = df_ff.columns[1]
-        df_ff["date"] = pd.to_datetime(df_ff[date_col])
-        df_ff = df_ff.set_index("date")
-        df_ff["fed_funds"] = pd.to_numeric(df_ff[val_col], errors="coerce")
-        df_ff_q = df_ff[["fed_funds"]].resample("QE").mean()
-        df_ff_q.index = df_ff_q.index.to_period("Q")
-        dfs.append(df_ff_q)
+    p_ff = _resolve("FEDFUNDS.csv")
+    df_ff = pd.read_csv(p_ff)
+    date_col = df_ff.columns[0]
+    val_col = df_ff.columns[1]
+    df_ff["date"] = pd.to_datetime(df_ff[date_col])
+    df_ff = df_ff.set_index("date")
+    df_ff["fed_funds"] = pd.to_numeric(df_ff[val_col], errors="coerce")
+    df_ff_q = df_ff[["fed_funds"]].resample("QE").mean()
+    df_ff_q.index = df_ff_q.index.to_period("Q")
+    dfs.append(df_ff_q)
 
     df_merged = pd.concat(dfs, axis=1).dropna()
     return df_merged
@@ -156,18 +180,17 @@ def load_macro_monthly() -> pd.DataFrame:
     }
     dfs = []
     for code, col_name in codes.items():
-        p = _DATA_DIR / f"{code}.csv"
-        if p.exists():
-            df_s = pd.read_csv(p)
-            date_col = df_s.columns[0]
-            val_col = df_s.columns[1]
-            df_s["date"] = pd.to_datetime(df_s[date_col])
-            df_s = df_s.set_index("date")
-            df_s[col_name] = pd.to_numeric(df_s[val_col], errors="coerce")
-            # If weekly (like NFCI), resample to monthly mean
-            df_m = df_s[[col_name]].resample("MS").mean()
-            df_m.index = df_m.index.to_period("M")
-            dfs.append(df_m)
+        p = _resolve(f"{code}.csv")
+        df_s = pd.read_csv(p)
+        date_col = df_s.columns[0]
+        val_col = df_s.columns[1]
+        df_s["date"] = pd.to_datetime(df_s[date_col])
+        df_s = df_s.set_index("date")
+        df_s[col_name] = pd.to_numeric(df_s[val_col], errors="coerce")
+        # If weekly (like NFCI), resample to monthly mean
+        df_m = df_s[[col_name]].resample("MS").mean()
+        df_m.index = df_m.index.to_period("M")
+        dfs.append(df_m)
 
     df_merged = pd.concat(dfs, axis=1).dropna()
     return df_merged
@@ -212,9 +235,7 @@ def load_banxico_stance() -> pd.DataFrame:
     pd.DataFrame
         Monthly PeriodIndex ('2000M01' to '2024M12').
     """
-    path = _DATA_DIR / "banxico_stance_monthly.csv"
-    if not path.exists():
-        raise FileNotFoundError(f"Dataset banxico_stance_monthly.csv not found at {path}")
+    path = _resolve("banxico_stance_monthly.csv")
     df = pd.read_csv(path)
     if "date" in df.columns:
         df["date"] = pd.to_datetime(df["date"])

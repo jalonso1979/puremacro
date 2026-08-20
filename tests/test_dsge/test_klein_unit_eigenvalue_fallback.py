@@ -1,18 +1,23 @@
-"""Klein-solver fallback test: when the Z-partition is degenerate (the
-closed-form ``F = -inv(Z22) Z21`` is corrupted by static-control rows
-producing inf generalised eigenvalues whose finite-side counterparts
-mix into the QZ stable block), ``klein_solve`` should detect the
-condition via the equilibrium residual and recover F via the Sylvester
-equilibrium equation.
+"""Klein solver on static-control systems.
 
-These tests parallel the SW07 pathology in miniature. In SW07, the
-16 static-control equations each have ``A[row, :] = 0``, producing inf
-generalised eigenvalues. The QZ stable-first ordering surfaces the
-near-zero finite counterparts inside Z11, biasing the closed-form F
-even though ``cond(Z11) ~ 16`` (well-conditioned by the usual norm).
-The degenerate small case below reproduces exactly this structure:
-A row 2 is zero (static control), making the closed-form F have a
-~3% bias relative to the true policy function.
+Written for 0.46.0 as a fallback test: the closed-form F was believed to
+be corrupted by static-control rows (``A[row, :] = 0``, producing inf
+generalised eigenvalues whose finite-side counterparts mix into the QZ
+stable block), with the Sylvester equilibrium equation as the remedy.
+
+That diagnosis was wrong, and 1.2.0 corrected it. The bias came from the
+closed form itself — ``F = -inv(Z22) Z21``, which is not the partner of
+the ``G = Z11 inv(S11) T11 inv(Z11)`` that ``klein_solve`` returns
+alongside it. With the consistent ``F = Z21 inv(Z11)`` both systems
+below, and SW07 itself, solve exactly through the closed form; the
+Sylvester branch survives as a guard against genuinely ill-conditioned
+Z11 but no longer fires for these. See
+``tests/test_dsge/test_klein_analytic.py`` for the closed-form
+benchmarks that pin the corrected formulas.
+
+The tests below still earn their place: they check that a static-control
+system — the structural pattern SW07 is built from — recovers its exact
+policy function, whichever branch produces it.
 
 Note on the construction
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -37,12 +42,12 @@ from puremacro.dsge.klein import klein_solve
 
 
 def test_klein_unit_eigenvalue_triggers_sylvester_fallback():
-    """Static-control system whose QZ stable block is mixed by an inf
-    generalised eigenvalue. The closed-form F is biased; the Sylvester
-    fallback recovers F_true to machine precision.
+    """Static-control system with an inf generalised eigenvalue.
 
-    The same pathology as SW07 (cond(Z11) is fine, but the closed-form
-    F has a non-trivial equilibrium residual), at minimum size.
+    A row 2 is zero (the SW07 static-control pattern) — the structure
+    that was thought to require the Sylvester fallback. ``klein_solve``
+    recovers ``F_true`` to machine precision either way; since 1.2.0 the
+    corrected closed form gets there without the fallback.
     """
     n_pre = 2
     n_fwd = 1
@@ -69,9 +74,9 @@ def test_klein_unit_eigenvalue_triggers_sylvester_fallback():
     # G recovers G_x.
     np.testing.assert_allclose(sol.G, G_x, atol=1e-12)
 
-    # F recovers F_true via the fallback. The closed-form Klein F is
-    # biased by the static-control inf eigenvalue mixing into the QZ
-    # stable block; the Sylvester fallback recovers the true F.
+    # F recovers F_true. Pre-1.2.0 this held only because the residual
+    # guard rejected the closed form and re-solved; now the closed form
+    # is itself exact here.
     np.testing.assert_allclose(sol.F, F_true, atol=1e-10)
 
 

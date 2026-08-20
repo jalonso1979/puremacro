@@ -48,6 +48,14 @@ Los conectores bloqueados por WAF / protección anti-bot (EUR-Lex, Parlamento Eu
 - **Utilidades de datos misceláneas** — cargador EU-KLEMS 2023 (`klems`), agregador NEER del BIS (`bis_neer`), empalme homogéneo de vintage G9 (`long_panel`), participación laboral de Gollin (`labor_share`), series en tiempo real por vintage (`vintages`), ajuste estacional (`sa`).
 - **Flujos laborales** — transiciones E/U/N de tres estados a partir de los agregados CPS del BLS (`labor_flows`) y transiciones F/I/U/N de cuatro estados a partir de los microdatos ENOE para México (`labor_flows_enoe`).
 
+**Trabajar fuera de una estación de trabajo** (`runtime.*`, `pocket.*`, `longrun.*`)
+
+La promesa central del paquete es que el núcleo de estimadores corre en un iPad. Estos tres módulos hacen que esa promesa sea utilizable, y no sólo cierta: `runtime` informa de lo que la máquina puede hacer realmente (¿sockets? ¿parquet? ¿hilos?) y encamina el HTTP por el navegador cuando no hay sockets; `pocket` empaqueta datos en cartuchos `.pmz` portátiles y autoverificables, de modo que un panel construido en línea se abre sin conexión; `longrun` ejecuta bootstraps y cadenas en trozos reanudables que sobreviven a la suspensión de la aplicación por parte del sistema, con resultados invariantes al modo en que se troceó el trabajo. Véase «juno.sh / iPad» más abajo.
+
+**Cuaderno de bocetos DSGE** (`dsge.build`)
+
+Escriba las condiciones de equilibrio como una función de Python y obtenga a cambio una aproximación de primer orden resuelta — estado estacionario, reglas de decisión, IRFs —, con los jacobianos obtenidos por diferenciación de paso complejo. Sin matrices derivadas a mano, sin Dynare y sin compilador: justo lo que una tableta no puede ofrecer.
+
 **Artefactos docentes**
 
 `teaching.*` es un canal lateral de investigación y docencia que envuelve intencionadamente `statsmodels` / `linearmodels` / `arch` para que los cuadernos puedan comparar los estimadores puros en numpy de puremacro con los paquetes canónicos. **No está cubierto por la promesa de compatibilidad con Pyodide.**
@@ -103,6 +111,69 @@ await micropip.install(["numpy", "scipy", "pandas", "matplotlib", "requests"])
 ```
 
 Las rutas de código en parquet (`cache`, `fetch.labor*`, `shock_atlas`, `build_panel`) quedan indisponibles en el navegador. El navegador **no** es un destino de despliegue soportado: el material docente presupone una instalación local.
+
+#### Averiguar qué puede hacer realmente la tableta
+
+`puremacro.runtime` lo responde en tiempo de ejecución, en lugar de dejar que se descubra un *traceback* cada vez:
+
+```python
+from puremacro import runtime
+print(runtime.report())
+#  host       : pyodide 3.12.7 (wasm32)
+#  device     : tablet
+#  network    : js-fetch (call runtime.enable_browser_network())
+#  parquet    : unavailable -> use puremacro.runtime.store / pocket
+#  threads    : no (1 cpu, unknown)
+#  backends   : numpy
+```
+
+La detección es heurística — ninguna API dice «esto es Juno» —, así que cada campo puede fijarse con `PUREMACRO_HOST`, `PUREMACRO_DEVICE`, `PUREMACRO_SOCKETS` o `PUREMACRO_PARQUET`.
+
+#### Las tres cosas que fallan, y qué hacer al respecto
+
+**Sin sockets.** Bajo Pyodide ni `requests` ni `urllib` pueden abrir una conexión, de modo que toda llamada a `fetch.*` falla aunque el núcleo de estimadores se importe sin problema. Una sola llamada encamina toda la capa de descarga existente por la red del propio navegador:
+
+```python
+from puremacro import runtime
+from puremacro.fetch import fetch_xrate_monthly
+
+runtime.enable_browser_network()
+fx = fetch_xrate_monthly(["MEX"])
+```
+
+Los puntos de acceso deben enviar `Access-Control-Allow-Origin` — algunas API estadísticas públicas lo hacen; muchos sitios gubernamentales tras un WAF, no. Una petición bloqueada lo indica y nombra a CORS; `proxy=` permite encaminar por un proxy CORS propio.
+
+**Sin pyarrow.** Empaquete los datos donde estén la red y pyarrow, y ábralos donde no estén. Un cartucho es un único archivo autoverificable que lleva consigo su propia procedencia:
+
+```python
+from puremacro import pocket
+
+# estación de trabajo
+pocket.pack(panel, "g7.pmz", source="OECD QNA", vintage="2026-08-19")
+
+# iPad, en modo avión
+cart = pocket.load("g7.pmz")
+panel = cart.frame()          # verificado por sha256 al leer
+cart.provenance.vintage       # '2026-08-19'
+```
+
+Llevar un *archivo* a un iPad suele costar más que el propio análisis, así que un cartucho también viaja como texto: `pocket.to_base64("g7.pmz")` en una máquina y `pocket.from_base64(blob, "g7.pmz")` en la otra.
+
+**La aplicación se suspende.** iPadOS detiene una aplicación en segundo plano, y un bootstrap de cuatro minutos no sobrevive a que alguien conteste un mensaje. `puremacro.longrun` calcula por trozos, guarda tras cada uno y se reanuda en una sesión posterior:
+
+```python
+import numpy as np
+from puremacro import longrun
+
+job = longrun.bootstrap(one_draw, 2000, checkpoint="irf.ckpt")
+job.run(seconds=30)     # 240/2000 · 12% · ~220s of compute left
+job.run(seconds=30)     # ... y de nuevo tras la suspensión de la app
+bands = np.percentile(job.result(), [5, 95], axis=0)
+```
+
+La extracción *i* siempre usa `default_rng([seed, i])`, así que un trabajo reanudado a lo largo de cinco sesiones da resultados idénticos bit a bit a uno que corrió de un tirón — que es lo que hace publicable una ejecución reanudada.
+
+**Ajustar el trabajo a la máquina.** `runtime.fit(n_boot=2000)` devuelve lo que esta máquina debería intentar de verdad, y `runtime.budgeted(estimator)` acota los argumentos de coste de una llamada. Ambos son opcionales: ningún valor por defecto de ningún estimador ha cambiado, de modo que un script que corre en su portátil produce los mismos números de siempre. Sólo se acotan los parámetros de coste — `horizon` cambia *qué* se estima, así que se deja intacto.
 
 ### Ejecutar las funciones LLM de forma gratuita (modelos locales)
 

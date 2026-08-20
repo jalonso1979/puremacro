@@ -10,14 +10,9 @@ value (= LCU/USD; e.g. ~150 for JPY), sa_source, source``.
 """
 from __future__ import annotations
 
-import io
 from typing import Iterable
 
 import pandas as pd
-import requests
-
-_BASE = "https://sdmx.oecd.org/public/rest/data"
-_TIMEOUT = 180
 
 _EMPTY = pd.DataFrame(columns=["code", "date", "variable", "value", "sa_source", "source"])
 

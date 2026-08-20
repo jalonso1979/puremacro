@@ -131,6 +131,25 @@ helper. Coverage is constrained by what Wayback has snapshotted.
   (`labor_flows`) and 4-state F/I/U/N transitions from ENOE microdata
   for Mexico (`labor_flows_enoe`).
 
+**Running away from a workstation** (`runtime.*`, `pocket.*`, `longrun.*`)
+
+The package's headline promise is that the estimator core runs on an
+iPad. These three make the promise usable rather than merely true:
+`runtime` reports what the machine can actually do (sockets? parquet?
+threads?) and routes HTTP over the browser when there are no sockets;
+`pocket` packs data into portable, self-verifying `.pmz` cartridges so a
+panel built online opens offline; `longrun` runs bootstraps and chains in
+resumable chunks that survive the OS suspending the app, with results
+invariant to how the work was sliced. See "juno.sh / iPad" below.
+
+**DSGE sketchpad** (`dsge.build`)
+
+Write the equilibrium conditions as a Python function and get a solved
+first-order approximation back — steady state, policy rules, IRFs — with
+the Jacobians taken by complex-step differentiation. No hand-derived
+matrices, no Dynare, no compiler, which is precisely what a tablet
+cannot provide.
+
 **Teaching artefacts**
 
 `teaching.*` is a research / teaching side-channel that intentionally
@@ -205,6 +224,92 @@ await micropip.install(["numpy", "scipy", "pandas", "matplotlib", "requests"])
 Parquet code paths (`cache`, `fetch.labor*`, `shock_atlas`, `build_panel`)
 stay unavailable in the browser. The browser is **not** a supported
 deployment target: teaching material assumes a local install.
+
+#### Finding out what the tablet can actually do
+
+`puremacro.runtime` answers that at run time rather than leaving you to
+discover it one traceback at a time:
+
+```python
+from puremacro import runtime
+print(runtime.report())
+#  host       : pyodide 3.12.7 (wasm32)
+#  device     : tablet
+#  network    : js-fetch (call runtime.enable_browser_network())
+#  parquet    : unavailable -> use puremacro.runtime.store / pocket
+#  threads    : no (1 cpu, unknown)
+#  backends   : numpy
+```
+
+Detection is heuristic — no API tells you "this is Juno" — so every field
+can be pinned with `PUREMACRO_HOST`, `PUREMACRO_DEVICE`,
+`PUREMACRO_SOCKETS` or `PUREMACRO_PARQUET`.
+
+#### The three things that break, and what to do about them
+
+**No sockets.** `requests` and `urllib` cannot open a connection under
+Pyodide, so every `fetch.*` call fails even though the estimator core
+imports perfectly. One call routes the whole existing fetch layer over
+the browser's own networking:
+
+```python
+from puremacro import runtime
+from puremacro.fetch import fetch_xrate_monthly
+
+runtime.enable_browser_network()
+fx = fetch_xrate_monthly(["MEX"])
+```
+
+Endpoints must send `Access-Control-Allow-Origin` — some public
+statistical APIs do, many WAF-fronted government sites do not. A blocked
+request says so and names CORS; `proxy=` routes through a CORS proxy you
+control.
+
+**No pyarrow.** Pack the data where the network and pyarrow are, open it
+where they are not. A cartridge is one self-verifying file carrying its
+own provenance:
+
+```python
+from puremacro import pocket
+
+# workstation
+pocket.pack(panel, "g7.pmz", source="OECD QNA", vintage="2026-08-19")
+
+# iPad, airplane mode
+cart = pocket.load("g7.pmz")
+panel = cart.frame()          # sha256-checked on read
+cart.provenance.vintage       # '2026-08-19'
+```
+
+Getting a *file* onto an iPad is often more friction than the analysis,
+so a cartridge also travels as text: `pocket.to_base64("g7.pmz")` on
+one machine, `pocket.from_base64(blob, "g7.pmz")` on the other.
+
+**The app gets suspended.** iPadOS stops a backgrounded app, and a
+four-minute bootstrap does not survive someone answering a message.
+`puremacro.longrun` computes in chunks, persists after each, and resumes
+in a later session:
+
+```python
+import numpy as np
+from puremacro import longrun
+
+job = longrun.bootstrap(one_draw, 2000, checkpoint="irf.ckpt")
+job.run(seconds=30)     # 240/2000 · 12% · ~220s of compute left
+job.run(seconds=30)     # ... and again after the app was suspended
+bands = np.percentile(job.result(), [5, 95], axis=0)
+```
+
+Draw *i* always uses `default_rng([seed, i])`, so a job resumed across
+five sessions gives bit-identical results to one that ran straight
+through — which is what makes a resumed run publishable.
+
+**Sizing the work to the device.** `runtime.fit(n_boot=2000)` returns
+what this machine should actually attempt, and
+`runtime.budgeted(estimator)` clamps the cost arguments of a call.
+Both are opt-in: no estimator default changed, so a script that runs on
+your laptop produces the same numbers it always did. Only cost knobs are
+clamped — `horizon` changes what is being estimated, so it is left alone.
 
 ### Run the LLM features for free (local models)
 
@@ -327,6 +432,7 @@ If you are transitioning from Stata, MATLAB/Dynare, or statsmodels:
 | **Staggered DiD** | `csdid y, ivar(id) time(t) gvar(g)` | — | — | `did.callaway_santanna(df, unit="id", time="t", outcome="y", treat_time="g")` |
 | **Value Function Iteration** | — | VFIToolkit `ValueFnIter_Case1` | — | `vfi.VFIProblem(a_grid, z_grid, P_z, return_fn, beta).solve()` |
 | **Linear DSGE (QZ / BK)** | — | Dynare `stoch_simul` / Klein `solab` | — | `dsge.klein.klein_solve(A, B, C, n_pre=...)` |
+| **DSGE from equations** | — | Dynare `.mod` file | — | `dsge.build(equations, variables=..., states=..., shocks=...)` |
 | **GLS Unit Root (DF-GLS)** | `dfgls y, maxlag(4)` | ERS (1996) code | `adfuller` | `tests.unit_root.dfgls_test(y, regression="ct")` |
 | **Seasonal Adjustment** | `x13 y` | X-13 wrapper | `STL` / `x13` | `sa.stl.stl_sa(y)` / `sa.x11.x11_sa(y)` |
 

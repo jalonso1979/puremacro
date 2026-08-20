@@ -93,7 +93,10 @@ puremacro/
 │
 ├── dsge/                  ← klein.py (QZ solver, BK condition); also a
 │                            load_dynare.py (Phase 5 absorb) for reading
-│                            *_results.mat from Dynare.
+│                            *_results.mat from Dynare. build.py (1.2.0)
+│                            takes equilibrium conditions as a Python
+│                            function, differentiates them by complex step
+│                            and hands the matrices to klein_solve.
 ├── connectedness/         ← Diebold-Yilmaz spillover
 ├── forecast/              ← Diebold-Mariano, Giacomini-White, density eval
 ├── tests/                 ← Bai-Perron breaks + unit-root tests
@@ -172,6 +175,32 @@ puremacro/
 ├── regimes.py             ← Regime utility helpers (breaks_to_regimes,
 │                            dates_to_regimes); distinct from regime_dates.
 │
+│ ── runtime adaptation (added 1.2.0) ──────────────────────────────
+├── runtime/               ← What this machine can do, and how much to ask
+│   │                        of it. The only place that knows the package
+│   │                        might not be on a workstation.
+│   ├── _capabilities.py   ← host (cpython/pyodide) + device class
+│   │                        (workstation/tablet/browser) + the four
+│   │                        capabilities that break on a tablet: sockets,
+│   │                        parquet, threads, writable fs. Private module
+│   │                        so `runtime.capabilities` names the function.
+│   ├── budget.py          ← device-sized ceilings on n_boot / n_draws /
+│   │                        n_grid / n_sim. Opt-in per call; no estimator
+│   │                        consults it, so defaults are unchanged.
+│   ├── transport.py       ← HTTP where there are no sockets. Patches
+│   │                        `_http._request` + `fetch._http.requests` to
+│   │                        run over the browser's XMLHttpRequest.
+│   └── store.py           ← DataFrame ⇄ npz codec. The pyarrow-free data
+│                            path; also the substrate for pocket/longrun.
+├── pocket/                ← `.pmz` data cartridges: zip(manifest.json +
+│                            one npz per frame) with sha256 + provenance.
+│                            Pack where there is network, open where there
+│                            is not. Reads with numpy + stdlib alone.
+├── longrun/               ← Chunked, checkpointed jobs that survive an
+│                            iPadOS app suspend. Per-item RNG seeding
+│                            (`default_rng([seed, i])`) makes results
+│                            invariant to chunking and to resumption.
+│
 │ ── research side-channels (NOT in the Pyodide promise) ───────────
 ├── teaching/              ← MATLAB-parity teaching prototypes that
 │                            deliberately wrap statsmodels / linearmodels /
@@ -213,7 +242,11 @@ These are the load-bearing imports. If you change one of these arrows, double-ch
 | `lp/jorda`, `lp/iv`, `lp/panel`, `lp/panel_dk` | **Mature** | LP-HAC + cluster + DK; parity-tested against `linearmodels.PanelOLS`. |
 | `inference/_ols_helpers`, `inference/hac`, `inference/dk`, `inference/weak_iv` | **Mature** | Central inference machinery. Cragg-Donald / Kleibergen-Paap / MSW bands are replication-tested. |
 | `garch/fit` (GARCH(1,1)) | **Mature** | scipy-only; bounded L-BFGS-B with variance floor at 1e-10. |
-| `dsge/klein` | **Mature** | QZ-based; BK condition enforced. |
+| `dsge/klein` | **Mature** | QZ-based; BK condition enforced. `F` and the shock loadings `N`/`L` were corrected at 1.2.0 (see CHANGELOG) and are now pinned against closed-form solutions in `tests/test_dsge/test_klein_analytic.py`. |
+| `dsge/build` | **Stable** | Model DSL + complex-step Jacobians -> `klein_solve`. Validated against the closed-form neoclassical growth model (full depreciation, log utility) to 1e-9 on every matrix. Complex-step needs an analytic residual function; the build cross-checks against finite differences and raises when it is not. |
+| `runtime/*` | **Stable** | Detection is heuristic by necessity (no API reports "you are in Juno") and every field is overridable by environment variable. `budget` is opt-in: it changes no estimator default. |
+| `pocket/*` | **Stable** | Format is versioned (`FORMAT_VERSION`) and self-describing. A transport format, not a trust boundary — checksums catch corruption, not tampering. |
+| `longrun/*` | **Stable** | The invariance property (chunking and resumption do not change results) is the contract; `tests/test_longrun.py` pins it. |
 | `state_space`, `mcmc` | **Mature** | Kalman filter w/ NaN handling; standard MCMC diagnostics. |
 | `var/identify/*` | **Stable, but watch the bootstrap** | Cholesky bootstrap drops non-PD draws and warns above 5% failure rate. All public estimators return frozen-dataclass result-objects 0.42.0+. |
 | `var/identify/panel` (`mean_group_svar` + `PanelSVARResult`) | **Stable** | Canova-Ciccarelli 2013 mean-group panel SVAR. Supports `cholesky` and `bq` natively; uses `safe_cholesky` + canonical `inference/bootstrap` — no `inference.legacy` dependency. |
@@ -283,7 +316,11 @@ The first four are the **Pyodide import core**: the only third-party modules a s
 - `requests` — the whole `puremacro.fetch` layer (OECD/SDMX, EPU, FRED-CSV, IMF, BEA) and the narrative sources `import requests` at module level by design. Without it a clean `pip install puremacro` dies with `ModuleNotFoundError` on the first fetch call. It is pure Python and installs fine under Pyodide (there are no sockets there, but the offline CSV paths never touch it).
 - `pyarrow` — the parquet engine `pandas.read_parquet` needs. `cache.py`, `fetch/labor*.py`, `shock_atlas.py`, `build_panel` / `build_subnational_panel` and the ENOE datasets shipped with the teaching material are all parquet. pandas imports it lazily, so it never lands in `sys.modules` during an import sweep, but it is a hard requirement to *use* those code paths — and the documented student install is a bare `pip install puremacro`, so it cannot live in an extra. **Caveat:** pyarrow has no Pyodide wheel, so an in-browser install must go through `micropip.install("puremacro", deps=False)` plus the deps actually needed; the browser is not a supported deployment target of the teaching material.
 
-**Consequence for the opt-in Pyodide gate:** `tools/pyodide/runner.js` installs the built wheel with `micropip.install("emfs:/tmp/<wheel>")`, i.e. with dependency resolution ON. Since `pyarrow` became a base dependency that resolution can no longer succeed in the browser, so `python tools/release_check.py --pyodide` (gate 6) fails at the install step, not at the import sweep. The runner has to switch to `deps=False` and preload the import core explicitly (`numpy`, `scipy`, `pandas`, `matplotlib` are already `loadPackage`d a few lines above; `requests` would need `micropip`). The in-process guarantee is unaffected: the two sweeps in `tests/test_pyodide_compat.py` are green, because nothing shippable imports `pyarrow` at module level.
+**Consequence for the opt-in Pyodide gate:** because `pyarrow` has no Pyodide wheel, the browser install cannot resolve dependencies. `tools/pyodide/runner.js` therefore installs the built wheel with `micropip.install("emfs:/tmp/<wheel>", deps=False)` and supplies the import core itself — `numpy` / `scipy` / `pandas` / `matplotlib` via `loadPackage`, then `requests` via a second `micropip.install`. With that in place `python tools/release_check.py --pyodide` (gate 6) passes: 29 `pyodide_smoke`-marked tests green under Pyodide 0.28.3 as of 1.2.0, covering the estimator core plus the runtime / pocket / longrun / dsge.build additions.
+
+(Through 1.1.0 this paragraph described the gate as *failing* at the install step and prescribed the `deps=False` switch as future work. The switch had in fact already been made in the runner; the gate was green and the document had not caught up. Verified by running it.)
+
+The in-process guarantee is separate and unaffected: the two sweeps in `tests/test_pyodide_compat.py` are green because nothing shippable imports `pyarrow` at module level.
 
 Anything else is **dev-only or extra-only** (pytest, statsmodels, linearmodels, arch, pypdf, beautifulsoup4, pdfplumber). These are declared in `[project.optional-dependencies]`:
 

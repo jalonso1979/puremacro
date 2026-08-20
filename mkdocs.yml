@@ -56,4 +56,6 @@ nav:
   - Structural Models:
       - Sequence-Space HANK: models.md
       - Climate Macro (DICE): climate.md
+      - DSGE Sketchpad: dsge_build.md
+  - Running Anywhere (iPad / browser): tablet.md
   - Performance & Benchmarks: benchmarks.md

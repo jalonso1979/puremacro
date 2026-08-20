@@ -173,7 +173,11 @@
       "DSGEPosteriorResult",
       "FertilitySolution",
       "KleinSolution",
+      "LinearModel",
+      "ModelError",
       "SW07PosteriorResult",
+      "SteadyStateError",
+      "build",
       "estimate_dsge",
       "estimate_sw07",
       "fertility_adj_costs",
@@ -186,6 +190,12 @@
       "DSGEPosteriorResult",
       "FertilitySolution",
       "SW07PosteriorResult"
+    ],
+    "puremacro.dsge.build": [
+      "LinearModel",
+      "ModelError",
+      "SteadyStateError",
+      "build"
     ],
     "puremacro.dsge.estimate": [
       "estimate_dsge"
@@ -272,6 +282,9 @@
     ],
     "puremacro.fetch": [
       "QNAVintagePanel",
+      "QNA_ASSETS",
+      "QNA_COMPONENTS",
+      "QNA_DURABILITY",
       "fetch_eurostat_lfs_panel",
       "fetch_eurostat_vacancies",
       "fetch_fred",
@@ -283,8 +296,11 @@
       "fetch_oecd_lfs_panel",
       "fetch_qna_vintages",
       "fetch_sectoral_panel_union",
+      "fetch_xrate_monthly",
       "get_qna_vintage_catalog",
       "oecd_sdmx_instrument",
+      "qna_meta",
+      "qna_panel",
       "sdmx_get"
     ],
     "puremacro.fetch._classic": [
@@ -335,6 +351,13 @@
     ],
     "puremacro.fetch.oecd_qna_local": [
       "fetch_extended"
+    ],
+    "puremacro.fetch.oecd_qna_panel": [
+      "QNA_ASSETS",
+      "QNA_COMPONENTS",
+      "QNA_DURABILITY",
+      "qna_meta",
+      "qna_panel"
     ],
     "puremacro.fetch.qna_vintages": [
       "COUNTRY_METADATA",
@@ -610,6 +633,20 @@
     ],
     "puremacro.labor_share": [
       "gollin_adjusted_ls"
+    ],
+    "puremacro.longrun": [
+      "CheckpointError",
+      "Job",
+      "Progress",
+      "bootstrap",
+      "chunked"
+    ],
+    "puremacro.longrun._job": [
+      "CheckpointError",
+      "Job",
+      "Progress",
+      "bootstrap",
+      "chunked"
     ],
     "puremacro.lp": [
       "LPDiDResult",
@@ -1360,6 +1397,36 @@
       "plot_irf_single",
       "plot_spillover"
     ],
+    "puremacro.pocket": [
+      "Cartridge",
+      "CartridgeError",
+      "FORMAT_VERSION",
+      "FrameRecord",
+      "Provenance",
+      "from_base64",
+      "inspect_cartridge",
+      "load",
+      "loads",
+      "pack",
+      "packs",
+      "snapshot",
+      "to_base64"
+    ],
+    "puremacro.pocket._cartridge": [
+      "Cartridge",
+      "CartridgeError",
+      "FORMAT_VERSION",
+      "FrameRecord",
+      "Provenance",
+      "from_base64",
+      "inspect_cartridge",
+      "load",
+      "loads",
+      "pack",
+      "packs",
+      "snapshot",
+      "to_base64"
+    ],
     "puremacro.posterior": [
       "fan_chart_quantiles",
       "simulate_var_paths"
@@ -1399,6 +1466,60 @@
       "coef_table",
       "irf_to_markdown",
       "summary_to_markdown"
+    ],
+    "puremacro.runtime": [
+      "Budget",
+      "BudgetWarning",
+      "Capabilities",
+      "TransportError",
+      "budgeted",
+      "capabilities",
+      "current_budget",
+      "disable_browser_network",
+      "enable_browser_network",
+      "fit",
+      "is_pyodide",
+      "is_tablet",
+      "override",
+      "refresh",
+      "report",
+      "store",
+      "transport_available"
+    ],
+    "puremacro.runtime._capabilities": [
+      "Capabilities",
+      "capabilities",
+      "is_pyodide",
+      "is_tablet",
+      "refresh",
+      "report"
+    ],
+    "puremacro.runtime.budget": [
+      "Budget",
+      "BudgetWarning",
+      "TIERS",
+      "budgeted",
+      "current",
+      "fit",
+      "override"
+    ],
+    "puremacro.runtime.store": [
+      "SCHEMA_VERSION",
+      "StoreError",
+      "describe",
+      "dumps_frame",
+      "load_frame",
+      "loads_frame",
+      "save_frame"
+    ],
+    "puremacro.runtime.transport": [
+      "TransportError",
+      "available",
+      "disable_browser_network",
+      "enable_browser_network",
+      "get_bytes",
+      "get_json",
+      "get_text"
     ],
     "puremacro.sa": [
       "X11Result",
@@ -2022,6 +2143,20 @@
       "param_names",
       "seed"
     ],
+    "puremacro.dsge.build.LinearModel": [
+      "A",
+      "B",
+      "C",
+      "controls",
+      "method",
+      "residual_norm",
+      "shocks",
+      "solution",
+      "states",
+      "steady_state",
+      "units",
+      "variables"
+    ],
     "puremacro.dsge.gensys.GensysSolution": [
       "G",
       "Impact",
@@ -2208,6 +2343,14 @@
       "quarterly",
       "quarterly_observed",
       "stocks"
+    ],
+    "puremacro.longrun._job.Progress": [
+      "done",
+      "elapsed",
+      "eta",
+      "last_run",
+      "rate",
+      "total"
     ],
     "puremacro.lp.lp_did.LPDiDResult": [
       "alpha",
@@ -2586,6 +2729,29 @@
       "nowcast",
       "target_quarter"
     ],
+    "puremacro.pocket._cartridge.Cartridge": [
+      "frames",
+      "provenance",
+      "records"
+    ],
+    "puremacro.pocket._cartridge.FrameRecord": [
+      "columns",
+      "index",
+      "n_bytes",
+      "n_cols",
+      "n_rows",
+      "name",
+      "sha256"
+    ],
+    "puremacro.pocket._cartridge.Provenance": [
+      "call",
+      "created",
+      "host",
+      "notes",
+      "puremacro_version",
+      "source",
+      "vintage"
+    ],
     "puremacro.regime_dates.Regime": [
       "end",
       "name",
@@ -2633,6 +2799,28 @@
       "df",
       "method",
       "n_obs"
+    ],
+    "puremacro.runtime._capabilities.Capabilities": [
+      "backends",
+      "cpu_count",
+      "device",
+      "host",
+      "js_fetch",
+      "machine",
+      "memory_mb",
+      "overridden",
+      "parquet",
+      "python",
+      "sockets",
+      "threads",
+      "writable_fs"
+    ],
+    "puremacro.runtime.budget.Budget": [
+      "n_boot",
+      "n_draws",
+      "n_grid",
+      "n_sim",
+      "tier"
     ],
     "puremacro.sa._airline.AirlineFit": [
       "Theta",

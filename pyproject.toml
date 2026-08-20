@@ -7,8 +7,8 @@ name = "puremacro"
 # Release version. It must be bumped in the SAME commit in all three places
 # `tools/release_check.py` gate 4 compares: pyproject.toml,
 # puremacro/__init__.py (`__version__`) and the top `## X.Y.Z` heading in
-# CHANGELOG.md. All three read 1.1.0.
-version = "1.1.0"
+# CHANGELOG.md. All three read 1.2.0.
+version = "1.2.0"
 description = "Pyodide-compatible empirical macro toolbox: SVAR + LP + GARCH + inference"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -100,6 +100,10 @@ include = ["puremacro*"]
 
 [tool.setuptools.package-data]
 "puremacro.dsge" = ["_sw07_data.csv"]
+# The benchmark datasets `puremacro.datasets` loads. Without this line the
+# loaders resolve to nothing outside the author's checkout — which is what
+# they did before 1.2.0.
+"puremacro.datasets" = ["data/*.csv"]
 "puremacro.validation.goldens" = ["*.json"]
 "puremacro.replication.data" = ["*.csv"]
 
