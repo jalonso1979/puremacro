@@ -9,6 +9,13 @@ Public API
 ----------
 - :func:`fetch_fred`        — FRED public CSV (no API key needed)
 - :func:`fetch_fred_alfred` — ALFRED real-time vintages
+- :func:`qna_panel`         — one-call cross-country quarterly national accounts
+                              (nominal SA levels + implicit deflators, OECD QNA)
+- :func:`qna_countries`     — every reference area that flow actually covers
+- :func:`qna_rebase`        — put every country on one price reference year
+- :func:`qna_identity`      — score Y = C + G + I + X - M, nominal and volume
+- :func:`qna_contributions` — component contributions to real GDP growth
+- :func:`fetch_xrate_monthly` — OECD nominal exchange rates (LCU per USD), monthly
 - :func:`sdmx_get`          — generic SDMX-CSV (OECD, Eurostat, ECB, IMF SDMX Central)
 - :func:`oecd_sdmx_instrument` — convenience wrapper that returns
                                  :class:`puremacro.instruments.Instrument` directly
@@ -37,6 +44,22 @@ from .labor_ilostat import (
 )
 from .jolts import fetch_jolts
 from .vacancies_eurostat import fetch_eurostat_vacancies
+from .oecd_qna_panel import (
+    qna_panel,
+    qna_meta,
+    qna_countries,
+    QNA_AGGREGATES,
+    QNA_COMPONENTS,
+    QNA_ASSETS,
+    QNA_DURABILITY,
+)
+from .oecd_fx import fetch_xrate_monthly
+from .oecd_qna_tools import (
+    qna_rebase,
+    qna_identity,
+    qna_contributions,
+    IDENTITY_TERMS,
+)
 from .qna_vintages import (
     fetch_qna_vintages,
     QNAVintagePanel,
@@ -46,6 +69,18 @@ from .qna_vintages import (
 __all__ = [
     "fetch_fred",
     "fetch_fred_alfred",
+    "qna_panel",
+    "qna_meta",
+    "qna_countries",
+    "QNA_AGGREGATES",
+    "qna_rebase",
+    "qna_identity",
+    "qna_contributions",
+    "IDENTITY_TERMS",
+    "QNA_COMPONENTS",
+    "QNA_ASSETS",
+    "QNA_DURABILITY",
+    "fetch_xrate_monthly",
     "fetch_qna_vintages",
     "QNAVintagePanel",
     "get_qna_vintage_catalog",
