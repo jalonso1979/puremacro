@@ -4,8 +4,19 @@ This file records user-visible changes per release. Internal refactors that don'
 
 ## Unreleased
 
+
+## 1.3.1 (2026-08-20)
+
+**The `requests`-free fetch path, which 1.3.0 was tagged one commit too early to include.**
+
 ### Fixed
 - **Every OECD fetcher raised `ImportError` instead of returning an empty frame when `requests` was not installed.** `puremacro.fetch._oecd_sdmx` imported `requests` and `._http` at module scope, so on a tablet build (Juno) or under Pyodide — where the scraper stack may simply be absent — `qna_panel`, `fetch_xrate_monthly` and every other SDMX caller blew up at the fetch, *despite* each documenting an empty frame as its failure mode. That took down notebooks holding a perfectly good frozen snapshot to fall back to. Both imports are now guarded inside `get_sdmx_csv`, so a missing HTTP stack reads as "the download failed" and callers reach their offline path. `qna_countries()` already degraded correctly and still returns its frozen list. Covered by four new cases in `tests/test_sandboxed_filesystem.py`.
+
+### Known issues
+- **`puremacro.runtime.store` and `puremacro.pocket` do not work under pandas 3.** The npz codec refuses any extension dtype it would have to pickle, and pandas 3 makes `StringDtype` the default for plain string columns — so storing a frame with a string column or a string index level raises `StoreError: cannot store extension dtype <StringDtype(na_value=nan)> without pickling`. 19 tests fail on pandas 3.0.5; every one of them is in this subsystem. The dependency pin is `pandas>=2.0`, so a fresh `pip install puremacro` gets pandas 3 and a broken cartridge path. This is not a regression — 1.2.0 shipped the same way — and nothing else is affected: the fetchers, the QNA panel API, the estimators and the seasonal-adjustment engines are all green on pandas 3.0.5. Fix targeted for 1.3.1; until then use pandas 2.x if you need `pocket` / `runtime.store`.
+
+### Internal
+- Removed `.github/workflows/publish.yml`. It duplicated `release.yml` on the same `v*` trigger, and since only `release.yml` is wired to the PyPI trusted publisher it failed on every tag — a red "Publish to PyPI" next to a green "Release to PyPI" on v1.1.0, v1.2.0 and v1.3.0. It published nothing.
 
 ## 1.3.0 (2026-08-20)
 
