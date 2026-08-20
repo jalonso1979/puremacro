@@ -35,7 +35,7 @@ def _python_files(root: pathlib.Path):
 
 def _violations(path: pathlib.Path) -> list[tuple[int, str]]:
     """Return list of (lineno, key) for any `os.environ.get("..._API_KEY")`."""
-    tree = ast.parse(path.read_text())
+    tree = ast.parse(path.read_text(encoding="utf-8"))
     out = []
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):

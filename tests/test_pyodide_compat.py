@@ -176,7 +176,7 @@ def test_shippable_modules_import_with_forbidden_deps_absent():
     r = subprocess.run(
         [sys.executable, "-c", _ABSENT_SWEEP, json.dumps(list(_FORBIDDEN)),
          json.dumps(mods)],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     assert r.returncode == 0, f"sweep subprocess crashed:\n{r.stderr}"
     fails = json.loads(r.stdout.strip().splitlines()[-1])

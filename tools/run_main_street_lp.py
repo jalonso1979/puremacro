@@ -410,7 +410,7 @@ def main(argv: list[str] | None = None) -> int:
                 f"on {B} district-cluster bootstrap draws",
     }
     (OUT_DIR / "panel_manifest.json").write_text(
-        json.dumps(manifest, indent=2))
+        json.dumps(manifest, indent=2), encoding="utf-8")
 
     ur = results["urate"]["irf"]
     summary = {
@@ -434,9 +434,9 @@ def main(argv: list[str] | None = None) -> int:
         "coverage_gaps_quarters": len(gaps),
         "runtime_seconds": round(time.time() - _T0, 1),
     }
-    (OUT_DIR / "summary.json").write_text(json.dumps(summary, indent=2))
-    (OUT_DIR / "run_log.txt").write_text("\n".join(_LOG_LINES) + "\n")
-    (OUT_DIR / "coverage_gaps.txt").write_text("\n".join(gaps) + "\n")
+    (OUT_DIR / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    (OUT_DIR / "run_log.txt").write_text("\n".join(_LOG_LINES) + "\n", encoding="utf-8")
+    (OUT_DIR / "coverage_gaps.txt").write_text("\n".join(gaps) + "\n", encoding="utf-8")
     log(f"summary: {json.dumps(summary, indent=2)}")
     return 0
 

@@ -35,7 +35,7 @@ def _load_manifest() -> dict:
     f = CACHE_ROOT / _MANIFEST_FILE
     try:
         if f.exists():
-            return json.loads(f.read_text())
+            return json.loads(f.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         pass
     return {}
@@ -45,7 +45,7 @@ def _write_manifest(d: dict) -> None:
     try:
         CACHE_ROOT.mkdir(parents=True, exist_ok=True)
         (CACHE_ROOT / _MANIFEST_FILE).write_text(
-            json.dumps(d, indent=2, sort_keys=True))
+            json.dumps(d, indent=2, sort_keys=True), encoding="utf-8")
     except OSError:
         pass
 

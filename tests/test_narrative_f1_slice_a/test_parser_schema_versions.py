@@ -29,7 +29,7 @@ def test_connector_imports_assert_landmarks(name):
     import ast
     import pathlib
     mod = importlib.import_module(f"puremacro.narrative.sources.{name}")
-    src = pathlib.Path(mod.__file__).read_text()
+    src = pathlib.Path(mod.__file__).read_text(encoding="utf-8")
     tree = ast.parse(src)
     found = False
     for node in ast.walk(tree):

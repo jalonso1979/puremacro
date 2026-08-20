@@ -179,7 +179,7 @@ def migrate_from_flat_files(
         if not sidecar.exists():
             continue
         try:
-            meta = json.loads(sidecar.read_text())
+            meta = json.loads(sidecar.read_text(encoding="utf-8"))
             url = meta["url"]
             fetched_at = int(float(meta["fetched_at"]))
             content_type = meta.get("content_type")

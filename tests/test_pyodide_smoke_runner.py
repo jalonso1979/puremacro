@@ -42,7 +42,7 @@ def test_run_pass(tmp_path, monkeypatch):
         if "node" in cmd[0] and "--version" in cmd:
             return subprocess.CompletedProcess(cmd, 0, stdout="v20.0.0\n", stderr="")
         if "-m" in cmd and "build" in cmd:
-            (tmp_path / "puremacro-0.49.0-py3-none-any.whl").write_text("")
+            (tmp_path / "puremacro-0.49.0-py3-none-any.whl").write_text("", encoding="utf-8")
             return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
         if "runner.js" in (cmd[1] if len(cmd) > 1 else ""):
             return subprocess.CompletedProcess(cmd, 0, stdout=_ok_json_envelope(), stderr="")

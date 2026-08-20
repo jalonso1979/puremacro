@@ -81,7 +81,7 @@ def main() -> int:
     src_files = sorted(SRC_DIR.glob("*.json"))
     if not src_files:
         raise SystemExit(f"no source files under {SRC_DIR}")
-    sources = [json.loads(p.read_text()) for p in src_files]
+    sources = [json.loads(p.read_text(encoding="utf-8")) for p in src_files]
 
     rows = []
     listed: dict[str, dict[str, str]] = {}   # state -> fips -> district

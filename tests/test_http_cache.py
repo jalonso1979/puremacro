@@ -79,6 +79,9 @@ class TestCacheDir:
         # Pretend HOME points to tmp_path
         monkeypatch.delenv("PUREMACRO_HTTP_CACHE_DIR", raising=False)
         monkeypatch.setenv("HOME", str(tmp_path))
+        # Path.home() resolves through ntpath.expanduser on Windows, which
+        # reads USERPROFILE and ignores HOME entirely.
+        monkeypatch.setenv("USERPROFILE", str(tmp_path))
         from puremacro._http_cache import default_cache_dir
         d = default_cache_dir()
         assert "puremacro" in str(d)

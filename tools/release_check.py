@@ -24,7 +24,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 def read_pyproject_version(path: Path) -> str:
-    text = Path(path).read_text()
+    text = Path(path).read_text(encoding="utf-8")
     m = re.search(r'^version\s*=\s*"([^"]+)"', text, re.MULTILINE)
     if not m:
         raise ValueError(f"version not found in {path}")
@@ -32,7 +32,7 @@ def read_pyproject_version(path: Path) -> str:
 
 
 def read_init_version(path: Path) -> str:
-    text = Path(path).read_text()
+    text = Path(path).read_text(encoding="utf-8")
     m = re.search(r'^__version__\s*=\s*"([^"]+)"', text, re.MULTILINE)
     if not m:
         raise ValueError(f"__version__ not found in {path}")
@@ -40,7 +40,7 @@ def read_init_version(path: Path) -> str:
 
 
 def read_changelog_version(path: Path) -> str:
-    for line in Path(path).read_text().splitlines():
+    for line in Path(path).read_text(encoding="utf-8").splitlines():
         m = re.match(r"^##\s+(\d+\.\d+\.\d+)", line)
         if m:
             return m.group(1)
@@ -48,7 +48,7 @@ def read_changelog_version(path: Path) -> str:
 
 
 def load_whitelist(path: Path) -> set[str]:
-    data = json.loads(Path(path).read_text())
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
     return {e["nodeid"] for e in data.get("entries", [])}
 
 
@@ -99,7 +99,7 @@ def run_pytest_collect_failures(repo_root: Path) -> set[str]:
         "--no-header",
     ]
     proc = subprocess.run(
-        cmd, cwd=repo_root, capture_output=True, text=True, timeout=1200,
+        cmd, cwd=repo_root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=1200,
     )
     if proc.returncode not in (0, 1):
         raise RuntimeError(
@@ -123,7 +123,7 @@ def gate_pyodide(repo_root: Path) -> dict:
     ]
     try:
         proc = subprocess.run(
-            cmd, cwd=repo_root, capture_output=True, text=True, timeout=300,
+            cmd, cwd=repo_root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=300,
         )
     except subprocess.TimeoutExpired:
         return {
@@ -163,7 +163,7 @@ def gate_test_baseline(repo_root: Path) -> dict:
 
 
 def compare_snapshot(fresh: dict, fixture_path: Path) -> dict:
-    on_disk = json.loads(Path(fixture_path).read_text())
+    on_disk = json.loads(Path(fixture_path).read_text(encoding="utf-8"))
     if fresh == on_disk:
         return {
             "name": "public_api_snapshot",
@@ -239,7 +239,7 @@ def gate_examples_gallery(json_path: Path, *, examples_source_dir: Path) -> dict
             ),
         }
     try:
-        data = json.loads(Path(json_path).read_text())
+        data = json.loads(Path(json_path).read_text(encoding="utf-8"))
     except json.JSONDecodeError as e:
         return {
             "name": name,

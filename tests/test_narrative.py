@@ -745,13 +745,11 @@ def test_from_canonical_adler_2024_supersedes_dglp_in_dedup(tmp_path):
     adler_csv = tmp_path / "adler.csv"
     adler_csv.write_text(
         "country,year,tax_pct_gdp,exp_pct_gdp\n"
-        "USA,1985,0.5,0.0\n"
-    )
+        "USA,1985,0.5,0.0\n", encoding="utf-8")
     dglp_csv = tmp_path / "dglp.csv"
     dglp_csv.write_text(
         "country,year,tax_pct_gdp,exp_pct_gdp\n"
-        "USA,1985,0.5,0.0\n"
-    )
+        "USA,1985,0.5,0.0\n", encoding="utf-8")
     panel = HomogeneousFiscalPanel.from_canonical(
         countries=["USA"],
         include_adler_2024=True,
@@ -781,8 +779,7 @@ def test_from_canonical_eu_nms_2023_loads_independently(tmp_path):
     eu_csv.write_text(
         "country,year,category,impact_t,impact_t+1,impact_t+2,"
         "impact_t+3,impact_t+4,impact_t+5,gdp,endogeneity\n"
-        "POL,2010,Personal income tax,2.0,1.5,1.0,0.0,0.0,0.0,400,exogenous\n"
-    )
+        "POL,2010,Personal income tax,2.0,1.5,1.0,0.0,0.0,0.0,400,exogenous\n", encoding="utf-8")
     panel = HomogeneousFiscalPanel.from_canonical(
         countries=["POL"],
         include_adler_2024=False,
@@ -808,8 +805,7 @@ def test_from_canonical_imf_covid_2022_loads_independently(tmp_path):
     covid_csv = tmp_path / "covid.csv"
     covid_csv.write_text(
         "country,date,policy,policy_class,magnitude_pct_gdp,description\n"
-        "USA,2020-04-15,unemployment_benefits,fiscal,2.5,CARES Act\n"
-    )
+        "USA,2020-04-15,unemployment_benefits,fiscal,2.5,CARES Act\n", encoding="utf-8")
     panel = HomogeneousFiscalPanel.from_canonical(
         countries=["USA"],
         include_adler_2024=False,

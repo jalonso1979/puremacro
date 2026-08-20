@@ -16,7 +16,7 @@ def _make_flat_entry(d: Path, url: str, body: bytes):
         "url": url,
         "fetched_at": time.time(),
         "content_type": "text/plain",
-    }))
+    }), encoding="utf-8")
 
 
 def _repo_root() -> Path:
@@ -36,7 +36,7 @@ def test_cli_dry_run_does_not_apply(tmp_path, monkeypatch):
     env = {**os.environ, "PUREMACRO_HTTP_CACHE_DIR": str(tmp_path)}
     out = subprocess.run(
         [sys.executable, str(cli)],
-        capture_output=True, text=True, env=env, check=True,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", env=env, check=True,
     )
     # Files still present after dry-run.
     assert list(tmp_path.glob("*.bin"))
@@ -50,7 +50,7 @@ def test_cli_apply_migrates(tmp_path):
     env = {**os.environ, "PUREMACRO_HTTP_CACHE_DIR": str(tmp_path)}
     subprocess.run(
         [sys.executable, str(cli), "--apply"],
-        capture_output=True, text=True, env=env, check=True,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", env=env, check=True,
     )
     # DB now exists and contains the entry.
     import sqlite3
@@ -67,6 +67,6 @@ def test_cli_apply_rm_unlinks(tmp_path):
     env = {**os.environ, "PUREMACRO_HTTP_CACHE_DIR": str(tmp_path)}
     subprocess.run(
         [sys.executable, str(cli), "--apply", "--rm"],
-        capture_output=True, text=True, env=env, check=True,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", env=env, check=True,
     )
     assert list(tmp_path.glob("*.bin")) == []

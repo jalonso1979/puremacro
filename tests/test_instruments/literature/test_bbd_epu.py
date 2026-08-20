@@ -22,7 +22,7 @@ _SYNTHETIC_CSV = """Year,Month,News_Based_Policy_Uncert_Index
 
 def test_load_with_csv_path_returns_instrument(tmp_path):
     csv = tmp_path / "epu.csv"
-    csv.write_text(_SYNTHETIC_CSV)
+    csv.write_text(_SYNTHETIC_CSV, encoding="utf-8")
     inst = load(csv_path=csv)
     assert isinstance(inst, Instrument)
     assert inst.category == "literature"
@@ -32,7 +32,7 @@ def test_load_with_csv_path_returns_instrument(tmp_path):
 
 def test_load_csv_extracts_correct_values(tmp_path):
     csv = tmp_path / "epu.csv"
-    csv.write_text(_SYNTHETIC_CSV)
+    csv.write_text(_SYNTHETIC_CSV, encoding="utf-8")
     inst = load(csv_path=csv)
     assert inst.series.loc[pd.Timestamp("1985-01-01")] == pytest.approx(55.42)
     assert inst.series.loc[pd.Timestamp("2001-09-01")] == pytest.approx(392.58)
@@ -41,7 +41,7 @@ def test_load_csv_extracts_correct_values(tmp_path):
 
 def test_metadata_has_reference(tmp_path):
     csv = tmp_path / "epu.csv"
-    csv.write_text(_SYNTHETIC_CSV)
+    csv.write_text(_SYNTHETIC_CSV, encoding="utf-8")
     inst = load(csv_path=csv)
     assert "reference" in inst.metadata
     assert "Baker" in inst.metadata["reference"]
@@ -62,6 +62,6 @@ def test_load_no_csv_no_network_raises_runtime_error(monkeypatch):
 
 def test_load_csv_with_wrong_columns_raises_clear_error(tmp_path):
     csv = tmp_path / "bad.csv"
-    csv.write_text("year,month,value\n2000,1,1.0\n")  # lowercase column names
+    csv.write_text("year,month,value\n2000,1,1.0\n", encoding="utf-8")  # lowercase column names
     with pytest.raises(ValueError, match="missing expected columns"):
         load(csv_path=csv)

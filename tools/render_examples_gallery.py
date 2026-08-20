@@ -101,7 +101,7 @@ def classify(
 
 def _read_source_first_lines(path: Path, n: int = 10) -> list[str]:
     try:
-        return path.read_text().splitlines()[:n]
+        return path.read_text(encoding="utf-8").splitlines()[:n]
     except (OSError, UnicodeDecodeError):
         return []
 
@@ -150,7 +150,7 @@ def run_example(
         proc = subprocess.run(
             [sys.executable, "-m", f"puremacro.examples.{name}"],
             capture_output=True,
-            text=True,
+            text=True, encoding="utf-8", errors="replace",
             timeout=timeout,
             cwd=REPO_ROOT,
         )
@@ -225,7 +225,7 @@ def render_all(
     # If --only was set, preserve any pre-existing entries for other examples.
     json_path = docs_dir / "examples_gallery.json"
     if only is not None and json_path.exists():
-        prior = json.loads(json_path.read_text()).get("examples", {})
+        prior = json.loads(json_path.read_text(encoding="utf-8")).get("examples", {})
         for k, v in prior.items():
             if k not in entries:
                 entries[k] = v
@@ -235,7 +235,7 @@ def render_all(
         "generated_at": _now_iso(),
         "examples": entries,
     }
-    json_path.write_text(json.dumps(data, indent=2, sort_keys=False) + "\n")
+    json_path.write_text(json.dumps(data, indent=2, sort_keys=False) + "\n", encoding="utf-8")
     _emit_markdown(data, docs_dir / "examples_gallery.md")
     return data
 
@@ -280,7 +280,7 @@ def _emit_markdown(data: dict, md_path: Path) -> None:
                 lines.append("- **Figures:** none")
             lines.append("")
 
-    md_path.write_text("\n".join(lines))
+    md_path.write_text("\n".join(lines), encoding="utf-8")
 
 
 def main(argv: list[str] | None = None) -> int:

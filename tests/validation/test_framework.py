@@ -199,6 +199,6 @@ def test_var_golden_has_cholesky_irf_and_provenance():
     from importlib import resources
 
     raw = json.loads(
-        resources.files("puremacro.validation.goldens").joinpath("var.json").read_text("utf-8")
+        resources.files("puremacro.validation.goldens").joinpath("var.json").read_text(encoding="utf-8")
     )
     assert "statsmodels" in raw["_meta"]["reference"]

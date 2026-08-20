@@ -14,7 +14,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
-        python-version: [ "3.10", "3.11", "3.12", "3.13" ]
+        # 3.10 is not a supported target: pyproject declares
+        # requires-python = ">=3.11", so that leg failed at pip install,
+        # in 13 seconds, on every run.
+        python-version: [ "3.11", "3.12", "3.13" ]
 
     steps:
       - uses: actions/checkout@v4

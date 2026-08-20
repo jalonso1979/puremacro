@@ -121,7 +121,7 @@ class TestX13Available:
     def test_env_var_file_path_resolved_to_parent(self, monkeypatch, tmp_path):
         """X13PATH pointing to the binary file itself resolves to its parent dir."""
         fake_binary = tmp_path / "x13as"
-        fake_binary.write_text("")  # create the file
+        fake_binary.write_text("", encoding="utf-8")  # create the file
 
         monkeypatch.setenv("X13PATH", str(fake_binary))
         result = _resolve_x13_dir()
@@ -129,7 +129,7 @@ class TestX13Available:
 
     def test_env_var_dir_with_binary_resolves(self, monkeypatch, tmp_path):
         """X13PATH pointing to a directory that contains x13as resolves to that dir."""
-        (tmp_path / "x13as").write_text("")
+        (tmp_path / "x13as").write_text("", encoding="utf-8")
 
         monkeypatch.setenv("X13PATH", str(tmp_path))
         result = _resolve_x13_dir()
@@ -167,7 +167,7 @@ class TestX13Available:
     def test_which_x13as_resolves_to_parent(self, monkeypatch, tmp_path):
         """If x13as is on PATH (via shutil.which), its parent directory is returned."""
         fake_binary = tmp_path / "x13as"
-        fake_binary.write_text("")
+        fake_binary.write_text("", encoding="utf-8")
 
         monkeypatch.delenv("X13PATH", raising=False)
         with patch.object(shutil, "which", side_effect=lambda n: str(fake_binary) if n == "x13as" else None):
@@ -176,7 +176,7 @@ class TestX13Available:
 
     def test_env_var_html_variant_resolves(self, monkeypatch, tmp_path):
         """X13PATH dir containing x13ashtml (not x13as) still resolves."""
-        (tmp_path / "x13ashtml").write_text("")
+        (tmp_path / "x13ashtml").write_text("", encoding="utf-8")
 
         monkeypatch.setenv("X13PATH", str(tmp_path))
         result = _resolve_x13_dir()
@@ -187,7 +187,7 @@ class TestX13Available:
         monkeypatch.delenv("X13PATH", raising=False)
         fake_home_local_bin = tmp_path / ".local" / "bin"
         fake_home_local_bin.mkdir(parents=True)
-        (fake_home_local_bin / "x13as").write_text("")
+        (fake_home_local_bin / "x13as").write_text("", encoding="utf-8")
 
         with patch.object(shutil, "which", return_value=None):
             with patch.object(Path, "home", return_value=tmp_path):

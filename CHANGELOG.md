@@ -4,6 +4,14 @@ This file records user-visible changes per release. Internal refactors that don'
 
 ## Unreleased
 
+### Fixed
+- **The suite passes on Windows.** Sixteen of CI's seventeen remaining failures were a single bug repeated across the tree: `Path.read_text()`, `Path.write_text()` and text-mode `subprocess.run(...)` take their encoding from the locale, and on a Windows runner that is cp1252. Every UTF-8 fixture the parsers are tested against — EUR-Lex and European Parliament pages, Bluesky feeds, CBO RSS, central-bank decisions — and every captured pytest transcript died on the first byte cp1252 has no character for (`UnicodeDecodeError: 'charmap' codec can't decode byte 0x81`). The 166 encoding-less `read_text` / `write_text` calls and the 15 text-mode `subprocess` calls across `puremacro/`, `tools/` and `tests/` now name `encoding="utf-8"` explicitly; the subprocess calls add `errors="replace"` so a gate reports a tool's odd byte rather than dying on it. Nothing changes on Linux or macOS, where the locale encoding was already UTF-8 — which is exactly why this went unseen.
+- **`TestCacheDir` asserted against an environment variable Windows does not read.** The test pointed `HOME` at a tmp dir, but `Path.home()` resolves through `ntpath.expanduser` there, which reads `USERPROFILE` and ignores `HOME` — so the assertion compared the runner's real home against the tmp path. It now sets both.
+- **`_load_fred_series` reported the wrong problem when `FRED_API_KEY` was unset.** It imported `fredapi` before reading the key, so on any machine without that optional package — every CI runner, since it lives in the `fetch` extra — the caller got `ModuleNotFoundError: No module named 'fredapi'` instead of the message telling them what to set. The key is checked first now, and a genuinely missing `fredapi` raises a `RuntimeError` naming the series and the install command.
+
+### Internal
+- Dropped Python 3.10 from the CI matrix. `pyproject.toml` declares `requires-python = ">=3.11"`, so that leg failed at `pip install` after 13 seconds on every run since the matrix was added.
+
 
 ## 1.3.1 (2026-08-20)
 

@@ -96,9 +96,9 @@ def run_binary(y: np.ndarray, start: pd.Timestamp, period: int,
         + "arima{ model=(0 1 1)(0 1 1) }\n"
         + f"forecast{{ maxlead=60 maxback={maxback} }}\n"
         + "x11{ mode=" + mode + " seasonalma=msr save=(d10 d11 d12) }\n")
-    (workdir / "g.spc").write_text(spc)
+    (workdir / "g.spc").write_text(spc, encoding="utf-8")
     proc = subprocess.run([str(binary), "g"], cwd=workdir,
-                          capture_output=True, text=True, timeout=300)
+                          capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=300)
     out = {}
     for tab in ("d10", "d11", "d12"):
         p = workdir / f"g.{tab}"
@@ -165,7 +165,7 @@ def main() -> int:
                                 "start": str(s.index[0].date())}
         print(f"golden {name}: n={n}, period={period}, "
               f"transform={'log' if use_log else 'none'}")
-    (GOLD_DIR / "meta.json").write_text(json.dumps(meta, indent=2))
+    (GOLD_DIR / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
     print(f"wrote {len(battery)} goldens -> {GOLD_DIR}")
     return 0
 

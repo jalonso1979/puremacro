@@ -34,7 +34,7 @@ def test_connector_declares_parser_schema_version(name):
 def test_connector_imports_assert_landmarks(name):
     """AST scan: the module must import or reference `assert_landmarks`."""
     mod = _module_for(name)
-    src = pathlib.Path(mod.__file__).read_text()
+    src = pathlib.Path(mod.__file__).read_text(encoding="utf-8")
     tree = ast.parse(src)
     found = False
     for node in ast.walk(tree):

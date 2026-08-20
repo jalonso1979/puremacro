@@ -15,7 +15,7 @@ _F1A_CONNECTORS = ("bi", "bnm", "bsp", "cbn", "cbe", "cbk")
 
 def _module_source(name: str) -> str:
     mod = importlib.import_module(f"puremacro.narrative.sources.{name}")
-    return pathlib.Path(mod.__file__).read_text()
+    return pathlib.Path(mod.__file__).read_text(encoding="utf-8")
 
 
 def _has_call(name: str, fn_name: str) -> bool:

@@ -19,7 +19,7 @@ def _check_node() -> bool:
     try:
         result = subprocess.run(
             ["node", "--version"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=10,
         )
         return result.returncode == 0
     except (FileNotFoundError, subprocess.TimeoutExpired):
@@ -39,7 +39,7 @@ def _build_wheel(repo_root: Path, out_dir: Path) -> Path:
     result = subprocess.run(
         [sys.executable, "-m", "build", "--wheel", "-o", str(out_dir)],
         cwd=str(repo_root),
-        capture_output=True, text=True, timeout=180,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=180,
     )
     if result.returncode != 0:
         tail = "\n".join(result.stderr.splitlines()[-20:])
@@ -55,7 +55,7 @@ def _invoke_runner(repo_root: Path, wheel_path: Path, timeout: int = 600) -> sub
     return subprocess.run(
         ["node", str(runner_path), "--wheel", str(wheel_path)],
         cwd=str(repo_root),
-        capture_output=True, text=True, timeout=timeout,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout,
     )
 
 

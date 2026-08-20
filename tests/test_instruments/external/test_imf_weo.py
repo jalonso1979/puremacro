@@ -21,7 +21,7 @@ _SYNTHETIC_WEO = (
 
 def test_load_with_csv_path_returns_instrument(tmp_path):
     csv = tmp_path / "weo.csv"
-    csv.write_text(_SYNTHETIC_WEO)
+    csv.write_text(_SYNTHETIC_WEO, encoding="utf-8")
     inst = load(indicator="GGXWDG_NGDP", country="USA", csv_path=csv)
     assert isinstance(inst, Instrument)
     assert inst.category == "external_csv"
@@ -31,7 +31,7 @@ def test_load_with_csv_path_returns_instrument(tmp_path):
 
 def test_load_extracts_correct_year_values(tmp_path):
     csv = tmp_path / "weo.csv"
-    csv.write_text(_SYNTHETIC_WEO)
+    csv.write_text(_SYNTHETIC_WEO, encoding="utf-8")
     inst = load(indicator="GGXWDG_NGDP", country="USA", csv_path=csv)
     assert inst.series.loc[pd.Timestamp("2015-01-01")] == pytest.approx(104.5)
     assert inst.series.loc[pd.Timestamp("2020-01-01")] == pytest.approx(135.0)
@@ -40,28 +40,28 @@ def test_load_extracts_correct_year_values(tmp_path):
 
 def test_load_different_indicator(tmp_path):
     csv = tmp_path / "weo.csv"
-    csv.write_text(_SYNTHETIC_WEO)
+    csv.write_text(_SYNTHETIC_WEO, encoding="utf-8")
     inst = load(indicator="GGXONLB_NGDP", country="USA", csv_path=csv)
     assert inst.series.loc[pd.Timestamp("2020-01-01")] == pytest.approx(-12.0)
 
 
 def test_load_different_country(tmp_path):
     csv = tmp_path / "weo.csv"
-    csv.write_text(_SYNTHETIC_WEO)
+    csv.write_text(_SYNTHETIC_WEO, encoding="utf-8")
     inst = load(indicator="GGXWDG_NGDP", country="GBR", csv_path=csv)
     assert inst.series.loc[pd.Timestamp("2015-01-01")] == pytest.approx(87.9)
 
 
 def test_load_missing_country_indicator_pair_raises(tmp_path):
     csv = tmp_path / "weo.csv"
-    csv.write_text(_SYNTHETIC_WEO)
+    csv.write_text(_SYNTHETIC_WEO, encoding="utf-8")
     with pytest.raises(ValueError, match="not found"):
         load(indicator="GGXONLB_NGDP", country="GBR", csv_path=csv)
 
 
 def test_load_metadata_has_reference(tmp_path):
     csv = tmp_path / "weo.csv"
-    csv.write_text(_SYNTHETIC_WEO)
+    csv.write_text(_SYNTHETIC_WEO, encoding="utf-8")
     inst = load(indicator="GGXWDG_NGDP", country="USA", csv_path=csv)
     assert "reference" in inst.metadata
     assert "WEO" in inst.metadata["reference"] or "World Economic Outlook" in inst.metadata["reference"]
@@ -69,7 +69,7 @@ def test_load_metadata_has_reference(tmp_path):
 
 def test_load_csv_with_wrong_columns_raises(tmp_path):
     csv = tmp_path / "bad.csv"
-    csv.write_text("country\tcode\tval\nUSA\tX\t1.0\n")
+    csv.write_text("country\tcode\tval\nUSA\tX\t1.0\n", encoding="utf-8")
     with pytest.raises(ValueError, match="missing expected columns"):
         load(indicator="X", country="USA", csv_path=csv)
 
@@ -108,7 +108,7 @@ def test_load_warns_on_duplicate_indicator_country_rows(tmp_path):
         "USA\tGGXWDG_NGDP\t999.0\t999.0\n"  # duplicate
     )
     csv = tmp_path / "weo_dup.csv"
-    csv.write_text(csv_text)
+    csv.write_text(csv_text, encoding="utf-8")
     with pytest.warns(UserWarning, match="2 rows"):
         inst = load(indicator="GGXWDG_NGDP", country="USA", csv_path=csv)
     # First row wins.

@@ -172,7 +172,7 @@ def test_run_example_pass(tmp_path, monkeypatch):
     output_dir.mkdir()
     # Write a tiny synthetic "example" that succeeds.
     src = examples_dir / "syn_pass.py"
-    src.write_text("print('hello')\n")
+    src.write_text("print('hello')\n", encoding="utf-8")
     # Monkeypatch subprocess.run to avoid relying on a real Python module import path.
     class P:
         returncode = 0
@@ -196,7 +196,7 @@ def test_run_example_explicit_skip_no_subprocess(tmp_path, monkeypatch):
     output_dir = examples_dir / "output"
     output_dir.mkdir()
     src = examples_dir / "syn_skip.py"
-    src.write_text("# skip: synthetic\nraise RuntimeError('should not run')\n")
+    src.write_text("# skip: synthetic\nraise RuntimeError('should not run')\n", encoding="utf-8")
     # Set subprocess.run to a sentinel that would mark the test as broken if invoked.
     def must_not_be_called(*a, **kw):
         raise AssertionError("subprocess.run should not be invoked for explicit-skip examples")
@@ -214,8 +214,8 @@ def test_render_emits_json_with_schema(tmp_path, monkeypatch):
     examples_dir.mkdir()
     output_dir = examples_dir / "output"
     output_dir.mkdir()
-    (examples_dir / "a_pass.py").write_text("print('a')\n")
-    (examples_dir / "b_skip.py").write_text("# skip: synthetic\n")
+    (examples_dir / "a_pass.py").write_text("print('a')\n", encoding="utf-8")
+    (examples_dir / "b_skip.py").write_text("# skip: synthetic\n", encoding="utf-8")
 
     class P:
         returncode = 0
@@ -232,7 +232,7 @@ def test_render_emits_json_with_schema(tmp_path, monkeypatch):
         timeout=5,
     )
     import json
-    data = json.loads((docs_dir / "examples_gallery.json").read_text())
+    data = json.loads((docs_dir / "examples_gallery.json").read_text(encoding="utf-8"))
     assert data["schema_version"] == 1
     assert "generated_at" in data
     assert set(data["examples"].keys()) == {"a_pass", "b_skip"}
@@ -246,8 +246,8 @@ def test_render_emits_markdown_with_status_counts(tmp_path, monkeypatch):
     examples_dir.mkdir()
     output_dir = examples_dir / "output"
     output_dir.mkdir()
-    (examples_dir / "a_pass.py").write_text("print('a')\n")
-    (examples_dir / "b_skip.py").write_text("# skip: synthetic\n")
+    (examples_dir / "a_pass.py").write_text("print('a')\n", encoding="utf-8")
+    (examples_dir / "b_skip.py").write_text("# skip: synthetic\n", encoding="utf-8")
 
     class P:
         returncode = 0
@@ -263,7 +263,7 @@ def test_render_emits_markdown_with_status_counts(tmp_path, monkeypatch):
         docs_dir=docs_dir,
         timeout=5,
     )
-    md = (docs_dir / "examples_gallery.md").read_text()
+    md = (docs_dir / "examples_gallery.md").read_text(encoding="utf-8")
     assert "# puremacro examples gallery" in md
     assert "PASS" in md and "SKIP" in md
     # FAIL section appears even when zero, for predictability.

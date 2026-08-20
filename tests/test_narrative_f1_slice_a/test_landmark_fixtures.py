@@ -24,7 +24,7 @@ def _fixture_text(cb: str, kind: str) -> str:
     for ext in ("html", "xml", "json"):
         p = _FIXTURE_DIR / f"{cb}_{kind}_v1.{ext}"
         if p.exists():
-            return p.read_text()
+            return p.read_text(encoding="utf-8")
     return ""   # speeches fixture may be intentionally absent
 
 

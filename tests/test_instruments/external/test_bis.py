@@ -23,7 +23,7 @@ GB,1999-Q2,1.4
 
 def test_load_with_csv_path_filters_country(tmp_path):
     csv = tmp_path / "bis.csv"
-    csv.write_text(_SYNTHETIC_CSV)
+    csv.write_text(_SYNTHETIC_CSV, encoding="utf-8")
     inst = load(series_id="credit_to_gdp_gap", country="US", csv_path=csv)
     assert isinstance(inst, Instrument)
     assert inst.category == "external_csv"
@@ -35,7 +35,7 @@ def test_load_with_csv_path_filters_country(tmp_path):
 
 def test_load_filters_to_requested_country(tmp_path):
     csv = tmp_path / "bis.csv"
-    csv.write_text(_SYNTHETIC_CSV)
+    csv.write_text(_SYNTHETIC_CSV, encoding="utf-8")
     inst = load(series_id="credit_to_gdp_gap", country="GB", csv_path=csv)
     assert len(inst.series) == 2
     assert inst.series.iloc[0] == pytest.approx(1.1)
@@ -43,21 +43,21 @@ def test_load_filters_to_requested_country(tmp_path):
 
 def test_load_unknown_country_raises_with_available_list(tmp_path):
     csv = tmp_path / "bis.csv"
-    csv.write_text(_SYNTHETIC_CSV)
+    csv.write_text(_SYNTHETIC_CSV, encoding="utf-8")
     with pytest.raises(ValueError, match="ZZ"):
         load(series_id="credit_to_gdp_gap", country="ZZ", csv_path=csv)
 
 
 def test_load_csv_with_wrong_columns_raises(tmp_path):
     csv = tmp_path / "bad.csv"
-    csv.write_text("country,quarter,gap\nUS,1999Q1,3.2\n")
+    csv.write_text("country,quarter,gap\nUS,1999Q1,3.2\n", encoding="utf-8")
     with pytest.raises(ValueError, match="missing expected columns"):
         load(series_id="credit_to_gdp_gap", country="US", csv_path=csv)
 
 
 def test_load_metadata_has_reference(tmp_path):
     csv = tmp_path / "bis.csv"
-    csv.write_text(_SYNTHETIC_CSV)
+    csv.write_text(_SYNTHETIC_CSV, encoding="utf-8")
     inst = load(series_id="credit_to_gdp_gap", country="US", csv_path=csv)
     assert "reference" in inst.metadata
     assert "BIS" in inst.metadata["reference"] or "Bank for International" in inst.metadata["reference"]
@@ -81,7 +81,7 @@ def test_load_handles_q01_leading_zero_date_variant(tmp_path):
         "US,2000-Q01,4.0\n"
     )
     csv = tmp_path / "bis_q01.csv"
-    csv.write_text(csv_text)
+    csv.write_text(csv_text, encoding="utf-8")
     inst = load(series_id="credit_to_gdp_gap", country="US", csv_path=csv)
     assert len(inst.series) == 3
     assert inst.series.loc[pd.Timestamp("1999-01-01")] == pytest.approx(3.2)

@@ -41,7 +41,7 @@ _TARGETS = [
 def test_local_engine_imports_without_inference_deps(target):
     r = subprocess.run(
         [sys.executable, "-c", _PROBE, target],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     assert r.returncode == 0, (
         f"{target} failed to import with engines absent:\n"

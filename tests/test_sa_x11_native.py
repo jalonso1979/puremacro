@@ -86,7 +86,7 @@ def test_airline_mle_recovers_parameters():
 
 
 def _check_golden(name: str) -> None:
-    meta = json.loads((GOLD / "meta.json").read_text())["series"][name]
+    meta = json.loads((GOLD / "meta.json").read_text(encoding="utf-8"))["series"][name]
     df = pd.read_csv(GOLD / f"{name}.csv")
     y = df["y"].to_numpy()
     p = meta["period"]
@@ -180,7 +180,7 @@ def test_x11_vs_binary_default_left_end(name, bound_tol):
     measured; our pinned spec generates backcasts, the default does
     not). Clean-series numbers improved against BOTH modes."""
     gd = Path(__file__).parent / "fixtures" / "sa_goldens_lb"
-    meta = json.loads((gd / "meta.json").read_text())["series"][name]
+    meta = json.loads((gd / "meta.json").read_text(encoding="utf-8"))["series"][name]
     df = pd.read_csv(gd / f"{name}.csv")
     y = df["y"].to_numpy()
     p = meta["period"]

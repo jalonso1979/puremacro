@@ -18,7 +18,7 @@ _FALLBACK_CONNECTORS = (
 
 def _module_source(name: str) -> str:
     mod = importlib.import_module(f"puremacro.narrative.sources.{name}")
-    return pathlib.Path(mod.__file__).read_text()
+    return pathlib.Path(mod.__file__).read_text(encoding="utf-8")
 
 
 def _has_fetch_with_fallback_call(name: str) -> bool:

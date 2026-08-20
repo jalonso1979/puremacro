@@ -206,10 +206,21 @@ def _load_tpu_us(root: Path) -> pd.Series:
 def _load_fred_series(series_id: str) -> pd.Series:
     """Helper: fetch a single FRED series via fredapi. Requires FRED_API_KEY."""
     import os
-    from fredapi import Fred
+
+    # Check the key BEFORE importing fredapi. Reversed, a machine without the
+    # optional fredapi installed -- which is every CI runner, since it lives in
+    # an extra -- got ModuleNotFoundError instead of the actionable message,
+    # and no amount of setting FRED_API_KEY would have helped it.
     key = os.environ.get("FRED_API_KEY")
     if not key:
         raise RuntimeError("FRED_API_KEY must be set in environment")
+    try:
+        from fredapi import Fred
+    except ImportError as exc:
+        raise RuntimeError(
+            f"fetching {series_id} from FRED needs the optional fredapi "
+            f"package: pip install 'puremacro[fetch]' (or pip install fredapi)"
+        ) from exc
     s = Fred(api_key=key).get_series(series_id)
     s.index = pd.to_datetime(s.index)
     s.name = series_id

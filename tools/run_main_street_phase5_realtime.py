@@ -274,7 +274,7 @@ def main(argv: list[str] | None = None) -> int:
     irf.to_csv(OUT_DIR / "irf_realtime.csv", index=False)
 
     # --- headline comparison at the batch-4 anchor horizons -----------------
-    ph4 = json.loads(PH4_SUMMARY.read_text())
+    ph4 = json.loads(PH4_SUMMARY.read_text(encoding="utf-8"))
 
     def _at(spec: str, h: int) -> dict:
         r = irf[(irf["spec"] == spec) & (irf["h"] == h)].iloc[0]
@@ -354,7 +354,7 @@ def main(argv: list[str] | None = None) -> int:
         "wc_draws": B, "seed": args.seed,
     }
     (OUT_DIR / "phase5_manifest.json").write_text(
-        json.dumps(manifest, indent=2))
+        json.dumps(manifest, indent=2), encoding="utf-8")
     summary = {
         "mode": "fast" if args.fast else "full",
         "max_pub_lag_days": args.max_pub_lag,
@@ -365,8 +365,8 @@ def main(argv: list[str] | None = None) -> int:
         "runtime_seconds": round(time.time() - _T0, 1),
     }
     (OUT_DIR / "phase5_summary.json").write_text(
-        json.dumps(summary, indent=2))
-    (OUT_DIR / "run_log_phase5.txt").write_text("\n".join(_LOG_LINES) + "\n")
+        json.dumps(summary, indent=2), encoding="utf-8")
+    (OUT_DIR / "run_log_phase5.txt").write_text("\n".join(_LOG_LINES) + "\n", encoding="utf-8")
     log("summary written")
     return 0
 

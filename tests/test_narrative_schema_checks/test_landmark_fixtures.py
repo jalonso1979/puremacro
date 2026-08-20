@@ -13,7 +13,7 @@ _FIXTURE_DIR = (
 
 
 def _fixture_text(name: str, ext: str) -> str:
-    return (_FIXTURE_DIR / f"{name}_v1.{ext}").read_text()
+    return (_FIXTURE_DIR / f"{name}_v1.{ext}").read_text(encoding="utf-8")
 
 
 def test_beige_book_fixture_passes_landmark_check():

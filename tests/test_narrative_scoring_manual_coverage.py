@@ -60,7 +60,7 @@ def _csv_from_rows(rows: list[dict]) -> str:
 
 def _write_csv(tmp_path, rows: list[dict], fname: str = "events.csv") -> str:
     p = tmp_path / fname
-    p.write_text(_csv_from_rows(rows))
+    p.write_text(_csv_from_rows(rows), encoding="utf-8")
     return str(p)
 
 
@@ -244,14 +244,14 @@ class TestLoadManualCsvHappyPath:
         """load_manual_csv must accept pathlib.Path, not just str."""
         from pathlib import Path
         p = tmp_path / "events.csv"
-        p.write_text(_csv_from_rows([MINIMAL_ROW]))
+        p.write_text(_csv_from_rows([MINIMAL_ROW]), encoding="utf-8")
         events = load_manual_csv(p)
         assert len(events) == 1
 
     def test_empty_csv_returns_empty_list(self, tmp_path):
         """A CSV with only headers and no data rows returns an empty list."""
         p = tmp_path / "empty.csv"
-        p.write_text(",".join(REQUIRED_COLS))
+        p.write_text(",".join(REQUIRED_COLS), encoding="utf-8")
         events = load_manual_csv(p)
         assert events == []
 
@@ -264,49 +264,49 @@ class TestLoadManualCsvErrors:
     def test_missing_date_column_raises(self, tmp_path):
         row = {k: v for k, v in MINIMAL_ROW.items() if k != "date"}
         p = tmp_path / "bad.csv"
-        p.write_text(_csv_from_rows([row]))
+        p.write_text(_csv_from_rows([row]), encoding="utf-8")
         with pytest.raises(ValueError, match="date"):
             load_manual_csv(p)
 
     def test_missing_country_column_raises(self, tmp_path):
         row = {k: v for k, v in MINIMAL_ROW.items() if k != "country"}
         p = tmp_path / "bad.csv"
-        p.write_text(_csv_from_rows([row]))
+        p.write_text(_csv_from_rows([row]), encoding="utf-8")
         with pytest.raises(ValueError, match="country"):
             load_manual_csv(p)
 
     def test_missing_magnitude_column_raises(self, tmp_path):
         row = {k: v for k, v in MINIMAL_ROW.items() if k != "magnitude"}
         p = tmp_path / "bad.csv"
-        p.write_text(_csv_from_rows([row]))
+        p.write_text(_csv_from_rows([row]), encoding="utf-8")
         with pytest.raises(ValueError, match="magnitude"):
             load_manual_csv(p)
 
     def test_missing_sign_column_raises(self, tmp_path):
         row = {k: v for k, v in MINIMAL_ROW.items() if k != "sign"}
         p = tmp_path / "bad.csv"
-        p.write_text(_csv_from_rows([row]))
+        p.write_text(_csv_from_rows([row]), encoding="utf-8")
         with pytest.raises(ValueError, match="sign"):
             load_manual_csv(p)
 
     def test_missing_confidence_column_raises(self, tmp_path):
         row = {k: v for k, v in MINIMAL_ROW.items() if k != "confidence"}
         p = tmp_path / "bad.csv"
-        p.write_text(_csv_from_rows([row]))
+        p.write_text(_csv_from_rows([row]), encoding="utf-8")
         with pytest.raises(ValueError, match="confidence"):
             load_manual_csv(p)
 
     def test_missing_target_column_raises(self, tmp_path):
         row = {k: v for k, v in MINIMAL_ROW.items() if k != "target"}
         p = tmp_path / "bad.csv"
-        p.write_text(_csv_from_rows([row]))
+        p.write_text(_csv_from_rows([row]), encoding="utf-8")
         with pytest.raises(ValueError, match="target"):
             load_manual_csv(p)
 
     def test_missing_source_url_column_raises(self, tmp_path):
         row = {k: v for k, v in MINIMAL_ROW.items() if k != "source_url"}
         p = tmp_path / "bad.csv"
-        p.write_text(_csv_from_rows([row]))
+        p.write_text(_csv_from_rows([row]), encoding="utf-8")
         with pytest.raises(ValueError, match="source_url"):
             load_manual_csv(p)
 
@@ -315,7 +315,7 @@ class TestLoadManualCsvErrors:
         row = {k: v for k, v in MINIMAL_ROW.items()
                if k not in ("date", "country")}
         p = tmp_path / "bad.csv"
-        p.write_text(_csv_from_rows([row]))
+        p.write_text(_csv_from_rows([row]), encoding="utf-8")
         with pytest.raises(ValueError):
             load_manual_csv(p)
 

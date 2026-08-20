@@ -11,14 +11,14 @@ def test_known_failures_file_exists():
 
 
 def test_known_failures_top_level_shape():
-    data = json.loads(PATH.read_text())
+    data = json.loads(PATH.read_text(encoding="utf-8"))
     assert isinstance(data, dict)
     assert data.get("schema_version") == 1
     assert isinstance(data.get("entries"), list)
 
 
 def test_known_failures_entry_fields():
-    data = json.loads(PATH.read_text())
+    data = json.loads(PATH.read_text(encoding="utf-8"))
     required = {"nodeid", "reason", "since_version", "owner_note"}
     for i, entry in enumerate(data["entries"]):
         missing = required - set(entry.keys())
@@ -30,6 +30,6 @@ def test_known_failures_entry_fields():
 
 
 def test_known_failures_nodeids_unique():
-    data = json.loads(PATH.read_text())
+    data = json.loads(PATH.read_text(encoding="utf-8"))
     nodeids = [e["nodeid"] for e in data["entries"]]
     assert len(nodeids) == len(set(nodeids)), "duplicate nodeid in known_failures.json"

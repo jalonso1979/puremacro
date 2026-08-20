@@ -16,7 +16,7 @@ class TestPostParser:
         feed_path = FIXTURE_DIR / "feed_bsky_app.json"
         if not feed_path.exists():
             pytest.skip("feed fixture not fetched")
-        feed_data = json.loads(feed_path.read_text())
+        feed_data = json.loads(feed_path.read_text(encoding="utf-8"))
         items = feed_data.get("feed", [])
         actor_meta = {
             "handle": "bsky.app", "did": "did:plc:z72i7hdynmk6r22z27h6tvur",

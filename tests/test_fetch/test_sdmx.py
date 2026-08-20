@@ -22,7 +22,7 @@ OECD:DSD_STAN(1.0),GBR,VALADD,USD_M,2019,3100.0
 
 def test_sdmx_get_with_csv_path_returns_dataframe(tmp_path):
     csv = tmp_path / "sdmx.csv"
-    csv.write_text(_SYNTHETIC_SDMX_CSV)
+    csv.write_text(_SYNTHETIC_SDMX_CSV, encoding="utf-8")
     df = sdmx_get(provider="oecd", dataflow="DSD_STAN", key="USA",
                   csv_path=csv)
     assert isinstance(df, pd.DataFrame)
@@ -57,7 +57,7 @@ def test_sdmx_get_no_csv_no_network_raises_clear_error(monkeypatch):
 
 def test_oecd_sdmx_instrument_with_csv_path_returns_instrument(tmp_path):
     csv = tmp_path / "sdmx.csv"
-    csv.write_text(_SYNTHETIC_SDMX_CSV)
+    csv.write_text(_SYNTHETIC_SDMX_CSV, encoding="utf-8")
     inst = oecd_sdmx_instrument(
         dataset="DSD_STAN", country="USA", indicator="VALADD",
         csv_path=csv,
@@ -72,7 +72,7 @@ def test_oecd_sdmx_instrument_with_csv_path_returns_instrument(tmp_path):
 
 def test_oecd_sdmx_instrument_filters_country(tmp_path):
     csv = tmp_path / "sdmx.csv"
-    csv.write_text(_SYNTHETIC_SDMX_CSV)
+    csv.write_text(_SYNTHETIC_SDMX_CSV, encoding="utf-8")
     inst = oecd_sdmx_instrument(
         dataset="DSD_STAN", country="GBR", indicator="VALADD",
         csv_path=csv,
@@ -83,7 +83,7 @@ def test_oecd_sdmx_instrument_filters_country(tmp_path):
 
 def test_oecd_sdmx_instrument_unknown_country_raises(tmp_path):
     csv = tmp_path / "sdmx.csv"
-    csv.write_text(_SYNTHETIC_SDMX_CSV)
+    csv.write_text(_SYNTHETIC_SDMX_CSV, encoding="utf-8")
     with pytest.raises(ValueError, match="ZZZ"):
         oecd_sdmx_instrument(
             dataset="DSD_STAN", country="ZZZ", indicator="VALADD",
@@ -93,7 +93,7 @@ def test_oecd_sdmx_instrument_unknown_country_raises(tmp_path):
 
 def test_oecd_sdmx_instrument_metadata_includes_provider_and_dataset(tmp_path):
     csv = tmp_path / "sdmx.csv"
-    csv.write_text(_SYNTHETIC_SDMX_CSV)
+    csv.write_text(_SYNTHETIC_SDMX_CSV, encoding="utf-8")
     inst = oecd_sdmx_instrument(
         dataset="DSD_STAN", country="USA", indicator="VALADD",
         csv_path=csv,
@@ -108,7 +108,7 @@ def test_oecd_sdmx_instrument_metadata_includes_provider_and_dataset(tmp_path):
 def test_oecd_sdmx_instrument_rejects_non_annual_frequency(tmp_path):
     """Phase 1 only handles annual data; non-annual frequency must raise."""
     csv = tmp_path / "sdmx.csv"
-    csv.write_text(_SYNTHETIC_SDMX_CSV)
+    csv.write_text(_SYNTHETIC_SDMX_CSV, encoding="utf-8")
     with pytest.raises(ValueError, match="annual"):
         oecd_sdmx_instrument(
             dataset="DSD_STAN", country="USA", indicator="VALADD",

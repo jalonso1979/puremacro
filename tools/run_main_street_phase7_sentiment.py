@@ -236,7 +236,7 @@ def main(argv: list[str] | None = None) -> int:
         "n_cells": int(len(est.dropna(
             subset=["innov_full", "innov_unc", "innov_sent"]))),
     }
-    (OUT_DIR / "phase7_discriminant.json").write_text(json.dumps(disc, indent=2))
+    (OUT_DIR / "phase7_discriminant.json").write_text(json.dumps(disc, indent=2), encoding="utf-8")
     log(f"innovation discriminant (1992+): corr(full,sent)="
         f"{disc['corr_full_sent']:+.3f}, corr(full,unc)="
         f"{disc['corr_full_unc']:+.3f}, corr(unc,sent)="
@@ -291,7 +291,7 @@ def main(argv: list[str] | None = None) -> int:
         "wc_draws": B, "seed": args.seed,
         "runtime_seconds": round(time.time() - _T0, 1),
     }
-    (OUT_DIR / "phase7_summary.json").write_text(json.dumps(summary, indent=2))
+    (OUT_DIR / "phase7_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
 
     manifest = {
         "created_utc": datetime.now(timezone.utc).isoformat(),
@@ -304,14 +304,14 @@ def main(argv: list[str] | None = None) -> int:
         "estimator": "identical to Phase 3/4 (imported run_spec_multi)",
         "wc_draws": B, "seed": args.seed,
     }
-    (OUT_DIR / "phase7_manifest.json").write_text(json.dumps(manifest, indent=2))
+    (OUT_DIR / "phase7_manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
     for s in irf["spec"].unique():
         p = peak(s)
         log(f"peak[{s}]: h={p['h']} beta={p['beta']:+.4f} "
             f"(DK se {p['se_dk']:.4f}, WC p={p['p_wc']:.3f})")
 
-    (OUT_DIR / "run_log_phase7.txt").write_text("\n".join(_LOG_LINES) + "\n")
+    (OUT_DIR / "run_log_phase7.txt").write_text("\n".join(_LOG_LINES) + "\n", encoding="utf-8")
     log("summary written")
     return 0
 

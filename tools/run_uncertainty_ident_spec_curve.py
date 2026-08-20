@@ -408,7 +408,7 @@ def freeze_panel(panel: pd.DataFrame, manifest: dict, out: Path) -> None:
             "ffr": "FEDFUNDS level (percent)",
         },
     }
-    (out / "panel_manifest.json").write_text(json.dumps(meta, indent=2))
+    (out / "panel_manifest.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
     log(f"froze panel: {csv.name} ({len(panel)} rows, sha256 {sha[:12]}…)")
 
 
@@ -1232,7 +1232,7 @@ def family_table(curve: pd.DataFrame, out: Path) -> pd.DataFrame:
         md.append(f"| {r['family']} | {r['n_specs']:.0f} | {r['median_peak']:+.3f} "
                   f"| {r['median_h12']:+.3f} | {r['share_peak_negative']:.0%} "
                   f"| {r['min_peak']:+.3f} | {r['max_peak']:+.3f} |")
-    (out / "table_family_medians.md").write_text("\n".join(md) + "\n")
+    (out / "table_family_medians.md").write_text("\n".join(md) + "\n", encoding="utf-8")
     return tab
 
 
@@ -1428,15 +1428,15 @@ def main() -> None:
         headline["event_sweep"] = sweep_summary
     if ph_summary is not None:
         headline["ph_sweep"] = ph_summary
-    (out / "summary.json").write_text(json.dumps(headline, indent=2))
+    (out / "summary.json").write_text(json.dumps(headline, indent=2), encoding="utf-8")
     log("summary.json written: " + json.dumps(headline["family_medians"]))
 
     # ---- determinism ---------------------------------------------------------
     determinism_check(curve, out, draws_grid)
 
     headline["runtime_seconds"] = round(time.time() - _T0, 1)
-    (out / "summary.json").write_text(json.dumps(headline, indent=2))
-    (out / "run_log.txt").write_text("\n".join(_LOG_LINES) + "\n")
+    (out / "summary.json").write_text(json.dumps(headline, indent=2), encoding="utf-8")
+    (out / "run_log.txt").write_text("\n".join(_LOG_LINES) + "\n", encoding="utf-8")
     log(f"DONE in {headline['runtime_seconds']:.0f}s")
 
 

@@ -25,7 +25,7 @@ def _make_flat_entry(d, url: str, body: bytes, age_seconds: int = 0):
         "url": url,
         "fetched_at": time.time() - age_seconds,
         "content_type": "text/plain",
-    }))
+    }), encoding="utf-8")
 
 
 def test_migration_inserts_entries(fresh_db):
@@ -65,7 +65,7 @@ def test_migration_skips_corrupt_sidecars(fresh_db):
     bad_url = "https://example.com/bad"
     bad_key = hashlib.sha256(bad_url.encode()).hexdigest()
     (fresh_db / f"{bad_key}.bin").write_bytes(b"corrupt")
-    (fresh_db / f"{bad_key}.json").write_text("{ not valid json")
+    (fresh_db / f"{bad_key}.json").write_text("{ not valid json", encoding="utf-8")
     conn = get_conn(fresh_db / "cache.db")
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")

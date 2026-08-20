@@ -794,7 +794,7 @@ def main(argv: list[str] | None = None) -> int:
         "wc_draws": B, "placebo_perms": n_perm, "seed": args.seed,
     }
     (OUT_DIR / "phase3_manifest.json").write_text(
-        json.dumps(manifest, indent=2))
+        json.dumps(manifest, indent=2), encoding="utf-8")
 
     def _spec_block(name: str) -> dict:
         s = irf[irf["spec"] == name]
@@ -848,8 +848,8 @@ def main(argv: list[str] | None = None) -> int:
         "runtime_seconds": round(time.time() - _T0, 1),
     }
     (OUT_DIR / "phase3_summary.json").write_text(
-        json.dumps(summary, indent=2))
-    (OUT_DIR / "run_log_phase3.txt").write_text("\n".join(_LOG_LINES) + "\n")
+        json.dumps(summary, indent=2), encoding="utf-8")
+    (OUT_DIR / "run_log_phase3.txt").write_text("\n".join(_LOG_LINES) + "\n", encoding="utf-8")
     log("summary written")
     return 0
 

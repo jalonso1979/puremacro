@@ -118,7 +118,7 @@ class TestSotuParser:
         html_path = FIXTURE_DIR / "sotu_2024.html"
         if not html_path.exists():
             pytest.skip("sotu_2024.html fixture not yet fetched")
-        rec = _parse_sotu_page(html_path.read_text(),
+        rec = _parse_sotu_page(html_path.read_text(encoding="utf-8"),
                                 source_url="https://test")
         assert rec is not None, "SOTU fixture failed to parse"
         date, text, source_url, metadata = rec
@@ -143,7 +143,7 @@ class TestCboParser:
         rss_path = FIXTURE_DIR / "cbo_rss_sample.xml"
         if not rss_path.exists():
             pytest.skip("cbo_rss_sample.xml fixture not yet fetched")
-        items = _parse_rss(rss_path.read_text())
+        items = _parse_rss(rss_path.read_text(encoding="utf-8"))
         assert len(items) >= 5, f"expected 5+ items, got {len(items)}"
         first = items[0]
         assert "title" in first
@@ -157,7 +157,7 @@ class TestCboParser:
         candidates = sorted(glob.glob(str(FIXTURE_DIR / "cbo_pub_*.html")))
         if not candidates:
             pytest.skip("no cbo_pub_*.html fixture")
-        html = open(candidates[0]).read()
+        html = open(candidates[0], encoding="utf-8").read()
         # Extract pub_id from filename
         import re
         m = re.search(r"cbo_pub_(\d+)\.html", candidates[0])
@@ -221,7 +221,7 @@ class TestCboWaybackFallback:
         cands = sorted(glob.glob(str(fix_dir / "cbo_pub_*.html")))
         if not cands:
             pytest.skip("no cbo_pub_*.html fixture")
-        fixture_html = Path(cands[0]).read_text()
+        fixture_html = Path(cands[0]).read_text(encoding="utf-8")
 
         # Stub: direct fetch returns empty; Wayback fetch returns fixture.
         wb_calls = []

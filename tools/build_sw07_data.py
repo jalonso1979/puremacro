@@ -101,7 +101,7 @@ def main(out_path: Path) -> None:
     header.append(f"# Built: {pd.Timestamp.utcnow().strftime('%Y-%m-%d')}")
     header.append("# Reference: Smets & Wouters (2007), AER")
 
-    with out_path.open("w") as fh:
+    with out_path.open("w", encoding="utf-8") as fh:
         for line in header:
             fh.write(line + "\n")
         out.to_csv(fh, index_label="date")

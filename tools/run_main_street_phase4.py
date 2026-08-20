@@ -339,7 +339,7 @@ def main(argv: list[str] | None = None) -> int:
 
     merged = pd.read_csv(MERGED_CSV, parse_dates=["date"])
     expo = pd.read_csv(EXPO_CSV)
-    ph3 = json.loads(PH3_SUMMARY.read_text())
+    ph3 = json.loads(PH3_SUMMARY.read_text(encoding="utf-8"))
     irf3 = pd.read_csv(PH3_IRF)
     plc3 = pd.read_csv(PH3_PLACEBO)
     h_star = int(ph3["h_star"])
@@ -494,7 +494,7 @@ def main(argv: list[str] | None = None) -> int:
         "paired_with_phase3_placebo": True,
     }
     (OUT_DIR / "phase4_manifest.json").write_text(
-        json.dumps(manifest, indent=2))
+        json.dumps(manifest, indent=2), encoding="utf-8")
 
     def _path(spec: str) -> dict:
         s = irf[irf["spec"] == spec].set_index("h")
@@ -542,8 +542,8 @@ def main(argv: list[str] | None = None) -> int:
         "runtime_seconds": round(time.time() - _T0, 1),
     }
     (OUT_DIR / "phase4_summary.json").write_text(
-        json.dumps(summary, indent=2))
-    (OUT_DIR / "run_log_phase4.txt").write_text("\n".join(_LOG_LINES) + "\n")
+        json.dumps(summary, indent=2), encoding="utf-8")
+    (OUT_DIR / "run_log_phase4.txt").write_text("\n".join(_LOG_LINES) + "\n", encoding="utf-8")
     log("summary written")
     return 0
 

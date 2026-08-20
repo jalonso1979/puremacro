@@ -36,7 +36,7 @@ def test_config_lookup_finds_key(monkeypatch, tmp_path):
     from puremacro.credentials import get
 
     cfg = tmp_path / "credentials.toml"
-    cfg.write_text('[fred]\napi_key = "from-toml"\n')
+    cfg.write_text('[fred]\napi_key = "from-toml"\n', encoding="utf-8")
     monkeypatch.setenv("PUREMACRO_CREDENTIALS_FILE", str(cfg))
     # Wipe env so config-file path is the only source.
     monkeypatch.delenv("FRED_API_KEY", raising=False)
@@ -67,7 +67,7 @@ def test_malformed_toml_warns_and_falls_through(monkeypatch, tmp_path):
     from puremacro.credentials import get
 
     cfg = tmp_path / "bad.toml"
-    cfg.write_text("[fred\napi_key = no quotes here\n")
+    cfg.write_text("[fred\napi_key = no quotes here\n", encoding="utf-8")
     monkeypatch.setenv("PUREMACRO_CREDENTIALS_FILE", str(cfg))
     monkeypatch.delenv("FRED_API_KEY", raising=False)
     monkeypatch.delenv("PUREMACRO_FRED_API_KEY", raising=False)

@@ -16,7 +16,7 @@ class TestEurlexParser:
         html_path = FIXTURE_DIR / "eurlex_32024R0903_EN.html"
         if not html_path.exists():
             pytest.skip("EN fixture not yet fetched")
-        rec = _parse_eurlex_html(html_path.read_text(),
+        rec = _parse_eurlex_html(html_path.read_text(encoding="utf-8"),
                                   celex_id="32024R0903",
                                   language="en",
                                   source_url="https://test")
@@ -33,7 +33,7 @@ class TestEurlexParser:
         html_path = FIXTURE_DIR / "eurlex_32024R0903_DE.html"
         if not html_path.exists():
             pytest.skip("DE fixture not yet fetched")
-        rec = _parse_eurlex_html(html_path.read_text(),
+        rec = _parse_eurlex_html(html_path.read_text(encoding="utf-8"),
                                   celex_id="32024R0903",
                                   language="de",
                                   source_url="https://test")
@@ -48,7 +48,7 @@ class TestEurlexParser:
         html_path = FIXTURE_DIR / "eurlex_32024R0903_FR.html"
         if not html_path.exists():
             pytest.skip("FR fixture not yet fetched")
-        rec = _parse_eurlex_html(html_path.read_text(),
+        rec = _parse_eurlex_html(html_path.read_text(encoding="utf-8"),
                                   celex_id="32024R0903",
                                   language="fr",
                                   source_url="https://test")
@@ -65,7 +65,7 @@ class TestEurlexParser:
         html_path = FIXTURE_DIR / "eurlex_32024R0903_EN.html"
         if not html_path.exists():
             pytest.skip("EN fixture not yet fetched")
-        rec = _parse_eurlex_html(html_path.read_text(),
+        rec = _parse_eurlex_html(html_path.read_text(encoding="utf-8"),
                                   celex_id="32024R0903",
                                   language="en",
                                   source_url="https://test")
@@ -107,7 +107,7 @@ class TestEpParser:
         if not html_path.exists():
             pytest.skip("EP EN fixture not yet fetched")
         session_date = dt.date(2024, 12, 16)
-        rec = _parse_ep_page(html_path.read_text(),
+        rec = _parse_ep_page(html_path.read_text(encoding="utf-8"),
                               session_date=session_date,
                               language="en",
                               source_url="https://test",
@@ -128,7 +128,7 @@ class TestEpParser:
         if not html_path.exists():
             pytest.skip("EP EN fixture not yet fetched")
         session_date = dt.date(2024, 12, 16)
-        rec = _parse_ep_page(html_path.read_text(),
+        rec = _parse_ep_page(html_path.read_text(encoding="utf-8"),
                               session_date=session_date,
                               language="en",
                               source_url="https://test",

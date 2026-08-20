@@ -440,7 +440,7 @@ def test_unknown_kind_raises_value_error():
 def _make_tmp_csv(content: str) -> str:
     """Write content to a temp file and return its path."""
     fd, path = tempfile.mkstemp(suffix=".csv")
-    with os.fdopen(fd, "w") as fh:
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
         fh.write(content)
     return path
 

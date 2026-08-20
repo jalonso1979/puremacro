@@ -18,7 +18,7 @@ _SYNTHETIC_CSV = """month,GPR
 
 def test_load_with_csv_path_returns_instrument(tmp_path):
     csv = tmp_path / "gpr.csv"
-    csv.write_text(_SYNTHETIC_CSV)
+    csv.write_text(_SYNTHETIC_CSV, encoding="utf-8")
     inst = load(csv_path=csv)
     assert isinstance(inst, Instrument)
     assert inst.category == "literature"
@@ -28,7 +28,7 @@ def test_load_with_csv_path_returns_instrument(tmp_path):
 
 def test_load_extracts_correct_values(tmp_path):
     csv = tmp_path / "gpr.csv"
-    csv.write_text(_SYNTHETIC_CSV)
+    csv.write_text(_SYNTHETIC_CSV, encoding="utf-8")
     inst = load(csv_path=csv)
     assert inst.series.loc[pd.Timestamp("1985-01-01")] == pytest.approx(68.41)
     assert inst.series.loc[pd.Timestamp("2001-09-01")] == pytest.approx(295.10)
@@ -37,7 +37,7 @@ def test_load_extracts_correct_values(tmp_path):
 
 def test_metadata_has_reference(tmp_path):
     csv = tmp_path / "gpr.csv"
-    csv.write_text(_SYNTHETIC_CSV)
+    csv.write_text(_SYNTHETIC_CSV, encoding="utf-8")
     inst = load(csv_path=csv)
     assert "reference" in inst.metadata
     assert "Caldara" in inst.metadata["reference"]
@@ -55,6 +55,6 @@ def test_load_no_csv_no_network_raises_runtime_error(monkeypatch):
 
 def test_load_csv_with_wrong_columns_raises_clear_error(tmp_path):
     csv = tmp_path / "bad.csv"
-    csv.write_text("date,risk_index\n2000-01-01,1.0\n")
+    csv.write_text("date,risk_index\n2000-01-01,1.0\n", encoding="utf-8")
     with pytest.raises(ValueError, match="missing expected columns"):
         load(csv_path=csv)

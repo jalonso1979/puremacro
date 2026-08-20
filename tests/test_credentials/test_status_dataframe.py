@@ -44,7 +44,7 @@ def test_status_marks_env_source(monkeypatch, tmp_path):
 
 def test_status_marks_config_file_source(monkeypatch, tmp_path):
     cfg = tmp_path / "credentials.toml"
-    cfg.write_text('[fred]\napi_key = "from-config"\n')
+    cfg.write_text('[fred]\napi_key = "from-config"\n', encoding="utf-8")
     monkeypatch.setenv("PUREMACRO_CREDENTIALS_FILE", str(cfg))
     monkeypatch.delenv("FRED_API_KEY", raising=False)
     monkeypatch.delenv("PUREMACRO_FRED_API_KEY", raising=False)

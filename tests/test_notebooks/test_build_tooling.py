@@ -39,6 +39,6 @@ def test_discover_excludes_underscore():
 def test_cli_list_runs():
     rc = subprocess.run(
         [sys.executable, str(PROJ / "tools" / "build_notebooks.py"), "--list"],
-        cwd=PROJ, capture_output=True, text=True,
+        cwd=PROJ, capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     assert rc.returncode == 0, rc.stderr

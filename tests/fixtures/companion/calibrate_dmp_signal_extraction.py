@@ -634,7 +634,7 @@ def main(horizons: int = 8) -> None:
     meta = build_meta(params, model_tight, model_loose, empirical, sensitivity, horizons)
     meta_path = _TABLES_DIR / "95_calibration_meta.json"
     meta_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(meta_path, "w") as fh:
+    with open(meta_path, "w", encoding="utf-8") as fh:
         json.dump(meta, fh, indent=2)
 
     print(f"[calibrate_dmp] sign_flip_test(baseline) = {sign_flip_test(params)}")

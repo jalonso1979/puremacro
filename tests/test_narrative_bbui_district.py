@@ -139,12 +139,12 @@ def _register_mini_fixtures(mock_http) -> None:
     text: dict[str, str] = {}
     for yyyymm in _MINI_RELEASES:
         text[f"{_BASE}{yyyymm}.htm"] = (
-            FIXTURE_DIR / f"modern_{yyyymm}_mini.html").read_text()
+            FIXTURE_DIR / f"modern_{yyyymm}_mini.html").read_text(encoding="utf-8")
         text[f"{_BASE}{yyyymm}-summary.htm"] = (
-            FIXTURE_DIR / f"modern_{yyyymm}_mini_summary.html").read_text()
+            FIXTURE_DIR / f"modern_{yyyymm}_mini_summary.html").read_text(encoding="utf-8")
         for slug in _MINI_SLUGS:
             text[f"{_BASE}{yyyymm}-{slug}.htm"] = (
-                FIXTURE_DIR / f"modern_{yyyymm}_mini_{slug}.html").read_text()
+                FIXTURE_DIR / f"modern_{yyyymm}_mini_{slug}.html").read_text(encoding="utf-8")
     for yyyymm in _EMPTY_MONTHS:
         text[f"{_BASE}{yyyymm}.htm"] = ""
     mock_http(text=text)
@@ -188,10 +188,10 @@ def bb_inline_records(mock_http):
     from puremacro.narrative.sources import iter_beige_book
     text = {
         f"{_BASE}202206.htm":
-            (FIXTURE_DIR / "modern_202206_mini_inline.html").read_text(),
+            (FIXTURE_DIR / "modern_202206_mini_inline.html").read_text(encoding="utf-8"),
         f"{_BASE}202206-summary.htm":
             (FIXTURE_DIR / "modern_202206_mini_inline_summary.html")
-            .read_text(),
+            .read_text(encoding="utf-8"),
     }
     mock_http(text=text)
     return list(iter_beige_book(since="2022-06-01", until="2022-06-30"))
@@ -229,10 +229,10 @@ class TestInlineSinglePageLayout:
         from puremacro.narrative.sources import iter_beige_book
         text = {
             f"{_BASE}202206.htm":
-                (FIXTURE_DIR / "modern_202206_mini_inline.html").read_text(),
+                (FIXTURE_DIR / "modern_202206_mini_inline.html").read_text(encoding="utf-8"),
             f"{_BASE}202206-summary.htm":
                 (FIXTURE_DIR / "modern_202206_mini_inline_summary.html")
-                .read_text(),
+                .read_text(encoding="utf-8"),
         }
         mock_http(text=text)
         records = list(iter_beige_book(

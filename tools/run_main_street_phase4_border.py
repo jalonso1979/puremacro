@@ -606,7 +606,7 @@ def main(argv: list[str] | None = None) -> int:
             **sa_diag,
         }
     (OUT_DIR / f"phase4b_manifest{sfx}.json").write_text(
-        json.dumps(manifest, indent=2))
+        json.dumps(manifest, indent=2), encoding="utf-8")
 
     def _path(spec: str) -> dict:
         s = irf[irf["spec"] == spec].set_index("h")
@@ -638,9 +638,9 @@ def main(argv: list[str] | None = None) -> int:
     }
     summary["seasonally_adjusted"] = bool(args.sa)
     (OUT_DIR / f"phase4b_summary{sfx}.json").write_text(
-        json.dumps(summary, indent=2))
+        json.dumps(summary, indent=2), encoding="utf-8")
     (OUT_DIR / f"run_log_phase4b{sfx}.txt").write_text(
-        "\n".join(_LOG_LINES) + "\n")
+        "\n".join(_LOG_LINES) + "\n", encoding="utf-8")
     log("summary written")
     return 0
 

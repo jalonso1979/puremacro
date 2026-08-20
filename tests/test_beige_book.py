@@ -87,7 +87,7 @@ class TestModernDistrictParser:
     """Tests against the pre-fetched Boston district fixture."""
 
     def setup_method(self):
-        self.html = (FIXTURE_DIR / "modern_202401_boston.html").read_text()
+        self.html = (FIXTURE_DIR / "modern_202401_boston.html").read_text(encoding="utf-8")
         self.release_date = dt.date(2024, 1, 1)
         self.source_url = "https://test"
 
@@ -131,7 +131,7 @@ class TestModernSummaryParser:
     """Tests against the pre-fetched national summary fixture."""
 
     def setup_method(self):
-        self.html = (FIXTURE_DIR / "modern_202401_summary.html").read_text()
+        self.html = (FIXTURE_DIR / "modern_202401_summary.html").read_text(encoding="utf-8")
         self.release_date = dt.date(2024, 1, 1)
         self.source_url = "https://test"
 
@@ -370,8 +370,8 @@ class TestPre2017ModernHtml:
         from datetime import date as _date
 
         FIX = (Path(__file__).parent / "fixtures" / "beige_book_pre2017")
-        district_html = (FIX / "district_boston.html").read_text()
-        index_html = (FIX / "index.html").read_text()
+        district_html = (FIX / "district_boston.html").read_text(encoding="utf-8")
+        index_html = (FIX / "index.html").read_text(encoding="utf-8")
 
         # Replay HTTP: index returns the fixture index; any district URL
         # returns the same Boston fixture (we just want >0 records).

@@ -18,7 +18,7 @@ def _run(*args):
     return subprocess.run(
         [sys.executable, str(SCRIPT), *args],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(REPO_ROOT),
     )
 
@@ -47,13 +47,13 @@ def test_read_pyproject_version(tmp_path):
         [project]
         name = "x"
         version = "1.2.3"
-    """))
+    """), encoding="utf-8")
     assert release_check.read_pyproject_version(f) == "1.2.3"
 
 
 def test_read_init_version(tmp_path):
     f = tmp_path / "__init__.py"
-    f.write_text('__version__ = "9.8.7"\n')
+    f.write_text('__version__ = "9.8.7"\n', encoding="utf-8")
     assert release_check.read_init_version(f) == "9.8.7"
 
 
@@ -67,7 +67,7 @@ def test_read_changelog_version(tmp_path):
 
         ## 0.45.0 — 2026-05-21
         Older.
-    """))
+    """), encoding="utf-8")
     assert release_check.read_changelog_version(f) == "0.46.0"
 
 
@@ -123,7 +123,7 @@ def test_gate1_compare_recovered_test():
 
 def test_gate1_load_whitelist(tmp_path):
     f = tmp_path / "kf.json"
-    f.write_text('{"schema_version": 1, "entries": [{"nodeid": "a::test_x", "reason": "x", "since_version": "0.1.0", "owner_note": "x"}]}')
+    f.write_text('{"schema_version": 1, "entries": [{"nodeid": "a::test_x", "reason": "x", "since_version": "0.1.0", "owner_note": "x"}]}', encoding="utf-8")
     assert release_check.load_whitelist(f) == {"a::test_x"}
 
 
@@ -154,7 +154,7 @@ def test_gate1_pytest_collect_error_path(monkeypatch, tmp_path):
 def test_gate3_snapshot_equal(tmp_path):
     snap = {"all": {"puremacro._linalg": ["inv_xtx", "safe_cholesky"]}}
     f = tmp_path / "snap.json"
-    f.write_text(json.dumps(snap))
+    f.write_text(json.dumps(snap), encoding="utf-8")
     r = release_check.compare_snapshot(snap, f)
     assert r["passed"] is True
     assert r["name"] == "public_api_snapshot"
@@ -164,7 +164,7 @@ def test_gate3_snapshot_diff(tmp_path):
     on_disk = {"all": {"puremacro._linalg": ["inv_xtx"]}}
     fresh = {"all": {"puremacro._linalg": ["inv_xtx", "safe_cholesky"]}}
     f = tmp_path / "snap.json"
-    f.write_text(json.dumps(on_disk))
+    f.write_text(json.dumps(on_disk), encoding="utf-8")
     r = release_check.compare_snapshot(fresh, f)
     assert r["passed"] is False
     assert "safe_cholesky" in r["report"]
@@ -182,7 +182,7 @@ def test_gate3_snapshot_diff_result_classes(tmp_path):
         "result_classes": {"puremacro.foo.BarResult": ["x", "y"]},  # field added
     }
     f = tmp_path / "snap.json"
-    f.write_text(json.dumps(on_disk))
+    f.write_text(json.dumps(on_disk), encoding="utf-8")
     r = release_check.compare_snapshot(fresh, f)
     assert r["passed"] is False
     assert r["name"] == "public_api_snapshot"
@@ -223,7 +223,7 @@ def test_gate5_all_pass_or_skip(tmp_path):
         },
     }
     f = tmp_path / "gallery.json"
-    f.write_text(json.dumps(data))
+    f.write_text(json.dumps(data), encoding="utf-8")
     r = release_check.gate_examples_gallery(f, examples_source_dir=tmp_path / "no_examples")
     assert r["passed"] is True
     assert r["name"] == "examples_gallery"
@@ -239,7 +239,7 @@ def test_gate5_one_fail(tmp_path):
         },
     }
     f = tmp_path / "gallery.json"
-    f.write_text(json.dumps(data))
+    f.write_text(json.dumps(data), encoding="utf-8")
     r = release_check.gate_examples_gallery(f, examples_source_dir=tmp_path / "no_examples")
     assert r["passed"] is False
     assert "b" in r["report"]
@@ -256,7 +256,7 @@ def test_gate5_stale_json_warns(tmp_path):
     import time
     examples_dir = tmp_path / "examples"
     examples_dir.mkdir()
-    (examples_dir / "a.py").write_text("# new\n")
+    (examples_dir / "a.py").write_text("# new\n", encoding="utf-8")
     time.sleep(0.05)
     # JSON's generated_at is OLDER than the example file mtime.
     old_iso = "2020-01-01T00:00:00Z"
@@ -268,7 +268,7 @@ def test_gate5_stale_json_warns(tmp_path):
         },
     }
     f = tmp_path / "gallery.json"
-    f.write_text(json.dumps(data))
+    f.write_text(json.dumps(data), encoding="utf-8")
     r = release_check.gate_examples_gallery(f, examples_source_dir=examples_dir)
     # Stale warns; does NOT fail.
     assert r["passed"] is True

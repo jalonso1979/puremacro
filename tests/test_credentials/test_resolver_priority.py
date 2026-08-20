@@ -35,7 +35,7 @@ def test_secondary_env_var_used_when_primary_missing(monkeypatch):
 
 def test_config_file_used_when_env_missing(monkeypatch, tmp_path):
     cfg = tmp_path / "credentials.toml"
-    cfg.write_text('[fred]\napi_key = "from-config"\n')
+    cfg.write_text('[fred]\napi_key = "from-config"\n', encoding="utf-8")
     monkeypatch.setenv("PUREMACRO_CREDENTIALS_FILE", str(cfg))
     monkeypatch.delenv("FRED_API_KEY", raising=False)
     monkeypatch.delenv("PUREMACRO_FRED_API_KEY", raising=False)
@@ -45,7 +45,7 @@ def test_config_file_used_when_env_missing(monkeypatch, tmp_path):
 
 def test_env_wins_over_config_file(monkeypatch, tmp_path):
     cfg = tmp_path / "credentials.toml"
-    cfg.write_text('[fred]\napi_key = "from-config"\n')
+    cfg.write_text('[fred]\napi_key = "from-config"\n', encoding="utf-8")
     monkeypatch.setenv("PUREMACRO_CREDENTIALS_FILE", str(cfg))
     monkeypatch.setenv("FRED_API_KEY", "from-env")
     C = _reset_credentials_module()

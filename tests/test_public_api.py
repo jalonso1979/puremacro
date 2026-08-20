@@ -74,7 +74,7 @@ def test_public_api_matches_snapshot():
             f"import json; print(json.dumps(collect_current_api(), indent=2))\" "
             f"> {SNAPSHOT}"
         )
-    expected = json.loads(SNAPSHOT.read_text())
+    expected = json.loads(SNAPSHOT.read_text(encoding="utf-8"))
     current = collect_current_api()
     if current != expected:
         diff_lines = []

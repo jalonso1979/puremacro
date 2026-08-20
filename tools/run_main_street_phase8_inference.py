@@ -450,7 +450,7 @@ def main(argv=None) -> int:
                 "hr_twoway": at("hr_sent_twoway", h_own),
             },
         }
-    (OUT_DIR / "phase8_summary.json").write_text(json.dumps(summary, indent=2))
+    (OUT_DIR / "phase8_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
 
     log("=== CLUSTER DIMENSION (national, h=12) ===")
     log(f"  district-clustered: {at('loo_alone_dist', h_nat)}")
@@ -473,7 +473,7 @@ def main(argv=None) -> int:
         log(f"  distress|uncertainty (h=9) quarter : {at('hr_sent_quarter', h_own)}")
         log(f"  distress|uncertainty (h=9) two-way : {at('hr_sent_twoway', h_own)}")
 
-    (OUT_DIR / "run_log_phase8.txt").write_text("\n".join(_LOG) + "\n")
+    (OUT_DIR / "run_log_phase8.txt").write_text("\n".join(_LOG) + "\n", encoding="utf-8")
     log("summary written")
     return 0
 
