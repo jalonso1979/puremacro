@@ -6,6 +6,8 @@ import sys
 import textwrap
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = REPO_ROOT / "tools" / "release_check.py"
 
@@ -76,6 +78,7 @@ def test_gate4_version_sync_pass():
         pyproject_version="0.46.0",
         init_version="0.46.0",
         changelog_version="0.46.0",
+        citation_version="0.46.0",
     )
     assert r["name"] == "version_sync"
     assert r["passed"] is True
@@ -86,11 +89,47 @@ def test_gate4_version_sync_fail():
         pyproject_version="0.12.1",
         init_version="0.46.0",
         changelog_version="0.46.0",
+        citation_version="0.46.0",
     )
     assert r["name"] == "version_sync"
     assert r["passed"] is False
     assert "0.12.1" in r["report"]
     assert "0.46.0" in r["report"]
+
+
+def test_gate4_catches_a_stale_citation_file():
+    """The 1.3.0 -> 1.3.1 drift: three files bumped, CITATION.cff forgotten."""
+    r = release_check.gate_version_sync(
+        pyproject_version="1.3.1",
+        init_version="1.3.1",
+        changelog_version="1.3.1",
+        citation_version="1.3.0",
+    )
+    assert r["passed"] is False
+    assert "CITATION.cff" in r["report"]
+    assert "1.3.0" in r["report"]
+
+
+def test_read_citation_version_parses_the_real_file(tmp_path):
+    cff = tmp_path / "CITATION.cff"
+    cff.write_text(
+        'cff-version: 1.2.0\ntitle: "x"\nversion: 2.5.1\ndate-released: 2026-01-01\n',
+        encoding="utf-8",
+    )
+    assert release_check.read_citation_version(cff) == "2.5.1"
+
+    # quoted form, as some cff files write it
+    cff.write_text('version: "2.5.1"\n', encoding="utf-8")
+    assert release_check.read_citation_version(cff) == "2.5.1"
+
+    cff.write_text("title: no version here\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="version not found"):
+        release_check.read_citation_version(cff)
+
+
+def test_the_repo_s_own_citation_file_is_in_sync():
+    assert (release_check.read_citation_version(REPO_ROOT / "CITATION.cff")
+            == release_check.read_pyproject_version(REPO_ROOT / "pyproject.toml"))
 
 
 def test_gate1_compare_exact_match():

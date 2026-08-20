@@ -5,7 +5,7 @@ Run me before `git tag X.Y.Z`. Up to six gates (all run; no fail-fast):
   Gate 1 (test baseline)    — pytest failures must equal tests/known_failures.json
   Gate 2 (Pyodide contract)  — tests/test_pyodide_compat.py must be green (static)
   Gate 3 (public API snap)   — re-generated snapshot must match the fixture
-  Gate 4 (version sync)      — pyproject.toml / __init__.py / CHANGELOG agree
+  Gate 4 (version sync)      — pyproject / __init__ / CHANGELOG / CITATION.cff agree
   Gate 5 (examples gallery)  — opt-in via --examples; reads docs/examples_gallery.json
   Gate 6 (pyodide smoke)     — opt-in via --pyodide; boots Pyodide, runs marked tests
 
@@ -45,6 +45,19 @@ def read_changelog_version(path: Path) -> str:
         if m:
             return m.group(1)
     raise ValueError(f"no '## X.Y.Z' heading in {path}")
+
+
+def read_citation_version(path: Path) -> str:
+    """`version:` from CITATION.cff.
+
+    Read as plain text rather than via a YAML parser: pyyaml is not a
+    dependency of this repo, and the field is a single flat key.
+    """
+    text = Path(path).read_text(encoding="utf-8")
+    m = re.search(r'^version:\s*"?([0-9][^"\s]*)"?\s*$', text, re.MULTILINE)
+    if not m:
+        raise ValueError(f"version not found in {path}")
+    return m.group(1)
 
 
 def load_whitelist(path: Path) -> set[str]:
@@ -307,11 +320,15 @@ def gate_version_sync(
     pyproject_version: str,
     init_version: str,
     changelog_version: str,
+    citation_version: str,
 ) -> dict:
+    # CITATION.cff is here because it silently drifted: it still read 1.3.0
+    # while the package shipped 1.3.1, and nothing in the release path noticed.
     versions = {
         "pyproject.toml": pyproject_version,
         "puremacro/__init__.py": init_version,
         "CHANGELOG.md": changelog_version,
+        "CITATION.cff": citation_version,
     }
     passed = len(set(versions.values())) == 1
     if passed:
@@ -371,6 +388,7 @@ def main(argv: list[str] | None = None) -> int:
         pyproject_version=read_pyproject_version(REPO_ROOT / "pyproject.toml"),
         init_version=read_init_version(REPO_ROOT / "puremacro" / "__init__.py"),
         changelog_version=read_changelog_version(REPO_ROOT / "CHANGELOG.md"),
+        citation_version=read_citation_version(REPO_ROOT / "CITATION.cff"),
     )
     gates.append(g4)
     if args.examples:

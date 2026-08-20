@@ -36,7 +36,7 @@ If you ever see two PyPI workflows again, one of them is wrong.
 | 1 test baseline | pytest failures == `tests/known_failures.json` | that file currently holds **zero** entries, i.e. the suite must be fully green. ~20 min |
 | 2 Pyodide contract | `tests/test_pyodide_compat.py` green | static check of the import contract |
 | 3 public API snapshot | regenerated API == `tests/fixtures/public_api_snapshot.json` | 301 modules, 137 result classes |
-| 4 version sync | `pyproject.toml` == `puremacro/__init__.py` == `CHANGELOG.md` | see the warning below |
+| 4 version sync | `pyproject.toml` == `puremacro/__init__.py` == `CHANGELOG.md` == `CITATION.cff` | all four |
 | 5 examples gallery | `--examples` | reads `docs/examples_gallery.json` |
 | 6 Pyodide smoke | `--pyodide` | builds the wheel and boots a real Pyodide kernel |
 
@@ -46,10 +46,10 @@ python tools/release_check.py --no-tests      # fast: gates 2-4 only, seconds
 python tools/release_check.py --pyodide       # add the real-kernel smoke test
 ```
 
-> **Gate 4 does not check every version-bearing file.** It reads three; `CITATION.cff`
-> carries a fourth `version:` field that nothing validates, and it silently went stale at
-> 1.3.0 while the package shipped 1.3.1. **Bump `CITATION.cff` by hand** and treat it as
-> part of the version bump until the gate learns about it.
+> Gate 4 reads **four** version-bearing files. `CITATION.cff` was added to it after it
+> silently went stale at 1.3.0 while the package shipped 1.3.1 — three files were bumped
+> and the fourth was not, and nothing in the release path noticed. If you add a fifth
+> place the version is written, add it to `gate_version_sync` at the same time.
 
 **When Gate 3 fails** it prints the exact symbols added or removed. If the change is
 intended, regenerate the fixture:
