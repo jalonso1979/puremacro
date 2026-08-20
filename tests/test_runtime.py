@@ -242,6 +242,73 @@ def test_store_round_trips_frame(name):
     pd.testing.assert_frame_equal(back, df)
 
 
+def _pandas3_strings():
+    """Context manager putting pandas 2 on pandas 3's string dtype.
+
+    Skips where the option is gone (pandas 3, where it is the default and
+    the plain round-trip test above already covers it) or not yet there.
+    """
+    try:
+        pd.get_option("future.infer_string")
+    except Exception:
+        pytest.skip("no future.infer_string option on this pandas")
+    return pd.option_context("future.infer_string", True)
+
+
+@pytest.mark.parametrize("name", sorted(_frames()))
+def test_store_round_trips_frame_with_pandas3_strings(name):
+    """Every frame again, built the way pandas 3 builds it.
+
+    pandas 3 gives a plain string column ``StringDtype(na_value=nan)``,
+    spelled ``"str"`` — which a substring test for "string" misses. Every
+    string column and index level then went down the integer branch and
+    died in ``int('MEX')``, taking 19 tests and the whole cartridge path
+    with it on any fresh install.
+    """
+    with _pandas3_strings():
+        df = _frames()[name]
+        back = store.loads_frame(store.dumps_frame(df))
+        pd.testing.assert_frame_equal(back, df)
+
+
+def test_store_reads_both_spellings_of_the_string_dtype():
+    """The dispatch is on dtype identity, not on how pandas spells it."""
+    assert store._numpy_dtype_for(pd.StringDtype()) is np.str_
+    assert store._fill_for(pd.StringDtype()) == ""
+    with _pandas3_strings():
+        pandas3_str = pd.Series(["MEX"]).dtype
+    assert str(pandas3_str) == "str"          # not "string"
+    assert store._numpy_dtype_for(pandas3_str) is np.str_
+    assert store._fill_for(pandas3_str) == ""
+
+
+def test_store_asks_masked_dtypes_for_their_numpy_equivalent():
+    """Int8 stores as int8, not widened to int64 by a name match."""
+    assert store._numpy_dtype_for(pd.Int8Dtype()) == np.int8
+    assert store._numpy_dtype_for(pd.UInt16Dtype()) == np.uint16
+    assert store._numpy_dtype_for(pd.Float32Dtype()) == np.float32
+    assert store._numpy_dtype_for(pd.BooleanDtype()) is bool
+    df = pd.DataFrame({"n": pd.array([1, None, 3], dtype="Int8")})
+    pd.testing.assert_frame_equal(store.loads_frame(store.dumps_frame(df)), df)
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_store_round_trips_a_tz_index_at_any_resolution(unit):
+    """A tz payload is ``asi8``, which counts in the dtype's own unit.
+
+    pandas 2 made every timestamp nanosecond, so decoding hard-coded ns and
+    got away with it. pandas 3 gives ``date_range`` microsecond resolution:
+    read as nanoseconds, a 2020 index lands in 1970 with its spacing gone,
+    and pandas then refuses to restore the freq it was told to expect.
+    """
+    idx = pd.date_range("2020-01-01", periods=3,
+                        tz="America/Mexico_City").as_unit(unit)
+    df = pd.DataFrame({"v": [1.0, 2.0, 3.0]}, index=idx)
+    back = store.loads_frame(store.dumps_frame(df))
+    pd.testing.assert_frame_equal(back, df)
+    assert back.index.dtype.unit == unit
+
+
 def test_store_rejects_arbitrary_objects_by_name():
     df = pd.DataFrame({"payload": [object()]})
     with pytest.raises(store.StoreError, match="payload"):

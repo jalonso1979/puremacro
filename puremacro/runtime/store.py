@@ -155,21 +155,46 @@ def _index_freq(values) -> str | None:
     return None
 
 
-def _fill_for(dtype):
+def _is_string_dtype(dtype) -> bool:
+    """True for every pandas string extension dtype.
+
+    Matching on ``"string" in str(dtype)`` is not enough. pandas 2 spells
+    the nullable string dtype ``"string"``, but pandas 3 makes
+    ``StringDtype(na_value=nan)`` the dtype of a plain string column and
+    spells it ``"str"`` — which that test misses, sending every string
+    column down the integer path to ``int('MEX')``.
+    """
+    if isinstance(dtype, pd.StringDtype):
+        return True
     name = str(dtype).lower()
-    if "string" in name:
+    # "string[pyarrow]" / "large_string[pyarrow]" reach here as ArrowDtype.
+    return name == "str" or "string" in name
+
+
+def _is_bool_dtype(dtype) -> bool:
+    return isinstance(dtype, pd.BooleanDtype) or "bool" in str(dtype).lower()
+
+
+def _fill_for(dtype):
+    if _is_string_dtype(dtype):
         return ""
-    if "bool" in name:
+    if _is_bool_dtype(dtype):
         return False
     return 0
 
 
 def _numpy_dtype_for(dtype):
-    name = str(dtype).lower()
-    if "string" in name:
+    if _is_string_dtype(dtype):
         return np.str_
-    if "bool" in name:
+    if _is_bool_dtype(dtype):
         return bool
+    # Masked numeric dtypes (Int64, UInt32, Float64, and their Arrow
+    # equivalents) carry the numpy dtype they widen; ask them rather than
+    # parsing their name.
+    numpy_dtype = getattr(dtype, "numpy_dtype", None)
+    if numpy_dtype is not None:
+        return numpy_dtype
+    name = str(dtype).lower()
     if name.startswith("u"):
         return np.uint64
     if "float" in name:
@@ -226,8 +251,15 @@ def _decode_values(schema: dict, key: str, arrays) -> pd.Series | pd.Index:
             np.asarray(arrays[key]), freq=schema["freq"],
         )
     if kind == "datetime_tz":
+        # The payload is `asi8`, which counts in the dtype's OWN unit, so it
+        # has to be read back in that unit. pandas 2 made every timestamp
+        # nanosecond; pandas 3 gives `date_range` microsecond resolution, and
+        # reading a microsecond count as nanoseconds lands the whole index in
+        # 1970 with its spacing destroyed. Archives written before the unit
+        # was recorded are nanosecond by construction.
+        unit = schema.get("unit") or "ns"
         idx = pd.DatetimeIndex(
-            np.asarray(arrays[key]).view("datetime64[ns]"), tz="UTC",
+            np.asarray(arrays[key]).view(f"datetime64[{unit}]"), tz="UTC",
         ).tz_convert(schema["tz"])
         if schema.get("freq"):
             idx.freq = schema["freq"]
@@ -242,7 +274,10 @@ def _decode_values(schema: dict, key: str, arrays) -> pd.Series | pd.Index:
         values = np.asarray(arrays[key])
         mask = np.asarray(arrays[f"{key}__mask"])
         series = pd.Series(values).astype(schema["pandas_dtype"])
-        series[mask] = pd.NA
+        # ``None`` lands as whatever that dtype calls missing: pd.NA for the
+        # nullable dtypes, NaN for pandas 3's default ``str``, whose na_value
+        # is NaN and which stores a literal pd.NA as an object instead.
+        series[mask] = None
         return series
     if kind == "string":
         values = np.asarray(arrays[key]).astype(object)
