@@ -157,10 +157,16 @@ def qna_identity(panel: pd.DataFrame, *, as_share: bool = True) -> pd.DataFrame:
     point of holding current prices as the primitive:
 
     ``nominal_*``
-        The published **statistical discrepancy**. In current prices the
-        identity is an accounting fact, so this is the small residual the
+        The published **statistical discrepancy**, plus whatever seasonal
+        adjustment added to it. In current prices the identity is an
+        accounting fact, so on *unadjusted* data this is only the residual the
         statistical office could not reconcile — often exactly zero, because
-        many offices force it to close.
+        many offices force it to close. On the adjusted data a panel actually
+        holds there is a second term: each series is adjusted on its own, so
+        the adjusted components need not sum to adjusted GDP. It shows up as a
+        small residual alternating in sign quarter to quarter (Brazil and
+        Romania are clear cases here) rather than as a level shift, which is
+        how to tell the two apart.
 
     ``real_*``
         The **chain-linking gap**, present only when the panel was built with
