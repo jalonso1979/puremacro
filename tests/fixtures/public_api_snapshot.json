@@ -281,7 +281,9 @@
       "static_dfm_fit"
     ],
     "puremacro.fetch": [
+      "IDENTITY_TERMS",
       "QNAVintagePanel",
+      "QNA_AGGREGATES",
       "QNA_ASSETS",
       "QNA_COMPONENTS",
       "QNA_DURABILITY",
@@ -299,8 +301,12 @@
       "fetch_xrate_monthly",
       "get_qna_vintage_catalog",
       "oecd_sdmx_instrument",
+      "qna_contributions",
+      "qna_countries",
+      "qna_identity",
       "qna_meta",
       "qna_panel",
+      "qna_rebase",
       "sdmx_get"
     ],
     "puremacro.fetch._classic": [
@@ -353,11 +359,19 @@
       "fetch_extended"
     ],
     "puremacro.fetch.oecd_qna_panel": [
+      "QNA_AGGREGATES",
       "QNA_ASSETS",
       "QNA_COMPONENTS",
       "QNA_DURABILITY",
+      "qna_countries",
       "qna_meta",
       "qna_panel"
+    ],
+    "puremacro.fetch.oecd_qna_tools": [
+      "IDENTITY_TERMS",
+      "qna_contributions",
+      "qna_identity",
+      "qna_rebase"
     ],
     "puremacro.fetch.qna_vintages": [
       "COUNTRY_METADATA",
