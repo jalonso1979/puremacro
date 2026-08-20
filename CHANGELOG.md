@@ -2,7 +2,9 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
-## Unreleased
+## 1.3.0 (2026-08-20)
+
+**All three measurements of GDP in one panel, and everything you have to do after the fetch: availability-driven country discovery, one price reference year across countries, the expenditure, output and income identities scored inside their own flows, and growth decomposed into chain-consistent contributions.**
 
 ### Added
 - **Quarterly national accounts, past the one-call fetch (`puremacro.fetch`)** — `qna_panel` already returns the three products of a QNA build (current-price levels, implicit deflators, volume measures, tied by `nominal = real x deflator / 100`). What was missing was everything you have to do *next*, which until now was hand-rolled in every notebook that used it:

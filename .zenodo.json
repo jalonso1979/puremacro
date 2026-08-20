@@ -3,8 +3,8 @@
   "description": "puremacro is a self-contained, zero-C-extension macroeconomic computing library built in pure Python and NumPy. It unifies structural models, high-dimensional econometrics, mixed-frequency nowcasting, penalized forecasting, and climate-macro integration, portable to web browsers via Pyodide.",
   "creators": [
     {
-      "name": "Alonso, Javier",
-      "affiliation": "University of Pennsylvania / puremacro research"
+      "name": "Alonso Ortiz, Jorge",
+      "affiliation": "Instituto Tecnológico Autónomo de México (ITAM), Mexico City, Mexico"
     }
   ],
   "access_right": "open",
