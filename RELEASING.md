@@ -153,15 +153,71 @@ fix that only shipped in 1.3.1.
 
 ## 6. JOSS submission
 
-`paper/paper.md` (+ `paper.bib`, `scorecard.png`) is drafted. JOSS requires the software to
-be public and archived, so submit after a release is live.
+*Requirements checked against joss.readthedocs.io on 2026-08-20. Check them again
+before submitting — they have tightened at least once.*
 
-1. Fill the author **ORCID** in `paper/paper.md` — it is still the `0000-0000-0000-0000`
-   placeholder, and JOSS will reject on it.
-2. Archive a tagged release to **Zenodo** (GitHub ↔ Zenodo integration) to get a DOI.
-3. Submit at <https://joss.theoj.org/papers/new> with the repo URL and the Zenodo DOI.
-4. If the validation gallery moved, regenerate the figure:
-   `python paper/make_scorecard_fig.py`.
+`paper/paper.md` (+ `paper.bib`, `scorecard.png`) is drafted but **is not currently
+submittable**. Four things stand between it and the submit button, in rough order of effort.
 
-Reviewers check licence (MIT ✓), docs (✓), tests (✓) and a statement of need (✓). The paper
-is prepared for you; the submission is yours to make.
+### 6.1 The paper is too short and missing sections
+
+JOSS now asks for **750–1750 words**; the draft is **~500**. It also now requires six
+sections, and the draft has three of them:
+
+| section | state |
+|---|---|
+| Summary | ✓ |
+| Statement of need | ✓ |
+| State of the field | ✗ — needs an explicit comparison with statsmodels, linearmodels, EconML, Dynare/`sequence-jacobian`, and a build-vs-contribute justification |
+| Software design | ✗ — the pure-NumPy/Pyodide constraint and what it cost is exactly this section |
+| Research impact | ✗ — publications, courses or external users that actually use it |
+| AI usage disclosure | ✗ — required, and non-trivially true here |
+
+The present `# Features` section is not one of the six; fold it into *Software design* or
+*State of the field*.
+
+### 6.2 The ORCID is a placeholder
+
+`paper/paper.md` still reads `orcid: 0000-0000-0000-0000`. Register at
+<https://orcid.org> and put the real one in.
+
+### 6.3 The public history is one month long, and squashed
+
+JOSS looks for roughly **six months of public development history with activity spanning
+it**. This repo was created 2026-06-01, and its first commit is a single
+`Initial public release (v0.92.0)` squash of 1,256 files dated 2026-07-20 — the
+pre-split history from the monorepo did not come across. A reviewer sees one month and
+47 commits.
+
+Options, in preference order:
+1. **Wait.** Keep shipping; the calendar fixes this around 2026-12.
+2. **Restore the history** by re-doing the split with `git filter-repo --subdirectory-filter`
+   against the original monorepo, which preserves per-file history rather than squashing.
+   Rewrites every SHA, so do it before more people depend on the repo, not after.
+3. **Explain it** in the submission thread. Editors do accept "the code has a longer
+   history in <repo>, extracted on <date>" — but you have to say it up front.
+
+### 6.4 Zenodo comes *after* acceptance, not before
+
+**This doc previously said the opposite.** JOSS: *"Upon successful completion of the
+review, authors will deposit a copy of the repository with a data-archiving service such
+as Zenodo or figshare, get a DOI for the archive."* You do **not** need a DOI to submit.
+
+When you do get there, note that Zenodo archives on a **GitHub Release**, not on a tag.
+This repo has tags through `v1.3.1` but only one Release (`v1.0.0`), so
+`gh release create vX.Y.Z --generate-notes` is a step you will need.
+
+### 6.5 Then submit
+
+```bash
+# preview the compiled paper exactly as JOSS will build it
+docker run --rm --volume $PWD/paper:/data --user $(id -u):$(id -g) \
+  --env JOURNAL=joss openjournals/inara
+```
+
+Then open <https://joss.theoj.org/papers/new> with the repository URL. Review is
+conversational and public on GitHub; you are expected to answer reviewers within 2 weeks
+and land changes within 4–6.
+
+What JOSS checks that this repo already satisfies: an OSI licence (MIT, and GitHub's
+licensee detects it), documentation, automated tests, and a functioning CI.
