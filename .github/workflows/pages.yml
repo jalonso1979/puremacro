@@ -32,7 +32,15 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[notebooks]"
-          pip install jupyterlite-core jupyterlite-xeus-python mkdocs-material
+          # Pinned deliberately. `jupyterlite-xeus-python` (1.0.0) used to sit here:
+          # it caps jupyterlite-core at 0.2.3, so pip backtracked off the 0.8.x it had
+          # just downloaded and every Pages build since 2026-08-16 died in
+          # `build:lite:patch:content/jupyter-lite.json`. The playground runs the
+          # Pyodide kernel and never xeus, so that cap bought nothing. On core >= 0.8
+          # the pyodide kernel is a separate package, and jupyter-server is required
+          # to copy `--contents` at all.
+          pip install "jupyterlite-core==0.8.3" "jupyterlite-pyodide-kernel==0.8.4" \
+                      jupyter-server mkdocs-material
 
       - name: Build JupyterLite Playground
         run: |

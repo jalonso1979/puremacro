@@ -47,7 +47,13 @@ if [ -d "$ROOT/notebooks/course/data" ]; then
   mkdir -p "$PG/content/course"
   cp -R "$ROOT/notebooks/course/data" "$PG/content/course/"
 fi
-cp "$PG"/content_static/jupyter-lite.json "$PG/content/"
+# The offline pin (disablePyPIFallback) belongs at the lite dir ROOT, not inside
+# content/. Inside the contents dir jupyterlite treats it as a config to patch at
+# <dist>/content/jupyter-lite.json -- a directory that is never created -- which is
+# how the Pages build died under core 0.2.3; under 0.8.x the file is ignored
+# outright instead, so the setting silently never applied in either. At $PG/ it
+# merges into dist/jupyter-lite.json, which is the file the browser reads.
+cp "$PG"/content_static/jupyter-lite.json "$PG/jupyter-lite.json"
 python -m jupytext --to ipynb --output "$PG/content/00_start_here.ipynb" "$PG/00_start_here.py"
 
 echo "==> 3/5 inject the %pip bootstrap cell into every notebook in content/"
