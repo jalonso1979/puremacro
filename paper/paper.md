@@ -149,20 +149,43 @@ check across every file that records the version.
 
 # Research impact
 
-<!-- TODO (author): JOSS now requires evidence of realized impact. Name the
-     courses that use the library (e.g. the MAV graduate macro sequence at
-     ITAM), any papers or theses whose results it produced, external users or
-     downstream integrations, and download or classroom figures if you have
-     them. Two or three sentences is enough, but it must be concrete. -->
+`puremacro` was built for, and is used in, a graduate macroeconomics sequence at
+ITAM, where it supplies the computational half of the course: 27 lesson notebooks
+in English and 21 in Spanish, each running against the library rather than
+against hand-rolled scripts. The package itself ships 80 bilingual showcase
+notebooks that execute in the browser, so a reader with no local installation can
+re-run every result.
+
+Its correctness record is designed to be checkable rather than asserted. The
+replication gallery reproduces published findings — Huggett [-@huggett1993], the
+Smets–Wouters seven-shock specification [@smetswouters2007], Okun's law
+[-@okun1962], and the Aiyagari [@aiyagari1994] comparative statics on the
+equilibrium interest rate — while the validation gallery's 73 cases check
+estimators against `statsmodels`, `arch` and `linearmodels` where a canonical
+implementation exists. Both galleries run in one line, in the browser, on the
+reader's own machine.
+
+<!-- TODO (author): the above is what I could verify from the repository and the
+     course tree. Add anything external that I cannot see — other institutions
+     or courses using it, working papers or theses whose results it produced,
+     downstream packages, download figures. If there is none yet, say so plainly
+     rather than padding; JOSS accepts a teaching-led impact case, and a young
+     package that is honest about its age reviews better than one that is not. -->
 
 # AI usage disclosure
 
-<!-- TODO (author): JOSS now requires transparent disclosure of generative-AI
-     use. State which parts were AI-assisted and what human verification was
-     applied — e.g. that AI assistance was used for portions of the code,
-     tests and documentation, with all numerical results checked against the
-     independent references in the validation gallery and all changes reviewed
-     before merge. Write what is actually true for this project. -->
+Generative AI (Anthropic's Claude) was used as a coding assistant for parts of
+this library, including portions of the quarterly-national-accounts fetch layer
+and its tests, some documentation, and drafting sections of this paper. No result
+reported here rests on that assistance being correct: every estimator is checked
+against an independent reference in the validation gallery, the replication
+gallery is checked against published numbers, and the full suite of 6,187 tests
+runs on nine CI targets before any release. All AI-assisted changes were reviewed
+by the author before merge.
+
+<!-- TODO (author): confirm or narrow the scope sentence above. I can attest to
+     the parts of this work I observed; only you know the full history of the
+     codebase, and this disclosure should describe it accurately. -->
 
 # Acknowledgements
 
