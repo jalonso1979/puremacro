@@ -181,21 +181,42 @@ The present `# Features` section is not one of the six; fold it into *Software d
 `paper/paper.md` still reads `orcid: 0000-0000-0000-0000`. Register at
 <https://orcid.org> and put the real one in.
 
-### 6.3 The public history is one month long, and squashed
+### 6.3 The public history is short — disclose it, do not rewrite it
 
 JOSS looks for roughly **six months of public development history with activity spanning
-it**. This repo was created 2026-06-01, and its first commit is a single
-`Initial public release (v0.92.0)` squash of 1,256 files dated 2026-07-20 — the
-pre-split history from the monorepo did not come across. A reviewer sees one month and
-47 commits.
+it**. This repo's first commit is a single `Initial public release (v0.92.0)` squash of
+1,256 files dated 2026-07-20, so a reviewer sees one month and ~50 commits for a library
+of 606 modules. The earlier history is real but lives in the private `uncertainty_examples`
+monorepo, under `puremacro/`, from 2026-04-28.
 
-Options, in preference order:
-1. **Wait.** Keep shipping; the calendar fixes this around 2026-12.
-2. **Restore the history** by re-doing the split with `git filter-repo --subdirectory-filter`
-   against the original monorepo, which preserves per-file history rather than squashing.
-   Rewrites every SHA, so do it before more people depend on the repo, not after.
-3. **Explain it** in the submission thread. Editors do accept "the code has a longer
-   history in <repo>, extracted on <date>" — but you have to say it up front.
+**This was investigated and rejected.** Re-splitting with
+`git filter-repo --subdirectory-filter puremacro` against the monorepo branch
+`feature/puremacro-v0.93.0` does work — it yields 965 commits spanning 2026-04-28 to
+2026-07-25 — and a scan of every text blob in that history for AWS, FRED and Banxico key
+formats came back clean. It was still the wrong trade:
+
+- it buys ~11 weeks of earlier eligibility (2026-10-28 instead of 2027-01-19);
+- it rewrites **every** SHA, so `v1.0.0`–`v1.3.1` move and the commits PyPI actually built
+  from stop existing under those hashes;
+- it publishes 965 commit messages out of a private repository;
+- the trees do not line up — the private history carries `matlab/`, `.claude/`,
+  `egg-info` and a v0.93.0 tip against the public repo's v0.92.0 root, so the version
+  timeline would read "0.93.0" and then "Initial public release (v0.92.0)";
+- and the first cleaning pass still missed the nested `.DS_Store` files, which is the
+  real argument: after a force-push, every miss is permanent.
+
+**Do this instead.** Say it plainly in the *comments to the editor* box on the submission
+form, and again in the review thread if asked:
+
+> `puremacro` was developed from 2026-04-28 inside a private monorepo
+> (`uncertainty_examples`), as the `puremacro/` subdirectory, and was extracted into this
+> standalone public repository on 2026-07-20. The extraction squashed the prior history
+> into the initial commit, so the commit log here begins in July; development did not.
+> Release history is continuous across the move, from v0.92.0 through the current
+> release, and is visible in `CHANGELOG.md` and in the tag list.
+
+Costs nothing, is true, and editors accept it. Revisit only if an editor specifically
+asks for the history to be present in the repository itself.
 
 ### 6.4 Zenodo comes *after* acceptance, not before
 
