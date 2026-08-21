@@ -126,10 +126,11 @@ def solve_aiyagari_endogenous(
     Returns the market-clearing ``r_star`` and the wage, aggregates, policy
     functions and stationary distribution that go with it.
 
-    ``r_guess`` no longer pins the answer -- it only seeds the search bracket,
-    which is otherwise ``(1e-4, 1/beta - 1 - 1e-4)``: above ``1/beta - 1`` a
-    household's assets diverge, so no stationary distribution exists there.
-    Pass ``r_bracket`` to override. Raises ``ValueError`` when excess demand
+    ``r_guess`` does not determine the answer, and does not seed the search
+    either: it is accepted for backward compatibility and ignored. The bracket
+    is ``(1e-4, 1/beta - 1 - 1e-4)`` -- above ``1/beta - 1`` a household's
+    assets diverge, so no stationary distribution exists there. Pass
+    ``r_bracket`` to override. Raises ``ValueError`` when excess demand
     does not change sign across the bracket, which usually means ``a_max`` is
     binding and the asset grid, not the economy, is setting the supply.
     """
