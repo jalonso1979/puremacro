@@ -49,6 +49,8 @@ markdown_extensions:
 nav:
   - Overview: index.md
   - Quickstart: quickstart.md
+  - Data:
+      - Quarterly National Accounts: national_accounts.md
   - Econometric Engines:
       - VAR & FAVAR: var.md
       - GDP Nowcasting: nowcast.md

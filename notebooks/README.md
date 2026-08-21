@@ -47,6 +47,7 @@ not the `.ipynb`** — the `.ipynb` is a build artifact, regenerated with output
 | `37_central_bank_narrative_sentiment` | Central bank communication tone extraction & high-frequency monetary LP |
 | `38_real_time_vintages_and_revisions` | Real-time QNA vintages across 45+ countries, revision triangles $(T \times V)$, & Mankiw-Shapiro (1986) news vs. noise test |
 | `39_multilingual_narrative_harvesting` | Multi-source narrative harvesting (50+ connectors), 8-language macro scoring, realization lags, & structured policy classification |
+| `40_quarterly_national_accounts` | Three approaches to GDP in one panel: one price reference year (`qna_rebase`), the expenditure/output/income identities scored inside their own flows (`qna_identity`), growth decomposed with previous-period nominal weights (`qna_contributions`) |
 
 The deepened showcases (`01`, `06`, `11`, `14`, `15`, `16`) follow the structure in
 [`_TEMPLATE.md`](./_TEMPLATE.md): motivating question → the method in math → intuition →

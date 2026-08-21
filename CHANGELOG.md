@@ -4,6 +4,13 @@ This file records user-visible changes per release. Internal refactors that don'
 
 ## Unreleased
 
+### Added
+- **A worked example for the quarterly national accounts, which had none.** Two releases of QNA machinery — vintages, availability-driven country discovery, re-referencing, identity scoring, contributions, three approaches to GDP — shipped without a single notebook or documentation page: grepping for `qna_panel` outside the library and its own tests returned nothing at all.
+  - `notebooks/40_quarterly_national_accounts.py` (and its Spanish twin) runs the whole post-fetch workflow offline: what the price reference year is and why `qna_rebase` exists, the three identities scored inside their own flows with the cross-flow disagreement kept separate, real GDP growth decomposed with previous-period nominal weights, and the unadjusted labour share with the Gollin (2002) caveat attached. The "your turn" cell checks the claim that re-referencing moves levels and never growth rates — it comes back at 1.4e-13 pp.
+  - `puremacro/replication/data/qna40_panel.csv` (386 KB, frozen by `tools/gen_notebook_data_qna40.py`) carries six countries from 1995 with all three approaches. They are chosen for what they show rather than for coverage: the United States is absent from the by-activity output flow entirely and reads `NaN` there; Japan's output-flow GDP disagrees with its expenditure-flow GDP by 0.61%, Germany's income-flow GDP by 1.77%; the United States' GDP–GDI discrepancy reaches 2.0% of GDP; Mexico and Spain reference their volumes to different base years, which is the whole reason `qna_rebase` exists.
+  - The metadata travels as its own frozen file, because `qna_meta` reads `panel.attrs` and no CSV round trip preserves those — which matters, since the base year it records is exactly what a rebasing needs.
+  - `docs/national_accounts.md` is the API-side counterpart, wired into the mkdocs nav: the three products of a build, the three approaches and the two memo columns that are not addends, what each residual column means, and the freeze/thaw pattern for offline use.
+
 ### Internal
 - **Gate 4 (version sync) now reads `CITATION.cff` as well**, alongside `pyproject.toml`, `puremacro/__init__.py` and the CHANGELOG heading. It was the one version-bearing file nothing validated, and it duly went stale: three files were bumped for 1.3.1 and `CITATION.cff` was left reading 1.3.0, with no gate, test or CI job noticing. `RELEASING.md` documented the manual workaround; now the gate does the checking instead.
 

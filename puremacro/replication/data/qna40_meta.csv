@@ -1,0 +1,7 @@
+code,currency,units,price_base,price_ref_year,sa,sa_detail,n_obs,first,last
+DEU,EUR,"millions of national currency, current prices, SA",L,2020.0,oecd,oecd,126,1995-01-01,2026-04-01
+ESP,EUR,"millions of national currency, current prices, SA",L,2020.0,oecd,oecd,126,1995-01-01,2026-04-01
+ITA,EUR,"millions of national currency, current prices, SA",L,2020.0,oecd,oecd,125,1995-01-01,2026-01-01
+JPN,JPY,"millions of national currency, current prices, SA",L,2020.0,oecd,oecd,126,1995-01-01,2026-04-01
+MEX,MXN,"millions of national currency, current prices, SA",Q,2018.0,oecd,mixed,125,1995-01-01,2026-01-01
+USA,USD,"millions of national currency, current prices, SA",L,2017.0,oecd,oecd,126,1995-01-01,2026-04-01
