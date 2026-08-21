@@ -13,7 +13,7 @@ import pytest
 
 from puremacro.fetch import oecd_qna_panel as mod
 from puremacro.fetch.oecd_qna_panel import (QNA_ASSETS, QNA_COMPONENTS,
-                                            qna_meta, qna_panel)
+                                            QNA_LABOR, qna_meta, qna_panel)
 
 _QUARTERS = [f"{y}-Q{q}" for y in (2019, 2020) for q in (1, 2, 3, 4)]
 
@@ -65,6 +65,37 @@ def _asset_rows(code: str, vol_base: str, deflator: float) -> list[dict]:
     return out
 
 
+def _labor_rows(code: str) -> list[dict]:
+    """Synthetic labour rows: persons and hours, employees and self-employed.
+
+    Persons come in thousands (UNIT_MULT 3) and hours in millions (6), which
+    is how the OECD publishes them, so the test also pins the rescaling. MEX
+    publishes the block unadjusted; the fixture keeps AUS heads-only and CAN
+    hours-only, the two real gaps in this flow.
+    """
+    out = []
+    for name, (txn, unit, _) in QNA_LABOR.items():
+        if code == "AUS" and unit == "H":
+            continue
+        if code == "CAN" and unit == "PS":
+            continue
+        base = {"emp": 20_000.0, "emp_employees": 16_000.0,
+                "emp_selfemp": 4_000.0, "hours": 8_000.0,
+                "hours_employees": 6_200.0, "hours_selfemp": 1_800.0}[name]
+        for t, period in enumerate(_QUARTERS):
+            out.append({
+                "FREQ": "Q", "ADJUSTMENT": "N" if code in ("MEX", "AUS", "CAN") else "Y",
+                "REF_AREA": code, "SECTOR": "S1", "COUNTERPART_SECTOR": "S1",
+                "TRANSACTION": txn, "INSTR_ASSET": "_Z", "ACTIVITY": "_T",
+                "EXPENDITURE": "_Z", "UNIT_MEASURE": unit, "PRICE_BASE": "_Z",
+                "TRANSFORMATION": "N", "TABLE_IDENTIFIER": "T0111",
+                "TIME_PERIOD": period, "OBS_VALUE": base * (1.0 + 0.005 * t),
+                "REF_YEAR_PRICE": None, "UNIT_MULT": 3 if unit == "PS" else 6,
+                "CURRENCY": "_Z",
+            })
+    return out
+
+
 @pytest.fixture
 def fake_sdmx(monkeypatch):
     """Patch the SDMX helper so no network is touched; count the calls."""
@@ -73,12 +104,15 @@ def fake_sdmx(monkeypatch):
     def _fake(agency_flow, key, start_period, *, refresh=False, **kw):
         calls.append((key, start_period))
         is_assets = "GFCF_ASSET" in agency_flow
+        is_labor = "EMPDC" in agency_flow
         sector = key.split(".")[3]
         rows: list[dict] = []
         for code, (vol_base, deflator) in _COUNTRIES.items():
             if code not in key and key.split(".")[2] != "":
                 continue
-            if is_assets:
+            if is_labor:
+                rows += _labor_rows(code)
+            elif is_assets:
                 rows += _asset_rows(code, vol_base, deflator)
             else:
                 rows += [r for r in _rows(code, vol_base, deflator)
@@ -301,3 +335,304 @@ def test_slices_survive_pandas_concat(fake_sdmx):
     joined = pd.concat(parts, axis=1)
     assert list(joined.columns) == ["a", "b"]
     assert not pd.concat([p.loc["USA"], p.loc["MEX"]]).empty
+
+
+def test_labor_off_by_default(fake_sdmx):
+    p = qna_panel(["USA"], start="2019")
+    assert not any(c in p.columns for c in QNA_LABOR)
+    # one request per institutional sector, none for the labour dataflow
+    assert len(fake_sdmx) == len({s for _, s, _ in QNA_COMPONENTS.values()})
+
+
+def test_labor_adds_heads_and_hours_with_no_deflator(fake_sdmx):
+    p = qna_panel(["USA", "MEX"], start="2019", labor=True, real=True)
+    for name in QNA_LABOR:
+        assert name in p.columns
+        # counts of people and hours carry no price, so no deflator, no volume
+        assert f"{name}_defl" not in p.columns
+        assert f"{name}_real" not in p.columns
+
+
+def test_labor_puts_persons_and_hours_on_one_scale(fake_sdmx):
+    """UNIT_MULT 3 for persons and 6 for hours, both preserved as published."""
+    p = qna_panel(["USA"], start="2019", labor=True)
+    assert p.loc["USA", "emp"].iloc[0] == pytest.approx(20_000.0)     # thousands
+    assert p.loc["USA", "hours"].iloc[0] == pytest.approx(8_000.0)    # millions
+    # the split adds up in the fixture, as it does in the accounts
+    np.testing.assert_allclose(
+        p.loc["USA", "emp_employees"] + p.loc["USA", "emp_selfemp"],
+        p.loc["USA", "emp"])
+
+
+def test_labor_pins_activity_to_the_total_economy(fake_sdmx):
+    """The flow publishes every ISIC section; asking for all of them is 12x
+    the response for the one aggregate the panel wants."""
+    qna_panel(["USA"], start="2019", labor=True)
+    labor_keys = [k for k, _ in fake_sdmx if "_T" in k]
+    assert labor_keys and all(k.split(".")[7] == "_T" for k in labor_keys)
+
+
+def test_labor_does_not_widen_the_country_index(monkeypatch):
+    """A reference area that publishes labour but not the money block must not
+    enter the index. The two flows have different rosters — 49 areas are asked
+    for and 39 answer the labour one — so this has to be a real asymmetry in
+    the fixture, not two calls over the same country list."""
+    def _fake(agency_flow, key, start_period, *, refresh=False, **kw):
+        if "EMPDC" in agency_flow:
+            # NOR publishes labour and nothing else: it must be dropped.
+            return pd.DataFrame(_labor_rows("USA") + _labor_rows("NOR"))
+        sector = key.split(".")[3]
+        return pd.DataFrame([r for r in _rows("USA", "L", 120.0)
+                             if r["SECTOR"] == sector])
+
+    monkeypatch.setattr(mod, "get_sdmx_csv", _fake)
+    p = qna_panel(["USA"], start="2019", labor=True)
+    assert sorted(p.index.get_level_values("code").unique()) == ["USA"]
+    assert "NOR" not in set(qna_meta(p)["code"])
+
+
+def test_labor_does_not_disturb_the_money_columns(fake_sdmx):
+    """The labour rows join on a price base of their own ('_Z'); nothing in
+    the expenditure block may move because they are there."""
+    base = qna_panel(["USA", "MEX"], start="2019", real=True)
+    with_labor = qna_panel(["USA", "MEX"], start="2019", real=True, labor=True)
+    shared = [c for c in base.columns if c in with_labor.columns]
+    pd.testing.assert_frame_equal(base[shared], with_labor[shared])
+
+
+def test_meta_reports_labor_adjustment_separately(fake_sdmx):
+    """MEX publishes the labour block unadjusted while its aggregates are SA,
+    and the currency still comes from the money block, which has one."""
+    meta = qna_meta(qna_panel(["USA", "MEX"], start="2019",
+                              labor=True)).set_index("code")
+    assert meta.loc["MEX", "sa"] == "oecd"
+    assert meta.loc["MEX", "sa_labor"] == "none"
+    assert meta.loc["USA", "sa_labor"] == "oecd"
+    assert meta.loc["MEX", "currency"] == "MXN"
+
+
+def test_labor_survives_a_country_that_publishes_only_one_unit(monkeypatch):
+    """Australia publishes heads and no hours, Canada hours and no heads."""
+    calls: list[str] = []
+
+    def _fake(agency_flow, key, start_period, *, refresh=False, **kw):
+        calls.append(key)
+        sector = key.split(".")[3]
+        if "EMPDC" in agency_flow:
+            return pd.DataFrame(_labor_rows("AUS") + _labor_rows("CAN"))
+        rows = []
+        for code in ("AUS", "CAN"):
+            rows += [r for r in _rows(code, "L", 120.0) if r["SECTOR"] == sector]
+        return pd.DataFrame(rows)
+
+    monkeypatch.setattr(mod, "get_sdmx_csv", _fake)
+    p = qna_panel(["AUS", "CAN"], start="2019", labor=True, sa="prefer")
+    assert p.loc["AUS", "emp"].notna().all()
+    assert p.loc["AUS", "hours"].isna().all()
+    assert p.loc["CAN", "hours"].notna().all()
+    assert p.loc["CAN", "emp"].isna().all()
+
+
+def _mixed_adjustment_rows(code: str) -> list[dict]:
+    """Korea's real shape: the total is adjusted at source, the parts are not.
+
+    Every ``EMP``/``PS`` quarter exists twice, once adjusted and once raw with
+    a seasonal wedge on it, while ``SAL``/``SELF`` exist raw only. Picking the
+    adjusted total and the raw parts is what breaks ``emp = SAL + SELF``.
+    """
+    season = {1: 0.97, 2: 1.02, 3: 1.01, 4: 1.00}
+    rows, adjusted = [], []
+    for r in _labor_rows(code):
+        if r["UNIT_MEASURE"] != "PS":
+            continue
+        r = dict(r, ADJUSTMENT="N")
+        smooth = r["OBS_VALUE"]
+        # the same factor on all three, so the RAW triple still adds up
+        r["OBS_VALUE"] = smooth * season[int(r["TIME_PERIOD"][-1])]
+        rows.append(r)
+        if r["TRANSACTION"] == "EMP":
+            adjusted.append(dict(r, ADJUSTMENT="Y", OBS_VALUE=smooth))
+    return rows + adjusted
+
+
+@pytest.fixture
+def fake_mixed_sdmx(monkeypatch):
+    def _fake(agency_flow, key, start_period, *, refresh=False, **kw):
+        if "EMPDC" in agency_flow:
+            return pd.DataFrame(_mixed_adjustment_rows("USA"))
+        sector = key.split(".")[3]
+        return pd.DataFrame([r for r in _rows("USA", "L", 120.0)
+                             if r["SECTOR"] == sector])
+
+    monkeypatch.setattr(mod, "get_sdmx_csv", _fake)
+
+
+def test_labor_keeps_a_decomposition_on_one_adjustment(fake_mixed_sdmx):
+    """Heads resolve as one family: a total adjusted at source but with raw
+    components falls back to raw for all three, so the parts still sum to the
+    total. Mixing the two is a seasonal artefact in ``emp_selfemp / emp``."""
+    p = qna_panel(["USA"], start="2019", labor=True)
+    np.testing.assert_allclose(
+        p.loc["USA", "emp_employees"] + p.loc["USA", "emp_selfemp"],
+        p.loc["USA", "emp"])
+
+
+def test_labor_family_fallback_is_reported_as_unadjusted(fake_mixed_sdmx):
+    """The cost of keeping the identity is visible, not silent."""
+    assert qna_meta(qna_panel(["USA"], start="2019",
+                              labor=True)).set_index("code").loc["USA", "sa_labor"] == "none"
+
+
+def test_money_blocks_still_resolve_adjustment_per_series(fake_sdmx):
+    """`sa_family` is passed only on the labour call. The money blocks keep
+    the per-series rule they had before, which several reference areas rely
+    on, so turning labour on must not change how they are picked."""
+    base = qna_panel(["USA", "MEX"], start="2019", real=True, income=True)
+    with_labor = qna_panel(["USA", "MEX"], start="2019", real=True,
+                           income=True, labor=True)
+    shared = [c for c in base.columns if c in with_labor.columns]
+    pd.testing.assert_frame_equal(base[shared], with_labor[shared])
+
+
+def test_blank_unit_mult_does_not_rescale_persons(monkeypatch):
+    """A missing UNIT_MULT must fall back to *this* block's scale. Filling it
+    with the money block's 6 would multiply a head count by 10**(6-3)."""
+    def _fake(agency_flow, key, start_period, *, refresh=False, **kw):
+        if "EMPDC" in agency_flow:
+            rows = _labor_rows("USA")
+            for r in rows:
+                r["UNIT_MULT"] = float("nan")
+            return pd.DataFrame(rows)
+        sector = key.split(".")[3]
+        return pd.DataFrame([r for r in _rows("USA", "L", 120.0)
+                             if r["SECTOR"] == sector])
+
+    monkeypatch.setattr(mod, "get_sdmx_csv", _fake)
+    p = qna_panel(["USA"], start="2019", labor=True)
+    assert p.loc["USA", "emp"].iloc[0] == pytest.approx(20_000.0)
+    assert p.loc["USA", "hours"].iloc[0] == pytest.approx(8_000.0)
+
+
+def _long_nsa_labor_frame(n_years: int = 12) -> pd.DataFrame:
+    """The labour block for the same country, unadjusted, with a seasonal."""
+    quarters = [f"{y}-Q{q}" for y in range(2005, 2005 + n_years) for q in (1, 2, 3, 4)]
+    season = {1: 0.94, 2: 1.04, 3: 1.00, 4: 1.02}
+    base = {"emp": 20_000.0, "emp_employees": 16_000.0, "emp_selfemp": 4_000.0,
+            "hours": 8_000.0, "hours_employees": 6_200.0, "hours_selfemp": 1_800.0}
+    rows = []
+    for name, (txn, unit, _) in QNA_LABOR.items():
+        for t, period in enumerate(quarters):
+            rows.append({
+                "FREQ": "Q", "ADJUSTMENT": "N", "REF_AREA": "SAU",
+                "SECTOR": "S1", "COUNTERPART_SECTOR": "S1",
+                "TRANSACTION": txn, "INSTR_ASSET": "_Z", "ACTIVITY": "_T",
+                "EXPENDITURE": "_Z", "UNIT_MEASURE": unit, "PRICE_BASE": "_Z",
+                "TRANSFORMATION": "N", "TABLE_IDENTIFIER": "T0111",
+                "TIME_PERIOD": period,
+                "OBS_VALUE": base[name] * (1.0 + 0.004 * t) * season[int(period[-1])],
+                "REF_YEAR_PRICE": None, "UNIT_MULT": 3 if unit == "PS" else 6,
+                "CURRENCY": "_Z",
+            })
+    return pd.DataFrame(rows)
+
+
+def test_labor_x13_adjusts_the_reference_areas_that_publish_it_raw(monkeypatch):
+    """The release's promise: ten reference areas publish this block with no
+    adjusted variant at all, and sa="x13" is what makes them usable. It has to
+    reach the labour rows, label them as puremacro's own work in `sa_labor`,
+    and actually remove the seasonal."""
+    money, labor = _long_nsa_frame(), _long_nsa_labor_frame()
+
+    def _fake(agency_flow, key, start_period, *, refresh=False, **kw):
+        if "EMPDC" in agency_flow:
+            return labor
+        return money[money["SECTOR"] == key.split(".")[3]]
+
+    monkeypatch.setattr(mod, "get_sdmx_csv", _fake)
+    raw = qna_panel(["SAU"], start="2005", labor=True)
+    adj = qna_panel(["SAU"], start="2005", labor=True, sa="x13")
+    assert qna_meta(raw).set_index("code").loc["SAU", "sa_labor"] == "none"
+    assert qna_meta(adj).set_index("code").loc["SAU", "sa_labor"] == "puremacro"
+
+    def spread(s):
+        d = np.log(s).diff().dropna()
+        m = d.groupby(d.index.quarter).mean()
+        return m.max() - m.min()
+
+    assert spread(adj.loc["SAU", "emp"]) < 0.25 * spread(raw.loc["SAU", "emp"])
+    # and the family still adds up after puremacro adjusts all three
+    ratio = ((adj.loc["SAU", "emp_employees"] + adj.loc["SAU", "emp_selfemp"])
+             / adj.loc["SAU", "emp"])
+    assert ratio.between(0.99, 1.01).all()
+
+
+def test_labor_units_and_scale_map_agree():
+    """QNA_LABOR_UNITS must cover every unit QNA_LABOR names, or _tidy has no
+    target for it and the series would pass through unscaled."""
+    assert {u for _, u, _ in QNA_LABOR.values()} == set(mod.QNA_LABOR_UNITS)
+
+
+def test_labor_columns_survive_long_form(fake_sdmx):
+    p = qna_panel(["USA"], start="2019", labor=True, long=True)
+    assert set(QNA_LABOR).issubset(set(p["variable"]))
+
+
+def _money_only_fake(labor_rows):
+    """A fake SDMX whose labour flow returns `labor_rows` and whose money
+    flows return a plain single-country expenditure block."""
+    def _fake(agency_flow, key, start_period, *, refresh=False, **kw):
+        if "EMPDC" in agency_flow:
+            return pd.DataFrame(labor_rows)
+        sector = key.split(".")[3]
+        return pd.DataFrame([r for r in _rows("USA", "L", 120.0)
+                             if r["SECTOR"] == sector])
+    return _fake
+
+
+def test_labor_rescales_a_reference_area_on_another_unit_mult(monkeypatch):
+    """UNIT_MULT is the power of ten the published figure carries. A head
+    count published in units (UNIT_MULT 0) has to arrive in thousands like
+    everyone else's, or the same ratio across two countries is off by 1000."""
+    rows = _labor_rows("USA")
+    for r in rows:
+        if r["UNIT_MEASURE"] == "PS":            # same people, different scale
+            r["UNIT_MULT"], r["OBS_VALUE"] = 0, r["OBS_VALUE"] * 1000.0
+    monkeypatch.setattr(mod, "get_sdmx_csv", _money_only_fake(rows))
+    p = qna_panel(["USA"], start="2019", labor=True)
+    assert p.loc["USA", "emp"].iloc[0] == pytest.approx(20_000.0)
+    assert p.loc["USA", "hours"].iloc[0] == pytest.approx(8_000.0)
+
+
+def test_meta_span_covers_a_labour_block_that_outruns_the_money_block(monkeypatch):
+    """Luxembourg and South Africa publish the labour block one quarter past
+    their expenditure block, so the panel carries a quarter the money rows do
+    not. `n_obs` / `first` / `last` describe the panel, not one block of it."""
+    rows = _labor_rows("USA")
+    rows += [dict(r, TIME_PERIOD="2021-Q1") for r in rows
+             if r["TIME_PERIOD"] == _QUARTERS[-1]]
+    monkeypatch.setattr(mod, "get_sdmx_csv", _money_only_fake(rows))
+    p = qna_panel(["USA"], start="2019", labor=True)
+    meta = qna_meta(p).set_index("code")
+    assert p.loc["USA"].index.max() == pd.Timestamp("2021-01-01")
+    assert meta.loc["USA", "n_obs"] == len(p.loc["USA"])
+    assert pd.Timestamp(meta.loc["USA", "last"]) == p.loc["USA"].index.max()
+
+
+def test_sibling_flow_keys_keep_their_wide_open_shape(fake_sdmx):
+    """`tail` defaults to a wide-open key. Only the labour flow pins a
+    dimension; every other flow must go on asking for all of them, or a
+    sibling block silently narrows."""
+    qna_panel(["USA"], start="2019", assets=True, durability=True,
+              output=True, income=True, labor=True)
+    keys = [k for k, _ in fake_sdmx]
+    labor = [k for k in keys if "_T" in k.split(".")]
+    money = [k for k in keys if k not in labor]
+    assert labor and money
+    # Past the reference area — and, for the expenditure flow, the
+    # institutional sector that sits right after it — every money key is
+    # still wide open.
+    assert all(set(k.split(".")[4:]) == {""} for k in money)
+    # The labour key pins ACTIVITY and nothing else.
+    for k in labor:
+        assert k.split(".")[7] == "_T"
+        assert set(k.split(".")[4:7]) | set(k.split(".")[8:]) == {""}

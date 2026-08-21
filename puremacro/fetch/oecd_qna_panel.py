@@ -155,12 +155,52 @@ QNA_INCOME: dict[str, tuple[str, str, str]] = {
     "subsidies":     ("D3",    "_Z", "Subsidies (enter negatively)"),
 }
 
+_LABOR_FLOW = "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_BY_ACTIVITY_EMPDC,"
+
+#: column name -> (SDMX TRANSACTION, SDMX UNIT_MEASURE, human description). The
+#: **labour input** the same accounts measure: heads and hours, split into
+#: employees and the self-employed, on the *domestic* concept — employment in
+#: resident production units, which is the concept GDP is measured on, so
+#: ``gdp_real / hours`` is a productivity measure and not a mismatch of two
+#: populations.
+#:
+#: These carry no price and therefore no deflator: persons are reported in
+#: thousands and hours in millions, and :data:`QNA_LABOR_UNITS` records which
+#: is which. The split matters twice over — ``emp_selfemp / emp`` is the share
+#: of the workforce whose labour income the accounts book inside
+#: ``surplus_mixed`` rather than ``comp_emp``, which is the Gollin (2002)
+#: correction to the labour share of :data:`QNA_INCOME`; and ``hours / emp``
+#: is average hours per worker, the margin that moves in European recessions
+#: where employment does not.
+#:
+#: With ``income=True`` and ``output=True`` alongside, the panel now carries
+#: every column :func:`puremacro.labor_share.gollin_adjusted_ls` asks for —
+#: ``comp_emp``, ``va_total``, ``surplus_mixed``, ``emp_employees`` and
+#: ``emp_selfemp`` — which before this block had no single source.
+QNA_LABOR: dict[str, tuple[str, str, str]] = {
+    "emp":             ("EMP",  "PS", "Total employment, persons (thousands)"),
+    "emp_employees":   ("SAL",  "PS", "Employees, persons (thousands)"),
+    "emp_selfemp":     ("SELF", "PS", "Self-employed, persons (thousands)"),
+    "hours":           ("EMP",  "H",  "Total hours worked (millions)"),
+    "hours_employees": ("SAL",  "H",  "Hours worked by employees (millions)"),
+    "hours_selfemp":   ("SELF", "H",  "Hours worked by the self-employed (millions)"),
+}
+
+#: Scale each labour unit of measure is normalised to, as a power of ten:
+#: persons in thousands, hours in millions. Every reference area currently
+#: publishes ``UNIT_MULT`` 3 for ``PS`` and 6 for ``H``, so today this mapping
+#: is a no-op; it is applied anyway because the money blocks have already been
+#: caught publishing a scale the panel did not expect, and a silent factor of
+#: a thousand in an employment series is not something a caller would spot.
+QNA_LABOR_UNITS: dict[str, int] = {"PS": 3, "H": 6}
+
 _SECTORS = sorted({s for _, s, _ in QNA_COMPONENTS.values()})
 _TRANSACTIONS = {t for t, _, _ in QNA_COMPONENTS.values()}
 
-#: components whose volume can legitimately cross zero, so no implicit
-#: deflator is published for them (inventory changes swing sign).
-_NO_DEFLATOR: frozenset[str] = frozenset(QNA_INCOME)
+#: series with no price dimension at all, so no implicit deflator can be
+#: built for them: the income flows exist only in current prices, and the
+#: labour block is counts of people and hours.
+_NO_DEFLATOR: frozenset[str] = frozenset(QNA_INCOME) | frozenset(QNA_LABOR)
 
 #: SDMX reference areas that are country groupings rather than countries.
 #: The QNA dataflows publish them alongside the members, and a panel that
@@ -265,8 +305,11 @@ def get_sdmx_csv(agency_flow: str, key: str, start_period: str,
 
 
 _META_COLS = ["code", "currency", "units", "price_base", "price_ref_year",
-              "sa", "sa_detail", "n_obs", "first", "last"]
+              "sa", "sa_detail", "sa_labor", "n_obs", "first", "last"]
 
+#: What ``qna_meta``'s ``units`` column describes: the money columns. The
+#: labour block is counts, not currency — persons in thousands and hours in
+#: millions, per :data:`QNA_LABOR_UNITS` — and is not covered by this string.
 _UNITS = "millions of national currency, current prices, SA"
 
 
@@ -322,11 +365,17 @@ def _download(codes: Sequence[str] | None, start: str, refresh: bool) -> pd.Data
 
 
 def _download_flow(flow: str, codes: Sequence[str] | None, start: str,
-                   refresh: bool) -> pd.DataFrame:
-    """Raw rows from a sibling QNA dataflow (same 13-dim key), one per chunk."""
+                   refresh: bool, *, tail: str = "..........") -> pd.DataFrame:
+    """Raw rows from a sibling QNA dataflow (same 13-dim key), one per chunk.
+
+    ``tail`` is everything after ``REF_AREA`` in the key. It is left wide open
+    by default; the labour flow overrides it to pin ACTIVITY to the total
+    economy, which is the difference between one response and twelve times one
+    response (that flow publishes every ISIC section).
+    """
     parts: list[pd.DataFrame] = []
     for code_key in _code_chunks(codes):
-        raw = get_sdmx_csv(flow, f"Q..{code_key}..........", start,
+        raw = get_sdmx_csv(flow, f"Q..{code_key}{tail}", start,
                            refresh=refresh)
         if not raw.empty:
             parts.append(raw)
@@ -337,19 +386,38 @@ def _download_flow(flow: str, codes: Sequence[str] | None, start: str,
 
 def _tidy(raw: pd.DataFrame, lookup: dict[tuple, str],
           dims: tuple[str, ...], *, sa: str = "prefer",
-          min_gain: int | None = None) -> pd.DataFrame:
+          min_gain: int | None = None,
+          units: tuple[str, ...] = ("XDC",),
+          price_bases: tuple[str, ...] = ("V", "L", "Q"),
+          mult_target: int | dict[str, int] = 6,
+          sa_family: dict[str, str] | None = None) -> pd.DataFrame:
     """Filter the raw SDMX rows down to one row per (code, date, name, price_base).
 
     ``lookup`` maps a tuple of ``dims`` values (e.g. ``("B1GQ", "S1")``) to the
     output column name; rows whose dimension tuple is absent are dropped.
+
+    ``units``, ``price_bases`` and ``mult_target`` describe the measurement the
+    flow uses. The money flows are all ``XDC`` at one of three price bases and
+    are put in millions; the labour flow is counts (``PS``) and hours (``H``)
+    at no price base at all, and each goes on its own scale — hence
+    ``mult_target`` also accepts a per-unit mapping.
+
+    ``sa_family`` groups output columns that have to share one seasonal
+    adjustment, mapping each name to a family label. Without it the adjusted /
+    unadjusted choice is made per series, which is right for blocks that are
+    just a list of series and wrong for one sold as a decomposition: Korea
+    publishes total employment adjusted but its employee and self-employed
+    components raw, so a per-series choice returns an SA total with NSA parts
+    and ``emp_employees + emp_selfemp`` no longer sums to ``emp``. Naming a
+    family makes the whole family fall back together, so the identity holds.
     """
     needed = {"PRICE_BASE", "UNIT_MEASURE", "ADJUSTMENT",
               "REF_AREA", "TIME_PERIOD", "OBS_VALUE", *dims}
     if not needed.issubset(raw.columns):
         return pd.DataFrame()
 
-    df = raw[(raw["UNIT_MEASURE"] == "XDC")
-             & (raw["PRICE_BASE"].isin(["V", "L", "Q"]))].copy()
+    df = raw[raw["UNIT_MEASURE"].isin(units)
+             & raw["PRICE_BASE"].isin(price_bases)].copy()
     if "ACTIVITY" in df.columns and "ACTIVITY" not in dims:
         # Expenditure-side flows publish one row per activity and we want the
         # economy-wide total. The output flow keys *on* activity, so there the
@@ -368,16 +436,37 @@ def _tidy(raw: pd.DataFrame, lookup: dict[tuple, str],
 
     df["value"] = pd.to_numeric(df["OBS_VALUE"], errors="coerce")
     df = df.dropna(subset=["value"])
-    # Put every series in millions of national currency (UNIT_MULT is the
-    # power of ten the published figure carries; 6 = millions).
-    mult = pd.to_numeric(df.get("UNIT_MULT", 6), errors="coerce").fillna(6.0)
-    df["value"] = df["value"] * np.power(10.0, mult - 6.0)
+    # Put every series on one scale (UNIT_MULT is the power of ten the
+    # published figure carries; 6 = millions), because reference areas differ
+    # on which one they publish. The target has to be computed first: a
+    # missing multiplier must fall back to *this block's* scale, not to the
+    # money block's 6, or a persons row with a blank UNIT_MULT is silently
+    # multiplied by a thousand.
+    if "UNIT_MULT" in df.columns:
+        mult = pd.to_numeric(df["UNIT_MULT"], errors="coerce")
+    else:
+        mult = pd.Series(np.nan, index=df.index)
+    if isinstance(mult_target, dict):
+        target = df["UNIT_MEASURE"].map(mult_target).astype(float)
+    else:
+        target = pd.Series(float(mult_target), index=df.index)
+    # A blank multiplier, or a unit this block has no target for, means
+    # "already on the right scale": each falls back to the other so the factor
+    # is 1. Rescaling by a NaN would delete the series instead.
+    target, mult = target.fillna(mult), mult.fillna(target)
+    df["value"] = df["value"] * np.power(10.0, (mult - target).fillna(0.0))
     df["date"] = _quarter_to_date(df["TIME_PERIOD"])
     df = df.rename(columns={"REF_AREA": "code"})
 
     keys = ["code", "name", "PRICE_BASE"]
     df["_adj_rank"] = np.where(df["ADJUSTMENT"] == "Y", 0, 1)
     df = df.sort_values(keys + ["date", "_adj_rank"])
+    # Which series must share one adjustment. Absent `sa_family` every series
+    # is its own family and both branches below reduce to the per-series rule
+    # they used before.
+    df["_fam"] = (df["name"] if sa_family is None
+                  else df["name"].map(sa_family).fillna(df["name"]))
+    fam_keys = ["code", "_fam", "PRICE_BASE"]
 
     if sa == "x13":
         # Default: the source's own adjusted series always wins where it
@@ -405,14 +494,28 @@ def _tidy(raw: pd.DataFrame, lookup: dict[tuple, str],
             take_raw |= ((n_n >= n_y + min_gain) & (n_n > 0)).to_numpy()
         pick = pd.DataFrame({"ADJUSTMENT": np.where(take_raw, "N", "Y")},
                             index=cover.index).reset_index()
+        if sa_family is not None:
+            # One member taking the raw series pulls its whole family with it,
+            # so the parts and the total are all adjusted by the same engine.
+            pick["_fam"] = pick["name"].map(sa_family).fillna(pick["name"])
+            raw_fam = (pick.assign(_raw=take_raw)
+                           .groupby(fam_keys, sort=False)["_raw"]
+                           .transform("max"))
+            pick["ADJUSTMENT"] = np.where(raw_fam.to_numpy(), "N", "Y")
+            pick = pick.drop(columns="_fam")
         df = df.merge(pick, on=keys + ["ADJUSTMENT"], how="inner")
     else:
         # Adjusted-at-source wins outright; unadjusted rows only survive for a
-        # (code, name, price_base) block that has no adjusted data at all.
+        # block that has no adjusted data at all — where `sa_family` groups
+        # several names into one block, one member missing an adjusted series
+        # sends the whole family to the raw one rather than mixing the two.
         best = df.groupby(keys, sort=False)["_adj_rank"].transform("min")
-        df = df[df["_adj_rank"] == best]
+        fam_best = (df.assign(_best=best).groupby(fam_keys, sort=False)["_best"]
+                      .transform("max"))
+        df = df[df["_adj_rank"] == fam_best]
 
-    return df.drop_duplicates(subset=keys + ["date"], keep="first")
+    return (df.drop(columns="_fam")
+              .drop_duplicates(subset=keys + ["date"], keep="first"))
 
 
 def _adjust_unadjusted(tidy: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
@@ -464,6 +567,7 @@ def qna_panel(codes: Iterable[str] | None = None,
               durability: bool = False,
               output: bool = False,
               income: bool = False,
+              labor: bool = False,
               sa: str = "prefer",
               sa_min_gain: int | None = None,
               real: bool = False,
@@ -529,6 +633,43 @@ def qna_panel(codes: Iterable[str] | None = None,
         carry no deflator and no ``_real`` column even with ``real=True``.
         ``comp_emp / gdp`` is the *unadjusted* labour share; see
         :data:`QNA_INCOME` for why that adjective is load-bearing.
+    labor
+        Also join the **labour input** the same accounts measure: employment
+        and hours worked, each split into employees and the self-employed, on
+        the domestic concept — see :data:`QNA_LABOR`. Persons arrive in
+        thousands and hours in millions; neither carries a price, so neither
+        gets a deflator or a ``_real`` column.
+
+        Coverage is 38 of 49 reference areas for heads and 34 for hours, and
+        it is ragged in a way worth knowing before you divide one by the
+        other. **The United States**, Japan, Argentina, Brazil, Canada,
+        China, Colombia, Indonesia, India, Saudi Arabia and Turkey publish no
+        head count here — the first ten of those publish nothing in this flow
+        at all, at any level of activity, so there is no key that recovers
+        them. Canada publishes hours without heads; Australia, Switzerland,
+        Korea, Russia and South Africa publish heads without hours.
+
+        Two reference areas are on a different time base from everyone else
+        and will silently wreck an hours-per-worker ratio: **Chile** reports
+        hours *per week* (its quarter reads ~41 hours per worker instead of
+        ~540) and **Costa Rica** at an *annual rate* (~2,157, four times a
+        quarter). Neither is rescaled here, because the OECD labels both the
+        same way; apply a plausibility band on ``hours / emp`` before use.
+
+        Ten reference areas publish this block with no adjusted variant at
+        all — Australia, Canada, Switzerland, Chile, Costa Rica, Iceland,
+        Mexico, New Zealand, Russia and South Africa — several of which do
+        publish adjusted aggregates, so ``sa="x13"`` is what makes their
+        labour columns comparable with the rest. The meta column ``sa_labor``
+        reports who adjusted this block, separately from the aggregates.
+
+        **Korea** is adjusted at source for total employment but not for its
+        employee and self-employed components. Heads and hours are each
+        resolved as one family rather than series by series, so Korea falls
+        back to the raw series for all three and the decomposition still adds
+        up; the price is that ``sa_labor`` reads ``none`` for Korea under the
+        default. Taking the adjusted total with raw parts instead would put a
+        1.1pp seasonal artefact straight into ``emp_selfemp / emp``.
     sa
         How to handle seasonal adjustment. ``"prefer"`` (default) takes the
         series the source publishes adjusted and falls back to the unadjusted
@@ -538,12 +679,14 @@ def qna_panel(codes: Iterable[str] | None = None,
         which prefers the X-13ARIMA-SEATS binary and falls back to puremacro's
         own pure-Python X-11/ARIMA engine, so it needs no binary installed.
         This brings in the reference areas that publish nothing adjusted at
-        all (CHN, SAU) and the asset / durability splits that several
-        countries publish raw (MEX, JPN, TUR). See ``sa_min_gain`` to also
-        trade a short official series for a longer raw one.
+        all (CHN, SAU), the asset / durability splits that several countries
+        publish raw (MEX, JPN, TUR), and — with ``labor=True`` — the ten
+        reference areas that publish the whole labour block raw. See
+        ``sa_min_gain`` to also trade a short official series for a longer
+        raw one.
         Series adjusted here are labelled ``puremacro`` in the metadata's
-        ``sa`` / ``sa_detail`` columns, and the engine that ran for each is
-        reported in ``df.attrs["sa_engines"]``.
+        ``sa`` / ``sa_detail`` / ``sa_labor`` columns, and the engine that ran
+        for each is reported in ``df.attrs["sa_engines"]``.
     sa_min_gain
         With ``sa="x13"``, also prefer the *raw* series over the source's
         adjusted one when it offers at least this many extra quarters, and
@@ -572,7 +715,10 @@ def qna_panel(codes: Iterable[str] | None = None,
         calendar adjusted; ``<component>_defl`` are the implicit price
         deflators, 100 in the country's price reference year.
         With ``assets=True`` the GFCF asset split and its deflators are joined
-        on. ``df.attrs["meta"]`` documents currency, adjustment and price base per
+        on. The labour columns added by ``labor=True`` are the exception to
+        all of the above: they are counts, not money, in thousands of persons
+        and millions of hours, and ``meta``'s ``units`` string does not
+        describe them. ``df.attrs["meta"]`` documents currency, adjustment and price base per
         country; ``df.attrs["source"]`` the SDMX dataflow. Empty frame (never
         an exception) if the download fails.
 
@@ -622,12 +768,35 @@ def qna_panel(codes: Iterable[str] | None = None,
             tidy = pd.concat([tidy, tidy_x[tidy_x["code"].isin(core_codes)]],
                              ignore_index=True)
 
+    if labor:
+        # Same 13-dim key, but ACTIVITY pinned to the total economy: this flow
+        # publishes every ISIC section and we want the aggregate.
+        raw_l = _download_flow(_LABOR_FLOW, codes_list, start, refresh,
+                               tail="....._T.....")
+        if not raw_l.empty:
+            lookup_l = {(t, u): name for name, (t, u, _) in QNA_LABOR.items()}
+            tidy_l = _tidy(raw_l, lookup_l, ("TRANSACTION", "UNIT_MEASURE"),
+                           sa=sa, min_gain=sa_min_gain,
+                           units=tuple(QNA_LABOR_UNITS),
+                           price_bases=("_Z",),
+                           mult_target=QNA_LABOR_UNITS,
+                           # Heads are one family and hours another: the
+                           # total and its two parts have to carry the same
+                           # adjustment or they stop adding up.
+                           sa_family={n: u for n, (_, u, _) in
+                                      QNA_LABOR.items()})
+            if not tidy_l.empty:
+                tidy = pd.concat([tidy, tidy_l[tidy_l["code"].isin(core_codes)]],
+                                 ignore_index=True)
+
     engines: dict = {}
     if sa == "x13":
         tidy, engines = _adjust_unadjusted(tidy)
 
     vol_base = _pick_volume_base(tidy)
-    nominal = tidy[tidy["PRICE_BASE"] == "V"]
+    # "_Z" is the labour block: no price, so it is a level by default and can
+    # never be mistaken for a volume measure of anything.
+    nominal = tidy[tidy["PRICE_BASE"].isin(["V", "_Z"])]
     volume = tidy[[pb == vol_base.get(c) for c, pb in
                    zip(tidy["code"], tidy["PRICE_BASE"])]]
 
@@ -649,7 +818,7 @@ def qna_panel(codes: Iterable[str] | None = None,
     # Implicit deflator: 100 * current prices / volume, only where both legs
     # are strictly positive (inventory-inclusive aggregates can cross zero).
     for name in (list(QNA_COMPONENTS) + list(QNA_ASSETS) + list(QNA_DURABILITY)
-             + list(QNA_ACTIVITIES) + list(QNA_INCOME)):
+             + list(QNA_ACTIVITIES) + list(QNA_INCOME) + list(QNA_LABOR)):
         if name in _NO_DEFLATOR or name not in out or f"{name}_real" not in out:
             continue
         num, den = out[name], out[f"{name}_real"]
@@ -660,7 +829,7 @@ def qna_panel(codes: Iterable[str] | None = None,
     if not real:
         out = out.drop(columns=[c for c in out.columns if c.endswith("_real")])
     out = out[[c for c in _ordered_columns(real, assets, durability,
-                                          output, income)
+                                          output, income, labor)
                if c in out.columns]]
     out = out.dropna(how="all")
 
@@ -675,12 +844,13 @@ def qna_panel(codes: Iterable[str] | None = None,
 
 def _ordered_columns(real: bool, assets: bool = False,
                      durability: bool = False, output: bool = False,
-                     income: bool = False) -> list[str]:
+                     income: bool = False, labor: bool = False) -> list[str]:
     names = (list(QNA_COMPONENTS)
              + (list(QNA_ASSETS) if assets else [])
              + (list(QNA_DURABILITY) if durability else [])
              + (list(QNA_ACTIVITIES) if output else [])
-             + (list(QNA_INCOME) if income else []))
+             + (list(QNA_INCOME) if income else [])
+             + (list(QNA_LABOR) if labor else []))
     cols = list(names)
     cols += [f"{c}_defl" for c in names if c not in _NO_DEFLATOR]
     if real:
@@ -719,6 +889,7 @@ def _build_meta(tidy: pd.DataFrame, nominal: pd.DataFrame,
         g_core = g[g["name"].isin(QNA_COMPONENTS)]
         g_ast = g[g["name"].isin(list(QNA_ASSETS) + list(QNA_DURABILITY)
                                  + list(QNA_ACTIVITIES) + list(QNA_INCOME))]
+        g_lab = g[g["name"].isin(QNA_LABOR)]
         gv = tidy[(tidy["code"] == code) & (tidy["PRICE_BASE"] == vol_base.get(code))]
         ref_year = pd.to_numeric(gv.get("REF_YEAR_PRICE"), errors="coerce")
         if ref_year is not None and ref_year.notna().any():
@@ -729,8 +900,13 @@ def _build_meta(tidy: pd.DataFrame, nominal: pd.DataFrame,
             ref = _implied_ref_year(panel, code)
         rows.append({
             "code": code,
-            "currency": (g["CURRENCY"].dropna().iloc[0]
-                         if "CURRENCY" in g and g["CURRENCY"].notna().any() else ""),
+            # From the money block only. The labour rows do carry a
+            # CURRENCY, but it is the SDMX not-applicable code "_Z", which
+            # survives `dropna` and would be reported as this country's
+            # currency whenever it sorted first.
+            "currency": (g_core["CURRENCY"].dropna().iloc[0]
+                         if "CURRENCY" in g_core and g_core["CURRENCY"].notna().any()
+                         else ""),
             "units": _UNITS,
             "price_base": vol_base.get(code, ""),
             "price_ref_year": ref,
@@ -740,9 +916,14 @@ def _build_meta(tidy: pd.DataFrame, nominal: pd.DataFrame,
             # their aggregates are adjusted.
             "sa": _sa_label(g_core),
             "sa_detail": _sa_label(g_ast) if len(g_ast) else "",
-            "n_obs": int(g_core["date"].nunique()),
-            "first": g_core["date"].min(),
-            "last": g_core["date"].max(),
+            "sa_labor": _sa_label(g_lab) if len(g_lab) else "",
+            # Span of the panel, not of the headline block: Luxembourg and
+            # South Africa publish the labour block one quarter beyond their
+            # expenditure block, and a `last` that stopped at the money rows
+            # would understate a panel that does carry that quarter.
+            "n_obs": int(g["date"].nunique()),
+            "first": g["date"].min(),
+            "last": g["date"].max(),
         })
     return pd.DataFrame(rows, columns=_META_COLS).sort_values("code").reset_index(drop=True)
 
@@ -750,4 +931,5 @@ def _build_meta(tidy: pd.DataFrame, nominal: pd.DataFrame,
 __all__ = ["qna_panel", "qna_meta", "qna_countries",
            "QNA_COMPONENTS", "QNA_ASSETS", "QNA_AGGREGATES",
            "QNA_DURABILITY", "QNA_ACTIVITIES", "QNA_INCOME",
+           "QNA_LABOR", "QNA_LABOR_UNITS",
            "QNA_VA_ADDITIVE", "QNA_VA_MEMO"]

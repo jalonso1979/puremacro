@@ -59,6 +59,57 @@ by-activity output flow — the United States is absent from it entirely, since
 the US industry accounts are a separate BEA release — and 40 in the income
 flow. A country that does not publish an approach reads `NaN`.
 
+## `labor=True` — the labour input behind those flows
+
+The same accounts measure the labour that produced the output: employment and
+hours worked, each split into employees and the self-employed, on the
+**domestic** concept — labour in resident production units, which is the
+concept GDP is measured on, so `gdp_real / hours` is a productivity measure
+rather than two different populations divided by each other.
+
+| column | what it is |
+|---|---|
+| `emp`, `emp_employees`, `emp_selfemp` | persons, thousands |
+| `hours`, `hours_employees`, `hours_selfemp` | hours worked, millions |
+
+Registered in `QNA_LABOR`, with the scales in `QNA_LABOR_UNITS`. The block
+carries no price, so it gets no deflator and no `_real` column — `real=True`
+does not change that.
+
+Two ratios are the point of the split:
+
+- **`emp_selfemp / emp`** — the share of the workforce whose labour income the
+  accounts book inside `surplus_mixed` rather than `comp_emp`. This is the
+  missing input for the labour-share correction at the end of this page.
+- **`hours / emp`** — average hours per worker, the margin that carries a
+  German recession (2008–10: employment −0.3%, hours −3.7%) where a Spanish
+  one is carried by heads instead (−9.9% against −9.8%).
+
+**Coverage is the raggedest of any block on this page**, and worth checking
+before dividing one of these columns by another:
+
+- 38 of the 49 reference areas publish heads and 34 publish hours. The United
+  States, Japan, Argentina, Brazil, China, Colombia, Indonesia, India, Saudi
+  Arabia and Turkey publish nothing in this flow at all — at any level of
+  activity, so no choice of key recovers them. Canada publishes hours without
+  heads; Australia, Switzerland, Korea, Russia and South Africa publish heads
+  without hours.
+- **Chile reports hours per week and Costa Rica at an annual rate**, both
+  labelled exactly like everyone else's quarterly figure. A Chilean quarter
+  reads ~41 hours per worker and a Costa Rican one ~2,157, against ~540 for a
+  normal one. Put a plausibility band on `hours / emp` before using it.
+- Ten reference areas publish the block with no adjusted variant at all,
+  several of them while publishing adjusted *aggregates*. `sa="x13"` adjusts
+  them here, and the meta column `sa_labor` reports who did the adjusting,
+  separately from `sa` (headline aggregates) and `sa_detail` (asset and
+  durability splits).
+- Korea adjusts the employment total at source but not its two components.
+  Heads and hours are each resolved as one family, so Korea falls back to the
+  raw series for all three and the decomposition still adds up; the price is
+  that `sa_labor` reads `none` for Korea under the default. Taking the
+  adjusted total with raw parts would put a 1.1pp seasonal artefact straight
+  into `emp_selfemp / emp`.
+
 ## `qna_countries()` — ask the source what it carries
 
 Queries the SDMX **availability** endpoint for a dataflow's reference areas, so
@@ -131,6 +182,25 @@ load-bearing: the income of the self-employed is not in `D1` at all but inside
 `surplus_mixed`. A country with a large self-employed sector reads low for
 reasons that have nothing to do with how its employees are paid. See Gollin
 (2002).
+
+The correction needs a split of the workforce, which is what `labor=True`
+supplies. With all three blocks on, the panel carries every column
+`puremacro.labor_share.gollin_adjusted_ls` asks for:
+
+```python
+panel = qna_panel(["ESP", "ITA", "DEU"], start="1995",
+                  output=True, income=True, labor=True)
+```
+
+| `gollin_adjusted_ls` wants | panel column | from |
+|---|---|---|
+| `compensation_employees` | `comp_emp` | `income=True` |
+| `mixed_income` | `surplus_mixed` | `income=True` |
+| `value_added` | `va_total` | `output=True` |
+| `employment_employees` | `emp_employees` | `labor=True` |
+| `employment_self` | `emp_selfemp` | `labor=True` |
+
+Before this, no single source in `puremacro` carried all five.
 
 ## Offline use
 

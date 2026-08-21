@@ -56,6 +56,8 @@ from .oecd_qna_panel import (
     QNA_COMPONENTS,
     QNA_ASSETS,
     QNA_DURABILITY,
+    QNA_LABOR,
+    QNA_LABOR_UNITS,
 )
 from .oecd_fx import fetch_xrate_monthly
 from .oecd_qna_tools import (
@@ -94,6 +96,8 @@ __all__ = [
     "QNA_COMPONENTS",
     "QNA_ASSETS",
     "QNA_DURABILITY",
+    "QNA_LABOR",
+    "QNA_LABOR_UNITS",
     "fetch_xrate_monthly",
     "fetch_qna_vintages",
     "QNAVintagePanel",

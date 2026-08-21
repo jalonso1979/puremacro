@@ -59,15 +59,55 @@
     "size_bytes": 14166,
     "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=UNRATE"
   },
+  "sdmx.oecd.org/public_rest_availableconstraint_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_BY_ACTIVITY_EMPDC_1.0_Q............__1bc98a7f": {
+    "fetched_at": "2026-08-21T22:32:13.112599+00:00",
+    "size_bytes": 2617,
+    "url": "https://sdmx.oecd.org/public/rest/availableconstraint/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_BY_ACTIVITY_EMPDC,1.0/Q............?mode=exact&format=jsondata"
+  },
   "sdmx.oecd.org/public_rest_availableconstraint_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR_1.0_Q........_35023166": {
     "fetched_at": "2026-08-20T19:41:07.608886+00:00",
     "size_bytes": 2622,
     "url": "https://sdmx.oecd.org/public/rest/availableconstraint/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,1.0/Q............?mode=exact&format=jsondata"
   },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_BY_ACTIVITY_EMPDC__Q..DNK_DEU....._T....._startPeri_84808b8f": {
+    "fetched_at": "2026-08-21T23:13:37.745046+00:00",
+    "size_bytes": 315969,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_BY_ACTIVITY_EMPDC,/Q..DNK+DEU....._T.....?startPeriod=2020&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_BY_ACTIVITY_EMPDC__Q..DNK_LUX_ZAF....._T....._start_6011e675": {
+    "fetched_at": "2026-08-21T23:15:06.676417+00:00",
+    "size_bytes": 1637670,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_BY_ACTIVITY_EMPDC,/Q..DNK+LUX+ZAF....._T.....?startPeriod=1995&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_BY_ACTIVITY_EMPDC__Q..ESP_MEX_DEU_AUS_CAN_USA.....__3b2396d5": {
+    "fetched_at": "2026-08-21T22:36:10.883325+00:00",
+    "size_bytes": 1564615,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_BY_ACTIVITY_EMPDC,/Q..ESP+MEX+DEU+AUS+CAN+USA....._T.....?startPeriod=2005&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_BY_ACTIVITY_EMPDC__Q..ESP_MEX_DEU_AUS_CAN_USA.....__4c32fd03": {
+    "fetched_at": "2026-08-21T22:39:07.916512+00:00",
+    "size_bytes": 835137,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_BY_ACTIVITY_EMPDC,/Q..ESP+MEX+DEU+AUS+CAN+USA....._T.....?startPeriod=2015&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_BY_ACTIVITY_EMPDC__Q..KOR_DEU....._T....._startPeri_a346ead3": {
+    "fetched_at": "2026-08-21T23:05:48.599684+00:00",
+    "size_bytes": 506857,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_BY_ACTIVITY_EMPDC,/Q..KOR+DEU....._T.....?startPeriod=2010&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_BY_ACTIVITY_EMPDC__Q..LUX_ZAF_DNK....._T....._start_568abade": {
+    "fetched_at": "2026-08-21T23:26:54.606930+00:00",
+    "size_bytes": 1637670,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_BY_ACTIVITY_EMPDC,/Q..LUX+ZAF+DNK....._T.....?startPeriod=1995&format=csvfilewithlabels"
+  },
   "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_BY_ACTIVITY_OUTPUT__Q..ARG_AUS_AUT_BEL_BGR_BRA_CAN__80e211ae": {
     "fetched_at": "2026-08-20T20:19:43.168476+00:00",
     "size_bytes": 31629489,
     "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_BY_ACTIVITY_OUTPUT,/Q..ARG+AUS+AUT+BEL+BGR+BRA+CAN+CHE+CHL+CHN..........?startPeriod=1995&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_BY_ACTIVITY_OUTPUT__Q..ARG_SAU_MEX_DEU_USA_ESP_JPN__09e0b6eb": {
+    "fetched_at": "2026-08-21T23:06:52.682284+00:00",
+    "size_bytes": 26382631,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_BY_ACTIVITY_OUTPUT,/Q..ARG+SAU+MEX+DEU+USA+ESP+JPN+TUR+CHL+KOR..........?startPeriod=2000&format=csvfilewithlabels"
   },
   "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_BY_ACTIVITY_OUTPUT__Q..COL_CRI_CZE_DEU_DNK_ESP_EST__63782b71": {
     "fetched_at": "2026-08-20T20:19:54.266644+00:00",
@@ -94,6 +134,11 @@
     "size_bytes": 44784112,
     "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_BY_ACTIVITY_OUTPUT,/Q..KOR+LTU+LUX+LVA+MEX+NLD+NOR+NZL+POL+PRT..........?startPeriod=1995&format=csvfilewithlabels"
   },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_BY_ACTIVITY_OUTPUT__Q..LUX_ZAF_DNK_MEX_USA_DEU....._4ea3efe0": {
+    "fetched_at": "2026-08-21T23:20:56.806572+00:00",
+    "size_bytes": 21251807,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_BY_ACTIVITY_OUTPUT,/Q..LUX+ZAF+DNK+MEX+USA+DEU..........?startPeriod=1995&format=csvfilewithlabels"
+  },
   "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_BY_ACTIVITY_OUTPUT__Q..ROU_RUS_SAU_SVK_SVN_SWE_TUR__f818909a": {
     "fetched_at": "2026-08-20T20:20:21.951435+00:00",
     "size_bytes": 30943453,
@@ -114,6 +159,11 @@
     "size_bytes": 7122365,
     "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_DURABILITY,/Q..ARG+AUS+AUT+BEL+BGR+BRA+CAN+CHE+CHL+CHN..........?startPeriod=1995&format=csvfilewithlabels"
   },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_DURABILITY__Q..ARG_SAU_MEX_DEU_USA_ESP__029f0399": {
+    "fetched_at": "2026-08-21T23:06:47.377084+00:00",
+    "size_bytes": 9254941,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_DURABILITY,/Q..ARG+SAU+MEX+DEU+USA+ESP+JPN+TUR+CHL+KOR..........?startPeriod=2000&format=csvfilewithlabels"
+  },
   "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_DURABILITY__Q..COL_CRI_CZE_DEU_DNK_ESP__1bad022d": {
     "fetched_at": "2026-08-19T20:29:53.556669+00:00",
     "size_bytes": 17358904,
@@ -133,6 +183,11 @@
     "fetched_at": "2026-08-19T20:30:07.241456+00:00",
     "size_bytes": 15797073,
     "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_DURABILITY,/Q..KOR+LTU+LUX+LVA+MEX+NLD+NOR+NZL+POL+PRT..........?startPeriod=1995&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_DURABILITY__Q..LUX_ZAF_DNK_MEX_USA_DEU._9b3ee190": {
+    "fetched_at": "2026-08-21T23:19:49.412938+00:00",
+    "size_bytes": 8370823,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_DURABILITY,/Q..LUX+ZAF+DNK+MEX+USA+DEU..........?startPeriod=1995&format=csvfilewithlabels"
   },
   "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_DURABILITY__Q..ROU_RUS_SAU_SVK_SVN_SWE__90134bf0": {
     "fetched_at": "2026-08-19T20:30:11.319767+00:00",
@@ -169,6 +224,11 @@
     "size_bytes": 10852599,
     "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_ASSET,/Q..ARG+AUS+AUT+BEL+BGR+BRA+CAN+CHE+CHL+CHN..........?startPeriod=1995&format=csvfilewithlabels"
   },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_GFCF_ASSET__Q..ARG_SAU_MEX_DEU_USA_ESP__9c9b91f7": {
+    "fetched_at": "2026-08-21T23:06:40.582900+00:00",
+    "size_bytes": 10132247,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_ASSET,/Q..ARG+SAU+MEX+DEU+USA+ESP+JPN+TUR+CHL+KOR..........?startPeriod=2000&format=csvfilewithlabels"
+  },
   "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_GFCF_ASSET__Q..COL_CRI_CZE_DEU_DNK_ESP__e1e92488": {
     "fetched_at": "2026-08-19T20:29:14.369877+00:00",
     "size_bytes": 18500978,
@@ -188,6 +248,11 @@
     "fetched_at": "2026-08-19T20:29:30.486105+00:00",
     "size_bytes": 20200133,
     "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_ASSET,/Q..KOR+LTU+LUX+LVA+MEX+NLD+NOR+NZL+POL+PRT..........?startPeriod=1995&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_GFCF_ASSET__Q..LUX_ZAF_DNK_MEX_USA_DEU._246e837c": {
+    "fetched_at": "2026-08-21T23:18:43.106269+00:00",
+    "size_bytes": 10304507,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_GFCF_ASSET,/Q..LUX+ZAF+DNK+MEX+USA+DEU..........?startPeriod=1995&format=csvfilewithlabels"
   },
   "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_GFCF_ASSET__Q..ROU_RUS_SAU_SVK_SVN_SWE__6b2364f9": {
     "fetched_at": "2026-08-19T20:29:38.702199+00:00",
@@ -248,6 +313,21 @@
     "fetched_at": "2026-08-19T20:27:50.425871+00:00",
     "size_bytes": 31404737,
     "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..ARG+AUS+AUT+BEL+BGR+BRA+CAN+CHE+CHL+CHN.S1..........?startPeriod=1995&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..ARG_SAU_MEX_DEU_USA_ESP__1834a59b": {
+    "fetched_at": "2026-08-21T23:06:31.060731+00:00",
+    "size_bytes": 3968930,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..ARG+SAU+MEX+DEU+USA+ESP+JPN+TUR+CHL+KOR.S13..........?startPeriod=2000&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..ARG_SAU_MEX_DEU_USA_ESP__764d9687": {
+    "fetched_at": "2026-08-21T23:06:34.803869+00:00",
+    "size_bytes": 2367930,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..ARG+SAU+MEX+DEU+USA+ESP+JPN+TUR+CHL+KOR.S1M..........?startPeriod=2000&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..ARG_SAU_MEX_DEU_USA_ESP__a688974b": {
+    "fetched_at": "2026-08-21T23:06:27.610670+00:00",
+    "size_bytes": 28142827,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..ARG+SAU+MEX+DEU+USA+ESP+JPN+TUR+CHL+KOR.S1..........?startPeriod=2000&format=csvfilewithlabels"
   },
   "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..AUS_AUT_BEL_CAN_DNK_FIN__0057f80b": {
     "fetched_at": "2026-07-22T19:24:33.208502+00:00",
@@ -329,6 +409,36 @@
     "size_bytes": 1111639,
     "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..DEU.S13..........?startPeriod=1995&format=csvfilewithlabels"
   },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..DNK_DEU.S1.........._sta_b3010a90": {
+    "fetched_at": "2026-08-21T23:13:28.835036+00:00",
+    "size_bytes": 1686453,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..DNK+DEU.S1..........?startPeriod=2020&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..DNK_DEU.S13.........._st_edecb59a": {
+    "fetched_at": "2026-08-21T23:13:32.139949+00:00",
+    "size_bytes": 398632,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..DNK+DEU.S13..........?startPeriod=2020&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..DNK_DEU.S1M.........._st_c93fa4dc": {
+    "fetched_at": "2026-08-21T23:13:34.654589+00:00",
+    "size_bytes": 123295,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..DNK+DEU.S1M..........?startPeriod=2020&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..DNK_LUX_ZAF.S1.........._7ba091bc": {
+    "fetched_at": "2026-08-21T23:13:56.324751+00:00",
+    "size_bytes": 12355431,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..DNK+LUX+ZAF.S1..........?startPeriod=1995&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..DNK_LUX_ZAF.S13........._bf0ba115": {
+    "fetched_at": "2026-08-21T23:13:59.856382+00:00",
+    "size_bytes": 2292030,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..DNK+LUX+ZAF.S13..........?startPeriod=1995&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..DNK_LUX_ZAF.S1M........._c4806025": {
+    "fetched_at": "2026-08-21T23:14:02.893370+00:00",
+    "size_bytes": 897741,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..DNK+LUX+ZAF.S1M..........?startPeriod=1995&format=csvfilewithlabels"
+  },
   "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..ESP_DEU_JPN_USA_MEX.S1.._4873f444": {
     "fetched_at": "2026-08-20T20:24:42.730381+00:00",
     "size_bytes": 7349501,
@@ -373,6 +483,36 @@
     "fetched_at": "2026-08-20T20:26:03.791406+00:00",
     "size_bytes": 5345306,
     "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..ESP+DEU+JPN+USA+MEX+GBR+ITA+KOR.S13..........?startPeriod=1995&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..ESP_MEX_DEU_AUS_CAN_USA._5f8590df": {
+    "fetched_at": "2026-08-21T22:36:03.960299+00:00",
+    "size_bytes": 1181922,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..ESP+MEX+DEU+AUS+CAN+USA.S1M..........?startPeriod=2005&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..ESP_MEX_DEU_AUS_CAN_USA._96a07ce1": {
+    "fetched_at": "2026-08-21T22:39:04.490281+00:00",
+    "size_bytes": 628708,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..ESP+MEX+DEU+AUS+CAN+USA.S1M..........?startPeriod=2015&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..ESP_MEX_DEU_AUS_CAN_USA._9c63ac5b": {
+    "fetched_at": "2026-08-21T22:36:00.515266+00:00",
+    "size_bytes": 2032455,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..ESP+MEX+DEU+AUS+CAN+USA.S13..........?startPeriod=2005&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..ESP_MEX_DEU_AUS_CAN_USA._b26b372d": {
+    "fetched_at": "2026-08-21T22:38:58.346315+00:00",
+    "size_bytes": 8715334,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..ESP+MEX+DEU+AUS+CAN+USA.S1..........?startPeriod=2015&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..ESP_MEX_DEU_AUS_CAN_USA._ca315493": {
+    "fetched_at": "2026-08-21T22:35:56.277832+00:00",
+    "size_bytes": 16514930,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..ESP+MEX+DEU+AUS+CAN+USA.S1..........?startPeriod=2005&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..ESP_MEX_DEU_AUS_CAN_USA._fbdf2879": {
+    "fetched_at": "2026-08-21T22:39:00.980682+00:00",
+    "size_bytes": 1084118,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..ESP+MEX+DEU+AUS+CAN+USA.S13..........?startPeriod=2015&format=csvfilewithlabels"
   },
   "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..GRC_HRV_HUN_IDN_IND_IRL__bdcdc120": {
     "fetched_at": "2026-08-19T20:28:28.814788+00:00",
@@ -444,6 +584,21 @@
     "size_bytes": 29053063,
     "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..KOR+AUS+POL+TUR+MEX+CHL+COL+CRI.S1..........?startPeriod=1995&format=csvfilewithlabels"
   },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..KOR_DEU.S1.........._sta_410eac63": {
+    "fetched_at": "2026-08-21T23:05:39.086384+00:00",
+    "size_bytes": 4088233,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..KOR+DEU.S1..........?startPeriod=2010&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..KOR_DEU.S13.........._st_10ce8090": {
+    "fetched_at": "2026-08-21T23:05:42.370459+00:00",
+    "size_bytes": 870238,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..KOR+DEU.S13..........?startPeriod=2010&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..KOR_DEU.S1M.........._st_17abb632": {
+    "fetched_at": "2026-08-21T23:05:45.175060+00:00",
+    "size_bytes": 311440,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..KOR+DEU.S1M..........?startPeriod=2010&format=csvfilewithlabels"
+  },
   "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..KOR_LTU_LUX_LVA_MEX_NLD__2364e9fe": {
     "fetched_at": "2026-08-19T20:28:43.432311+00:00",
     "size_bytes": 2996336,
@@ -458,6 +613,36 @@
     "fetched_at": "2026-08-19T20:28:35.750341+00:00",
     "size_bytes": 41670733,
     "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..KOR+LTU+LUX+LVA+MEX+NLD+NOR+NZL+POL+PRT.S1..........?startPeriod=1995&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..LUX_ZAF_DNK.S1.........._6e53303a": {
+    "fetched_at": "2026-08-21T23:23:43.808146+00:00",
+    "size_bytes": 12355431,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..LUX+ZAF+DNK.S1..........?startPeriod=1995&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..LUX_ZAF_DNK.S13........._67ead79c": {
+    "fetched_at": "2026-08-21T23:24:47.730427+00:00",
+    "size_bytes": 2292030,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..LUX+ZAF+DNK.S13..........?startPeriod=1995&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..LUX_ZAF_DNK.S1M........._93efed55": {
+    "fetched_at": "2026-08-21T23:25:50.982506+00:00",
+    "size_bytes": 897741,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..LUX+ZAF+DNK.S1M..........?startPeriod=1995&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..LUX_ZAF_DNK_MEX_USA_DEU._0545ee7f": {
+    "fetched_at": "2026-08-21T23:16:32.687941+00:00",
+    "size_bytes": 3919504,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..LUX+ZAF+DNK+MEX+USA+DEU.S13..........?startPeriod=1995&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..LUX_ZAF_DNK_MEX_USA_DEU._0830fce9": {
+    "fetched_at": "2026-08-21T23:15:29.142317+00:00",
+    "size_bytes": 24490310,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..LUX+ZAF+DNK+MEX+USA+DEU.S1..........?startPeriod=1995&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..LUX_ZAF_DNK_MEX_USA_DEU._aba3bf65": {
+    "fetched_at": "2026-08-21T23:17:35.712431+00:00",
+    "size_bytes": 1785137,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..LUX+ZAF+DNK+MEX+USA+DEU.S1M..........?startPeriod=1995&format=csvfilewithlabels"
   },
   "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..MEX.S1.........._startPe_bbb607ba": {
     "fetched_at": "2026-08-11T18:55:30.309311+00:00",
@@ -1059,6 +1244,11 @@
     "size_bytes": 4365646,
     "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_INCOME,/Q..ARG+AUS+AUT+BEL+BGR+BRA+CAN+CHE+CHL+CHN..........?startPeriod=1995&format=csvfilewithlabels"
   },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_INCOME__Q..ARG_SAU_MEX_DEU_USA_ESP_JPN_TUR_CHL_KOR._042ab6cf": {
+    "fetched_at": "2026-08-21T23:06:56.514737+00:00",
+    "size_bytes": 2910734,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_INCOME,/Q..ARG+SAU+MEX+DEU+USA+ESP+JPN+TUR+CHL+KOR..........?startPeriod=2000&format=csvfilewithlabels"
+  },
   "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_INCOME__Q..COL_CRI_CZE_DEU_DNK_ESP_EST_FIN_FRA_GBR._ef43eb06": {
     "fetched_at": "2026-08-20T20:20:30.735522+00:00",
     "size_bytes": 6272626,
@@ -1079,6 +1269,11 @@
     "size_bytes": 5160150,
     "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_INCOME,/Q..ESP+DEU+JPN+USA+MEX+GBR+ITA+KOR+FRA..........?startPeriod=1995&format=csvfilewithlabels"
   },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_INCOME__Q..ESP_MEX_DEU_AUS_CAN_USA.........._startP_b1a471d7": {
+    "fetched_at": "2026-08-21T22:36:07.950316+00:00",
+    "size_bytes": 2508918,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_INCOME,/Q..ESP+MEX+DEU+AUS+CAN+USA..........?startPeriod=2005&format=csvfilewithlabels"
+  },
   "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_INCOME__Q..GRC_HRV_HUN_IDN_IND_IRL_ISL_ISR_ITA_JPN._18bd5cb0": {
     "fetched_at": "2026-08-20T20:20:33.844619+00:00",
     "size_bytes": 4560204,
@@ -1088,6 +1283,11 @@
     "fetched_at": "2026-08-20T20:20:38.081779+00:00",
     "size_bytes": 6143713,
     "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_INCOME,/Q..KOR+LTU+LUX+LVA+MEX+NLD+NOR+NZL+POL+PRT..........?startPeriod=1995&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_INCOME__Q..LUX_ZAF_DNK_MEX_USA_DEU.........._startP_09390ce4": {
+    "fetched_at": "2026-08-21T23:22:00.476517+00:00",
+    "size_bytes": 3183221,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_INCOME,/Q..LUX+ZAF+DNK+MEX+USA+DEU..........?startPeriod=1995&format=csvfilewithlabels"
   },
   "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_INCOME__Q..ROU_RUS_SAU_SVK_SVN_SWE_TUR_USA_ZAF....._5be9209d": {
     "fetched_at": "2026-08-20T20:20:41.154123+00:00",
