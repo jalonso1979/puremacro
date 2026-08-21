@@ -4,6 +4,10 @@ This file records user-visible changes per release. Internal refactors that don'
 
 ## Unreleased
 
+## 1.3.2 (2026-08-20)
+
+**A DSGE solver that no longer depends on your BLAS, an Aiyagari routine that actually solves, a suite that passes on Windows, and the worked example the national-accounts machinery never had.**
+
 ### Added
 - **A worked example for the quarterly national accounts, which had none.** Two releases of QNA machinery — vintages, availability-driven country discovery, re-referencing, identity scoring, contributions, three approaches to GDP — shipped without a single notebook or documentation page: grepping for `qna_panel` outside the library and its own tests returned nothing at all.
   - `notebooks/40_quarterly_national_accounts.py` (and its Spanish twin) runs the whole post-fetch workflow offline: what the price reference year is and why `qna_rebase` exists, the three identities scored inside their own flows with the cross-flow disagreement kept separate, real GDP growth decomposed with previous-period nominal weights, and the unadjusted labour share with the Gollin (2002) caveat attached. The "your turn" cell checks the claim that re-referencing moves levels and never growth rates — it comes back at 1.4e-13 pp.
