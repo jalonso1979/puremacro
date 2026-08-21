@@ -186,6 +186,9 @@
       "solve_bgp",
       "solve_fertility"
     ],
+    "puremacro.dsge._qz": [
+      "ordqz_sorted"
+    ],
     "puremacro.dsge._results": [
       "DSGEPosteriorResult",
       "FertilitySolution",

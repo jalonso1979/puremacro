@@ -28,6 +28,8 @@ from dataclasses import dataclass
 import numpy as np
 import scipy.linalg
 
+from ._qz import ordqz_sorted
+
 
 @dataclass(frozen=True)
 class GensysSolution:
@@ -81,9 +83,9 @@ def gensys(
     # Generalised Schur decomposition of (Γ_0, Γ_1):
     # Γ_0 = Q S Z^H,   Γ_1 = Q T Z^H
     # Sort so that stable generalised eigenvalues (|T_ii/S_ii| < div) come first.
-    S, T, alpha, beta, Q, Z = scipy.linalg.ordqz(
+    S, T, alpha, beta, Q, Z = ordqz_sorted(
         Gamma0, Gamma1,
-        sort=lambda a, b: (abs(b) < div * abs(a)),  # stable (|b/a|<div) first
+        lambda a, b: (abs(b) < div * abs(a)),  # stable (|b/a|<div) first
         output="complex",
     )
 

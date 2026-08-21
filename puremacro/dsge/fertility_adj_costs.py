@@ -551,6 +551,8 @@ def _solve_matrix_quadratic(
     """
     import scipy.linalg as _sla
 
+    from ._qz import ordqz_sorted
+
     n = A.shape[0]
     n2 = 2 * n
 
@@ -562,9 +564,9 @@ def _solve_matrix_quadratic(
 
     # QZ with stable eigenvalues (|alpha/beta| < 1) sorted first.
     # scipy convention: ordqz(A, B) -> eigenvalue = alpha / beta.
-    _, _, alpha, beta, _, Z_qz = _sla.ordqz(
+    _, _, alpha, beta, _, Z_qz = ordqz_sorted(
         M1, M0,
-        sort=lambda a, b: abs(a) < abs(b),   # stable |alpha/beta| < 1 first
+        lambda a, b: abs(a) < abs(b),   # stable |alpha/beta| < 1 first
     )
     with np.errstate(divide="ignore", invalid="ignore"):
         eigv = np.where(np.abs(beta) > 1e-12, np.abs(alpha / beta), np.inf)

@@ -48,6 +48,8 @@ from typing import Optional
 import numpy as np
 import scipy.linalg
 
+from ._qz import ordqz_sorted
+
 
 @dataclass(frozen=True)
 class KleinSolution:
@@ -234,8 +236,8 @@ def klein_solve(
 
     # Generalised Schur (QZ): A = Q S Z',  B = Q T Z'
     # We want stable eigenvalues at the top-left.
-    S, T, alpha, beta, Q, Z = scipy.linalg.ordqz(
-        A, B, sort=lambda a, b: abs(b) < abs(a),  # stable first
+    S, T, alpha, beta, Q, Z = ordqz_sorted(
+        A, B, lambda a, b: abs(b) < abs(a),  # stable first
     )
 
     # Diagnostics
