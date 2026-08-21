@@ -64,6 +64,70 @@ browser, so a user can verify the library on the same machine that runs it. No e
 package, to our knowledge, combines this breadth with browser portability and a
 continuously verified, self-contained correctness record.
 
+# State of the field
+
+The scientific-Python ecosystem already serves parts of this space well, and
+`puremacro` is not a replacement for any of it. `statsmodels` [@statsmodels2010]
+is the reference implementation for reduced-form time series and general
+econometrics; `arch` covers conditional-volatility models; `linearmodels` covers
+panel and instrumental-variables estimation. What none of them targets is the
+*structural* macro layer — identification by sign, sign-zero, long-run, proxy or
+narrative restrictions — or the solution of heterogeneous-agent equilibria. For
+those, the field's standard tool is Dynare [@dynare2011], which is written for
+MATLAB, and the sequence-space Jacobian method [@auclert2021], whose reference
+implementation is Python but whose practical speed depends on JIT compilation.
+
+The portability picture is more specific than "these tools are heavy", and it is
+worth stating precisely. `statsmodels` is packaged for Pyodide and does run in a
+browser; `arch`, `linearmodels` and `numba` are not, and the Pyodide 0.28
+distribution ships none of the three. So an applied macroeconomist assembling the
+usual stack finds that the conditional-volatility layer, the panel-IV layer and
+the JIT layer that heterogeneous-agent codes lean on all stop at the browser
+boundary, and that the DSGE layer is reached through a different language runtime
+altogether.
+
+That is the gap `puremacro` targets, and it is also the answer to *build versus
+contribute*. The methods could in principle be contributed to the existing
+packages one at a time. What could not be contributed is the property that makes
+them usable together on a constrained machine: a single import surface that
+depends on nothing outside the four-package numerical core. That is a
+whole-library invariant, enforced at the boundary of every module (see below),
+not a feature that can be added to somebody else's dependency graph.
+
+# Software design
+
+One decision organises the codebase: **a shippable module may import only NumPy,
+SciPy, pandas and Matplotlib at module scope.** This is not a convention but a
+tested invariant. A test walks every shippable submodule, imports it, and asserts
+that no forbidden package — `statsmodels`, `linearmodels`, `arch`, and the
+scraping stack — has appeared in `sys.modules`; a second test re-runs the sweep in
+a subprocess with those packages made unimportable, so a module that would break
+on a machine without them fails in CI on a machine that has them.
+
+The same libraries that are forbidden at runtime are the ones the test suite
+depends on. `statsmodels`, `arch` and `linearmodels` are development-only
+dependencies used as **oracles**: the validation gallery estimates a model both
+ways and compares. The reference implementations therefore certify the library
+without ever shipping with it, which is what allows breadth and browser
+portability to coexist rather than trade off.
+
+The cost is paid in the numerical layer, where every estimator is written against
+NumPy rather than delegating to a compiled kernel, and in a pattern that recurs
+throughout: prefer an external tool when present, degrade to a pure-Python path
+when not. Seasonal adjustment uses the X-13ARIMA-SEATS binary where it is
+installed and falls back to an in-package X-11/ARIMA engine where it is not;
+data fetchers return an empty frame rather than raising when no HTTP stack
+exists, so a notebook carrying a frozen snapshot reaches its offline branch. A
+`runtime` module makes this explicit, detecting host, device class and the four
+capabilities that actually differ away from a workstation — sockets, Parquet,
+threads, and a writable filesystem — and adapting rather than failing.
+
+The package is 606 modules and roughly 105,000 lines, checked by 6,187 tests
+across 459 test files. Three release gates guard the invariants that matter
+between versions: the Pyodide import contract above, a snapshot of the public API
+that must be regenerated deliberately when the surface moves, and a version-sync
+check across every file that records the version.
+
 # Features
 
 - **Time series, SVARs, and Identification:** VAR, FAVAR, BVAR (Minnesota), VECM, and TVP-VAR;
@@ -82,6 +146,23 @@ continuously verified, self-contained correctness record.
   bilingual (English/Spanish) interactive showcase notebooks and empirical datasets.
 
 ![Validation coverage: 73 cases across 13 subsystems, each checked against an independent reference.\label{fig:scorecard}](scorecard.png){ width=70% }
+
+# Research impact
+
+<!-- TODO (author): JOSS now requires evidence of realized impact. Name the
+     courses that use the library (e.g. the MAV graduate macro sequence at
+     ITAM), any papers or theses whose results it produced, external users or
+     downstream integrations, and download or classroom figures if you have
+     them. Two or three sentences is enough, but it must be concrete. -->
+
+# AI usage disclosure
+
+<!-- TODO (author): JOSS now requires transparent disclosure of generative-AI
+     use. State which parts were AI-assisted and what human verification was
+     applied — e.g. that AI assistance was used for portions of the code,
+     tests and documentation, with all numerical results checked against the
+     independent references in the validation gallery and all changes reviewed
+     before merge. Write what is actually true for this project. -->
 
 # Acknowledgements
 
