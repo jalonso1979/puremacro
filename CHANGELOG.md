@@ -29,6 +29,10 @@ This file records user-visible changes per release. Internal refactors that don'
 - **`puremacro.examples.hfi_gertler_karadi` no longer opens a window.** It called `plt.show()`, the only example in the package that did; under an interactive backend that blocks until something closes the window. It now saves `output/hfi_gertler_karadi.png` like every other example. In the gallery renderer it burned the full 300 s per-example timeout and was recorded as `FAIL / timeout` — the example actually runs in 1.3 s.
 - **Three examples that need data this repo does not ship are now recorded as SKIP rather than FAIL.** `asset_composition_dynamics`, `govt_vs_private_investment` and `narrative_panel_lp` raised `SystemExit`, which prints no traceback, so the gallery renderer's classifier — which keys on a `FileNotFoundError` naming a data file — fell through to FAIL. They now raise `FileNotFoundError` naming the missing path, which is what the three examples that already skipped correctly were doing. Gate 5 goes from 4 FAIL to **75 PASS, 7 SKIP, 0 FAIL**.
 
+### Documentation
+- **The Quarterly National Accounts page documents `qna_labor`**, and — closing a gap that predates this release — **`assets=True` and `durability=True`**, which have never appeared on it despite sitting on the same footing as `output=` and `income=`. The durability entry spells out the trap in that block: the headline `cons_hh` is `S1M` (households + NPISH) while the durability columns are `S14` (households only), so they do not sum to it and the gap is NPISH rather than an error.
+- Notebook 40's labour-share section now points at the block that supplies the Gollin correction instead of stopping at the citation.
+
 ### Internal
 - The gallery renderer forces `MPLBACKEND=Agg` for every example subprocess, so no example can block a headless batch render on a GUI window again.
 

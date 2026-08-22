@@ -59,6 +59,31 @@ by-activity output flow — the United States is absent from it entirely, since
 the US industry accounts are a separate BEA release — and 40 in the income
 flow. A country that does not publish an approach reads `NaN`.
 
+## `assets=True` and `durability=True` — two splits of the same totals
+
+Neither adds an approach; each opens up a total the expenditure block already
+carries, and both are joined with their own deflators.
+
+| flag | splits | into | registry |
+|---|---|---|---|
+| `assets=True` | `inv` (gross fixed capital formation) | `inv_equip`, `inv_struct`, `inv_dwell`, `inv_ipp` | `QNA_ASSETS` |
+| `durability=True` | household consumption | `cons_dur`, `cons_semidur`, `cons_nondur`, `cons_serv` | `QNA_DURABILITY` |
+
+Two things to know before using them:
+
+- **The durability split is a different institutional sector.** The headline
+  `cons_hh` is `S1M` — households *plus* NPISH. The durability columns are
+  `S14`, households only. They will not sum to `cons_hh`, and the gap is
+  NPISH, not an error.
+- **Several countries publish these splits unadjusted while their headline
+  aggregates are adjusted** — Mexico, Japan and Turkey among them. `qna_meta`
+  reports this in `sa_detail`, separately from `sa`, and `sa="x13"` adjusts
+  them here. This is the reason `sa_detail` exists as its own column.
+
+Durables are the part the national accounts book as consumption but that macro
+theory treats as household capital (Cooley & Prescott 1995; Gomme & Rupert
+2007), which is why the split is worth having rather than a curiosity.
+
 ## `labor=True` — the labour input behind those flows
 
 The same accounts measure the labour that produced the output: employment and
@@ -117,6 +142,38 @@ before dividing one of these columns by another:
   that `sa_labor` reads `none` for Korea under the default. Taking the
   adjusted total with raw parts would put a 1.1pp seasonal artefact straight
   into `emp_selfemp / emp`.
+
+## `qna_labor()` — the labour block without the accounts
+
+`qna_panel(..., labor=True)` joins the labour block onto the national
+accounts, which means it also downloads the expenditure block and, under
+`sa="x13"`, seasonally adjusts it. When the labour series are all you want,
+that is three extra SDMX round-trips per chunk of ten countries and a lot of
+X-13 you did not ask for:
+
+```python
+from puremacro.fetch import qna_labor
+
+lab = qna_labor(["DEU", "MEX", "KOR"], start="1995", sa="x13")
+```
+
+It returns a **long** frame — `code`, `date`, `variable`, `value`,
+`sa_source` — carrying the same six columns, in the same units, with the same
+hours correction and the same family-level seasonal adjustment. Two
+differences from the joined route are deliberate:
+
+- **`sa_source` is per series, not per country.** A country adjusted at source
+  for heads but not for hours gets an honest label on each, where `qna_meta`'s
+  `sa_labor` can only report `mixed` for the block as a whole.
+- **It does not depend on the expenditure block at all.** In the joined route
+  the labour rows are filtered to the countries the expenditure flow returned,
+  so a country publishing labour but no expenditure is dropped and a failed
+  expenditure request takes the labour rows with it. That is the right
+  behaviour when you asked for a national-accounts panel and the wrong one
+  when you asked for employment.
+
+This is what `build_panel.build_all` uses to fill the labour gaps its local
+workbook does not cover.
 
 ## `qna_countries()` — ask the source what it carries
 

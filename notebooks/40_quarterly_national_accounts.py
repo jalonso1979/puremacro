@@ -260,6 +260,12 @@ print(labour_share.dropna().to_string(float_format=lambda v: f"{v:.1%}"))
 # with how its employees are paid. Gollin (2002) is the reference on adjusting
 # for this, and the spread across these six countries is largely a spread in
 # self-employment, not in bargaining power.
+#
+# The correction needs a split of the workforce, which `labor=True` supplies:
+# with `output=True`, `income=True` and `labor=True` all on, the panel carries
+# every column `puremacro.labor_share.gollin_adjusted_ls` asks for —
+# `comp_emp`, `surplus_mixed`, `va_total`, `emp_employees` and `emp_selfemp`.
+# Before that block existed no single source in puremacro had all five.
 
 # %% [markdown]
 # ## Your turn
