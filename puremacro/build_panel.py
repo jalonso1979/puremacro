@@ -16,7 +16,7 @@ from . import regime_dates as regimes  # Phase 5B rename — date dicts
 from .build_subnational_panel import build_all as _build_subnational
 from .fetch import (wui, wui_extras, epu, gpr, jln, lmn, fernald, fred,
                     oecd, yahoo, oecd_qna_local, oecd_mei, imf_ifs, hrs_mpu,
-                    wb_pink_sheet, oecd_energy, oecd_fx, oecd_qna_labor,
+                    wb_pink_sheet, oecd_energy, oecd_fx, oecd_qna_panel,
                     oecd_qna_expenditure)
 from ._codes import drop_aggregates as _drop_aggregates, is_country
 from .uncertainty import build_backbone, build_composite, build_innovation
@@ -488,6 +488,68 @@ def _resample_monthly_emp_to_quarterly(panel_m: pd.DataFrame) -> pd.DataFrame:
     return pd.concat(rows, ignore_index=True)
 
 
+#: OECD SDMX labour-block column -> panel variable. ``qna_labor`` returns
+#: LEVELS (thousands of persons, millions of hours); the panel's contract for
+#: these two variables is natural logs, which is what ``oecd_qna_local``, the
+#: LFS resample and the FRED HOANBS alias all emit.
+_QNA_LABOR_VARS = {"emp": "log_emp_qna", "hours": "log_hours_qna"}
+
+#: ``qna_labor``'s ``sa_source`` vocabulary -> the panel's. ``puremacro``
+#: means the fetcher ran the adjustment itself under ``sa="x13"`` — which is
+#: what the retired route only ever promised (``x13_pending``) and never did.
+#: ``none`` survives for a series too short for the engine, and is honest:
+#: ``sa_audit`` acts on ``none`` and would have ignored ``x13_pending``.
+_QNA_SA_SOURCE = {"oecd": "oecd", "puremacro": "x13", "none": "none"}
+
+_QNA_LABOR_SOURCE = "OECD:DSD_NAMAIN1@DF_QNA_BY_ACTIVITY_EMPDC"
+
+
+def _fetch_qna_labor_logs(codes: Sequence[str] | None,
+                          *, start: str = "1995") -> pd.DataFrame:
+    """QNA total-economy employment and hours as ``log_emp_qna`` / ``log_hours_qna``.
+
+    Adapter over :func:`puremacro.fetch.qna_labor`, which replaced
+    ``fetch.oecd_qna_labor.fetch_qna_labor``: it reaches the same two totals
+    through a route that actually seasonally adjusts the reference areas
+    publishing the labour block raw (``sa="x13"``) instead of labelling them
+    ``x13_pending`` and leaving them alone.
+
+    It deliberately calls ``qna_labor`` rather than ``qna_panel(labor=True)``:
+    the latter would download the expenditure block as well, run X-13 over it,
+    and — because it filters the labour rows to the countries the expenditure
+    flow returned — silently drop a country that publishes labour but not
+    expenditure, or lose the whole gap-fill if that request came back empty.
+
+    Returns the panel's long schema; an empty frame (never an exception) when
+    the download fails or none of the requested countries publish the block.
+    """
+    schema_cols = ["code", "date", "variable", "value", "sa_source", "source"]
+    empty = pd.DataFrame(columns=schema_cols)
+    try:
+        long = oecd_qna_panel.qna_labor(codes, start=start, sa="x13")
+    except Exception:
+        # Same contract as the route this replaced: a failed download degrades
+        # to "this source contributed nothing", it does not take a build down.
+        return empty
+    if long.empty:
+        return empty
+    long = long[long["variable"].isin(_QNA_LABOR_VARS)]
+    long = long[pd.to_numeric(long["value"], errors="coerce") > 0]
+    if long.empty:
+        return empty
+    out = pd.DataFrame({
+        "code": long["code"].to_numpy(),
+        "date": pd.to_datetime(long["date"]).to_numpy(),
+        "variable": long["variable"].map(_QNA_LABOR_VARS).to_numpy(),
+        "value": np.log(long["value"].astype(float).to_numpy()),
+        # per series, not per country: a reference area adjusted at source for
+        # heads but not hours gets an honest label on each.
+        "sa_source": [_QNA_SA_SOURCE.get(v, "none") for v in long["sa_source"]],
+        "source": [f"{_QNA_LABOR_SOURCE}:{v}" for v in long["variable"]],
+    })
+    return out[schema_cols].reset_index(drop=True)
+
+
 def build_all(
     countries: Iterable[str] | None = None,
     *,
@@ -600,8 +662,13 @@ def build_all(
         except Exception as e:
             print(f"[build] OECD QNA SDMX expenditure failed: {e}")
 
-    # --- NEW: OECD QNA SDMX fills labor variables for countries missing from
-    # the local workbook (typically CAN/MEX hours, KOR employment).
+    # --- OECD QNA SDMX fills labor variables for countries missing from the
+    # local workbook (typically CAN/MEX hours, KOR employment). This goes
+    # through ``qna_labor`` rather than the retired
+    # ``oecd_qna_labor.fetch_qna_labor``: same two totals under the same two
+    # variable names, but seasonally adjusted here for the reference areas
+    # that publish the labour block raw — and without dragging the
+    # expenditure block along, see ``_fetch_qna_labor_logs`` for why.
     if oecd_codes is None or oecd_codes:
         try:
             local_emp_codes = set(
@@ -618,7 +685,7 @@ def build_all(
             if sdmx_codes is None or sdmx_codes:
                 if sdmx_codes:
                     print(f"[build] fetching OECD QNA SDMX labor for: {sdmx_codes}")
-                labor_sdmx = oecd_qna_labor.fetch_qna_labor(codes=sdmx_codes)
+                labor_sdmx = _fetch_qna_labor_logs(sdmx_codes)
                 if not labor_sdmx.empty:
                     # Drop SDMX rows for (code, variable) pairs the local workbook
                     # already covers — local wins, SDMX only fills the gaps.

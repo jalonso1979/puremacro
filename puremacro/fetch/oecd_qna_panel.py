@@ -194,6 +194,25 @@ QNA_LABOR: dict[str, tuple[str, str, str]] = {
 #: a thousand in an employment series is not something a caller would spot.
 QNA_LABOR_UNITS: dict[str, int] = {"PS": 3, "H": 6}
 
+#: Hours per worker per quarter that no real economy falls outside. Across the
+#: 31 reference areas that publish heads and hours on the same basis, *every
+#: observation ever published* sits in 304–572; this band is deliberately far
+#: wider, so it can only ever fire on an order-of-magnitude error and never on
+#: a country that merely works short weeks.
+_HOURS_IMPLAUSIBLE = (150.0, 1000.0)
+
+#: Where a correction has to land before it is accepted. Tighter than the
+#: detection band: a rescaling that does not produce a believable working year
+#: is not applied at all, and the series is left as published.
+_HOURS_PLAUSIBLE = (250.0, 700.0)
+
+#: Factors that turn a mislabelled basis into a quarterly one, with the basis
+#: each implies. Chile publishes hours per week (13 weeks to a quarter) and
+#: Costa Rica at an annual rate (4 quarters to a year); both are labelled
+#: exactly like everyone else's quarterly figure, so only the magnitude
+#: distinguishes them.
+_HOURS_SCALES: dict[float, str] = {13.0: "weekly", 0.25: "annual rate"}
+
 _SECTORS = sorted({s for _, s, _ in QNA_COMPONENTS.values()})
 _TRANSACTIONS = {t for t, _, _ in QNA_COMPONENTS.values()}
 
@@ -305,7 +324,8 @@ def get_sdmx_csv(agency_flow: str, key: str, start_period: str,
 
 
 _META_COLS = ["code", "currency", "units", "price_base", "price_ref_year",
-              "sa", "sa_detail", "sa_labor", "n_obs", "first", "last"]
+              "sa", "sa_detail", "sa_labor", "hours_scale",
+              "n_obs", "first", "last"]
 
 #: What ``qna_meta``'s ``units`` column describes: the money columns. The
 #: labour block is counts, not currency — persons in thousands and hours in
@@ -518,6 +538,136 @@ def _tidy(raw: pd.DataFrame, lookup: dict[tuple, str],
               .drop_duplicates(subset=keys + ["date"], keep="first"))
 
 
+def _labor_tidy(codes: Sequence[str] | None, start: str, refresh: bool, *,
+                sa: str = "prefer", sa_min_gain: int | None = None,
+                hours_rescale: bool = True
+                ) -> tuple[pd.DataFrame, dict[str, float]]:
+    """Download and tidy the labour block alone. Shared by both entry points."""
+    # Same 13-dim key as the money flows, but ACTIVITY pinned to the total
+    # economy: this flow publishes every ISIC section and we want the aggregate.
+    raw_l = _download_flow(_LABOR_FLOW, codes, start, refresh,
+                           tail="....._T.....")
+    if raw_l.empty:
+        return pd.DataFrame(), {}
+    lookup_l = {(t, u): name for name, (t, u, _) in QNA_LABOR.items()}
+    tidy_l = _tidy(raw_l, lookup_l, ("TRANSACTION", "UNIT_MEASURE"),
+                   sa=sa, min_gain=sa_min_gain,
+                   units=tuple(QNA_LABOR_UNITS),
+                   price_bases=("_Z",),
+                   mult_target=QNA_LABOR_UNITS,
+                   # Heads are one family and hours another: the total and its
+                   # two parts have to carry the same adjustment or they stop
+                   # adding up.
+                   sa_family={n: u for n, (_, u, _) in QNA_LABOR.items()})
+    if tidy_l.empty:
+        return pd.DataFrame(), {}
+    if hours_rescale:
+        tidy_l, scales = _rescale_hours(tidy_l)
+        return tidy_l, scales
+    return tidy_l, {}
+
+
+def qna_labor(codes: Iterable[str] | None = None, start: str = "1995", *,
+              sa: str = "prefer", sa_min_gain: int | None = None,
+              hours_rescale: bool = True,
+              refresh: bool = False) -> pd.DataFrame:
+    """The labour block on its own, without the expenditure block.
+
+    :func:`qna_panel` with ``labor=True`` joins employment and hours onto the
+    national accounts, which means it also downloads the expenditure block and,
+    under ``sa="x13"``, seasonally adjusts it. When the labour series are all
+    you want that is three extra SDMX round-trips per chunk of ten reference
+    areas and a lot of X-13 you did not
+    ask for — and it couples the result to a flow you are not using, because a
+    reference area publishing labour but no expenditure is dropped and an
+    expenditure request that comes back empty takes the labour rows with it.
+
+    Returns a long frame with columns ``code``, ``date``, ``variable``,
+    ``value`` and ``sa_source``, the last being ``oecd`` / ``puremacro`` /
+    ``none`` **per series** rather than per country. Values are levels:
+    thousands of persons and millions of hours, per :data:`QNA_LABOR_UNITS`.
+    ``df.attrs["hours_scale"]`` records any time-base correction, as in
+    :func:`qna_panel`; see ``hours_rescale`` there for what that means.
+    """
+    if sa not in ("prefer", "x13"):
+        raise ValueError(f"sa must be 'prefer' or 'x13', got {sa!r}")
+    codes_list = None if codes is None else [c.upper() for c in codes if c]
+    tidy_l, scales = _labor_tidy(codes_list, start, refresh, sa=sa,
+                                 sa_min_gain=sa_min_gain,
+                                 hours_rescale=hours_rescale)
+    out_cols = ["code", "date", "variable", "value", "sa_source"]
+    if tidy_l.empty:
+        out = pd.DataFrame(columns=out_cols)
+        out.attrs["hours_scale"] = {}
+        return out
+    engines: dict = {}
+    if sa == "x13":
+        tidy_l, engines = _adjust_unadjusted(tidy_l)
+    label = {"Y": "oecd", "X": "puremacro", "N": "none"}
+    out = pd.DataFrame({
+        "code": tidy_l["code"].to_numpy(),
+        "date": tidy_l["date"].to_numpy(),
+        "variable": tidy_l["name"].to_numpy(),
+        "value": tidy_l["value"].to_numpy(),
+        "sa_source": [label.get(a, "none") for a in tidy_l["ADJUSTMENT"]],
+    })
+    out = (out.sort_values(["code", "variable", "date"])
+              .reset_index(drop=True)[out_cols])
+    out.attrs["hours_scale"] = dict(scales)
+    out.attrs["sa_engines"] = engines
+    out.attrs["source"] = _LABOR_FLOW.rstrip(",")
+    return out
+
+
+def _rescale_hours(tidy_l: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, float]]:
+    """Put every reference area's hours on a quarterly basis.
+
+    Two of them are not, and nothing in the SDMX message says so: Chile
+    publishes hours *per week* and Costa Rica at an *annual rate*, under the
+    same ``UNIT_MEASURE`` and ``UNIT_MULT`` as everyone else. Left alone they
+    make ``hours / emp`` wrong by 13x and 4x — silently, and in the one
+    direction a caller is least likely to sanity-check, because the series
+    still moves correctly and only its level is absurd.
+
+    Detection is by ``hours / emp`` against :data:`_HOURS_IMPLAUSIBLE`, and a
+    candidate factor is accepted only if it lands the median inside
+    :data:`_HOURS_PLAUSIBLE`. A reference area that publishes hours but no
+    heads (Canada) cannot be checked and is left alone. Returns the frame plus
+    the factor applied per code, which :func:`qna_meta` reports as
+    ``hours_scale``.
+    """
+    scales: dict[str, float] = {}
+    if tidy_l.empty or "hours" not in set(tidy_l["name"]):
+        return tidy_l, scales
+
+    heads = tidy_l[tidy_l["name"] == "emp"].set_index(["code", "date"])["value"]
+    hours = tidy_l[tidy_l["name"] == "hours"].set_index(["code", "date"])["value"]
+    both = pd.concat({"h": hours, "p": heads}, axis=1).dropna()
+    if both.empty:
+        return tidy_l, scales
+    # persons arrive in thousands and hours in millions, so the ratio is
+    # hours per worker per quarter once the 10**3 between them is undone.
+    ratio = (both["h"] * 1e3 / both["p"]).groupby(level="code").median()
+
+    lo, hi = _HOURS_IMPLAUSIBLE
+    ok_lo, ok_hi = _HOURS_PLAUSIBLE
+    for code, r in ratio.items():
+        if not np.isfinite(r) or lo <= r <= hi:
+            continue
+        for factor in _HOURS_SCALES:
+            if ok_lo <= r * factor <= ok_hi:
+                scales[code] = factor
+                break
+    if scales:
+        is_hours = tidy_l["name"].isin([n for n, (_, u, _) in QNA_LABOR.items()
+                                        if u == "H"])
+        factors = tidy_l["code"].map(scales).fillna(1.0)
+        tidy_l = tidy_l.copy()
+        tidy_l.loc[is_hours, "value"] = (tidy_l.loc[is_hours, "value"]
+                                         * factors[is_hours])
+    return tidy_l, scales
+
+
 def _adjust_unadjusted(tidy: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     """Seasonally adjust every series that arrived unadjusted, in place.
 
@@ -568,6 +718,7 @@ def qna_panel(codes: Iterable[str] | None = None,
               output: bool = False,
               income: bool = False,
               labor: bool = False,
+              hours_rescale: bool = True,
               sa: str = "prefer",
               sa_min_gain: int | None = None,
               real: bool = False,
@@ -649,12 +800,12 @@ def qna_panel(codes: Iterable[str] | None = None,
         them. Canada publishes hours without heads; Australia, Switzerland,
         Korea, Russia and South Africa publish heads without hours.
 
-        Two reference areas are on a different time base from everyone else
-        and will silently wreck an hours-per-worker ratio: **Chile** reports
-        hours *per week* (its quarter reads ~41 hours per worker instead of
-        ~540) and **Costa Rica** at an *annual rate* (~2,157, four times a
-        quarter). Neither is rescaled here, because the OECD labels both the
-        same way; apply a plausibility band on ``hours / emp`` before use.
+        Two reference areas are on a different time base from everyone
+        else, and nothing in the SDMX message says so: **Chile** reports hours
+        *per week* and **Costa Rica** at an *annual rate*, under the same unit
+        and multiplier as everybody. Both are put back on a quarterly basis —
+        see ``hours_rescale`` — and ``qna_meta``'s ``hours_scale`` records the
+        factor applied.
 
         Ten reference areas publish this block with no adjusted variant at
         all — Australia, Canada, Switzerland, Chile, Costa Rica, Iceland,
@@ -670,6 +821,25 @@ def qna_panel(codes: Iterable[str] | None = None,
         up; the price is that ``sa_labor`` reads ``none`` for Korea under the
         default. Taking the adjusted total with raw parts instead would put a
         1.1pp seasonal artefact straight into ``emp_selfemp / emp``.
+    hours_rescale
+        Put every reference area's hours on a quarterly basis (default
+        ``True``). Chile publishes hours per week and Costa Rica at an annual
+        rate, both labelled exactly like everyone else's quarterly figure, so
+        ``hours / emp`` reads ~41 and ~2,157 hours per worker against ~430 for
+        everyone else — wrong by 13x and 4x, silently, in the direction a
+        caller is least likely to check, because the series still moves
+        correctly and only its level is absurd.
+
+        Detection is by the level itself: a reference area is rescaled only if
+        its median ``hours / emp`` is outside 150–1000 *and* a candidate
+        factor lands it inside 250–700. Across the 31 areas publishing both on
+        the same basis, every observation ever published sits in 304–572, so
+        the band cannot fire on a country that merely works short weeks.
+        Canada publishes hours but no heads, so the ratio cannot be formed and
+        its hours are left alone. ``qna_meta`` reports the factor applied per
+        country in ``hours_scale``: ``1.0`` for taken as published, ``13.0``
+        for weekly, ``0.25`` for an annual rate, blank where there are no
+        hours. Set ``False`` to see the numbers exactly as the OECD sends them.
     sa
         How to handle seasonal adjustment. ``"prefer"`` (default) takes the
         series the source publishes adjusted and falls back to the unadjusted
@@ -768,26 +938,14 @@ def qna_panel(codes: Iterable[str] | None = None,
             tidy = pd.concat([tidy, tidy_x[tidy_x["code"].isin(core_codes)]],
                              ignore_index=True)
 
+    hours_scales: dict[str, float] = {}
     if labor:
-        # Same 13-dim key, but ACTIVITY pinned to the total economy: this flow
-        # publishes every ISIC section and we want the aggregate.
-        raw_l = _download_flow(_LABOR_FLOW, codes_list, start, refresh,
-                               tail="....._T.....")
-        if not raw_l.empty:
-            lookup_l = {(t, u): name for name, (t, u, _) in QNA_LABOR.items()}
-            tidy_l = _tidy(raw_l, lookup_l, ("TRANSACTION", "UNIT_MEASURE"),
-                           sa=sa, min_gain=sa_min_gain,
-                           units=tuple(QNA_LABOR_UNITS),
-                           price_bases=("_Z",),
-                           mult_target=QNA_LABOR_UNITS,
-                           # Heads are one family and hours another: the
-                           # total and its two parts have to carry the same
-                           # adjustment or they stop adding up.
-                           sa_family={n: u for n, (_, u, _) in
-                                      QNA_LABOR.items()})
-            if not tidy_l.empty:
-                tidy = pd.concat([tidy, tidy_l[tidy_l["code"].isin(core_codes)]],
-                                 ignore_index=True)
+        tidy_l, hours_scales = _labor_tidy(codes_list, start, refresh, sa=sa,
+                                           sa_min_gain=sa_min_gain,
+                                           hours_rescale=hours_rescale)
+        if not tidy_l.empty:
+            tidy = pd.concat([tidy, tidy_l[tidy_l["code"].isin(core_codes)]],
+                             ignore_index=True)
 
     engines: dict = {}
     if sa == "x13":
@@ -825,7 +983,7 @@ def qna_panel(codes: Iterable[str] | None = None,
         ok = (num > 0) & (den > 0)
         out[f"{name}_defl"] = np.where(ok, 100.0 * num / den, np.nan)
 
-    meta = _build_meta(tidy, nominal, vol_base, out)
+    meta = _build_meta(tidy, nominal, vol_base, out, hours_scales)
     if not real:
         out = out.drop(columns=[c for c in out.columns if c.endswith("_real")])
     out = out[[c for c in _ordered_columns(real, assets, durability,
@@ -883,7 +1041,8 @@ def _implied_ref_year(panel: pd.DataFrame, code: str) -> float:
 
 def _build_meta(tidy: pd.DataFrame, nominal: pd.DataFrame,
                 vol_base: dict[str, str],
-                panel: pd.DataFrame | None = None) -> pd.DataFrame:
+                panel: pd.DataFrame | None = None,
+                hours_scales: dict[str, float] | None = None) -> pd.DataFrame:
     rows = []
     for code, g in nominal.groupby("code"):
         g_core = g[g["name"].isin(QNA_COMPONENTS)]
@@ -917,6 +1076,12 @@ def _build_meta(tidy: pd.DataFrame, nominal: pd.DataFrame,
             "sa": _sa_label(g_core),
             "sa_detail": _sa_label(g_ast) if len(g_ast) else "",
             "sa_labor": _sa_label(g_lab) if len(g_lab) else "",
+            # 1.0 = published quarterly and taken as-is; 13.0 = published
+            # weekly, 0.25 = published at an annual rate. Blank where the
+            # reference area publishes no hours at all.
+            "hours_scale": ((hours_scales or {}).get(code, 1.0)
+                            if len(g_lab) and g_lab["name"].str.startswith("hours").any()
+                            else ""),
             # Span of the panel, not of the headline block: Luxembourg and
             # South Africa publish the labour block one quarter beyond their
             # expenditure block, and a `last` that stopped at the money rows
@@ -928,7 +1093,7 @@ def _build_meta(tidy: pd.DataFrame, nominal: pd.DataFrame,
     return pd.DataFrame(rows, columns=_META_COLS).sort_values("code").reset_index(drop=True)
 
 
-__all__ = ["qna_panel", "qna_meta", "qna_countries",
+__all__ = ["qna_panel", "qna_labor", "qna_meta", "qna_countries",
            "QNA_COMPONENTS", "QNA_ASSETS", "QNA_AGGREGATES",
            "QNA_DURABILITY", "QNA_ACTIVITIES", "QNA_INCOME",
            "QNA_LABOR", "QNA_LABOR_UNITS",

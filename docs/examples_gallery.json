@@ -1,431 +1,433 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-19T22:31:53Z",
+  "generated_at": "2026-08-22T01:41:25Z",
   "examples": {
     "anderson_rubin_weak_iv_demo": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.151,
+      "runtime_s": 1.094,
       "figures": [
         "../puremacro/examples/output/anderson_rubin_weak_iv_demo.png"
       ],
-      "last_run": "2026-08-19T22:21:18Z"
+      "last_run": "2026-08-22T01:37:29Z"
     },
     "asset_composition_dynamics": {
-      "status": "FAIL",
-      "reason": "Augmented panel not found at /Users/jalonso/Documents/data_fetch/output/investment_by_asset_augmented.parquet. Run `python -m data_fetch.run_fill_gaps` first.",
-      "runtime_s": 0.285,
+      "status": "SKIP",
+      "reason": "local data file missing",
+      "runtime_s": 0.299,
       "figures": [],
-      "last_run": "2026-08-19T22:21:18Z"
+      "last_run": "2026-08-22T01:37:29Z"
     },
     "bandpass_cycles_comparison": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.657,
+      "runtime_s": 0.581,
       "figures": [
         "../puremacro/examples/output/bandpass_cycles_comparison.png"
       ],
-      "last_run": "2026-08-19T22:21:19Z"
+      "last_run": "2026-08-22T01:37:30Z"
     },
     "berkowitz_demo": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.716,
+      "runtime_s": 0.748,
       "figures": [],
-      "last_run": "2026-08-19T22:21:19Z"
+      "last_run": "2026-08-22T01:37:30Z"
     },
     "bloom2009": {
       "status": "SKIP",
       "reason": "local data file missing",
-      "runtime_s": 0.753,
+      "runtime_s": 0.779,
       "figures": [],
-      "last_run": "2026-08-19T22:21:20Z"
+      "last_run": "2026-08-22T01:37:31Z"
     },
     "bvar_fan_chart": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.124,
+      "runtime_s": 1.059,
       "figures": [
         "../puremacro/examples/output/bvar_fan_chart.png"
       ],
-      "last_run": "2026-08-19T22:21:21Z"
+      "last_run": "2026-08-22T01:37:32Z"
     },
     "caldara_iacoviello": {
       "status": "SKIP",
       "reason": "local data file missing",
-      "runtime_s": 0.753,
+      "runtime_s": 0.789,
       "figures": [],
-      "last_run": "2026-08-19T22:21:22Z"
+      "last_run": "2026-08-22T01:37:33Z"
     },
     "central_bank_narrative_sentiment": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.297,
+      "runtime_s": 1.295,
       "figures": [
         "../puremacro/examples/output/central_bank_narrative_sentiment.png"
       ],
-      "last_run": "2026-08-19T22:21:23Z"
+      "last_run": "2026-08-22T01:37:34Z"
     },
     "climate_dice_simulation": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.712,
+      "runtime_s": 0.7,
       "figures": [
         "../puremacro/examples/output/climate_dice_simulation.png"
       ],
-      "last_run": "2026-08-19T22:21:24Z"
+      "last_run": "2026-08-22T01:37:35Z"
     },
     "climate_sovereign_debt_risk": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.72,
+      "runtime_s": 0.727,
       "figures": [
         "../puremacro/examples/output/climate_sovereign_debt_risk.png"
       ],
-      "last_run": "2026-08-19T22:21:25Z"
+      "last_run": "2026-08-22T01:37:36Z"
     },
     "cointegration_johansen": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.74,
+      "runtime_s": 0.783,
       "figures": [],
-      "last_run": "2026-08-19T22:21:26Z"
+      "last_run": "2026-08-22T01:37:37Z"
     },
     "dcc_volatility": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.557,
+      "runtime_s": 1.576,
       "figures": [
         "../puremacro/examples/output/dcc_volatility.png"
       ],
-      "last_run": "2026-08-19T22:21:27Z"
+      "last_run": "2026-08-22T01:37:38Z"
     },
     "dfm_bai_ng": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.605,
+      "runtime_s": 0.537,
       "figures": [
         "../puremacro/examples/output/dfm_bai_ng.png"
       ],
-      "last_run": "2026-08-19T22:21:28Z"
+      "last_run": "2026-08-22T01:37:39Z"
     },
     "dfm_nowcast_kalman": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.595,
+      "runtime_s": 0.51,
       "figures": [
         "../puremacro/examples/output/dfm_nowcast_kalman.png"
       ],
-      "last_run": "2026-08-19T22:21:28Z"
+      "last_run": "2026-08-22T01:37:39Z"
     },
     "did_callaway_santanna_demo": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.623,
+      "runtime_s": 0.629,
       "figures": [],
-      "last_run": "2026-08-19T22:21:29Z"
+      "last_run": "2026-08-22T01:37:40Z"
     },
     "diebold_yilmaz_spillover": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.769,
+      "runtime_s": 0.777,
       "figures": [],
-      "last_run": "2026-08-19T22:21:30Z"
+      "last_run": "2026-08-22T01:37:41Z"
     },
     "dsge_ar1_demo": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 44.856,
+      "runtime_s": 46.794,
       "figures": [],
-      "last_run": "2026-08-19T22:22:15Z"
+      "last_run": "2026-08-22T01:38:27Z"
     },
     "dsge_fertility_demo": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.217,
+      "runtime_s": 1.181,
       "figures": [],
-      "last_run": "2026-08-19T22:22:16Z"
+      "last_run": "2026-08-22T01:38:29Z"
     },
     "dsge_nk_sketchpad": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.81,
+      "runtime_s": 0.778,
       "figures": [],
-      "last_run": "2026-08-19T22:22:17Z"
+      "last_run": "2026-08-22T01:38:29Z"
     },
     "dsge_rbc_klein": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.151,
+      "runtime_s": 1.044,
       "figures": [
         "../puremacro/examples/output/dsge_rbc_klein.png"
       ],
-      "last_run": "2026-08-19T22:22:18Z"
+      "last_run": "2026-08-22T01:38:30Z"
     },
     "empirical_benchmark_replications": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 2.307,
+      "runtime_s": 2.328,
       "figures": [
         "../puremacro/examples/output/empirical_benchmark_replications.png"
       ],
-      "last_run": "2026-08-19T22:22:20Z"
+      "last_run": "2026-08-22T01:38:33Z"
     },
     "exact_diffuse_kalman": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.411,
+      "runtime_s": 0.308,
       "figures": [
         "../puremacro/examples/output/exact_diffuse_kalman.png"
       ],
-      "last_run": "2026-08-19T22:22:21Z"
+      "last_run": "2026-08-22T01:38:33Z"
     },
     "fetch_fred_demo": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 5.083,
+      "runtime_s": 1.591,
       "figures": [
         "../puremacro/examples/output/fetch_fred_demo.png"
       ],
-      "last_run": "2026-08-19T22:22:26Z"
+      "last_run": "2026-08-22T01:38:35Z"
     },
     "fm_ols_dols_demo": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.276,
+      "runtime_s": 1.099,
       "figures": [
         "../puremacro/examples/output/fm_ols_dols.png"
       ],
-      "last_run": "2026-08-19T22:22:27Z"
+      "last_run": "2026-08-22T01:38:36Z"
     },
     "forecast_density_eval": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.2,
+      "runtime_s": 1.047,
       "figures": [
         "../puremacro/examples/output/forecast_density_eval.png"
       ],
-      "last_run": "2026-08-19T22:22:28Z"
+      "last_run": "2026-08-22T01:38:37Z"
     },
     "gali_1999_hours": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.621,
+      "runtime_s": 1.514,
       "figures": [
         "../puremacro/examples/output/gali_1999_hours.png"
       ],
-      "last_run": "2026-08-19T22:22:30Z"
+      "last_run": "2026-08-22T01:38:38Z"
     },
     "garch_midas_macro_volatility": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.378,
+      "runtime_s": 1.282,
       "figures": [
         "../puremacro/examples/output/garch_midas_macro_volatility.png"
       ],
-      "last_run": "2026-08-19T22:22:31Z"
+      "last_run": "2026-08-22T01:38:40Z"
     },
     "gfevd_spillover": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.76,
+      "runtime_s": 0.776,
       "figures": [],
-      "last_run": "2026-08-19T22:22:32Z"
+      "last_run": "2026-08-22T01:38:40Z"
     },
     "gk_robust_from_gibbs": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 3.747,
+      "runtime_s": 3.821,
       "figures": [
         "../puremacro/examples/output/gk_robust_from_gibbs.png"
       ],
-      "last_run": "2026-08-19T22:22:36Z"
+      "last_run": "2026-08-22T01:38:44Z"
     },
     "gk_robust_signs": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 2.308,
+      "runtime_s": 2.28,
       "figures": [
         "../puremacro/examples/output/gk_robust_signs.png"
       ],
-      "last_run": "2026-08-19T22:22:38Z"
+      "last_run": "2026-08-22T01:38:46Z"
     },
     "global_fiscal_stance": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.707,
+      "runtime_s": 0.619,
       "figures": [
         "../puremacro/examples/output/global_fiscal_stance.csv",
         "../puremacro/examples/output/global_fiscal_stance.png"
       ],
-      "last_run": "2026-08-19T22:22:39Z"
+      "last_run": "2026-08-22T01:38:47Z"
     },
     "glp_lambda_search": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.189,
+      "runtime_s": 1.111,
       "figures": [
         "../puremacro/examples/output/glp_lambda_search.png"
       ],
-      "last_run": "2026-08-19T22:22:40Z"
+      "last_run": "2026-08-22T01:38:48Z"
     },
     "govt_vs_private_investment": {
-      "status": "FAIL",
-      "reason": "Required data files missing. Run `python -m data_fetch.run_fill_gaps` first.",
-      "runtime_s": 0.294,
+      "status": "SKIP",
+      "reason": "local data file missing",
+      "runtime_s": 0.295,
       "figures": [],
-      "last_run": "2026-08-19T22:22:40Z"
+      "last_run": "2026-08-22T01:38:48Z"
     },
     "hank_sequence_space": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.145,
+      "runtime_s": 1.112,
       "figures": [
         "../puremacro/examples/output/hank_sequence_space.png"
       ],
-      "last_run": "2026-08-19T22:22:41Z"
+      "last_run": "2026-08-22T01:38:50Z"
     },
     "har_realized_vol": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.144,
+      "runtime_s": 1.103,
       "figures": [
         "../puremacro/examples/output/har_realized_vol.png"
       ],
-      "last_run": "2026-08-19T22:22:42Z"
+      "last_run": "2026-08-22T01:38:51Z"
     },
     "hfi_gertler_karadi": {
-      "status": "FAIL",
-      "reason": "timeout",
-      "runtime_s": 300.025,
-      "figures": [],
-      "last_run": "2026-08-19T22:27:42Z"
+      "status": "PASS",
+      "reason": null,
+      "runtime_s": 1.304,
+      "figures": [
+        "../puremacro/examples/output/hfi_gertler_karadi.png"
+      ],
+      "last_run": "2026-08-22T01:38:52Z"
     },
     "kilian_2009_oil": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 2.837,
+      "runtime_s": 2.774,
       "figures": [
         "../puremacro/examples/output/kilian_2009_oil.png"
       ],
-      "last_run": "2026-08-19T22:27:45Z"
+      "last_run": "2026-08-22T01:38:55Z"
     },
     "la_lp_pmw_demo": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.132,
+      "runtime_s": 1.102,
       "figures": [
         "../puremacro/examples/output/la_lp_pmw.png"
       ],
-      "last_run": "2026-08-19T22:27:46Z"
+      "last_run": "2026-08-22T01:38:56Z"
     },
     "labor_flows_demo": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.294,
+      "runtime_s": 0.311,
       "figures": [],
-      "last_run": "2026-08-19T22:27:47Z"
+      "last_run": "2026-08-22T01:38:56Z"
     },
     "lp_asymmetric_tenreyro": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.729,
+      "runtime_s": 0.769,
       "figures": [],
-      "last_run": "2026-08-19T22:27:47Z"
+      "last_run": "2026-08-22T01:38:57Z"
     },
     "lp_panel_dk": {
       "status": "SKIP",
       "reason": "local data file missing",
-      "runtime_s": 0.739,
+      "runtime_s": 0.796,
       "figures": [],
-      "last_run": "2026-08-19T22:27:48Z"
+      "last_run": "2026-08-22T01:38:58Z"
     },
     "lp_smooth_demo": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.729,
+      "runtime_s": 0.821,
       "figures": [],
-      "last_run": "2026-08-19T22:27:49Z"
+      "last_run": "2026-08-22T01:38:59Z"
     },
     "lwui_wage_demo": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.317,
+      "runtime_s": 0.365,
       "figures": [],
-      "last_run": "2026-08-19T22:27:49Z"
+      "last_run": "2026-08-22T01:38:59Z"
     },
     "mcmc_diagnostics": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.11,
+      "runtime_s": 1.088,
       "figures": [
         "../puremacro/examples/output/mcmc_diagnostics.png"
       ],
-      "last_run": "2026-08-19T22:27:50Z"
+      "last_run": "2026-08-22T01:39:00Z"
     },
     "midas_quarterly_monthly": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.076,
+      "runtime_s": 1.057,
       "figures": [
         "../puremacro/examples/output/midas_quarterly_monthly.png"
       ],
-      "last_run": "2026-08-19T22:27:51Z"
+      "last_run": "2026-08-22T01:39:01Z"
     },
     "mle_sandwich_demo": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.723,
+      "runtime_s": 0.769,
       "figures": [],
-      "last_run": "2026-08-19T22:27:52Z"
+      "last_run": "2026-08-22T01:39:02Z"
     },
     "ms_var_business_cycle": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.681,
+      "runtime_s": 1.701,
       "figures": [
         "../puremacro/examples/output/ms_var_business_cycle.png"
       ],
-      "last_run": "2026-08-19T22:27:54Z"
+      "last_run": "2026-08-22T01:39:04Z"
     },
     "narrative_bursts_and_transcripts": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.286,
+      "runtime_s": 1.299,
       "figures": [
         "../puremacro/examples/output/narrative_bursts_and_transcripts.png"
       ],
-      "last_run": "2026-08-19T22:27:55Z"
+      "last_run": "2026-08-22T01:39:05Z"
     },
     "narrative_custom_corpus": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.634,
+      "runtime_s": 0.584,
       "figures": [
         "../puremacro/examples/output/narrative_custom_corpus.png"
       ],
-      "last_run": "2026-08-19T22:27:56Z"
+      "last_run": "2026-08-22T01:39:05Z"
     },
     "narrative_event_study": {
       "status": "SKIP",
       "reason": "requires local narrative-IV panel + MAV wedges file (not shipped)",
       "runtime_s": 0.0,
       "figures": [],
-      "last_run": "2026-08-19T22:27:56Z"
+      "last_run": "2026-08-22T01:39:05Z"
     },
     "narrative_g7_panel": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 38.883,
+      "runtime_s": 8.933,
       "figures": [
         "../puremacro/examples/output/narrative_g7_panel.png"
       ],
-      "last_run": "2026-08-19T22:28:35Z"
+      "last_run": "2026-08-22T01:39:14Z"
     },
     "narrative_homogeneous_panel": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 2.509,
+      "runtime_s": 3.181,
       "figures": [
         "../puremacro/examples/output/homogeneous_panel.png",
         "../puremacro/examples/output/narrative_iv_panel_consumption.csv",
@@ -434,261 +436,261 @@
         "../puremacro/examples/output/narrative_iv_panel_long.csv",
         "../puremacro/examples/output/narrative_iv_panel_quarterly.csv"
       ],
-      "last_run": "2026-08-19T22:28:37Z"
+      "last_run": "2026-08-22T01:39:18Z"
     },
     "narrative_indices_demo": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.328,
+      "runtime_s": 0.37,
       "figures": [],
-      "last_run": "2026-08-19T22:28:37Z"
+      "last_run": "2026-08-22T01:39:18Z"
     },
     "narrative_llm_pipeline": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 2.214,
+      "runtime_s": 1.198,
       "figures": [],
-      "last_run": "2026-08-19T22:28:40Z"
+      "last_run": "2026-08-22T01:39:19Z"
     },
     "narrative_local_llm": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 37.122,
+      "runtime_s": 7.07,
       "figures": [],
-      "last_run": "2026-08-19T22:29:17Z"
+      "last_run": "2026-08-22T01:39:26Z"
     },
     "narrative_multilingual_live": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 75.786,
+      "runtime_s": 36.779,
       "figures": [
         "../puremacro/examples/output/narrative_multilingual_live.png"
       ],
-      "last_run": "2026-08-19T22:30:33Z"
+      "last_run": "2026-08-22T01:40:03Z"
     },
     "narrative_panel_lp": {
-      "status": "FAIL",
-      "reason": "Required input panels are missing.",
-      "runtime_s": 0.281,
+      "status": "SKIP",
+      "reason": "local data file missing",
+      "runtime_s": 0.311,
       "figures": [],
-      "last_run": "2026-08-19T22:30:33Z"
+      "last_run": "2026-08-22T01:40:03Z"
     },
     "narrative_ramey_2011": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.767,
+      "runtime_s": 1.577,
       "figures": [
         "../puremacro/examples/output/narrative_ramey_2011.png"
       ],
-      "last_run": "2026-08-19T22:30:35Z"
+      "last_run": "2026-08-22T01:40:05Z"
     },
     "narrative_romer_romer_2010": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.935,
+      "runtime_s": 1.016,
       "figures": [
         "../puremacro/examples/output/narrative_rr_vs_ramey.png"
       ],
-      "last_run": "2026-08-19T22:30:36Z"
+      "last_run": "2026-08-22T01:40:06Z"
     },
     "narrative_sign_adrr": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.34,
+      "runtime_s": 1.386,
       "figures": [
         "../puremacro/examples/output/narrative_sign_adrr.png"
       ],
-      "last_run": "2026-08-19T22:30:37Z"
+      "last_run": "2026-08-22T01:40:07Z"
     },
     "narrative_us_canonical_compare": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.025,
+      "runtime_s": 1.102,
       "figures": [
         "../puremacro/examples/output/narrative_us_canonical_compare.png"
       ],
-      "last_run": "2026-08-19T22:30:38Z"
+      "last_run": "2026-08-22T01:40:08Z"
     },
     "non_gaussian_svar": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.11,
+      "runtime_s": 1.051,
       "figures": [
         "../puremacro/examples/output/non_gaussian_svar.png"
       ],
-      "last_run": "2026-08-19T22:30:39Z"
+      "last_run": "2026-08-22T01:40:09Z"
     },
     "nowcasting_gdp_news": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.212,
+      "runtime_s": 1.191,
       "figures": [
         "../puremacro/examples/output/nowcasting_gdp_news.png"
       ],
-      "last_run": "2026-08-19T22:30:40Z"
+      "last_run": "2026-08-22T01:40:11Z"
     },
     "penalized_macro_forecasting": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.281,
+      "runtime_s": 1.262,
       "figures": [
         "../puremacro/examples/output/penalized_macro_forecasting.png"
       ],
-      "last_run": "2026-08-19T22:30:42Z"
+      "last_run": "2026-08-22T01:40:12Z"
     },
     "posterior_predictive_fan": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.154,
+      "runtime_s": 1.093,
       "figures": [
         "../puremacro/examples/output/posterior_predictive_fan.png"
       ],
-      "last_run": "2026-08-19T22:30:43Z"
+      "last_run": "2026-08-22T01:40:13Z"
     },
     "ramey_zubairy_2018_multipliers": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.387,
+      "runtime_s": 1.336,
       "figures": [
         "../puremacro/examples/output/ramey_zubairy_2018_multipliers.png"
       ],
-      "last_run": "2026-08-19T22:30:44Z"
+      "last_run": "2026-08-22T01:40:14Z"
     },
     "regime_workflow": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.583,
+      "runtime_s": 1.513,
       "figures": [
         "../puremacro/examples/output/regime_workflow.png"
       ],
-      "last_run": "2026-08-19T22:30:46Z"
+      "last_run": "2026-08-22T01:40:16Z"
     },
     "report_workflow": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.739,
+      "runtime_s": 0.765,
       "figures": [],
-      "last_run": "2026-08-19T22:30:46Z"
+      "last_run": "2026-08-22T01:40:17Z"
     },
     "shock_atlas_demo": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.692,
+      "runtime_s": 0.688,
       "figures": [],
-      "last_run": "2026-08-19T22:30:47Z"
+      "last_run": "2026-08-22T01:40:17Z"
     },
     "sigma_decomposition": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.728,
+      "runtime_s": 0.751,
       "figures": [],
-      "last_run": "2026-08-19T22:30:48Z"
+      "last_run": "2026-08-22T01:40:18Z"
     },
     "sign_restrictions_uhlig": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.753,
+      "runtime_s": 0.785,
       "figures": [],
-      "last_run": "2026-08-19T22:30:49Z"
+      "last_run": "2026-08-22T01:40:19Z"
     },
     "spectral_business_cycle": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.373,
+      "runtime_s": 0.304,
       "figures": [
         "../puremacro/examples/output/spectral_business_cycle.png"
       ],
-      "last_run": "2026-08-19T22:30:49Z"
+      "last_run": "2026-08-22T01:40:19Z"
     },
     "svariv_mertens_ravn": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.163,
+      "runtime_s": 1.125,
       "figures": [
         "../puremacro/examples/output/svariv_mertens_ravn_irf.png"
       ],
-      "last_run": "2026-08-19T22:30:50Z"
+      "last_run": "2026-08-22T01:40:20Z"
     },
     "synthetic_control_demo": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.843,
+      "runtime_s": 0.776,
       "figures": [
         "../puremacro/examples/output/synthetic_control.png"
       ],
-      "last_run": "2026-08-19T22:30:51Z"
+      "last_run": "2026-08-22T01:40:21Z"
     },
     "synthetic_did_california_prop99": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.788,
+      "runtime_s": 1.746,
       "figures": [
         "../puremacro/examples/output/synthetic_did_prop99.png"
       ],
-      "last_run": "2026-08-19T22:30:53Z"
+      "last_run": "2026-08-22T01:40:23Z"
     },
     "tvar_threshold_demo": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.055,
+      "runtime_s": 0.997,
       "figures": [
         "../puremacro/examples/output/tvar_threshold.png"
       ],
-      "last_run": "2026-08-19T22:30:54Z"
+      "last_run": "2026-08-22T01:40:24Z"
     },
     "tvecm_demo": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 1.045,
+      "runtime_s": 0.992,
       "figures": [
         "../puremacro/examples/output/tvecm.png"
       ],
-      "last_run": "2026-08-19T22:30:55Z"
+      "last_run": "2026-08-22T01:40:25Z"
     },
     "tvp_var_demo": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 2.489,
+      "runtime_s": 2.527,
       "figures": [
         "../puremacro/examples/output/tvp_var.png"
       ],
-      "last_run": "2026-08-19T22:30:57Z"
+      "last_run": "2026-08-22T01:40:27Z"
     },
     "tvp_var_sv_demo": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 3.883,
+      "runtime_s": 3.894,
       "figures": [
         "../puremacro/examples/output/tvp_var_sv.png"
       ],
-      "last_run": "2026-08-19T22:31:01Z"
+      "last_run": "2026-08-22T01:40:31Z"
     },
     "vintage_revisions": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.632,
+      "runtime_s": 0.557,
       "figures": [
         "../puremacro/examples/output/vintage_revisions.png"
       ],
-      "last_run": "2026-08-19T22:31:02Z"
+      "last_run": "2026-08-22T01:40:32Z"
     },
     "vulnerable_growth": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 50.249,
+      "runtime_s": 52.82,
       "figures": [
         "../puremacro/examples/output/vulnerable_growth.png"
       ],
-      "last_run": "2026-08-19T22:31:52Z"
+      "last_run": "2026-08-22T01:41:25Z"
     },
     "wavelet_business_cycle": {
       "status": "PASS",
       "reason": null,
-      "runtime_s": 0.386,
+      "runtime_s": 0.307,
       "figures": [
         "../puremacro/examples/output/wavelet_business_cycle.png"
       ],
-      "last_run": "2026-08-19T22:31:53Z"
+      "last_run": "2026-08-22T01:41:25Z"
     }
   }
 }

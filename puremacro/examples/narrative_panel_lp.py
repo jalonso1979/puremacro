@@ -57,8 +57,9 @@ def _wedges_to_long(w: pd.DataFrame) -> pd.DataFrame:
 
 
 def main() -> None:
-    if not NAR.exists() or not WEDGES.exists():
-        raise SystemExit("Required input panels are missing.")
+    for _path in (NAR, WEDGES):
+        if not _path.exists():
+            raise FileNotFoundError(f"Required input panel not found: {_path}")
     nar = pd.read_csv(NAR, parse_dates=["date"])
     wed = _wedges_to_long(pd.read_csv(WEDGES))
 

@@ -11,6 +11,8 @@ No real data is shipped — fully synthetic, runs offline.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
@@ -65,7 +67,12 @@ def main():
     axes[0].legend(loc="best")
     fig.suptitle(f"HFI proxy-SVAR (synthetic, OP F={res.first_stage_F:.1f})")
     fig.tight_layout()
-    plt.show()
+    out_dir = Path(__file__).parent / "output"
+    if out_dir.is_dir():
+        fig.savefig(out_dir / "hfi_gertler_karadi.png",
+                    dpi=120, bbox_inches="tight")
+        print(f"  Figure saved: {out_dir / 'hfi_gertler_karadi.png'}")
+    plt.close(fig)
 
 
 if __name__ == "__main__":

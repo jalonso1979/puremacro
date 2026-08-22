@@ -95,9 +95,17 @@ before dividing one of these columns by another:
   heads; Australia, Switzerland, Korea, Russia and South Africa publish heads
   without hours.
 - **Chile reports hours per week and Costa Rica at an annual rate**, both
-  labelled exactly like everyone else's quarterly figure. A Chilean quarter
-  reads ~41 hours per worker and a Costa Rican one ~2,157, against ~540 for a
-  normal one. Put a plausibility band on `hours / emp` before using it.
+  labelled exactly like everyone else's quarterly figure — a Chilean quarter
+  reads ~41 hours per worker and a Costa Rican one ~2,157, against ~430 for a
+  normal one. Both are put back on a quarterly basis, and `qna_meta`'s
+  `hours_scale` records the factor (`13.0`, `0.25`, or `1.0` for untouched).
+  Detection is by the level: a country is only rescaled if its median
+  `hours / emp` is outside 150–1000 *and* a candidate factor lands it inside
+  250–700. Every observation the 31 same-basis countries have ever published
+  sits in 304–572, so the band cannot fire on a country that merely works
+  short weeks. Canada publishes hours but no heads, so nothing can be checked
+  and its hours are left alone. `hours_rescale=False` returns the numbers
+  exactly as the OECD sends them.
 - Ten reference areas publish the block with no adjusted variant at all,
   several of them while publishing adjusted *aggregates*. `sa="x13"` adjusts
   them here, and the meta column `sa_labor` reports who did the adjusting,

@@ -96,7 +96,7 @@ DATA = (_nb / "course" / "data")
 #
 # > **Nota de datos (leer antes de creerse los números).** El *bundle* no trae series
 # > separadas de empleo y horas por trabajador para EUA (no hay `PAYEMS`, `AWHI` ni
-# > `HOANBS`; la ruta con datos reales del mazo usa `fetch_qna_labor` y FRED, y exige red).
+# > `HOANBS`; la ruta con datos reales del mazo usa `qna_panel(..., labor=True)` y FRED, y exige red).
 # > Así que aquí **simulamos** las dos series con un factor cíclico común y semilla fija.
 # > La calibración está **elegida para reproducir** el hecho estilizado del mazo —cuota
 # > extensiva de covarianzas $\approx 80\%$ en EUA y México— de modo que ese $80\%$ es un

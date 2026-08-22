@@ -636,3 +636,141 @@ def test_sibling_flow_keys_keep_their_wide_open_shape(fake_sdmx):
     for k in labor:
         assert k.split(".")[7] == "_T"
         assert set(k.split(".")[4:7]) | set(k.split(".")[8:]) == {""}
+
+
+def _labor_rows_on_basis(code: str, hours_factor: float) -> list[dict]:
+    """Labour rows whose hours are published on a mislabelled time base.
+
+    The fixture's honest ratio is 400 hours per worker per quarter. Dividing
+    the hours by 13 is Chile (published per week); multiplying by 4 is Costa
+    Rica (published at an annual rate). Nothing in the row says so — same
+    UNIT_MEASURE, same UNIT_MULT, same everything.
+    """
+    rows = _labor_rows(code)
+    for r in rows:
+        if r["UNIT_MEASURE"] == "H":
+            r["OBS_VALUE"] = r["OBS_VALUE"] * hours_factor
+    return rows
+
+
+def _labor_fake(rows):
+    def _fake(agency_flow, key, start_period, *, refresh=False, **kw):
+        if "EMPDC" in agency_flow:
+            return pd.DataFrame(rows)
+        sector = key.split(".")[3]
+        return pd.DataFrame([r for r in _rows("USA", "L", 120.0)
+                             if r["SECTOR"] == sector])
+    return _fake
+
+
+@pytest.mark.parametrize("factor,scale", [(1 / 13, 13.0), (4.0, 0.25)])
+def test_hours_published_on_another_time_base_are_put_on_a_quarterly_one(
+        monkeypatch, factor, scale):
+    """Chile publishes hours per week and Costa Rica at an annual rate. Both
+    are labelled exactly like a quarterly figure, so `hours / emp` is wrong by
+    13x and 4x unless the level itself gives it away."""
+    monkeypatch.setattr(mod, "get_sdmx_csv",
+                        _labor_fake(_labor_rows_on_basis("USA", factor)))
+    p = qna_panel(["USA"], start="2019", labor=True)
+    ratio = (p.loc["USA", "hours"] * 1e3 / p.loc["USA", "emp"]).median()
+    assert ratio == pytest.approx(400.0)
+    assert qna_meta(p).set_index("code").loc["USA", "hours_scale"] == scale
+
+
+def test_hours_rescale_can_be_turned_off(monkeypatch):
+    """The correction is a judgement about a published number, so there has to
+    be a way to see the number as published."""
+    monkeypatch.setattr(mod, "get_sdmx_csv",
+                        _labor_fake(_labor_rows_on_basis("USA", 1 / 13)))
+    p = qna_panel(["USA"], start="2019", labor=True, hours_rescale=False)
+    ratio = (p.loc["USA", "hours"] * 1e3 / p.loc["USA", "emp"]).median()
+    assert ratio == pytest.approx(400.0 / 13)
+
+
+def test_a_plausible_country_is_never_rescaled(fake_sdmx):
+    """The band has to be far enough out that a country which merely works
+    short weeks is left alone. 400 h/quarter is ordinary and must not move."""
+    p = qna_panel(["USA", "MEX"], start="2019", labor=True)
+    meta = qna_meta(p).set_index("code")
+    for code in ("USA", "MEX"):
+        assert meta.loc[code, "hours_scale"] == 1.0
+        assert (p.loc[code, "hours"] * 1e3 / p.loc[code, "emp"]).median() == pytest.approx(400.0)
+
+
+def test_hours_are_left_alone_when_the_country_publishes_no_heads(monkeypatch):
+    """Canada publishes hours and no employment, so the ratio that detects a
+    mislabelled basis cannot be formed. Guessing is worse than leaving it."""
+    rows = [r for r in _labor_rows_on_basis("USA", 1 / 13)
+            if r["UNIT_MEASURE"] == "H"]
+    monkeypatch.setattr(mod, "get_sdmx_csv", _labor_fake(rows))
+    p = qna_panel(["USA"], start="2019", labor=True)
+    assert p.loc["USA", "hours"].iloc[0] == pytest.approx(8_000.0 / 13)
+    assert qna_meta(p).set_index("code").loc["USA", "hours_scale"] == 1.0
+
+
+def test_hours_basis_is_judged_only_where_heads_and_hours_overlap(monkeypatch):
+    """Ten of the 33 reference areas that publish both put them on different
+    spans — Estonia's hours start in 1998 against heads from 1995. The ratio
+    that detects a mislabelled basis has to be formed on the overlap only; a
+    quarter with hours and no heads is not evidence about anything."""
+    rows = _labor_rows_on_basis("USA", 1 / 13)
+    keep = set(_QUARTERS[-3:])
+    rows = [r for r in rows
+            if r["UNIT_MEASURE"] == "H" or r["TIME_PERIOD"] in keep]
+    monkeypatch.setattr(mod, "get_sdmx_csv", _labor_fake(rows))
+    p = qna_panel(["USA"], start="2019", labor=True)
+    overlap = (p.loc["USA", "hours"] * 1e3 / p.loc["USA", "emp"]).dropna()
+    assert len(overlap) == 3 and overlap.median() == pytest.approx(400.0)
+    assert qna_meta(p).set_index("code").loc["USA", "hours_scale"] == 13.0
+
+
+def test_an_unrecognisable_hours_basis_is_left_as_published(monkeypatch):
+    """A correction is applied only if it lands somewhere believable. A level
+    no candidate factor explains is a series to leave alone and report, not to
+    bend until it looks reasonable."""
+    monkeypatch.setattr(mod, "get_sdmx_csv",
+                        _labor_fake(_labor_rows_on_basis("USA", 1e6)))
+    p = qna_panel(["USA"], start="2019", labor=True)
+    assert p.loc["USA", "hours"].iloc[0] == pytest.approx(8_000.0 * 1e6)
+    assert qna_meta(p).set_index("code").loc["USA", "hours_scale"] == 1.0
+
+
+def test_hours_scale_distinguishes_blank_from_checked_and_unchanged(monkeypatch):
+    """AUS publishes heads and no hours, so there is no scale to report — as
+    against USA, which does publish hours and was checked and left alone, and
+    reads 1.0. Blank and 1.0 are different answers and the fixture has to hold
+    both for the assertion to mean anything."""
+    def _fake(agency_flow, key, start_period, *, refresh=False, **kw):
+        if "EMPDC" in agency_flow:
+            return pd.DataFrame(_labor_rows("USA") + _labor_rows("AUS"))
+        sector = key.split(".")[3]
+        rows = []
+        for code in ("USA", "AUS"):
+            rows += [r for r in _rows(code, "L", 120.0) if r["SECTOR"] == sector]
+        return pd.DataFrame(rows)
+
+    monkeypatch.setattr(mod, "get_sdmx_csv", _fake)
+    meta = qna_meta(qna_panel(["USA", "AUS"], start="2019",
+                              labor=True)).set_index("code")
+    assert meta.loc["AUS", "hours_scale"] == ""       # publishes no hours
+    assert meta.loc["USA", "hours_scale"] == 1.0      # checked, unchanged
+
+
+def test_hours_scale_is_blank_when_the_labour_block_is_off(fake_sdmx):
+    meta = qna_meta(qna_panel(["USA", "MEX"], start="2019")).set_index("code")
+    assert (meta["hours_scale"] == "").all()
+
+
+def test_rescaling_touches_only_the_hours_columns(monkeypatch):
+    monkeypatch.setattr(mod, "get_sdmx_csv",
+                        _labor_fake(_labor_rows_on_basis("USA", 4.0)))
+    p = qna_panel(["USA"], start="2019", labor=True)
+    q = qna_panel(["USA"], start="2019", labor=True, hours_rescale=False)
+    heads = ["emp", "emp_employees", "emp_selfemp"]
+    pd.testing.assert_frame_equal(p[heads], q[heads])
+    money = [c for c in p.columns if not c.startswith(("emp", "hours"))]
+    pd.testing.assert_frame_equal(p[money], q[money])
+    # and every hours column moved by the same factor, so the split still sums
+    np.testing.assert_allclose(
+        p.loc["USA", "hours_employees"] + p.loc["USA", "hours_selfemp"],
+        p.loc["USA", "hours"])

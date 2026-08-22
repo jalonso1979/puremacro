@@ -8,7 +8,7 @@ name = "puremacro"
 # `tools/release_check.py` gate 4 compares: pyproject.toml,
 # puremacro/__init__.py (`__version__`), the top `## X.Y.Z` heading in
 # CHANGELOG.md, and `version:` in CITATION.cff.
-version = "1.4.0"
+version = "1.5.0"
 description = "Pyodide-compatible empirical macro toolbox: SVAR + LP + GARCH + inference"
 readme = "README.md"
 requires-python = ">=3.11"

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -146,6 +147,10 @@ def run_example(
 
     before = _snapshot_mtimes(output_dir)
     t0 = time.time()
+    # Force a non-interactive backend. An example that calls plt.show() under
+    # an interactive backend (macosx, TkAgg) blocks until `timeout` expires and
+    # is then recorded as FAIL/timeout, costing that time on every render.
+    env = {**os.environ, "MPLBACKEND": "Agg"}
     try:
         proc = subprocess.run(
             [sys.executable, "-m", f"puremacro.examples.{name}"],
@@ -153,6 +158,7 @@ def run_example(
             text=True, encoding="utf-8", errors="replace",
             timeout=timeout,
             cwd=REPO_ROOT,
+            env=env,
         )
         timed_out = False
         returncode = proc.returncode

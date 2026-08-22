@@ -316,6 +316,7 @@
       "qna_contributions",
       "qna_countries",
       "qna_identity",
+      "qna_labor",
       "qna_meta",
       "qna_panel",
       "qna_rebase",
@@ -364,9 +365,6 @@
     "puremacro.fetch.oecd_qna_expenditure": [
       "fetch_qna_expenditure"
     ],
-    "puremacro.fetch.oecd_qna_labor": [
-      "fetch_qna_labor"
-    ],
     "puremacro.fetch.oecd_qna_local": [
       "fetch_extended"
     ],
@@ -382,6 +380,7 @@
       "QNA_VA_ADDITIVE",
       "QNA_VA_MEMO",
       "qna_countries",
+      "qna_labor",
       "qna_meta",
       "qna_panel"
     ],

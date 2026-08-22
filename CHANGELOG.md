@@ -4,6 +4,34 @@ This file records user-visible changes per release. Internal refactors that don'
 
 ## Unreleased
 
+## 1.5.0 (2026-08-22)
+
+**Two hours series that were wrong by an order of magnitude, a labour fetch that no longer drags the national accounts behind it, and the retirement of the route that only ever reached a third of the block.**
+
+### Added
+- **`qna_labor(codes, ...)`** returns the QNA labour block on its own — employment and hours, the same six columns `qna_panel(labor=True)` joins — without downloading the expenditure block or running X-13 over it. It reports `sa_source` **per series** rather than per country, so a reference area adjusted at source for heads but not hours gets an honest label on each rather than a blanket `mixed`.
+
+### Changed
+- **`build_panel.build_all` now fills its labour gaps through `qna_labor`**, and `puremacro.fetch.oecd_qna_labor` is **removed**. The retired module was the last thing importing `requests` at module scope on this path, and its `x13_pending` label was dead: nothing in `build_panel` ever acted on it, so the reference areas publishing the labour block raw stayed raw and were not even flagged by `sa_audit`. The replacement runs with `sa="x13"` and those countries now report a real `sa_source` of `x13` — verified against live data for Australia, Canada, Mexico and Korea, where Germany continues to report `oecd`.
+  - The two variable names are unchanged (`log_emp_qna`, `log_hours_qna`) and still natural logs, because `keep_mask` matches on those literal strings to let the local workbook win over SDMX, and three other producers in the panel emit logs under the same names.
+  - **The source dataflow and the employment concept both change.** The retired route read `DSD_NAMAIN1@DF_QNA` at `SECTOR=S1`; this one reads `DSD_NAMAIN1@DF_QNA_BY_ACTIVITY_EMPDC`, the **domestic** concept — labour in resident production units, which is the concept GDP is measured on, and the one that makes `gdp_real / hours` a productivity measure rather than a ratio of two different populations. The OECD publishes a national-concept flow (`DF_QNA_POP_EMPNC`) separately, so this is a deliberate choice and not a relabelling: **levels can differ from what 1.4.0 and earlier put in the panel.**
+  - One further level shift rides along: `hours_rescale` puts Chile and Costa Rica back on a quarterly basis, and Chile is exactly the kind of country this gap-fill targets. The new route also honours `UNIT_MULT`, which the retired one ignored entirely — a no-op today, since every reference area publishes 3 for persons and 6 for hours, but it means a future change of scale at the source is absorbed rather than silently multiplying the series.
+  - It deliberately calls `qna_labor` rather than `qna_panel(labor=True)`. The latter would download the expenditure block as well, run X-13 over it, and — because it filters the labour rows to the countries the expenditure flow returned — silently drop a country that publishes labour but no expenditure, or lose the entire gap-fill if that request came back empty. Both are pinned by tests that patch `get_sdmx_csv` rather than the fetcher, so the seasonal-adjustment assertion actually runs the engine.
+  - A failed download still degrades to an empty frame rather than taking a build down, and non-positive values are dropped before the log.
+
+### Fixed
+- **`qna_panel(..., labor=True)` now puts Chile's and Costa Rica's hours on a quarterly basis**, which 1.4.0 shipped as a documented Known issue. Chile publishes hours *per week* and Costa Rica at an *annual rate*, under the same `UNIT_MEASURE` and `UNIT_MULT` as everyone else, so `hours / emp` read ~41 and ~2,157 hours per worker against ~430 for everyone else — wrong by 13x and 4x, in the direction a caller is least likely to check, because the series still moved correctly and only its level was absurd.
+  - Detection is by the level itself, not a hardcoded country list: a reference area is rescaled only if its median `hours / emp` falls outside 150–1000 **and** a candidate factor (13 for weekly, ¼ for an annual rate) lands it inside 250–700. Across the 31 reference areas publishing heads and hours on the same basis, every observation ever published sits in 304–572, so the band cannot fire on a country that merely works short weeks. Swept over all 49 areas it fires on exactly two — Chile and Costa Rica — after which all 33 checkable areas span 353.7–558.5, one coherent distribution.
+  - Canada publishes hours but no heads, so the ratio cannot be formed and its hours are left as published. The judgement is made only on quarters where heads and hours overlap, which matters for the ten of 33 areas that publish them over different spans (Estonia's hours start in 1998 against heads from 1995).
+  - **`qna_meta` gains `hours_scale`** — `1.0` taken as published, `13.0` weekly, `0.25` annual rate, blank where the area publishes no hours.
+  - **`hours_rescale=False`** returns the numbers exactly as the OECD sends them. The correction is a judgement about a published figure, so there is a way to see the figure.
+  - Only the three `hours*` columns move, by one factor, so `hours_employees + hours_selfemp = hours` still holds; heads and every money column are untouched.
+- **`puremacro.examples.hfi_gertler_karadi` no longer opens a window.** It called `plt.show()`, the only example in the package that did; under an interactive backend that blocks until something closes the window. It now saves `output/hfi_gertler_karadi.png` like every other example. In the gallery renderer it burned the full 300 s per-example timeout and was recorded as `FAIL / timeout` — the example actually runs in 1.3 s.
+- **Three examples that need data this repo does not ship are now recorded as SKIP rather than FAIL.** `asset_composition_dynamics`, `govt_vs_private_investment` and `narrative_panel_lp` raised `SystemExit`, which prints no traceback, so the gallery renderer's classifier — which keys on a `FileNotFoundError` naming a data file — fell through to FAIL. They now raise `FileNotFoundError` naming the missing path, which is what the three examples that already skipped correctly were doing. Gate 5 goes from 4 FAIL to **75 PASS, 7 SKIP, 0 FAIL**.
+
+### Internal
+- The gallery renderer forces `MPLBACKEND=Agg` for every example subprocess, so no example can block a headless batch render on a GUI window again.
+
 ## 1.4.0 (2026-08-21)
 
 **The labour input the quarterly national accounts measure, which `qna_panel` could not reach.**

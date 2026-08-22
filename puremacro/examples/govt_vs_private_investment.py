@@ -41,9 +41,12 @@ def _quarter_to_timestamp(s):
 
 
 def main() -> None:
-    if not DATA_GOV.exists() or not DATA_AUG.exists():
-        raise SystemExit("Required data files missing. Run "
-                          "`python -m data_fetch.run_fill_gaps` first.")
+    for _path in (DATA_GOV, DATA_AUG):
+        if not _path.exists():
+            raise FileNotFoundError(
+                f"Required data file not found: {_path}. "
+                "Run `python -m data_fetch.run_fill_gaps` first."
+            )
     gov = pd.read_csv(DATA_GOV)
     aug = pd.read_parquet(DATA_AUG)
 

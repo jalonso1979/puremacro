@@ -11,6 +11,7 @@ Public API
 - :func:`fetch_fred_alfred` — ALFRED real-time vintages
 - :func:`qna_panel`         — one-call cross-country quarterly national accounts
                               (nominal SA levels + implicit deflators, OECD QNA)
+- :func:`qna_labor`         — the QNA labour block alone (employment, hours)
 - :func:`qna_countries`     — every reference area that flow actually covers
 - :func:`qna_rebase`        — put every country on one price reference year
 - :func:`qna_identity`      — score all three GDP identities the panel carries
@@ -46,6 +47,7 @@ from .jolts import fetch_jolts
 from .vacancies_eurostat import fetch_eurostat_vacancies
 from .oecd_qna_panel import (
     qna_panel,
+    qna_labor,
     qna_meta,
     qna_countries,
     QNA_AGGREGATES,
@@ -79,6 +81,7 @@ __all__ = [
     "fetch_fred",
     "fetch_fred_alfred",
     "qna_panel",
+    "qna_labor",
     "qna_meta",
     "qna_countries",
     "QNA_AGGREGATES",

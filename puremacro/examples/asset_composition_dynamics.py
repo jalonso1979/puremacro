@@ -71,7 +71,7 @@ def _country_shares(df: pd.DataFrame, code: str) -> pd.DataFrame:
 
 def main() -> None:
     if not DATA.exists():
-        raise SystemExit(
+        raise FileNotFoundError(
             f"Augmented panel not found at {DATA}. "
             "Run `python -m data_fetch.run_fill_gaps` first."
         )
