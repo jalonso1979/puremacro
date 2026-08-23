@@ -39,6 +39,35 @@ Always, when:
 - You harden a new failure path — add to `tests/test_robustness.py` mirroring the structure of the existing collinear-input / non-PD-Σ cases.
 - You add a connector or replication loader — add an offline test in `test_narrative.py` exercising the CSV-to-events helper. Live-network tests go in `test_replication_*` and are allowed to skip.
 
+## Making sure a test can fail
+
+A green test that would still be green with the code deleted is worse than no
+test, because it gets read as coverage. Three turned up in a single session, from
+three different causes, so there are three different habits:
+
+1. **Write the regression test against the broken tree first.** For a bug fix,
+   `git archive <pre-fix-commit> | tar -x -C /tmp/before`, run the new test there,
+   and require it to *fail*. If it passes, it is not testing the fix. This costs
+   thirty seconds and is the single highest-return habit here.
+2. **Do not patch the thing you are asserting about.** A test that monkeypatches
+   `qna_panel` and then asserts something about seasonal adjustment is asserting
+   something about the patch. Patch at the boundary instead — `get_sdmx_csv`, not
+   the function under test. `tests/test_test_quality.py` enforces this for a
+   registry of modules: the named test file must actually execute the named
+   functions.
+3. **Give any mechanism a positive control.** If a test installs an import hook,
+   blocks the network, patches `builtins.__import__` or freezes a clock, add a
+   test marked `@pytest.mark.mechanism_control` asserting the mechanism actually
+   bites. This is not paranoia: `find_module` was removed in Python 3.12, so a
+   blocker written against it is silently inert and every test depending on it
+   passes while asserting nothing. Neither coverage nor mutation testing can find
+   that — the defect is in the scaffolding, not the subject.
+   `tests/test_test_quality.py` fails if a mechanism file has no control.
+
+Check a fixture can actually produce the condition under test, too. A guard that
+filters rows down to a subset is untested if the fixture only ever generates that
+subset — delete the guard and see whether anything goes red.
+
 ## When to bump the version
 
 | Change | Bump |

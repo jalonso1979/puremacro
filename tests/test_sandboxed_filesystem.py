@@ -144,3 +144,15 @@ def test_qna_countries_falls_back_to_the_frozen_list_without_requests(no_request
     codes = qna_countries()
     assert len(codes) >= 45 and "USA" in codes
     assert not (set(codes) & QNA_AGGREGATES)
+
+
+@pytest.mark.mechanism_control
+def test_the_no_requests_fixture_actually_blocks(no_requests):
+    """Positive control for the `no_requests` fixture.
+
+    It patches ``builtins.__import__``, which is a mechanism: if the predicate
+    stopped matching, every test using this fixture would exercise the ordinary
+    requests-present path while claiming to prove the opposite.
+    """
+    with pytest.raises(ImportError):
+        import requests            # noqa: F401

@@ -47,3 +47,26 @@ def test_local_engine_imports_without_inference_deps(target):
         f"{target} failed to import with engines absent:\n"
         f"--- stdout ---\n{r.stdout}\n--- stderr ---\n{r.stderr}"
     )
+
+
+@pytest.mark.mechanism_control
+def test_the_engine_blocker_actually_blocks():
+    """Positive control: if `_PROBE`'s finder stops biting, every assertion in
+    this file passes on a host that simply has none of these engines installed,
+    which proves nothing about the import guards."""
+    probe = _PROBE.replace(
+        "importlib.import_module(sys.argv[1])",
+        "\n".join([
+            "blocked = []",
+            "for _m in sorted(_BLOCKED):",
+            "    try:",
+            "        importlib.import_module(_m)",
+            "    except ModuleNotFoundError as e:",
+            "        if 'simulated' in str(e):",
+            "            blocked.append(_m)",
+            "assert blocked == sorted(_BLOCKED), blocked",
+        ]),
+    )
+    proc = subprocess.run([sys.executable, "-c", probe, "sys"],
+                          capture_output=True, text=True, timeout=300)
+    assert proc.returncode == 0, proc.stderr[-2000:]

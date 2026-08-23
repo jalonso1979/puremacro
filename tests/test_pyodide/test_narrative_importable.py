@@ -59,3 +59,24 @@ def test_narrative_imports_without_scraper_deps(target):
         f"{target} failed to import under simulated Pyodide "
         f"(scraper deps absent):\n--- stdout ---\n{r.stdout}\n--- stderr ---\n{r.stderr}"
     )
+
+
+@pytest.mark.mechanism_control
+def test_the_narrative_blocker_actually_blocks():
+    """Positive control for the meta_path finder in `_PROBE`; see
+    tests/test_test_quality.py for why a mechanism needs one."""
+    probe = _PROBE.replace(
+        "importlib.import_module(sys.argv[1])",
+        "\n".join([
+            "for _m in sorted(_BLOCKED):",
+            "    try:",
+            "        importlib.import_module(_m)",
+            "    except ModuleNotFoundError as e:",
+            "        assert 'simulated' in str(e), str(e)",
+            "    else:",
+            "        raise AssertionError('blocker inert for ' + _m)",
+        ]),
+    )
+    proc = subprocess.run([sys.executable, "-c", probe, "sys"],
+                          capture_output=True, text=True, timeout=300)
+    assert proc.returncode == 0, proc.stderr[-2000:]

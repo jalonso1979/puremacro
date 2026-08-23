@@ -267,3 +267,25 @@ def test_pyproject_runtime_deps_match_documentation():
         f"The Pyodide import core is no longer fully declared: {sorted(missing_core)} "
         "missing from [project.dependencies]. These four are not optional."
     )
+
+
+@pytest.mark.mechanism_control
+def test_the_absent_dep_blocker_actually_blocks():
+    """Positive control for `_ABSENT_SWEEP`.
+
+    The sweep proves every shippable module imports with the forbidden deps
+    absent — but only if they really are absent. An inert blocker turns the
+    strongest Pyodide guarantee in this file into a test that imports modules on
+    a host where the deps are installed and calls that a pass. It is currently
+    live; this keeps it that way.
+    """
+    proc = subprocess.run(
+        [sys.executable, "-c", _ABSENT_SWEEP,
+         json.dumps(list(_FORBIDDEN)), json.dumps(list(_FORBIDDEN))],
+        capture_output=True, text=True, timeout=300,
+    )
+    assert proc.returncode == 0, proc.stderr[-2000:]
+    blocked = {name for name, _ in json.loads(proc.stdout)}
+    assert blocked == set(_FORBIDDEN), (
+        "the meta_path blocker did not stop every forbidden dep — the absent-deps "
+        f"sweep is not testing what it claims. Blocked: {sorted(blocked)}")

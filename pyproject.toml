@@ -142,5 +142,6 @@ markers = [
     "local_llm: opt-in tests that need a real local LLM engine (skip if absent)",
     "reference: live cross-checks vs statsmodels/linearmodels/arch that guard the frozen validation goldens; opt-in via `pytest -m reference`",
     "replication: opt-in replication cases that need a live data fetch; skip-on-empty (run via `pytest -m replication`)",
+    "mechanism_control: asserts a test file's own mechanism (import hook, network blocker) is actually live; required by tests/test_test_quality.py",
 ]
 
