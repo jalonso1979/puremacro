@@ -4,7 +4,7 @@ Pulls from OECD SDMX dataflow ``DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR`` with
 
   ADJUSTMENT  = Y (calendar + seasonally adjusted) preferred, else N (NSA, x13_pending)
   SECTOR      = S1 (total economy)
-  PRICE_BASE  = L (chain-linked volume; the ``real`` series the panel uses)
+  PRICE_BASE  = L (chain-linked volume) where published, else Q (fixed base)
   UNIT_MEASURE= XDC (national currency, in millions)
 
 Returns long-form DataFrame ``code, date, variable, value, sa_source, source``
@@ -33,6 +33,16 @@ import pandas as pd
 
 from ._oecd_sdmx import get_sdmx_csv
 
+#: Volume price bases, in order of preference. ``L`` is a chain-linked volume;
+#: ``Q`` is a fixed-base one. Filtering to ``L`` alone returned an EMPTY frame
+#: for every reference area that publishes only fixed-base volumes — Mexico,
+#: Argentina, Indonesia, India and South Africa — which is silent, total, and
+#: exactly the failure :mod:`puremacro.fetch.oecd_qna_panel` was written to
+#: avoid. One base is chosen per country, never mixed within one, so a series
+#: is internally consistent even though its base year differs across countries
+#: (levels were never comparable across currencies anyway).
+_VOLUME_BASES: tuple[str, ...] = ("L", "Q")
+
 _EMPTY = pd.DataFrame(columns=["code", "date", "variable", "value", "sa_source", "source"])
 
 # (transaction, sector) → output variable name. P3 needs sector disambiguation:
@@ -50,6 +60,23 @@ _TRANSACTION_TO_VAR: dict[tuple[str, str], str] = {
 
 _TRANSACTIONS_NEEDED = {t for (t, _) in _TRANSACTION_TO_VAR}
 _SECTORS_NEEDED = {s for (_, s) in _TRANSACTION_TO_VAR}
+
+
+def _pick_volume_base(base: pd.DataFrame) -> dict[str, str]:
+    """The volume price base to use for each reference area.
+
+    Mirrors :func:`puremacro.fetch.oecd_qna_panel._pick_volume_base`: prefer the
+    chain-linked series, fall back to the fixed-base one, decide once per
+    country rather than per variable.
+    """
+    have = base.groupby("REF_AREA")["PRICE_BASE"].agg(set)
+    out: dict[str, str] = {}
+    for code, bases in have.items():
+        for candidate in _VOLUME_BASES:
+            if candidate in bases:
+                out[str(code)] = candidate
+                break
+    return out
 
 
 def _quarter_to_date(s: pd.Series) -> pd.Series:
@@ -107,11 +134,20 @@ def fetch_qna_expenditure(codes: Iterable[str] | None = None,
     if not required_cols.issubset(set(raw.columns)):
         return _EMPTY.copy()
 
-    # Filter to chain-linked volume in national currency.
+    # Filter to volumes in national currency, either price base.
     base = raw[(raw["TRANSACTION"].isin(_TRANSACTIONS_NEEDED))
-               & (raw["PRICE_BASE"] == "L")
+               & (raw["PRICE_BASE"].isin(_VOLUME_BASES))
                & (raw["UNIT_MEASURE"] == "XDC")
                & (raw["SECTOR"].isin(_SECTORS_NEEDED))].copy()
+    if base.empty:
+        return _EMPTY.copy()
+
+    # One base per country: chain-linked where published, fixed-base otherwise.
+    # Mixing them inside a country would put a level shift in the middle of a
+    # series, which is the defect this module's sibling producer had.
+    picked = _pick_volume_base(base)
+    base = base[[pb == picked.get(c) for c, pb
+                 in zip(base["REF_AREA"], base["PRICE_BASE"])]]
     if base.empty:
         return _EMPTY.copy()
 
@@ -147,7 +183,9 @@ def fetch_qna_expenditure(codes: Iterable[str] | None = None,
             sub["code"] = sub["REF_AREA"]
             sub["variable"] = var
             sub["sa_source"] = sa_label
-            sub["source"] = f"OECD:DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR:{txn}/{sector}/L/XDC"
+            sub["source"] = [
+                f"OECD:DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR:"
+                f"{txn}/{sector}/{picked.get(c, '')}/XDC" for c in sub["code"]]
             out_parts.append(sub[["code", "date", "variable", "value", "sa_source", "source"]])
 
     if not out_parts:
