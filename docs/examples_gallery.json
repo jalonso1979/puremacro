@@ -1,7 +1,35 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-22T01:41:25Z",
+  "generated_at": "2026-08-23T02:04:29Z",
   "examples": {
+    "narrative_panel_lp": {
+      "status": "SKIP",
+      "reason": "local data file missing",
+      "runtime_s": 0.291,
+      "figures": [],
+      "last_run": "2026-08-23T02:04:29Z"
+    },
+    "narrative_event_study": {
+      "status": "SKIP",
+      "reason": "requires local narrative-IV panel + MAV wedges file (not shipped)",
+      "runtime_s": 0.0,
+      "figures": [],
+      "last_run": "2026-08-23T02:04:28Z"
+    },
+    "govt_vs_private_investment": {
+      "status": "SKIP",
+      "reason": "local data file missing",
+      "runtime_s": 0.3,
+      "figures": [],
+      "last_run": "2026-08-23T02:04:28Z"
+    },
+    "asset_composition_dynamics": {
+      "status": "SKIP",
+      "reason": "local data file missing",
+      "runtime_s": 0.298,
+      "figures": [],
+      "last_run": "2026-08-23T02:04:28Z"
+    },
     "anderson_rubin_weak_iv_demo": {
       "status": "PASS",
       "reason": null,
@@ -9,13 +37,6 @@
       "figures": [
         "../puremacro/examples/output/anderson_rubin_weak_iv_demo.png"
       ],
-      "last_run": "2026-08-22T01:37:29Z"
-    },
-    "asset_composition_dynamics": {
-      "status": "SKIP",
-      "reason": "local data file missing",
-      "runtime_s": 0.299,
-      "figures": [],
       "last_run": "2026-08-22T01:37:29Z"
     },
     "bandpass_cycles_comparison": {
@@ -269,13 +290,6 @@
       ],
       "last_run": "2026-08-22T01:38:48Z"
     },
-    "govt_vs_private_investment": {
-      "status": "SKIP",
-      "reason": "local data file missing",
-      "runtime_s": 0.295,
-      "figures": [],
-      "last_run": "2026-08-22T01:38:48Z"
-    },
     "hank_sequence_space": {
       "status": "PASS",
       "reason": null,
@@ -408,13 +422,6 @@
       ],
       "last_run": "2026-08-22T01:39:05Z"
     },
-    "narrative_event_study": {
-      "status": "SKIP",
-      "reason": "requires local narrative-IV panel + MAV wedges file (not shipped)",
-      "runtime_s": 0.0,
-      "figures": [],
-      "last_run": "2026-08-22T01:39:05Z"
-    },
     "narrative_g7_panel": {
       "status": "PASS",
       "reason": null,
@@ -466,13 +473,6 @@
       "figures": [
         "../puremacro/examples/output/narrative_multilingual_live.png"
       ],
-      "last_run": "2026-08-22T01:40:03Z"
-    },
-    "narrative_panel_lp": {
-      "status": "SKIP",
-      "reason": "local data file missing",
-      "runtime_s": 0.311,
-      "figures": [],
       "last_run": "2026-08-22T01:40:03Z"
     },
     "narrative_ramey_2011": {

@@ -1,6 +1,6 @@
 # puremacro examples gallery
 
-Generated: 2026-08-22T01:41:25Z
+Generated: 2026-08-23T02:04:29Z
 
 | Status | Count |
 |---|---|
@@ -602,8 +602,8 @@ Generated: 2026-08-22T01:41:25Z
 
 - **Status:** SKIP
 - **Reason:** local data file missing
-- **Runtime:** 0.299 s
-- **Last run:** 2026-08-22T01:37:29Z
+- **Runtime:** 0.298 s
+- **Last run:** 2026-08-23T02:04:28Z
 - **Figures:** none
 
 ### bloom2009
@@ -626,8 +626,8 @@ Generated: 2026-08-22T01:41:25Z
 
 - **Status:** SKIP
 - **Reason:** local data file missing
-- **Runtime:** 0.295 s
-- **Last run:** 2026-08-22T01:38:48Z
+- **Runtime:** 0.3 s
+- **Last run:** 2026-08-23T02:04:28Z
 - **Figures:** none
 
 ### lp_panel_dk
@@ -643,13 +643,13 @@ Generated: 2026-08-22T01:41:25Z
 - **Status:** SKIP
 - **Reason:** requires local narrative-IV panel + MAV wedges file (not shipped)
 - **Runtime:** 0.0 s
-- **Last run:** 2026-08-22T01:39:05Z
+- **Last run:** 2026-08-23T02:04:28Z
 - **Figures:** none
 
 ### narrative_panel_lp
 
 - **Status:** SKIP
 - **Reason:** local data file missing
-- **Runtime:** 0.311 s
-- **Last run:** 2026-08-22T01:40:03Z
+- **Runtime:** 0.291 s
+- **Last run:** 2026-08-23T02:04:29Z
 - **Figures:** none

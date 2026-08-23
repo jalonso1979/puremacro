@@ -15,6 +15,7 @@ Run:
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import numpy as np
@@ -22,7 +23,14 @@ import pandas as pd
 
 
 HERE = Path(__file__).resolve().parent
-MAV_ROOT = HERE.parents[3]
+# The MAV research data is a separate project that this repo does not ship.
+# `HERE.parents[3]` was written when this package lived at
+# <MAV>/uncertainty_examples/puremacro/; after the move it resolves to an
+# unrelated directory, so the path is overridable and the default is only a
+# guess. Point PUREMACRO_MAV_ROOT at the real root to run this example.
+MAV_ROOT = Path(os.environ.get("PUREMACRO_MAV_ROOT", HERE.parents[3]))
+_MAV_HINT = (" Set PUREMACRO_MAV_ROOT to the MAV project root "
+             "if it lives elsewhere.")
 NAR_LONG = HERE / "output" / "narrative_iv_panel_long.csv"
 WEDGES = MAV_ROOT / "wedges_panel_BGP_clean_nu2.csv"
 
