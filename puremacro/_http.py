@@ -31,6 +31,14 @@ def _request(url: str, timeout: float, user_agent: str | None = None) -> bytes:
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return resp.read()
+    except urllib.error.HTTPError:
+        # HTTPError is a *subclass* of URLError, so without this branch a
+        # 404 / 429 / 500 fell into the SSL fallback below and was
+        # re-requested with verification off — two round trips per error,
+        # and on a rate-limited endpoint the retry is itself another
+        # request against the limit. The server answered; there is
+        # nothing wrong with the certificate. Propagate.
+        raise
     except (urllib.error.URLError, ssl.SSLError):
         # One-shot fallback: some public endpoints (older OECD / IMF /
         # ministry sites) ship certificates that Python's bundled CA
