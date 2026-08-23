@@ -64,9 +64,31 @@ three different causes, so there are three different habits:
    that — the defect is in the scaffolding, not the subject.
    `tests/test_test_quality.py` fails if a mechanism file has no control.
 
-Check a fixture can actually produce the condition under test, too. A guard that
-filters rows down to a subset is untested if the fixture only ever generates that
-subset — delete the guard and see whether anything goes red.
+4. **Check the fixture can produce the condition.** A guard that filters rows
+   down to a subset is untested if the fixture only ever generates that subset.
+   `tools/mutation_check.py` automates exactly this — it deletes guards, flips
+   comparisons and neutralises constants one at a time, reruns the tests, and
+   reports every change nothing noticed:
+
+   ```bash
+   python tools/mutation_check.py puremacro/capital.py
+   python tools/mutation_check.py puremacro/fetch/oecd_qna_panel.py \
+       --tests tests/test_oecd_qna_panel.py --max-mutants 60
+   ```
+
+   It is a tool, not a gate: mutation cost is (mutants × suite time), so it runs
+   on demand, when you add a module or when a test file looks suspiciously
+   green. Not every survivor is a missing test — some mutations are
+   semantically inert, and the report says so — but the guards a fixture never
+   exercises show up immediately. Its first run on
+   `oecd_qna_expenditure` found three untested branches (`codes=None`, an empty
+   response, a response missing required columns); adding those tests took the
+   survivor count from nine to five, and the five that remain genuinely do not
+   change the output.
+
+Of the three failure modes above, mutation testing finds (1) and (4) and cannot
+find (3) — an inert mechanism defeats it, because mutating the subject changes
+nothing about scaffolding that was never running. That is why all three exist.
 
 ## When to bump the version
 
