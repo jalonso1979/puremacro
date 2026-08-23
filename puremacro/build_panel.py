@@ -604,10 +604,15 @@ def build_all(
     ifs_frame = pd.DataFrame(columns=["code", "date", "variable", "value", "sa_source", "source"])
     oecd_codes = None if countries is None else [c for c in countries if c != "USA"]
     if oecd_codes is None or oecd_codes:
-        try:
-            frames_all.append(oecd.fetch_qna_expenditure(oecd_codes))
-        except Exception as e:
-            print(f"[build] OECD QNA failed: {e}")
+        # `oecd.fetch_qna_expenditure` is deliberately NOT a producer here. It
+        # emits log_gdp_real / log_gfcf_real from PRICE_BASE="LR", a chain-linked
+        # volume *index* (log ~4.2-4.8), while `oecd_qna_expenditure` and the
+        # local workbook emit the same two variable names in XDC millions
+        # (log ~13.4-13.7). `merge_frames` keeps first and this call used to be
+        # appended ahead of both, so one variable carried two scales ~9 log
+        # points apart, and which one a country got depended on which fetch
+        # happened to return rows. One producer per variable; see the SDMX
+        # expenditure block below, which owns these two.
         try:
             frames_all.append(oecd.fetch_labor_monthly(oecd_codes))
         except Exception as e:
