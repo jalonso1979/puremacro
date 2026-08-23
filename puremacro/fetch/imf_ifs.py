@@ -25,7 +25,6 @@ from typing import Any, Iterable
 
 import numpy as np
 import pandas as pd
-import requests
 
 from .._codes import is_country
 
@@ -100,6 +99,13 @@ def _http_json(indicator: str, codes: Iterable[str] | None, start_period: str) -
 
     key = f"M.{area_key}.{indicator}"
     url = f"{_BASE}/{key}?startPeriod={start_period}"
+    # Deferred so that importing this module needs no network stack, the same
+    # reason `_oecd_sdmx.get_sdmx_csv` defers its own. An absent `requests` is
+    # "this source has nothing", which is what a missing indicator already is.
+    try:
+        import requests
+    except ImportError:
+        return {"CompactData": {"DataSet": {}}}
     r = requests.get(url, timeout=_TIMEOUT)
     if r.status_code == 404:
         return {"CompactData": {"DataSet": {}}}

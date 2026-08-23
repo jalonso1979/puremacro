@@ -59,7 +59,6 @@ from pathlib import Path
 from typing import Iterable, Optional
 
 import pandas as pd
-import requests
 
 logger = logging.getLogger(__name__)
 
@@ -129,8 +128,25 @@ def cache_root() -> Path:
     return _LOCAL_CACHE
 
 
+def _http_error() -> type[BaseException]:
+    """``requests.HTTPError`` if requests is installed, else something unraisable.
+
+    An ``except`` clause is evaluated even when nothing raised, so it cannot name
+    a module that may be absent.
+    """
+    try:
+        import requests
+    except ImportError:
+        class _Never(Exception):
+            pass
+        return _Never
+    return requests.HTTPError
+
+
 def _stream_url(url: str, *, timeout: int = 60):
     """Yield decoded CSV lines from a URL without buffering the whole file."""
+    import requests            # deferred; see the module docstring
+
     resp = requests.get(
         url,
         headers={"User-Agent": "uncertainty_examples/1.0 (research@itam.mx)"},
@@ -247,7 +263,7 @@ def _aggregate_year(year: int) -> Optional[pd.DataFrame]:
         header_line = next(line_iter)
     except StopIteration:
         logger.warning("year %d: empty file", year); return None
-    except requests.HTTPError as e:
+    except _http_error() as e:
         if e.response is not None and e.response.status_code == 404:
             logger.warning("year %d: NBER 404 (file not available)", year)
             return None

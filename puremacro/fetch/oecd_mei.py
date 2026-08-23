@@ -26,16 +26,11 @@ duplicated here to keep this module independent of internal helpers.
 """
 from __future__ import annotations
 
-import io
 from typing import Iterable
 
 import numpy as np
 import pandas as pd
-import requests
 
-_BASE = "https://sdmx.oecd.org/public/rest/data"
-_FMT = "csvfilewithlabels"
-_TIMEOUT = 120
 
 _EMPTY = pd.DataFrame(
     columns=["code", "date", "variable", "value", "sa_source", "source"]

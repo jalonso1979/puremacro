@@ -23,7 +23,6 @@ import logging
 from typing import Optional
 
 import pandas as pd
-import requests
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +58,12 @@ _MONTH_NAME_TO_NUM = {
 
 def _socrata_get(params: dict, *, timeout: int = 60) -> list[dict]:
     """Page through SODA results until exhausted."""
+    # Deferred: importing this module must not need a network stack. The sole
+    # caller already treats a failure here as "no rows".
+    try:
+        import requests
+    except ImportError:
+        return []
     rows: list[dict] = []
     offset = 0
     while True:

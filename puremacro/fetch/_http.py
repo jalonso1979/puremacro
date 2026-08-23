@@ -14,7 +14,12 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse
 
-import requests
+try:
+    import requests
+except ImportError:                     # tablet / no-socket build
+    # The name must stay bound: puremacro.runtime.transport rebinds it to a
+    # browser-fetch shim and restores it afterwards, and `None` reads fine.
+    requests = None                     # type: ignore[assignment]
 
 CACHE_ROOT = Path(__file__).resolve().parent.parent.parent / "data" / "raw"
 _MANIFEST_FILE = "_manifest.json"
@@ -62,6 +67,10 @@ def cached_get(
     Re-fetches if ``refresh=True`` or the cache file is missing.
     Updates the manifest with the fetch timestamp each time bytes are written.
     """
+    if requests is None:
+        raise RuntimeError(
+            "puremacro.fetch needs `requests` for a live fetch; install it, or "
+            "work from the on-disk cache under data/raw/.")
     target = _path_for(url)
     # The cache is a convenience, never a requirement: on a read-only or
     # sandboxed install (an iPad, a container with the package baked into the

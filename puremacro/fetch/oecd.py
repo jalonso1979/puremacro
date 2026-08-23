@@ -2,8 +2,9 @@
 
 Uses the OECD SDMX REST API v2 (sdmx.oecd.org/public/rest, 2024+).
 pandasdmx is NOT used — it is incompatible with Python 3.13 (pydantic forward-ref
-issue). Instead we call the REST endpoints directly with ``requests`` and parse the
-CSV-with-labels response format.
+issue). The REST endpoints are called through
+:func:`puremacro.fetch._oecd_sdmx.get_sdmx_csv`, which owns the on-disk cache and
+defers its ``requests`` import, so importing this module needs no network stack.
 
 Dataflows used
 --------------
@@ -29,20 +30,15 @@ All returned DataFrames are in long form with columns:
 
 from __future__ import annotations
 
-import io
 from typing import Iterable
 
 import numpy as np
 import pandas as pd
-import requests
 
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-_BASE = "https://sdmx.oecd.org/public/rest/data"
-_FMT = "csvfilewithlabels"
-_TIMEOUT = 120  # seconds per request
 
 
 def _get_csv(agency_flow: str, key: str, start_period: str) -> pd.DataFrame:
@@ -93,6 +89,12 @@ def fetch_qna_expenditure(codes: Iterable[str] | None = None) -> pd.DataFrame:
 
     Variables returned
     ------------------
+    NOTE: these are volume *indices* (PRICE_BASE="LR"), not levels, so they are
+    not interchangeable with the same-named variables that
+    ``oecd_qna_expenditure`` and the local workbook emit in XDC millions — the
+    two differ by roughly 9 log points. ``build_panel`` deliberately does not
+    use this function for that reason; it is kept for direct/interactive use.
+
     log_gdp_real  — log of chain-linked volume index for GDP (B1GQ), SA
     log_gfcf_real — log of chain-linked volume index for GFCF (P51G), SA
     log_cpi       — log of total CPI index; SA where OECD publishes it,

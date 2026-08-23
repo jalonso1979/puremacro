@@ -9,16 +9,11 @@ Returns long-form schema: ``code, date, variable, value, sa_source, source``.
 """
 from __future__ import annotations
 
-import io
 from typing import Iterable
 
 import numpy as np
 import pandas as pd
-import requests
 
-_BASE = "https://sdmx.oecd.org/public/rest/data"
-_FMT = "csvfilewithlabels"
-_TIMEOUT = 180
 
 _EMPTY = pd.DataFrame(columns=["code", "date", "variable", "value", "sa_source", "source"])
 
@@ -27,18 +22,6 @@ def _get_csv(agency_flow: str, key: str, start_period: str) -> pd.DataFrame:
     """Issue one OECD SDMX REST call via the cached helper (empty on failure)."""
     from ._oecd_sdmx import get_sdmx_csv
     return get_sdmx_csv(agency_flow, key, start_period)
-    # Legacy direct path (kept for reference only — never executed):
-    url = f"{_BASE}/{agency_flow}/{key}?startPeriod={start_period}&format={_FMT}"
-    try:
-        r = requests.get(url, timeout=_TIMEOUT)
-    except Exception:
-        return pd.DataFrame()
-    if r.status_code == 404 or not r.ok or len(r.text) < 200:
-        return pd.DataFrame()
-    try:
-        return pd.read_csv(io.StringIO(r.text), low_memory=False)
-    except Exception:
-        return pd.DataFrame()
 
 
 def fetch_energy_cpi(

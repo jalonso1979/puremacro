@@ -502,8 +502,10 @@ def build_all(
     # (2001-2025 minus vintage-base years). Read from the combined
     # canonical CSV at Fertility/data/PROCESSED/county_year_births.csv,
     # which is (re)built when cdc_births_county.fetch() runs.
-    from .fetch import cdc_births_county
     try:
+        # Inside the try: on a build without `requests` this import used to raise
+        # straight out of build_all rather than degrading like the fetch it guards.
+        from .fetch import cdc_births_county
         cdc_births_county.fetch(refresh=refresh)  # rebuilds canonical artifact
         from .fetch.cdc_births_county import _COMBINED_ARTIFACT
         if _COMBINED_ARTIFACT.exists():
