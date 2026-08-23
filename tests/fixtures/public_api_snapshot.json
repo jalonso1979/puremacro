@@ -54,6 +54,14 @@
       "http_cache_size_bytes",
       "http_list_urls"
     ],
+    "puremacro.capital": [
+      "CapitalResult",
+      "PIM_ASSETS",
+      "PIM_DELTAS",
+      "TFPResult",
+      "qna_capital",
+      "qna_tfp"
+    ],
     "puremacro.climate": [
       "DICEResult",
       "simulate_dice_model"
@@ -2038,6 +2046,26 @@
     ]
   },
   "result_classes": {
+    "puremacro.capital.CapitalResult": [
+      "aggregate",
+      "burn_in",
+      "delta_quarterly",
+      "deltas",
+      "growth",
+      "k0_method",
+      "n_obs",
+      "names",
+      "stocks"
+    ],
+    "puremacro.capital.TFPResult": [
+      "labor",
+      "labor_share",
+      "n_obs",
+      "names",
+      "share",
+      "share_mode",
+      "tfp"
+    ],
     "puremacro.climate.dice.DICEResult": [
       "end_century_damages",
       "peak_temperature",

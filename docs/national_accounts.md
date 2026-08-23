@@ -267,6 +267,46 @@ panel = qna_panel(["ESP", "ITA", "DEU"], start="1995",
 
 Before this, no single source in `puremacro` carried all five.
 
+## `qna_capital()` and `qna_tfp()` — growth accounting
+
+`puremacro.capital` turns the panel into the two inputs a production function needs
+and the residual they leave over. The package could already *estimate* production
+functions — `korv_gmm` fits a capital-skill-complementarity CES — but it could not
+*build* the capital series they take as given.
+
+```python
+from puremacro.fetch import qna_panel
+from puremacro.capital import qna_capital, qna_tfp
+
+panel = qna_panel(["DEU", "ESP", "FRA", "ITA"], start="1995",
+                  assets=True, labor=True, income=True, real=True)
+cap = qna_capital(panel)          # perpetual inventory, one stock per asset
+tfp = qna_tfp(panel, cap)         # Solow residual against hours
+```
+
+Two choices are load-bearing:
+
+- **Depreciation converts geometrically**, `1-(1-δ)^(1/4)`, never `δ/4`. The linear
+  shortcut compounds to less than `δ` over four quarters, so it under-depreciates and
+  biases the steady-state stock **up** — by 5.3% for equipment and 8.5% for IPP.
+- **The aggregate is a Törnqvist index of capital services, not a sum of stocks.**
+  Chain-linked volumes are not additive away from their reference year, so `Σ K_i`
+  depends on which year the OECD chose; `qna_rebase` the same panel and it moves by up
+  to 1%. Aggregating *growth rates* with rental-cost weights is invariant to machine
+  precision. Use `aggregate="sum"` only for the fixed-base publishers (ARG, IDN, MEX,
+  ZAF), where additivity holds by construction.
+
+**Read `k0_sensitivity` before quoting a level.** The initial stock has to be assumed
+and the assumption decays at the asset's own depreciation rate — fast for equipment
+(δ=0.13) and IPP (0.20), not for structures (0.03) or dwellings (0.011). Measured on
+this data, a ±50% error in `K₀` is still worth 7–15% of the aggregate *level* at the end
+of a 30-year panel, while the same error moves four-quarter *growth* by under 0.06pp a
+year. Growth rates are usable; levels are an assumption wearing a number's clothes.
+
+Coverage: 34 of 49 reference areas publish all four asset classes as volumes, 33 also in
+current prices (Colombia does not, so it has no deflators and is refused a services
+index), and 29 additionally publish the hours `qna_tfp` needs.
+
 ## Offline use
 
 The four transforms never touch the network, so the usual pattern is to fetch
