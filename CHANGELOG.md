@@ -4,6 +4,9 @@ This file records user-visible changes per release. Internal refactors that don'
 
 ## Unreleased
 
+### Internal
+- **Every GitHub Action bumped off a deprecated Node runtime.** `actions/checkout@v4` and `actions/setup-python@v5` run on Node 20, which the runners are already force-shimming to Node 24 and will eventually stop; both are now on v7. The deprecation notice did not mention `peaceiris/actions-gh-pages@v3`, which is on Node **16** — older still, and the reason `pages.yml` was the most exposed of the three workflows; it is now on v4. Usage is unchanged and vanilla throughout (`fetch-depth`, `python-version`, `cache`, and the three core publish inputs), all stable across these majors. `pypa/gh-action-pypi-publish@release/v1` is a rolling tag maintained upstream and is left alone.
+
 ## 1.6.0 (2026-08-23)
 
 **The capital stock the production functions always assumed, a panel that imports without a network stack, and two silent data defects: one variable carrying two scales, and five countries refused for publishing the wrong kind of volume.**
