@@ -344,6 +344,16 @@
     "size_bytes": 34553733,
     "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q...S13..........?startPeriod=1995&format=csvfilewithlabels"
   },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..ARG.S1.........._startPe_1abb80ea": {
+    "fetched_at": "2026-08-23T16:04:22.767967+00:00",
+    "size_bytes": 1755066,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..ARG.S1..........?startPeriod=1995&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..ARG.S13.........._startP_690e59ff": {
+    "fetched_at": "2026-08-23T16:04:26.387256+00:00",
+    "size_bytes": 199456,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..ARG.S13..........?startPeriod=1995&format=csvfilewithlabels"
+  },
   "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..ARG_AUS_AUT_BEL_BGR_BRA__7815967b": {
     "fetched_at": "2026-08-19T20:27:53.646383+00:00",
     "size_bytes": 4261770,
@@ -1033,6 +1043,16 @@
     "fetched_at": "2026-08-19T19:01:51.944983+00:00",
     "size_bytes": 322555,
     "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..USA+MEX+ESP+DEU.S1M..........?startPeriod=2018&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..ZAF.S1.........._startPe_5fd16837": {
+    "fetched_at": "2026-08-23T16:04:30.911028+00:00",
+    "size_bytes": 3986890,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..ZAF.S1..........?startPeriod=1995&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q..ZAF.S13.........._startP_ebc8ac81": {
+    "fetched_at": "2026-08-23T16:04:34.170645+00:00",
+    "size_bytes": 628296,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,/Q..ZAF.S13..........?startPeriod=1995&format=csvfilewithlabels"
   },
   "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN1_DF_QNA_EXPENDITURE_NATIO_CURR__Q.N.MEX.......XDC.V.._start_bc9e89b0": {
     "fetched_at": "2026-08-07T20:40:40.552473+00:00",
