@@ -31,7 +31,7 @@ def test_with_empty_store_calls_api_and_populates(store, monkeypatch):
 
     calls = []
 
-    def _fake_api(series_id, *, timeout):
+    def _fake_api(series_id, *, timeout, refresh=False):
         calls.append(series_id)
         return _mock_api_rows()
 
@@ -53,7 +53,8 @@ def test_refetch_when_store_has_no_series(store, monkeypatch):
     monkeypatch.setattr(
         _classic,
         "_fetch_fred_alfred_raw_api",
-        lambda series_id, *, timeout: (calls.append(series_id) or _mock_api_rows()),
+        lambda series_id, *, timeout, refresh=False: (
+            calls.append(series_id) or _mock_api_rows()),
         raising=False,
     )
     _classic.fetch_fred_alfred("GDPC1", store=store)
@@ -73,7 +74,8 @@ def test_no_refetch_when_store_has_data(store, monkeypatch):
     monkeypatch.setattr(
         _classic,
         "_fetch_fred_alfred_raw_api",
-        lambda series_id, *, timeout: (calls.append(series_id) or _mock_api_rows()),
+        lambda series_id, *, timeout, refresh=False: (
+            calls.append(series_id) or _mock_api_rows()),
         raising=False,
     )
     df = _classic.fetch_fred_alfred("GDPC1", store=store)
@@ -93,7 +95,8 @@ def test_refresh_true_forces_api(store, monkeypatch):
     monkeypatch.setattr(
         _classic,
         "_fetch_fred_alfred_raw_api",
-        lambda series_id, *, timeout: (calls.append(series_id) or _mock_api_rows()),
+        lambda series_id, *, timeout, refresh=False: (
+            calls.append(series_id) or _mock_api_rows()),
         raising=False,
     )
     _classic.fetch_fred_alfred("GDPC1", store=store, refresh=True)
@@ -108,7 +111,8 @@ def test_no_store_no_behavior_change(monkeypatch):
     monkeypatch.setattr(
         _classic,
         "_fetch_fred_alfred_raw_api",
-        lambda series_id, *, timeout: (calls.append(series_id) or _mock_api_rows()),
+        lambda series_id, *, timeout, refresh=False: (
+            calls.append(series_id) or _mock_api_rows()),
         raising=False,
     )
     df = _classic.fetch_fred_alfred("GDPC1")

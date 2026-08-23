@@ -430,6 +430,42 @@ declare `PARSER_SCHEMA_VERSION` and call
 fail loudly on upstream layout drift. References:
 `docs/CREDENTIALS.md`, `docs/CACHE_DB.md`.
 
+### Real-time / vintage layer (1.7.0+)
+
+`puremacro.fetch.realtime` is a provider registry, not a single
+fetcher. Six repositories publish previously-released values in six
+different shapes; each gets a module exposing a **pure parser**
+(bytes → `[date, vintage, value]`, no I/O, offline-testable) plus a
+network wrapper, and every result is funnelled through
+`_base.normalize_vintage_frame` into one tidy schema
+(`country, variable, date, vintage, value, provider, series_id, units`).
+`vintage_panel` is the single entry point; `VintagePanel` carries the
+revision helpers, which delegate to `puremacro.vintages`.
+
+Three invariants are load-bearing and easy to break:
+
+1. **Transforms apply within a vintage column, never across.** The
+   growth rate a forecaster saw in edition *v* is built from *v*'s own
+   levels. This is also what makes the tests immune to rebasing: a
+   whole-edition rescaling cancels out of that edition's growth rates.
+2. **Units live in the catalogue.** FRED carries both level and
+   growth-rate series for the same concept and the identifier does not
+   say which; `SeriesSpec.units` decides the default transform so a
+   growth rate is not differenced twice.
+3. **Vintage-date semantics differ by provider** and are recorded in
+   `_base.VINTAGE_SEMANTICS`. Some are genuine national release dates
+   (Bundesbank, StatCan), some are snapshot months (OECD), one is a
+   month-plus-stage label with no day (ONS). Ordering is safe
+   everywhere; event-dating is not.
+
+The catalogue is self-auditing via
+`tests/test_realtime_providers/test_catalog_live.py` (`-m network`),
+because identifiers rot: every non-US country previously resolved to
+FRED's OECD-MEI family, which stopped updating in January 2024, and no
+offline test could notice. `openpyxl` is needed only by the ONS
+workbook reader and is lazy-imported there, so the Pyodide import
+contract is unchanged. Reference: `docs/real_time_data.md`.
+
 ### F2 closure (0.67.0+)
 
 Slice B closes the F2 sub-project. `puremacro.narrative.sources._fallback`

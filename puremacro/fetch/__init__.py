@@ -8,7 +8,11 @@ one-shot SSL fallback, 30s default timeout). Each fetcher returns a
 Public API
 ----------
 - :func:`fetch_fred`        — FRED public CSV (no API key needed)
-- :func:`fetch_fred_alfred` — ALFRED real-time vintages
+- :func:`fetch_fred_alfred` — ALFRED real-time vintages (one series)
+- :func:`alfred_vintages`   — every archived edition of one ALFRED series
+- :func:`vintage_panel`     — one-call cross-country panel of published
+                              editions, across six real-time providers
+- :func:`vintage_catalog`   — which series backs which (country, variable)
 - :func:`qna_panel`         — one-call cross-country quarterly national accounts
                               (nominal SA levels + implicit deflators, OECD QNA)
 - :func:`qna_labor`         — the QNA labour block alone (employment, hours)
@@ -76,10 +80,24 @@ from .qna_vintages import (
     QNAVintagePanel,
     get_qna_vintage_catalog,
 )
+from .realtime import (
+    alfred_vintages,
+    available_providers,
+    vintage_catalog,
+    vintage_panel,
+    VintagePanel,
+    VINTAGE_SEMANTICS,
+)
 
 __all__ = [
     "fetch_fred",
     "fetch_fred_alfred",
+    "alfred_vintages",
+    "vintage_panel",
+    "VintagePanel",
+    "vintage_catalog",
+    "available_providers",
+    "VINTAGE_SEMANTICS",
     "qna_panel",
     "qna_labor",
     "qna_meta",

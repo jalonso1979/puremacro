@@ -16,6 +16,20 @@ Covers expenditure and output components:
 Backends:
 - FRED / ALFRED (Archival Federal Reserve Economic Data) for international QNA vintages
 - Persistent caching via :class:`puremacro.vintages.AlfredVintageStore`
+
+SUPERSEDED IN 1.7.0
+-------------------
+Prefer :func:`puremacro.fetch.vintage_panel`. This module resolves every
+non-US country through FRED's OECD-MEI code family
+(``NAEXKP01<ISO2>Q652S`` and siblings), which **stopped updating in
+January 2024** -- the series end around 2023Q3 and their ALFRED archives
+end with them. That is why cross-country revision work through this
+function collapses to a couple of usable countries.
+
+``vintage_panel`` covers 42 economies with monthly editions back to
+1999 through the OECD STES revisions archive, plus five other
+providers. This module is kept working for existing notebooks and
+still calls out to the fixed ALFRED accessor.
 """
 from __future__ import annotations
 
@@ -126,7 +140,18 @@ VARIABLE_MAP: dict[str, tuple[str, str, str]] = {
     "deflator": (
         "CPALTT01{iso2}Q659N",
         "GDPDEF",
-        "GDP Implicit Price Deflator / Price Level, SA",
+        # Accurate as of 1.7.0. The non-US template resolves to the OECD
+        # consumer price index, all items, expressed as a growth rate on
+        # the same period a year earlier -- NOT a GDP deflator and not
+        # even a level. It was previously described as "GDP Implicit
+        # Price Deflator", which is why deflator-based work through this
+        # function did not reproduce. The US entry (GDPDEF) is a genuine
+        # GDP deflator. For a real cross-country GDP deflator across
+        # vintages use puremacro.fetch.vintage_panel(variables=["deflator"]),
+        # which resolves to the OECD STES revisions measure B1GQ_D.
+        "US: GDP implicit price deflator (GDPDEF). Non-US: OECD CPI, "
+        "all items, growth rate vs same period previous year -- NOT a "
+        "GDP deflator; see vintage_panel for one.",
     ),
     "gdp_nom": (
         "NAEXCP01{iso2}Q652S",
@@ -598,6 +623,16 @@ def fetch_qna_vintages(
         A panel containing vintage observations with slicing, revision analysis,
         and export capabilities.
     """
+    import warnings as _w
+    _w.warn(
+        "fetch_qna_vintages resolves non-US countries through FRED's "
+        "OECD-MEI series (NAEXKP01<ISO2>Q652S and siblings), which were "
+        "discontinued in January 2024 -- their data and ALFRED archives "
+        "end around 2023Q3. Use puremacro.fetch.vintage_panel(...) "
+        "instead: 42 economies, monthly editions from 1999. See "
+        "puremacro.fetch.realtime.",
+        UserWarning, stacklevel=2,
+    )
     if store is None:
         try:
             store = AlfredVintageStore()

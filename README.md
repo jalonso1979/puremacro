@@ -110,10 +110,19 @@ helper. Coverage is constrained by what Wayback has snapshotted.
 
 **Data pipelines** (newly absorbed; see `ARCHITECTURE.md`)
 
-- **Fetchers** (`fetch.*`) — FRED / ALFRED (real-time vintages), SDMX-CSV
+- **Fetchers** (`fetch.*`) — FRED / ALFRED, SDMX-CSV
   (OECD, Eurostat, ECB, IMF SDMX-Central), EPU / GPR / WUI / JLN /
   Fernald, OECD-MEI / QNA / Energy / FX, ILOSTAT, Yahoo, WB pink
   sheet, plus per-state FRED loaders for the US subnational track.
+- **Real-time data** (`fetch.vintage_panel`, `fetch.realtime.*`) — published
+  *editions* of a series across six providers behind one call: the OECD STES
+  revisions archive (42 economies, monthly editions from 1999), ALFRED, the
+  Bundesbank Gerda database, the ONS real-time workbook (746 editions back to
+  1961), Statistics Canada's vintage tables and the ECB/EABCN database. Comes
+  with the revision toolkit — revision triangles, first/latest release,
+  `r_t = y_f - y_p`, and the Mankiw-Shapiro news-vs-noise test
+  (`vintages.mankiw_shapiro`). Each provider documents what its vintage date
+  actually means, because they disagree. See `docs/real_time_data.md`.
 - **Panel builders** (`build_panel`, `build_subnational_panel`) — single
   entry points that materialise quarterly / monthly cross-country and
   US-state panels from the fetchers, with regime tagging, SA

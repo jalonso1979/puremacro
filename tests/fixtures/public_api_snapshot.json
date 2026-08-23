@@ -307,6 +307,10 @@
       "QNA_LABOR_UNITS",
       "QNA_VA_ADDITIVE",
       "QNA_VA_MEMO",
+      "VINTAGE_SEMANTICS",
+      "VintagePanel",
+      "alfred_vintages",
+      "available_providers",
       "fetch_eurostat_lfs_panel",
       "fetch_eurostat_vacancies",
       "fetch_fred",
@@ -328,7 +332,9 @@
       "qna_meta",
       "qna_panel",
       "qna_rebase",
-      "sdmx_get"
+      "sdmx_get",
+      "vintage_catalog",
+      "vintage_panel"
     ],
     "puremacro.fetch._classic": [
       "fetch_fred",
@@ -407,6 +413,119 @@
       "VARIABLE_MAP",
       "fetch_qna_vintages",
       "get_qna_vintage_catalog"
+    ],
+    "puremacro.fetch.realtime": [
+      "CANONICAL_VARIABLES",
+      "DEFAULT_PROVIDER_ORDER",
+      "SUPPORTED_FREQUENCIES",
+      "VINTAGE_COLUMNS",
+      "VINTAGE_SEMANTICS",
+      "VintagePanel",
+      "alfred_vintages",
+      "available_providers",
+      "canonical_variable",
+      "normalize_vintage_frame",
+      "parse_alfredgraph_csv",
+      "provider_countries",
+      "providers_for",
+      "register_provider",
+      "resolve_series",
+      "vintage_catalog",
+      "vintage_panel"
+    ],
+    "puremacro.fetch.realtime._base": [
+      "RETRYABLE_STATUS",
+      "VINTAGE_COLUMNS",
+      "VINTAGE_SEMANTICS",
+      "VintagePanel",
+      "available_providers",
+      "fetch_with_backoff",
+      "get_provider",
+      "normalize_vintage_frame",
+      "provider_countries",
+      "register_provider"
+    ],
+    "puremacro.fetch.realtime.alfred": [
+      "ALFRED_DOWNLOAD_URL",
+      "ALFRED_GRAPH_URL",
+      "FRED_API_BASE",
+      "KEYLESS_REQUEST_WARN_THRESHOLD",
+      "alfred_vintage_dates",
+      "alfred_vintages",
+      "fetch_alfred_panel",
+      "parse_alfred_api_observations",
+      "parse_alfred_vintage_dates_html",
+      "parse_alfredgraph_csv"
+    ],
+    "puremacro.fetch.realtime.banxico": [
+      "BANXICO_SIE_BASE",
+      "INEGI_BIE_BASE",
+      "MEXICO_VINTAGE_NOTE",
+      "SPAIN_VINTAGE_NOTE"
+    ],
+    "puremacro.fetch.realtime.bundesbank": [
+      "BBK_RTD_KEYS",
+      "BBK_RTD_LEGACY_KEYS",
+      "BBK_RTD_URL",
+      "UNKNOWN_DAY_CODES",
+      "fetch_bundesbank_panel",
+      "fetch_bundesbank_vintages",
+      "parse_bbk_rtd_csv",
+      "parse_bbk_vintage_date"
+    ],
+    "puremacro.fetch.realtime.catalog": [
+      "ALFRED_KNOWN_GAPS",
+      "CANONICAL_VARIABLES",
+      "SeriesSpec",
+      "UNITS_TRANSFORM",
+      "VARIABLE_ALIASES",
+      "canonical_variable",
+      "known_gaps",
+      "provider_country_codes",
+      "providers_for",
+      "register_catalog",
+      "resolve_series",
+      "resolve_spec",
+      "vintage_catalog"
+    ],
+    "puremacro.fetch.realtime.ecb_rtd": [
+      "ECB_RTD_AREAS",
+      "ECB_RTD_CONCEPTS",
+      "ECB_RTD_URL",
+      "build_key",
+      "fetch_ecb_rtd_panel",
+      "fetch_ecb_rtd_vintages",
+      "parse_ecb_history_csv"
+    ],
+    "puremacro.fetch.realtime.oecd_stes": [
+      "DATAFLOW",
+      "OECD_STES_COUNTRIES",
+      "OECD_STES_MEASURES",
+      "OECD_STES_URL",
+      "build_key",
+      "fetch_oecd_stes_panel",
+      "fetch_oecd_stes_vintages",
+      "parse_stes_revisions_csv"
+    ],
+    "puremacro.fetch.realtime.ons": [
+      "ONS_BASE",
+      "ONS_REALTIME_DATASETS",
+      "fetch_ons_panel",
+      "fetch_ons_vintages",
+      "parse_ons_realtime_workbook",
+      "parse_ons_vintage_label"
+    ],
+    "puremacro.fetch.realtime.panel": [
+      "DEFAULT_PROVIDER_ORDER",
+      "SUPPORTED_FREQUENCIES",
+      "vintage_panel"
+    ],
+    "puremacro.fetch.realtime.statcan": [
+      "STATCAN_VINTAGE_TABLES",
+      "WDS_FULL_TABLE_URL",
+      "fetch_statcan_panel",
+      "fetch_statcan_vintages",
+      "parse_statcan_vintage_csv"
     ],
     "puremacro.fetch.sdmx": [
       "oecd_sdmx_instrument",
@@ -1991,13 +2110,20 @@
     ],
     "puremacro.vintages": [
       "AlfredVintageStore",
+      "MankiwShapiroResult",
       "QNAVintagePanel",
       "align_vintages",
       "as_of",
       "as_of_from_store",
       "fetch_qna_vintages",
+      "first_release",
       "forecast_revision",
-      "get_qna_vintage_catalog"
+      "get_qna_vintage_catalog",
+      "latest_release",
+      "mankiw_shapiro",
+      "revision_frame",
+      "revision_test",
+      "revision_triangle"
     ],
     "puremacro.volatility": [
       "GarchMidasResult",
@@ -2275,6 +2401,16 @@
     "puremacro.fetch.qna_vintages.QNAVintagePanel": [
       "df",
       "metadata"
+    ],
+    "puremacro.fetch.realtime._base.VintagePanel": [
+      "df",
+      "metadata"
+    ],
+    "puremacro.fetch.realtime.catalog.SeriesSpec": [
+      "note",
+      "series_id",
+      "source",
+      "units"
     ],
     "puremacro.forecast.penalized.PenalizedForecastResult": [
       "bic_path",
@@ -3350,6 +3486,31 @@
       "n_iter",
       "policies",
       "price_path"
+    ],
+    "puremacro.vintages.MankiwShapiroResult": [
+      "alpha_on_final",
+      "alpha_on_preliminary",
+      "beta_on_final",
+      "beta_on_preliminary",
+      "hac_lags",
+      "mean_revision",
+      "n_obs",
+      "noise_share",
+      "p_beta_on_final",
+      "p_beta_on_preliminary",
+      "p_mean_revision",
+      "rejects_news",
+      "rejects_noise",
+      "se_beta_on_final",
+      "se_beta_on_preliminary",
+      "se_mean_revision",
+      "significance",
+      "std_revision",
+      "t_beta_on_final",
+      "t_beta_on_preliminary",
+      "t_mean_revision",
+      "transform",
+      "verdict"
     ],
     "puremacro.volatility.sigma.SigmaObject": [
       "R",

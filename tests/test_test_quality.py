@@ -133,6 +133,37 @@ _MUST_EXECUTE: dict[str, tuple[str, ...]] = {
         "puremacro.fetch.oecd_qna_panel:_tidy",
         "puremacro.fetch.oecd_qna_panel:_rescale_hours",
     ),
+    # Real-time / vintage layer (1.7.0). These tests patch the HTTP
+    # boundary, so the registry is what proves they still run the
+    # accessor and the parsers rather than asserting about the patch.
+    "tests/test_realtime_providers/test_alfred.py": (
+        "puremacro.fetch.realtime.alfred:alfred_vintages",
+        "puremacro.fetch.realtime.alfred:parse_alfredgraph_csv",
+        "puremacro.fetch.realtime.alfred:parse_alfred_api_observations",
+        "puremacro.fetch.realtime.alfred:_fetch_via_graph_csv",
+    ),
+    "tests/test_realtime_providers/test_parsers.py": (
+        "puremacro.fetch.realtime.statcan:parse_statcan_vintage_csv",
+        "puremacro.fetch.realtime.bundesbank:parse_bbk_rtd_csv",
+        "puremacro.fetch.realtime.oecd_stes:parse_stes_revisions_csv",
+        "puremacro.fetch.realtime.ecb_rtd:parse_ecb_history_csv",
+        "puremacro.fetch.realtime.ons:parse_ons_vintage_label",
+    ),
+    "tests/test_vintages_revisions.py": (
+        "puremacro.vintages:mankiw_shapiro",
+        "puremacro.vintages:revision_triangle",
+        "puremacro.vintages:revision_frame",
+        "puremacro.vintages:_apply_revision_transform",
+        "puremacro.vintages:_first_last_from_triangle",
+        "puremacro.vintages:_kth_edition",
+    ),
+    "tests/test_realtime_providers/test_panel_plumbing.py": (
+        # The registry resolves module-level functions only, so the
+        # VintagePanel methods these tests drive are covered through the
+        # entry point that calls them.
+        "puremacro.fetch.realtime.panel:vintage_panel",
+        "puremacro.fetch.realtime.catalog:resolve_spec",
+    ),
 }
 
 

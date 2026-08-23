@@ -51,6 +51,7 @@ nav:
   - Quickstart: quickstart.md
   - Data:
       - Quarterly National Accounts: national_accounts.md
+      - Real-time data (vintages): real_time_data.md
   - Econometric Engines:
       - VAR & FAVAR: var.md
       - GDP Nowcasting: nowcast.md

@@ -76,21 +76,26 @@ def fetch_fred(
     return s
 
 
-def _fetch_fred_alfred_raw_api(series_id: str, *, timeout: float = 60.0) -> pd.DataFrame:
-    """Live ALFRED CSV fetch. Returns long DataFrame ['date', 'vintage', 'value']."""
-    url = _ALFRED.format(series_id)
-    raw = _safe_urlopen(url, timeout=timeout)
-    df = pd.read_csv(io.BytesIO(raw))
-    df = df.rename(columns={df.columns[0]: "date"})
-    df["date"] = pd.to_datetime(df["date"])
-    long = df.melt(id_vars="date", var_name="vintage_col", value_name="value")
-    # vintage_col looks like "GDPC1_2013-04-26"; extract the trailing date.
-    long["vintage"] = pd.to_datetime(
-        long["vintage_col"].str.split("_").str[-1], errors="coerce"
+def _fetch_fred_alfred_raw_api(
+    series_id: str, *, timeout: float = 60.0, refresh: bool = False,
+) -> pd.DataFrame:
+    """Live ALFRED fetch. Returns long DataFrame ['date', 'vintage', 'value'].
+
+    Delegates to :func:`puremacro.fetch.realtime.alfred_vintages`, which
+    retrieves the **whole** archive.
+
+    Until 1.7.0 this function requested ``alfredgraph.csv?id=<series>``
+    directly and melted the response. That URL returns exactly one
+    vintage column — the current one — so the melt produced a
+    well-formed frame carrying a single edition, and every revision
+    computed from it was identically zero. The bug was invisible
+    precisely because the output had the right shape and dtypes.
+    """
+    from .realtime.alfred import alfred_vintages
+    return alfred_vintages(
+        series_id, timeout=timeout, store=None, use_cache=True,
+        refresh=refresh,
     )
-    long["value"] = pd.to_numeric(long["value"], errors="coerce")
-    long = long.dropna(subset=["vintage", "value"])
-    return long[["date", "vintage", "value"]].reset_index(drop=True)
 
 
 def fetch_fred_alfred(
@@ -102,13 +107,17 @@ def fetch_fred_alfred(
 ) -> pd.DataFrame:
     """Download a FRED-ALFRED real-time vintage panel as long DataFrame.
 
-    Returns columns ``[date, vintage, value]``. Backwards-compat with
-    0.65.0: calling without ``store=`` is identical to the pre-0.66.0
-    behaviour.
+    Returns columns ``[date, vintage, value]``, one row per (reference
+    period, edition).
 
-    The ALFRED CSV has columns:
-        observation_date, <SERIES_ID>_YYYY-MM-DD (one column per vintage).
-    We melt that to long form.
+    Since 1.7.0 this returns the **whole** archive. Before then it
+    returned a single edition — see
+    :func:`_fetch_fred_alfred_raw_api` — so any revision measured from
+    it was zero.
+
+    For new code prefer
+    :func:`puremacro.fetch.realtime.alfred_vintages`, which adds wide
+    output, vintage filtering, and the ``first``/``latest`` selectors.
 
     Parameters
     ----------
@@ -128,7 +137,8 @@ def fetch_fred_alfred(
             "vintage_date":     "vintage",
         })[["date", "vintage", "value"]].reset_index(drop=True)
 
-    df = _fetch_fred_alfred_raw_api(series_id, timeout=timeout)
+    df = _fetch_fred_alfred_raw_api(series_id, timeout=timeout,
+                                    refresh=refresh)
 
     if store is not None and not df.empty:
         store_rows = df.assign(series_id=series_id).rename(columns={
