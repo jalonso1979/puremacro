@@ -4,6 +4,10 @@ This file records user-visible changes per release. Internal refactors that don'
 
 ## Unreleased
 
+## 1.6.0 (2026-08-23)
+
+**The capital stock the production functions always assumed, a panel that imports without a network stack, and two silent data defects: one variable carrying two scales, and five countries refused for publishing the wrong kind of volume.**
+
 ### Fixed
 - **`oecd_qna_expenditure` returned an empty frame for every fixed-base publisher.** It filtered `PRICE_BASE == "L"` — chain-linked volumes — so Mexico, Argentina, Indonesia, India and South Africa, which publish only fixed-base `Q` volumes, silently got nothing. That is the exact failure `oecd_qna_panel` was written to avoid, and its module docstring has named this module for it since 1.3. Verified against the cache: at the parent commit MEX, ARG and ZAF each returned zero rows; they now return 750, 534 and 750.
   - The base is chosen **once per country**, chain-linked where published and fixed-base otherwise, mirroring `qna_panel._pick_volume_base`. Never mixed within a country: that would put a level shift in the middle of a series, which is the defect that just took a sibling producer out of `build_panel`. The base used is recorded in the `source` string.
