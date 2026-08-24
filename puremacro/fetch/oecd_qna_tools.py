@@ -427,3 +427,146 @@ def qna_contributions(panel: pd.DataFrame, *, annualise: bool = False,
 
 __all__ = ["qna_rebase", "qna_identity", "qna_contributions",
            "IDENTITY_TERMS", "OUTPUT_TERMS", "INCOME_TERMS"]
+
+
+# ---------------------------------------------------------------------------
+# Labour hours: the time base the source does not declare
+# ---------------------------------------------------------------------------
+#: Weeks in a quarter, used to turn a quarterly hours total into a working week.
+WEEKS_PER_QUARTER = 13.0
+
+#: What a plausible working week looks like, per employed person. Deliberately
+#: wide: the point is to separate "this country works long hours" from "this
+#: series is on a different time base", and every real economy in the QNA
+#: panel sits between 27 and 43.
+HOURS_PLAUSIBLE_BAND: tuple[float, float] = (25.0, 50.0)
+
+#: The only factors a wrong time base can be, because a time base is a ratio of
+#: calendar units. A series is repaired by exactly one of these or not at all —
+#: which is what makes the repair identified rather than chosen.
+HOURS_CALENDAR_FACTORS: dict[float, str] = {
+    WEEKS_PER_QUARTER: "a weekly figure filed as a quarterly total",
+    4.0: "a quarterly figure filed as an annual total",
+    0.25: "an annual figure filed as a quarterly total",
+    1.0 / WEEKS_PER_QUARTER: "a quarterly figure filed as a weekly total",
+}
+
+
+def qna_hours_time_base(
+    panel: pd.DataFrame,
+    *,
+    band: tuple[float, float] = HOURS_PLAUSIBLE_BAND,
+    hours: str = "hours",
+    heads: str = "emp",
+) -> pd.DataFrame:
+    """Diagnose which countries publish ``hours`` on the wrong time base.
+
+    ``QNA_LABOR_UNITS`` declares ``hours`` to be **millions of hours worked in
+    the quarter**, and that is a claim with an arithmetic consequence: divided
+    by employment and by the thirteen weeks in a quarter it has to produce a
+    plausible working week. Most countries oblige. A few do not, by margins no
+    labour market could produce — Chile arrives at 3.2 hours a week and Costa
+    Rica at 166 — because the figure they filed is weekly, or annual, and
+    nothing in the metadata says so.
+
+    The repair factor is not chosen, it is **identified**: a wrong time base
+    can only be one of the calendar ratios in
+    :data:`HOURS_CALENDAR_FACTORS`, and requiring the repaired week to land
+    inside ``band`` picks at most one of them. Where none or several fit, the
+    country is reported with ``factor = NaN`` and left alone, because a repair
+    that needs a judgement call is not a repair.
+
+    Returns
+    -------
+    pd.DataFrame indexed by country code, one row per country that carries
+    both series, with columns ``[implied_week, factor, repaired_week, reason,
+    ok]``. ``ok`` is True when the raw series was already plausible.
+
+    See Also
+    --------
+    qna_repair_hours : applies what this diagnoses.
+    """
+    _require_panel(panel)
+    for col in (hours, heads):
+        if col not in panel.columns:
+            raise KeyError(
+                f"qna_hours_time_base needs a {col!r} column; the panel has "
+                f"{sorted(panel.columns)[:8]}... Build it with "
+                f"qna_panel(..., labor=True)."
+            )
+    lo, hi = float(band[0]), float(band[1])
+    rows = []
+    for code, g in panel.groupby(level="code"):
+        d = g[[hours, heads]].dropna()
+        if d.empty:
+            continue
+        # hours are millions per quarter, heads thousands of persons
+        implied = float(((d[hours] * 1e6) / (d[heads] * 1e3)
+                         / WEEKS_PER_QUARTER).median())
+        if not np.isfinite(implied):
+            continue
+        if lo <= implied <= hi:
+            rows.append({"code": code, "implied_week": implied, "factor": 1.0,
+                         "repaired_week": implied, "reason": "", "ok": True})
+            continue
+        fits = [(f, implied * f) for f in HOURS_CALENDAR_FACTORS
+                if lo <= implied * f <= hi]
+        if len(fits) == 1:
+            factor, fixed = fits[0]
+            rows.append({"code": code, "implied_week": implied,
+                         "factor": float(factor), "repaired_week": float(fixed),
+                         "reason": HOURS_CALENDAR_FACTORS[factor], "ok": False})
+        else:
+            rows.append({
+                "code": code, "implied_week": implied,
+                "factor": np.nan, "repaired_week": np.nan, "ok": False,
+                "reason": (f"{len(fits)} calendar factors fit the band, not one; "
+                           "not repaired")})
+    out = pd.DataFrame(rows, columns=["code", "implied_week", "factor",
+                                      "repaired_week", "reason", "ok"])
+    return out.set_index("code").sort_values("implied_week")
+
+
+def qna_repair_hours(
+    panel: pd.DataFrame,
+    *,
+    band: tuple[float, float] = HOURS_PLAUSIBLE_BAND,
+    columns: tuple[str, ...] = ("hours", "hours_employees", "hours_selfemp"),
+    heads: str = "emp",
+    add_factor_column: bool = True,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Put every country's ``hours`` onto hours-per-quarter, and say what moved.
+
+    Multiplies each affected country's hours columns by the factor
+    :func:`qna_hours_time_base` identifies, so a panel can be used across
+    countries without a plausibility filter in front of every calculation.
+    Countries already on the right base are untouched, and countries whose base
+    cannot be identified are **left as they are** and flagged in the report
+    rather than dropped — the caller decides.
+
+    Returns ``(panel, report)``. The panel is a copy; with
+    ``add_factor_column`` it carries ``hours_factor`` so the repair travels
+    with the data instead of living in whoever's script applied it.
+
+    Notes
+    -----
+    Growth rates are invariant to this: a constant factor cancels out of
+    :math:`\\Delta\\log h`. What the repair fixes is every statement about
+    *levels* — output per hour, hours per worker, and any comparison of the two
+    labour margins across countries.
+    """
+    diag = qna_hours_time_base(panel, band=band, heads=heads)
+    out = panel.copy()
+    codes = out.index.get_level_values("code")
+    factors = diag["factor"].reindex(codes.unique()).fillna(1.0)
+    if add_factor_column:
+        out["hours_factor"] = codes.map(factors).astype(float)
+    scale = pd.Series(codes.map(factors).to_numpy(dtype=float), index=out.index)
+    for col in columns:
+        if col in out.columns:
+            out[col] = out[col] * scale
+    return out, diag
+
+
+__all__ += ["qna_hours_time_base", "qna_repair_hours", "WEEKS_PER_QUARTER",
+            "HOURS_PLAUSIBLE_BAND", "HOURS_CALENDAR_FACTORS"]

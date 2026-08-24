@@ -11,9 +11,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from puremacro.fetch import (APPROACH_GDP, IDENTITY_TERMS, INCOME_TERMS,
-                             OUTPUT_TERMS, qna_contributions, qna_identity,
-                             qna_rebase)
+from puremacro.fetch import (APPROACH_GDP, HOURS_PLAUSIBLE_BAND,
+                             IDENTITY_TERMS, INCOME_TERMS, OUTPUT_TERMS,
+                             qna_contributions, qna_hours_time_base,
+                             qna_identity, qna_rebase, qna_repair_hours)
 from puremacro.fetch.oecd_qna_panel import (QNA_AGGREGATES, _fetch_ref_areas,
                                             qna_countries)
 
@@ -364,3 +365,93 @@ def test_fetch_ref_areas_parses_an_availability_payload(monkeypatch):
 
     assert _fetch_ref_areas("OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA,", False) == [
         "USA", "MEX", "OECD"]
+
+
+# ---------------------------------------------------------------------------
+# The hours time base the OECD does not declare
+# ---------------------------------------------------------------------------
+def _labour_panel(weeks: dict[str, float]) -> pd.DataFrame:
+    """A (code, date) labour block with a chosen implied working week.
+
+    ``weeks`` maps a country to the hours per week per employed person its
+    published series *implies*. A country filing the right units implies a
+    plausible week; one filing a weekly figure as a quarterly total implies
+    that week divided by thirteen.
+    """
+    rows = []
+    for code, week in weeks.items():
+        heads = np.linspace(1_000.0, 1_100.0, len(_QUARTERS))   # thousands
+        hours = week * 13.0 * heads * 1e3 / 1e6                 # millions
+        rows.append(pd.DataFrame({
+            "code": code, "date": _QUARTERS,
+            "emp": heads, "hours": hours,
+            "hours_employees": hours * 0.8, "hours_selfemp": hours * 0.2,
+        }))
+    return pd.concat(rows).set_index(["code", "date"]).sort_index()
+
+
+def test_hours_time_base_leaves_plausible_countries_alone():
+    panel = _labour_panel({"DEU": 27.3, "MEX": 43.0})
+    diag = qna_hours_time_base(panel)
+    assert diag["ok"].all()
+    assert (diag["factor"] == 1.0).all()
+    assert np.allclose(diag["repaired_week"], diag["implied_week"])
+
+
+@pytest.mark.parametrize("filed_as, factor", [
+    (1 / 13.0, 13.0),     # a weekly figure filed as a quarterly total (Chile)
+    (4.0, 0.25),          # an annual figure filed as a quarterly total (Costa Rica)
+])
+def test_hours_time_base_identifies_the_calendar_factor(filed_as, factor):
+    truth = 41.4
+    panel = _labour_panel({"XXX": truth * filed_as})
+    diag = qna_hours_time_base(panel)
+    assert not diag.loc["XXX", "ok"]
+    assert diag.loc["XXX", "factor"] == pytest.approx(factor)
+    assert diag.loc["XXX", "repaired_week"] == pytest.approx(truth, rel=1e-9)
+    assert diag.loc["XXX", "reason"]
+
+
+def test_hours_time_base_refuses_when_the_factor_is_not_identified():
+    """A week no calendar ratio can rescue is reported, not guessed at."""
+    panel = _labour_panel({"XXX": 1e6})
+    diag = qna_hours_time_base(panel)
+    assert not diag.loc["XXX", "ok"]
+    assert np.isnan(diag.loc["XXX", "factor"])
+    assert "not repaired" in diag.loc["XXX", "reason"]
+
+
+def test_repair_hours_rescales_every_hours_column_and_records_the_factor():
+    panel = _labour_panel({"DEU": 27.3, "CHL": 41.4 / 13.0})
+    fixed, diag = qna_repair_hours(panel)
+    week = ((fixed["hours"] * 1e6) / (fixed["emp"] * 1e3) / 13.0)
+    assert week.groupby(level="code").median().between(*HOURS_PLAUSIBLE_BAND).all()
+    # the split legs move with the total, or they stop summing to it
+    assert np.allclose(fixed["hours_employees"] + fixed["hours_selfemp"],
+                       fixed["hours"])
+    assert fixed.loc["CHL", "hours_factor"].eq(13.0).all()
+    assert fixed.loc["DEU", "hours_factor"].eq(1.0).all()
+    assert set(diag.index) == {"CHL", "DEU"}
+
+
+def test_repair_hours_leaves_growth_rates_untouched():
+    """The whole repair is a constant, so dlog h cannot move — only levels."""
+    panel = _labour_panel({"CHL": 41.4 / 13.0})
+    fixed, _ = qna_repair_hours(panel)
+    before = np.log(panel.loc["CHL", "hours"]).diff().dropna()
+    after = np.log(fixed.loc["CHL", "hours"]).diff().dropna()
+    assert np.allclose(before.to_numpy(), after.to_numpy())
+
+
+def test_repair_hours_is_idempotent():
+    """Applying it twice must not square the factor."""
+    panel = _labour_panel({"CHL": 41.4 / 13.0})
+    once, _ = qna_repair_hours(panel)
+    twice, _ = qna_repair_hours(once)
+    assert np.allclose(once["hours"].to_numpy(), twice["hours"].to_numpy())
+
+
+def test_hours_time_base_needs_the_columns_it_uses():
+    panel = _labour_panel({"DEU": 27.3}).drop(columns=["hours"])
+    with pytest.raises(KeyError, match="hours"):
+        qna_hours_time_base(panel)
