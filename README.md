@@ -114,6 +114,15 @@ helper. Coverage is constrained by what Wayback has snapshotted.
   (OECD, Eurostat, ECB, IMF SDMX-Central), EPU / GPR / WUI / JLN /
   Fernald, OECD-MEI / QNA / Energy / FX, ILOSTAT, Yahoo, WB pink
   sheet, plus per-state FRED loaders for the US subnational track.
+- **Long national accounts** (`fetch.qna_long_panel`) — the OECD spine extended
+  backwards per country by ratio-splicing archived national vintages onto it:
+  **Spain to 1970Q1** (+100 quarters) and **Japan to 1955Q2** (+155), with
+  provenance per series per quarter. The splice preserves the old vintage's
+  growth rates and reports how stable each join's ratio is, because a ratio
+  that drifts across the overlap means the two vintages disagree about growth
+  and the spliced level depends on the anchor. Seven other candidate sources
+  were measured to buy zero quarters and the reasons are kept in
+  `LONG_PANEL_KNOWN_GAPS`. See `docs/long_panel.md`.
 - **Real-time data** (`fetch.vintage_panel`, `fetch.realtime.*`) — published
   *editions* of a series across six providers behind one call: the OECD STES
   revisions archive (42 economies, monthly editions from 1999), ALFRED, the

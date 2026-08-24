@@ -82,6 +82,32 @@ A few specifics worth knowing:
 - **ECB** silently ignores the SDMX `asOf` parameter, and returns only
   the current vintage unless `includeHistory=true` is set.
 
+## Some archive editions are not seasonally adjusted
+
+The OECD STES archive has six dimensions and none of them is seasonal
+adjustment. It carries whatever the OECD ingested at the time, and for
+twelve reference areas the early editions are the **raw** series — the
+archive switched over area by area between 2000 and 2007 without
+recording it anywhere.
+
+Nothing downstream survives that. Sweden's first estimate of 2002Q4 is
+**+16.09%** quarterly growth against **+0.07%** today; Turkey's is
+**−25.16%** against **+1.91%**. A news-vs-noise test run over those is
+regressing a seasonal factor, and duly reports that essentially all of
+the first release is measurement error. It is not. It is December.
+
+Because the archive does not record it, it is detected from the data:
+
+```python
+from puremacro.fetch.realtime.seasonal import seasonal_signature
+seasonal_signature(panel).query("unadjusted")
+```
+
+`vintage_panel` drops those editions **by default** and reports what it
+removed. Pass `drop_unadjusted=False` to keep them.
+
+Affected: AUT, CZE, HUN, IRL, ISL, LUX, MEX, POL, PRT, SVK, SWE, TUR.
+
 ## Units, levels, and why growth rates
 
 Revision tests here default to growth rates, and transforms are applied

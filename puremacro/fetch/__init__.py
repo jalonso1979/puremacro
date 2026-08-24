@@ -13,6 +13,9 @@ Public API
 - :func:`vintage_panel`     — one-call cross-country panel of published
                               editions, across six real-time providers
 - :func:`vintage_catalog`   — which series backs which (country, variable)
+- :func:`qna_long_panel`    — the OECD spine extended backwards per country by
+                              ratio-splicing archived national vintages onto it
+                              (Spain to 1970, Japan to 1955)
 - :func:`qna_panel`         — one-call cross-country quarterly national accounts
                               (nominal SA levels + implicit deflators, OECD QNA)
 - :func:`qna_labor`         — the QNA labour block alone (employment, hours)
@@ -80,11 +83,19 @@ from .qna_vintages import (
     QNAVintagePanel,
     get_qna_vintage_catalog,
 )
+from .longpanel import (
+    qna_long_panel,
+    long_panel_residual,
+    LONG_PANEL_SOURCES,
+    KNOWN_GAPS as LONG_PANEL_KNOWN_GAPS,
+)
 from .realtime import (
     alfred_vintages,
     available_providers,
     vintage_catalog,
     vintage_panel,
+    seasonal_signature,
+    drop_unadjusted_editions,
     VintagePanel,
     VINTAGE_SEMANTICS,
 )
@@ -94,6 +105,12 @@ __all__ = [
     "fetch_fred_alfred",
     "alfred_vintages",
     "vintage_panel",
+    "seasonal_signature",
+    "drop_unadjusted_editions",
+    "qna_long_panel",
+    "long_panel_residual",
+    "LONG_PANEL_SOURCES",
+    "LONG_PANEL_KNOWN_GAPS",
     "VintagePanel",
     "vintage_catalog",
     "available_providers",

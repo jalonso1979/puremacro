@@ -52,6 +52,7 @@ nav:
   - Data:
       - Quarterly National Accounts: national_accounts.md
       - Real-time data (vintages): real_time_data.md
+      - Long national accounts panel: long_panel.md
   - Econometric Engines:
       - VAR & FAVAR: var.md
       - GDP Nowcasting: nowcast.md

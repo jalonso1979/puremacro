@@ -157,6 +157,22 @@ _MUST_EXECUTE: dict[str, tuple[str, ...]] = {
         "puremacro.vintages:_first_last_from_triangle",
         "puremacro.vintages:_kth_edition",
     ),
+    "tests/test_realtime_providers/test_seasonal.py": (
+        "puremacro.fetch.realtime.seasonal:seasonal_signature",
+        "puremacro.fetch.realtime.seasonal:drop_unadjusted_editions",
+    ),
+    "tests/test_longpanel/test_splice.py": (
+        "puremacro.fetch.longpanel._splice:ratio_splice",
+        "puremacro.fetch.longpanel._splice:overlap_ratio",
+        "puremacro.fetch.longpanel._splice:splice_frame",
+        "puremacro.fetch.longpanel._splice:expenditure_residual",
+    ),
+    "tests/test_longpanel/test_sources.py": (
+        "puremacro.fetch.longpanel.ine_es:parse_ine_series",
+        "puremacro.fetch.longpanel.ine_es:parse_cntrb86_workbook",
+        "puremacro.fetch.longpanel.esri_jp:parse_esri_csv",
+        "puremacro.fetch.longpanel.panel:qna_long_panel",
+    ),
     "tests/test_realtime_providers/test_panel_plumbing.py": (
         # The registry resolves module-level functions only, so the
         # VintagePanel methods these tests drive are covered through the

@@ -295,6 +295,8 @@
       "APPROACH_GDP",
       "IDENTITY_TERMS",
       "INCOME_TERMS",
+      "LONG_PANEL_KNOWN_GAPS",
+      "LONG_PANEL_SOURCES",
       "OUTPUT_TERMS",
       "QNAVintagePanel",
       "QNA_ACTIVITIES",
@@ -311,6 +313,7 @@
       "VintagePanel",
       "alfred_vintages",
       "available_providers",
+      "drop_unadjusted_editions",
       "fetch_eurostat_lfs_panel",
       "fetch_eurostat_vacancies",
       "fetch_fred",
@@ -324,15 +327,18 @@
       "fetch_sectoral_panel_union",
       "fetch_xrate_monthly",
       "get_qna_vintage_catalog",
+      "long_panel_residual",
       "oecd_sdmx_instrument",
       "qna_contributions",
       "qna_countries",
       "qna_identity",
       "qna_labor",
+      "qna_long_panel",
       "qna_meta",
       "qna_panel",
       "qna_rebase",
       "sdmx_get",
+      "seasonal_signature",
       "vintage_catalog",
       "vintage_panel"
     ],
@@ -366,6 +372,58 @@
     "puremacro.fetch.labor_ilostat": [
       "fetch_ilostat_lfs_panel",
       "fetch_ilostat_sectoral_panel"
+    ],
+    "puremacro.fetch.longpanel": [
+      "KNOWN_GAPS",
+      "LONG_PANEL_COLUMNS",
+      "LONG_PANEL_SOURCES",
+      "MIN_OVERLAP",
+      "RATIO_DRIFT_WARN",
+      "Seam",
+      "SpliceResult",
+      "expenditure_residual",
+      "long_panel_residual",
+      "overlap_ratio",
+      "qna_long_panel",
+      "ratio_splice",
+      "splice_frame"
+    ],
+    "puremacro.fetch.longpanel._splice": [
+      "MIN_OVERLAP",
+      "RATIO_DRIFT_WARN",
+      "Seam",
+      "SpliceResult",
+      "expenditure_residual",
+      "overlap_ratio",
+      "ratio_splice",
+      "splice_frame"
+    ],
+    "puremacro.fetch.longpanel.esri_jp": [
+      "JP_DEFAULT_CHAIN",
+      "JP_FILES",
+      "JP_LAYOUTS",
+      "fetch_esri_segment",
+      "japan_segments",
+      "parse_esri_csv"
+    ],
+    "puremacro.fetch.longpanel.ine_es": [
+      "CNTRB86_COLUMNS",
+      "CNTRB86_URL",
+      "ESP_PER_EUR",
+      "INE_BASE1995_SERIES",
+      "INE_SERIES_URL",
+      "fetch_ine_base1986",
+      "fetch_ine_base1995",
+      "parse_cntrb86_workbook",
+      "parse_ine_series",
+      "spain_segments"
+    ],
+    "puremacro.fetch.longpanel.panel": [
+      "KNOWN_GAPS",
+      "LONG_PANEL_COLUMNS",
+      "LONG_PANEL_SOURCES",
+      "long_panel_residual",
+      "qna_long_panel"
     ],
     "puremacro.fetch.oecd_energy": [
       "fetch_energy_cpi"
@@ -417,6 +475,10 @@
     "puremacro.fetch.realtime": [
       "CANONICAL_VARIABLES",
       "DEFAULT_PROVIDER_ORDER",
+      "SEASONAL_F_MIN",
+      "SEASONAL_MIN_OBS",
+      "SEASONAL_RANGE_MIN",
+      "SEASONAL_WINDOW",
       "SUPPORTED_FREQUENCIES",
       "VINTAGE_COLUMNS",
       "VINTAGE_SEMANTICS",
@@ -424,12 +486,14 @@
       "alfred_vintages",
       "available_providers",
       "canonical_variable",
+      "drop_unadjusted_editions",
       "normalize_vintage_frame",
       "parse_alfredgraph_csv",
       "provider_countries",
       "providers_for",
       "register_provider",
       "resolve_series",
+      "seasonal_signature",
       "vintage_catalog",
       "vintage_panel"
     ],
@@ -519,6 +583,14 @@
       "DEFAULT_PROVIDER_ORDER",
       "SUPPORTED_FREQUENCIES",
       "vintage_panel"
+    ],
+    "puremacro.fetch.realtime.seasonal": [
+      "SEASONAL_F_MIN",
+      "SEASONAL_MIN_OBS",
+      "SEASONAL_RANGE_MIN",
+      "SEASONAL_WINDOW",
+      "drop_unadjusted_editions",
+      "seasonal_signature"
     ],
     "puremacro.fetch.realtime.statcan": [
       "STATCAN_VINTAGE_TABLES",
@@ -2397,6 +2469,23 @@
       "se",
       "step",
       "windmeijer"
+    ],
+    "puremacro.fetch.longpanel._splice.Seam": [
+      "date",
+      "newer",
+      "note",
+      "older",
+      "overlap_n",
+      "ratio",
+      "ratio_drift",
+      "ratio_max",
+      "ratio_min",
+      "stable"
+    ],
+    "puremacro.fetch.longpanel._splice.SpliceResult": [
+      "provenance",
+      "seams",
+      "series"
     ],
     "puremacro.fetch.qna_vintages.QNAVintagePanel": [
       "df",

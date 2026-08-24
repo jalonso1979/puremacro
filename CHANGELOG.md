@@ -7,6 +7,38 @@ This file records user-visible changes per release. Internal refactors that don'
 ### Internal
 - **Every GitHub Action bumped off a deprecated Node runtime.** `actions/checkout@v4` and `actions/setup-python@v5` run on Node 20, which the runners are already force-shimming to Node 24 and will eventually stop; both are now on v7. The deprecation notice did not mention `peaceiris/actions-gh-pages@v3`, which is on Node **16** — older still, and the reason `pages.yml` was the most exposed of the three workflows; it is now on v4. Usage is unchanged and vanilla throughout (`fetch-depth`, `python-version`, `cache`, and the three core publish inputs), all stable across these majors. `pypa/gh-action-pypi-publish@release/v1` is a rolling tag maintained upstream and is left alone.
 
+## 1.8.0 (2026-08-23)
+
+**The longest quarterly national accounts panel the sources actually support — Spain to 1970, Japan to 1955 — spliced onto the OECD spine, with the evidence for every join reported rather than hidden.**
+
+### Fixed — affects results published in 1.7.0
+- **The OECD STES archive serves *unadjusted* series in its early editions, and 1.7.0 regressed them as if they were revisions.** The archive has six dimensions and none is seasonal adjustment; it switched area by area between 2000 and 2007 without recording it anywhere, so it cannot be read from the metadata. It can be read from the data, and `fetch.realtime.seasonal` now does: a two-part screen on each edition's own log growth — an F of quarterly dummies (is a quarterly pattern there?) and the peak-to-trough range of the four quarterly means (is it big?). Both must fire, because the F alone flags residual seasonality far too small to matter and the range alone can be fooled by outliers. The thresholds sit in the empty gap between the two populations on the real archive.
+  - `vintage_panel(drop_unadjusted=True)` is now the **default**, and reports what it removed rather than removing it quietly.
+  - **Twelve countries were affected** — AUT, CZE, HUN, IRL, ISL, LUX, MEX, POL, PRT, SVK, SWE, TUR. Sweden's first estimate of 2002Q4 is +16.09% quarterly growth against +0.07% today; Turkey's is −25.16% against +1.91%. Those are seasonal factors, not revisions.
+  - Corrected news-vs-noise results: **SWE −0.963 → +0.022** (the sign flips, "neither" → "news"), **TUR −0.955 → −0.157**, **POL −0.863 → −0.131**, **CZE −0.613 → −0.189**. The panel median beta moves from −0.111 to −0.085. If you ran a cross-country revision study on 1.7.0, re-run it.
+
+### Added
+- **`fetch.qna_long_panel(...)`** — the OECD spine extended backwards per country by ratio-splicing archived national vintages onto it. Same column schema as `qna_panel`, so `qna_identity` and friends work unchanged, plus a `src_<column>` per value column recording which vintage produced each quarter.
+  - **Spain: 1970Q1, +100 quarters** over the OECD's 1995 start, via INE's archived base-1995 tables (JSON API) and the base-1986 workbook.
+  - **Japan: 1955Q2, +155 quarters** over the OECD's 1994 start, via the Cabinet Office's archived 68SNA and 93SNA releases.
+- **`fetch.longpanel._splice`** — ratio-splicing with the diagnostics that make it honest: `ratio_splice`, `splice_frame`, `overlap_ratio`, `expenditure_residual`, and the `Seam` record.
+
+### The design, and why
+A ratio splice preserves the old vintage's **growth rates** and discards its levels, which are expressed in a base and a methodology since abandoned. That means a constant factor — a rebasing, a units change, Japan's billions-at-annual-rates against the spine's millions-per-quarter — is absorbed exactly and silently. What cannot be absorbed is a ratio that *drifts* across the overlap: that means the two vintages disagree about growth itself, and the spliced level then depends on which quarter you anchored to.
+
+So the ratio's **stability is the test**, and it is measured and reported per column. On Spain, GDP and household consumption hold steady across both seams (drift 0.9–1.3%) while capital formation does not (5.1%, ratio ranging 1.04–1.39 over 76 quarters). On Japan, everything holds except government consumption at the 68SNA seam (5.3%) — 68SNA defined government differently. **9 of 28 seams are unstable**, they are named, and `return_seams=True` hands back the whole table.
+
+Columns are spliced **independently**, so `C + G + I + X − M` no longer equals spliced GDP. That is deliberate: `long_panel_residual` measures the gap (0.33% of GDP on average) instead of forcing it to zero, which would have buried exactly the disagreement above.
+
+Three things are **refused** rather than fudged: a join with no overlap, a join with fewer than four overlapping quarters, and a definitional break. Germany reaches 1970 only in *volumes* — its pre-1991 nominal accounts cover West Germany, and rescaling those onto unified Germany would fabricate an East German economy — so `ratio_splice` refuses it unless the caller explicitly accepts responsibility.
+
+### Sources checked and rejected
+Seven of nine candidate sources buy **zero additional quarters**, which was measured rather than assumed, and is recorded in `LONG_PANEL_KNOWN_GAPS`:
+- **Eurostat** publishes the same numbers as the OECD — the splice ratio is 1.0 — beats it for no country, is *shorter* for Denmark and Switzerland, and has no United Kingdom row at all.
+- **IMF** ties the OECD on seven of eight economies and is 12 quarters shorter on the United States.
+- **INEGI** serves nothing before 1993 and is identical to the OECD after dividing by four; **IBGE** ties the OECD at 1996Q1 across all seven candidate tables.
+- **CEPALSTAT**'s Mexican 1980-92 join drifts 11% across the overlap — the condition `ratio_splice` refuses.
+
 ## 1.7.0 (2026-08-23)
 
 **Real-time data grows up: an accessor that actually returns the archive, six vintage providers behind one panel, and the news-vs-noise test as a first-class estimator. Cross-country revision work goes from 2 usable countries to 34.**

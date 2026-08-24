@@ -47,6 +47,7 @@ def vintage_panel(
     use_cache: bool = True,
     timeout: float | None = None,
     warn_on_mixed_providers: bool = True,
+    drop_unadjusted: bool = True,
 ) -> VintagePanel:
     """Assemble a cross-country panel of published *editions*.
 
@@ -70,6 +71,15 @@ def vintage_panel(
         each provider keep its own — the bulk providers need far longer
         than the per-series ones, and a single global default low
         enough for one is short enough to silently truncate the other.
+    drop_unadjusted : drop archive editions that carry a *raw*, not
+        seasonally adjusted, series. The OECD STES archive has no
+        seasonal-adjustment dimension and switched area by area between
+        2000 and 2007 without recording it anywhere, so this is
+        detected from the data. It defaults to True because the
+        alternative is silent: Sweden's first estimate of 2002Q4 is
+        +16.09% quarterly growth against +0.07% today, and a revision
+        test run over that is regressing a seasonal factor. See
+        :mod:`puremacro.fetch.realtime.seasonal`.
     warn_on_mixed_providers : warn when the assembled panel draws on
         more than one provider. Mixing matters: providers disagree on
         what a vintage *date* means (ingestion date vs. national
@@ -180,6 +190,27 @@ def vintage_panel(
     missing = sorted({c for c, _ in missing_pairs})
 
     panel = VintagePanel.concat(panels)
+
+    if drop_unadjusted and not panel.is_empty():
+        from .seasonal import drop_unadjusted_editions
+        panel, dropped = drop_unadjusted_editions(panel)
+        if len(dropped):
+            worst = dropped["median_range"].idxmax()
+            warnings.warn(
+                f"vintage_panel dropped raw (not seasonally adjusted) "
+                f"editions for {len(dropped)} countries: "
+                f"{sorted(dropped.index)}. These are early editions the "
+                "OECD archive ingested unadjusted -- it has no seasonal "
+                "dimension and switched over area by area without "
+                f"recording it. Worst is {worst}, median quarterly "
+                f"seasonal range {dropped.loc[worst, 'median_range']:.1f}pp. "
+                "Pass drop_unadjusted=False to keep them, but a revision "
+                "test over them regresses a seasonal factor, not a "
+                "revision.",
+                UserWarning, stacklevel=2,
+            )
+            panel.metadata["unadjusted_dropped"] = dropped
+
     panel.metadata.update({
         "requested_countries": country_list,
         "variables": var_list,

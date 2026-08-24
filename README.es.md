@@ -42,6 +42,16 @@ Los conectores bloqueados por WAF / protección anti-bot (EUR-Lex, Parlamento Eu
 **Pipelines de datos** (incorporados recientemente; véase `ARCHITECTURE.md`)
 
 - **Captadores** (`fetch.*`) — FRED / ALFRED, SDMX-CSV (OCDE, Eurostat, BCE, SDMX-Central del FMI), EPU / GPR / WUI / JLN / Fernald, OCDE-MEI / QNA / Energía / Tipos de cambio, ILOSTAT, Yahoo, hoja rosa del Banco Mundial, además de cargadores FRED por estado para el seguimiento subnacional de EE. UU.
+- **Cuentas nacionales largas** (`fetch.qna_long_panel`) — la serie de la OCDE
+  extendida hacia atrás, país por país, empalmando por ratios las añadas
+  nacionales archivadas: **España hasta 1970T1** (+100 trimestres) y **Japón
+  hasta 1955T2** (+155), con la procedencia de cada serie y trimestre. El
+  empalme conserva las tasas de crecimiento de la añada antigua e informa de
+  cuán estable es el ratio de cada juntura: si el ratio deriva a lo largo del
+  solape, las dos añadas discrepan sobre el crecimiento y el nivel empalmado
+  depende del trimestre de anclaje. Otras siete fuentes candidatas no aportan
+  ni un trimestre, y el motivo queda registrado en `LONG_PANEL_KNOWN_GAPS`.
+  Véase `docs/long_panel.md`.
 - **Datos en tiempo real** (`fetch.vintage_panel`, `fetch.realtime.*`) — las *ediciones* publicadas de una serie, con seis proveedores tras una sola llamada: el archivo de revisiones OCDE-STES (42 economías, ediciones mensuales desde 1999), ALFRED, la base Gerda del Bundesbank, el libro de tiempo real del ONS (746 ediciones desde 1961), las tablas de vintages de Statistics Canada y la base del BCE/EABCN. Incluye el instrumental de revisiones: triángulos de revisión, primera y última estimación, `r_t = y_f - y_p`, y el contraste de noticia frente a ruido de Mankiw-Shapiro (`vintages.mankiw_shapiro`). Cada proveedor documenta qué significa exactamente su fecha de edición, porque no coinciden entre sí. Véase `docs/real_time_data.md`.
 - **Constructores de panel** (`build_panel`, `build_subnational_panel`) — puntos de entrada únicos que materializan paneles trimestrales y mensuales de países y estados de EE. UU. a partir de los captadores, con etiquetado de regímenes, ajuste estacional (X-13 / STL como alternativa) y una pipeline de σ-GARCH derivada.
 - **Instrumentos** (`instruments.*`) — registro de instrumentos, composición y cargadores externos (ruta de clave API de FRED); columna vertebral de la maquinaria LP-IV.
