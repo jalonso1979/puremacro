@@ -2,7 +2,7 @@
 
 Covers:
   - realized_variance : known-value, scaling, sign-invariance, list input, empty
-  - bipower_variation : known-value, scaling, sign-invariance, edge cases (0/1/2 elements)
+  - bipower_variation : known-value, scaling, sign-invariance, edge cases (0/1/2 elements, NaN, 0D, 2D, strings)
   - realized_jump     : contract corners (rv<=0, bv>rv clip, normal case)
   - daily_rv_panel    : shape, columns, RJ bounds, BV=0 for 1-element days
   - har_rv            : key set, design shape, reconstruction, SE positivity, R2 float,
@@ -155,6 +155,38 @@ def test_bipower_variation_accepts_list():
     r_list = [0.01, -0.02, 0.015]
     r_arr = np.array(r_list)
     assert bipower_variation(r_list) == bipower_variation(r_arr)
+
+
+
+def test_bipower_variation_with_nans():
+    """BV computation propagates NaNs in the return array."""
+    r = np.array([0.01, np.nan, 0.02])
+    assert np.isnan(bipower_variation(r))
+
+
+def test_bipower_variation_0d_raises():
+    """0D arrays (scalars) raise TypeError due to the len(r) check."""
+    r = np.array(0.05)
+    import pytest
+    with pytest.raises(TypeError, match="len.. of unsized object"):
+        bipower_variation(r)
+
+
+def test_bipower_variation_2d_input():
+    """2D input computes correctly via element-wise operations and summation."""
+    # For a 2x2 matrix: r[:-1] is the first row, r[1:] is the second row
+    # np.sum(np.abs(r[:-1]) * np.abs(r[1:])) sums over all elements of the resulting 1x2 array
+    r = np.array([[1.0, 2.0], [3.0, 4.0]])
+    # |[1, 2]| * |[3, 4]| = [3, 8], sum = 11
+    expected = (np.pi / 2.0) * 11.0
+    assert abs(bipower_variation(r) - expected) < 1e-14
+
+
+def test_bipower_variation_string_inputs():
+    """Float-like strings are automatically cast to floats due to dtype=float."""
+    r = ["0.01", "-0.02", "0.015"]
+    expected = bipower_variation(np.array([0.01, -0.02, 0.015]))
+    assert abs(bipower_variation(r) - expected) < 1e-15
 
 
 # ===========================================================================
