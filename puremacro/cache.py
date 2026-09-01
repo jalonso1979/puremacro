@@ -28,7 +28,6 @@ from __future__ import annotations
 
 import json
 import os
-import pickle
 import time
 from pathlib import Path
 from typing import Any, Callable, TypeVar
@@ -76,7 +75,7 @@ def disk_cache(
     Storage format chosen by inspecting the loader's return type on
     cache-miss:
       - ``pd.DataFrame`` / ``pd.Series`` → parquet
-      - everything else → pickle (covers dicts, lists, np.ndarray, etc.)
+      - everything else → json (covers dicts, lists, etc.)
 
     Set ``refetch=True`` (or env var ``PUREMACRO_CACHE_DISABLE=1``) to
     bypass the cache and always call the loader.
@@ -85,14 +84,14 @@ def disk_cache(
         os.environ.get("PUREMACRO_CACHE_DISABLE") == "1" or refetch
     )
     pq = disk_cache_path(key, namespace=namespace, suffix=".parquet")
-    pkl = disk_cache_path(key, namespace=namespace, suffix=".pkl")
+    jsn = disk_cache_path(key, namespace=namespace, suffix=".json")
 
     if not disabled:
         if pq.exists() and not _is_stale(pq, ttl_seconds):
             return pd.read_parquet(pq)
-        if pkl.exists() and not _is_stale(pkl, ttl_seconds):
-            with pkl.open("rb") as f:
-                return pickle.load(f)
+        if jsn.exists() and not _is_stale(jsn, ttl_seconds):
+            with jsn.open("r", encoding="utf-8") as f:
+                return json.load(f)
 
     value = loader()
     if isinstance(value, (pd.DataFrame, pd.Series)):
@@ -102,9 +101,9 @@ def disk_cache(
         else:
             value.to_parquet(pq, index=True)
     else:
-        pkl.parent.mkdir(parents=True, exist_ok=True)
-        with pkl.open("wb") as f:
-            pickle.dump(value, f)
+        jsn.parent.mkdir(parents=True, exist_ok=True)
+        with jsn.open("w", encoding="utf-8") as f:
+            json.dump(value, f)
     return value
 
 
