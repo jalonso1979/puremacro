@@ -133,6 +133,120 @@ def _fit_coordinate_descent(
     return beta_0, beta
 
 
+def _prepare_data(
+    X_panel: pd.DataFrame | np.ndarray,
+    y_target: pd.Series | np.ndarray
+) -> tuple[np.ndarray, np.ndarray, list[str]]:
+    """Convert input data to numpy arrays and extract feature names."""
+    if isinstance(X_panel, pd.DataFrame):
+        feat_names = list(X_panel.columns)
+        X_mat = X_panel.to_numpy(dtype=float)
+    else:
+        X_mat = np.asarray(X_panel, dtype=float)
+        feat_names = [f"X_{j+1}" for j in range(X_mat.shape[1])]
+
+    if isinstance(y_target, (pd.Series, pd.DataFrame)):
+        y_vec = y_target.to_numpy(dtype=float).ravel()
+    else:
+        y_vec = np.asarray(y_target, dtype=float).ravel()
+
+    return X_mat, y_vec, feat_names
+
+
+def _align_data(
+    X_mat: np.ndarray,
+    y_vec: np.ndarray,
+    horizon: int
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Align for direct h-step ahead forecasting: y_{t+h} on X_t."""
+    if horizon > 0:
+        X_train = X_mat[:-horizon]
+        y_train = y_vec[horizon:]
+        X_latest = X_mat[-1]
+    else:
+        X_train = X_mat
+        y_train = y_vec
+        X_latest = X_mat[-1]
+
+    T_eff = X_train.shape[0]
+    if T_eff < 10:
+        raise ValueError(f"forecast_penalized: effective training sample too small ({T_eff} rows)")
+
+    return X_train, y_train, X_latest
+
+
+def _standardize_data(X_train: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Standardize feature matrix to zero mean and unit variance."""
+    x_mean = X_train.mean(axis=0)
+    x_std = X_train.std(axis=0)
+    x_std[x_std == 0.0] = 1.0
+    X_norm = (X_train - x_mean) / x_std
+    return X_norm, x_mean, x_std
+
+
+def _compute_adaptive_weights(X_norm: np.ndarray, y_train: np.ndarray, adaptive: bool) -> np.ndarray:
+    """Compute Adaptive Lasso weights via Ridge Regression."""
+    P = X_norm.shape[1]
+    if adaptive:
+        ridge_pen = 1e-2 * np.eye(P)
+        beta_ridge = np.linalg.solve(X_norm.T @ X_norm + ridge_pen, X_norm.T @ (y_train - y_train.mean()))
+        weights = 1.0 / (np.abs(beta_ridge) + 1e-3)
+        weights = weights / np.median(weights) # Normalize scale
+    else:
+        weights = np.ones(P)
+    return weights
+
+
+def _construct_lambda_grid(
+    X_norm: np.ndarray,
+    y_train: np.ndarray,
+    alpha: float,
+    weights: np.ndarray,
+    n_lambdas: int,
+    lambda_min_ratio: float
+) -> np.ndarray:
+    """Construct a candidate grid of regularisation parameters."""
+    T_eff = X_norm.shape[0]
+    corrs = np.abs(X_norm.T @ (y_train - y_train.mean())) / (T_eff * np.maximum(alpha * weights, 1e-4))
+    lambda_max = float(np.max(corrs))
+    lambda_min = lambda_max * lambda_min_ratio
+    lambda_grid = np.geomspace(lambda_max, lambda_min, n_lambdas)
+    return lambda_grid
+
+
+def _evaluate_bic_path(
+    X_norm: np.ndarray,
+    y_train: np.ndarray,
+    lambda_grid: np.ndarray,
+    alpha: float,
+    weights: np.ndarray
+) -> tuple[float, float, np.ndarray, dict]:
+    """Evaluate BIC path across lambda grid to find optimal regularisation."""
+    T_eff, P = X_norm.shape
+    best_bic = np.inf
+    best_lam = lambda_grid[0]
+    best_b0 = 0.0
+    best_b = np.zeros(P)
+    bic_dict = {}
+
+    for lam in lambda_grid:
+        b0, b = _fit_coordinate_descent(X_norm, y_train, lam, alpha, weights)
+        fitted = b0 + X_norm @ b
+        mse = float(np.mean((y_train - fitted) ** 2))
+        df_model = int(np.sum(np.abs(b) > 1e-5)) + 1
+        # BIC formula: T * log(MSE) + df * log(T)
+        bic = T_eff * np.log(max(1e-12, mse)) + df_model * np.log(T_eff)
+        bic_dict[float(lam)] = bic
+
+        if bic < best_bic:
+            best_bic = bic
+            best_lam = float(lam)
+            best_b0 = b0
+            best_b = b.copy()
+
+    return best_lam, best_b0, best_b, bic_dict
+
+
 def forecast_penalized(
     X_panel: pd.DataFrame | np.ndarray,
     y_target: pd.Series | np.ndarray,
@@ -166,77 +280,17 @@ def forecast_penalized(
     -------
     PenalizedForecastResult
     """
-    if isinstance(X_panel, pd.DataFrame):
-        feat_names = list(X_panel.columns)
-        X_mat = X_panel.to_numpy(dtype=float)
-    else:
-        X_mat = np.asarray(X_panel, dtype=float)
-        feat_names = [f"X_{j+1}" for j in range(X_mat.shape[1])]
+    X_mat, y_vec, feat_names = _prepare_data(X_panel, y_target)
 
-    if isinstance(y_target, (pd.Series, pd.DataFrame)):
-        y_vec = y_target.to_numpy(dtype=float).ravel()
-    else:
-        y_vec = np.asarray(y_target, dtype=float).ravel()
+    X_train, y_train, X_latest = _align_data(X_mat, y_vec, horizon)
 
-    T_full, P = X_mat.shape
-    
-    # 1. Align for direct h-step ahead forecasting: y_{t+h} on X_t
-    if horizon > 0:
-        X_train = X_mat[:-horizon]
-        y_train = y_vec[horizon:]
-        X_latest = X_mat[-1]
-    else:
-        X_train = X_mat
-        y_train = y_vec
-        X_latest = X_mat[-1]
+    X_norm, x_mean, x_std = _standardize_data(X_train)
 
-    T_eff = X_train.shape[0]
-    if T_eff < 10:
-        raise ValueError(f"forecast_penalized: effective training sample too small ({T_eff} rows)")
+    weights = _compute_adaptive_weights(X_norm, y_train, adaptive)
 
-    # 2. Standardize X_train
-    x_mean = X_train.mean(axis=0)
-    x_std = X_train.std(axis=0)
-    x_std[x_std == 0.0] = 1.0
-    X_norm = (X_train - x_mean) / x_std
+    lambda_grid = _construct_lambda_grid(X_norm, y_train, alpha, weights, n_lambdas, lambda_min_ratio)
 
-    # 3. Compute Adaptive Weights (via Ridge Regression)
-    if adaptive:
-        ridge_pen = 1e-2 * np.eye(P)
-        beta_ridge = np.linalg.solve(X_norm.T @ X_norm + ridge_pen, X_norm.T @ (y_train - y_train.mean()))
-        weights = 1.0 / (np.abs(beta_ridge) + 1e-3)
-        weights = weights / np.median(weights) # Normalize scale
-    else:
-        weights = np.ones(P)
-
-    # 4. Construct Lambda Grid
-    # lambda_max is the smallest penalty that zeroes out all coefficients
-    corrs = np.abs(X_norm.T @ (y_train - y_train.mean())) / (T_eff * np.maximum(alpha * weights, 1e-4))
-    lambda_max = float(np.max(corrs))
-    lambda_min = lambda_max * lambda_min_ratio
-    lambda_grid = np.geomspace(lambda_max, lambda_min, n_lambdas)
-
-    # 5. Evaluate BIC Path
-    best_bic = np.inf
-    best_lam = lambda_grid[0]
-    best_b0 = 0.0
-    best_b = np.zeros(P)
-    bic_dict = {}
-
-    for lam in lambda_grid:
-        b0, b = _fit_coordinate_descent(X_norm, y_train, lam, alpha, weights)
-        fitted = b0 + X_norm @ b
-        mse = float(np.mean((y_train - fitted) ** 2))
-        df_model = int(np.sum(np.abs(b) > 1e-5)) + 1
-        # BIC formula: T * log(MSE) + df * log(T)
-        bic = T_eff * np.log(max(1e-12, mse)) + df_model * np.log(T_eff)
-        bic_dict[float(lam)] = bic
-
-        if bic < best_bic:
-            best_bic = bic
-            best_lam = float(lam)
-            best_b0 = b0
-            best_b = b.copy()
+    best_lam, best_b0, best_b, bic_dict = _evaluate_bic_path(X_norm, y_train, lambda_grid, alpha, weights)
 
     # 6. Unstandardize Coefficients
     beta_orig = best_b / x_std
