@@ -92,3 +92,22 @@ def test_lp_panel_with_controls():
                    se="driscoll_kraay")
     assert abs(out.loc[out["horizon"] == 0, "beta"].iloc[0] - 0.5) < 0.10
     assert (out["se"] > 0).all()
+
+def test_norm_cdf():
+    """Test the normal CDF approximation function."""
+    from puremacro.regress.lp import _norm_cdf
+
+    # Midpoint
+    assert abs(_norm_cdf(0.0) - 0.5) < 1e-8
+
+    # Common Z-scores
+    assert abs(_norm_cdf(1.95996) - 0.975) < 1e-4
+    assert abs(_norm_cdf(-1.95996) - 0.025) < 1e-4
+
+    # Boundary/Extreme values
+    assert abs(_norm_cdf(5.0) - 1.0) < 1e-6
+    assert abs(_norm_cdf(-5.0) - 0.0) < 1e-6
+
+    # Infinite values
+    assert _norm_cdf(float("inf")) == 1.0
+    assert _norm_cdf(-float("inf")) == 0.0
