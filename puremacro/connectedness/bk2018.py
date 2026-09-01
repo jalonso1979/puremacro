@@ -1,4 +1,5 @@
 """Baruník & Křehlík (2018) Frequency-Domain Connectedness Index."""
+
 from __future__ import annotations
 
 from typing import Dict, Any, Tuple
@@ -28,15 +29,18 @@ def barunik_krehlik(
 
     for w in w_grid:
         A_w = np.zeros((n, n), dtype=complex)
-        for l in range(1, var_lags + 1):
-            A_w += A_list[l - 1] * np.exp(-1j * w * l)
+        for lag in range(1, var_lags + 1):
+            A_w += A_list[lag - 1] * np.exp(-1j * w * lag)
 
-        Psi_w = np.linalg.inv(np.eye(n, dtype=complex) - A_w)
-        PS_w = Psi_w @ Sigma
+        I_minus_A = np.eye(n, dtype=complex) - A_w
+        Psi_w = np.linalg.solve(I_minus_A, np.eye(n, dtype=complex))
+        PS_w = np.linalg.solve(I_minus_A, Sigma)
 
         for i in range(n):
             for j in range(n):
-                num_int[i, j] += (np.abs(PS_w[i, j]) ** 2 / max(sigma_jj[j], 1e-12)) * dw
+                num_int[i, j] += (
+                    np.abs(PS_w[i, j]) ** 2 / max(sigma_jj[j], 1e-12)
+                ) * dw
             den_int[i] += np.real((Psi_w[i, :] @ Sigma @ Psi_w[i, :].conj().T)) * dw
 
     theta_w = num_int / np.maximum(den_int[:, None], 1e-12)
