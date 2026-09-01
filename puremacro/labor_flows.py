@@ -221,11 +221,11 @@ def _quarterly_chain(p_monthly: pd.DataFrame) -> pd.DataFrame:
         # Take first 3 months of the quarter to multiply
         mats = [
             np.array([
-                [row["p_EE"], row["p_EU"], row["p_EN"]],
-                [row["p_UE"], row["p_UU"], row["p_UN"]],
-                [row["p_NE"], row["p_NU"], row["p_NN"]],
+                [row.p_EE, row.p_EU, row.p_EN],
+                [row.p_UE, row.p_UU, row.p_UN],
+                [row.p_NE, row.p_NU, row.p_NN],
             ])
-            for _, row in group.iloc[:3].iterrows()
+            for row in group.iloc[:3].itertuples()
         ]
         prod = mats[0] @ mats[1] @ mats[2]
         out.append({

@@ -815,8 +815,9 @@ def transitions_from_enoe(
         )
 
     monthly_rows = []
-    for ref_date, row in quarterly_observed.iterrows():
-        P_Q = np.array([[row[f"p_{a}{b}"] for b in STATES] for a in STATES])
+    for row in quarterly_observed.itertuples():
+        ref_date = row.Index
+        P_Q = np.array([[getattr(row, f"p_{a}{b}") for b in STATES] for a in STATES])
         try:
             P_M = quarterly_to_monthly_matrix(P_Q)
         except Exception as e:
@@ -836,8 +837,9 @@ def transitions_from_enoe(
         )
 
     quarterly_chain_rows = []
-    for d, row in monthly.iterrows():
-        M = np.array([[row[f"p_{a}{b}"] for b in STATES] for a in STATES])
+    for row in monthly.itertuples():
+        d = row.Index
+        M = np.array([[getattr(row, f"p_{a}{b}") for b in STATES] for a in STATES])
         P3 = M @ M @ M
         qd = d + pd.offsets.QuarterEnd(0)
         quarterly_chain_rows.append({
