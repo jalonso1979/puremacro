@@ -24,12 +24,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
 
-import numpy as np
 import pandas as pd
 
 from .aggregate import events_to_quarterly
 from .dedup import deduplicate
-from .types import NarrativeEvent, NarrativeInstrument
+from .types import NarrativeEvent
 
 
 # Default subset: the 17 DGLP advanced economies (the maximal panel
@@ -114,122 +113,68 @@ class HomogeneousFiscalPanel:
                 load_summary[name] = {"ok": False, "error": str(e)[:120]}
                 return None
 
-        # ---- 0. Adler 2024 panel: OECD-17 + LATAM/Caribbean-14, supersedes
-        # DGLP within the canonical tier (priority-1 — loaded first so dedup
-        # representative() picks Adler over DGLP on overlap).
-        if include_adler_2024:
-            adler = _try("adler_2024", lambda: load_adler_2024(
-                countries=codes,
-                csv_path=csvs.get("adler_2024"),
-            ))
-            if adler:
-                for c, inst in adler.items():
-                    all_events.extend(inst.events)
+        dataset_configs = [
+            # (name, include_flag, required_country, loader_lambda)
+            # ---- 0. Adler 2024 panel
+            ("adler_2024", include_adler_2024, None,
+             lambda: load_adler_2024(
+                 countries=codes, csv_path=csvs.get("adler_2024"))),
+            # ---- 1. DGLP 2011 panel
+            ("dglp_2011", include_dglp, None,
+             lambda: load_dglp_2011(
+                 countries=codes, csv_path=csvs.get("dglp_2011"),
+                 within_year_rule=within_year_rule)),
+            # ---- 2. Romer-Romer 2017
+            ("rr_2017", include_rr2017, None,
+             lambda: load_romer_romer_2017(
+                 countries=codes, csv_path=csvs.get("rr_2017"))),
+            # ---- 3. US-specific canonicals
+            ("rr_2010", include_rr2010_us, "USA",
+             lambda: load_romer_romer_2010(
+                 csv_path=csvs.get("rr_2010"))),
+            ("mr_2013", include_mr2013_us, "USA",
+             lambda: load_mertens_ravn_2013(
+                 kind="unanticipated", csv_path=csvs.get("mr_2013"))),
+            ("ramey_2011", include_ramey_us, "USA",
+             lambda: load_ramey_2011_defense(
+                 csv_path=csvs.get("ramey_2011"))),
+            # ---- 4. UK Cloyne 2013
+            ("cloyne_2013", include_cloyne_uk, "GBR",
+             lambda: load_cloyne_2013_uk(
+                 csv_path=csvs.get("cloyne_2013"))),
+            # ---- 5. Devries 2011
+            ("devries_2011", include_devries, None,
+             lambda: load_devries_2011(
+                 countries=codes, csv_path=csvs.get("devries_2011"),
+                 within_year_rule=within_year_rule)),
+            # ---- 6. Guajardo 2011
+            ("guajardo_2011", include_guajardo, None,
+             lambda: load_guajardo_2011(
+                 countries=codes, csv_path=csvs.get("guajardo_2011"),
+                 within_year_rule=within_year_rule)),
+            # ---- 7. Mitchell historical
+            ("mitchell_2013", include_mitchell, None,
+             lambda: load_mitchell_historical(
+                 countries=codes, csv_path=csvs.get("mitchell_2013"))),
+            # ---- 9. EU NMS 2023
+            ("eu_nms_2023", include_eu_nms_2023, None,
+             lambda: load_eu_nms_2023(
+                 countries=codes, csv_path=csvs.get("eu_nms_2023"))),
+            # ---- 10. IMF COVID 2022
+            ("imf_covid_2022", include_imf_covid_2022, None,
+             lambda: load_imf_covid_2022(
+                 countries=codes, csv_path=csvs.get("imf_covid_2022"))),
+        ]
 
-        # ---- 1. DGLP 2011 panel: 17 countries, tax + expenditure cuts.
-        if include_dglp:
-            dglp = _try("dglp_2011", lambda: load_dglp_2011(
-                countries=codes,
-                csv_path=csvs.get("dglp_2011"),
-                within_year_rule=within_year_rule,
-            ))
-            if dglp:
-                for c, inst in dglp.items():
-                    all_events.extend(inst.events)
-
-        # ---- 2. Romer-Romer 2017 cross-country tax shocks.
-        if include_rr2017:
-            rr2017 = _try("rr_2017", lambda: load_romer_romer_2017(
-                countries=codes,
-                csv_path=csvs.get("rr_2017"),
-            ))
-            if rr2017:
-                for c, inst in rr2017.items():
-                    all_events.extend(inst.events)
-
-        # ---- 3. US-specific canonicals (RR2010, MR2013, Ramey 2011).
-        if "USA" in codes:
-            if include_rr2010_us:
-                rr2010 = _try("rr_2010", lambda: load_romer_romer_2010(
-                    csv_path=csvs.get("rr_2010"),
-                ))
-                if rr2010:
-                    all_events.extend(rr2010.events)
-            if include_mr2013_us:
-                mr2013 = _try("mr_2013", lambda: load_mertens_ravn_2013(
-                    kind="unanticipated",
-                    csv_path=csvs.get("mr_2013"),
-                ))
-                if mr2013:
-                    all_events.extend(mr2013.events)
-            if include_ramey_us:
-                ramey = _try("ramey_2011", lambda: load_ramey_2011_defense(
-                    csv_path=csvs.get("ramey_2011"),
-                ))
-                if ramey:
-                    all_events.extend(ramey.events)
-
-        # ---- 4. UK Cloyne 2013.
-        if include_cloyne_uk and "GBR" in codes:
-            cloyne = _try("cloyne_2013", lambda: load_cloyne_2013_uk(
-                csv_path=csvs.get("cloyne_2013"),
-            ))
-            if cloyne:
-                all_events.extend(cloyne.events)
-
-        # ---- 5. Devries 2011 long-format.
-        if include_devries:
-            devries = _try("devries_2011", lambda: load_devries_2011(
-                countries=codes,
-                csv_path=csvs.get("devries_2011"),
-                within_year_rule=within_year_rule,
-            ))
-            if devries:
-                for c, inst in devries.items():
-                    all_events.extend(inst.events)
-
-        # ---- 6. Guajardo 2011 (advanced + 11 EMs).
-        if include_guajardo:
-            guajardo = _try("guajardo_2011", lambda: load_guajardo_2011(
-                countries=codes,
-                csv_path=csvs.get("guajardo_2011"),
-                within_year_rule=within_year_rule,
-            ))
-            if guajardo:
-                for c, inst in guajardo.items():
-                    all_events.extend(inst.events)
-
-        # ---- 7. Mitchell historical (pre-event annual anchors).
-        if include_mitchell:
-            mitchell = _try("mitchell_2013", lambda: load_mitchell_historical(
-                countries=codes,
-                csv_path=csvs.get("mitchell_2013"),
-            ))
-            if mitchell:
-                for c, inst in mitchell.items():
-                    all_events.extend(inst.events)
-
-        # ---- 9. EU NMS 2023: 11 EU New Member States, 2004-2019.
-        # No overlap with DGLP-OECD; loaded last in the canonical tier.
-        if include_eu_nms_2023:
-            eu_nms = _try("eu_nms_2023", lambda: load_eu_nms_2023(
-                countries=codes,
-                csv_path=csvs.get("eu_nms_2023"),
-            ))
-            if eu_nms:
-                for c, inst in eu_nms.items():
-                    all_events.extend(inst.events)
-
-        # ---- 10. IMF COVID 2022 announcement-level database.
-        # Different time period (2020) — no overlap with DGLP/Adler/EU NMS.
-        if include_imf_covid_2022:
-            covid = _try("imf_covid_2022", lambda: load_imf_covid_2022(
-                countries=codes,
-                csv_path=csvs.get("imf_covid_2022"),
-            ))
-            if covid:
-                for c, inst in covid.items():
-                    all_events.extend(inst.events)
+        for name, flag, req_country, loader in dataset_configs:
+            if flag and (req_country is None or req_country in codes):
+                data = _try(name, loader)
+                if data:
+                    if isinstance(data, dict):
+                        for c, inst in data.items():
+                            all_events.extend(inst.events)
+                    else:
+                        all_events.extend(data.events)
 
         # ---- 8. Deduplicate across overlapping datasets.
         reps, audit = deduplicate(all_events, date_tol_days=date_tol_days)
@@ -265,7 +210,8 @@ class HomogeneousFiscalPanel:
         Parameters
         ----------
         corpus_iter : iterable of ``(date, text, source_url)`` tuples;
-            typically a source connector from :mod:`puremacro.narrative.sources`.
+            typically a source connector from
+            :mod:`puremacro.narrative.sources`.
         backend : an :class:`AnthropicBackend` or :class:`OpenAIBackend`
             instance from :mod:`puremacro.narrative.scoring.llm`.
         country : ISO3 the events should be tagged with.
@@ -325,13 +271,15 @@ class HomogeneousFiscalPanel:
             decay_factor=decay_factor,
             surprise_confidence_floor=surprise_confidence_floor,
         )
-        # Quality pipeline produces its own audit schema (target reclassifications).
+        # Quality pipeline produces its own audit schema
+        # (target reclassifications).
         # Don't concat with the dedup audit — they have incompatible schemas.
         new_audit = audit_df if not audit_df.empty else self.audit
         return HomogeneousFiscalPanel(
             events=filtered,
             countries=sorted({e.country for e in filtered}),
-            audit=new_audit if (new_audit is not None and not new_audit.empty) else None,
+            audit=new_audit if (new_audit is not None and not new_audit.empty)
+            else None,
             metadata={**self.metadata, "quality_pipeline": qmeta},
         )
 
@@ -412,7 +360,8 @@ class HomogeneousFiscalPanel:
                 "implementation_first_quarter", "implementation_last_quarter",
                 "delay_quarters",
             ])
-        return pd.DataFrame(rows).sort_values(["country", "date"]).reset_index(drop=True)
+        return pd.DataFrame(rows).sort_values(
+            ["country", "date"]).reset_index(drop=True)
 
     def to_quarterly_panel(
         self,
