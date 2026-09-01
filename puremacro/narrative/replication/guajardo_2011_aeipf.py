@@ -66,14 +66,22 @@ def _guajardo_extract_rows(df: pd.DataFrame) -> list[dict]:
             "Guajardo CSV requires country, year, and action_pct_gdp columns."
         )
 
+    columns_list = list(df.columns)
+    country_idx = columns_list.index(country_col)
+    year_idx = columns_list.index(year_col)
+    val_idx = columns_list.index(val_col)
+    cat_idx = columns_list.index(cat_col) if cat_col else None
+    text_idx = columns_list.index(text_col) if text_col else None
+
     out: list[dict] = []
-    for _, row in df.iterrows():
-        v = float(row[val_col])
+    # Optimize: Use itertuples instead of iterrows for faster iteration
+    for row in df.itertuples(index=False, name=None):
+        v = float(row[val_idx])
         if v == 0.0 or pd.isna(v):
             continue
 
         # Normalize float years ("1992.0" → "1992") from pd.read_csv.
-        year_val = str(row[year_col]).strip()
+        year_val = str(row[year_idx]).strip()
         if "." in year_val:
             year_val = year_val.split(".")[0]
         if year_val.isdigit():
@@ -84,17 +92,17 @@ def _guajardo_extract_rows(df: pd.DataFrame) -> list[dict]:
             except Exception:
                 year = pd.Timestamp(year_val).year
 
-        raw_cat = str(row[cat_col]).lower().strip() if cat_col else "general"
+        raw_cat = str(row[cat_idx]).lower().strip() if cat_idx is not None else "general"
         target, subtarget = _CATEGORY_TARGET.get(raw_cat, ("both", "general"))
 
         narrative = (
-            str(row[text_col])[:400]
-            if text_col and not pd.isna(row[text_col])
+            str(row[text_idx])[:400]
+            if text_idx is not None and not pd.isna(row[text_idx])
             else "Guajardo et al. (2011) action-based fiscal consolidation."
         )
 
         out.append({
-            "country": str(row[country_col]).upper(),
+            "country": str(row[country_idx]).upper(),
             "year": year,
             "value": v,
             "target": target,
