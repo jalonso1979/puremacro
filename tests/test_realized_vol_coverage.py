@@ -416,3 +416,11 @@ def test_har_rv_intercept_is_float(rng):
     for key in ("intercept", "beta_d", "beta_w", "beta_m",
                 "se_intercept", "se_d", "se_w", "se_m", "R2"):
         assert isinstance(out[key], float), f"{key} should be float"
+
+def test_realized_jump_static_mocks():
+    """Simple test for realized jump with static mock values."""
+    assert realized_jump(10.0, 5.0) == 0.5
+    assert realized_jump(10.0, 10.0) == 0.0
+    assert realized_jump(10.0, 15.0) == 0.0
+    assert realized_jump(0.0, 5.0) == 0.0
+    assert realized_jump(-5.0, 5.0) == 0.0
