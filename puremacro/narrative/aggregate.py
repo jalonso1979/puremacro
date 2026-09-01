@@ -23,6 +23,77 @@ _AGG_RULE_BY_KIND = {
 }
 
 
+
+def _filter_events(events_list, kind_filter, confidence_threshold, target_filter):
+    kinds_present = {e.kind for e in events_list}
+    if kind_filter is None and len(kinds_present) > 1:
+        raise ValueError(
+            f"events_to_quarterly: events have multiple kinds "
+            f"{sorted(kinds_present)}; pass kind_filter= to disambiguate"
+        )
+    if kind_filter is not None:
+        events_list = [e for e in events_list if e.kind == kind_filter]
+        if not events_list:
+            return [], None
+        kinds_present = {kind_filter}
+
+    surviving_kind = next(iter(kinds_present))
+
+    def _keep(e: NarrativeEvent) -> bool:
+        if e.confidence < confidence_threshold:
+            return False
+        if target_filter is None:
+            return True
+        return e.target == target_filter or e.target == "both"
+
+    filtered = [e for e in events_list if _keep(e)]
+    return filtered, surviving_kind
+
+def _events_to_rows(filtered, agg_rule, sign_weighted, iv_kind):
+    rows = []
+    for e in filtered:
+        if agg_rule == "magnitude_sum":
+            v = e.signed_magnitude if sign_weighted else e.magnitude
+        elif agg_rule == "signed_count":
+            v = float(e.sign)
+        elif agg_rule == "indicator":
+            v = float(e.sign)
+        else:  # pragma: no cover
+            raise AssertionError(agg_rule)
+
+        if iv_kind == "announcement" or agg_rule != "magnitude_sum":
+            rows.append({"date": e.date, "country": e.country, "value": float(v)})
+        else:
+            for d, w in e.effective_profile:
+                rows.append({"date": d, "country": e.country,
+                             "value": float(v) * float(w)})
+    return rows
+
+def _normalize_by_gdp(df, pct_gdp):
+    df["q_date"] = df["date"].dt.to_period("Q").dt.to_timestamp()
+    gdp_long = pct_gdp.stack().rename("gdp").reset_index()
+    gdp_long.columns = ["q_date", "country", "gdp"]
+    df = df.merge(gdp_long, on=["q_date", "country"], how="left")
+    df["value"] = df["value"] / df["gdp"]
+    return df
+
+def _aggregate_rows(df, agg_rule, aggregation):
+    if agg_rule == "indicator":
+        idx = df.groupby("q_date")["value"].apply(lambda s: s.abs().idxmax())
+        return df.loc[idx].set_index("q_date")["value"].apply(np.sign)
+    elif agg_rule == "signed_count" or aggregation == "sum":
+        return df.groupby("q_date")["value"].sum()
+    elif aggregation == "mean":
+        return df.groupby("q_date")["value"].mean()
+    elif aggregation == "max":
+        idx = df.groupby("q_date")["value"].apply(lambda s: s.abs().idxmax())
+        return df.loc[idx].set_index("q_date")["value"]
+    elif aggregation == "first":
+        df_sorted = df.sort_values("date")
+        return df_sorted.groupby("q_date")["value"].first()
+    else:
+        raise ValueError(f"unknown aggregation {aggregation!r}")
+
 def events_to_quarterly(
     events: Iterable[NarrativeEvent],
     *,
@@ -86,77 +157,19 @@ def events_to_quarterly(
     if not events_list:
         return pd.Series(dtype=float, name="narrative_iv")
 
-    kinds_present = {e.kind for e in events_list}
-    if kind_filter is None and len(kinds_present) > 1:
-        raise ValueError(
-            f"events_to_quarterly: events have multiple kinds "
-            f"{sorted(kinds_present)}; pass kind_filter= to disambiguate"
-        )
-    if kind_filter is not None:
-        events_list = [e for e in events_list if e.kind == kind_filter]
-        if not events_list:
-            return pd.Series(dtype=float, name="narrative_iv")
-        kinds_present = {kind_filter}
-
-    surviving_kind = next(iter(kinds_present))
-    agg_rule = _AGG_RULE_BY_KIND[surviving_kind]
-
-    def _keep(e: NarrativeEvent) -> bool:
-        if e.confidence < confidence_threshold:
-            return False
-        if target_filter is None:
-            return True
-        return e.target == target_filter or e.target == "both"
-
-    filtered = [e for e in events_list if _keep(e)]
+    filtered, surviving_kind = _filter_events(events_list, kind_filter, confidence_threshold, target_filter)
     if not filtered:
         return pd.Series(dtype=float, name="narrative_iv")
 
-    rows = []
-    for e in filtered:
-        if agg_rule == "magnitude_sum":
-            v = e.signed_magnitude if sign_weighted else e.magnitude
-        elif agg_rule == "signed_count":
-            v = float(e.sign)
-        elif agg_rule == "indicator":
-            v = float(e.sign)
-        else:  # pragma: no cover
-            raise AssertionError(agg_rule)
-        if iv_kind == "announcement" or agg_rule != "magnitude_sum":
-            rows.append({"date": e.date, "country": e.country, "value": float(v)})
-        else:
-            for d, w in e.effective_profile:
-                rows.append({"date": d, "country": e.country,
-                             "value": float(v) * float(w)})
-
+    agg_rule = _AGG_RULE_BY_KIND[surviving_kind]
+    rows = _events_to_rows(filtered, agg_rule, sign_weighted, iv_kind)
     df = pd.DataFrame(rows)
 
     if pct_gdp is not None and agg_rule == "magnitude_sum":
-        df["q_date"] = df["date"].dt.to_period("Q").dt.to_timestamp()
-        gdp_long = pct_gdp.stack().rename("gdp").reset_index()
-        gdp_long.columns = ["q_date", "country", "gdp"]
-        df = df.merge(gdp_long, on=["q_date", "country"], how="left")
-        df["value"] = df["value"] / df["gdp"]
+        df = _normalize_by_gdp(df, pct_gdp)
 
     df["q_date"] = df["date"].dt.to_period("Q").dt.to_timestamp()
-
-    if agg_rule == "indicator":
-        idx = df.groupby("q_date")["value"].apply(lambda s: s.abs().idxmax())
-        out = df.loc[idx].set_index("q_date")["value"].apply(np.sign)
-    elif agg_rule == "signed_count":
-        out = df.groupby("q_date")["value"].sum()
-    elif aggregation == "sum":
-        out = df.groupby("q_date")["value"].sum()
-    elif aggregation == "mean":
-        out = df.groupby("q_date")["value"].mean()
-    elif aggregation == "max":
-        idx = df.groupby("q_date")["value"].apply(lambda s: s.abs().idxmax())
-        out = df.loc[idx].set_index("q_date")["value"]
-    elif aggregation == "first":
-        df_sorted = df.sort_values("date")
-        out = df_sorted.groupby("q_date")["value"].first()
-    else:
-        raise ValueError(f"unknown aggregation {aggregation!r}")
+    out = _aggregate_rows(df, agg_rule, aggregation)
 
     full_idx = pd.date_range(out.index.min(), out.index.max(), freq=freq)
     out = out.reindex(full_idx, fill_value=0.0)

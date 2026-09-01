@@ -1,0 +1,3 @@
+## 2024-10-24 - [Code Health: events_to_quarterly refactoring]
+**Learning:** Breaking down long functions into smaller, more focused helper functions makes the code easier to read and maintain. Extracting generic logic like mapping objects to rows or aggregating data structures improves modularity without breaking backwards compatibility if internal logic and tests are preserved.
+**Action:** When approaching long functions in the future, carefully review testing suites to ensure existing functionality is protected and extract functional pieces into clear helper blocks that are easy to reason about.
