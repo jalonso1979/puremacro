@@ -125,6 +125,8 @@ class CapitalResult:
 
 def _quarterly_delta(annual: float) -> float:
     """Geometric conversion. ``annual/4`` is the tempting wrong answer."""
+    if not (0.0 <= annual <= 1.0):
+        raise ValueError(f"annual depreciation must be between 0 and 1, got {annual}")
     return 1.0 - (1.0 - annual) ** (1.0 / _QUARTERS_PER_YEAR)
 
 

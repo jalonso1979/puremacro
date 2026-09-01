@@ -1,0 +1,9 @@
+🧪 [add boundary tests and validation for _quarterly_delta]
+
+🎯 **What:** The testing gap addressed: `_quarterly_delta` was tested for its normal geometric conversion behavior, but there was a gap around validating physical boundaries for depreciation rate inputs and asserting those boundaries behave gracefully (like 0.0 and 1.0) and reliably reject physically meaningless bounds (e.g., negative or > 1.0) which otherwise resulted in incorrect returns (like complex numbers when > 1.0).
+
+📊 **Coverage:** What scenarios are now tested:
+- Correct mapping of exact boundaries: 0.0 and 1.0.
+- Rejection (raising ValueError) of values < 0.0 and values > 1.0.
+
+✨ **Result:** The improvement in test coverage. Added a new unit test, `test_quarterly_delta_bounds`, to the test suite and added parameter validation to `_quarterly_delta` ensuring these rules. Test coverage of `capital.py` is successfully covered in `tests/test_capital.py`.
