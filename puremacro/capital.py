@@ -234,52 +234,12 @@ def qna_capital(panel: pd.DataFrame, *,
 
     out, growth, burn = [], {}, {}
     for code, g in panel.groupby(level="code", sort=True):
-        g = g.droplevel("code").sort_index()
-        vols = {a: f"{a}_real" for a in assets}
-        missing = [a for a in assets if vols[a] not in g or g[vols[a]].dropna().empty]
-        if missing:
-            if strict:
-                raise ValueError(f"{code}: no volume for {', '.join(missing)}")
-            continue
-        if need_defl:
-            no_defl = [a for a in assets
-                       if f"{a}_defl" not in g or g[f"{a}_defl"].dropna().empty]
-            if no_defl:
-                if strict:
-                    raise ValueError(
-                        f"{code}: aggregate='tornqvist' needs deflators, missing "
-                        f"{', '.join(no_defl)}. Colombia publishes asset volumes and no "
-                        f"current prices; use aggregate='sum' for it.")
-                continue
-
-        gg = _trend_growth(g["gdp_real"]) if "gdp_real" in g else 0.0
-        growth[code] = float((1.0 + gg) ** _QUARTERS_PER_YEAR - 1.0)
-
-        frame = pd.DataFrame(index=g.index)
-        shocked = {}
-        for a in assets:
-            inv = g[vols[a]].to_numpy(dtype=float)
-            start = float(np.nanmean(inv[:k0_window])) if np.isfinite(inv[:k0_window]).any() else 0.0
-            k_init = 0.0 if k0 == "zero" else start / max(gg + dq[a], 1e-6)
-            frame[_STOCK[a]] = _pim(inv, dq[a], k_init, mid)
-            shocked[a] = _pim(inv, dq[a], 1.5 * k_init, mid)
-
-        frame = _aggregate(frame, g, assets, dq, r_q, aggregate, capital_gains)
-        shock_frame = pd.DataFrame(
-            {_STOCK[a]: shocked[a] for a in assets}, index=g.index)
-        shock_frame = _aggregate(shock_frame, g, assets, dq, r_q, aggregate,
-                                 capital_gains)
-        with np.errstate(divide="ignore", invalid="ignore"):
-            frame["k0_sensitivity"] = np.abs(shock_frame["k"] / frame["k"] - 1.0)
-
-        frame["coverage_pct"] = _coverage(g, assets)
-        # quarters until a 50% K0 error is worth under 1% of the aggregate
-        below = np.flatnonzero(frame["k0_sensitivity"].to_numpy() < 0.01)
-        burn[code] = int(below[0]) if below.size else int(len(frame))
-
-        frame["code"] = code
-        out.append(frame.reset_index().set_index(["code", "date"]))
-
+        res = _process_country(code, g, assets, strict, need_defl, k0_window, k0, dq, mid, r_q, aggregate, capital_gains)
+        if res is not None:
+            f, gr, b = res
+            growth[code] = gr
+            burn[code] = b
+            out.append(f)
     stocks = (pd.concat(out).sort_index() if out
               else pd.DataFrame(index=pd.MultiIndex.from_arrays(
                   [[], []], names=["code", "date"])))
@@ -291,6 +251,56 @@ def qna_capital(panel: pd.DataFrame, *,
     stocks.attrs["k0_method"] = k0
     return res
 
+
+
+def _process_country(code: str, g: pd.DataFrame, assets: list[str], strict: bool,
+                     need_defl: bool, k0_window: int, k0: str, dq: dict[str, float],
+                     mid: bool, r_q: float, aggregate: str, capital_gains: str) -> tuple[pd.DataFrame, float, int] | None:
+    g = g.droplevel("code").sort_index()
+    vols = {a: f"{a}_real" for a in assets}
+    missing = [a for a in assets if vols[a] not in g or g[vols[a]].dropna().empty]
+    if missing:
+        if strict:
+            raise ValueError(f"{code}: no volume for {', '.join(missing)}")
+        return None
+    if need_defl:
+        no_defl = [a for a in assets
+                   if f"{a}_defl" not in g or g[f"{a}_defl"].dropna().empty]
+        if no_defl:
+            if strict:
+                raise ValueError(
+                    f"{code}: aggregate='tornqvist' needs deflators, missing "
+                    f"{', '.join(no_defl)}. Colombia publishes asset volumes and no "
+                    f"current prices; use aggregate='sum' for it.")
+            return None
+
+    gg = _trend_growth(g["gdp_real"]) if "gdp_real" in g else 0.0
+    growth_val = float((1.0 + gg) ** _QUARTERS_PER_YEAR - 1.0)
+
+    frame = pd.DataFrame(index=g.index)
+    shocked = {}
+    for a in assets:
+        inv = g[vols[a]].to_numpy(dtype=float)
+        start = float(np.nanmean(inv[:k0_window])) if np.isfinite(inv[:k0_window]).any() else 0.0
+        k_init = 0.0 if k0 == "zero" else start / max(gg + dq[a], 1e-6)
+        frame[_STOCK[a]] = _pim(inv, dq[a], k_init, mid)
+        shocked[a] = _pim(inv, dq[a], 1.5 * k_init, mid)
+
+    frame = _aggregate(frame, g, assets, dq, r_q, aggregate, capital_gains)
+    shock_frame = pd.DataFrame(
+        {_STOCK[a]: shocked[a] for a in assets}, index=g.index)
+    shock_frame = _aggregate(shock_frame, g, assets, dq, r_q, aggregate,
+                             capital_gains)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        frame["k0_sensitivity"] = np.abs(shock_frame["k"] / frame["k"] - 1.0)
+
+    frame["coverage_pct"] = _coverage(g, assets)
+    # quarters until a 50% K0 error is worth under 1% of the aggregate
+    below = np.flatnonzero(frame["k0_sensitivity"].to_numpy() < 0.01)
+    burn_val = int(below[0]) if below.size else int(len(frame))
+
+    frame["code"] = code
+    return frame.reset_index().set_index(["code", "date"]), growth_val, burn_val
 
 def _aggregate(frame: pd.DataFrame, g: pd.DataFrame, assets: list[str],
                dq: dict[str, float], r_q: float, how: str,
