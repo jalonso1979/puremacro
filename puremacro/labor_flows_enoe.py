@@ -54,6 +54,7 @@ Israel, R. B., Rosenthal, J. S., & Wei, J. Z. (2001). Finding generators
 for Markov chains via empirical transition matrices. Math. Finance 11(2).
 Shimer, R. (2012). Reassessing the ins and outs of unemployment. RED 15.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -64,13 +65,13 @@ import numpy as np
 import pandas as pd
 from scipy import linalg as _spla
 
-
 STATES: tuple[str, str, str, str] = ("F", "I", "U", "N")
 
 
 @dataclass
 class TransitionPanelENOE:
     """Monthly 4-by-4 F/I/U/N transition probabilities and stocks for Mexico."""
+
     monthly: pd.DataFrame
     quarterly: pd.DataFrame
     stocks: pd.DataFrame
@@ -194,7 +195,7 @@ def _id_part(s: pd.Series, width: int) -> pd.Series:
     """
     num = pd.to_numeric(s, errors="coerce")
     has_alpha = bool((num.isna() & s.notna()).any())
-    if not has_alpha:                       # ENOE -- unchanged
+    if not has_alpha:  # ENOE -- unchanged
         return s.astype("Int64").astype(str).str.zfill(width)
     as_int = num.astype("Int64").astype(str)
     return as_int.where(num.notna(), s.astype(str).str.strip()).str.zfill(width)
@@ -246,15 +247,15 @@ DEFAULT_ROOTS: tuple[Path, ...] = ()
 # city/metro ordering). Used by the optional ``urban_filter`` argument to
 # restrict ENOE to a historically-consistent urban universe.
 ENEU_1987_CITIES: dict[int, str] = {
-    1:  "Mexico City (ZMVM)",
-    2:  "Guadalajara",
-    3:  "Monterrey",
-    4:  "Puebla-Tlaxcala",
-    5:  "Leon",
-    6:  "Torreon-Lerdo-Gomez Palacio",
-    7:  "San Luis Potosi-Soledad",
-    8:  "Merida",
-    9:  "Chihuahua",
+    1: "Mexico City (ZMVM)",
+    2: "Guadalajara",
+    3: "Monterrey",
+    4: "Puebla-Tlaxcala",
+    5: "Leon",
+    6: "Torreon-Lerdo-Gomez Palacio",
+    7: "San Luis Potosi-Soledad",
+    8: "Merida",
+    9: "Chihuahua",
     10: "Tampico-Madero-Altamira",
     11: "Veracruz-Boca del Rio",
     12: "Orizaba",
@@ -267,11 +268,24 @@ ENEU_1987_CITIES: dict[int, str] = {
 # ENEU 1992-coverage 34-city set (1987 + 18 additions). Use if you want
 # a slightly later but broader urban universe.
 ENEU_1992_ADDITIONS: dict[int, str] = {
-    17: "Morelia", 18: "Toluca", 19: "Hermosillo", 20: "Tepic",
-    21: "Acapulco", 22: "Aguascalientes-est. ext", 23: "Cuernavaca",
-    24: "Oaxaca", 25: "Zacatecas", 26: "Colima", 27: "Villahermosa",
-    28: "Tuxtla Gutierrez", 29: "Tlaxcala", 30: "La Paz",
-    31: "Cancun", 32: "Pachuca", 33: "Tepic-2nd", 34: "Campeche",
+    17: "Morelia",
+    18: "Toluca",
+    19: "Hermosillo",
+    20: "Tepic",
+    21: "Acapulco",
+    22: "Aguascalientes-est. ext",
+    23: "Cuernavaca",
+    24: "Oaxaca",
+    25: "Zacatecas",
+    26: "Colima",
+    27: "Villahermosa",
+    28: "Tuxtla Gutierrez",
+    29: "Tlaxcala",
+    30: "La Paz",
+    31: "Cancun",
+    32: "Pachuca",
+    33: "Tepic-2nd",
+    34: "Campeche",
 }
 
 
@@ -303,8 +317,9 @@ def _apply_urban_filter(df: pd.DataFrame, cities: set | None) -> pd.DataFrame:
     """
     if cities is None:
         return df
-    city_col = "CD_A" if "CD_A" in df.columns else (
-        "A_MET" if "A_MET" in df.columns else None)
+    city_col = (
+        "CD_A" if "CD_A" in df.columns else ("A_MET" if "A_MET" in df.columns else None)
+    )
     if city_col is None:
         return df  # No city column; can't filter — return unfiltered
     codes = pd.to_numeric(df[city_col], errors="coerce")
@@ -354,41 +369,106 @@ def _quarter_dir(roots: tuple[Path, ...], year: int, quarter: int) -> Path:
 
 _HOG_COLS_WANTED = {
     # join keys (incl. ENE renames hog/per)
-    "upm", "v_sel", "n_hog", "h_mud", "n_ent", "ent", "con", "tipo",
+    "upm",
+    "v_sel",
+    "n_hog",
+    "h_mud",
+    "n_ent",
+    "ent",
+    "con",
+    "tipo",
     "cve_ent",  # 2025q3+ alias for ent
-    "hog",      # ENE/ENEU alias for n_hog
-    "cd_a", "a_met",  # city / metro area code (for urban_filter)
+    "hog",  # ENE/ENEU alias for n_hog
+    "cd_a",
+    "a_met",  # city / metro area code (for urban_filter)
     # interview date
-    "d_anio", "d_mes", "d_dia", "p_anio", "p_mes", "mes_cal",
+    "d_anio",
+    "d_mes",
+    "d_dia",
+    "p_anio",
+    "p_mes",
+    "mes_cal",
     # weight (used as fallback; fac_np = ETOE non-panel weight)
-    "fac", "fac_tri", "fac_men", "fac_np",
+    "fac",
+    "fac_tri",
+    "fac_men",
+    "fac_np",
 }
 
 _SDEM_COLS_WANTED = {
-    "upm", "v_sel", "n_hog", "h_mud", "n_ren", "n_ent", "ent", "con", "tipo",
+    "upm",
+    "v_sel",
+    "n_hog",
+    "h_mud",
+    "n_ren",
+    "n_ent",
+    "ent",
+    "con",
+    "tipo",
     # 2025q3+ INEGI renamed some keys: cve_ent -> ENT (handled in loader).
     "cve_ent",
     # ENE/ENEU 2000-2004 renames: HOG -> N_HOG, PER -> N_REN
-    "hog", "per",
-    "cd_a", "a_met",  # city / metro area code (for urban_filter)
-    "eda", "sex", "clase1", "clase2", "n_ent",
-    "fac", "fac_tri", "fac_men", "fac_np",
+    "hog",
+    "per",
+    "cd_a",
+    "a_met",  # city / metro area code (for urban_filter)
+    "eda",
+    "sex",
+    "clase1",
+    "clase2",
+    "n_ent",
+    "fac",
+    "fac_tri",
+    "fac_men",
+    "fac_np",
     # Education
-    "cs_p13_1", "cs_p13_2", "cs_p17", "niv_ins", "anios_esc",
+    "cs_p13_1",
+    "cs_p13_2",
+    "cs_p17",
+    "niv_ins",
+    "anios_esc",
     # Wages & hours
-    "ing7c", "ingocup", "ing_x_hrs", "salario", "hrsocup", "remune2c",
+    "ing7c",
+    "ingocup",
+    "ing_x_hrs",
+    "salario",
+    "hrsocup",
+    "remune2c",
     # Sector / occupation
-    "scian", "rama", "rama_est1", "rama_est2", "c_ocu11c", "emp_ppal",
+    "scian",
+    "rama",
+    "rama_est1",
+    "rama_est2",
+    "c_ocu11c",
+    "emp_ppal",
     "mes_cal",
 }
 
 _COE1_COLS_WANTED = {
-    "upm", "v_sel", "n_hog", "h_mud", "n_ren", "n_ent", "ent", "con", "tipo",
+    "upm",
+    "v_sel",
+    "n_hog",
+    "h_mud",
+    "n_ren",
+    "n_ent",
+    "ent",
+    "con",
+    "tipo",
     "cve_ent",
-    "p3", "p3a", "p3b",
+    "p3",
+    "p3a",
+    "p3b",
     # Formality flags across survey formats (ENE/ENOE-A/ENOE-B/ETOE).
-    "p3j", "p3j1", "p3j2", "p3k1", "p3k2", "p3l1", "p3l2",
-    "a_seg_soc", "o_seg_soc", "imssissste",  # ENE-era formality
+    "p3j",
+    "p3j1",
+    "p3j2",
+    "p3k1",
+    "p3k2",
+    "p3l1",
+    "p3l2",
+    "a_seg_soc",
+    "o_seg_soc",
+    "imssissste",  # ENE-era formality
 }
 
 # COE2 (search module) — opt-in via load_enoe_quarter(with_coe2=True). Carries
@@ -396,11 +476,24 @@ _COE1_COLS_WANTED = {
 # work): p9c job-loss, p9d separation, p9e business-closure, p8b OTJ search
 # motive. Not loaded by default (existing callers unaffected/unslowed).
 _COE2_COLS_WANTED = {
-    "upm", "v_sel", "n_hog", "h_mud", "n_ren", "n_ent", "ent", "con", "tipo",
+    "upm",
+    "v_sel",
+    "n_hog",
+    "h_mud",
+    "n_ren",
+    "n_ent",
+    "ent",
+    "con",
+    "tipo",
     "cve_ent",
-    "p8b",                              # on-the-job search motive (precautionary)
-    "p9", "p9c", "p9d", "p9e",          # job-loss / separation / business-closure reason
-    "p9f", "p9f_anio", "p9f_mes",       # timing of the separation
+    "p8b",  # on-the-job search motive (precautionary)
+    "p9",
+    "p9c",
+    "p9d",
+    "p9e",  # job-loss / separation / business-closure reason
+    "p9f",
+    "p9f_anio",
+    "p9f_mes",  # timing of the separation
 }
 
 
@@ -476,7 +569,8 @@ def load_enoe_quarter(
     sdem_path = _find_dta(qdir, "SDEM")
     coe1_path = _find_dta(qdir, "COE1")
     missing = [
-        name for name, p in (("HOG", hog_path), ("SDEM", sdem_path), ("COE1", coe1_path))
+        name
+        for name, p in (("HOG", hog_path), ("SDEM", sdem_path), ("COE1", coe1_path))
         if p is None
     ]
     if missing:
@@ -495,8 +589,11 @@ def load_enoe_quarter(
     _RENAMES = {"CVE_ENT": "ENT", "HOG": "N_HOG", "PER": "N_REN"}
     for df in (hog, sdem, coe1):
         cols_now = set(df.columns)
-        rename_map = {old: new for old, new in _RENAMES.items()
-                      if old in cols_now and new not in cols_now}
+        rename_map = {
+            old: new
+            for old, new in _RENAMES.items()
+            if old in cols_now and new not in cols_now
+        }
         if rename_map:
             df.rename(columns=rename_map, inplace=True)
 
@@ -521,12 +618,11 @@ def load_enoe_quarter(
     # these. Keep one row per (person, N_ENT), and for stocks/transitions
     # we further collapse to one row per person below.
     person_full_key = [
-        c for c in ("ENT", "CON", "V_SEL", "N_HOG", "H_MUD", "N_REN", "N_ENT")
+        c
+        for c in ("ENT", "CON", "V_SEL", "N_HOG", "H_MUD", "N_REN", "N_ENT")
         if c in sdem.columns
     ]
-    person_full_key_coe1 = [
-        c for c in person_full_key if c in coe1.columns
-    ]
+    person_full_key_coe1 = [c for c in person_full_key if c in coe1.columns]
     sdem = sdem.drop_duplicates(person_full_key, keep="first")
     coe1 = coe1.drop_duplicates(person_full_key_coe1, keep="first")
 
@@ -535,7 +631,8 @@ def load_enoe_quarter(
     hog_carry = [c for c in ("D_ANIO", "D_MES", "D_DIA", "MES_CAL") if c in hog.columns]
     sdem = sdem.merge(
         hog[hog_join + hog_carry].drop_duplicates(hog_join),
-        on=hog_join, how="left",
+        on=hog_join,
+        how="left",
     )
 
     # D_ANIO is stored as 2-digit year (e.g., 18 for 2018). Expand to 4-digit.
@@ -555,9 +652,13 @@ def load_enoe_quarter(
     person_join = hog_join + ["N_REN"]
     person_join = [c for c in person_join if c in sdem.columns and c in coe1.columns]
     # Avoid duplicating columns already on SDEM.
-    coe1_extra = [c for c in coe1.columns if c not in sdem.columns and c not in person_join]
+    coe1_extra = [
+        c for c in coe1.columns if c not in sdem.columns and c not in person_join
+    ]
     merged = sdem.merge(
-        coe1[person_join + coe1_extra], on=person_join, how="left",
+        coe1[person_join + coe1_extra],
+        on=person_join,
+        how="left",
     )
 
     merged["person_id"] = make_person_id(merged)
@@ -569,8 +670,8 @@ def load_enoe_quarter(
     if merged["person_id"].duplicated().any():
         merged = (
             merged.sort_values("FAC", ascending=False, na_position="last")
-                  .drop_duplicates("person_id", keep="first")
-                  .reset_index(drop=True)
+            .drop_duplicates("person_id", keep="first")
+            .reset_index(drop=True)
         )
 
     # Opt-in COE2 (search module) merge — the retrospective separation-reason
@@ -581,17 +682,30 @@ def load_enoe_quarter(
         coe2_path = _find_dta(qdir, "COE2")
         if coe2_path is not None:
             coe2 = _read_stata_subset(coe2_path, _COE2_COLS_WANTED)
-            rn = {old: new for old, new in _RENAMES.items()
-                  if old in coe2.columns and new not in coe2.columns}
+            rn = {
+                old: new
+                for old, new in _RENAMES.items()
+                if old in coe2.columns and new not in coe2.columns
+            }
             if rn:
                 coe2.rename(columns=rn, inplace=True)
             coe2["person_id"] = make_person_id(coe2)
-            reason_upper = ["P8B", "P9", "P9C", "P9D", "P9E",
-                            "P9F", "P9F_ANIO", "P9F_MES"]
+            reason_upper = [
+                "P8B",
+                "P9",
+                "P9C",
+                "P9D",
+                "P9E",
+                "P9F",
+                "P9F_ANIO",
+                "P9F_MES",
+            ]
             present = [c for c in reason_upper if c in coe2.columns]
-            sub = (coe2[["person_id"] + present]
-                   .drop_duplicates("person_id")
-                   .rename(columns={c: c.lower() for c in present}))
+            sub = (
+                coe2[["person_id"] + present]
+                .drop_duplicates("person_id")
+                .rename(columns={c: c.lower() for c in present})
+            )
             merged = merged.merge(sub, on="person_id", how="left")
 
     return _apply_urban_filter(merged, _coerce_urban_filter(urban_filter))
@@ -620,14 +734,22 @@ def link_consecutive_quarters(
     (EDA/SEX from the origin wave).
     """
     cols = ["person_id", "labor_status", "D_ANIO", "D_MES", "FAC", "EDA", "SEX"]
-    o = q_origin[cols].rename(columns={
-        "labor_status": "origin", "FAC": "FAC_o",
-        "D_ANIO": "ref_year", "D_MES": "ref_month",
-    })
-    d = q_dest[["person_id", "labor_status", "FAC", "EDA", "SEX"]].rename(columns={
-        "labor_status": "dest", "FAC": "FAC_d",
-        "EDA": "EDA_d", "SEX": "SEX_d",
-    })
+    o = q_origin[cols].rename(
+        columns={
+            "labor_status": "origin",
+            "FAC": "FAC_o",
+            "D_ANIO": "ref_year",
+            "D_MES": "ref_month",
+        }
+    )
+    d = q_dest[["person_id", "labor_status", "FAC", "EDA", "SEX"]].rename(
+        columns={
+            "labor_status": "dest",
+            "FAC": "FAC_d",
+            "EDA": "EDA_d",
+            "SEX": "SEX_d",
+        }
+    )
     pairs = o.merge(d, on="person_id", how="inner")
     n_before = len(pairs)
 
@@ -637,9 +759,12 @@ def link_consecutive_quarters(
         sex_o = pd.to_numeric(pairs["SEX"], errors="coerce")
         sex_d = pd.to_numeric(pairs["SEX_d"], errors="coerce")
         unverifiable = (
-            eda_o.isin([97, 98, 99]) | eda_d.isin([97, 98, 99])
-            | eda_o.isna() | eda_d.isna()
-            | sex_o.isna() | sex_d.isna()
+            eda_o.isin([97, 98, 99])
+            | eda_d.isin([97, 98, 99])
+            | eda_o.isna()
+            | eda_d.isna()
+            | sex_o.isna()
+            | sex_d.isna()
         )
         sex_ok = sex_o == sex_d
         age_ok = (eda_d - eda_o).isin(age_increment)
@@ -647,7 +772,9 @@ def link_consecutive_quarters(
 
     n_after = len(pairs)
     pairs["weight"] = (pairs["FAC_o"] + pairs["FAC_d"]) / 2.0
-    pairs = pairs.drop(columns=["FAC_o", "FAC_d", "EDA_d", "SEX_d"]).reset_index(drop=True)
+    pairs = pairs.drop(columns=["FAC_o", "FAC_d", "EDA_d", "SEX_d"]).reset_index(
+        drop=True
+    )
     pairs.attrs["link_n_before"] = int(n_before)
     pairs.attrs["link_n_after"] = int(n_after)
     return pairs
@@ -659,7 +786,9 @@ MIN_MONTH_PERSONS = 1000
 MIN_LINK_PAIRS = 2000
 
 
-def quarterly_transitions_from_pairs(pairs: pd.DataFrame, min_pairs: int = 0) -> pd.DataFrame:
+def quarterly_transitions_from_pairs(
+    pairs: pd.DataFrame, min_pairs: int = 0
+) -> pd.DataFrame:
     """Weighted 3-month transition matrix per calendar reference month.
 
     An origin state with no matched pairs in a month is missing data and yields
@@ -670,8 +799,10 @@ def quarterly_transitions_from_pairs(pairs: pd.DataFrame, min_pairs: int = 0) ->
     """
     pairs = pairs.dropna(subset=["origin", "dest", "ref_year", "ref_month"]).copy()
     pairs["ref_date"] = pd.to_datetime(
-        pairs["ref_year"].astype(int).astype(str) + "-"
-        + pairs["ref_month"].astype(int).astype(str).str.zfill(2) + "-01"
+        pairs["ref_year"].astype(int).astype(str)
+        + "-"
+        + pairs["ref_month"].astype(int).astype(str).str.zfill(2)
+        + "-01"
     )
 
     n_pairs = pairs.groupby("ref_date").size()
@@ -685,7 +816,9 @@ def quarterly_transitions_from_pairs(pairs: pd.DataFrame, min_pairs: int = 0) ->
             denom = sub.loc[sub["origin"] == a, "weight"].sum()
             for b in STATES:
                 num = sub.loc[(sub["origin"] == a) & (sub["dest"] == b), "weight"].sum()
-                row[f"p_{a}{b}"] = (num / denom) if (denom > 0 and not thin) else float("nan")
+                row[f"p_{a}{b}"] = (
+                    (num / denom) if (denom > 0 and not thin) else float("nan")
+                )
         rows.append(row)
     return pd.DataFrame(rows).set_index("ref_date").sort_index()
 
@@ -741,8 +874,10 @@ def monthly_stocks_from_quarter(df: pd.DataFrame, min_persons: int = 0) -> pd.Da
     """
     df = df.dropna(subset=["labor_status", "D_ANIO", "D_MES"]).copy()
     df["ref_date"] = pd.to_datetime(
-        df["D_ANIO"].astype(int).astype(str) + "-"
-        + df["D_MES"].astype(int).astype(str).str.zfill(2) + "-01"
+        df["D_ANIO"].astype(int).astype(str)
+        + "-"
+        + df["D_MES"].astype(int).astype(str).str.zfill(2)
+        + "-01"
     )
     g = df.groupby(["ref_date", "labor_status"])["FAC"].sum().unstack(fill_value=0.0)
     for s in STATES:
@@ -753,6 +888,122 @@ def monthly_stocks_from_quarter(df: pd.DataFrame, min_persons: int = 0) -> pd.Da
         n = df.groupby("ref_date").size().reindex(g.index).fillna(0)
         g.loc[n < int(min_persons), :] = float("nan")
     return g
+
+
+def _load_enoe_quarters(
+    root, quarters, skip_missing, verbose
+) -> dict[tuple[int, int], pd.DataFrame]:
+
+    import time
+
+    quarter_dfs: dict[tuple[int, int], pd.DataFrame] = {}
+    t_start = time.time()
+    for i, (y, q) in enumerate(quarters):
+        t0 = time.time()
+        try:
+            quarter_dfs[(y, q)] = load_enoe_quarter(root, y, q)
+        except FileNotFoundError as e:
+            if skip_missing:
+                if verbose:
+                    print(f"[skip] {y}q{q}: {e}", flush=True)
+                continue
+            raise
+        if verbose:
+            df = quarter_dfs[(y, q)]
+            print(
+                f"  [{i+1:>2d}/{len(quarters)}] {y}q{q}: "
+                f"{len(df):>7,} rows, {df.shape[1]} cols, "
+                f"loaded in {time.time()-t0:.1f}s "
+                f"(total {time.time()-t_start:.1f}s)",
+                flush=True,
+            )
+    return quarter_dfs
+
+
+def _compute_stocks(quarter_dfs: dict[tuple[int, int], pd.DataFrame]) -> pd.DataFrame:
+    stock_frames = [
+        monthly_stocks_from_quarter(df, min_persons=MIN_MONTH_PERSONS)
+        for df in quarter_dfs.values()
+    ]
+    if stock_frames:
+        stocks = pd.concat(stock_frames).groupby(level=0).sum().sort_index()
+    else:
+        stocks = pd.DataFrame(columns=list(STATES))
+    return stocks
+
+
+def _compute_quarterly_observed(
+    quarter_dfs: dict[tuple[int, int], pd.DataFrame],
+) -> pd.DataFrame:
+    pair_frames = []
+    sorted_q = sorted(quarter_dfs.keys())
+    for (y1, q1), (y2, q2) in zip(sorted_q, sorted_q[1:]):
+        months_apart = (y2 - y1) * 12 + 3 * (q2 - q1)
+        if months_apart != 3:
+            continue
+        pair_frames.append(
+            link_consecutive_quarters(quarter_dfs[(y1, q1)], quarter_dfs[(y2, q2)])
+        )
+    if pair_frames:
+        all_pairs = pd.concat(pair_frames, ignore_index=True)
+        quarterly_observed = quarterly_transitions_from_pairs(
+            all_pairs, min_pairs=MIN_LINK_PAIRS
+        )
+    else:
+        quarterly_observed = pd.DataFrame(
+            columns=[f"p_{a}{b}" for a in STATES for b in STATES]
+        )
+    return quarterly_observed
+
+
+def _compute_monthly_transitions(quarterly_observed: pd.DataFrame) -> pd.DataFrame:
+    monthly_rows = []
+    for ref_date, row in quarterly_observed.iterrows():
+        P_Q = np.array([[row[f"p_{a}{b}"] for b in STATES] for a in STATES])
+        try:
+            P_M = quarterly_to_monthly_matrix(P_Q)
+        except Exception as e:
+            print(f"[warn] logm failed for {ref_date}: {e}")
+            continue
+        monthly_rows.append(
+            {
+                "date": ref_date,
+                **{
+                    f"p_{a}{b}": P_M[i, j]
+                    for i, a in enumerate(STATES)
+                    for j, b in enumerate(STATES)
+                },
+            }
+        )
+    if monthly_rows:
+        monthly = pd.DataFrame(monthly_rows).set_index("date").sort_index()
+    else:
+        monthly = pd.DataFrame(columns=[f"p_{a}{b}" for a in STATES for b in STATES])
+    return monthly
+
+
+def _compute_quarterly_chain(monthly: pd.DataFrame) -> pd.DataFrame:
+    quarterly_chain_rows = []
+    for d, row in monthly.iterrows():
+        M = np.array([[row[f"p_{a}{b}"] for b in STATES] for a in STATES])
+        P3 = M @ M @ M
+        qd = d + pd.offsets.QuarterEnd(0)
+        quarterly_chain_rows.append(
+            {
+                "qdate": qd,
+                **{
+                    f"p_{a}{b}": P3[i, j]
+                    for i, a in enumerate(STATES)
+                    for j, b in enumerate(STATES)
+                },
+            }
+        )
+    quarterly = (
+        pd.DataFrame(quarterly_chain_rows).set_index("qdate")
+        if quarterly_chain_rows
+        else pd.DataFrame()
+    )
+    return quarterly
 
 
 def transitions_from_enoe(
@@ -770,86 +1021,13 @@ def transitions_from_enoe(
     Out-of-browser side-channel: reads local .dta microdata mirrors — see
     the module docstring.
     """
-    import time
-    quarter_dfs: dict[tuple[int, int], pd.DataFrame] = {}
-    t_start = time.time()
-    for i, (y, q) in enumerate(quarters):
-        t0 = time.time()
-        try:
-            quarter_dfs[(y, q)] = load_enoe_quarter(root, y, q)
-        except FileNotFoundError as e:
-            if skip_missing:
-                if verbose:
-                    print(f"[skip] {y}q{q}: {e}", flush=True)
-                continue
-            raise
-        if verbose:
-            df = quarter_dfs[(y, q)]
-            print(f"  [{i+1:>2d}/{len(quarters)}] {y}q{q}: "
-                  f"{len(df):>7,} rows, {df.shape[1]} cols, "
-                  f"loaded in {time.time()-t0:.1f}s "
-                  f"(total {time.time()-t_start:.1f}s)", flush=True)
 
-    stock_frames = [monthly_stocks_from_quarter(df, min_persons=MIN_MONTH_PERSONS)
-                    for df in quarter_dfs.values()]
-    if stock_frames:
-        stocks = pd.concat(stock_frames).groupby(level=0).sum().sort_index()
-    else:
-        stocks = pd.DataFrame(columns=list(STATES))
 
-    pair_frames = []
-    sorted_q = sorted(quarter_dfs.keys())
-    for (y1, q1), (y2, q2) in zip(sorted_q, sorted_q[1:]):
-        months_apart = (y2 - y1) * 12 + 3 * (q2 - q1)
-        if months_apart != 3:
-            continue
-        pair_frames.append(
-            link_consecutive_quarters(quarter_dfs[(y1, q1)], quarter_dfs[(y2, q2)])
-        )
-    if pair_frames:
-        all_pairs = pd.concat(pair_frames, ignore_index=True)
-        quarterly_observed = quarterly_transitions_from_pairs(all_pairs, min_pairs=MIN_LINK_PAIRS)
-    else:
-        quarterly_observed = pd.DataFrame(
-            columns=[f"p_{a}{b}" for a in STATES for b in STATES]
-        )
-
-    monthly_rows = []
-    for ref_date, row in quarterly_observed.iterrows():
-        P_Q = np.array([[row[f"p_{a}{b}"] for b in STATES] for a in STATES])
-        try:
-            P_M = quarterly_to_monthly_matrix(P_Q)
-        except Exception as e:
-            print(f"[warn] logm failed for {ref_date}: {e}")
-            continue
-        monthly_rows.append({
-            "date": ref_date,
-            **{f"p_{a}{b}": P_M[i, j]
-               for i, a in enumerate(STATES)
-               for j, b in enumerate(STATES)}
-        })
-    if monthly_rows:
-        monthly = pd.DataFrame(monthly_rows).set_index("date").sort_index()
-    else:
-        monthly = pd.DataFrame(
-            columns=[f"p_{a}{b}" for a in STATES for b in STATES]
-        )
-
-    quarterly_chain_rows = []
-    for d, row in monthly.iterrows():
-        M = np.array([[row[f"p_{a}{b}"] for b in STATES] for a in STATES])
-        P3 = M @ M @ M
-        qd = d + pd.offsets.QuarterEnd(0)
-        quarterly_chain_rows.append({
-            "qdate": qd,
-            **{f"p_{a}{b}": P3[i, j]
-               for i, a in enumerate(STATES)
-               for j, b in enumerate(STATES)}
-        })
-    quarterly = (
-        pd.DataFrame(quarterly_chain_rows).set_index("qdate")
-        if quarterly_chain_rows else pd.DataFrame()
-    )
+    quarter_dfs = _load_enoe_quarters(root, quarters, skip_missing, verbose)
+    stocks = _compute_stocks(quarter_dfs)
+    quarterly_observed = _compute_quarterly_observed(quarter_dfs)
+    monthly = _compute_monthly_transitions(quarterly_observed)
+    quarterly = _compute_quarterly_chain(monthly)
 
     return TransitionPanelENOE(
         monthly=monthly,
