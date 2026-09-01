@@ -93,14 +93,20 @@ def _adler_extract_rows(df: pd.DataFrame) -> list[dict]:
             "subtarget": subtarget,
         })
 
-    for _, row in df.iterrows():
-        country = str(row[country_col]).upper()
-        year = _year(row[date_col])
-        if tax_col is not None and exp_col is not None:
-            _push(country, year, row[tax_col], target="consumption", subtarget="tax")
-            _push(country, year, row[exp_col], target="both", subtarget="expenditure")
-        elif total_col is not None:
-            _push(country, year, row[total_col], target="both", subtarget="general")
+    country_idx = df.columns.get_loc(country_col)
+    date_idx = df.columns.get_loc(date_col)
+    tax_idx = df.columns.get_loc(tax_col) if tax_col is not None else -1
+    exp_idx = df.columns.get_loc(exp_col) if exp_col is not None else -1
+    total_idx = df.columns.get_loc(total_col) if total_col is not None else -1
+
+    for row in df.itertuples(index=False, name=None):
+        country = str(row[country_idx]).upper()
+        year = _year(row[date_idx])
+        if tax_idx != -1 and exp_idx != -1:
+            _push(country, year, row[tax_idx], target="consumption", subtarget="tax")
+            _push(country, year, row[exp_idx], target="both", subtarget="expenditure")
+        elif total_idx != -1:
+            _push(country, year, row[total_idx], target="both", subtarget="general")
     return out
 
 
