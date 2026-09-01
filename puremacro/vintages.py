@@ -215,11 +215,11 @@ class AlfredVintageStore:
                 f"AlfredVintageStore.put_many: missing columns {sorted(missing)}"
             )
         rows = [
-            (str(r["series_id"]),
-             str(r["observation_date"])[:10],
-             str(r["vintage_date"])[:10],
-             None if _pd.isna(r["value"]) else float(r["value"]))
-            for _, r in df.iterrows()
+            (str(r.series_id),
+             str(r.observation_date)[:10],
+             str(r.vintage_date)[:10],
+             None if _pd.isna(r.value) else float(r.value))
+            for r in df[["series_id", "observation_date", "vintage_date", "value"]].itertuples(index=False)
         ]
         try:
             self._conn().executemany(
