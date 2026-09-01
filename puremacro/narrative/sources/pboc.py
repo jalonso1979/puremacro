@@ -4,8 +4,8 @@ PBoC does not publish RSS. We scrape the English news / speeches
 archive index pages. URLs updated 2026-05 (the old ``3688110/3688215``
 prefix was retired during a 2025 site reorg).
 
-    http://www.pbc.gov.cn/english/130721/index.html  — news / press releases
-    http://www.pbc.gov.cn/english/130724/index.html  — speeches
+    https://www.pbc.gov.cn/english/130721/index.html  — news / press releases
+    https://www.pbc.gov.cn/english/130724/index.html  — speeches
 
 Each index page exposes ~30 most-recent items as table rows containing
 an <a href="..." title="..."> link followed by a YYYY-MM-DD date cell.
@@ -21,7 +21,7 @@ from ._ratedoc import safe_get_text
 from ._extractors import extract_body
 
 
-_BASE = "http://www.pbc.gov.cn"
+_BASE = "https://www.pbc.gov.cn"
 _INDEX_URLS = {
     "press":    f"{_BASE}/english/130721/index.html",
     "speeches": f"{_BASE}/english/130724/index.html",
