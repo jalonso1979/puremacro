@@ -967,3 +967,18 @@ print("Ninguna fila de MATLAB / gpuArray / runmat: este cuaderno no ejecuta MATL
 #    materializar `obj`: recorrer $k'$ por bloques (o directamente en un kernel como el de
 #    Numba, que nunca lo materializa), o cambiar de algoritmo (EGM, `puremacro.vfi.egm`), que
 #    elimina el $\max$ y con él el tensor 3D.
+
+# %% [markdown] slideshow={"slide_type": "slide"}
+# ## 11. Explora con IA
+#
+# Pídele a tu asistente (ChatGPT, Claude o Copilot) que escriba un resumen de los resultados
+# que obtuviste en tu máquina, basándose en la salida de las celdas de este cuaderno.
+#
+# **Prompt sugerido:**
+# > He corrido un benchmark de Value Function Iteration en Python usando diferentes backends
+# > (NumPy, Numba en CPU, y un acelerador GPU). Mis tiempos de ejecución para $N_k = 4000$ fueron:
+# > [Pega aquí los tiempos de la sección 9].
+# >
+# > Explica brevemente por qué el backend que ganó es más rápido que los demás en esta
+# > máquina en particular. ¿Es por paralelismo, por memoria unificada, o por precisión
+# > (float32 vs float64)?

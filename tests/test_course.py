@@ -23,10 +23,7 @@ REQUIRED_SECTIONS = {
     "exploración con IA": ("explora con ia", "tutor", "inteligencia artificial"),
 }
 
-#: TODO(profesor): 25 es un electivo de benchmark de hardware y es la única
-#: lección sin sección «Explora con IA». Se exime aquí para no bloquear la
-#: suite; retirar de esta lista cuando se le añada la sección.
-AI_SECTION_EXEMPT = {"25_vfi_benchmark_mac_colab_runmat_es"}
+AI_SECTION_EXEMPT = set()
 
 
 def _lessons():
