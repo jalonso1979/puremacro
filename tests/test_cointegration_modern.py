@@ -116,3 +116,46 @@ def test_phillips_ouliaris_summary_runs():
     s = phillips_ouliaris(y, x).summary()
     assert isinstance(s, str)
     assert "Phillips-Ouliaris" in s
+
+# --------------------------------------------------------------------------
+# _long_run_cov
+# --------------------------------------------------------------------------
+from puremacro.cointegration_modern import _long_run_cov
+
+def test_long_run_cov_multivariate():
+    """Verify _long_run_cov against manual calculation for 2D inputs."""
+    u = np.array([[1.0, -1.0], [2.0, 0.0], [3.0, 1.0]])
+    Omega, Sigma, Lambda = _long_run_cov(u, lags=1)
+
+    expected_Sigma = np.array([[4.66666667, 0.66666667],
+                               [0.66666667, 0.66666667]])
+    expected_Lambda = np.array([[1.33333333, -0.33333333],
+                                [0.33333333, 0.0]])
+    expected_Omega = np.array([[7.33333333, 0.66666667],
+                               [0.66666667, 0.66666667]])
+
+    np.testing.assert_allclose(Sigma, expected_Sigma, rtol=1e-5, atol=1e-8)
+    np.testing.assert_allclose(Lambda, expected_Lambda, rtol=1e-5, atol=1e-8)
+    np.testing.assert_allclose(Omega, expected_Omega, rtol=1e-5, atol=1e-8)
+
+def test_long_run_cov_1d():
+    """Verify _long_run_cov handles 1D arrays correctly."""
+    u = np.array([1.0, 2.0, 3.0])
+    Omega, Sigma, Lambda = _long_run_cov(u, lags=1)
+
+    expected_Sigma = np.array([[4.66666667]])
+    expected_Lambda = np.array([[1.33333333]])
+    expected_Omega = np.array([[7.33333333]])
+
+    np.testing.assert_allclose(Sigma, expected_Sigma, rtol=1e-5, atol=1e-8)
+    np.testing.assert_allclose(Lambda, expected_Lambda, rtol=1e-5, atol=1e-8)
+    np.testing.assert_allclose(Omega, expected_Omega, rtol=1e-5, atol=1e-8)
+
+def test_long_run_cov_default_lags():
+    """Verify _long_run_cov calculates correctly when lags is None."""
+    u = np.array([[1.0, -1.0], [2.0, 0.0], [3.0, 1.0]])
+    Omega, Sigma, Lambda = _long_run_cov(u, lags=None)
+    # Just checking it returns arrays of correct shapes
+    assert Omega.shape == (2, 2)
+    assert Sigma.shape == (2, 2)
+    assert Lambda.shape == (2, 2)
