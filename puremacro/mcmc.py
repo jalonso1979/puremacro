@@ -134,6 +134,28 @@ def trace_summary(chains: np.ndarray) -> dict:
     return out
 
 
+def _rw_metropolis_step(
+    x: np.ndarray,
+    lp: float,
+    c: float,
+    L: np.ndarray,
+    rng: np.random.Generator,
+    log_posterior_fn,
+) -> tuple[np.ndarray, float, bool]:
+    """Perform a single Random-Walk Metropolis step.
+
+    Returns (new_x, new_lp, accepted)
+    """
+    n_params = len(x)
+    z = rng.standard_normal(n_params)
+    x_new = x + c * (L @ z)
+    lp_new = log_posterior_fn(x_new)
+    log_alpha = lp_new - lp
+    if np.log(rng.uniform()) < log_alpha:
+        return x_new, lp_new, True
+    return x, lp, False
+
+
 def random_walk_metropolis(
     log_posterior_fn,
     init,
@@ -204,13 +226,8 @@ def random_walk_metropolis(
     adapt_accepts = 0
     adapt_count = 0
     for it in range(adapt_burnin):
-        z = rng.standard_normal(n_params)
-        x_new = x + c * (L @ z)
-        lp_new = log_posterior_fn(x_new)
-        log_alpha = lp_new - lp
-        if np.log(rng.uniform()) < log_alpha:
-            x = x_new
-            lp = lp_new
+        x, lp, accepted = _rw_metropolis_step(x, lp, c, L, rng, log_posterior_fn)
+        if accepted:
             adapt_accepts += 1
         adapt_count += 1
         if (it + 1) % adapt_window == 0:
@@ -227,13 +244,8 @@ def random_walk_metropolis(
     log_post = np.empty(n_draws)
     accepts = 0
     for it in range(n_draws):
-        z = rng.standard_normal(n_params)
-        x_new = x + c * (L @ z)
-        lp_new = log_posterior_fn(x_new)
-        log_alpha = lp_new - lp
-        if np.log(rng.uniform()) < log_alpha:
-            x = x_new
-            lp = lp_new
+        x, lp, accepted = _rw_metropolis_step(x, lp, c, L, rng, log_posterior_fn)
+        if accepted:
             accepts += 1
         chain[it] = x
         log_post[it] = lp
