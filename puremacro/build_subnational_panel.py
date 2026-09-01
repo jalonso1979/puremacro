@@ -177,38 +177,8 @@ def build_state_monthly_panel(
     return merged
 
 
-def build_county_quarterly_panel(
-    *,
-    qcew_path: str | Path | None = None,
-    laus_path: str | Path | None = None,
-    epu_path: str | Path | None = None,
-    shares_path: str | Path | None = None,
-    sens_path: str | Path | None = None,
-    qcew_df: pd.DataFrame | None = None,
-    laus_df: pd.DataFrame | None = None,
-    epu_df: pd.DataFrame | None = None,
-    shares_df: pd.DataFrame | None = None,
-    sens_df: pd.DataFrame | None = None,
-    births_df: pd.DataFrame | None = None,
-    state_births_q: pd.DataFrame | None = None,
-    state_births_a: pd.DataFrame | None = None,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Build quarterly county panel + county × industry long-form panel."""
-    if qcew_df is None:
-        if qcew_path is None:
-            raise ValueError("qcew_path is required when qcew_df is not provided")
-        qcew_df = qcew.parse_qcew_csv(qcew_path)
-    if laus_df is None:
-        if laus_path is None:
-            raise ValueError("laus_path is required when laus_df is not provided")
-        laus_df = laus.parse_laus_series(laus_path, geography="county")
-    if epu_df is None:
-        epu_df = pd.read_csv(epu_path, dtype={"state_fips": str}, parse_dates=["date"])
-    if shares_df is None:
-        shares_df = pd.read_csv(shares_path, dtype={"county_fips": str, "naics": str})
-    if sens_df is None:
-        sens_df = pd.read_csv(sens_path, dtype={"naics": str})
 
+def _prepare_qcew_bases(qcew_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     # County-industry long-form (Bartik uses this). Exclude NAICS total '10'.
     ind_panel = qcew_df[qcew_df["naics"] != "10"].copy()
 
@@ -226,7 +196,15 @@ def build_county_quarterly_panel(
         "estabs": "estab_qcew_total",
     })[["county_fips", "state_fips", "date",
         "emp_qcew_total", "aww_qcew_total", "wages_qcew_total", "estab_qcew_total"]]
+    return totals, ind_panel
 
+
+def _attach_laus_and_epu(
+    totals: pd.DataFrame,
+    laus_df: pd.DataFrame,
+    epu_df: pd.DataFrame,
+    shares_df: pd.DataFrame,
+) -> pd.DataFrame:
     # State EPU -> Q
     epu_df_q = epu_df.copy()
     epu_df_q["period"] = epu_df_q["date"].dt.to_period("Q")
@@ -263,14 +241,15 @@ def build_county_quarterly_panel(
         freq="Q",
     )[["county_fips", "date", "epu_county_bartik_q"]]
     totals = totals.merge(county_epu, on=["county_fips", "date"], how="left")
+    return totals
 
-    # Scalar exposure
-    exposure = build_exposure_iv(shares_df, sens_df)
-    totals = totals.merge(exposure, on="county_fips", how="left")
 
-    # Structural covariates for heterogeneity splits
-    totals = attach_structural_covariates(totals, shares_df)
-
+def _attach_births_data(
+    totals: pd.DataFrame,
+    births_df: pd.DataFrame | None,
+    state_births_q: pd.DataFrame | None,
+    state_births_a: pd.DataFrame | None,
+) -> pd.DataFrame:
     # County × year human births (annual, 1968-2025 mostly):
     #   1968-2000: NCHS via NBER (full pre-1989; 100K+ post-1988).
     #   2001-2009, 2011-2019, 2021-2025: Census PEP (all counties).
@@ -285,7 +264,7 @@ def build_county_quarterly_panel(
         totals = totals.merge(b, on=["county_fips", "year"], how="left")
         totals = totals.drop(columns=["year"])
     else:
-        totals["births_county_a"] = np.nan
+        totals["births_county_a"] = float('nan')
 
     if state_births_q is not None and not state_births_q.empty:
         sbq = state_births_q[["state_fips", "date", "births_state_q"]].copy()
@@ -293,7 +272,7 @@ def build_county_quarterly_panel(
         sbq["date"] = pd.to_datetime(sbq["date"])
         totals = totals.merge(sbq, on=["state_fips", "date"], how="left")
     else:
-        totals["births_state_q"] = np.nan
+        totals["births_state_q"] = float('nan')
 
     if state_births_a is not None and not state_births_a.empty:
         sba = state_births_a[["state_fips", "year", "births_state_a"]].copy()
@@ -302,8 +281,13 @@ def build_county_quarterly_panel(
         totals = totals.merge(sba, on=["state_fips", "year"], how="left")
         totals = totals.drop(columns=["year"])
     else:
-        totals["births_state_a"] = np.nan
+        totals["births_state_a"] = float('nan')
+    return totals
 
+
+def _apply_seasonal_adjustment_and_logs(
+    totals: pd.DataFrame
+) -> tuple[pd.DataFrame, list[dict]]:
     # Seasonal adjustment of NSA series (BLS publishes county QCEW and county
     # LAUS only unadjusted). STL per county_fips, period 4. Counties with <24
     # observations get NaN. We keep raw NSA columns and add `_sa` siblings;
@@ -339,19 +323,68 @@ def build_county_quarterly_panel(
             src = totals[sa_col].where(totals[sa_col].notna(), totals[col])
         else:
             src = totals[col]
-        totals[f"log_{col}"] = np.log(src.replace(0, np.nan))
+        totals[f"log_{col}"] = np.log(src.replace(0, float('nan')))
     if "births_county_a" in totals.columns:
         totals["log_births_county_a"] = np.log(
-            totals["births_county_a"].replace(0, np.nan)
+            totals["births_county_a"].replace(0, float('nan'))
         )
     if "births_state_q" in totals.columns:
         totals["log_births_state_q"] = np.log(
-            totals["births_state_q"].replace(0, np.nan)
+            totals["births_state_q"].replace(0, float('nan'))
         )
     if "births_state_a" in totals.columns:
         totals["log_births_state_a"] = np.log(
-            totals["births_state_a"].replace(0, np.nan)
+            totals["births_state_a"].replace(0, float('nan'))
         )
+    return totals, sa_audit_rows
+
+def build_county_quarterly_panel(
+
+    *,
+    qcew_path: str | Path | None = None,
+    laus_path: str | Path | None = None,
+    epu_path: str | Path | None = None,
+    shares_path: str | Path | None = None,
+    sens_path: str | Path | None = None,
+    qcew_df: pd.DataFrame | None = None,
+    laus_df: pd.DataFrame | None = None,
+    epu_df: pd.DataFrame | None = None,
+    shares_df: pd.DataFrame | None = None,
+    sens_df: pd.DataFrame | None = None,
+    births_df: pd.DataFrame | None = None,
+    state_births_q: pd.DataFrame | None = None,
+    state_births_a: pd.DataFrame | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Build quarterly county panel + county × industry long-form panel."""
+    if qcew_df is None:
+        if qcew_path is None:
+            raise ValueError("qcew_path is required when qcew_df is not provided")
+        qcew_df = qcew.parse_qcew_csv(qcew_path)
+    if laus_df is None:
+        if laus_path is None:
+            raise ValueError("laus_path is required when laus_df is not provided")
+        laus_df = laus.parse_laus_series(laus_path, geography="county")
+    if epu_df is None:
+        epu_df = pd.read_csv(epu_path, dtype={"state_fips": str}, parse_dates=["date"])
+    if shares_df is None:
+        shares_df = pd.read_csv(shares_path, dtype={"county_fips": str, "naics": str})
+    if sens_df is None:
+        sens_df = pd.read_csv(sens_path, dtype={"naics": str})
+
+    totals, ind_panel = _prepare_qcew_bases(qcew_df)
+
+    totals = _attach_laus_and_epu(totals, laus_df, epu_df, shares_df)
+
+    # Scalar exposure
+    exposure = build_exposure_iv(shares_df, sens_df)
+    totals = totals.merge(exposure, on="county_fips", how="left")
+
+    # Structural covariates for heterogeneity splits
+    totals = attach_structural_covariates(totals, shares_df)
+
+    totals = _attach_births_data(totals, births_df, state_births_q, state_births_a)
+
+    totals, sa_audit_rows = _apply_seasonal_adjustment_and_logs(totals)
 
     # Stash audit on the frame so build_all() can write it to disk.
     totals.attrs["_sa_audit_rows"] = sa_audit_rows
