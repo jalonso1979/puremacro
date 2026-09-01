@@ -370,6 +370,70 @@ def _aggregate_labour_shares_from_sectors(
     return out
 
 
+
+def _load_raw_tables(
+    cache_dir: Path,
+    k_equip_cols: tuple[str, ...],
+    ip_equip_cols: tuple[str, ...],
+    i_equip_cols: tuple[str, ...],
+    include_investment: bool,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame] | None:
+    paths = {
+        'na':  cache_dir / 'national_accounts.csv',
+        'k':   cache_dir / 'capital_accounts.csv',
+        'lab': cache_dir / 'labour_accounts.csv',
+    }
+    if not all(p.exists() for p in paths.values()):
+        return None
+    try:
+        na = pd.read_csv(
+            paths['na'],
+            usecols=['nace_r2_code', 'geo_code', 'year', 'COMP', 'H_EMP', 'VA_CP'],
+        )
+        _k_base_cols = ['nace_r2_code', 'geo_code', 'year', *k_equip_cols]
+        _k_price_cols = list(ip_equip_cols)
+        _k_invest_cols = list(i_equip_cols)
+        _k_extra = _k_price_cols + (_k_invest_cols if include_investment else [])
+        try:
+            k = pd.read_csv(paths['k'], usecols=_k_base_cols + _k_extra)
+        except (ValueError, KeyError):
+            try:
+                k = pd.read_csv(paths['k'], usecols=_k_base_cols + _k_price_cols)
+            except (ValueError, KeyError):
+                k = pd.read_csv(paths['k'], usecols=_k_base_cols)
+            for _c in _k_price_cols:
+                if _c not in k.columns:
+                    k[_c] = np.nan
+            if include_investment:
+                for _c in _k_invest_cols:
+                    if _c not in k.columns:
+                        k[_c] = np.nan
+        lab = pd.read_csv(paths['lab'])
+        return na, k, lab
+    except Exception:
+        return None
+
+
+def _compute_p_equip_index(
+    df: pd.DataFrame,
+    ip_equip_cols: tuple[str, ...],
+    k_equip_cols: tuple[str, ...],
+) -> pd.Series:
+    _ip_cols = list(ip_equip_cols)
+    _wt_cols = list(k_equip_cols)
+    for _c in _ip_cols:
+        if _c not in df.columns:
+            df[_c] = np.nan
+    _ip = df[_ip_cols].copy().clip(lower=1e-9)
+    _wt = df[_wt_cols].fillna(0)
+    _ip.columns = range(len(_ip_cols))
+    _wt.columns = range(len(_wt_cols))
+    _wt_sum = _wt.sum(axis=1).replace(0, np.nan)
+    _wt_norm = _wt.div(_wt_sum, axis=0)
+    _ip_valid = df[_ip_cols].notna().any(axis=1)
+    _log_pk = (np.log(_ip) * _wt_norm).sum(axis=1)
+    return pd.Series(np.where(_ip_valid, np.exp(_log_pk), np.nan), index=df.index)
+
 def load_klems_panel(
     cache_dir: Path | str = 'data/raw/euklems',
     *,
@@ -436,46 +500,12 @@ def load_klems_panel(
         return _EMPTY.copy()
     # Resolve equipment-definition columns once.
     _k_equip_cols, _ip_equip_cols, _i_equip_cols = _equip_columns(equip_def)
-    paths = {
-        'na':  cache_dir / 'national_accounts.csv',
-        'k':   cache_dir / 'capital_accounts.csv',
-        'lab': cache_dir / 'labour_accounts.csv',
-    }
-    if not all(p.exists() for p in paths.values()):
+    tables = _load_raw_tables(
+        cache_dir, _k_equip_cols, _ip_equip_cols, _i_equip_cols, include_investment
+    )
+    if tables is None:
         return _EMPTY.copy()
-    try:
-        na = pd.read_csv(
-            paths['na'],
-            usecols=['nace_r2_code', 'geo_code', 'year', 'COMP', 'H_EMP', 'VA_CP'],
-        )
-        # Try to read capital_accounts with Ip price columns; fall back
-        # gracefully if they are absent from the release being loaded.
-        _k_base_cols = ['nace_r2_code', 'geo_code', 'year', *_k_equip_cols]
-        _k_price_cols = list(_ip_equip_cols)
-        _k_invest_cols = list(_i_equip_cols)
-        # Columns to request from capital_accounts.
-        _k_extra = _k_price_cols + (_k_invest_cols if include_investment else [])
-        try:
-            k = pd.read_csv(
-                paths['k'],
-                usecols=_k_base_cols + _k_extra,
-            )
-        except (ValueError, KeyError):
-            # Some optional columns absent — load base + price, fill missing.
-            try:
-                k = pd.read_csv(paths['k'], usecols=_k_base_cols + _k_price_cols)
-            except (ValueError, KeyError):
-                k = pd.read_csv(paths['k'], usecols=_k_base_cols)
-            for _c in _k_price_cols:
-                if _c not in k.columns:
-                    k[_c] = np.nan
-            if include_investment:
-                for _c in _k_invest_cols:
-                    if _c not in k.columns:
-                        k[_c] = np.nan
-        lab = pd.read_csv(paths['lab'])
-    except Exception:
-        return _EMPTY.copy()
+    na, k, lab = tables
 
     # Drop EU/EA aggregates from national accounts (kept full-sector for the
     # sector-aggregation fallback below; industry filter applied after).
@@ -536,27 +566,7 @@ def load_klems_panel(
 
     # Compute p_equip_index: value-weighted geometric mean of the
     # equip_def-selected EU-KLEMS equipment price indexes (Ip_*).
-    # Weights are the corresponding real capital stocks; if all
-    # Ip columns are NaN the result is NaN.
-    _ip_cols = list(_ip_equip_cols)
-    _wt_cols = list(_k_equip_cols)
-    for _c in _ip_cols:
-        if _c not in df.columns:
-            df[_c] = np.nan
-    # Build weight matrix (fallback to equal weights if stocks are all 0/NaN).
-    # Reset numeric column labels to position-aligned indices so that pandas
-    # multiplies element-wise rather than aligning on column NAME — Ip_* and
-    # K_* are different names but correspond positionally by suffix.
-    _ip = df[_ip_cols].copy().clip(lower=1e-9)  # avoid log(0)
-    _wt = df[_wt_cols].fillna(0)
-    _ip.columns = range(len(_ip_cols))
-    _wt.columns = range(len(_wt_cols))
-    _wt_sum = _wt.sum(axis=1).replace(0, np.nan)
-    _wt_norm = _wt.div(_wt_sum, axis=0)
-    # Replace rows where all Ip values are NaN with NaN result.
-    _ip_valid = df[_ip_cols].notna().any(axis=1)
-    _log_pk = (np.log(_ip) * _wt_norm).sum(axis=1)
-    df['p_equip_index'] = np.where(_ip_valid, np.exp(_log_pk), np.nan)
+    df['p_equip_index'] = _compute_p_equip_index(df, _ip_equip_cols, _k_equip_cols)
 
     # Optionally compute i_equip = sum of nominal equipment investment flows.
     if include_investment:
