@@ -22,7 +22,6 @@ multilingual extraction).
 from __future__ import annotations
 
 import json
-import ssl
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -261,13 +260,8 @@ class AnthropicBackend(_BackendBase):
                 "content-type": "application/json",
             },
         )
-        try:
-            with urllib.request.urlopen(req, timeout=60) as resp:
-                body = json.loads(resp.read().decode("utf-8"))
-        except (urllib.error.HTTPError, urllib.error.URLError, ssl.SSLError):
-            ctx = ssl._create_unverified_context()
-            with urllib.request.urlopen(req, timeout=60, context=ctx) as resp:
-                body = json.loads(resp.read().decode("utf-8"))
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
         for block in body.get("content", []):
             if block.get("type") == "text":
                 return block["text"]
@@ -297,13 +291,8 @@ class OpenAIBackend(_BackendBase):
                 "content-type": "application/json",
             },
         )
-        try:
-            with urllib.request.urlopen(req, timeout=60) as resp:
-                body = json.loads(resp.read().decode("utf-8"))
-        except (urllib.error.HTTPError, urllib.error.URLError, ssl.SSLError):
-            ctx = ssl._create_unverified_context()
-            with urllib.request.urlopen(req, timeout=60, context=ctx) as resp:
-                body = json.loads(resp.read().decode("utf-8"))
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
         choices = body.get("choices") or []
         if not choices:
             return ""
