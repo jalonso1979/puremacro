@@ -1296,7 +1296,7 @@ git commit -m "feat(narrative): Riksbank + Norges + SARB decision connectors (en
 # ---------------------------------------------------------------------------
 def test_pboc_decision_yields_four_tuple_en(mock_http):
     mock_http(bytes_={
-        "http://www.pbc.gov.cn/en/3688110/3688215/index.html":
+        "https://www.pbc.gov.cn/en/3688110/3688215/index.html":
             '<html><body>'
             '<a href="/en/3688110/3688215/4582345/index.html" title="PBC announces rate cut">'
             'PBC announces rate cut'
@@ -1357,8 +1357,8 @@ import pandas as pd
 from ..._http import safe_get_text
 
 
-_LISTING_URL = "http://www.pbc.gov.cn/en/3688110/3688215/index.html"
-_BASE = "http://www.pbc.gov.cn"
+_LISTING_URL = "https://www.pbc.gov.cn/en/3688110/3688215/index.html"
+_BASE = "https://www.pbc.gov.cn"
 _LINK_RX = re.compile(
     r'<a[^>]+href="([^"]+)"[^>]*title="([^"]+)"',
     flags=re.IGNORECASE,
