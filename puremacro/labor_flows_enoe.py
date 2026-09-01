@@ -438,6 +438,105 @@ def _normalize_anio(v) -> int | float:
     return n
 
 
+
+
+
+
+def _harmonize_columns(df: pd.DataFrame) -> None:
+    # Column-name harmonization across ENOE eras:
+    #   2025q3+ ENOE:        CVE_ENT -> ENT  (new INEGI 'clave' convention)
+    #   ENE-era files:       HOG     -> N_HOG;  PER -> N_REN
+    # Apply uniformly so downstream code doesn't have to special-case.
+    _RENAMES = {"CVE_ENT": "ENT", "HOG": "N_HOG", "PER": "N_REN"}
+    cols_now = set(df.columns)
+    rename_map = {old: new for old, new in _RENAMES.items()
+                  if old in cols_now and new not in cols_now}
+    if rename_map:
+        df.rename(columns=rename_map, inplace=True)
+
+def _reconcile_fac(df: pd.DataFrame) -> None:
+    # FAC reconciliation. ENOE pre-2020q3 has a single FAC column that
+    # behaves as a per-row weight summing to ~quarterly population, with
+    # each row attributable to one D_MES via HOG. Sum-by-D_MES then gives
+    # the monthly cohort. Post-2020q3 ENOE-N stores FAC_MEN (per-row =
+    # FAC_TRI * 3) and FAC_TRI separately. ETOE (2020 Apr/May/Jun) uses
+    # FAC_NP (non-panel). Priority order: FAC > FAC_TRI > FAC_NP.
+    if "FAC" in df.columns:
+        return
+    for alt in ("FAC_TRI", "FAC_NP", "FAC_MEN"):
+        if alt in df.columns:
+            df["FAC"] = df[alt]
+            break
+
+def _deduplicate_sdem_coe1(sdem: pd.DataFrame, coe1: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    # Dedup within-quarter. Post-2020q3 ENOE-N allows the same person to
+    # appear in multiple N_ENT (interview rounds) within one quarter
+    # (e.g., 2020q3 SDEM has 35k duplicate person keys due to COVID-era
+    # interview rescheduling). The SDEM-COE1 merge would cartesian-product
+    # these. Keep one row per (person, N_ENT), and for stocks/transitions
+    # we further collapse to one row per person below.
+    person_full_key = [
+        c for c in ("ENT", "CON", "V_SEL", "N_HOG", "H_MUD", "N_REN", "N_ENT")
+        if c in sdem.columns
+    ]
+    person_full_key_coe1 = [
+        c for c in person_full_key if c in coe1.columns
+    ]
+    sdem = sdem.drop_duplicates(person_full_key, keep="first")
+    coe1 = coe1.drop_duplicates(person_full_key_coe1, keep="first")
+    return sdem, coe1
+
+def _merge_hog_sdem(hog: pd.DataFrame, sdem: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
+    # HOG -> SDEM (household-level): bring interview date columns onto each person.
+    hog_join = [c for c in HOG_JOIN_COLS if c in hog.columns and c in sdem.columns]
+    hog_carry = [c for c in ("D_ANIO", "D_MES", "D_DIA", "MES_CAL") if c in hog.columns]
+    sdem = sdem.merge(
+        hog[hog_join + hog_carry].drop_duplicates(hog_join),
+        on=hog_join, how="left",
+    )
+    # D_ANIO is stored as 2-digit year (e.g., 18 for 2018). Expand to 4-digit.
+    if "D_ANIO" in sdem.columns:
+        sdem["D_ANIO"] = sdem["D_ANIO"].apply(_normalize_anio)
+    # 2020q3 COVID-period interview reshuffling left D_MES with spurious
+    # earlier months. Prefer MES_CAL when available (2020q3+) for the
+    # reference month; fall back to D_MES otherwise.
+    if "MES_CAL" in sdem.columns:
+        sdem["D_MES"] = sdem["MES_CAL"].where(
+            sdem["MES_CAL"].notna(), sdem.get("D_MES")
+        )
+        # D_ANIO is the quarter's nominal year; that still matches MES_CAL.
+    return sdem, hog_join
+
+def _merge_sdem_coe1(sdem: pd.DataFrame, coe1: pd.DataFrame, hog_join: list[str]) -> pd.DataFrame:
+    # SDEM -> COE1 (person-level): include N_REN in the join key.
+    person_join = hog_join + ["N_REN"]
+    person_join = [c for c in person_join if c in sdem.columns and c in coe1.columns]
+    # Avoid duplicating columns already on SDEM.
+    coe1_extra = [c for c in coe1.columns if c not in sdem.columns and c not in person_join]
+    merged = sdem.merge(
+        coe1[person_join + coe1_extra], on=person_join, how="left",
+    )
+    return merged
+
+def _merge_coe2(merged: pd.DataFrame, qdir, make_person_id) -> pd.DataFrame:
+    # Opt-in COE2 (search module) merge — the retrospective separation-reason
+    # battery. Mirrors the HOG/SDEM/COE1 path: read subset, harmonize era
+    # column names, build the person key, attach onto the deduped panel.
+    # Reason cols are returned LOWER-cased (downstream crosswalks key on p9c/d/e).
+    coe2_path = _find_dta(qdir, "COE2")
+    if coe2_path is not None:
+        coe2 = _read_stata_subset(coe2_path, _COE2_COLS_WANTED)
+        _harmonize_columns(coe2)
+        coe2["person_id"] = make_person_id(coe2)
+        reason_upper = ["P8B", "P9", "P9C", "P9D", "P9E",
+                        "P9F", "P9F_ANIO", "P9F_MES"]
+        present = [c for c in reason_upper if c in coe2.columns]
+        sub = (coe2[["person_id"] + present]
+               .drop_duplicates("person_id")
+               .rename(columns={c: c.lower() for c in present}))
+        merged = merged.merge(sub, on="person_id", how="left")
+    return merged
+
 def load_enoe_quarter(
     root: Path | str | tuple | list | None,
     year: int,
@@ -488,77 +587,13 @@ def load_enoe_quarter(
     sdem = _read_stata_subset(sdem_path, _SDEM_COLS_WANTED)
     coe1 = _read_stata_subset(coe1_path, _COE1_COLS_WANTED)
 
-    # Column-name harmonization across ENOE eras:
-    #   2025q3+ ENOE:        CVE_ENT -> ENT  (new INEGI 'clave' convention)
-    #   ENE-era files:       HOG     -> N_HOG;  PER -> N_REN
-    # Apply uniformly so downstream code doesn't have to special-case.
-    _RENAMES = {"CVE_ENT": "ENT", "HOG": "N_HOG", "PER": "N_REN"}
     for df in (hog, sdem, coe1):
-        cols_now = set(df.columns)
-        rename_map = {old: new for old, new in _RENAMES.items()
-                      if old in cols_now and new not in cols_now}
-        if rename_map:
-            df.rename(columns=rename_map, inplace=True)
+        _harmonize_columns(df)
+        _reconcile_fac(df)
 
-    # FAC reconciliation. ENOE pre-2020q3 has a single FAC column that
-    # behaves as a per-row weight summing to ~quarterly population, with
-    # each row attributable to one D_MES via HOG. Sum-by-D_MES then gives
-    # the monthly cohort. Post-2020q3 ENOE-N stores FAC_MEN (per-row =
-    # FAC_TRI * 3) and FAC_TRI separately. ETOE (2020 Apr/May/Jun) uses
-    # FAC_NP (non-panel). Priority order: FAC > FAC_TRI > FAC_NP.
-    for df in (hog, sdem, coe1):
-        if "FAC" in df.columns:
-            continue
-        for alt in ("FAC_TRI", "FAC_NP", "FAC_MEN"):
-            if alt in df.columns:
-                df["FAC"] = df[alt]
-                break
-
-    # Dedup within-quarter. Post-2020q3 ENOE-N allows the same person to
-    # appear in multiple N_ENT (interview rounds) within one quarter
-    # (e.g., 2020q3 SDEM has 35k duplicate person keys due to COVID-era
-    # interview rescheduling). The SDEM-COE1 merge would cartesian-product
-    # these. Keep one row per (person, N_ENT), and for stocks/transitions
-    # we further collapse to one row per person below.
-    person_full_key = [
-        c for c in ("ENT", "CON", "V_SEL", "N_HOG", "H_MUD", "N_REN", "N_ENT")
-        if c in sdem.columns
-    ]
-    person_full_key_coe1 = [
-        c for c in person_full_key if c in coe1.columns
-    ]
-    sdem = sdem.drop_duplicates(person_full_key, keep="first")
-    coe1 = coe1.drop_duplicates(person_full_key_coe1, keep="first")
-
-    # HOG -> SDEM (household-level): bring interview date columns onto each person.
-    hog_join = [c for c in HOG_JOIN_COLS if c in hog.columns and c in sdem.columns]
-    hog_carry = [c for c in ("D_ANIO", "D_MES", "D_DIA", "MES_CAL") if c in hog.columns]
-    sdem = sdem.merge(
-        hog[hog_join + hog_carry].drop_duplicates(hog_join),
-        on=hog_join, how="left",
-    )
-
-    # D_ANIO is stored as 2-digit year (e.g., 18 for 2018). Expand to 4-digit.
-    if "D_ANIO" in sdem.columns:
-        sdem["D_ANIO"] = sdem["D_ANIO"].apply(_normalize_anio)
-
-    # 2020q3 COVID-period interview reshuffling left D_MES with spurious
-    # earlier months. Prefer MES_CAL when available (2020q3+) for the
-    # reference month; fall back to D_MES otherwise.
-    if "MES_CAL" in sdem.columns:
-        sdem["D_MES"] = sdem["MES_CAL"].where(
-            sdem["MES_CAL"].notna(), sdem.get("D_MES")
-        )
-        # D_ANIO is the quarter's nominal year; that still matches MES_CAL.
-
-    # SDEM -> COE1 (person-level): include N_REN in the join key.
-    person_join = hog_join + ["N_REN"]
-    person_join = [c for c in person_join if c in sdem.columns and c in coe1.columns]
-    # Avoid duplicating columns already on SDEM.
-    coe1_extra = [c for c in coe1.columns if c not in sdem.columns and c not in person_join]
-    merged = sdem.merge(
-        coe1[person_join + coe1_extra], on=person_join, how="left",
-    )
+    sdem, coe1 = _deduplicate_sdem_coe1(sdem, coe1)
+    sdem, hog_join = _merge_hog_sdem(hog, sdem)
+    merged = _merge_sdem_coe1(sdem, coe1, hog_join)
 
     merged["person_id"] = make_person_id(merged)
     merged["labor_status"] = assign_labor_status(merged)
@@ -573,26 +608,8 @@ def load_enoe_quarter(
                   .reset_index(drop=True)
         )
 
-    # Opt-in COE2 (search module) merge — the retrospective separation-reason
-    # battery. Mirrors the HOG/SDEM/COE1 path: read subset, harmonize era
-    # column names, build the person key, attach onto the deduped panel.
-    # Reason cols are returned LOWER-cased (downstream crosswalks key on p9c/d/e).
     if with_coe2:
-        coe2_path = _find_dta(qdir, "COE2")
-        if coe2_path is not None:
-            coe2 = _read_stata_subset(coe2_path, _COE2_COLS_WANTED)
-            rn = {old: new for old, new in _RENAMES.items()
-                  if old in coe2.columns and new not in coe2.columns}
-            if rn:
-                coe2.rename(columns=rn, inplace=True)
-            coe2["person_id"] = make_person_id(coe2)
-            reason_upper = ["P8B", "P9", "P9C", "P9D", "P9E",
-                            "P9F", "P9F_ANIO", "P9F_MES"]
-            present = [c for c in reason_upper if c in coe2.columns]
-            sub = (coe2[["person_id"] + present]
-                   .drop_duplicates("person_id")
-                   .rename(columns={c: c.lower() for c in present}))
-            merged = merged.merge(sub, on="person_id", how="left")
+        merged = _merge_coe2(merged, qdir, make_person_id)
 
     return _apply_urban_filter(merged, _coerce_urban_filter(urban_filter))
 
