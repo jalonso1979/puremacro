@@ -39,12 +39,11 @@ does not exist in EU-KLEMS 2023.
 """
 from __future__ import annotations
 
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 import numpy as np
 import pandas as pd
-
 
 # Equipment-definition registry. Each entry maps an equip_def label to the
 # tuple of EU-KLEMS asset-class suffixes that compose the aggregate. The
@@ -118,6 +117,34 @@ _OUT_COLS_WITH_INVEST = _OUT_COLS + ['i_equip']
 _EMPTY = pd.DataFrame(columns=_OUT_COLS)
 
 
+def _pivot_skill_shares_to_wide(grouped_skill: pd.DataFrame) -> pd.DataFrame:
+    """Pivot a DataFrame containing (geo_code, year, skill, Share_E, Share_W)
+    into wide format with columns share_E_low/med/high, share_W_low/med/high.
+    """
+    e = grouped_skill.pivot_table(
+        index=['geo_code', 'year'],
+        columns='skill',
+        values='Share_E',
+        aggfunc='first',
+    ).rename(columns=lambda s: f'share_E_{s}')
+    w = grouped_skill.pivot_table(
+        index=['geo_code', 'year'],
+        columns='skill',
+        values='Share_W',
+        aggfunc='first',
+    ).rename(columns=lambda s: f'share_W_{s}')
+    # Ensure all three skill columns are present (fill missing with NaN).
+    for skill in ('low', 'med', 'high'):
+        for prefix in ('share_E_', 'share_W_'):
+            col = f'{prefix}{skill}'
+            if col not in e.columns and prefix == 'share_E_':
+                e[col] = np.nan
+            if col not in w.columns and prefix == 'share_W_':
+                w[col] = np.nan
+    out = e.join(w).reset_index()
+    out.columns.name = None
+    return out
+
 def _pivot_shares_to_wide(
     agg: pd.DataFrame,
     code_to_skill: dict[int, str],
@@ -137,29 +164,7 @@ def _pivot_shares_to_wide(
     grouped = agg.groupby(['geo_code', 'year', 'skill'], as_index=False)[
         ['Share_E', 'Share_W']
     ].sum(min_count=1)
-    e = grouped.pivot_table(
-        index=['geo_code', 'year'],
-        columns='skill',
-        values='Share_E',
-        aggfunc='first',
-    ).rename(columns=lambda s: f'share_E_{s}')
-    w = grouped.pivot_table(
-        index=['geo_code', 'year'],
-        columns='skill',
-        values='Share_W',
-        aggfunc='first',
-    ).rename(columns=lambda s: f'share_W_{s}')
-    # Ensure all three skill columns are present (fill missing with NaN).
-    for skill in ('low', 'med', 'high'):
-        for prefix in ('share_E_', 'share_W_'):
-            col = f'{prefix}{skill}'
-            if col not in e.columns and prefix == 'share_E_':
-                e[col] = np.nan
-            if col not in w.columns and prefix == 'share_W_':
-                w[col] = np.nan
-    out = e.join(w).reset_index()
-    out.columns.name = None
-    return out
+    return _pivot_skill_shares_to_wide(grouped)
 
 
 def _aggregate_labour_shares(labour_long: pd.DataFrame, *,
@@ -228,31 +233,8 @@ def _aggregate_labour_shares(labour_long: pd.DataFrame, *,
     return out
 
 
-def _aggregate_labour_shares_from_sectors(
-    labour_long: pd.DataFrame,
-    na_long: pd.DataFrame,
-) -> pd.DataFrame:
-    """Synthesise TOT-level labour shares by aggregating level-1 NACE sectors.
 
-    EU-KLEMS 2023 leaves the ``TOT`` row of the labour file empty (NaN) for
-    many EU countries pre-2008, even though per-sector skill shares are
-    populated back to 1995 for nine countries (AT, DE, ES, FI, FR, IT, NL,
-    UK plus US via fine codes).  When that happens we can still build
-    effective TOT-level shares as
-
-        share_E_skill_TOT = Σ_s (share_E_skill_s × H_EMP_s) / Σ_s H_EMP_s
-        share_W_skill_TOT = Σ_s (share_W_skill_s × COMP_s)  / Σ_s COMP_s
-
-    summed over level-1 NACE sectors ``A..U`` whose H_EMP/COMP totals are
-    provided by ``national_accounts.csv``.  We deliberately drop compound
-    sector codes (``C10-C12``, ``M-N``, ``MARKT``, ``TOT_IND``, …) so that
-    the contributions are exclusive and sum to the TOT total to within
-    rounding.
-
-    Returns wide-format (geo_code, year, share_E_low/med/high,
-    share_W_low/med/high).  Returns an empty frame if no sector-level
-    data are present in either input.
-    """
+def _get_sector_skill_shares(labour_long: pd.DataFrame) -> pd.DataFrame:
     # Restrict labour file to level-1 sectors.
     lab_sub = labour_long[
         labour_long['nace_r2_code'].isin(_LEVEL1_SECTORS)
@@ -306,8 +288,13 @@ def _aggregate_labour_shares_from_sectors(
         sec_skill['Share_W'] / sec_skill['_skill_W_sum'],
         np.nan,
     )
-    sec_skill = sec_skill.drop(columns=['_skill_E_sum', '_skill_W_sum'])
+    return sec_skill.drop(columns=['_skill_E_sum', '_skill_W_sum'])
 
+
+def _calculate_tot_skill_shares(
+    sec_skill: pd.DataFrame,
+    na_long: pd.DataFrame,
+) -> pd.DataFrame:
     # Restrict national accounts to the same level-1 sectors and merge.
     na_sub = na_long[
         na_long['nace_r2_code'].isin(_LEVEL1_SECTORS)
@@ -349,25 +336,43 @@ def _aggregate_labour_shares_from_sectors(
     # error is the published TOT vs sector-sum rounding, which is ≪ 1%).
     skill_tot['Share_E'] = skill_tot['hours_skill'] / skill_tot['hours_sec_sum']
     skill_tot['Share_W'] = skill_tot['comp_skill']  / skill_tot['comp_sec_sum']
+    return skill_tot
 
-    e = skill_tot.pivot_table(
-        index=['geo_code', 'year'], columns='skill', values='Share_E',
-        aggfunc='first',
-    ).rename(columns=lambda s: f'share_E_{s}')
-    w = skill_tot.pivot_table(
-        index=['geo_code', 'year'], columns='skill', values='Share_W',
-        aggfunc='first',
-    ).rename(columns=lambda s: f'share_W_{s}')
-    for skill in ('low', 'med', 'high'):
-        for prefix in ('share_E_', 'share_W_'):
-            col = f'{prefix}{skill}'
-            if col not in e.columns and prefix == 'share_E_':
-                e[col] = np.nan
-            if col not in w.columns and prefix == 'share_W_':
-                w[col] = np.nan
-    out = e.join(w).reset_index()
-    out.columns.name = None
-    return out
+
+def _aggregate_labour_shares_from_sectors(
+    labour_long: pd.DataFrame,
+    na_long: pd.DataFrame,
+) -> pd.DataFrame:
+    """Synthesise TOT-level labour shares by aggregating level-1 NACE sectors.
+
+    EU-KLEMS 2023 leaves the ``TOT`` row of the labour file empty (NaN) for
+    many EU countries pre-2008, even though per-sector skill shares are
+    populated back to 1995 for nine countries (AT, DE, ES, FI, FR, IT, NL,
+    UK plus US via fine codes).  When that happens we can still build
+    effective TOT-level shares as
+
+        share_E_skill_TOT = Σ_s (share_E_skill_s × H_EMP_s) / Σ_s H_EMP_s
+        share_W_skill_TOT = Σ_s (share_W_skill_s × COMP_s)  / Σ_s COMP_s
+
+    summed over level-1 NACE sectors ``A..U`` whose H_EMP/COMP totals are
+    provided by ``national_accounts.csv``.  We deliberately drop compound
+    sector codes (``C10-C12``, ``M-N``, ``MARKT``, ``TOT_IND``, …) so that
+    the contributions are exclusive and sum to the TOT total to within
+    rounding.
+
+    Returns wide-format (geo_code, year, share_E_low/med/high,
+    share_W_low/med/high).  Returns an empty frame if no sector-level
+    data are present in either input.
+    """
+    sec_skill = _get_sector_skill_shares(labour_long)
+    if sec_skill.empty:
+        return pd.DataFrame()
+
+    skill_tot = _calculate_tot_skill_shares(sec_skill, na_long)
+    if skill_tot.empty:
+        return pd.DataFrame()
+
+    return _pivot_skill_shares_to_wide(skill_tot)
 
 
 def load_klems_panel(
@@ -593,4 +598,4 @@ def load_klems_country(
     )
 
 
-__all__ = ['load_klems_panel', 'load_klems_country', '_KLEMS_TO_ISO3']
+__all__ = ['_KLEMS_TO_ISO3', 'load_klems_country', 'load_klems_panel']
