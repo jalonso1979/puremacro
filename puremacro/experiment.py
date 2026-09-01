@@ -34,6 +34,115 @@ def _slice_country(wide: pd.DataFrame, code: str) -> pd.DataFrame:
     return sub.sort_index()
 
 
+def _run_lp(
+    wide, outcome, proxy, country, horizons, n_lags, controls, alpha, normalize
+):
+    if country is None:
+        raise ValueError("method='lp' requires country=")
+    sub = _slice_country(wide, country)
+    irf_df = lp_hac(
+        sub, y=outcome, x=proxy, horizons=horizons,
+        n_lags=n_lags, controls=controls, alpha=alpha
+    )
+    irf_df = irf_df.set_index("h")
+    result = {
+        "method": "lp",
+        "irf_point": irf_df["beta"],
+        "irf_lower": irf_df["lo"],
+        "irf_upper": irf_df["hi"],
+        "n_obs": int(sub[[outcome, proxy]].dropna().shape[0]),
+        "alpha": alpha,
+    }
+    if normalize == "1sd_pct":
+        x_sd = float(sub[proxy].dropna().std(ddof=0))
+        result = to_1sd_pct(result, x_sd=x_sd, outcome_name=outcome)
+    return result
+
+
+def _run_panel_lp(
+    wide, outcome, proxy, countries, horizons, n_lags, controls, alpha,
+    normalize
+):
+    sub = wide
+    if countries is not None:
+        sub = sub.loc[sub.index.get_level_values("code").isin(countries)]
+    irf_df = panel_lp(
+        sub, y=outcome, x=proxy, horizons=horizons,
+        n_lags=n_lags, controls=controls or [], alpha=alpha
+    )
+    irf_df = irf_df.set_index("h")
+    n_countries = sub.index.get_level_values("code").nunique()
+    result = {
+        "method": "panel_lp",
+        "irf_point": irf_df["beta"],
+        "irf_lower": irf_df["lo"],
+        "irf_upper": irf_df["hi"],
+        "n_obs": int(len(sub)),
+        "n_countries": int(n_countries),
+        "alpha": alpha,
+    }
+    if normalize == "1sd_pct":
+        x_sd = float(sub[proxy].dropna().std(ddof=0))
+        result = to_1sd_pct(result, x_sd=x_sd, outcome_name=outcome)
+    return result
+
+
+def _run_var_cholesky(
+    wide, outcome, proxy, country, horizons, n_lags, controls, alpha,
+    normalize, n_boot, seed
+):
+    if country is None:
+        raise ValueError("method='var_cholesky' requires country=")
+    sub = _slice_country(wide, country)
+    sys_vars = [proxy, outcome] + (controls or [])
+    Y = sub[sys_vars].dropna()
+    Y_arr = Y.values
+    # Match teaching's fit_var semantics: n_lags is the *maxlag* and BIC
+    # selects within [1, n_lags]. Without this, h=0 Cholesky impacts diverge
+    # from the teaching reference whenever BIC picks a smaller lag than n_lags.
+    p = select_lag_bic(Y_arr, max_p=int(n_lags))
+    H = int(max(horizons))
+
+    A_list, _, Sigma, _, _ = estimate_var(Y_arr, p)
+    B0 = cholesky_factor(Sigma)
+    point_arr = compute_irf(A_list, B0, H)  # (H+1, n, n)
+
+    bands = bootstrap_bands(
+        Y_arr, p,
+        identify_fn=lambda A_list, Sigma: safe_cholesky(
+            Sigma, name="experiment var_cholesky bootstrap"),
+        horizon=H, n_boot=n_boot, alpha=alpha, method="recursive",
+        rng=np.random.default_rng(seed),
+    )
+    lower_arr = bands["lower"]
+    upper_arr = bands["upper"]
+
+    k = sys_vars.index(proxy)
+    h_idx = pd.Index(range(H + 1), name="h")
+    point_df = pd.DataFrame(point_arr[:, :, k], index=h_idx, columns=sys_vars)
+    lower_df = pd.DataFrame(lower_arr[:, :, k], index=h_idx, columns=sys_vars)
+    upper_df = pd.DataFrame(upper_arr[:, :, k], index=h_idx, columns=sys_vars)
+
+    result = {
+        "method": "var_cholesky",
+        "irf_point": point_df,
+        "irf_lower": lower_df,
+        "irf_upper": upper_df,
+        "n_obs": int(len(Y)),
+        "alpha": alpha,
+    }
+    if normalize == "1sd_pct":
+        for key in ("irf_point", "irf_lower", "irf_upper"):
+            df = result[key].copy()
+            for col in df.columns:
+                if not is_rate_outcome(col):
+                    df[col] = df[col] * 100.0
+            result[key] = df
+        result["shock_sd"] = None
+        result["y_units"] = "%/pp (per-column)"
+    return result
+
+
 def run_experiment(
     wide: pd.DataFrame,
     *,
@@ -79,98 +188,22 @@ def run_experiment(
     horizons = list(horizons)
 
     if method == "lp":
-        if country is None:
-            raise ValueError("method='lp' requires country=")
-        sub = _slice_country(wide, country)
-        irf_df = lp_hac(sub, y=outcome, x=proxy, horizons=horizons,
-                        n_lags=n_lags, controls=controls, alpha=alpha)
-        irf_df = irf_df.set_index("h")
-        result = {
-            "method": "lp",
-            "irf_point": irf_df["beta"],
-            "irf_lower": irf_df["lo"],
-            "irf_upper": irf_df["hi"],
-            "n_obs": int(sub[[outcome, proxy]].dropna().shape[0]),
-            "alpha": alpha,
-        }
-        if normalize == "1sd_pct":
-            x_sd = float(sub[proxy].dropna().std(ddof=0))
-            result = to_1sd_pct(result, x_sd=x_sd, outcome_name=outcome)
-        return result
+        return _run_lp(
+            wide, outcome, proxy, country, horizons, n_lags, controls, alpha,
+            normalize
+        )
 
     if method == "panel_lp":
-        sub = wide
-        if countries is not None:
-            sub = sub.loc[sub.index.get_level_values("code").isin(countries)]
-        irf_df = panel_lp(sub, y=outcome, x=proxy, horizons=horizons,
-                          n_lags=n_lags, controls=controls or [], alpha=alpha)
-        irf_df = irf_df.set_index("h")
-        n_countries = sub.index.get_level_values("code").nunique()
-        result = {
-            "method": "panel_lp",
-            "irf_point": irf_df["beta"],
-            "irf_lower": irf_df["lo"],
-            "irf_upper": irf_df["hi"],
-            "n_obs": int(len(sub)),
-            "n_countries": int(n_countries),
-            "alpha": alpha,
-        }
-        if normalize == "1sd_pct":
-            x_sd = float(sub[proxy].dropna().std(ddof=0))
-            result = to_1sd_pct(result, x_sd=x_sd, outcome_name=outcome)
-        return result
+        return _run_panel_lp(
+            wide, outcome, proxy, countries, horizons, n_lags, controls,
+            alpha, normalize
+        )
 
     # var_cholesky
-    if country is None:
-        raise ValueError("method='var_cholesky' requires country=")
-    sub = _slice_country(wide, country)
-    sys_vars = [proxy, outcome] + (controls or [])
-    Y = sub[sys_vars].dropna()
-    Y_arr = Y.values
-    # Match teaching's fit_var semantics: n_lags is the *maxlag* and BIC selects
-    # within [1, n_lags]. Without this, h=0 Cholesky impacts diverge from the
-    # teaching reference whenever BIC picks a smaller lag than n_lags.
-    p = select_lag_bic(Y_arr, max_p=int(n_lags))
-    H = int(max(horizons))
-
-    A_list, _, Sigma, _, _ = estimate_var(Y_arr, p)
-    B0 = cholesky_factor(Sigma)
-    point_arr = compute_irf(A_list, B0, H)  # (H+1, n, n)
-
-    bands = bootstrap_bands(
-        Y_arr, p,
-        identify_fn=lambda A_list, Sigma: safe_cholesky(
-            Sigma, name="experiment var_cholesky bootstrap"),
-        horizon=H, n_boot=n_boot, alpha=alpha, method="recursive",
-        rng=np.random.default_rng(seed),
+    return _run_var_cholesky(
+        wide, outcome, proxy, country, horizons, n_lags, controls, alpha,
+        normalize, n_boot, seed
     )
-    lower_arr = bands["lower"]
-    upper_arr = bands["upper"]
-
-    k = sys_vars.index(proxy)
-    h_idx = pd.Index(range(H + 1), name="h")
-    point_df = pd.DataFrame(point_arr[:, :, k], index=h_idx, columns=sys_vars)
-    lower_df = pd.DataFrame(lower_arr[:, :, k], index=h_idx, columns=sys_vars)
-    upper_df = pd.DataFrame(upper_arr[:, :, k], index=h_idx, columns=sys_vars)
-
-    result = {
-        "method": "var_cholesky",
-        "irf_point": point_df,
-        "irf_lower": lower_df,
-        "irf_upper": upper_df,
-        "n_obs": int(len(Y)),
-        "alpha": alpha,
-    }
-    if normalize == "1sd_pct":
-        for key in ("irf_point", "irf_lower", "irf_upper"):
-            df = result[key].copy()
-            for col in df.columns:
-                if not is_rate_outcome(col):
-                    df[col] = df[col] * 100.0
-            result[key] = df
-        result["shock_sd"] = None
-        result["y_units"] = "%/pp (per-column)"
-    return result
 
 
 __all__ = ["run_experiment"]
