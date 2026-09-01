@@ -101,6 +101,72 @@ def _within_demean(df: pd.DataFrame, cols: list[str], group: str = "code") -> pd
     return out
 
 
+def _fit_ols(
+    df: pd.DataFrame, y: np.ndarray, x: np.ndarray, n: int, n_country: int, pair: str
+) -> CrossNestFit:
+    var_x = float(np.dot(x, x))
+    if var_x < 1e-12:
+        return CrossNestFit(
+            sigma=np.nan, se=np.nan, first_stage_F=None,
+            n_obs=n, n_country=n_country,
+            estimator="OLS", pair=pair,
+        )
+    beta = float(np.dot(x, y) / var_x)
+    resid = y - beta * x
+    df["_score"] = resid * x
+    cluster_sum = df.groupby("code")["_score"].sum().to_numpy()
+    var_num = float(np.dot(cluster_sum, cluster_sum))
+    var_den = var_x ** 2
+    se = float(np.sqrt(var_num / max(var_den, 1e-12)))
+    return CrossNestFit(
+        sigma=beta, se=se, first_stage_F=None,
+        n_obs=n, n_country=n_country,
+        estimator="OLS", pair=pair,
+    )
+
+
+def _fit_2sls(
+    df: pd.DataFrame, y: np.ndarray, x: np.ndarray, z: np.ndarray, n: int, n_country: int, pair: str
+) -> CrossNestFit:
+    # First stage: x = pi * z + nu  (in demeaned space).
+    var_z = float(np.dot(z, z))
+    if var_z < 1e-12:
+        return CrossNestFit(
+            sigma=np.nan, se=np.nan, first_stage_F=np.nan,
+            n_obs=n, n_country=n_country,
+            estimator="2SLS", pair=pair,
+        )
+    pi_hat = float(np.dot(z, x) / var_z)
+    nu = x - pi_hat * z
+    var_nu = float(np.dot(nu, nu) / max(n - 1, 1))
+    se_pi = float(np.sqrt(max(var_nu / max(var_z, 1e-12), 0.0)))
+    F = (pi_hat / se_pi) ** 2 if se_pi > 0 else np.nan
+
+    # 2SLS slope: cov(z, y) / cov(z, x).
+    sx = float(np.dot(z, x))
+    sy = float(np.dot(z, y))
+    if abs(sx) < 1e-12:
+        return CrossNestFit(
+            sigma=np.nan, se=np.nan, first_stage_F=float(F),
+            n_obs=n, n_country=n_country,
+            estimator="2SLS", pair=pair,
+        )
+    beta = sy / sx
+    resid = y - beta * x
+
+    # Country-clustered SE on 2SLS slope.
+    df["_score_iv"] = resid * z
+    cluster_sum = df.groupby("code")["_score_iv"].sum().to_numpy()
+    var_num = float(np.dot(cluster_sum, cluster_sum))
+    var_den = (np.dot(z, x)) ** 2
+    se = float(np.sqrt(var_num / max(var_den, 1e-12)))
+    return CrossNestFit(
+        sigma=float(beta), se=se, first_stage_F=float(F),
+        n_obs=n, n_country=n_country,
+        estimator="2SLS", pair=pair,
+    )
+
+
 def fit_cross_nest_pooled(
     panel: pd.DataFrame,
     *,
@@ -151,71 +217,20 @@ def fit_cross_nest_pooled(
             n_obs=0, n_country=0,
             estimator=("2SLS" if iv_col else "OLS"), pair=pair,
         )
+
     cols_to_demean = [lhs_col, rhs_col] + ([iv_col] if iv_col else [])
     df = _within_demean(df, cols_to_demean)
+
     y = df[lhs_col + "_demean"].to_numpy()
     x = df[rhs_col + "_demean"].to_numpy()
     n = len(df)
+    n_country = df["code"].nunique()
 
     if iv_col is None:
-        # Panel-FE OLS.
-        var_x = float(np.dot(x, x))
-        if var_x < 1e-12:
-            return CrossNestFit(
-                sigma=np.nan, se=np.nan, first_stage_F=None,
-                n_obs=n, n_country=df["code"].nunique(),
-                estimator="OLS", pair=pair,
-            )
-        beta = float(np.dot(x, y) / var_x)
-        resid = y - beta * x
-        df["_score"] = resid * x
-        cluster_sum = df.groupby("code")["_score"].sum().to_numpy()
-        var_num = float(np.dot(cluster_sum, cluster_sum))
-        var_den = var_x ** 2
-        se = float(np.sqrt(var_num / max(var_den, 1e-12)))
-        return CrossNestFit(
-            sigma=beta, se=se, first_stage_F=None,
-            n_obs=n, n_country=df["code"].nunique(),
-            estimator="OLS", pair=pair,
-        )
+        return _fit_ols(df, y, x, n, n_country, pair)
 
-    # 2SLS.
     z = df[iv_col + "_demean"].to_numpy()
-    # First stage: x = pi * z + nu  (in demeaned space).
-    var_z = float(np.dot(z, z))
-    if var_z < 1e-12:
-        return CrossNestFit(
-            sigma=np.nan, se=np.nan, first_stage_F=np.nan,
-            n_obs=n, n_country=df["code"].nunique(),
-            estimator="2SLS", pair=pair,
-        )
-    pi_hat = float(np.dot(z, x) / var_z)
-    nu = x - pi_hat * z
-    var_nu = float(np.dot(nu, nu) / max(n - 1, 1))
-    se_pi = float(np.sqrt(max(var_nu / max(var_z, 1e-12), 0.0)))
-    F = (pi_hat / se_pi) ** 2 if se_pi > 0 else np.nan
-    # 2SLS slope: cov(z, y) / cov(z, x).
-    sx = float(np.dot(z, x))
-    sy = float(np.dot(z, y))
-    if abs(sx) < 1e-12:
-        return CrossNestFit(
-            sigma=np.nan, se=np.nan, first_stage_F=float(F),
-            n_obs=n, n_country=df["code"].nunique(),
-            estimator="2SLS", pair=pair,
-        )
-    beta = sy / sx
-    resid = y - beta * x
-    # Country-clustered SE on 2SLS slope.
-    df["_score_iv"] = resid * z
-    cluster_sum = df.groupby("code")["_score_iv"].sum().to_numpy()
-    var_num = float(np.dot(cluster_sum, cluster_sum))
-    var_den = (np.dot(z, x)) ** 2
-    se = float(np.sqrt(var_num / max(var_den, 1e-12)))
-    return CrossNestFit(
-        sigma=float(beta), se=se, first_stage_F=float(F),
-        n_obs=n, n_country=df["code"].nunique(),
-        estimator="2SLS", pair=pair,
-    )
+    return _fit_2sls(df, y, x, z, n, n_country, pair)
 
 
 def fit_all_cross_nest(
