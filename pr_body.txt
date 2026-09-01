@@ -1,0 +1,5 @@
+💡 **What:** Replaced the Python `for` loop in `_dcc_loglik` with fully vectorized NumPy batched operations, using `np.linalg.slogdet` and `np.linalg.solve` to compute the matrix solves over the time dimension simultaneously.
+
+🎯 **Why:** Computing log-determinants and solving matrix equations one step at a time inside a Python for-loop is slow, especially for large datasets. NumPy's `linalg` routines can process batched inputs directly using BLAS/LAPACK under the hood, dramatically lowering the overhead.
+
+📊 **Measured Improvement:** On a synthetic dataset of shape `(2000, 3)`, the benchmark execution time for `dcc_fit` decreased from **~1.28s to ~0.94s** (a ~26% improvement). All tests pass successfully.

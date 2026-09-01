@@ -44,16 +44,16 @@ def _dcc_loglik(params: np.ndarray, e: np.ndarray, Qbar: np.ndarray) -> float:
     if a < 0 or b < 0 or a + b >= 0.999:
         return 1e10
     _, R = _dcc_recursion(e, a, b, Qbar)
-    ll = 0.0
-    for t in range(R.shape[0]):
-        sign, logdet = np.linalg.slogdet(R[t])
-        if sign <= 0:
-            return 1e10
-        try:
-            quad = e[t] @ np.linalg.solve(R[t], e[t])
-        except np.linalg.LinAlgError:
-            return 1e10
-        ll += -0.5 * (logdet + quad - e[t] @ e[t])
+    sign, logdet = np.linalg.slogdet(R)
+    if np.any(sign <= 0):
+        return 1e10
+    try:
+        x = np.linalg.solve(R, np.expand_dims(e, axis=-1)).squeeze(-1)
+    except np.linalg.LinAlgError:
+        return 1e10
+    quad = (e * x).sum(axis=-1)
+    # e @ e for each t is just (e * e).sum(axis=-1)
+    ll = -0.5 * np.sum(logdet + quad - (e * e).sum(axis=-1))
     return float(-ll)
 
 
