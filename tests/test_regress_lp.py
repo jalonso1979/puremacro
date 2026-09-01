@@ -92,3 +92,42 @@ def test_lp_panel_with_controls():
                    se="driscoll_kraay")
     assert abs(out.loc[out["horizon"] == 0, "beta"].iloc[0] - 0.5) < 0.10
     assert (out["se"] > 0).all()
+
+def test_within_demean_basic():
+    """Test basic within-unit demeaning."""
+    from puremacro.regress.lp import _within_demean
+    y = np.array([1.0, 3.0, 2.0, 4.0])
+    unit_idx = np.array([0, 0, 1, 1])
+    # unit 0 mean: 2.0 -> demeaned: [-1.0, 1.0]
+    # unit 1 mean: 3.0 -> demeaned: [-1.0, 1.0]
+    res = _within_demean(y, unit_idx)
+    np.testing.assert_allclose(res, [-1.0, 1.0, -1.0, 1.0])
+
+
+def test_within_demean_gap_in_units():
+    """Test when there is a gap in unit index."""
+    from puremacro.regress.lp import _within_demean
+    y = np.array([2.0, 4.0, 6.0])
+    unit_idx = np.array([0, 0, 2])
+    # unit 0 mean: 3.0 -> demeaned: [-1.0, 1.0]
+    # unit 1 missing
+    # unit 2 mean: 6.0 -> demeaned: [0.0]
+    res = _within_demean(y, unit_idx)
+    np.testing.assert_allclose(res, [-1.0, 1.0, 0.0])
+
+
+def test_within_demean_single_item():
+    """Test single item per unit."""
+    from puremacro.regress.lp import _within_demean
+    y = np.array([5.0, 10.0])
+    unit_idx = np.array([0, 1])
+    res = _within_demean(y, unit_idx)
+    np.testing.assert_allclose(res, [0.0, 0.0])
+
+def test_within_demean_all_same_unit():
+    """Test when all items belong to same unit."""
+    from puremacro.regress.lp import _within_demean
+    y = np.array([1.0, 2.0, 3.0])
+    unit_idx = np.array([0, 0, 0])
+    res = _within_demean(y, unit_idx)
+    np.testing.assert_allclose(res, [-1.0, 0.0, 1.0])
