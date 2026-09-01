@@ -44,7 +44,8 @@ def _request(url: str, timeout: float, user_agent: str | None = None) -> bytes:
         # ministry sites) ship certificates that Python's bundled CA
         # store does not validate. Retry once with verification off.
         # See RETRY_POLICY.md §3 for why we do not loop further.
-        ctx = ssl._create_unverified_context()
+        import certifi
+        ctx = ssl.create_default_context(cafile=certifi.where())
         with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
             return resp.read()
 
@@ -94,7 +95,7 @@ def post_json(url: str, payload: dict, *, timeout: float = DEFAULT_TIMEOUT,
 
     urllib-only (Pyodide-safe). HTTP errors propagate (not retried); a
     transport/SSL error retries once with verification off, matching
-    ``_request``. Used by the local-LLM HTTP engine (Ollama / OpenAI-compatible).
+    ``_request``. Used by the local-LLM HTTP engine (Ollama / OpenAI compat).
     """
     data = json.dumps(payload).encode("utf-8")
     hdrs = {"Content-Type": "application/json", "User-Agent": USER_AGENT}
@@ -107,7 +108,8 @@ def post_json(url: str, payload: dict, *, timeout: float = DEFAULT_TIMEOUT,
     except urllib.error.HTTPError:
         raise
     except (urllib.error.URLError, ssl.SSLError):
-        ctx = ssl._create_unverified_context()
+        import certifi
+        ctx = ssl.create_default_context(cafile=certifi.where())
         with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
             return json.loads(resp.read().decode("utf-8"))
 
@@ -119,11 +121,11 @@ def post_json(url: str, payload: dict, *, timeout: float = DEFAULT_TIMEOUT,
 # ``safe_get_text_cached``. The existing helpers are unchanged.
 # ---------------------------------------------------------------------------
 
-import os
-import time
-import urllib.parse
+import os  # noqa: E402
+import time  # noqa: E402
+import urllib.parse  # noqa: E402
 
-from ._http_cache import default_cache_dir, cache_read, cache_write
+from ._http_cache import default_cache_dir, cache_read, cache_write  # noqa
 
 
 # Per-host last-fetch timestamps (monotonic seconds).
