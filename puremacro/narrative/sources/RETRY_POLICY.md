@@ -20,7 +20,7 @@ All three internally route through one `_request` function, so any policy change
 
 - **User-Agent**: every request sends `"Mozilla/5.0 (puremacro/narrative)"`. Many ministry / multilateral sites 403 unmarked clients.
 - **Default timeout**: 30 s. Override by passing `timeout=` if your source is unusually slow (IMF Article IV PDFs, OECD surveys). Don't hard-code a longer global default — the user will hit it on every other source if so.
-- **SSL fallback**: on `URLError` or `SSLError`, one retry with `ssl._create_unverified_context()`. Some public-data sites ship certificates that Python's bundled CA store does not validate; we accept the security trade-off because nothing here authenticates the user.
+- **SSL fallback**: on `URLError` or `SSLError`, one retry with `ssl.create_default_context()`. We enforce verification to prevent insecure connections.
 - **No further retries**. We do **not** retry on HTTP 5xx, on connection resets, or on timeout. See §3.
 
 ## 3. Why no exponential backoff
