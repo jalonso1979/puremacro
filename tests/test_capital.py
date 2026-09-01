@@ -47,6 +47,17 @@ def _panel(codes=("AAA",), *, inv=100.0, defl=100.0, growth=0.0,
     return pd.concat(frames).sort_index()
 
 
+def test_quarterly_delta_bounds():
+    """Quarterly depreciation should handle 0.0 and 1.0 gracefully, and raise ValueError for invalid rates."""
+    assert mod._quarterly_delta(0.0) == 0.0
+    assert mod._quarterly_delta(1.0) == 1.0
+
+    with pytest.raises(ValueError, match="between 0 and 1"):
+        mod._quarterly_delta(-0.01)
+
+    with pytest.raises(ValueError, match="between 0 and 1"):
+        mod._quarterly_delta(1.01)
+
 def test_depreciation_is_converted_geometrically_not_linearly():
     """delta_a/4 is the tempting wrong answer and it understates depreciation,
     so it biases the steady-state stock up — by ~5% for equipment."""
