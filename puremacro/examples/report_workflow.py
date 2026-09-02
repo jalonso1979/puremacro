@@ -28,7 +28,7 @@ def _simulate(T: int = 250, seed: int = 0) -> pd.DataFrame:
     for t in range(1, T):
         x[t] = 0.6 * x[t - 1] + rng.standard_normal() * 0.5
         y[t] = 0.4 * y[t - 1] + 0.5 * x[t] + rng.standard_normal() * 0.4
-    idx = pd.date_range("1980", periods=T, freq="Q")
+    idx = pd.date_range("1980", periods=T, freq="QE")
     return pd.DataFrame({"y": y, "x": x}, index=idx)
 
 

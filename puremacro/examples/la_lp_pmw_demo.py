@@ -64,7 +64,7 @@ def _simulate(T: int = 400, seed: int = 0) -> pd.DataFrame:
     y = np.zeros(T)
     for t in range(1, T):
         y[t] = rho_y * y[t - 1] + 0.5 * x[t] + rng.standard_normal() * 0.5
-    idx = pd.date_range("1980", periods=T, freq="Q")
+    idx = pd.date_range("1980", periods=T, freq="QE")
     return pd.DataFrame({"y": y, "x": x}, index=idx)
 
 

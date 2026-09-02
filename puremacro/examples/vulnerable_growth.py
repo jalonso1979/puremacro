@@ -51,7 +51,7 @@ def _simulate_panel(T: int = 480, seed: int = 0) -> pd.DataFrame:
     eps_scale = 1.0 + 1.5 * np.maximum(-x, 0.0)
     eps = rng.standard_normal(T) * eps_scale
     y = 0.3 * x + eps
-    idx = pd.date_range("1990Q1", periods=T, freq="Q")
+    idx = pd.date_range("1990Q1", periods=T, freq="QE")
     return pd.DataFrame({"y": y, "x": x}, index=idx)
 
 

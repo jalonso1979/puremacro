@@ -56,7 +56,7 @@ def main() -> None:
           f"(stance={out['global_stance'].max():.3f})")
     print()
     print("Annual aggregate (top 10 highest-intensity years):")
-    annual = out["global_intensity"].resample("A").sum()
+    annual = out["global_intensity"].resample("YE").sum()
     annual.index = annual.index.year
     print(annual.sort_values(ascending=False).head(10).round(3).to_string())
 

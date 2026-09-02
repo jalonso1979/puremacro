@@ -31,7 +31,7 @@ def _simulate(T: int = 400, T_break: int = 200, seed: int = 0):
     for t in range(1, T):
         slope = 0.2 if t < T_break else 1.2
         y[t] = 0.5 * y[t - 1] + slope * x[t] + rng.standard_normal() * 0.4
-    idx = pd.date_range("1990", periods=T, freq="Q")
+    idx = pd.date_range("1990", periods=T, freq="QE")
     return pd.DataFrame({"y": y, "x": x}, index=idx), T_break
 
 
