@@ -5,20 +5,16 @@ on a single homogeneous panel covering
 1975–2024 across nine OECD economies (USA, JPN, DEU, FRA, GBR, ITA,
 CAN, NLD, AUS).
 
-This module contains the constituent loaders that
-:func:`build_g9_long_panel` (added later in the sprint) splices into
-``data/processed/long_panel_1975_2024_g9.csv``.
+This module contains the constituent loaders and the splicer that joins
+them into ``data/processed/long_panel_1975_2024_g9.csv``:
 
-Currently implemented:
 * :func:`load_pwt10` — Penn World Table 10.0 for relative-investment
   prices via ``log(pl_i / pl_c)``.
 * :func:`load_oecd_stan_ls` — OECD-STAN labor share 1970–present.
-
-To be added in Tasks 3–4:
 * :func:`load_klems_legacy` — EU-KLEMS 2008/2009 release labor share
-  for 1975–2007 back-fill.
+  for the 1975–2007 back-fill.
 * :func:`build_g9_long_panel` — splicer + write CSV.
-* :func:`splice_audit` — per-country MAD in overlap window.
+* :func:`splice_audit` — per-country MAD in the overlap window.
 """
 from __future__ import annotations
 
@@ -31,9 +27,12 @@ import pandas as pd
 
 from puremacro._http import safe_get_bytes
 
-# Repo root — long_panel.py lives at puremacro/puremacro/long_panel.py,
-# i.e., parents[2] is the repo root.
-_ROOT = Path(__file__).resolve().parents[2]
+# Repo root. This file is at `<repo>/puremacro/long_panel.py`, so the root is
+# parents[1]. It read parents[2] — correct back when the package was nested as
+# `puremacro/puremacro/`, and one level too high ever since the split, which
+# pointed every data path at whatever directory happens to sit above the
+# checkout. The failure is invisible on a machine where that directory exists.
+_ROOT = Path(__file__).resolve().parents[1]
 
 G9 = ("USA", "JPN", "DEU", "FRA", "GBR", "ITA", "CAN", "NLD", "AUS")
 
@@ -71,8 +70,9 @@ def load_pwt10(
     path = _pwt10_path()
     if not path.exists():
         raise FileNotFoundError(
-            f"PWT 10.0 .dta not found at {path}. "
-            "Download per data/raw/pwt10/MANIFEST.md."
+            f"PWT 10.0 .dta not found at {path}. Download pwt100.dta from "
+            "https://www.rug.nl/ggdc/productivity/pwt/ and place it there; "
+            "it is not redistributable, so it is not shipped with the repo."
         )
     df = pd.read_stata(
         path, columns=["countrycode", "year", "pl_i", "pl_c", "labsh"]

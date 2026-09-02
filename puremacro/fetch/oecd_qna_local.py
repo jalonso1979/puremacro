@@ -30,10 +30,13 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-_DEFAULT_DRIVE = Path(
-    "/Users/jalonso/Library/CloudStorage/"
-    "GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive"
-)
+#: Root of the separate project's data tree this module reads when it is
+#: present. It was an absolute path naming one person's Google Drive account,
+#: so on every other machine it silently could not resolve. `PUREMACRO_MAV_ROOT`
+#: is the same variable `puremacro/examples/*.py` and `fetch/wui*.py` read.
+_DEFAULT_DRIVE = Path(os.environ.get(
+    "PUREMACRO_MAV_ROOT",
+    Path.home() / "Library" / "CloudStorage" / "My Drive"))
 _DEFAULT_PATH = _DEFAULT_DRIVE / "Volatility" / "QNA.xlsx"
 
 _EMPTY_SCHEMA = pd.DataFrame(

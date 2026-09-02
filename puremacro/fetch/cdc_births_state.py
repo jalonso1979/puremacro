@@ -19,6 +19,7 @@ Public API:
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -26,9 +27,15 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
-_FERTILITY_DATA = Path.home() / (
-    "Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/Fertility/data/PROCESSED"
-)
+#: Root of the separate project's data tree this module reads when it is
+#: present. It was an absolute path naming one person's Google Drive account,
+#: so on every other machine it silently could not resolve. `PUREMACRO_MAV_ROOT`
+#: is the same variable `puremacro/examples/*.py` and `fetch/wui*.py` read.
+_FERTILITY_DATA = Path(os.environ.get(
+    "PUREMACRO_FERTILITY_ROOT",
+    Path(os.environ.get("PUREMACRO_MAV_ROOT",
+                        Path.home() / "Library" / "CloudStorage" / "My Drive"))
+    .parent / "Fertility" / "data")) / "PROCESSED"
 _NBER_STATE_MONTH = _FERTILITY_DATA / "nber_state_month_births.csv"
 _CANONICAL_MONTHLY = _FERTILITY_DATA / "state_month_births.csv"
 

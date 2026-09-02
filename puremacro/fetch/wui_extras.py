@@ -21,10 +21,14 @@ from pathlib import Path
 
 import pandas as pd
 
-_DEFAULT_DRIVE = Path(
-    "/Users/jalonso/Library/CloudStorage/"
-    "GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV"
-)
+#: Same story as `wui.py`: this was an absolute path into one person's Google
+#: Drive, so `wtui_q`/`wtui_m`/`wpui_q`/`wpui_m` were empty for everyone else
+#: and `build_all` reported it only as a line on stdout. `WUI_EXTRAS_XLSX`
+#: still names the workbook directly; `PUREMACRO_MAV_ROOT` names the directory,
+#: and is the same variable the examples read.
+_DEFAULT_DRIVE = Path(os.environ.get(
+    "PUREMACRO_MAV_ROOT",
+    Path.home() / "Library" / "CloudStorage" / "My Drive" / "MAV"))
 _DEFAULT_PATH = _DEFAULT_DRIVE / "WUI_M_dataset_2025_08.xlsx"
 
 

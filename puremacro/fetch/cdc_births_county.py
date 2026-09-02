@@ -55,6 +55,7 @@ import logging
 import re
 import zipfile
 from collections import defaultdict
+import os
 from pathlib import Path
 from typing import Iterable, Optional
 
@@ -69,17 +70,23 @@ _NBER_URL = "https://data.nber.org/natality/{year}/natl{year}.csv"
 # rather than the source ~1.4 GB microdata.
 _LOCAL_CACHE = Path(__file__).resolve().parent.parent.parent / "data" / "raw" / "nchs_county_year"
 
+#: Root of the separate project's data tree this module reads when it is
+#: present. It was an absolute path naming one person's Google Drive account,
+#: so on every other machine it silently could not resolve. `PUREMACRO_MAV_ROOT`
+#: is the same variable `puremacro/examples/*.py` and `fetch/wui*.py` read.
+_FERTILITY_ROOT = Path(os.environ.get(
+    "PUREMACRO_FERTILITY_ROOT",
+    Path(os.environ.get("PUREMACRO_MAV_ROOT",
+                        Path.home() / "Library" / "CloudStorage" / "My Drive"))
+    .parent / "Fertility" / "data"))
+
 # Canonical artifact location shared with the Fertility project.
-_FERTILITY_DATA = Path.home() / (
-    "Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/Fertility/data/PROCESSED"
-)
+_FERTILITY_DATA = _FERTILITY_ROOT / "PROCESSED"
 _FERTILITY_ARTIFACT = _FERTILITY_DATA / "nchs_county_year_births.csv"
 _COMBINED_ARTIFACT = _FERTILITY_DATA / "county_year_births.csv"
 
 # Local raw zips + dct dictionary files cached by the Fertility project.
-_FERTILITY_NATALITY_RAW = Path.home() / (
-    "Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/Fertility/data/United States/nvss_natality_raw"
-)
+_FERTILITY_NATALITY_RAW = _FERTILITY_ROOT / "United States" / "nvss_natality_raw"
 
 # Residence-county FIPS columns vary by year. 1982-2002 ship a single
 # 5-char `cntyrfip` (state+county FIPS). 2003-2004 split it: `mrcntyfips`

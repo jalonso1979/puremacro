@@ -1,4 +1,12 @@
-"""Tests for the G9 long-panel loader (puremacro.long_panel)."""
+"""Tests for the G9 long-panel loader (puremacro.long_panel).
+
+Most of this file needs a source the repo does not ship: PWT's ``.dta`` (not
+redistributable), the EU-KLEMS legacy archive, or the live OECD-STAN SDMX
+endpoint. Those tests skip cleanly when the source is absent — but the STAN and
+panel-build fixtures were reaching the network to *discover* that, 18 requests
+and ~9 seconds on every default run, with no ``network`` marker to deselect
+them. They carry one now, so `pytest` offline neither waits nor pretends.
+"""
 from __future__ import annotations
 
 import numpy as np
@@ -64,11 +72,13 @@ def stan_panel():
     return df
 
 
+@pytest.mark.network
 def test_stan_returns_dataframe(stan_panel):
     assert isinstance(stan_panel, pd.DataFrame)
     assert {"code", "year", "log_LS_stan"}.issubset(stan_panel.columns)
 
 
+@pytest.mark.network
 def test_stan_ls_in_range(stan_panel):
     """Labor share is in (0, 1) — log_LS in (-inf, 0). Allow up to 5%
     of cells slightly above 0 due to STAN's basic-prices definition."""
@@ -78,6 +88,7 @@ def test_stan_ls_in_range(stan_panel):
     assert (sub["log_LS_stan"] < 0.05).mean() >= 0.95
 
 
+@pytest.mark.network
 def test_stan_g9_partial_coverage(stan_panel):
     """At least three G9 countries should have ≥20 years of STAN coverage."""
     counts = stan_panel.dropna(subset=["log_LS_stan"]).groupby("code").size()
@@ -128,22 +139,26 @@ def g9_long_panel():
     return panel
 
 
+@pytest.mark.network
 def test_g9_panel_columns(g9_long_panel):
     expected = {"code", "year", "log_relprice_equip", "log_LS",
                 "vintage_LS", "vintage_PK"}
     assert expected.issubset(g9_long_panel.columns)
 
 
+@pytest.mark.network
 def test_g9_panel_year_range(g9_long_panel):
     assert g9_long_panel["year"].min() >= 1975
     assert g9_long_panel["year"].max() <= 2024
 
 
+@pytest.mark.network
 def test_g9_panel_country_subset_of_g9(g9_long_panel):
     """No country outside the G9 cohort should appear."""
     assert set(g9_long_panel["code"].unique()).issubset(set(G9))
 
 
+@pytest.mark.network
 def test_g9_panel_at_least_one_country(g9_long_panel):
     """At least one G9 country must have data."""
     assert g9_long_panel["code"].nunique() >= 1
@@ -155,6 +170,7 @@ def test_splice_audit_columns():
     assert {"code", "overlap_n", "mad_LS_pp", "mad_PK_pp"}.issubset(audit.columns)
 
 
+@pytest.mark.network
 def test_splice_audit_finite_mad_when_overlap_exists():
     """When STAN and KLEMS-legacy both have coverage, MAD is finite and ≥ 0."""
     panel = lp.build_g9_long_panel(start=1975, end=2024, write_csv=False)
@@ -164,3 +180,22 @@ def test_splice_audit_finite_mad_when_overlap_exists():
         pytest.skip("No STAN/KLEMS-legacy overlap available — both archives absent")
     assert (finite["mad_LS_pp"] >= 0).all()
     assert finite["mad_LS_pp"].max() < 30.0  # 30pp is a generous sanity floor
+
+
+def test_root_is_the_repo_root_not_the_directory_above_it():
+    """`_ROOT` fed every data path in this module and was one level too high.
+
+    It read `parents[2]`, correct when the package was nested as
+    `puremacro/puremacro/` and wrong ever since the split. Nothing noticed
+    because the resulting path — whatever directory happens to sit above the
+    checkout — exists on the author's machine, so the loaders failed with a
+    plausible "not found at <path>" naming a path outside the repo.
+    """
+    from pathlib import Path
+
+    root = lp._ROOT
+    assert (root / "pyproject.toml").is_file(), root
+    assert (root / "puremacro" / "long_panel.py").is_file(), root
+    assert root == Path(lp.__file__).resolve().parents[1]
+    # and every path built from it stays inside the repo
+    assert str(lp._pwt10_path()).startswith(str(root) + "/")

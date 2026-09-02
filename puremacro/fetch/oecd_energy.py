@@ -18,16 +18,18 @@ import pandas as pd
 _EMPTY = pd.DataFrame(columns=["code", "date", "variable", "value", "sa_source", "source"])
 
 
-def _get_csv(agency_flow: str, key: str, start_period: str) -> pd.DataFrame:
+def _get_csv(agency_flow: str, key: str, start_period: str,
+              *, refresh: bool = False) -> pd.DataFrame:
     """Issue one OECD SDMX REST call via the cached helper (empty on failure)."""
     from ._oecd_sdmx import get_sdmx_csv
-    return get_sdmx_csv(agency_flow, key, start_period)
+    return get_sdmx_csv(agency_flow, key, start_period, refresh=refresh)
 
 
 def fetch_energy_cpi(
     codes: Iterable[str] | None = None,
     *,
     start_period: str = "1995",
+    refresh: bool = False,
 ) -> pd.DataFrame:
     """Fetch monthly energy CPI (COICOP CP045) for the given country codes.
 
@@ -38,7 +40,8 @@ def fetch_energy_cpi(
     # 8 dims for DSD_PRICES@DF_PRICES_ALL:
     # REF_AREA . FREQ . METHODOLOGY . MEASURE . UNIT_MEASURE . EXPENDITURE . ADJUSTMENT . TRANSFORMATION
     key = f"{code_key}.M....CP045.."
-    raw = _get_csv("OECD.SDD.TPS,DSD_PRICES@DF_PRICES_ALL,", key, start_period)
+    raw = _get_csv("OECD.SDD.TPS,DSD_PRICES@DF_PRICES_ALL,", key, start_period,
+                   refresh=refresh)
     if raw.empty:
         return _EMPTY.copy()
 

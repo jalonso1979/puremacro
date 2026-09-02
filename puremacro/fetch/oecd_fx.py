@@ -21,6 +21,7 @@ def fetch_xrate_monthly(
     codes: Iterable[str] | None = None,
     *,
     start_period: str = "1995",
+    refresh: bool = False,
 ) -> pd.DataFrame:
     """Fetch monthly LCU-per-USD nominal exchange rates for the given codes."""
     code_key = "+".join(c.upper() for c in codes) if codes else ""
@@ -29,7 +30,8 @@ def fetch_xrate_monthly(
     # MEASURE=CC = "Nominal exchange rates"; UNIT_MEASURE=XDC_USD = LCU/USD.
     key = f"{code_key}.M.CC.XDC_USD..."
     from ._oecd_sdmx import get_sdmx_csv
-    df = get_sdmx_csv("OECD.SDD.STES,DSD_KEI@DF_KEI,", key, start_period)
+    df = get_sdmx_csv("OECD.SDD.STES,DSD_KEI@DF_KEI,", key, start_period,
+                      refresh=refresh)
     if df.empty:
         return _EMPTY.copy()
     if df.empty or "OBS_VALUE" not in df.columns:

@@ -614,11 +614,11 @@ def build_all(
         # happened to return rows. One producer per variable; see the SDMX
         # expenditure block below, which owns these two.
         try:
-            frames_all.append(oecd.fetch_labor_monthly(oecd_codes))
+            frames_all.append(oecd.fetch_labor_monthly(oecd_codes, refresh=refresh))
         except Exception as e:
             print(f"[build] OECD labor failed: {e}")
         try:
-            frames_all.append(oecd_mei.fetch(codes=oecd_codes))
+            frames_all.append(oecd_mei.fetch(codes=oecd_codes, refresh=refresh))
         except Exception as e:
             print(f"[build] OECD MEI failed: {e}")
         try:
@@ -655,7 +655,8 @@ def build_all(
             if sdmx_exp_codes is None or sdmx_exp_codes:
                 if sdmx_exp_codes:
                     print(f"[build] fetching OECD QNA SDMX expenditure for: {sdmx_exp_codes}")
-                exp_sdmx = oecd_qna_expenditure.fetch_qna_expenditure(codes=sdmx_exp_codes)
+                exp_sdmx = oecd_qna_expenditure.fetch_qna_expenditure(
+                    codes=sdmx_exp_codes, refresh=refresh)
                 if not exp_sdmx.empty:
                     keep_mask = [
                         (c, v) not in local_exp_pairs
@@ -729,11 +730,13 @@ def build_all(
     energy_codes = None if countries is None else list(countries)
     if energy_codes is None or energy_codes:
         try:
-            frames_all.append(oecd_energy.fetch_energy_cpi(codes=energy_codes))
+            frames_all.append(oecd_energy.fetch_energy_cpi(codes=energy_codes,
+                                                           refresh=refresh))
         except Exception as e:
             print(f"[build] OECD energy CPI failed: {e}")
         try:
-            frames_all.append(oecd_fx.fetch_xrate_monthly(codes=energy_codes))
+            frames_all.append(oecd_fx.fetch_xrate_monthly(codes=energy_codes,
+                                                          refresh=refresh))
         except Exception as e:
             print(f"[build] OECD FX failed: {e}")
 

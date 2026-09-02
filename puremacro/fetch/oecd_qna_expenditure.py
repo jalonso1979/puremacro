@@ -84,7 +84,8 @@ def _quarter_to_date(s: pd.Series) -> pd.Series:
 
 
 def fetch_qna_expenditure(codes: Iterable[str] | None = None,
-                          *, start_period: str = "1995") -> pd.DataFrame:
+                          *, start_period: str = "1995",
+                          refresh: bool = False) -> pd.DataFrame:
     """Fetch real expenditure components for the given country codes.
 
     Returns a long-form DataFrame with rows for each variable in
@@ -120,7 +121,7 @@ def fetch_qna_expenditure(codes: Iterable[str] | None = None,
         # exposed as P3 with SECTOR=S13 rather than as a distinct transaction.
         for sector in sorted(_SECTORS_NEEDED):
             key = f"Q..{code_key}.{sector}.........."
-            raw = get_sdmx_csv(agency_flow, key, start_period)
+            raw = get_sdmx_csv(agency_flow, key, start_period, refresh=refresh)
             if raw.empty:
                 continue
             parts.append(raw)

@@ -37,10 +37,11 @@ _EMPTY = pd.DataFrame(
 )
 
 
-def _get_csv(agency_flow: str, key: str, start_period: str) -> pd.DataFrame:
+def _get_csv(agency_flow: str, key: str, start_period: str,
+              *, refresh: bool = False) -> pd.DataFrame:
     """Fetch one OECD SDMX URL via cached helper. Empty on persistent failure."""
     from ._oecd_sdmx import get_sdmx_csv
-    return get_sdmx_csv(agency_flow, key, start_period)
+    return get_sdmx_csv(agency_flow, key, start_period, refresh=refresh)
 
 
 def _to_long(raw: pd.DataFrame, variable: str, *, log: bool, sa: bool, source: str) -> pd.DataFrame:
@@ -60,7 +61,8 @@ def _to_long(raw: pd.DataFrame, variable: str, *, log: bool, sa: bool, source: s
     return df[["code", "date", "variable", "value", "sa_source", "source"]]
 
 
-def fetch(codes: Iterable[str] | None = None, *, start_period: str = "1990") -> pd.DataFrame:
+def fetch(codes: Iterable[str] | None = None, *, start_period: str = "1990",
+          refresh: bool = False) -> pd.DataFrame:
     """Return monthly log_ip + bci_m + cci_m for *codes* (None -> all available)."""
     code_key = "" if codes is None else "+".join([c.upper() for c in codes])
     frames: list[pd.DataFrame] = []
@@ -74,7 +76,7 @@ def fetch(codes: Iterable[str] | None = None, *, start_period: str = "1990") -> 
         # Fix REF_AREA, FREQ=M, MEASURE=PRVM, UNIT_MEASURE=IX, ACTIVITY=BTE,
         # ADJUSTMENT=Y; others wild.
         key = f"{code_key}.M.PRVM.IX.BTE.Y...."
-        raw = _get_csv(agency, key, start_period)
+        raw = _get_csv(agency, key, start_period, refresh=refresh)
         if not raw.empty:
             # Server already constrains by key; the filter is a defensive guard
             # against future schema additions (extra MEASURE codes etc.).

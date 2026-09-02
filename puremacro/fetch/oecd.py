@@ -41,14 +41,15 @@ import pandas as pd
 
 
 
-def _get_csv(agency_flow: str, key: str, start_period: str) -> pd.DataFrame:
+def _get_csv(agency_flow: str, key: str, start_period: str,
+              *, refresh: bool = False) -> pd.DataFrame:
     """Fetch one OECD SDMX URL via cached helper. Empty on persistent failure.
 
     The shared cache survives 429 rate-limits and process restarts, so a
     single successful fetch is enough to feed every subsequent build_all.
     """
     from ._oecd_sdmx import get_sdmx_csv
-    return get_sdmx_csv(agency_flow, key, start_period)
+    return get_sdmx_csv(agency_flow, key, start_period, refresh=refresh)
 
 
 def _long_frame(
@@ -81,7 +82,8 @@ def _long_frame(
 # Public API
 # ---------------------------------------------------------------------------
 
-def fetch_qna_expenditure(codes: Iterable[str] | None = None) -> pd.DataFrame:
+def fetch_qna_expenditure(codes: Iterable[str] | None = None, *,
+                          refresh: bool = False) -> pd.DataFrame:
     """Fetch quarterly real GDP, real GFCF, and CPI for *codes*.
 
     Returns a long-form DataFrame with columns:
@@ -121,7 +123,7 @@ def fetch_qna_expenditure(codes: Iterable[str] | None = None) -> pd.DataFrame:
     try:
         agency_flow = "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_INDICES,"
         key = f"Q.Y.{code_key}............."
-        raw = _get_csv(agency_flow, key, "1995")
+        raw = _get_csv(agency_flow, key, "1995", refresh=refresh)
         if raw.empty:
             print("[oecd] QNA indices: no results")
         else:
@@ -164,7 +166,7 @@ def fetch_qna_expenditure(codes: Iterable[str] | None = None) -> pd.DataFrame:
     try:
         agency_flow = "OECD.SDD.TPS,DSD_PRICES@DF_PRICES_ALL,"
         key = f"{code_key}.M........."
-        raw_cpi = _get_csv(agency_flow, key, "1995")
+        raw_cpi = _get_csv(agency_flow, key, "1995", refresh=refresh)
         if raw_cpi.empty:
             print("[oecd] CPI: no results")
         else:
@@ -212,7 +214,8 @@ def fetch_qna_expenditure(codes: Iterable[str] | None = None) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True)
 
 
-def fetch_labor_monthly(codes: Iterable[str] | None = None) -> pd.DataFrame:
+def fetch_labor_monthly(codes: Iterable[str] | None = None, *,
+                        refresh: bool = False) -> pd.DataFrame:
     """Fetch monthly employment (log) and unemployment rate for *codes*.
 
     Returns a long-form DataFrame with columns:
@@ -243,7 +246,7 @@ def fetch_labor_monthly(codes: Iterable[str] | None = None) -> pd.DataFrame:
     try:
         agency_flow = "OECD.SDD.TPS,DSD_LFS@DF_IALFS_INDIC,"
         key = f"{code_key}........"
-        raw = _get_csv(agency_flow, key, "1990")
+        raw = _get_csv(agency_flow, key, "1990", refresh=refresh)
         if raw.empty:
             print("[oecd] Labor: no results")
             return pd.DataFrame(columns=["code", "date", "variable", "value", "sa_source", "source"])
