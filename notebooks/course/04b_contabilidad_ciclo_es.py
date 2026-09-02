@@ -27,7 +27,9 @@
 # 3. Leer el resultado con honestidad: por qué las cuñas **descartan familias** de modelos
 #    pero no identifican una fricción, y **auditar la medición** de *este* panel —dos de sus
 #    cuatro cuñas están contaminadas: la de inversión por el atajo de la Euler *ex post*, y la
-#    de trabajo porque en la mitad de los países el insumo de trabajo **no son horas**.
+#    de trabajo porque en tres de los seis países el insumo de trabajo **no son horas**, algo
+#    que la identidad $\log(1-\tau_{\ell,t})=\log(c_t/y_t)+3\log(h_t/\text{EMP}_t)+\text{cte}$
+#    convierte en un problema exacto y no en una sospecha.
 #
 # Todo corre en Python puro sobre tu **instalación local** de `puremacro`
 # (`pip install puremacro`), leyendo datos **congelados** del bundle del curso —
@@ -66,7 +68,7 @@ DATA = (_nb / "course" / "data")
 # | **eficiencia** $A_t$ | función de producción | financiamiento de insumos intermedios: el costo del crédito para pagar insumos aparece como pérdida de eficiencia |
 # | **trabajo** $1-\tau_{\ell,t}$ | condición intratemporal | salarios rígidos con choques monetarios; poder monopólico de un sindicato sobre el salario |
 # | **inversión** $1+\tau_{x,t}$ | ecuación de Euler | financiamiento de la inversión con costos de verificación del estado (agencia) |
-# | **gasto** $g_t$ | restricción de recursos | economía abierta: exportaciones netas junto con las compras públicas |
+# | **gasto** $g_t$ | restricción de recursos | economía abierta: exportaciones netas junto con las compras públicas —eso es el teorema; el panel que mediremos **no** es así: sus compras públicas viajan dentro de $c_t$ y la cuña sólo trae el sector externo (parte 3) |
 #
 # Todo lo demás que suele leerse en las cuñas es **analogía, no teorema**: la mala asignación
 # entre unidades heterogéneas se lee en $A_t$ (Restuccia–Rogerson; Hsieh–Klenow) y las
@@ -228,7 +230,12 @@ assert max(errA_ok.values()) < 1e-10 and max(errS_ok.values()) < 1e-10
 assert min(errA_mal.values()) > 1e-3 and min(errS_mal.values()) > 1e-3
 
 # %% [markdown] slideshow={"slide_type": "subslide"}
-# ### El problema serio: en tres países el insumo de trabajo **no son horas**
+# ### El problema serio: en tres de los seis países el insumo de trabajo **no son horas**
+# Tres de los **seis** que miramos aquí, no tres del mundo: en el panel de investigación del
+# que sale este archivo (33 países) son siete —Australia, Suiza, el Reino Unido, Japón, Corea,
+# Nueva Zelanda y EUA—, y de esos siete nos tocan tres. La cifra es de esta selección; no la
+# cites como un dato del panel.
+#
 # El generador del panel usa horas trabajadas cuando la OCDE las publica y, cuando no,
 # **impone** $h_t=\text{EMP}_t\times 480$ (40 horas semanales $\times$ 12 semanas). Ahí el
 # margen **intensivo** desaparece por construcción: $h_t/\text{EMP}_t$ es exactamente
@@ -283,6 +290,64 @@ assert all(hpe.loc[c, "coef. de variación"] > 1e-2 for c in CON_HORAS)
 # entregable al final.
 
 # %% [markdown] slideshow={"slide_type": "subslide"}
+# ### La identidad que hay detrás: el empleo **no entra** en la cuña de trabajo
+# Despejando $1-\tau_{\ell,t}$ de la intratemporal, con las preferencias del panel
+# ($\sigma=1$, $\nu=2$) y $\tilde h_t=h_t/(\text{EMP}_t\bar H)$:
+#
+# $$\log(1-\tau_{\ell,t})=\log\frac{\psi\,\tilde h_t^{1+\nu}c_t^{\sigma}}{(1-\alpha_c)\,y_t}
+# =\log\frac{c_t}{y_t}+(1+\nu)\log\tilde h_t+\text{cte}
+# =\log\frac{C_t}{Y_t}+3\log\frac{H_t}{\text{EMP}_t}+\text{cte}$$
+#
+# Dos líneas de álgebra y sale un resultado incómodo: la cuña de trabajo medida es la razón
+# consumo–producto más tres veces la **jornada**, y nada más. El empleo aparece únicamente
+# dentro de $H_t/\text{EMP}_t$, así que **el margen extensivo se cancela**: una economía que
+# despide al 10% de su gente sin tocarle la jornada tiene, con el mismo consumo y el mismo
+# producto, exactamente la misma cuña de trabajo que antes. No es una aproximación de primer
+# orden ni un resultado del modelo; es una identidad de la medición, y se comprueba al bit.
+
+# %% slideshow={"slide_type": "fragment"}
+def _logS(u: pd.DataFrame, H, EMP) -> pd.Series:
+    """log[1/(1-tau_l)] del panel, salvo constantes, con un insumo (H, EMP) cualquiera."""
+    return np.log(u.Y) - (1 + NU) * np.log(H / (EMP * HBAR)) - SIGMA * np.log(u.C)
+
+
+ident, invar, solo_cy = {}, {}, {}
+for code in PAISES:
+    u = pan[pan.code == code].sort_values("date").set_index("date")
+    d = (-u.logS) - (np.log(u.C / u.Y) + (1 + NU) * np.log(u.H / u.EMP))
+    ident[code] = float(np.max(np.abs(d - d.mean())))
+    f = np.where(u.index >= pd.Timestamp("2008-01-01"), 0.90, 1.0)   # despidos puros en 2008Q1
+    invar[code] = float(np.max(np.abs(_logS(u, u.H, u.EMP) - _logS(u, u.H * f, u.EMP * f))))
+    e = (-100.0 * u.logS) - 100.0 * np.log(u.C / u.Y)                # cuña L menos consumo/PIB
+    solo_cy[code] = float(np.max(np.abs(e - e.mean())))
+
+print("la identidad log(1-tau_l) = log(C/Y) + 3 log(H/EMP) + cte, y qué la rompe")
+print(pd.DataFrame({"error de la identidad": ident,
+                    "despedir al 10% (jornada intacta)": invar,
+                    "cuña de trabajo menos log(C/Y)": solo_cy}).to_string(
+    float_format=lambda v: f"{v:.2e}"))
+print("\nColumna 1: la identidad es exacta a precisión de máquina en los seis países.")
+print("Columna 2: despedir al 10% de los ocupados sin tocar la jornada NO mueve la cuña.")
+print("Columna 3: en los países SIN horas la cuña de trabajo ES la razón consumo-producto")
+print("           (difieren en una constante, que el detrend se lleva); en los otros tres, no.")
+assert max(ident.values()) < 1e-10 and max(invar.values()) < 1e-10
+assert all(solo_cy[c] < 1e-9 for c in SIN_HORAS)
+assert all(solo_cy[c] > 1.0 for c in CON_HORAS)
+
+# %% [markdown] slideshow={"slide_type": "subslide"}
+# **Es la subsección anterior vista del otro lado.** Allí dijimos que en EUA, el Reino Unido y
+# Corea el insumo de trabajo es empleo por 480 horas. La identidad traduce esa frase a algo
+# mucho más fuerte: si $H_t/\text{EMP}_t$ es constante, la cuña de trabajo de esos tres países
+# es $100\log(C_t/Y_t)$ **y nada más** —la tercera columna lo confirma a $10^{-13}$—. Su cuña
+# de trabajo no contiene un solo dato del mercado laboral: es la razón consumo–producto con
+# otro nombre.
+#
+# Guárdalo para las partes 5 y 7. Cuando el reparto diga que la cuña de trabajo no explica la
+# Gran Recesión en EUA, lo que estará diciendo es que la razón consumo–producto estadounidense,
+# sola, no la explica. Y el factor $-(1+\nu)=-3$ que aparecerá en la auditoría de la parte 7 no
+# es una elección de modelización: sale de esta identidad.
+
+# %% [markdown] slideshow={"slide_type": "subslide"}
 # ### Orientación común y desvíos de la senda de crecimiento
 # El panel guarda las cuñas con signos heterogéneos. Las volteamos a la convención del mazo
 # —**caer = frenar la economía**— y las expresamos en **puntos logarítmicos** ($\times100$):
@@ -332,6 +397,130 @@ assert (sd["cunaX"] > sd["cunaA"]).all()
 # de inversión tenga una desviación estándar entre casi cuatro (Canadá) y once veces (Alemania)
 # mayor que la de eficiencia no significa que "haga cuatro veces más". Para eso hace falta el
 # experimento de la parte 5: meterlas al modelo y ver qué producto sale.
+
+# %% [markdown] slideshow={"slide_type": "subslide"}
+# ### Una nota sobre los datos: aquí la cuña de gasto **no** trae compras públicas
+# La tabla de la parte 1 dice —y es el teorema— que la equivalencia de economía abierta pone en
+# $g_t$ las exportaciones netas **junto con** las compras públicas. Este panel no funciona así,
+# y conviene saberlo antes de leer un solo resultado: su $C$ es el consumo final **total**,
+# hogares más gobierno, de modo que las compras públicas ya están dentro de $c_t$. Lo que queda
+# en $g_t=y_t-c_t-x_t$ son las **exportaciones netas** más la variación de existencias y el
+# residuo de encadenamiento. Política fiscal, ninguna.
+#
+# No hay que creérselo: el bundle lo comprueba. `oecd_qna_apertura.csv` —el archivo de la
+# lección 10b— trae exportaciones, importaciones y consumo de los **hogares** para tres de
+# nuestros seis países. Si la cuña fuera exportaciones netas *más* compras públicas, tendría
+# que ir unos quince puntos del PIB por encima de las exportaciones netas solas.
+
+# %% slideshow={"slide_type": "fragment"}
+ap = pd.read_csv(DATA / "oecd_qna_apertura.csv", parse_dates=["date"])
+ap = ap[ap.price_base == "L"]                    # volúmenes encadenados, como el panel de cuñas
+COMUNES = [c for c in PAISES if c in set(ap.code)]
+
+gasto, todos_g = {}, []
+for code in PAISES:
+    u = pan[pan.code == code].sort_values("date").set_index("date")
+    gY = 100.0 * (u.Y - u.C - u.I) / u.Y                       # la cuña de gasto, % del PIB
+    todos_g.append(gY)
+    fila = {"g/Y mediana": float(gY.median()),
+            "C/Y base": 100.0 * float((u.C / u.Y).loc[BASE[0]:BASE[1]].mean())}
+    if code in COMUNES:
+        d = ap[ap.code == code].pivot_table(index="date", columns="variable", values="value")
+        i = u.index.intersection(d.index)
+        xn = 100.0 * (d.exp_vol - d.imp_vol).loc[i] / d.gdp_vol.loc[i]     # exportaciones netas
+        hog = 100.0 * (d.conh_vol / d.gdp_vol).loc[i]                      # consumo de hogares
+        fila.update({"XN/Y mediana": float(xn.median()),
+                     "|g - XN| mediana": float(np.median(np.abs(gY.loc[i] - xn))),
+                     "corr(g, XN)": float(np.corrcoef(gY.loc[i], xn)[0, 1]),
+                     "hogares C/Y base": float(hog.loc[BASE[0]:BASE[1]].mean())})
+        fila["C - hogares"] = fila["C/Y base"] - fila["hogares C/Y base"]
+    gasto[code] = fila
+gasto = pd.DataFrame(gasto).T
+gtodo = pd.concat(todos_g)
+
+print("qué contiene la cuña de gasto de este panel (todo en % del PIB, volúmenes encadenados)")
+print(gasto.round({"corr(g, XN)": 3}).round(
+    {c: 2 for c in gasto.columns if c != "corr(g, XN)"}).to_string(na_rep="    ·"))
+print(f"\nel archivo de apertura cubre {sorted(ap.code.unique())}; comunes con PAISES: {COMUNES}")
+print(f"mediana de g/Y en los seis países: {float(gtodo.median()):+.2f}% del PIB")
+print(f"g y las exportaciones netas son la MISMA serie: se separan "
+      f"{gasto.loc[COMUNES, '|g - XN| mediana'].max():.2f} puntos del PIB en la mediana y")
+print(f"correlacionan {gasto.loc[COMUNES, 'corr(g, XN)'].min():.3f} o más; lo que sobra son "
+      "existencias y encadenamiento.")
+print(f"Y el consumo del panel va entre {gasto.loc[COMUNES, 'C - hogares'].min():.1f} y "
+      f"{gasto.loc[COMUNES, 'C - hogares'].max():.1f} puntos del PIB por encima del")
+print("consumo de los HOGARES: ese hueco es el consumo público, que viaja dentro de C. Si")
+print("estuviera en la cuña, g/Y rondaría el +15% del PIB en vez del 0%.")
+assert (gasto.loc[COMUNES, "|g - XN| mediana"] < 0.5).all()
+assert (gasto.loc[COMUNES, "corr(g, XN)"] > 0.99).all()
+assert (gasto.loc[COMUNES, "C - hogares"] > 10.0).all()
+assert abs(float(gtodo.median())) < 1.0
+
+# %% [markdown] slideshow={"slide_type": "subslide"}
+# **Lo que esto cambia al leer la parte 5.** Cuando dentro de dos secciones la cuña de gasto no
+# explique nada, lo que no explicará nada es el **sector externo**, con las existencias detrás;
+# no el gasto público. Este panel no puede acusar ni exculpar a las compras públicas porque no
+# las ve. En el prototipo de CKM sí entrarían ahí, y con consumo privado en vez de total la
+# cuña de gasto sería otra serie.
+#
+# **Y una segunda salvedad sobre la misma cuña, ésta de unidades.** El mazo la define como un
+# **nivel**: «$g_t$ … es la cuña de gasto: un nivel ($g_t=y_t-c_t-x_t$), a diferencia del $g_t$
+# del bloque fiscal, que es una participación del PIB». Nosotros la medimos como participación,
+# $\check g_t=100\,g_t/y_t$, y la restricción de recursos log-linealizada de la parte 5 pide la
+# otra: $g_t$ en unidades del producto de la **senda**, $100\,g_t/\hat y_t$. La diferencia no es
+# retórica —la participación se mueve **sola** cuando cae el denominador— y es exacta:
+#
+# $$\underbrace{100\,\frac{g_t}{y_t}}_{\text{participación}}-\underbrace{100\,\frac{g_t}{\hat y_t}}_{\text{nivel}}
+# =100\,\frac{g_t}{\hat y_t}\left(\frac{\hat y_t}{y_t}-1\right)$$
+#
+# el nivel de la cuña multiplicado por la brecha del producto. Midámoslo donde el producto cae.
+
+# %% slideshow={"slide_type": "fragment"}
+EPISODIOS_G = [("Gran Recesión", "2007-10-01", "2009-04-01"),
+               ("COVID", "2019-10-01", "2020-04-01")]
+niv = {}
+for code in PAISES:
+    u = pan[pan.code == code].sort_values("date").set_index("date")
+    t = np.arange(len(u)); m = np.asarray(u.index <= FIN_MUESTRA)
+    b, a = np.polyfit(t[m], np.log(u.Y.to_numpy())[m], 1)
+    ytend = pd.Series(np.exp(a + b * t), index=u.index)         # producto de la senda
+    g = u.Y - u.C - u.I
+    part, nivel = 100.0 * g / u.Y, 100.0 * g / ytend
+    brecha = 100.0 * (np.log(u.Y) - np.log(ytend))              # desvío del producto, pts log.
+    # la separación entre las dos medidas es exactamente nivel x brecha del producto
+    assert np.allclose(part - nivel, nivel * (ytend / u.Y - 1.0), atol=1e-10)
+    for nom, t0, t1 in EPISODIOS_G:
+        niv[(code, nom)] = {"brecha PIB (fondo)": float(brecha[t1]),
+                            "cambio participación": float(part[t1] - part[t0]),
+                            "cambio nivel": float(nivel[t1] - nivel[t0]),
+                            "diferencia": float((part[t1] - part[t0]) - (nivel[t1] - nivel[t0]))}
+niv = pd.DataFrame(niv).T
+print("cuña de gasto: cambio pico -> fondo medido como participación y como nivel (% del PIB)")
+print("('brecha PIB (fondo)' es el NIVEL del desvío del producto en el trimestre del")
+print(" fondo, que es lo que multiplica a la cuña en la fórmula de arriba; las otras")
+print(" tres columnas son CAMBIOS entre el pico y el fondo)")
+print(niv.round(2).to_string())
+peor = niv["diferencia"].abs().idxmax()
+fila = niv.loc[peor]
+print(f"\nmayor discrepancia: {peor[0]} en el {peor[1]}, {fila['diferencia']:+.2f} puntos del PIB,")
+print(f"con el producto {fila['brecha PIB (fondo)']:.1f} puntos por debajo de su tendencia: la")
+print(f"participación se mueve {fila['cambio participación']:+.2f} y el nivel {fila['cambio nivel']:+.2f}.")
+assert float(niv["diferencia"].abs().max()) > 0.5
+
+# %% [markdown] slideshow={"slide_type": "subslide"}
+# **Muerde donde el producto se desploma, y sólo ahí.** En 2008–09, con el producto entre tres
+# puntos por encima y cinco por debajo de su tendencia en el trimestre del fondo, las dos
+# medidas se separan poco más de medio punto del PIB como mucho —$0.52$ en Alemania, la peor
+# de las seis— y da igual cuál uses. En 2020Q2 no da igual: el Reino Unido tiene el producto veinticinco puntos por
+# debajo de su tendencia y las dos medidas se separan 0.8 puntos del PIB —más de la mitad de
+# lo que se mueve el nivel, que son 1.5—. Esos 0.8 puntos no son gasto: son denominador. La
+# regla: **cuando el episodio mueve el producto, la cuña de gasto en participación deja de
+# ser la cuña de gasto**.
+#
+# Seguimos con la participación en el resto de la lección —es la serie con la que están hechas
+# todas las cifras anteriores— y en la parte 5 comprobamos que alimentar el nivel no mueve el
+# reparto de la Gran Recesión. Pero la definición correcta es el nivel, y en un episodio como
+# el de 2020 habría que usarlo.
 
 # %% [markdown] slideshow={"slide_type": "slide"}
 # ### Figura 1 — ¿qué cuña se mueve en cada episodio?
@@ -728,6 +917,36 @@ print("NO sobre una caída del PIB que casi no existió.")
 # insumo **no puede** caer por reducción de jornada, porque el panel le impuso 480 horas
 # constantes (parte 3). Lo cuantificamos en la parte 7 antes de sacar conclusiones.
 
+# %% slideshow={"slide_type": "fragment"}
+# ¿Cambia el reparto si la cuña de gasto entra como NIVEL, que es lo que pide la restricción de
+# recursos (parte 3)? Se rehacen el VAR(1) y el contrafactual completos con la otra medida.
+W_niv = {}
+for code in PAISES:
+    u = pan[pan.code == code].sort_values("date").set_index("date")
+    t = np.arange(len(u)); m = np.asarray(u.index <= FIN_MUESTRA)
+    b, a = np.polyfit(t[m], np.log(u.Y.to_numpy())[m], 1)
+    w2 = W[code].copy()
+    w2["cunaG"] = detrend(100.0 * (u.Y - u.C - u.I) / np.exp(a + b * t))
+    W_niv[code] = w2
+
+dnivel = {}
+for code in PAISES:
+    S2, _, sol2 = prototipo(code, W_niv)
+    m2 = S2.loc[:FIN_MUESTRA].dropna().index
+    dy = float(W[code]["y"][VALLE] - W[code]["y"][PICO])
+    fila = {}
+    for lab, act in EXPERIMENTOS:
+        y2 = simula(sol2, cal[code], S2.loc[m2], act)
+        fila[lab] = float(y2[VALLE] - y2[PICO]) / dy - cuota.loc[code, lab]
+    dnivel[code] = fila
+dnivel = pd.DataFrame(dnivel).T
+print("cambio de cada cuota al medir la cuña de gasto como NIVEL en vez de participación")
+print(dnivel.round(4).to_string())
+print(f"\nEl mayor cambio en cualquier cuota es {np.abs(dnivel.to_numpy()).max():.3f}. El reparto de")
+print("la Gran Recesión no distingue las dos medidas —los desvíos del producto son de seis a")
+print("ocho puntos—; en un episodio como el de 2020 sí las distinguiría (parte 3).")
+assert np.abs(dnivel.to_numpy()).max() < 0.05
+
 # %% [markdown] slideshow={"slide_type": "slide"}
 # ## 6. Salvedades: esto es un diagnóstico, no una explicación
 #
@@ -904,12 +1123,61 @@ print("medición, su cuota de trabajo sería MAYOR y la de eficiencia MENOR que 
 print("de la parte 5, por un margen del orden de las dos décimas que acabamos de medir.")
 
 # %% [markdown] slideshow={"slide_type": "subslide"}
+# ### El experimento inverso: prestarle una jornada a quien no la tiene
+# La auditoría de arriba borra la jornada donde la hay. La identidad de la parte 3 permite el
+# movimiento contrario **sin simular nada**: devolverle una jornada $\hat\jmath_t$ a un país
+# medido con $h_t=\text{EMP}_t\times480$ mueve sus dos cuñas en cantidades exactas,
+#
+# $$\Delta\log(1-\tau_{\ell,t})=+(1+\nu)\,\hat\jmath_t=+3\,\hat\jmath_t,\qquad
+# \Delta\log A_t=-(1-\alpha_c)\,\hat\jmath_t.$$
+#
+# No tenemos la jornada de EUA, del Reino Unido ni de Corea: el archivo del curso no la trae.
+# (El panel de investigación del que sale sí guarda una columna de horas para EUA y para el
+# Reino Unido y aun así los marca `use_hours = 0`; para Corea no hay horas que descartar. Esa
+# columna no viaja en el bundle, así que aquí no podemos usarla.) Lo que sí tenemos son **tres
+# jornadas observadas** en el mismo episodio: las de España, Alemania y Canadá. Prestémoselas.
+
+# %% slideshow={"slide_type": "fragment"}
+jor = {}
+for code in CON_HORAS:
+    u = pan[pan.code == code].sort_values("date").set_index("date")
+    j = np.log(u.H / u.EMP)
+    jor[code] = 100.0 * float(j[VALLE] - j[PICO])
+print("jornada observada: cambio del pico al valle, 2007Q4 -> 2009Q2 (puntos logarítmicos)")
+print("  " + "   ".join(f"{c} {v:+.2f}" for c, v in jor.items()))
+
+prest = {}
+for code in SIN_HORAS:
+    ac = float(pan[pan.code == code]["alpha_c"].iloc[0])
+    dL = float(W[code]["cunaL"][VALLE] - W[code]["cunaL"][PICO])
+    dA = float(W[code]["cunaA"][VALLE] - W[code]["cunaA"][PICO])
+    conL = [dL + (1 + NU) * j for j in jor.values()]
+    conA = [dA - (1 - ac) * j for j in jor.values()]
+    prest[code] = {"cuña L medida": dL, "L prestada mín": min(conL), "L prestada máx": max(conL),
+                   "cuña A medida": dA, "A prestada mín": min(conA), "A prestada máx": max(conA)}
+prest = pd.DataFrame(prest).T
+print("\ncambio de las cuñas del pico al valle, medido y con la jornada prestada")
+print("(puntos logarítmicos, series SIN suavizar: no son las cifras de la figura 1)")
+print(prest.round(2).to_string())
+print("\nCon CUALQUIERA de las tres jornadas observadas, la cuña de trabajo de EUA, el Reino")
+print("Unido y Corea cambia de signo en la Gran Recesión: deja de subir y cae. El '+3' de la")
+print("identidad multiplica una jornada que en estos tres países vale 480 horas por decreto.")
+assert all(prest.loc[c, "cuña L medida"] > 0 > prest.loc[c, "L prestada máx"] for c in SIN_HORAS)
+print("Ojo con lo que esto es y lo que no. Es la CUÑA, exacta por identidad, no la CUOTA:")
+print("la cuota pasa además por el VAR(1) y por el equilibrio general, y ahí seguimos con")
+print("la conjetura del punto 3 de abajo. Y la jornada es PRESTADA: da el signo y el orden")
+print("de magnitud del sesgo, no la cifra de cada país —la jornada estadounidense no tiene")
+print("por qué parecerse a la alemana, y nadie la ha medido en esta lección.")
+
+# %% [markdown] slideshow={"slide_type": "subslide"}
 # **Qué se salva y qué no del veredicto.** La auditoría deja tres conclusiones, en orden de
 # solidez decreciente.
 #
-# 1. **Robusto.** Bajo *las dos* mediciones y en los seis países, la cuña de trabajo se queda
-#    por debajo de $0.3$ y la de eficiencia por encima de $0.5$. El titular cualitativo —la
-#    eficiencia hace mucho, el trabajo poco— aguanta la mutilación del insumo de trabajo.
+# 1. **Robusto.** Bajo *las dos* mediciones y en los seis países, la cuña de trabajo no pasa
+#    de un tercio en valor absoluto —la celda imprime el rango, $[-0.33, +0.18]$— y la de
+#    eficiencia se queda por encima de $0.5$ (rango impreso $[+0.51, +0.94]$). El titular
+#    cualitativo —la eficiencia hace mucho, el trabajo poco— aguanta la mutilación del
+#    insumo de trabajo.
 # 2. **No robusto: los números, y el sesgo tiene dirección conocida.** Los sesgos medidos
 #    ($-0.19$ a $-0.30$ en la cuota de trabajo, $+0.18$ a $+0.28$ en la de eficiencia) son del
 #    mismo orden que las cuotas mismas, y borrar la jornada **traspasa** explicación del trabajo
@@ -925,7 +1193,12 @@ print("de la parte 5, por un margen del orden de las dos décimas que acabamos d
 #    los tres países auditables, lo esperable es que las cuotas de EUA, el Reino Unido y Corea
 #    en la tabla de la parte 5 **subestimen** la del trabajo y **sobreestimen** la de la
 #    eficiencia, por un margen del orden de dos décimas. Es una conjetura disciplinada por tres
-#    observaciones, no una medición: no la escribas como si lo fuera.
+#    observaciones, no una medición: no la escribas como si lo fuera. La celda de la jornada
+#    prestada aprieta un poco más la tuerca: con la jornada de cualquiera de los tres países
+#    auditables, la **cuña** de trabajo de los tres no auditables **cambiaría de signo** en el
+#    episodio. El cálculo es exacto —es la identidad de la parte 3— pero la jornada es
+#    prestada; lo que sigue siendo conjetura es la cuota, y la jornada verdadera de esos tres
+#    países no la mide nadie aquí.
 #
 # Así que la frase honesta no es "la cuña de trabajo no explica la Gran Recesión en ninguno de
 # los seis países", sino: *en ninguna de las mediciones que este panel permite construir la
@@ -1042,7 +1315,17 @@ print(tutor(
 # atajo *ex post* del panel, no de la Euler filtrada; (iv) en tres de los seis países el insumo
 # de trabajo es empleo con jornada fija, no horas, de modo que $\tau_\ell$ (y en menor medida
 # $A$) sólo ven el margen extensivo; (v) el panel mide con capital contemporáneo y el prototipo
-# produce con capital rezagado: un trimestre de desfase entre medición e interpretación.
+# produce con capital rezagado: un trimestre de desfase entre medición e interpretación; y
+# (vi) la cuña de gasto de este panel es sector externo y existencias, **sin** compras
+# públicas —viven dentro de $C$—, y la alimentamos como participación del PIB y no como el
+# nivel que pide la restricción de recursos (comprobado en la parte 5: mueve el reparto menos
+# de 0.02).
+#
+# **Lo que esta lección no cubre** y sí hace `T04_C`, el cuaderno del escaparate de `puremacro`
+# —que no viaja en el paquete del curso, pídeselo al profesor—: la solución **no lineal** con
+# previsión perfecta, la cuña de trabajo por **población activa**, el filtro de Kehoe–Prescott
+# para grandes depresiones, el costo del impago soberano y una sección de México —que no
+# sustituye al mini-entregable de arriba: allí el insumo lo construyes tú.
 #
 # **Referencias.** Chari, Kehoe y McGrattan (2007), *Business cycle accounting*, Econometrica
 # 75(3). · Christiano y Davis (2006), *Two flaws in business cycle accounting*, NBER WP 12647.
