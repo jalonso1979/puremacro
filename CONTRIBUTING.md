@@ -5,7 +5,7 @@ This is a single-author research package. The conventions below exist so that **
 1. **Pyodide-compatible** — runs on iPad / juno.sh; no `statsmodels`, `linearmodels`, `arch` at runtime.
 2. **Diagnostic over silent** — every numerical-failure path raises a named `LinAlgError` (or fires a `UserWarning`), never returns garbage.
 3. **Public API curated in `__init__.py`** — top level exports `__version__`; subpackages re-export their stable names.
-4. **Tests over types** — replication-validation + edge-case unit tests are the contract; there is no type checker, no linter, no CI.
+4. **Tests over types** — replication-validation + edge-case unit tests are the contract; there is no linter, and `mypy` is a dev extra rather than a gate. There *is* CI: `.github/workflows/ci.yml` runs the suite on three operating systems and three Python versions, plus the release gate and a strict docs build, on every push and pull request to `main`.
 
 If your change touches one of those, read `ARCHITECTURE.md` first.
 
@@ -117,7 +117,7 @@ This runs four gates and exits 0 only if all pass:
 
 If a gate's failure is real and accepted (e.g. environmentally-gated test), add it to `tests/known_failures.json` with a populated `reason` / `since_version` / `owner_note`. The whitelist is the audit trail.
 
-There is no enforcement beyond this command — the package's "tests-over-types, no CI by design" promise stands. The discipline is: run the gate before every `git tag`.
+CI runs the same gate (`tools/release_check.py --no-tests`) on every push to `main`, so drift is caught there too. The discipline is still to run it before every `git tag`, because CI cannot check the things a tag decides.
 
 ### Opt-in: examples-gallery health (Gate 5)
 
@@ -184,4 +184,4 @@ There is no linter or formatter. Keep imports grouped (stdlib / third-party / fi
 
 - **Async / threads.** Source connectors are synchronous on purpose; see `narrative/sources/RETRY_POLICY.md` §6.
 - **Type checking.** Annotations are encouraged for documentation, not enforced. No `mypy --strict`.
-- **Backwards-compat shims.** The package is pre-1.0. Rename freely; update consumers in the same commit. Promote private helpers to public when an example needs them, rather than keeping a `_` alias.
+- **Backwards-compat shims.** The package passed 1.0 at v1.0.0 and ships 1.8.0, so "rename freely" no longer applies to anything in `tests/fixtures/public_api_snapshot.json`: removing or renaming a snapshotted name fails release gate 3, and the documented policy in `docs/1.0_path.md` is a `DeprecationWarning` naming the replacement, one minor release ahead of removal. Private helpers are still free. Promote private helpers to public when an example needs them, rather than keeping a `_` alias.

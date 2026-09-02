@@ -51,11 +51,22 @@ dependencies = [
   # `pip install puremacro`, so it cannot live in an extra. No Pyodide wheel
   # exists: in the browser use `micropip.install("puremacro", deps=False)`.
   "pyarrow>=15",
+  # Excel engine for `pandas.read_excel`. Eighteen shipped modules read .xlsx --
+  # the EPU / WUI / JLN / LMN / Fernald / GPR / Pink Sheet fetchers, the ONS
+  # real-time reader, the Spanish long-panel workbook, shock_atlas and
+  # long_panel. It used to sit in the `dev` extra, which meant the documented
+  # student install (`pip install puremacro`) could not read any of them:
+  # `build_all` swallows each failure into a `print`, so the panel came back
+  # silently missing most of its uncertainty proxies. Pure Python; installs
+  # under Pyodide. Note `xlrd` (in the `data` extra) is a different engine, for
+  # the legacy .xls GPR workbook, and is not a substitute.
+  "openpyxl>=3.1",
 ]
 
 [project.optional-dependencies]
 # pyarrow is now a base dependency (see [project.dependencies]) -- do not re-add it here.
-dev = ["pytest>=8", "statsmodels>=0.14", "linearmodels>=5", "arch>=6", "mypy>=1.10", "pytest-cov>=5", "pyyaml>=6", "openpyxl>=3.1"]
+# openpyxl is now a base dependency (see [project.dependencies]) -- do not re-add it here.
+dev = ["pytest>=8", "statsmodels>=0.14", "linearmodels>=5", "arch>=6", "mypy>=1.10", "pytest-cov>=5", "pyyaml>=6"]
 narrative = ["pypdf>=4.0", "beautifulsoup4>=4.12", "pdfplumber>=0.11"]
 backend = [
   "numba>=0.59",
@@ -73,6 +84,7 @@ data = [
   "yfinance>=0.2",      # fetch.yahoo (equity / realized-vol market data)
   "fredapi>=0.5",       # fetch.fred (FRED API-key path; the keyless CSV path needs nothing)
   "xlrd>=2.0.1",        # fetch.gpr (reads the GPR .xls workbook)
+  "python-dotenv>=1.0", # fetch.frb_phil_coincident lazy-imports it beside fredapi
 ]
 llm = [
   "anthropic>=0.40",    # narrative.indices LLM scoring (opt-in; default scoring is key-free)

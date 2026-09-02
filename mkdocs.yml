@@ -63,3 +63,16 @@ nav:
       - DSGE Sketchpad: dsge_build.md
   - Running Anywhere (iPad / browser): tablet.md
   - Performance & Benchmarks: benchmarks.md
+  # These pages existed on disk and were unreachable from the nav, so the site
+  # rendered without them and nothing said so. `mkdocs build --strict` in CI
+  # (see .github/workflows/ci.yml) now fails on a nav entry with no file; it
+  # cannot catch a file with no nav entry, so keep this list in sync by hand.
+  - Reference:
+      - Validation & goldens: VALIDATION.md
+      - Connector health: CONNECTOR_HEALTH.md
+      - Credentials: CREDENTIALS.md
+      - Cache database: CACHE_DB.md
+      - Signal contract: SIGNAL_CONTRACT.md
+      - Examples gallery: examples_gallery.md
+      - Lexicon review: lexicon_review.md
+      - Path to 1.0: 1.0_path.md

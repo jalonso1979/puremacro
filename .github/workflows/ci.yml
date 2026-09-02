@@ -41,3 +41,13 @@ jobs:
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
         run: |
           python tools/release_check.py --no-tests
+
+      # The docs site is built nowhere else: pages.yml deploys only the
+      # JupyterLite playground. Without this step mkdocs.yml rots silently --
+      # it accumulated five nav entries pointing at files that do not exist,
+      # and `--strict` turns exactly that warning into a failure.
+      - name: Build the documentation site (strict)
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        run: |
+          pip install mkdocs-material
+          mkdocs build --strict --site-dir /tmp/site

@@ -52,15 +52,14 @@ puremacro/
 │   ├── state_dep.py / smooth.py / asymmetric.py / quantile.py
 │   ├── garch_state.py / garch_in_mean.py
 │   ├── mean_group.py / cce.py
-│   │
-│   └── lp_*.py            ← OLDER absorbed-from-src/ LP variants (lp_jorda,
-│                            lp_iv, lp_panel, lp_panel_dk, lp_state_dep,
-│                            lp_smooth, lp_garch_state, lp_garch_in_mean,
-│                            garch_utils). R1_02/R1_03/R1_05 notebooks still
-│                            import legacy IRF function variants and result
-│                            classes; R1_02 is specifically the legacy lp_*
-│                            API demo by design. Phase-2.5 follow-up deferred
-│                            to 0.44.0 with body-rewrites of those notebooks.
+│   └── lp_did.py          ← the one surviving `lp_*` module. The older
+│                            absorbed-from-src/ variants (lp_jorda, lp_iv,
+│                            lp_panel, lp_panel_dk, lp_state_dep, lp_smooth,
+│                            lp_garch_state, lp_garch_in_mean, garch_utils)
+│                            were retired at 0.44.0 along with
+│                            `inference/legacy/`; see "retired at 0.44.0"
+│                            below. This block described them as live
+│                            until after 1.8.0.
 │
 ├── inference/
 │   ├── _ols_helpers.py    ← ols_hac — central OLS path
@@ -69,19 +68,12 @@ puremacro/
 │   ├── hac_fixed_b.py     ← Kiefer-Vogelsang fixed-b HAC
 │   ├── dk.py              ← Driscoll-Kraay panel HAC
 │   ├── bootstrap.py / block_bootstrap.py / moving_block.py / wild_bootstrap.py
-│   ├── moving_block_bootstrap.py / lp_block_bootstrap.py    ← absorbed
+│   ├── lp_block_bootstrap.py    ← absorbed
 │   ├── weak_iv.py         ← Cragg-Donald, Kleibergen-Paap, AR, MSW
 │   ├── over_id.py         ← Hansen-J, Stock-Yogo
-│   ├── pesaran.py / pesaran_cce.py / swamy.py / swamy_test.py
+│   ├── pesaran.py / swamy.py
 │   ├── balanced_panel.py / newey_west.py
-│   ├── quandt_andrews.py / spec_curve.py    ← structural-break + sensitivity
-│   └── legacy/            ← mirror of the absorbed-from-src/ inference
-│                            modules (bootstrap, moving_block_bootstrap,
-│                            lp_block_bootstrap, balanced_panel, …). Still
-│                            actively imported by lp/lp_state_dep.py and
-│                            lp/lp_smooth.py. Not "deprecated" — name is
-│                            historical. Retires alongside lp_*.py at 0.44.0.
-│
+│   └── quandt_andrews.py / spec_curve.py    ← structural-break + sensitivity
 ├── garch/                 ← GARCH(1,1) (scipy-only fit), DCC
 ├── volatility/            ← SigmaObject (MATLAB-port), BEKK, CCC, HAR-RV,
 │                            range-based, ARCH-LM / Ljung-Box
@@ -255,7 +247,7 @@ These are the load-bearing imports. If you change one of these arrows, double-ch
 | `lp/state_dep` (`lp_smooth_transition_irf`) | **Stable** | HAC analytic CIs (replaces legacy block-bootstrap CIs). Ported from legacy at 0.43.0. |
 | `var/bvar`, `var/vecm`, `var/tvp` | **Stable** | All `(X'X)^{-1}` calls route through `_linalg.inv_xtx`. |
 | `lp/state_dep`, `lp/smooth`, `lp/asymmetric`, `lp/quantile` | **Stable** | Replication-light; exercise these via the example scripts. |
-| `inference/{lp_block_bootstrap, moving_block_bootstrap, balanced_panel, swamy_test, pesaran_cce, ...}` | **Stable** | Phase-5 absorbs. `lp_block_bootstrap` lazy-imports `puremacro.teaching.panel_lm` (Phase 0). |
+| `inference/{lp_block_bootstrap, balanced_panel, moving_block, swamy, pesaran, ...}` | **Stable** | Phase-5 absorbs. `lp_block_bootstrap` lazy-imports `puremacro.teaching.panel_lm` (Phase 0). The duplicate `moving_block_bootstrap`, `swamy_test` and `pesaran_cce` modules were removed after 1.8.0 — each was a second copy of the module beside it, and the `moving_block_bootstrap` copy's default IRF imported `statsmodels`, a dev-only extra. |
 | `inference/quandt_andrews`, `inference/spec_curve` | **Stable** | Structural-break testing + sensitivity-curve helpers. |
 | `narrative/{types,aggregate,dedup,validate}` | **Stable** | Offline-deterministic core. |
 | `narrative/scoring/{keyword,manual}` | **Stable** | Pure logic. |
@@ -309,12 +301,14 @@ pandas  >= 2.0
 matplotlib >= 3.7
 requests >= 2.31
 pyarrow >= 15
+openpyxl >= 3.1
 ```
 
-The first four are the **Pyodide import core**: the only third-party modules a shippable estimator module may import at top level. The last two widen the *install* contract, not the import contract, and each is here for a concrete reason:
+The first four are the **Pyodide import core**: the only third-party modules a shippable estimator module may import at top level. The last three widen the *install* contract, not the import contract, and each is here for a concrete reason:
 
 - `requests` — the whole `puremacro.fetch` layer (OECD/SDMX, EPU, FRED-CSV, IMF, BEA) and the narrative sources `import requests` at module level by design. Without it a clean `pip install puremacro` dies with `ModuleNotFoundError` on the first fetch call. It is pure Python and installs fine under Pyodide (there are no sockets there, but the offline CSV paths never touch it).
 - `pyarrow` — the parquet engine `pandas.read_parquet` needs. `cache.py`, `fetch/labor*.py`, `shock_atlas.py`, `build_panel` / `build_subnational_panel` and the ENOE datasets shipped with the teaching material are all parquet. pandas imports it lazily, so it never lands in `sys.modules` during an import sweep, but it is a hard requirement to *use* those code paths — and the documented student install is a bare `pip install puremacro`, so it cannot live in an extra. **Caveat:** pyarrow has no Pyodide wheel, so an in-browser install must go through `micropip.install("puremacro", deps=False)` plus the deps actually needed; the browser is not a supported deployment target of the teaching material.
+- `openpyxl` — the `.xlsx` engine `pandas.read_excel` needs, and **eighteen** shipped modules need it: `fetch/epu.py`, `epu_states.py`, `epu_news_historical.py`, `wui.py`, `wui_extras.py`, `jln.py`, `lmn.py`, `fernald.py`, `gpr.py`, `wb_pink_sheet.py`, `labor.py`, `oecd_qna_local.py`, `longpanel/ine_es.py`, `realtime/ons.py`, plus `shock_atlas.py`, `long_panel.py`, `narrative/sources/us_warn.py` and `narrative/validation/external_benchmarks.py`. It sat in the `dev` extra, so a clean `pip install puremacro` could not produce `epu_m`, `epu_q`, `wui_q`, `wui_m`, `jln_macro_*`, `lmn_real`, `lmn_fin`, `tfp_fernald` or any Pink Sheet series — and inside `build_all` each of those is wrapped in `try/except Exception: print(...)`, so the user got a panel silently missing most of the uncertainty proxies with only a line on stdout. Pure Python, installs under Pyodide. (This document previously said openpyxl "is needed only by the ONS workbook reader"; that was wrong.)
 
 **Consequence for the opt-in Pyodide gate:** because `pyarrow` has no Pyodide wheel, the browser install cannot resolve dependencies. `tools/pyodide/runner.js` therefore installs the built wheel with `micropip.install("emfs:/tmp/<wheel>", deps=False)` and supplies the import core itself — `numpy` / `scipy` / `pandas` / `matplotlib` via `loadPackage`, then `requests` via a second `micropip.install`. With that in place `python tools/release_check.py --pyodide` (gate 6) passes: 29 `pyodide_smoke`-marked tests green under Pyodide 0.28.3 as of 1.2.0, covering the estimator core plus the runtime / pocket / longrun / dsge.build additions.
 
@@ -648,6 +642,6 @@ The 0.43.0 + 0.44.0 releases retired the `svar/*`, `lp/lp_*.py`, and
 
 ## Out of scope (deliberately)
 
-- **Build pipeline / CI.** Single-author research package; no CI is on by design. Run `pytest` locally before tagging.
+- **Build pipeline / CI.** CI has existed since v0.92.0 and this line did not keep up. `.github/workflows/ci.yml` runs the suite across {ubuntu, macos, windows} x Python {3.11, 3.12, 3.13}, then the release gate and a strict `mkdocs build` on one leg; `release.yml` publishes to PyPI on a `v*` tag via Trusted Publishing; `pages.yml` deploys the JupyterLite playground. Still run `pytest` locally before tagging — CI runs the same default marker set, so the `slow`, `network`, `reference` and `replication` suites run nowhere but on your machine.
 - **Sphinx docs.** README + per-module / per-function docstrings are the doc surface. Add a section here instead of bolting on a docs site.
-- **Backwards-compatibility shims.** The package is pre-1.0. Rename freely; update consumers in the same commit. The "promote a private helper" pattern applies even to API tightening. 0.43.0 demonstrated that the shim-and-deprecate pattern works cleanly: `svar/` shims shipped at 0.42.0 were deleted on schedule at 0.43.0 with no behaviour change for callers. Future releases can use the same pattern when the migration surface is large enough to warrant a one-release notice window.
+- **Backwards-compatibility shims.** The package is past 1.0 — 1.8.0 as of this writing — so this is no longer "rename freely". Every name in `tests/fixtures/public_api_snapshot.json` is covered by release gate 3, and `docs/1.0_path.md` promises a `DeprecationWarning` naming the replacement one minor release before removal. Private helpers remain free to move. The "promote a private helper" pattern applies even to API tightening. 0.43.0 demonstrated that the shim-and-deprecate pattern works cleanly: `svar/` shims shipped at 0.42.0 were deleted on schedule at 0.43.0 with no behaviour change for callers. Future releases can use the same pattern when the migration surface is large enough to warrant a one-release notice window.

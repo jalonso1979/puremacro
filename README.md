@@ -368,9 +368,9 @@ ever get imported by the *estimator* code that ships in the wheel.
 `statsmodels`, `linearmodels`, `arch` and `pypdf` are dev-only /
 extras-only or lazy-imported behind a guard.
 
-Two further packages are declared as base dependencies in
-`pyproject.toml` — six in all — because the wheel cannot function
-without them, even though neither touches the estimator path:
+Three further packages are declared as base dependencies in
+`pyproject.toml` — seven in all — because the wheel cannot function
+without them, even though none touches the estimator path:
 
 - `requests` — imported at module level by `puremacro.fetch.*` and the
   narrative sources. Pure Python; installs under Pyodide.
@@ -380,6 +380,13 @@ without them, even though neither touches the estimator path:
   lazily, so it never lands in `sys.modules` on an import sweep. It has
   no Pyodide wheel: in the browser use
   `micropip.install("puremacro", deps=False)`.
+- `openpyxl` — the `.xlsx` engine `pandas.read_excel` needs. Eighteen
+  shipped modules read Excel: the EPU, WUI, JLN, LMN, Fernald, GPR and
+  World Bank Pink Sheet fetchers among them. It used to live in the
+  `dev` extra, so a plain `pip install puremacro` could not produce
+  any of those series — and `build_all` swallows each failure into a
+  `print`, so the panel came back quietly missing most of its
+  uncertainty proxies. Pure Python; installs under Pyodide.
 
 See `ARCHITECTURE.md` → "Pyodide-compatibility contract" for the full
 rationale.

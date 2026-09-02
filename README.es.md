@@ -79,7 +79,7 @@ Escriba las condiciones de equilibrio como una función de Python y obtenga a ca
 pip install puremacro
 ```
 
-Esto instala las **seis dependencias base** (numpy, scipy, pandas, matplotlib, requests, pyarrow) — todo lo que necesitan los estimadores, la capa `fetch` y las rutas de código en parquet. Los extras cubren únicamente las funciones opcionales que se listan más abajo.
+Esto instala las **siete dependencias base** (numpy, scipy, pandas, matplotlib, requests, pyarrow, openpyxl) — todo lo que necesitan los estimadores, la capa `fetch` y las rutas de código en parquet. Los extras cubren únicamente las funciones opcionales que se listan más abajo.
 
 ### Local (desarrollo)
 
@@ -214,10 +214,11 @@ idx = llm_prob_kernel(records, provider=LocalProvider("qwen2.5-3b-instruct"),
 
 La promesa de compatibilidad en tiempo de ejecución es: únicamente `numpy + scipy + pandas + matplotlib` serán importados por el código de los *estimadores* que se distribuye en la rueda. `statsmodels`, `linearmodels`, `arch` y `pypdf` son todos exclusivos del entorno de desarrollo, están limitados a extras o se importan de forma diferida tras una verificación.
 
-Otros dos paquetes están declarados como dependencias base en `pyproject.toml` —**seis en total**— porque la rueda no puede funcionar sin ellos, aunque ninguno toque la ruta de los estimadores:
+Otros tres paquetes están declarados como dependencias base en `pyproject.toml` —**siete en total**— porque la rueda no puede funcionar sin ellos, aunque ninguno toque la ruta de los estimadores:
 
 - `requests` — importado a nivel de módulo por `puremacro.fetch.*` y por las fuentes narrativas. Python puro; se instala bajo Pyodide.
 - `pyarrow` — el motor parquet que necesita `pandas.read_parquet` (`cache`, `fetch.labor*`, `shock_atlas`, `build_panel` y los conjuntos de datos en parquet que usa el material docente). pandas lo importa de forma diferida, así que nunca aparece en `sys.modules` en un barrido de importaciones. No tiene rueda para Pyodide: en el navegador use `micropip.install("puremacro", deps=False)`.
+- `openpyxl` — el motor `.xlsx` que necesita `pandas.read_excel`. Dieciocho módulos distribuidos leen Excel: entre ellos los descargadores de EPU, WUI, JLN, LMN, Fernald, GPR y del Pink Sheet del Banco Mundial. Antes vivía en el extra `dev`, así que un `pip install puremacro` sin más no podía producir ninguna de esas series — y `build_all` convierte cada fallo en un `print`, de modo que el panel volvía sin la mayor parte de sus indicadores de incertidumbre y sin decirlo. Python puro; se instala bajo Pyodide.
 
 Véase `ARCHITECTURE.md` → «contrato de compatibilidad con Pyodide» para la justificación completa.
 
