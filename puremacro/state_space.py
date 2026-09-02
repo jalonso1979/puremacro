@@ -74,6 +74,111 @@ class StateSpaceModel:
             self.d = np.zeros(n)
 
 
+
+def _kalman_diffuse_update(
+    a_t: np.ndarray,
+    P_t: np.ndarray,
+    P_inf: np.ndarray,
+    y_t: np.ndarray,
+    obs: np.ndarray,
+    Z_t: np.ndarray,
+    d_t: np.ndarray,
+    H_t: np.ndarray,
+    Tm: np.ndarray,
+    c: np.ndarray,
+    RQR: np.ndarray,
+    n: int,
+    log2pi: float,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, np.ndarray]:
+    n_obs = Z_t.shape[0]
+    a_curr = a_t.copy()
+    P_curr = P_t.copy()
+    P_inf_curr = P_inf.copy()
+    ll_t = 0.0
+    for k in range(n_obs):
+        z_k = Z_t[k]                          # (m,)
+        d_k = d_t[k]
+        h_k = H_t[k, k]
+        v_k = float(y_t[obs][k] - z_k @ a_curr - d_k)
+        F_inf_k = float(z_k @ P_inf_curr @ z_k)
+        F_star_k = float(z_k @ P_curr @ z_k + h_k)
+        if F_inf_k > 1e-12:
+            # Diffuse update (Koopman-Durbin eq. 5.18)
+            M_inf = P_inf_curr @ z_k          # (m,)
+            K0 = M_inf / F_inf_k
+            a_curr = a_curr + K0 * v_k
+            P_inf_curr = P_inf_curr - np.outer(K0, M_inf)
+            P_curr = P_curr + (F_star_k / F_inf_k) * np.outer(K0, K0) \
+                      - np.outer(K0, P_curr @ z_k) \
+                      - np.outer(P_curr @ z_k, K0)
+            ll_t += -0.5 * (log2pi + np.log(F_inf_k))
+        else:
+            if F_star_k <= 0:
+                F_star_k = 1e-10
+            K = P_curr @ z_k / F_star_k
+            a_curr = a_curr + K * v_k
+            P_curr = P_curr - np.outer(K, P_curr @ z_k)
+            ll_t += -0.5 * (log2pi + np.log(F_star_k)
+                             + v_k * v_k / F_star_k)
+    a_filt_t = a_curr
+    P_filt_t = P_curr
+    a_pred_next = Tm @ a_curr + c
+    P_pred_next = Tm @ P_curr @ Tm.T + RQR
+    P_inf_next = Tm @ P_inf_curr @ Tm.T
+    # Clean tiny negative diagonals from numerical drift.
+    np.fill_diagonal(P_inf_next, np.maximum(np.diag(P_inf_next), 0.0))
+
+    innov_t = np.full(n, np.nan)
+    innov_t[obs] = y_t[obs] - Z_t @ a_t - d_t
+
+    return a_filt_t, P_filt_t, a_pred_next, P_pred_next, P_inf_next, ll_t, innov_t
+
+
+def _kalman_standard_update(
+    a_t: np.ndarray,
+    P_t: np.ndarray,
+    y_t: np.ndarray,
+    obs: np.ndarray,
+    Z_t: np.ndarray,
+    d_t: np.ndarray,
+    H_t: np.ndarray,
+    Tm: np.ndarray,
+    c: np.ndarray,
+    RQR: np.ndarray,
+    n: int,
+    m: int,
+    log2pi: float,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, float]:
+    n_obs = Z_t.shape[0]
+    v = y_t[obs] - Z_t @ a_t - d_t
+    F = Z_t @ P_t @ Z_t.T + H_t
+    try:
+        F_chol = np.linalg.cholesky(F)
+    except np.linalg.LinAlgError:
+        F = F + 1e-10 * np.eye(n_obs)
+        F_chol = safe_cholesky(F, name="kalman filter F (augmented)")
+    F_inv_v = np.linalg.solve(F_chol.T, np.linalg.solve(F_chol, v))
+    F_inv_Zt = np.linalg.solve(F_chol.T, np.linalg.solve(F_chol, Z_t @ P_t.T))
+    K = (Tm @ P_t @ Z_t.T) @ np.linalg.inv(F)
+
+    a_filt_t = a_t + P_t @ Z_t.T @ F_inv_v
+    P_filt_t = P_t - P_t @ Z_t.T @ F_inv_Zt
+    a_pred_next = Tm @ a_t + c + K @ v
+    P_pred_next = Tm @ P_t @ Tm.T + RQR - K @ F @ K.T
+
+    innov_full = np.full(n, np.nan)
+    innov_full[obs] = v
+    F_full = np.zeros((n, n))
+    F_full[np.ix_(obs, obs)] = F
+    K_full = np.zeros((m, n))
+    K_full[:, obs] = K
+
+    log_det = 2.0 * np.sum(np.log(np.diag(F_chol)))
+    ll_t = -0.5 * (n_obs * log2pi + log_det + v @ F_inv_v)
+
+    return a_filt_t, P_filt_t, a_pred_next, P_pred_next, innov_full, F_full, K_full, ll_t
+
+
 # ---------------------------------------------------------------------------
 # Kalman filter
 # ---------------------------------------------------------------------------
@@ -179,82 +284,37 @@ def kalman_filter(
 
         # ---- Exact-diffuse path: process this period one obs at a time ----
         if use_exact_diffuse and np.any(np.diag(P_inf) > 0.0):
-            a_curr = a_t.copy()
-            P_curr = P_t.copy()
-            P_inf_curr = P_inf.copy()
-            ll_t = 0.0
-            for k in range(n_obs):
-                z_k = Z_t[k]                          # (m,)
-                d_k = d_t[k]
-                h_k = H_t[k, k]
-                v_k = float(y_t[obs][k] - z_k @ a_curr - d_k)
-                F_inf_k = float(z_k @ P_inf_curr @ z_k)
-                F_star_k = float(z_k @ P_curr @ z_k + h_k)
-                if F_inf_k > 1e-12:
-                    # Diffuse update (Koopman-Durbin eq. 5.18)
-                    M_inf = P_inf_curr @ z_k          # (m,)
-                    K0 = M_inf / F_inf_k
-                    a_curr = a_curr + K0 * v_k
-                    P_inf_curr = P_inf_curr - np.outer(K0, M_inf)
-                    P_curr = P_curr + (F_star_k / F_inf_k) * np.outer(K0, K0) \
-                              - np.outer(K0, P_curr @ z_k) \
-                              - np.outer(P_curr @ z_k, K0)
-                    ll_t += -0.5 * (log2pi + np.log(F_inf_k))
-                else:
-                    if F_star_k <= 0:
-                        F_star_k = 1e-10
-                    K = P_curr @ z_k / F_star_k
-                    a_curr = a_curr + K * v_k
-                    P_curr = P_curr - np.outer(K, P_curr @ z_k)
-                    ll_t += -0.5 * (log2pi + np.log(F_star_k)
-                                     + v_k * v_k / F_star_k)
-            a_filt[t] = a_curr
-            P_filt[t] = P_curr
-            a_pred[t + 1] = Tm @ a_curr + c
-            P_pred[t + 1] = Tm @ P_curr @ Tm.T + RQR
-            P_inf = Tm @ P_inf_curr @ Tm.T
-            # Clean tiny negative diagonals from numerical drift.
-            np.fill_diagonal(P_inf, np.maximum(np.diag(P_inf), 0.0))
+            (
+                a_filt[t],
+                P_filt[t],
+                a_pred[t + 1],
+                P_pred[t + 1],
+                P_inf,
+                ll_t,
+                innov[t],
+            ) = _kalman_diffuse_update(
+                a_t, P_t, P_inf, y_t, obs, Z_t, d_t, H_t, Tm, c, RQR, n, log2pi
+            )
             loglik += ll_t
-            innov_full = np.full(n, np.nan)
-            innov_full[obs] = y_t[obs] - Z_t @ a_t - d_t
-            innov[t] = innov_full
             # F and K bookkeeping (skip during diffuse since the matrices
             # are not the standard ones; downstream smoother will read
             # P_filt / a_filt instead).
             continue
+
         # ---- Standard non-diffuse update ----
-        v = y_t[obs] - Z_t @ a_t - d_t
-        F = Z_t @ P_t @ Z_t.T + H_t
-        try:
-            F_chol = np.linalg.cholesky(F)
-        except np.linalg.LinAlgError:
-            # Augment F itself (not just the Cholesky factor) because F
-            # is reused below in the inv at the K computation and in the
-            # K @ F @ K.T term of P_pred.
-            F = F + 1e-10 * np.eye(n_obs)
-            F_chol = safe_cholesky(F, name="kalman filter F (augmented)")
-        F_inv_v = np.linalg.solve(F_chol.T, np.linalg.solve(F_chol, v))
-        F_inv_Zt = np.linalg.solve(F_chol.T, np.linalg.solve(F_chol, Z_t @ P_t.T))
-        K = (Tm @ P_t @ Z_t.T) @ np.linalg.inv(F)
-
-        a_filt[t] = a_t + P_t @ Z_t.T @ F_inv_v
-        P_filt[t] = P_t - P_t @ Z_t.T @ F_inv_Zt
-        a_pred[t + 1] = Tm @ a_t + c + K @ v
-        P_pred[t + 1] = Tm @ P_t @ Tm.T + RQR - K @ F @ K.T
-
-        innov_full = np.full(n, np.nan)
-        innov_full[obs] = v
-        innov[t] = innov_full
-        F_full = np.zeros((n, n))
-        F_full[np.ix_(obs, obs)] = F
-        F_arr[t] = F_full
-        K_full = np.zeros((m, n))
-        K_full[:, obs] = K
-        K_arr[t] = K_full
-
-        log_det = 2.0 * np.sum(np.log(np.diag(F_chol)))
-        loglik += -0.5 * (n_obs * log2pi + log_det + v @ F_inv_v)
+        (
+            a_filt[t],
+            P_filt[t],
+            a_pred[t + 1],
+            P_pred[t + 1],
+            innov[t],
+            F_arr[t],
+            K_arr[t],
+            ll_t,
+        ) = _kalman_standard_update(
+            a_t, P_t, y_t, obs, Z_t, d_t, H_t, Tm, c, RQR, n, m, log2pi
+        )
+        loglik += ll_t
 
     return {
         "a_pred": a_pred,

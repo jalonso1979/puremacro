@@ -169,6 +169,65 @@ from .types import RiskIndex
 from ._signal_quality import compute_sparsity_report
 
 
+def _validate_agg_args(agg: str, weight_by: str | None) -> None:
+    if agg not in {"mean", "max", "dispersion", "sum_weighted"}:
+        raise ValueError(f"agg must be mean|max|dispersion|sum_weighted; got {agg!r}")
+    if agg == "sum_weighted" and weight_by != "magnitude":
+        raise ValueError(
+            "agg='sum_weighted' requires weight_by='magnitude'; "
+            f"got weight_by={weight_by!r}"
+        )
+
+
+def _extract_magnitudes(records_list: list, weight_by: str | None) -> list[float]:
+    if weight_by != "magnitude":
+        return []
+
+    magnitudes = []
+    for r in records_list:
+        if len(r) >= 5 and r[4] is not None:
+            magnitudes.append(float(r[4]))
+        else:
+            magnitudes.append(1.0)
+    return magnitudes
+
+
+def _aggregate_points_df(
+    points: list,
+    magnitudes: list[float],
+    agg: str,
+    weight_by: str | None,
+    name: str,
+    freq: str,
+) -> pd.Series:
+    if weight_by == "magnitude" and len(magnitudes) != len(points):
+        # Kernels may drop docs; fall back to uniform weight when lengths
+        # don't align.
+        magnitudes = [1.0] * len(points)
+
+    df = pd.DataFrame(points, columns=["date", "value"])
+    if weight_by == "magnitude":
+        df["weight"] = magnitudes
+    df["q_date"] = df["date"].dt.to_period("Q").dt.to_timestamp()
+
+    if agg == "mean":
+        out = df.groupby("q_date")["value"].mean()
+    elif agg == "max":
+        out = df.groupby("q_date")["value"].max()
+    elif agg == "dispersion":
+        out = df.groupby("q_date")["value"].std().fillna(0.0)
+    else:  # sum_weighted
+        out = df.groupby("q_date").apply(
+            lambda g: (g["value"] * g["weight"]).sum()
+        )
+
+    full_idx = pd.date_range(out.index.min(), out.index.max(), freq=freq)
+    out = out.reindex(full_idx)
+    out.index.name = "date"
+    out.name = name
+    return out
+
+
 def index_to_quarterly(
     records,
     *,
@@ -208,25 +267,13 @@ def index_to_quarterly(
     -------
     RiskIndex with quarterly-indexed series.
     """
-    if agg not in {"mean", "max", "dispersion", "sum_weighted"}:
-        raise ValueError(f"agg must be mean|max|dispersion|sum_weighted; got {agg!r}")
-    if agg == "sum_weighted" and weight_by != "magnitude":
-        raise ValueError(
-            "agg='sum_weighted' requires weight_by='magnitude'; "
-            f"got weight_by={weight_by!r}"
-        )
+    _validate_agg_args(agg, weight_by)
 
     # Materialise records once so we can read magnitudes alongside kernel output.
     records_list = list(records)
 
     # Build a per-record magnitude vector (only used when weight_by='magnitude').
-    magnitudes: list[float] = []
-    if weight_by == "magnitude":
-        for r in records_list:
-            if len(r) >= 5 and r[4] is not None:
-                magnitudes.append(float(r[4]))
-            else:
-                magnitudes.append(1.0)
+    magnitudes = _extract_magnitudes(records_list, weight_by)
 
     points = list(kernel(records_list))
     if not points:
@@ -235,31 +282,14 @@ def index_to_quarterly(
             f"for country={country!r}"
         )
 
-    if weight_by == "magnitude" and len(magnitudes) != len(points):
-        # Kernels may drop docs; fall back to uniform weight when lengths
-        # don't align.
-        magnitudes = [1.0] * len(points)
-
-    df = pd.DataFrame(points, columns=["date", "value"])
-    if weight_by == "magnitude":
-        df["weight"] = magnitudes
-    df["q_date"] = df["date"].dt.to_period("Q").dt.to_timestamp()
-
-    if agg == "mean":
-        out = df.groupby("q_date")["value"].mean()
-    elif agg == "max":
-        out = df.groupby("q_date")["value"].max()
-    elif agg == "dispersion":
-        out = df.groupby("q_date")["value"].std().fillna(0.0)
-    else:  # sum_weighted
-        out = df.groupby("q_date").apply(
-            lambda g: (g["value"] * g["weight"]).sum()
-        )
-
-    full_idx = pd.date_range(out.index.min(), out.index.max(), freq=freq)
-    out = out.reindex(full_idx)
-    out.index.name = "date"
-    out.name = name
+    out = _aggregate_points_df(
+        points=points,
+        magnitudes=magnitudes,
+        agg=agg,
+        weight_by=weight_by,
+        name=name,
+        freq=freq,
+    )
 
     full_metadata = {"n_docs": len(points)}
     if metadata:

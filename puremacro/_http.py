@@ -42,9 +42,9 @@ def _request(url: str, timeout: float, user_agent: str | None = None) -> bytes:
     except (urllib.error.URLError, ssl.SSLError):
         # One-shot fallback: some public endpoints (older OECD / IMF /
         # ministry sites) ship certificates that Python's bundled CA
-        # store does not validate. Retry once with verification off.
+        # store does not validate. Retry once with default verification enforced.
         # See RETRY_POLICY.md §3 for why we do not loop further.
-        ctx = ssl._create_unverified_context()
+        ctx = ssl.create_default_context()
         with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
             return resp.read()
 
@@ -107,7 +107,7 @@ def post_json(url: str, payload: dict, *, timeout: float = DEFAULT_TIMEOUT,
     except urllib.error.HTTPError:
         raise
     except (urllib.error.URLError, ssl.SSLError):
-        ctx = ssl._create_unverified_context()
+        ctx = ssl.create_default_context()
         with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
             return json.loads(resp.read().decode("utf-8"))
 

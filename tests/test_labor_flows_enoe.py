@@ -188,3 +188,19 @@ def test_zero_row_masked_not_fabricated():
 def test_non_square_raises():
     with pytest.raises(ValueError, match="square"):
         quarterly_to_monthly_matrix(np.ones((4, 3)))
+
+def test_complex_logm_fallback():
+    """A matrix with negative eigenvalues (like a permutation-heavy matrix)
+    results in a complex logm. The function should take the real part and
+    produce a valid row-stochastic monthly matrix."""
+    # A block permutation matrix has eigenvalues including -1, so logm is complex
+    P_Q = np.array([
+        [0.0, 1.0, 0.0, 0.0],
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+        [0.0, 0.0, 1.0, 0.0],
+    ])
+    M_hat = quarterly_to_monthly_matrix(P_Q)
+    assert M_hat.shape == (4, 4)
+    assert (M_hat >= 0.0).all()
+    np.testing.assert_allclose(M_hat.sum(axis=1), 1.0, atol=1e-12)

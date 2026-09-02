@@ -268,6 +268,87 @@ def _get_harvest_conn(db_path: Path | None = None) -> sqlite3.Connection:
     return conn
 
 
+
+def _resolve_target_sources(
+    countries: Iterable[str] | str | None,
+    sources: Iterable[str] | str | None,
+    policy_domains: Iterable[str] | str | None,
+) -> list[str]:
+    """Filter target sources based on requested criteria."""
+    target_sources: list[str] = []
+    if sources is not None:
+        requested = [sources] if isinstance(sources, str) else list(sources)
+        target_sources = [s for s in requested if s in SOURCE_REGISTRY]
+    else:
+        target_sources = list(SOURCE_REGISTRY.keys())
+
+    if countries is not None:
+        c_set = {countries.upper()} if isinstance(countries, str) else {c.upper() for c in countries}
+        target_sources = [s for s in target_sources if SOURCE_REGISTRY[s][2] in c_set]
+
+    if policy_domains is not None:
+        p_set = {policy_domains} if isinstance(policy_domains, str) else set(policy_domains)
+        target_sources = [s for s in target_sources if SOURCE_REGISTRY[s][3] in p_set]
+
+    return target_sources
+
+
+def _harvest_source(
+    src_name: str,
+    src_pkg: Any,
+    max_docs_per_source: int | None,
+    clean_html_bodies: bool,
+) -> Iterator[NarrativeDocument]:
+    """Extract and yield narrative documents from a single source."""
+    mod_name, fn_name, default_c, default_domain, default_dt, default_lang = SOURCE_REGISTRY[src_name]
+    try:
+        mod = getattr(src_pkg, mod_name, None)
+        if mod is None:
+            return
+        fn = getattr(mod, fn_name, None)
+        if fn is None or not callable(fn):
+            return
+
+        raw_iter = fn()
+        validated_recs = validate_records(raw_iter, strict=False)
+
+        count = 0
+        for rec in validated_recs:
+            dt, txt, url, meta, mag = rec
+            if not txt:
+                continue
+
+            if clean_html_bodies and ("<html" in txt.lower() or "<div" in txt.lower()):
+                txt = extract_body(txt, bank_code=src_name.upper())
+
+            c = meta.get("country") or default_c
+            domain = meta.get("policy_domain") or default_domain
+            dt_type = meta.get("doc_type") or default_dt
+            lang = meta.get("language") or default_lang
+            title = meta.get("title") or (txt[:80].strip() + "...")
+
+            doc = NarrativeDocument(
+                doc_id="",
+                source=src_name,
+                country=c,
+                date=dt,
+                url=url,
+                title=title,
+                text=txt,
+                language=lang,
+                policy_domain=domain,
+                doc_type=dt_type,
+                magnitude=mag,
+                metadata=meta,
+            )
+            yield doc
+            count += 1
+            if max_docs_per_source is not None and count >= max_docs_per_source:
+                break
+    except Exception:
+        pass
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Harvest Orchestration Function
 # ─────────────────────────────────────────────────────────────────────────────
@@ -304,79 +385,20 @@ def harvest_narrative_corpus(
     """
     from . import sources as src_pkg
 
-    # Filter target sources
-    target_sources: list[str] = []
-    if sources is not None:
-        requested = [sources] if isinstance(sources, str) else list(sources)
-        target_sources = [s for s in requested if s in SOURCE_REGISTRY]
-    else:
-        target_sources = list(SOURCE_REGISTRY.keys())
-
-    if countries is not None:
-        c_set = {countries.upper()} if isinstance(countries, str) else {c.upper() for c in countries}
-        target_sources = [s for s in target_sources if SOURCE_REGISTRY[s][2] in c_set]
-
-    if policy_domains is not None:
-        p_set = {policy_domains} if isinstance(policy_domains, str) else set(policy_domains)
-        target_sources = [s for s in target_sources if SOURCE_REGISTRY[s][3] in p_set]
+    target_sources = _resolve_target_sources(countries, sources, policy_domains)
 
     harvested_docs: list[NarrativeDocument] = []
-
     for src_name in target_sources:
-        mod_name, fn_name, default_c, default_domain, default_dt, default_lang = SOURCE_REGISTRY[src_name]
-        try:
-            mod = getattr(src_pkg, mod_name, None)
-            if mod is None:
-                continue
-            fn = getattr(mod, fn_name, None)
-            if fn is None or not callable(fn):
-                continue
-
-            raw_iter = fn()
-            validated_recs = validate_records(raw_iter, strict=False)
-
-            count = 0
-            for rec in validated_recs:
-                # rec is (date, text, url, meta, magnitude)
-                dt, txt, url, meta, mag = rec
-                if not txt:
-                    continue
-
-                if clean_html_bodies and ("<html" in txt.lower() or "<div" in txt.lower()):
-                    txt = extract_body(txt, bank_code=src_name.upper())
-
-                c = meta.get("country") or default_c
-                domain = meta.get("policy_domain") or default_domain
-                dt_type = meta.get("doc_type") or default_dt
-                lang = meta.get("language") or default_lang
-                title = meta.get("title") or (txt[:80].strip() + "...")
-
-                doc = NarrativeDocument(
-                    doc_id="",
-                    source=src_name,
-                    country=c,
-                    date=dt,
-                    url=url,
-                    title=title,
-                    text=txt,
-                    language=lang,
-                    policy_domain=domain,
-                    doc_type=dt_type,
-                    magnitude=mag,
-                    metadata=meta,
-                )
-                harvested_docs.append(doc)
-                count += 1
-                if max_docs_per_source is not None and count >= max_docs_per_source:
-                    break
-        except Exception:
-            continue
+        for doc in _harvest_source(src_name, src_pkg, max_docs_per_source, clean_html_bodies):
+            harvested_docs.append(doc)
 
     corpus = NarrativeCorpus(docs=harvested_docs, metadata={"harvested_sources": target_sources})
     if start_date or end_date:
         corpus = corpus.filter(start_date=start_date, end_date=end_date)
 
     return corpus
+
+
 
 
 __all__ = [
