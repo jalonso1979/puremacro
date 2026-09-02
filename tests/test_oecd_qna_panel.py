@@ -20,6 +20,9 @@ _QUARTERS = [f"{y}-Q{q}" for y in (2019, 2020) for q in (1, 2, 3, 4)]
 # (code, volume price base, deflator level the synthetic data encodes)
 _COUNTRIES = {"USA": ("L", 125.0), "MEX": ("Q", 140.0)}
 
+#: Share of the whole-economy total each ISIC grouping carries in the fixture.
+_ACTIVITY_SHARE = {"_T": 1.0, "A": 0.05, "OTQ": 0.20}
+
 
 def _rows(code: str, vol_base: str, deflator: float) -> list[dict]:
     """Synthetic SDMX rows: one V row and one volume row per component/quarter."""
@@ -65,7 +68,7 @@ def _asset_rows(code: str, vol_base: str, deflator: float) -> list[dict]:
     return out
 
 
-def _labor_rows(code: str) -> list[dict]:
+def _labor_rows(code: str, acts: tuple[str, ...] = ("_T", "A", "OTQ")) -> list[dict]:
     """Synthetic labour rows: persons and hours, employees and self-employed.
 
     Persons come in thousands (UNIT_MULT 3) and hours in millions (6), which
@@ -82,17 +85,22 @@ def _labor_rows(code: str) -> list[dict]:
         base = {"emp": 20_000.0, "emp_employees": 16_000.0,
                 "emp_selfemp": 4_000.0, "hours": 8_000.0,
                 "hours_employees": 6_200.0, "hours_selfemp": 1_800.0}[name]
-        for t, period in enumerate(_QUARTERS):
-            out.append({
-                "FREQ": "Q", "ADJUSTMENT": "N" if code in ("MEX", "AUS", "CAN") else "Y",
-                "REF_AREA": code, "SECTOR": "S1", "COUNTERPART_SECTOR": "S1",
-                "TRANSACTION": txn, "INSTR_ASSET": "_Z", "ACTIVITY": "_T",
-                "EXPENDITURE": "_Z", "UNIT_MEASURE": unit, "PRICE_BASE": "_Z",
-                "TRANSFORMATION": "N", "TABLE_IDENTIFIER": "T0111",
-                "TIME_PERIOD": period, "OBS_VALUE": base * (1.0 + 0.005 * t),
-                "REF_YEAR_PRICE": None, "UNIT_MULT": 3 if unit == "PS" else 6,
-                "CURRENCY": "_Z",
-            })
+        # The ISIC branches are a fixed share of the total, so the market
+        # sector `x - x_agri - x_public` is positive and exactly known.
+        for act in acts:
+            share = _ACTIVITY_SHARE[act]
+            for t, period in enumerate(_QUARTERS):
+                out.append({
+                    "FREQ": "Q", "ADJUSTMENT": "N" if code in ("MEX", "AUS", "CAN") else "Y",
+                    "REF_AREA": code, "SECTOR": "S1", "COUNTERPART_SECTOR": "S1",
+                    "TRANSACTION": txn, "INSTR_ASSET": "_Z", "ACTIVITY": act,
+                    "EXPENDITURE": "_Z", "UNIT_MEASURE": unit, "PRICE_BASE": "_Z",
+                    "TRANSFORMATION": "N", "TABLE_IDENTIFIER": "T0111",
+                    "TIME_PERIOD": period,
+                    "OBS_VALUE": base * share * (1.0 + 0.005 * t),
+                    "REF_YEAR_PRICE": None, "UNIT_MULT": 3 if unit == "PS" else 6,
+                    "CURRENCY": "_Z",
+                })
     return out
 
 
@@ -111,7 +119,12 @@ def fake_sdmx(monkeypatch):
             if code not in key and key.split(".")[2] != "":
                 continue
             if is_labor:
-                rows += _labor_rows(code)
+                # ACTIVITY is dimension 8 of the 13-dim key (index 7); the
+                # caller pins it, and honouring that here is what makes the
+                # default path provably identical to a `_T`-only request.
+                want = [a for a in key.split(".")[7].split("+") if a]
+                rows += [r for r in _labor_rows(code)
+                         if r["ACTIVITY"] in (want or ["_T"])]
             elif is_assets:
                 rows += _asset_rows(code, vol_base, deflator)
             else:
@@ -774,3 +787,132 @@ def test_rescaling_touches_only_the_hours_columns(monkeypatch):
     np.testing.assert_allclose(
         p.loc["USA", "hours_employees"] + p.loc["USA", "hours_selfemp"],
         p.loc["USA", "hours"])
+
+
+# ---------------------------------------------------------------------------
+# The ISIC breakdown of the labour block: `qna_labor(activities=)` and
+# `qna_panel(labor_activities=)`. The feature shipped with no test at all.
+# ---------------------------------------------------------------------------
+
+def test_activities_adds_every_stem_again_per_branch(fake_sdmx):
+    p = qna_panel(["USA"], start="2019", labor=True, labor_activities=True)
+    for stem in QNA_LABOR:
+        assert stem in p.columns
+        for suffix in ("agri", "public"):
+            assert f"{stem}_{suffix}" in p.columns, f"{stem}_{suffix}"
+    # none of the twelve new columns is a price, so none gets a deflator
+    assert not [c for c in p.columns
+                if c.endswith("_defl") and c.split("_defl")[0] not in QNA_COMPONENTS]
+
+
+def test_the_market_sector_subtraction_is_what_the_breakdown_is_for(fake_sdmx):
+    """`hours - hours_agri - hours_public`, positive and exactly known."""
+    p = qna_panel(["USA"], start="2019", labor=True, labor_activities=True)
+    market = p["hours"] - p["hours_agri"] - p["hours_public"]
+    assert (market > 0).all()
+    expected = p["hours"] * (1.0 - _ACTIVITY_SHARE["A"] - _ACTIVITY_SHARE["OTQ"])
+    assert np.allclose(market, expected)
+
+
+def test_every_activity_of_one_unit_shares_one_adjustment(fake_sdmx):
+    """A source-adjusted total minus a raw part is not a subtraction."""
+    # `qna_labor` is the entry point that reports `sa_source` per series.
+    lab = mod.qna_labor(["USA", "MEX"], start="2019", activities=True)
+    assert set(lab["variable"]) == set(QNA_LABOR) | {
+        f"{n}_{s}" for n in QNA_LABOR for s in ("agri", "public")}
+    for code, g in lab.groupby("code"):
+        for unit in ("emp", "hours"):
+            fam = g[g["variable"].str.startswith(unit)]
+            assert fam["sa_source"].nunique() == 1, (code, unit)
+
+
+def test_the_default_path_is_untouched_by_the_feature(fake_sdmx):
+    off = qna_panel(["USA", "MEX"], start="2019", labor=True)
+    on = qna_panel(["USA", "MEX"], start="2019", labor=True,
+                   labor_activities=True)
+    assert list(off.columns) == [c for c in on.columns if c in set(off.columns)]
+    pd.testing.assert_frame_equal(off, on[off.columns])
+
+
+def test_the_total_is_always_requested_alongside_the_parts(fake_sdmx):
+    """A part without its whole is not usable, so `_T` is never optional."""
+    lookup, acts = mod._labor_activity_lookup(["A"])
+    assert acts[0] == "_T"
+    assert ("EMP", "H", "_T") in lookup and lookup[("EMP", "H", "_T")] == "hours"
+    assert lookup[("EMP", "H", "A")] == "hours_agri"
+
+
+def test_a_repeated_isic_code_does_not_duplicate_the_column(fake_sdmx):
+    p = qna_panel(["USA"], start="2019", labor=True, labor_activities=["A", "A"])
+    assert p.columns.is_unique
+    assert isinstance(p["hours_agri"], pd.Series)
+    # and the same request survives the long reshape, which duplicates cannot
+    assert not qna_panel(["USA"], start="2019", labor=True,
+                         labor_activities=["A", "A"], long=True).empty
+
+
+def test_labor_activities_without_labor_is_an_error_not_a_no_op(fake_sdmx):
+    """The CHANGELOG documents `qna_panel(labor_activities=True)` exactly."""
+    with pytest.raises(ValueError, match="labor_activities requires labor=True"):
+        qna_panel(["USA"], start="2019", labor_activities=True)
+
+
+def test_an_unknown_isic_code_is_rejected_on_both_entry_points(fake_sdmx):
+    with pytest.raises(ValueError, match="no column name for ISIC activity"):
+        qna_panel(["USA"], start="2019", labor=True, labor_activities=["NOPE"])
+    with pytest.raises(ValueError, match="no column name for ISIC activity"):
+        mod.qna_labor(["USA"], start="2019", activities=["NOPE"])
+
+
+def test_meta_still_sees_the_labour_block_when_it_is_all_branches(fake_sdmx):
+    """`_build_meta` matched only the six un-suffixed names.
+
+    Two of the three labour-name consumers were widened for the breakdown and
+    this one was not, so a code carrying only suffixed labour columns reported
+    'publishes no labour block' while returning twelve of them.
+    """
+    tidy = pd.DataFrame({
+        "code": ["USA"] * 4,
+        "name": ["hours_agri", "hours_public", "emp_agri", "gdp"],
+        "date": pd.to_datetime(["2019-01-01"] * 4),
+        "value": [1.0, 2.0, 3.0, 4.0],
+        "sa_source": ["oecd"] * 4,
+        "ADJUSTMENT": ["Y"] * 4,
+        "REF_YEAR_PRICE": [None, None, None, 2015],
+        "CURRENCY": ["USD"] * 4,
+        "PRICE_BASE": ["_Z", "_Z", "_Z", "L"],
+    })
+    meta = mod._build_meta(tidy, tidy, {"USA": "L"}, hours_scales={"USA": 13.0})
+    row = meta.set_index("code").loc["USA"]
+    assert row["sa_labor"] == "oecd"
+    assert row["hours_scale"] == 13.0
+
+
+def test_a_family_member_with_no_fallback_is_named_not_dropped_silently(fake_sdmx):
+    """The family rule is a filter: a member with no raw edition is erased.
+
+    No OECD reference area triggers it today, and widening the labour family
+    from three names to nine triples the ways it could. The series still goes —
+    mixing two adjustment engines inside one decomposition would be worse — but
+    it goes with its name on a warning.
+    """
+    rows = []
+    for act, adj in (("_T", "Y"), ("A", "N"), ("OTQ", "N")):
+        for t, period in enumerate(_QUARTERS):
+            rows.append({
+                "FREQ": "Q", "ADJUSTMENT": adj, "REF_AREA": "XXX",
+                "SECTOR": "S1", "COUNTERPART_SECTOR": "S1", "TRANSACTION": "EMP",
+                "INSTR_ASSET": "_Z", "ACTIVITY": act, "EXPENDITURE": "_Z",
+                "UNIT_MEASURE": "H", "PRICE_BASE": "_Z", "TRANSFORMATION": "N",
+                "TABLE_IDENTIFIER": "T0111", "TIME_PERIOD": period,
+                "OBS_VALUE": 100.0 + t, "REF_YEAR_PRICE": None, "UNIT_MULT": 6,
+                "CURRENCY": "_Z",
+            })
+    lookup, _ = mod._labor_activity_lookup(True)
+    with pytest.warns(UserWarning, match="no unadjusted edition"):
+        out = mod._tidy(pd.DataFrame(rows), lookup,
+                        ("TRANSACTION", "UNIT_MEASURE", "ACTIVITY"),
+                        units=("H",), price_bases=("_Z",),
+                        mult_target={"PS": 3, "H": 6},
+                        sa_family={c: u for (_, u, _a), c in lookup.items()})
+    assert "XXX/hours" in str(out) or "hours" not in set(out["name"])

@@ -6,8 +6,8 @@ that touches one — does the work that comes *after* the fetch: putting
 countries on a common price reference year, scoring the accounting identities,
 and decomposing growth into contributions.
 
-Nothing on this page except `qna_panel` and `qna_countries` touches the
-network. A live panel and a frozen CSV of one behave identically.
+Nothing on this page except `qna_panel`, `qna_labor` and `qna_countries`
+touches the network. A live panel and a frozen CSV of one behave identically.
 
 ```python
 from puremacro.fetch import (
@@ -101,6 +101,41 @@ Registered in `QNA_LABOR`, with the scales in `QNA_LABOR_UNITS`. The block
 carries no price, so it gets no deflator and no `_real` column — `real=True`
 does not change that.
 
+### The ISIC breakdown: `labor_activities=True`
+
+`qna_panel(..., labor=True, labor_activities=True)` — or `qna_labor(...,
+activities=True)` — returns every stem again per ISIC activity, so `hours`
+gains `hours_agri` and `hours_public` and the block goes from six columns to
+eighteen. The two activities are registered in `QNA_LABOR_ACTIVITIES`:
+agriculture (`A`), where most of the labour is self-employed and most of the
+year-to-year output is the weather, and public administration, education and
+health (`OTQ`), whose value added the SNA *defines* as compensation plus
+consumption of fixed capital, so its measured productivity growth is near zero
+by construction rather than by finding.
+
+Subtracting the two is the whole point:
+
+```python
+market_hours = p["hours"] - p["hours_agri"] - p["hours_public"]
+```
+
+That turns a whole-economy `Y/H` into the **market sector** — the concept the
+United States publishes as its nonfarm business sector, and the only basis on
+which it can be compared with anyone else. The whole economy (`_T`) is always
+requested alongside the parts, because a part without its whole is not usable,
+and every activity of one unit of measure is resolved as a single seasonal
+family, since a source-adjusted total minus a raw part is not a subtraction of
+anything. It costs nothing extra — the same request, three activities instead
+of one — and 34 reference areas publish hours for all three.
+
+`labor_activities` requires `labor=True`, and raises if it is off rather than
+returning a panel without the columns you asked for.
+
+For the **annual** counterpart — which is the only place the United States and
+Japan have a national-accounts denominator at all, because the quarterly flow
+returns zero rows for both — see `ana_by_activity` in
+`puremacro.fetch.oecd_ana_activity`.
+
 Two ratios are the point of the split:
 
 - **`emp_selfemp / emp`** — the share of the workforce whose labour income the
@@ -158,8 +193,9 @@ lab = qna_labor(["DEU", "MEX", "KOR"], start="1995", sa="x13")
 ```
 
 It returns a **long** frame — `code`, `date`, `variable`, `value`,
-`sa_source` — carrying the same six columns, in the same units, with the same
-hours correction and the same family-level seasonal adjustment. Two
+`sa_source` — carrying the same columns (six by default, eighteen with
+`activities=True`), in the same units, with the same hours correction and the
+same family-level seasonal adjustment. Two
 differences from the joined route are deliberate:
 
 - **`sa_source` is per series, not per country.** A country adjusted at source

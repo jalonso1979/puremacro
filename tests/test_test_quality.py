@@ -132,6 +132,18 @@ _MUST_EXECUTE: dict[str, tuple[str, ...]] = {
         "puremacro.fetch.oecd_qna_panel:qna_panel",
         "puremacro.fetch.oecd_qna_panel:_tidy",
         "puremacro.fetch.oecd_qna_panel:_rescale_hours",
+        "puremacro.fetch.oecd_qna_panel:_labor_activity_lookup",
+        "puremacro.fetch.oecd_qna_panel:_build_meta",
+    ),
+    # Annual national accounts by activity. These tests patch `get_sdmx_csv`,
+    # so the registry is what proves they run the aggregation, the chaining
+    # and the plausibility guard rather than asserting about the patch.
+    "tests/test_oecd_ana_activity.py": (
+        "puremacro.fetch.oecd_ana_activity:ana_by_activity",
+        "puremacro.fetch.oecd_ana_activity:chain_volume",
+        "puremacro.fetch.oecd_ana_activity:ana_hours_wedge",
+        "puremacro.fetch.oecd_ana_activity:_rescale_hours",
+        "puremacro.fetch.oecd_ana_activity:_nonneg",
     ),
     # Real-time / vintage layer (1.7.0). These tests patch the HTTP
     # boundary, so the registry is what proves they still run the

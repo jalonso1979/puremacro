@@ -42,10 +42,13 @@ Source: OECD SDMX dataflow ``OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_C
 """
 from __future__ import annotations
 
+import warnings
 from typing import Iterable, Sequence
 
 import numpy as np
 import pandas as pd
+
+from ._hours import hours_scale_factors
 
 _AGENCY_FLOW = "OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,"
 
@@ -186,6 +189,35 @@ QNA_LABOR: dict[str, tuple[str, str, str]] = {
     "hours_selfemp":   ("SELF", "H",  "Hours worked by the self-employed (millions)"),
 }
 
+#: ISIC Rev.4 activity -> column suffix, for the by-activity breakdown of the
+#: labour block. ``_T`` is the whole economy and keeps the plain names; every
+#: other activity appends its suffix, so ``hours`` gains ``hours_agri`` and
+#: ``hours_public`` alongside it. The two named here are the two the accounts
+#: measure differently from everything else, and they are the two you have to
+#: remove to get a *market* sector: agriculture, where most of the labour is
+#: self-employed and the output is the weather, and O–Q, where value added is
+#: **defined** in the SNA as compensation plus consumption of fixed capital, so
+#: its measured productivity growth is near zero by construction rather than by
+#: finding. The suffixes match :data:`QNA_ACTIVITIES` (``va_agri``,
+#: ``va_public``) so the two sides of :math:`Y/H` line up by name.
+#:
+#: Every activity of one unit of measure shares a seasonal adjustment, because
+#: the whole point of the breakdown is ``hours - hours_agri - hours_public``
+#: and a total adjusted at source minus a raw part is not a subtraction of
+#: anything. See ``sa_family`` in :func:`_tidy`.
+QNA_LABOR_ACTIVITIES: dict[str, str] = {"A": "agri", "OTQ": "public"}
+
+#: Every labour column name the panel can carry, the by-activity ones included.
+#: Three separate consumers need exactly this set — the deflator exclusion
+#: (:data:`_NO_DEFLATOR`), the hours rescale (:func:`_rescale_hours`) and the
+#: metadata builder (:func:`_build_meta`) — and the first version of the
+#: by-activity change widened two of the three by hand and missed the last, so
+#: it is built once here and read from there.
+_LABOR_NAMES: frozenset[str] = (
+    frozenset(QNA_LABOR)
+    | frozenset(f"{n}_{s}" for n in QNA_LABOR
+                for s in QNA_LABOR_ACTIVITIES.values()))
+
 #: Scale each labour unit of measure is normalised to, as a power of ten:
 #: persons in thousands, hours in millions. Every reference area currently
 #: publishes ``UNIT_MULT`` 3 for ``PS`` and 6 for ``H``, so today this mapping
@@ -219,7 +251,7 @@ _TRANSACTIONS = {t for t, _, _ in QNA_COMPONENTS.values()}
 #: series with no price dimension at all, so no implicit deflator can be
 #: built for them: the income flows exist only in current prices, and the
 #: labour block is counts of people and hours.
-_NO_DEFLATOR: frozenset[str] = frozenset(QNA_INCOME) | frozenset(QNA_LABOR)
+_NO_DEFLATOR: frozenset[str] = frozenset(QNA_INCOME) | _LABOR_NAMES
 
 #: SDMX reference areas that are country groupings rather than countries.
 #: The QNA dataflows publish them alongside the members, and a panel that
@@ -532,33 +564,104 @@ def _tidy(raw: pd.DataFrame, lookup: dict[tuple, str],
         best = df.groupby(keys, sort=False)["_adj_rank"].transform("min")
         fam_best = (df.assign(_best=best).groupby(fam_keys, sort=False)["_best"]
                       .transform("max"))
-        df = df[df["_adj_rank"] == fam_best]
+        df = _warn_family_losses(df, df[df["_adj_rank"] == fam_best], keys)
 
     return (df.drop(columns="_fam")
               .drop_duplicates(subset=keys + ["date"], keep="first"))
 
 
+def _warn_family_losses(before: pd.DataFrame, after: pd.DataFrame,
+                        keys: list[str]) -> pd.DataFrame:
+    """Say so when the family rule erased a series outright.
+
+    The family rule is a *filter*, not a preference: one member published
+    unadjusted-only sends the whole family to the raw series, and any member
+    that has no unadjusted rows then matches nothing and disappears. That is
+    the right call when the alternative is mixing two adjustment engines inside
+    one decomposition — but the member that vanishes can be the total, and a
+    decomposition returned without its total is the one outcome this machinery
+    exists to prevent. It is silent today, and it is silent on the ``x13``
+    branch too.
+
+    No reference area in the current OECD flows triggers it, which is why it
+    has never been seen; widening the labour family from three names to nine
+    (:data:`QNA_LABOR_ACTIVITIES`) triples the number of ways it could be. So
+    the series still goes -- mixing adjustments would be worse -- but it goes
+    with its name on a warning rather than without a trace.
+    """
+    if after.empty or len(after) == len(before):
+        return after
+    lost = (before[~before.set_index(keys).index.isin(after.set_index(keys).index)]
+            .drop_duplicates(subset=keys))
+    if not lost.empty:
+        names = ", ".join(sorted({f"{r['code']}/{r['name']}"
+                                  for _, r in lost.iterrows()})[:12])
+        warnings.warn(
+            f"seasonal-adjustment family rule dropped {len(lost)} series that "
+            f"publish no unadjusted edition: {names}. A family takes one "
+            f"adjustment or none, so these had no variant to fall back to; if "
+            f"one of them is a total, its parts are now returned without it.",
+            UserWarning, stacklevel=3)
+    return after
+
+
+def _labor_activity_lookup(activities: bool | Sequence[str]
+                           ) -> tuple[dict[tuple, str], tuple[str, ...]]:
+    """``(TRANSACTION, UNIT_MEASURE, ACTIVITY) -> column``, and the activities.
+
+    ``activities`` is False for the total economy alone (today's behaviour),
+    True for :data:`QNA_LABOR_ACTIVITIES`, or an explicit sequence of ISIC
+    codes. ``_T`` is always requested: the breakdown is only ever used by
+    subtracting from the total, so returning a part without its whole would be
+    returning something no caller can use.
+    """
+    if activities is False or activities is None:
+        acts: tuple[str, ...] = ("_T",)
+    elif activities is True:
+        acts = ("_T", *QNA_LABOR_ACTIVITIES)
+    else:
+        # `dict.fromkeys` rather than a set: order is the column order, and a
+        # repeated code would otherwise be expanded twice by `_ordered_columns`
+        # into a frame with duplicate labels, which `long=True` cannot stack.
+        acts = tuple(dict.fromkeys(("_T", *activities)))
+    unknown = [a for a in acts[1:] if a not in QNA_LABOR_ACTIVITIES]
+    if unknown:
+        raise ValueError(
+            f"no column name for ISIC activity {', '.join(unknown)}; add it to "
+            f"QNA_LABOR_ACTIVITIES (have: {', '.join(QNA_LABOR_ACTIVITIES)})")
+    lookup = {}
+    for name, (t, u, _) in QNA_LABOR.items():
+        for act in acts:
+            suffix = QNA_LABOR_ACTIVITIES.get(act)
+            lookup[(t, u, act)] = name if act == "_T" else f"{name}_{suffix}"
+    return lookup, acts
+
+
 def _labor_tidy(codes: Sequence[str] | None, start: str, refresh: bool, *,
                 sa: str = "prefer", sa_min_gain: int | None = None,
-                hours_rescale: bool = True
+                hours_rescale: bool = True,
+                activities: bool | Sequence[str] = False
                 ) -> tuple[pd.DataFrame, dict[str, float]]:
     """Download and tidy the labour block alone. Shared by both entry points."""
-    # Same 13-dim key as the money flows, but ACTIVITY pinned to the total
-    # economy: this flow publishes every ISIC section and we want the aggregate.
+    lookup_l, acts = _labor_activity_lookup(activities)
+    # Same 13-dim key as the money flows, but ACTIVITY pinned to what was
+    # asked for: this flow publishes every ISIC section, and asking for all of
+    # them is twelve times the response for eleven series nobody wanted.
     raw_l = _download_flow(_LABOR_FLOW, codes, start, refresh,
-                           tail="....._T.....")
+                           tail=f".....{'+'.join(acts)}.....")
     if raw_l.empty:
         return pd.DataFrame(), {}
-    lookup_l = {(t, u): name for name, (t, u, _) in QNA_LABOR.items()}
-    tidy_l = _tidy(raw_l, lookup_l, ("TRANSACTION", "UNIT_MEASURE"),
+    tidy_l = _tidy(raw_l, lookup_l, ("TRANSACTION", "UNIT_MEASURE", "ACTIVITY"),
                    sa=sa, min_gain=sa_min_gain,
                    units=tuple(QNA_LABOR_UNITS),
                    price_bases=("_Z",),
                    mult_target=QNA_LABOR_UNITS,
-                   # Heads are one family and hours another: the total and its
-                   # two parts have to carry the same adjustment or they stop
-                   # adding up.
-                   sa_family={n: u for n, (_, u, _) in QNA_LABOR.items()})
+                   # Heads are one family and hours another: the total, its two
+                   # institutional parts and its activity parts have to carry
+                   # the same adjustment or they stop adding up — and the
+                   # activity columns exist only to be subtracted from the
+                   # total, which is the subtraction that would break first.
+                   sa_family={c: u for (_, u, _a), c in lookup_l.items()})
     if tidy_l.empty:
         return pd.DataFrame(), {}
     if hours_rescale:
@@ -569,7 +672,7 @@ def _labor_tidy(codes: Sequence[str] | None, start: str, refresh: bool, *,
 
 def qna_labor(codes: Iterable[str] | None = None, start: str = "1995", *,
               sa: str = "prefer", sa_min_gain: int | None = None,
-              hours_rescale: bool = True,
+              hours_rescale: bool = True, activities: bool | Sequence[str] = False,
               refresh: bool = False) -> pd.DataFrame:
     """The labour block on its own, without the expenditure block.
 
@@ -588,13 +691,20 @@ def qna_labor(codes: Iterable[str] | None = None, start: str = "1995", *,
     thousands of persons and millions of hours, per :data:`QNA_LABOR_UNITS`.
     ``df.attrs["hours_scale"]`` records any time-base correction, as in
     :func:`qna_panel`; see ``hours_rescale`` there for what that means.
+
+    ``activities=True`` adds the ISIC breakdown of :data:`QNA_LABOR_ACTIVITIES`
+    — every series again for agriculture (``_agri``) and for public
+    administration, education and health (``_public``) — which is what turns
+    the whole-economy total into a *market* sector by subtraction. It costs
+    nothing extra: same request, three activities instead of one.
     """
     if sa not in ("prefer", "x13"):
         raise ValueError(f"sa must be 'prefer' or 'x13', got {sa!r}")
     codes_list = None if codes is None else [c.upper() for c in codes if c]
     tidy_l, scales = _labor_tidy(codes_list, start, refresh, sa=sa,
                                  sa_min_gain=sa_min_gain,
-                                 hours_rescale=hours_rescale)
+                                 hours_rescale=hours_rescale,
+                                 activities=activities)
     out_cols = ["code", "date", "variable", "value", "sa_source"]
     if tidy_l.empty:
         out = pd.DataFrame(columns=out_cols)
@@ -642,25 +752,20 @@ def _rescale_hours(tidy_l: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, float]
 
     heads = tidy_l[tidy_l["name"] == "emp"].set_index(["code", "date"])["value"]
     hours = tidy_l[tidy_l["name"] == "hours"].set_index(["code", "date"])["value"]
-    both = pd.concat({"h": hours, "p": heads}, axis=1).dropna()
-    if both.empty:
-        return tidy_l, scales
-    # persons arrive in thousands and hours in millions, so the ratio is
-    # hours per worker per quarter once the 10**3 between them is undone.
-    ratio = (both["h"] * 1e3 / both["p"]).groupby(level="code").median()
-
-    lo, hi = _HOURS_IMPLAUSIBLE
-    ok_lo, ok_hi = _HOURS_PLAUSIBLE
-    for code, r in ratio.items():
-        if not np.isfinite(r) or lo <= r <= hi:
-            continue
-        for factor in _HOURS_SCALES:
-            if ok_lo <= r * factor <= ok_hi:
-                scales[code] = factor
-                break
+    # The detection itself is shared with the annual flow, which has the same
+    # defect on a different country and a different period: see
+    # `puremacro.fetch._hours`. Only the bands and the candidate factors are
+    # quarterly, and they stay here with the flow they describe.
+    scales = hours_scale_factors(heads, hours,
+                                 implausible=_HOURS_IMPLAUSIBLE,
+                                 plausible=_HOURS_PLAUSIBLE,
+                                 scales=_HOURS_SCALES)
     if scales:
-        is_hours = tidy_l["name"].isin([n for n, (_, u, _) in QNA_LABOR.items()
-                                        if u == "H"])
+        # every hours column, the by-activity ones included: a country whose
+        # total is on the wrong time base has its branches on it too, and
+        # rescaling only the total would break `hours - hours_agri`.
+        is_hours = tidy_l["name"].isin(
+            {n for n in _LABOR_NAMES if n.split("_")[0] == "hours"})
         factors = tidy_l["code"].map(scales).fillna(1.0)
         tidy_l = tidy_l.copy()
         tidy_l.loc[is_hours, "value"] = (tidy_l.loc[is_hours, "value"]
@@ -718,6 +823,7 @@ def qna_panel(codes: Iterable[str] | None = None,
               output: bool = False,
               income: bool = False,
               labor: bool = False,
+              labor_activities: bool | Sequence[str] = False,
               hours_rescale: bool = True,
               sa: str = "prefer",
               sa_min_gain: int | None = None,
@@ -821,6 +927,27 @@ def qna_panel(codes: Iterable[str] | None = None,
         up; the price is that ``sa_labor`` reads ``none`` for Korea under the
         default. Taking the adjusted total with raw parts instead would put a
         1.1pp seasonal artefact straight into ``emp_selfemp / emp``.
+    labor_activities
+        Split that block by ISIC activity as well as by institutional sector.
+        ``True`` takes :data:`QNA_LABOR_ACTIVITIES` — agriculture (``_agri``)
+        and public administration, education and health (``_public``) — and a
+        sequence takes the ISIC codes you name. Requires ``labor=True``, and
+        raises if it is off rather than returning a panel without the columns
+        you asked for.
+
+        Every stem comes back again per activity, so ``hours`` gains
+        ``hours_agri`` and ``hours_public``: twelve extra columns on the
+        default. The whole economy (``_T``) is always requested alongside
+        them, because the point of the breakdown is ``hours - hours_agri -
+        hours_public``, the subtraction that turns a whole-economy :math:`Y/H`
+        into the market-sector ratio the United States publishes as its
+        nonfarm business sector. A part without its whole is not usable.
+
+        It costs nothing extra — same request, three activities instead of
+        one — and 34 reference areas publish hours for all three. Every
+        activity of one unit of measure is resolved as a single seasonal
+        family, since a source-adjusted total minus a raw part is not a
+        subtraction of anything.
     hours_rescale
         Put every reference area's hours on a quarterly basis (default
         ``True``). Chile publishes hours per week and Costa Rica at an annual
@@ -904,6 +1031,14 @@ def qna_panel(codes: Iterable[str] | None = None,
 
     if sa not in ("prefer", "x13"):
         raise ValueError(f"sa must be 'prefer' or 'x13', got {sa!r}")
+    # The breakdown rides on the labour block, so asking for it without asking
+    # for the block used to be a silent no-op that also skipped the ISIC
+    # validation below -- and the CHANGELOG documents the feature as
+    # `qna_panel(labor_activities=True)`, which is exactly that call.
+    if labor_activities and not labor:
+        raise ValueError("labor_activities requires labor=True: the ISIC "
+                         "breakdown is of the labour block, which is off")
+    _labor_activity_lookup(labor_activities)   # validate the ISIC codes early
     exp_lookup = {(t, sec): name for name, (t, sec, _) in QNA_COMPONENTS.items()}
     tidy = _tidy(raw, exp_lookup, ("TRANSACTION", "SECTOR"), sa=sa,
                  min_gain=sa_min_gain)
@@ -942,7 +1077,8 @@ def qna_panel(codes: Iterable[str] | None = None,
     if labor:
         tidy_l, hours_scales = _labor_tidy(codes_list, start, refresh, sa=sa,
                                            sa_min_gain=sa_min_gain,
-                                           hours_rescale=hours_rescale)
+                                           hours_rescale=hours_rescale,
+                                           activities=labor_activities)
         if not tidy_l.empty:
             tidy = pd.concat([tidy, tidy_l[tidy_l["code"].isin(core_codes)]],
                              ignore_index=True)
@@ -955,8 +1091,12 @@ def qna_panel(codes: Iterable[str] | None = None,
     # "_Z" is the labour block: no price, so it is a level by default and can
     # never be mistaken for a volume measure of anything.
     nominal = tidy[tidy["PRICE_BASE"].isin(["V", "_Z"])]
-    volume = tidy[[pb == vol_base.get(c) for c, pb in
-                   zip(tidy["code"], tidy["PRICE_BASE"])]]
+    # `map` on the code column instead of a Python listcomp over every row of
+    # the tidy frame, which on a full 49-country panel is hundreds of thousands
+    # of dict lookups in the interpreter. A code with no chosen volume base
+    # maps to NaN, which compares unequal to every PRICE_BASE -- the same
+    # False the `vol_base.get(c) -> None` comparison produced.
+    volume = tidy[tidy["PRICE_BASE"] == tidy["code"].map(vol_base)]
 
     def _wide(part: pd.DataFrame, suffix: str) -> pd.DataFrame:
         if part.empty:
@@ -987,7 +1127,8 @@ def qna_panel(codes: Iterable[str] | None = None,
     if not real:
         out = out.drop(columns=[c for c in out.columns if c.endswith("_real")])
     out = out[[c for c in _ordered_columns(real, assets, durability,
-                                          output, income, labor)
+                                          output, income, labor,
+                                          labor_activities)
                if c in out.columns]]
     out = out.dropna(how="all")
 
@@ -1002,13 +1143,19 @@ def qna_panel(codes: Iterable[str] | None = None,
 
 def _ordered_columns(real: bool, assets: bool = False,
                      durability: bool = False, output: bool = False,
-                     income: bool = False, labor: bool = False) -> list[str]:
+                     income: bool = False, labor: bool = False,
+                     labor_activities: bool | Sequence[str] = False) -> list[str]:
+    labor_names = list(QNA_LABOR) if labor else []
+    if labor and labor_activities:
+        _, acts = _labor_activity_lookup(labor_activities)
+        labor_names += [f"{n}_{QNA_LABOR_ACTIVITIES[a]}"
+                        for a in acts[1:] for n in QNA_LABOR]
     names = (list(QNA_COMPONENTS)
              + (list(QNA_ASSETS) if assets else [])
              + (list(QNA_DURABILITY) if durability else [])
              + (list(QNA_ACTIVITIES) if output else [])
              + (list(QNA_INCOME) if income else [])
-             + (list(QNA_LABOR) if labor else []))
+             + labor_names)
     cols = list(names)
     cols += [f"{c}_defl" for c in names if c not in _NO_DEFLATOR]
     if real:
@@ -1048,9 +1195,13 @@ def _build_meta(tidy: pd.DataFrame, nominal: pd.DataFrame,
         g_core = g[g["name"].isin(QNA_COMPONENTS)]
         g_ast = g[g["name"].isin(list(QNA_ASSETS) + list(QNA_DURABILITY)
                                  + list(QNA_ACTIVITIES) + list(QNA_INCOME))]
-        g_lab = g[g["name"].isin(QNA_LABOR)]
+        g_lab = g[g["name"].isin(_LABOR_NAMES)]
         gv = tidy[(tidy["code"] == code) & (tidy["PRICE_BASE"] == vol_base.get(code))]
-        ref_year = pd.to_numeric(gv.get("REF_YEAR_PRICE"), errors="coerce")
+        # `.get` on a missing column returns None, and `to_numeric(None)` is a
+        # scalar NaN rather than None -- so the `is not None` guard below never
+        # fired and the next line raised AttributeError instead of falling back.
+        ref_year = (pd.to_numeric(gv["REF_YEAR_PRICE"], errors="coerce")
+                    if "REF_YEAR_PRICE" in gv.columns else None)
         if ref_year is not None and ref_year.notna().any():
             ref = float(ref_year.dropna().iloc[0])
         else:
