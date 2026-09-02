@@ -1,4 +1,11 @@
-"""Comprehensive tests for puremacro.inference.moving_block_bootstrap.
+"""Comprehensive tests for puremacro.inference.moving_block.
+
+These were written against `puremacro/inference/moving_block_bootstrap.py`,
+a second copy of the same module that had drifted: its `_default_irf_fn`
+imported `statsmodels`, a dev-only extra, breaking the package's first
+promise. The copy is gone; these tests now cover the surviving module
+alongside `test_inference_moving_block_coverage.py`, whose test names are
+disjoint from these.
 
 Coverage strategy
 -----------------
@@ -26,7 +33,7 @@ import math
 import numpy as np
 import pytest
 
-from puremacro.inference.moving_block_bootstrap import (
+from puremacro.inference.moving_block import (
     _sample_blocks,
     _simulate_var,
     _default_irf_fn,

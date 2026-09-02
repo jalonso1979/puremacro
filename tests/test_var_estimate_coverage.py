@@ -166,8 +166,13 @@ class TestLagSelect:
     def test_exception_branch_skips_gracefully(self):
         """If estimate_var raises, the loop should continue (except: continue path).
 
-        We inject NaN into the data so that linalg.lstsq raises LinAlgError
-        for the affected iterations; the function must still return a valid int.
+        This docstring used to say "linalg.lstsq raises LinAlgError" on NaN
+        input. It does not: LAPACK prints a complaint straight to the terminal
+        and `lstsq` returns all-NaN coefficients. So the `except: continue`
+        branch was never taken and this test passed for the wrong reason — the
+        NaN simply propagated to `slogdet`, which returned -inf rather than
+        raising. `estimate_var` now rejects non-finite input by name, which is
+        what makes the branch below actually reachable.
         """
         import warnings
 

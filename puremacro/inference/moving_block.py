@@ -49,14 +49,32 @@ def _sample_blocks(
     ndarray of shape (target_len, n)
         Concatenated and truncated bootstrap residuals.
     """
-    T, n = residuals.shape
+    return residuals[_sample_block_indices(
+        residuals.shape[0], block_len, target_len, rng), :]
+
+
+def _sample_block_indices(
+    T: int,
+    block_len: int,
+    target_len: int,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    """Row indices of a moving-block resample, shape ``(target_len,)``.
+
+    Split out from :func:`_sample_blocks` so that a caller can carry a
+    *per-observation covariate* along with the residual it belongs to. Pairing
+    a reshuffled residual with the covariate of the calendar date it happened
+    to land on destroys whatever cross-observation structure the estimator
+    identifies from — which is exactly what happened to the regime labels in
+    :func:`puremacro.var.identify.hetero.rigobon_svar`, whose whole identifying
+    content is the contrast between two regimes' covariances.
+    """
     # Maximum starting index for a complete block of length ℓ
     max_start = T - block_len  # starting indices 0 .. T-ℓ  (T-ℓ+1 choices)
     n_blocks = math.ceil(target_len / block_len)
     starts = rng.integers(0, max_start + 1, size=n_blocks)
-    pieces = [residuals[s : s + block_len, :] for s in starts]
-    concatenated = np.concatenate(pieces, axis=0)
-    return concatenated[:target_len, :]
+    idx = np.concatenate([np.arange(s, s + block_len) for s in starts])
+    return idx[:target_len]
 
 
 # --------------------------------------------------------------------------- #
@@ -110,6 +128,7 @@ def moving_block_bootstrap(
     A_list: list[np.ndarray],
     intercept: np.ndarray,
     n_draws: int = 500,
+    pass_index: bool = False,
     block_len: Optional[int] = None,
     horizon: int = 20,
     irf_fn: Optional[Callable] = None,
@@ -151,7 +170,10 @@ def moving_block_bootstrap(
     Returns
     -------
     dict with keys:
-        "draws"     : list of n_draws arrays, each shape (horizon+1, n, n)
+        "draws"     : list of arrays, each shape (horizon+1, n, n). Normally
+                      ``n_draws`` long; an ``irf_fn`` may return ``None`` to
+                      drop a draw it could not identify, in which case the list
+                      is shorter and the caller owns the bookkeeping.
         "block_len" : int, the block length actually used
     """
     if rng is None:
@@ -171,11 +193,16 @@ def moving_block_bootstrap(
 
     draws = []
     for _ in range(n_draws):
-        e_star = _sample_blocks(residuals, block_len=ell,
-                                target_len=T_eff, rng=rng)
+        idx_star = _sample_block_indices(T_eff, ell, T_eff, rng)
+        e_star = residuals[idx_star, :]
         Y_star = _simulate_var(Y_init, A_list, intercept, e_star)
-        draw = irf_fn(Y_star, p, horizon)
-        draws.append(draw)
+        # `pass_index` hands the caller the rows this draw actually used, so a
+        # per-observation covariate can travel with its residual. Off by
+        # default, so every existing 3-argument `irf_fn` is untouched.
+        draw = (irf_fn(Y_star, p, horizon, idx_star) if pass_index
+                else irf_fn(Y_star, p, horizon))
+        if draw is not None:
+            draws.append(draw)
 
     return {"draws": draws, "block_len": ell}
 

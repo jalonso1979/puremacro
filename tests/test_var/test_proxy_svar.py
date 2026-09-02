@@ -59,3 +59,54 @@ def test_proxy_svar_strong_instrument_clears_op_cutoff():
     z = eps[:, 0] + 0.1 * rng.standard_normal(T)
     res = proxy_svar(Y, p=2, horizon=10, instrument_series=z, n_boot=50, ci=0.9, seed=0)
     assert res.first_stage_F > 23.0, f"strong proxy should clear F=23, got {res.first_stage_F:.2f}"
+
+
+# ---------------------------------------------------------------------------
+# Identification recovery. `_synthetic_var_with_proxy` above draws i.i.d. eps,
+# so its B is a multiple of the identity and Sigma is proportional to I — and
+# `Sigma @ Pi` is then proportional to `Pi`. The impact vector could be (and
+# was) computed in the wrong metric without any of the tests above noticing.
+# ---------------------------------------------------------------------------
+
+def _proxy_dgp(T=200_000, seed=0):
+    """A DGP whose Sigma is emphatically not proportional to the identity."""
+    rng = np.random.default_rng(seed)
+    B_true = np.array([[1.0, 0.0, 0.0],
+                       [0.8, 1.0, 0.0],
+                       [-0.5, 0.3, 1.0]])
+    eps = rng.standard_normal((T, 3))
+    u = eps @ B_true.T
+    z = eps[:, 0] + 0.5 * rng.standard_normal(T)
+    return B_true, u, np.cov(u, rowvar=False), z
+
+
+def test_proxy_impact_recovers_the_true_column_when_sigma_is_not_scalar():
+    """b_1 is identified by `Pi / sqrt(Pi' Sigma^-1 Pi)`, not `Sigma Pi / ...`.
+
+    Sigma = BB' gives B' Sigma^-1 B = I, hence b_1' Sigma^-1 b_1 = 1; and
+    Cov(u, z) is proportional to b_1 under the proxy assumptions. Normalising
+    in the Sigma metric instead returns a vector proportional to `Sigma b_1`,
+    which is b_1 only when b_1 is an eigenvector of Sigma.
+    """
+    from puremacro.var.identify.proxy import _proxy_impact_factory
+
+    B_true, u, Sigma, z = _proxy_dgp()
+    B = _proxy_impact_factory(z)(None, Sigma, u)
+    got = B[:, 0]
+    got = got if got[0] > 0 else -got            # sign is not identified
+    assert np.allclose(got, B_true[:, 0], atol=5e-3), got
+
+
+def test_proxy_impact_satisfies_the_covariance_identity():
+    """BB' = Sigma held for the WRONG vector too, so it is not the guard.
+
+    Kept as a positive control: it must still hold, and it must not be the
+    only thing asserted about B.
+    """
+    from puremacro.var.identify.proxy import _proxy_impact_factory
+
+    _, u, Sigma, z = _proxy_dgp(T=20_000)
+    B = _proxy_impact_factory(z)(None, Sigma, u)
+    assert np.abs(B @ B.T - Sigma).max() < 1e-8
+    Si = np.linalg.inv(Sigma)
+    assert float(B[:, 0] @ Si @ B[:, 0]) == pytest.approx(1.0, abs=1e-10)

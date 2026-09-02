@@ -469,8 +469,15 @@ class TestWildBootstrapVar:
 
     # --- LinAlgError fallback branch -------------------------------------------
 
-    def test_linalg_error_fallback_uses_point(self):
-        """When impact_fn raises LinAlgError on bootstrap replications, draws[b] = point."""
+    def test_a_wholly_failed_bootstrap_raises(self):
+        """Every draw failing means there is no band, and it must say so.
+
+        This test previously asserted the opposite — that failed draws are
+        replaced by the point estimate, so `lo == hi == point`. That is the
+        pattern CONTRIBUTING.md forbids by name, and asserting it turned the
+        bug into a specification: a 100%-failed bootstrap returned a
+        zero-width 90% "confidence band" and no warning.
+        """
         Y = _make_var_data(T=80, n=2, p=1, seed=59)
         call_count = [0]
 
@@ -483,12 +490,12 @@ class TestWildBootstrapVar:
                 # All bootstrap calls fail
                 raise np.linalg.LinAlgError("Singular matrix (test)")
 
-        point, lo, hi = wild_bootstrap_var(
-            Y, p=1, horizon=3, impact_fn=impact_fn_raise_on_boot, n_boot=5, seed=20
-        )
-        # All draws are equal to point, so lo == hi == point
-        np.testing.assert_allclose(lo, point, atol=1e-12)
-        np.testing.assert_allclose(hi, point, atol=1e-12)
+        with pytest.raises(np.linalg.LinAlgError,
+                           match="all 5 bootstrap draws failed identification"):
+            wild_bootstrap_var(
+                Y, p=1, horizon=3, impact_fn=impact_fn_raise_on_boot,
+                n_boot=5, seed=20
+            )
 
     # --- n_boot=1 edge case ----------------------------------------------------
 

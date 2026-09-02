@@ -16,6 +16,25 @@ def estimate_var(Y: np.ndarray, p: int):
     """
     from ._results import VarEstimateResult
     T, n = Y.shape
+    # `np.linalg.lstsq` does NOT raise on a non-finite design matrix. LAPACK
+    # prints "** On entry to DLASCL parameter number 4 had an illegal value"
+    # straight to the terminal -- bypassing sys.stderr, so it survives a `2>`
+    # redirect and is invisible to pytest -- and then returns a coefficient
+    # matrix of NaN. Every downstream object (Sigma, the residuals, every IRF
+    # and every bootstrap band built on them) is silently NaN-valued but
+    # perfectly well-formed. This is the whole package's second promise, so it
+    # is a named error here rather than garbage downstream.
+    # asarray first: callers pass DataFrames here too, and `np.isfinite(df)`
+    # returns a DataFrame whose truth value is ambiguous.
+    finite = np.isfinite(np.asarray(Y, dtype=float))
+    if not finite.all():
+        bad = int((~finite).sum())
+        raise np.linalg.LinAlgError(
+            f"estimate_var: Y contains {bad} non-finite value(s). OLS on them "
+            "returns all-NaN coefficients without raising, so every IRF and "
+            "band built from this fit would be NaN. Drop or interpolate the "
+            "missing observations first."
+        )
     X = np.column_stack([np.ones(T - p)] + [Y[p - l - 1 : T - l - 1] for l in range(p)])
     Yd = Y[p:]
     B = np.linalg.lstsq(X, Yd, rcond=None)[0]

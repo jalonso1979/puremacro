@@ -82,14 +82,28 @@ def dcc_fit(returns: pd.DataFrame, mean: str = "zero") -> DCCResult:
     """
     arr = np.asarray(returns, dtype=float)
     T, n = arr.shape
+    if mean not in ("zero", "constant"):
+        raise ValueError(f"mean must be 'zero' or 'constant', got {mean!r}")
+    # Step 2 of Engle's two-step needs z_t = eps_t / h_t^{1/2} with the SAME
+    # eps_t in the numerator whose conditional variance is in the denominator.
+    # `garch11_fit(mean="constant")` demeans internally and `GARCH11Result` has
+    # no `mu` field, so the demeaned series never came back out: this used to
+    # divide the raw `arr` by a sigma fitted to the demeaned one, leaving the
+    # mean inside z. The resulting Qbar then measured mu_i * mu_j rather than a
+    # correlation — plim m^2/(m^2+1) for two INDEPENDENT series with
+    # m = mu/sd, i.e. 0.96 at m = 5. Demeaning once here, and passing the
+    # already-demeaned series to a zero-mean GARCH, keeps one definition of
+    # eps_t. The `mean="zero"` path is bit-identical to before.
+    mu = arr.mean(axis=0) if mean == "constant" else np.zeros(n)
+    resid = arr - mu
     sigma = np.empty_like(arr)
     garch_params = []
     for i in range(n):
-        gi = garch11_fit(arr[:, i], mean=mean)
+        gi = garch11_fit(resid[:, i], mean="zero")
         sigma[:, i] = gi.sigma.values
         garch_params.append({k: getattr(gi, k) for k in ("omega", "alpha", "beta",
                                                           "persistence", "loglik")})
-    e = arr / np.maximum(sigma, 1e-12)
+    e = resid / np.maximum(sigma, 1e-12)
     Qbar = (e.T @ e) / T
 
     res = minimize(

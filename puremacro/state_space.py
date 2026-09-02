@@ -325,8 +325,27 @@ def simulation_smoother(
 
     Algorithm:
       1. Simulate alpha+, y+ from the model with the same dimensions as y.
-      2. Run smoother on y - y+ to get a_hat = E[alpha | y - y+].
+      2. Run the smoother on ``y - y+`` **with the intercepts and the initial
+         mean set to zero**, to get the linear part of E[alpha | y - y+].
       3. Output alpha+ + a_hat.
+
+    Step 2's zeroing is load-bearing, and it used to zero only ``a0``. Every
+    recursion in :func:`kalman_filter` and :func:`kalman_smoother` is jointly
+    linear in ``(y, a0, c, d)``, so the smoother is an affine map
+    ``a_hat(y) = A y + b`` whose gains depend on the second moments alone. The
+    Durbin-Koopman identity is
+    ``alpha_tilde = a_hat(y) + [alpha+ - a_hat(y+)] = alpha+ + A(y - y+)``:
+    the offset ``b`` cancels between the two smoothing passes, so the single
+    pass on ``y*`` must evaluate the *homogeneous* model. Passing the original
+    ``model`` added ``b`` back a second time and shifted every draw by the whole
+    intercept — on a local level with ``d = 5`` the draws sat exactly ``-5.0``
+    from the posterior mean at every ``t``, against a Monte Carlo standard
+    error of 0.012.
+
+    The generation loop below correctly keeps ``c`` and ``d``: they cancel in
+    the difference, and only the covariance structure of ``(alpha+, y+)``
+    matters. Where ``c`` and ``d`` are both zero the result is bit-identical to
+    before.
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -365,7 +384,12 @@ def simulation_smoother(
         a_curr = a_next
 
     y_star = y - y_plus
-    out = kalman_smoother(y_star, model, a0=np.zeros(m), P0=P0,
+    # y* has already differenced away every deterministic term, so the pass
+    # below must run the homogeneous model: zero intercepts as well as a zero
+    # initial mean. See the docstring for why.
+    model_zero = StateSpaceModel(T=Tm, Z=Z, Q=Q, H=H, R=R,
+                                 c=np.zeros(m), d=np.zeros(n))
+    out = kalman_smoother(y_star, model_zero, a0=np.zeros(m), P0=P0,
                           diffuse_scale=diffuse_scale)
     return a_plus + out["a_smooth"]
 

@@ -11,6 +11,7 @@ from typing import Optional, Callable, Any
 import numpy as np
 
 from ..estimate import estimate_var
+from ..._linalg import safe_cholesky
 from ._results import ProxySVARResult
 from ...inference.weak_iv import olea_pflueger_f
 
@@ -27,11 +28,31 @@ def _proxy_impact_factory(instrument_series, shock_target_idx=0):
         T_eff = resid.shape[0]
         z = np.asarray(instrument_series)[-T_eff:]
         z = z - z.mean()
+        # Under the proxy assumptions E[z eps_1] = phi != 0 and E[z eps_j] = 0,
+        # Cov(u, z) = B E[eps z] = phi * b_1, so `Pi` is the impact column up to
+        # an unknown scale -- it IS the direction, and needs only normalising.
+        #
+        # The normalisation is `b_1' Sigma^-1 b_1 = 1`, which follows from
+        # Sigma = BB' => B' Sigma^-1 B = I. So with Pi = k*b_1,
+        # Pi' Sigma^-1 Pi = k^2 and `Pi / sqrt(Pi' Sigma^-1 Pi)` is +/- b_1.
+        #
+        # This used to read `(Sigma @ Pi) / sqrt(Pi @ Sigma @ Pi)`, which is
+        # proportional to `Sigma b_1` rather than to `b_1` -- the right vector
+        # only when Sigma is proportional to the identity, i.e. when b_1 happens
+        # to be an eigenvector of Sigma. Nothing caught it because that vector
+        # still satisfies b' Sigma^-1 b = 1 exactly, so the SVD completion below
+        # still returns BB' = Sigma to machine precision: the scale in the
+        # Sigma^-1 metric was right and only the direction was wrong. At
+        # T = 400,000 on a DGP with true b_1 = [1, 0.8, -0.5] it returned
+        # [0.919, 1.049, -0.608], and converged there rather than to the truth.
         Pi = (resid.T @ z) / (z @ z)
-        norm = np.sqrt(Pi @ Sigma @ Pi)
+        # Solve rather than invert, through the package's diagnostic factor.
+        L = safe_cholesky(Sigma, name="proxy-SVAR Sigma")
+        w = np.linalg.solve(L, Pi)          # w'w == Pi' Sigma^-1 Pi
+        norm = float(np.sqrt(w @ w))
         if norm < 1e-10:
             raise np.linalg.LinAlgError("Degenerate instrument in proxy-SVAR.")
-        B_col1 = (Sigma @ Pi) / norm
+        B_col1 = Pi / norm
         n = Sigma.shape[0]
         B = np.zeros((n, n))
         B[:, 0] = B_col1

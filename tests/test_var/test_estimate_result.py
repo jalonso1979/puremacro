@@ -49,3 +49,43 @@ def test_var_estimate_result_supports_legacy_tuple_unpack():
     A_list, c, Sigma, resid, X = estimate_var(Y, p=2)
     assert len(A_list) == 2
     assert c.shape == (2,)
+
+
+def test_estimate_var_rejects_non_finite_data_by_name():
+    """`np.linalg.lstsq` does not raise on NaN — it returns NaN coefficients.
+
+    LAPACK writes "On entry to DLASCL parameter number 4 had an illegal value"
+    directly to the terminal, bypassing sys.stderr, so it survives a `2>`
+    redirect and pytest never sees it. Everything downstream — Sigma, the
+    residuals, every IRF and every bootstrap band — is then silently all-NaN
+    but perfectly well-formed, which is exactly the failure mode this package
+    promises not to have.
+    """
+    import numpy as np
+    import pytest
+
+    from puremacro.var.estimate import estimate_var
+
+    rng = np.random.default_rng(0)
+    Y = rng.standard_normal((60, 2))
+    assert np.isfinite(estimate_var(Y, 2).Sigma).all()      # positive control
+
+    for bad in (np.nan, np.inf, -np.inf):
+        Yb = Y.copy()
+        Yb[5, 0] = bad
+        with pytest.raises(np.linalg.LinAlgError, match="non-finite"):
+            estimate_var(Yb, 2)
+
+
+def test_estimate_var_still_accepts_a_dataframe():
+    """The finiteness guard must not break the DataFrame callers."""
+    import numpy as np
+    import pandas as pd
+
+    from puremacro.var.estimate import estimate_var
+
+    rng = np.random.default_rng(1)
+    df = pd.DataFrame(rng.standard_normal((60, 2)), columns=["a", "b"])
+    # DataFrame in, DataFrame Sigma out — pre-existing behaviour; the point
+    # here is only that the finiteness guard does not choke on it.
+    assert np.isfinite(np.asarray(estimate_var(df, 2).Sigma)).all()

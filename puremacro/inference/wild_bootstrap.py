@@ -6,12 +6,18 @@ wild bootstrap multiplies each residual by ±1 preserving conditional heterosked
 
 from __future__ import annotations
 
+import warnings
 from typing import Callable, Optional
 
 import numpy as np
 from numpy.random import default_rng
 
 from .bootstrap import _ols_var, _irf_from_var
+
+#: Warn above this fraction of bootstrap draws failing identification. Mirrors
+#: ``puremacro.var.identify.cholesky._BOOT_FAIL_WARN_THRESHOLD``, which is the
+#: pattern CONTRIBUTING.md names as the one to follow.
+_BOOT_FAIL_WARN_THRESHOLD = 0.05
 
 
 def wild_bootstrap(
@@ -72,7 +78,11 @@ def wild_bootstrap_var(
     point = _irf_from_var(A_list, horizon, B)
 
     T, n = Y.shape
-    draws = np.empty((n_boot, n, n, horizon + 1))
+    # Only identified draws contribute to the percentile bands. A draw whose
+    # identification failed produced no statistic at all, so it carries no
+    # information about the bootstrap distribution.
+    accepted: list[np.ndarray] = []
+    n_fail = 0
     lo_q = (1 - ci) / 2
     hi_q = 1 - lo_q
 
@@ -90,8 +100,33 @@ def wild_bootstrap_var(
         A_b, _, Sigma_b, resid_b, _ = _ols_var(Yb, p)
         try:
             B_b = impact_fn(A_b, Sigma_b, resid_b)
-            draws[b] = _irf_from_var(A_b, horizon, B_b)
         except np.linalg.LinAlgError:
-            draws[b] = point
+            # Drop and warn -- the pattern CONTRIBUTING.md names, and which
+            # this function was the counter-example to. Writing `point` here
+            # instead placed a point mass exactly at the point estimate: with a
+            # failure fraction f, the reported 100(1-2a)% band was really the
+            # 100(1 - 2a/(1-f))% band, contracting monotonically in f, and at
+            # f >= 1-2a collapsing to zero width. A 100%-failed bootstrap
+            # returned lo == hi == point and said nothing about it.
+            n_fail += 1
+            continue
+        accepted.append(_irf_from_var(A_b, horizon, B_b))
 
+    if not accepted:
+        raise np.linalg.LinAlgError(
+            f"wild_bootstrap_var: all {n_boot} bootstrap draws failed "
+            "identification. Likely causes: a weak proxy/instrument, too few "
+            "observations for n*p coefficients, or a singular reduced-form Σ."
+        )
+    fail_rate = n_fail / n_boot
+    if fail_rate > _BOOT_FAIL_WARN_THRESHOLD:
+        warnings.warn(
+            f"wild_bootstrap_var: {n_fail}/{n_boot} bootstrap draws "
+            f"({fail_rate:.1%}) failed identification and were dropped. "
+            "Bands are computed from the surviving draws and may be "
+            "unreliable; consider more data, fewer lags, or a stronger "
+            "instrument.",
+            stacklevel=2,
+        )
+    draws = np.stack(accepted, axis=0)
     return point, np.quantile(draws, lo_q, axis=0), np.quantile(draws, hi_q, axis=0)

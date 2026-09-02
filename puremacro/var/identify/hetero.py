@@ -27,6 +27,7 @@ Rigobon, R. (2003). Identification through heteroskedasticity.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import warnings
 from typing import Optional
 
 import numpy as np
@@ -36,10 +37,29 @@ from ..estimate import estimate_var
 from ..irf import irf as compute_irf, fevd as compute_fevd
 
 try:
-    from ...inference.moving_block_bootstrap import moving_block_bootstrap, bootstrap_percentiles
+    # `inference.moving_block`, not the retired `inference.moving_block_bootstrap`
+    # copy: they had drifted, and only this one's default IRF is statsmodels-free.
+    from ...inference.moving_block import moving_block_bootstrap, bootstrap_percentiles
     _HAS_MBB = True
 except ImportError:  # pragma: no cover — inference ships in the same wheel
     _HAS_MBB = False
+
+
+#: Warn above this fraction of failed bootstrap draws. Same threshold and same
+#: drop-and-warn pattern as ``var/identify/cholesky.py``.
+_BOOT_FAIL_WARN_THRESHOLD = 0.05
+
+
+def _canonical_signs(B: np.ndarray) -> np.ndarray:
+    """Row vector of +/-1 making every diagonal element of ``B`` positive.
+
+    ``scipy.linalg.eigh`` fixes each eigenvector only up to sign, so the same
+    data can yield ``B`` or a column-flipped ``B`` run to run. Harmless for the
+    point estimate on its own; fatal for a percentile band across draws.
+    """
+    s = np.sign(np.diag(B))
+    s[s == 0] = 1.0
+    return s
 
 
 # --------------------------------------------------------------------------- #
@@ -182,6 +202,11 @@ def rigobon_svar(
 
     Sigma_0, Sigma_1 = _regime_covariances(residuals, ri)
     B, variance_ratios = _rigobon_impact(Sigma_0, Sigma_1)
+    # `eigh` pins each eigenvector only up to sign. Give the point estimate a
+    # canonical one so bootstrap draws can be matched to it below; percentiles
+    # taken across draws that disagree on sign are percentiles of a bimodal
+    # mixture, not of a sampling distribution.
+    B = B * _canonical_signs(B)
 
     irfs = compute_irf(A_list, B, horizon)   # (H+1, n, n)
     fevd_arr = compute_fevd(A_list, B, horizon)  # (H+1, n, n)
@@ -189,16 +214,36 @@ def rigobon_svar(
 
     lower = upper = None
     if n_boot > 0 and _HAS_MBB:
-        def _impact_fn(Y_star: np.ndarray, p_: int, H: int) -> np.ndarray:
+        n_fail = 0
+
+        def _impact_fn(Y_star: np.ndarray, p_: int, H: int,
+                       idx_star: np.ndarray) -> Optional[np.ndarray]:
+            nonlocal n_fail
             A_b, _, _, resid_b, _ = estimate_var(Y_star, p_)
-            T_b = resid_b.shape[0]
-            ri_b = ri[:T_b] if T_b <= len(ri) else np.resize(ri, T_b)
+            # The regime label must follow the residual it was drawn with.
+            # This used to read `ri[:T_b]` -- calendar-order labels pasted onto
+            # reshuffled blocks -- so within a draw each "regime" was a random
+            # subset of the same mixed distribution. Both bootstrap covariances
+            # then converged to the same matrix, the generalised eigenproblem
+            # went near-degenerate, and the band was percentiles of arbitrary
+            # rotations. On a DGP with true variance ratio 3.0 the point
+            # estimate recovered 2.82 while the bootstrap draws averaged 1.14
+            # and never once exceeded 1.50 in 500 draws.
+            ri_b = ri[idx_star][:resid_b.shape[0]]
             try:
                 S0_b, S1_b = _regime_covariances(resid_b, ri_b)
                 B_b, _ = _rigobon_impact(S0_b, S1_b)
-                return compute_irf(A_b, B_b, H)   # (H+1, n, n)
             except (np.linalg.LinAlgError, ValueError):
-                return irfs
+                # Drop and warn, per CONTRIBUTING.md; returning `irfs` here put
+                # a point mass at the point estimate and narrowed the band.
+                n_fail += 1
+                return None
+            B_b = B_b * _canonical_signs(B_b)
+            # Match each column's sign to the point estimate before it enters
+            # the percentile stack.
+            sgn = np.sign(np.sum(B_b * B, axis=0))
+            sgn[sgn == 0] = 1.0
+            return compute_irf(A_b, B_b * sgn, H)   # (H+1, n, n)
 
         boot = moving_block_bootstrap(
             residuals=residuals,
@@ -206,12 +251,28 @@ def rigobon_svar(
             A_list=A_list,
             intercept=c,
             n_draws=n_boot,
+            pass_index=True,
             block_len=block_len,
             horizon=horizon,
             irf_fn=_impact_fn,
             rng=rng,
         )
 
+        if not boot["draws"]:
+            raise np.linalg.LinAlgError(
+                f"rigobon_svar: all {n_boot} bootstrap draws failed to "
+                "identify. The two regimes may be too similar, or one of them "
+                "too short to estimate a covariance from."
+            )
+        fail_rate = n_fail / n_boot
+        if fail_rate > _BOOT_FAIL_WARN_THRESHOLD:
+            warnings.warn(
+                f"rigobon_svar: {n_fail}/{n_boot} bootstrap draws "
+                f"({fail_rate:.1%}) failed to identify and were dropped. "
+                "Bands are computed from the surviving draws and may be "
+                "unreliable; consider more data or a sharper regime split.",
+                stacklevel=2,
+            )
         lo_q = (1 - ci) / 2 * 100
         hi_q = (1 - (1 - ci) / 2) * 100
         lower, _, upper = bootstrap_percentiles(
