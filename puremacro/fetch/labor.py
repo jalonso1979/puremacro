@@ -153,48 +153,62 @@ def _synthesize_age_aggregates(wide: pd.DataFrame) -> pd.DataFrame:
         return wide
 
     out = wide.copy()
+    key = ["code", "date", "sex"]
     for target_age, parts in _AGE_SYNTHESIS_RULES:
         signs = {age: (1 if sign == "+" else -1) for sign, age in parts}
         source_ages = list(signs)
 
-        # Wide pivot per cell: rows=(code,date,sex), columns=age, values=each level.
         relevant = out[out["age"].isin([target_age, *source_ages])]
         if relevant.empty:
             continue
+        # If any source age is absent from the frame entirely, no cell can
+        # satisfy the rule. This is the common case and it used to be the
+        # expensive one: with the default `ages=("Y_GE15","Y15T24","Y25T54",
+        # "Y55T64")` none of the 5-year source bands exist, so every cell fell
+        # through -- after a per-cell `.xs` on a 4-level MultiIndex. That was
+        # 101 s spent returning the input unchanged on a 172,800-row frame.
+        present_ages = set(relevant["age"].unique())
+        if not set(source_ages) <= present_ages:
+            continue
 
-        # Build a per-(cell, age) lookup keyed for fast access.
-        keyed = relevant.set_index(["code", "date", "sex", "age"])
-        cells = relevant[["code", "date", "sex"]].drop_duplicates()
+        # One pivot instead of a lookup per (cell, age). `unstack` keeps NaN
+        # level values as NaN, which the eligibility test below needs to see;
+        # `pivot_table` would drop them.
+        idx = relevant.set_index(key + ["age"])
+        if idx.index.has_duplicates:
+            raise ValueError(
+                "_synthesize_age_aggregates: duplicate (code, date, sex, age) "
+                "rows; the level pivot is not well defined for them."
+            )
+        vals = idx[list(_LEVEL_COLS)].unstack("age")
+        pres = idx.assign(_p=1).groupby(key + ["age"])["_p"].first().unstack("age")
 
-        new_rows = []
-        for code, date, sex in cells.itertuples(index=False, name=None):
-            try:
-                ages_here = set(keyed.xs((code, date, sex), level=("code", "date", "sex")).index)
-            except KeyError:
-                continue
-            if target_age in ages_here:
-                continue
-            if not set(source_ages).issubset(ages_here):
-                continue
+        # (a) the target age is absent, (b) every source age is present, and
+        # (c) every level column is non-NaN for every source age -- the last
+        # one matched the old `ok` flag, which abandoned the whole row on the
+        # first NaN in any column.
+        eligible = (pres[target_age].isna() if target_age in pres.columns
+                    else pd.Series(True, index=pres.index))
+        eligible &= pres[source_ages].notna().all(axis=1)
+        for col in _LEVEL_COLS:
+            eligible &= vals[[(col, a) for a in source_ages]].notna().all(axis=1)
+        if not eligible.any():
+            continue
 
-            row = {"code": code, "date": date, "sex": sex, "age": target_age}
-            ok = True
-            for col in _LEVEL_COLS:
-                total = 0.0
-                for age in source_ages:
-                    val = keyed.at[(code, date, sex, age), col]
-                    if pd.isna(val):
-                        ok = False
-                        break
-                    total += signs[age] * val
-                if not ok:
-                    break
-                row[col] = total
-            if ok:
-                new_rows.append(row)
+        # Preserve the row order the per-cell loop produced: first appearance
+        # in `out`, not the pivot's sorted order.
+        order = relevant[key].drop_duplicates()
+        order = order[pd.MultiIndex.from_frame(order).isin(
+            eligible.index[eligible.to_numpy()])]
+        take = pd.MultiIndex.from_frame(order)
 
-        if new_rows:
-            out = pd.concat([out, pd.DataFrame(new_rows)], ignore_index=True)
+        new = pd.DataFrame(index=take)
+        for col in _LEVEL_COLS:
+            new[col] = sum(signs[a] * vals[(col, a)] for a in source_ages).loc[take]
+        new = new.reset_index()
+        new["age"] = target_age
+        out = pd.concat([out, new[key + ["age"] + list(_LEVEL_COLS)]],
+                        ignore_index=True)
 
     return out
 

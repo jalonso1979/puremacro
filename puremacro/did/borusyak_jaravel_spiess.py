@@ -142,11 +142,15 @@ def borusyak_jaravel_spiess(
     # Bootstrap by resampling units.
     units = df[unit].unique()
     boot_es: dict[int, np.ndarray] = {}        # event_time → (n_boot,) draws
+    # Group once, index per draw. `df[df[unit] == u]` is a full-frame scan, and
+    # it ran once per sampled unit per draw -- O(n_boot x n_units x N). The
+    # groups are identical across draws, so the scan is loop-invariant.
+    unit_groups = {u: g for u, g in df.groupby(unit, sort=False)}
     for b in range(n_boot):
         idx = rng.choice(units, size=len(units), replace=True)
         boot_dfs = []
         for new_id, u in enumerate(idx):
-            d = df[df[unit] == u].copy()
+            d = unit_groups[u].copy()
             d[unit] = f"boot_{new_id}"
             boot_dfs.append(d)
         boot_df = pd.concat(boot_dfs, ignore_index=True)

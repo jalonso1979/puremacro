@@ -214,12 +214,16 @@ class AlfredVintageStore:
             raise ValueError(
                 f"AlfredVintageStore.put_many: missing columns {sorted(missing)}"
             )
+        # Columnar extraction, then one zip. `.iterrows()` materialises a
+        # Series per row and boxes every cell: 3.6 s per 200k vintage rows,
+        # which is a routine ALFRED archive size.
+        sid = df["series_id"].astype(str).to_numpy()
+        obs = df["observation_date"].astype(str).str.slice(0, 10).to_numpy()
+        vin = df["vintage_date"].astype(str).str.slice(0, 10).to_numpy()
+        val = _pd.to_numeric(df["value"], errors="coerce").to_numpy(dtype=float)
         rows = [
-            (str(r["series_id"]),
-             str(r["observation_date"])[:10],
-             str(r["vintage_date"])[:10],
-             None if _pd.isna(r["value"]) else float(r["value"]))
-            for _, r in df.iterrows()
+            (str(s_), str(o_), str(v_), None if x_ != x_ else float(x_))
+            for s_, o_, v_, x_ in zip(sid, obs, vin, val)
         ]
         try:
             self._conn().executemany(

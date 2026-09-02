@@ -282,20 +282,14 @@ def score_multilingual(
 
     unc_terms = lex.get("uncertainty", [])
 
-    matched_exp = []
-    for t in exp_terms:
-        if t.lower() in text.lower():
-            matched_exp.append(t)
+    # One lowercase copy of the document, not one per lexicon term. With ~62
+    # terms across the three lists that was 62 full copies of the text per
+    # call, which dominates the scoring loop on a long transcript.
+    text_lower = text.lower()
 
-    matched_con = []
-    for t in con_terms:
-        if t.lower() in text.lower():
-            matched_con.append(t)
-
-    matched_unc = []
-    for t in unc_terms:
-        if t.lower() in text.lower():
-            matched_unc.append(t)
+    matched_exp = [t for t in exp_terms if t.lower() in text_lower]
+    matched_con = [t for t in con_terms if t.lower() in text_lower]
+    matched_unc = [t for t in unc_terms if t.lower() in text_lower]
 
     n_exp = len(matched_exp)
     n_con = len(matched_con)

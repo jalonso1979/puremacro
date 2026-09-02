@@ -68,8 +68,23 @@ def cluster_events(
     for country_events in by_country.values():
         country_events.sort(key=lambda e: e.date)
         local_clusters: list[list[NarrativeEvent]] = []
+        # `ev_quarters` does not depend on the cluster, and the representative's
+        # quarter-set is recomputed for the same event object on every pass, so
+        # both are hoisted/memoised. Rebuilding `pd.Period` sets inside the
+        # inner loop made clustering quadratic in Period construction.
+        quarters_cache: dict[int, set] = {}
+
+        def _quarters(e) -> set:
+            key = id(e)
+            got = quarters_cache.get(key)
+            if got is None:
+                got = {pd.Period(d, freq="Q") for d, _ in e.effective_profile}
+                quarters_cache[key] = got
+            return got
+
         for ev in country_events:
             placed = False
+            ev_quarters = _quarters(ev)
             for cluster in local_clusters:
                 rep = cluster[-1]
                 # Date window OR profile-quarter set intersection.
@@ -82,12 +97,9 @@ def cluster_events(
                 # announcement quarter" — a strictly tighter test than the
                 # date window.
                 ann_close = abs((rep.date - ev.date).days) <= date_tol_days
-                rep_quarters = {pd.Period(d, freq="Q")
-                                for d, _ in rep.effective_profile}
-                ev_quarters = {pd.Period(d, freq="Q")
-                               for d, _ in ev.effective_profile}
-                profile_overlap = bool(rep_quarters & ev_quarters)
-                if not (ann_close or profile_overlap):
+                # Short-circuit: the profile-overlap test is only reached when
+                # the cheap date-window test has already failed.
+                if not ann_close and not (_quarters(rep) & ev_quarters):
                     continue
                 if require_same_target and rep.target != ev.target:
                     continue

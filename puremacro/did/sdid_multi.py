@@ -214,6 +214,9 @@ def sdid_multi_cohort(
     boot_atts = np.full(n_boot, np.nan)
     n_units = len(units)
     if n_boot > 0:
+        # Same loop-invariant full-frame scan as
+        # `did/borusyak_jaravel_spiess.py`: group once, index per draw.
+        unit_groups = {u: g for u, g in df_full.groupby("unit", sort=False)}
         for b in range(n_boot):
             idx = rng.integers(0, n_units, size=n_units)
             sampled_units = units[idx]
@@ -221,7 +224,7 @@ def sdid_multi_cohort(
             # duplicated units so groupbys don't merge them.
             boot_rows = []
             for new_id, u in enumerate(sampled_units):
-                rows = df_full[df_full["unit"] == u].copy()
+                rows = unit_groups[u].copy()
                 rows["unit"] = f"boot_{new_id}"
                 boot_rows.append(rows)
             boot_df = pd.concat(boot_rows, ignore_index=True)
