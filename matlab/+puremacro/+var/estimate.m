@@ -22,6 +22,19 @@ function res = estimate(Y, p)
         error('estimate:invalidLags', 'Lag order p must be positive and T > p.');
     end
 
+    % Backslash does not reject a non-finite design matrix: it returns NaN
+    % coefficients, and every Sigma, residual, IRF, FEVD and bootstrap band
+    % built on the fit is then silently all-NaN and perfectly well-formed.
+    % See docs/ADVISORY.md.
+    n_bad = sum(~isfinite(Y(:)));
+    if n_bad > 0
+        error('estimate:nonFiniteInput', ...
+              ['Y contains %d non-finite value(s) (NaN or Inf) out of %d. ' ...
+               'OLS on a non-finite design returns NaN coefficients without ' ...
+               'raising. Drop or impute the affected rows before estimating.'], ...
+              n_bad, numel(Y));
+    end
+
     % Construct X: [const, Y_{t-1}, Y_{t-2}, ..., Y_{t-p}]
     T_eff = T - p;
     X = zeros(T_eff, 1 + n * p);

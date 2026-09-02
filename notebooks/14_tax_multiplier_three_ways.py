@@ -294,15 +294,22 @@ c_pr = SCALE / prox.irf_point[0, 0, 0]
 m_prox = prox.irf_point[:, 2, 0] * c_pr
 print(f"MR proxy-SVAR: effective F = {prox.first_stage_F:.2f} | "
       f"impact {m_prox[0]:+.2f} | 2yr {m_prox[8]:+.2f} | 3yr {m_prox[12]:+.2f}")
-assert abs(m_prox[8]) < 1.0                       # weak proxy -> unstable point
+# The claim here is "the first stage is weak, so the point path is not
+# interpretable" -- assert that, not a magnitude. The old threshold
+# (abs(m_prox[8]) < 1.0) was calibrated against the pre-1.9.0 proxy_svar,
+# whose impact vector was computed in the wrong metric; on the corrected
+# estimator the 2-year point is -4.32, which makes the lesson's point more
+# strongly, not less. See docs/ADVISORY.md.
+assert prox.first_stage_F < 5.0                   # weak first stage is the headline
+assert abs(m_prox[8]) > 1.0                       # and the point path is not credible
 
 # %% [markdown]
 # **Read the output.** The honest headline here is the **F statistic, not the
 # multiplier**. On aggregate federal receipts the MR proxy is *weak* (effective
 # F ≈ 1.4, far below the Olea-Pflueger comfort zone; even the full RR series
 # only reaches ≈ 5). With a weak first stage the unit normalization divides by
-# a noisy near-zero revenue response, so the point path (≈ +0.6 on impact,
-# drifting to ≈ −0.5) is not interpretable — exactly the fragility
+# a noisy near-zero revenue response, so the point path (≈ −2.5 on impact,
+# drifting to ≈ −4.5) is not interpretable — exactly the fragility
 # Jentsch-Lunsford (2019 AER) documented for MR's setup. MR's own strong
 # results use *tax-specific* average tax rates (personal, corporate), not one
 # aggregate revenue pile; the anticipated series' F ≈ 0 confirms their
@@ -418,7 +425,14 @@ print(med.round(2).to_string())
 assert len(curve) == 24
 assert med["RR LP"] < med["BP 2.08"] - 0.5        # identification gap >> ...
 assert med["MR 3.13"] < med["BP 2.08"] - 0.25
-assert abs(med["MR proxy"]) < 0.75                # weak proxy hugs zero
+# The weak-proxy spec is an OUTLIER, not a zero. Before 1.9.0 proxy_svar
+# computed its impact vector in the wrong metric and this median sat near
+# zero, which read as "a weak instrument shrinks the estimate toward
+# nothing". The corrected estimator puts it at -4.27, further from the other
+# three than they are from each other: a weak first stage does not shrink the
+# point estimate, it destabilises it. That is the lesson this row teaches.
+# See docs/ADVISORY.md.
+assert abs(med["MR proxy"]) > abs(med["BP 2.08"])  # weak proxy is the outlier
 spread_ident = med.max() - med.min()
 spread_defl = curve.groupby(["identification", "sample"])["sigma_hat"] \
                    .agg(lambda s: s.max() - s.min()).median()

@@ -2,10 +2,40 @@
 
 [![MATLAB Compatibility](https://img.shields.io/badge/MATLAB-R2018b%2B-blue.svg)](https://www.mathworks.com/products/matlab.html)
 [![Octave Compatibility](https://img.shields.io/badge/GNU%20Octave-6.0%2B-orange.svg)](https://www.gnu.org/software/octave/)
-[![Test Status](https://img.shields.io/badge/Tests-30%2F30%20Passed-brightgreen.svg)](tests/)
+[![Test Status](https://img.shields.io/badge/Tests-manual%2C%20not%20in%20CI-yellow.svg)](#status-and-verification-scope)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 **`puremacro`** is a high-performance, native MATLAB toolbox for quantitative macroeconomics, empirical macroeconometrics, micro-to-macro causal inference, and dynamic programming. It provides unified, vectorized solvers for structural VARs, local projections, DSGE linear rational expectations models, heterogeneous agent macro models (HAEM), continuous-time HJB equations, and financial spillover networks.
+
+---
+
+## Status and verification scope
+
+Read this before using a number this toolbox produced.
+
+- **It is not covered by CI.** No GitHub Actions workflow runs any `.m`
+  file. The Python package's nine CI legs, its release gates and its
+  public-API snapshot do not see this directory.
+- **It has been touched by one commit**, `5fac0fd` (2026-08-15). Every
+  test count below is a manual run recorded on that date, not a live
+  status.
+- **Cross-validation against Python covers 3 of the 73 functions here** —
+  the Hamilton filter, a Cholesky SVAR IRF, and the gensys solver, in
+  `tests/verify_python_vs_matlab.py`, against committed CSV fixtures. The
+  other 70 are unverified against the Python implementation.
+- **It is a separate implementation, so a fix in the Python package does
+  not reach it.** One such fix has been ported by hand: as of 2026-09-02
+  `+puremacro/+var/proxy.m` computed its impact vector in the wrong
+  metric — the same defect corrected in `puremacro.var.identify.proxy` in
+  1.9.0 — and `+puremacro/+var/estimate.m` accepted non-finite input and
+  returned NaN coefficients without raising. Both are now fixed here.
+  **Any proxy-SVAR impulse response produced by this toolbox before
+  2026-09-02 is wrong and should be re-run.** See
+  [`docs/ADVISORY.md`](../docs/ADVISORY.md) for the magnitude and the
+  condition under which the error vanishes.
+- No audit has been done for the other five estimators in that advisory.
+  Where this toolbox implements them, assume they carry the same defects
+  until checked.
 
 ---
 
@@ -246,7 +276,7 @@ run_all_visual_examples;
 
 ## Testing & Verification
 
-The toolbox includes 7 automated test suites verifying mathematical accuracy, cross-validation against Python `puremacro`, and execution speed:
+The toolbox includes 7 test scripts covering mathematical accuracy and execution speed. They are run **by hand**, not by CI, and the counts below record a run on 2026-08-15:
 
 ```matlab
 addpath('matlab');
@@ -259,9 +289,26 @@ test_new_functions;     % 5 Advanced SVAR / BVAR / DiD / Connectedness Functions
 test_deep_suite;        % 3 Frontier Smooth LP, Krusell-Smith & TVP-VAR-SV Solvers
 test_creative_vfi_suite;% 3 Life-Cycle OLG, Sovereign Default & Portfolio Solvers
 test_dynare_vfi;        % 1 Dynare-like Declarative Model Solver
+test_proxy_metric;      % 1 Regression test: proxy-SVAR impact metric
 ```
 
-**Overall Test Results: 30 / 30 Tests Passed (100% Pass Rate).**
+`test_proxy_metric` is the only test here written against a **known truth**
+rather than against internal consistency, and it is the one that would have
+caught the `proxy.m` defect. It runs under GNU Octave as well as MATLAB.
+
+**Recorded result, 2026-08-15: 30 / 30 tests passed.** This is a
+transcript of one manual run, not a current status — nothing re-runs it
+and nothing fails if it stops passing. The `proxy.m` defect described in
+[Status and verification scope](#status-and-verification-scope) was
+present and undetected on the date that transcript was recorded, which is
+the measure of what these 30 tests cover.
+
+Cross-validation against the Python package is a separate, narrower
+script:
+
+```bash
+python matlab/tests/verify_python_vs_matlab.py    # 3 of 73 functions
+```
 
 ---
 

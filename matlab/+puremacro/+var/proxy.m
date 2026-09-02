@@ -30,15 +30,41 @@ function [B0, f_stat] = proxy(Sigma, resid, instrument, target_idx)
     e_first = u_target - z * b_first;
     f_stat = (b_first^2 * (z' * z)) / (sum(e_first.^2) / (T_eff - 1));
 
-    % OLS covariance of residuals with instrument
+    % OLS covariance of residuals with instrument.
+    %
+    % Under the proxy assumptions E[z eps_1] = phi ~= 0 and E[z eps_j] = 0,
+    % Cov(u, z) = B E[eps z] = phi * b_1, so Pi IS the impact column up to an
+    % unknown scale: it is the direction, and needs only normalising.
+    %
+    % The normalisation is b_1' * inv(Sigma) * b_1 = 1, which follows from
+    % Sigma = B*B' => B' * inv(Sigma) * B = I. With Pi = k * b_1,
+    % Pi' * inv(Sigma) * Pi = k^2, so Pi / sqrt(Pi' * inv(Sigma) * Pi) is +/- b_1.
+    %
+    % This used to read (Sigma * Pi) / sqrt(Pi' * Sigma * Pi), which is
+    % proportional to Sigma * b_1 rather than to b_1 -- the right vector only
+    % when Sigma is proportional to the identity, i.e. when b_1 happens to be an
+    % eigenvector of Sigma. Nothing caught it because that vector still
+    % satisfies b' * inv(Sigma) * b = 1 exactly, so the SVD completion below
+    % still returns B0*B0' = Sigma to machine precision: the scale in the
+    % inv(Sigma) metric was right and only the direction was wrong. See
+    % docs/ADVISORY.md and the Python fix in puremacro/var/identify/proxy.py.
     Pi = (resid' * z) / (z' * z); % (N x 1)
-    norm_factor = sqrt(Pi' * Sigma * Pi);
+
+    % Solve rather than invert: Sigma = R'*R, so w = R' \ Pi has
+    % w'*w == Pi' * inv(Sigma) * Pi.
+    [R, chol_fail] = chol(Sigma);
+    if chol_fail > 0
+        error('proxy:notPositiveDefinite', ...
+              'Residual covariance Sigma is not positive definite in proxy-SVAR.');
+    end
+    w = R' \ Pi;
+    norm_factor = sqrt(w' * w);
 
     if norm_factor < 1e-10
         error('proxy:weakInstrument', 'Degenerate instrument in proxy-SVAR (norm factor near zero).');
     end
 
-    b_col1 = (Sigma * Pi) / norm_factor;
+    b_col1 = Pi / norm_factor;
 
     % Complete B0 matrix via SVD of remaining covariance
     B0 = zeros(n, n);

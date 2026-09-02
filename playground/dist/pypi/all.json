@@ -1,24 +1,24 @@
 {
   "puremacro": {
     "releases": {
-      "1.0.0": [
+      "1.9.0": [
         {
           "comment_text": "",
           "digests": {
-            "md5": "8ac71ebb07071d70ed2ff9fe45583f20",
-            "sha256": "03e5aad2ac5a1614957ea324246ab525b85203875a01f15a83e3f1178d6bde51"
+            "md5": "05500893de7cedbe98b88887bf3a02a0",
+            "sha256": "d60cd8f16e2b812ecdc9e579335ef5bb21b09d7fce595a1af91c1a631817378c"
           },
           "downloads": -1,
-          "filename": "puremacro-1.0.0-py3-none-any.whl",
+          "filename": "puremacro-1.9.0-py3-none-any.whl",
           "has_sig": false,
-          "md5_digest": "8ac71ebb07071d70ed2ff9fe45583f20",
+          "md5_digest": "05500893de7cedbe98b88887bf3a02a0",
           "packagetype": "bdist_wheel",
           "python_version": "py3",
           "requires_python": ">=3.11",
-          "size": 1597807,
-          "upload_time": "2026-08-16T04:37:15.993311Z",
-          "upload_time_iso_8601": "2026-08-16T04:37:15.993311Z",
-          "url": "./puremacro-1.0.0-py3-none-any.whl",
+          "size": 2024794,
+          "upload_time": "2026-09-02T20:05:43.360084Z",
+          "upload_time_iso_8601": "2026-09-02T20:05:43.360084Z",
+          "url": "./puremacro-1.9.0-py3-none-any.whl",
           "yanked": false,
           "yanked_reason": null
         }

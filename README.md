@@ -473,6 +473,9 @@ fully synthetic and need no data or keys; a few read bundled or fetched data.
   contract, result-object standard. Read this first if you're
   contributing or trying to find where something lives.
 - **`CHANGELOG.md`** — per-release diff, including internal-only refactors.
+- **`docs/ADVISORY.md`** — correctness advisories: released versions
+  that returned a wrong number, and the exact condition under which
+  each error vanishes.
 - **Per-function docstrings** are the canonical reference; the module
   docstring of each subpackage explains its scope.
 
@@ -489,10 +492,22 @@ fully synthetic and need no data or keys; a few read bundled or fetched data.
 
 ## Status
 
-Pre-1.0; APIs rename freely with consumers updated in the same
-commit. Single-author research package. CI workflows (tests, Pyodide
-gate, mypy, reference drift-guard, playground deploy, PyPI release)
-are defined in `.github/workflows/` and activate once the package is
-split into its own repository; while it lives inside the monorepo
-they are inert, so run `pytest` (or `python tools/release_check.py`)
-locally before tagging a release.
+Single-author research package, shipping **1.9.0**. The pre-1.0
+convention this section used to describe — "APIs rename freely with
+consumers updated in the same commit" — has not held since 0.92.0:
+every name in `tests/fixtures/public_api_snapshot.json` is covered by
+release gate 3, and a rename that is not recorded there fails the gate.
+`docs/1.0_path.md` § 5 lists which subpackages are inside that promise
+and which are research-experimental.
+
+CI is live and runs on every push: the suite across three operating
+systems and three Python versions, the Pyodide contract, mypy, the
+reference drift-guard, `mkdocs build --strict`, the playground deploy,
+and a tag-triggered PyPI publish via trusted publishing. See
+`.github/workflows/`. Run `python tools/release_check.py` locally
+before tagging anyway — gates 5 and 6 are opt-in and CI does not run
+them.
+
+When a released version has returned a wrong number, it is recorded in
+**[`docs/ADVISORY.md`](docs/ADVISORY.md)**, with the condition under
+which the error vanishes so you can rule your own run in or out.

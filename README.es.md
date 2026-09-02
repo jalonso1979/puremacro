@@ -290,6 +290,7 @@ Las replicaciones de extremo a extremo de artículos canónicos se encuentran en
 
 - **`ARCHITECTURE.md`** — mapa de módulos, niveles de estabilidad, contrato con Pyodide, estándar de objetos de resultado. Léalo antes si va a contribuir o busca dónde vive algo.
 - **`CHANGELOG.md`** — diferencias por versión, incluidas las refactorizaciones internas.
+- **`docs/es/ADVISORY.md`** — avisos de corrección: versiones publicadas que devolvieron un número equivocado, y la condición exacta bajo la cual cada error se anula.
 - **Docstrings por función** como referencia canónica; el docstring de módulo de cada subpaquete explica su alcance.
 
 ## Convenciones
@@ -300,4 +301,8 @@ Las replicaciones de extremo a extremo de artículos canónicos se encuentran en
 
 ## Estado
 
-Pre-1.0; las APIs pueden renombrarse libremente con los consumidores actualizados en el mismo commit. Paquete de investigación de un solo autor. Los flujos de CI (tests, gate de Pyodide, mypy, guardia de deriva contra referencias, despliegue del playground, publicación en PyPI) están definidos en `.github/workflows/` y se activarán cuando el paquete se separe a su propio repositorio; mientras viva dentro del monorepo están inertes, así que ejecute `pytest` (o `python tools/release_check.py`) localmente antes de etiquetar una versión.
+Paquete de investigación de un solo autor, en la versión **1.9.0**. La convención previa a 1.0 que esta sección describía —"las APIs pueden renombrarse libremente con los consumidores actualizados en el mismo commit"— dejó de ser cierta en 0.92.0: todo nombre en `tests/fixtures/public_api_snapshot.json` está cubierto por el gate 3 de publicación, y un renombramiento que no quede registrado ahí no pasa el gate. `docs/1.0_path.md` § 5 enumera qué subpaquetes están dentro de esa promesa y cuáles son experimentales.
+
+La CI está activa y corre en cada push: la suite sobre tres sistemas operativos y tres versiones de Python, el contrato con Pyodide, mypy, la guardia de deriva contra referencias, `mkdocs build --strict`, el despliegue del playground y una publicación en PyPI disparada por etiqueta mediante trusted publishing. Véase `.github/workflows/`. Aun así ejecute `python tools/release_check.py` localmente antes de etiquetar: los gates 5 y 6 son opcionales y la CI no los corre.
+
+Cuando una versión publicada devolvió un número equivocado, queda registrado en **[`docs/es/ADVISORY.md`](docs/es/ADVISORY.md)**, junto con la condición bajo la cual el error se anula, para que pueda descartar su propia estimación.

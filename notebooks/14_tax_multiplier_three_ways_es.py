@@ -310,7 +310,14 @@ c_pr = SCALE / prox.irf_point[0, 0, 0]
 m_prox = prox.irf_point[:, 2, 0] * c_pr
 print(f"MR proxy-SVAR: effective F = {prox.first_stage_F:.2f} | "
       f"impact {m_prox[0]:+.2f} | 2yr {m_prox[8]:+.2f} | 3yr {m_prox[12]:+.2f}")
-assert abs(m_prox[8]) < 1.0                       # weak proxy -> unstable point
+# La afirmación es "la primera etapa es débil, así que la senda puntual no
+# es interpretable": eso es lo que hay que asertar, no una magnitud. El
+# umbral anterior (abs(m_prox[8]) < 1.0) estaba calibrado contra el
+# proxy_svar previo a 1.9.0, cuyo vector de impacto se calculaba en la
+# métrica equivocada; con el estimador corregido el punto a 2 años es -4.32,
+# lo que refuerza la lección en vez de debilitarla. Véase docs/es/ADVISORY.md.
+assert prox.first_stage_F < 5.0                   # la primera etapa débil es el titular
+assert abs(m_prox[8]) > 1.0                       # y la senda puntual no es creíble
 
 # %% [markdown]
 # **Lee el resultado.** El titular honesto aquí es el **estadístico F, no el
@@ -318,8 +325,8 @@ assert abs(m_prox[8]) < 1.0                       # weak proxy -> unstable point
 # *débil* (F efectiva ≈ 1.4, muy por debajo de la zona de confort de
 # Olea-Pflueger; incluso la serie completa de RR apenas llega a ≈ 5). Con una
 # primera etapa débil, la normalización unitaria divide entre una respuesta de
-# recaudación ruidosa y cercana a cero, así que la senda puntual (≈ +0.6 en el
-# impacto, derivando hacia ≈ −0.5) no es interpretable — exactamente la
+# recaudación ruidosa y cercana a cero, así que la senda puntual (≈ −2.5 en el
+# impacto, derivando hacia ≈ −4.5) no es interpretable — exactamente la
 # fragilidad que Jentsch-Lunsford (2019 AER) documentaron para el montaje de
 # MR. Los resultados fuertes de MR usan tasas medias *específicas por
 # impuesto* (personal, corporativo), no un solo agregado de recaudación; la
@@ -440,7 +447,14 @@ print(med.round(2).to_string())
 assert len(curve) == 24
 assert med["RR LP"] < med["BP 2.08"] - 0.5        # identification gap >> ...
 assert med["MR 3.13"] < med["BP 2.08"] - 0.25
-assert abs(med["MR proxy"]) < 0.75                # weak proxy hugs zero
+# La especificación con proxy débil es un VALOR ATÍPICO, no un cero. Antes de
+# 1.9.0 proxy_svar calculaba su vector de impacto en la métrica equivocada y
+# esta mediana quedaba cerca de cero, lo que se leía como "un instrumento
+# débil encoge la estimación hacia nada". Con el estimador corregido queda en
+# -4.27, más lejos de las otras tres de lo que ellas están entre sí: una
+# primera etapa débil no encoge la estimación puntual, la desestabiliza. Ésa
+# es la lección de esta fila. Véase docs/es/ADVISORY.md.
+assert abs(med["MR proxy"]) > abs(med["BP 2.08"])  # el proxy débil es el atípico
 spread_ident = med.max() - med.min()
 spread_defl = curve.groupby(["identification", "sample"])["sigma_hat"] \
                    .agg(lambda s: s.max() - s.min()).median()

@@ -477,8 +477,9 @@
     "licensesUrl": "./lab/api/licenses",
     "litePluginSettings": {
       "@jupyterlite/pyodide-kernel-extension:kernel": {
+        "disablePyPIFallback": true,
         "pipliteUrls": [
-          "./pypi/all.json?sha256=07f3f620ac6eb3d2bce727d68ec943e8731707e7823e0324b6c4f68921467b85",
+          "./pypi/all.json?sha256=e2412b9f68c3b274b0acedc8a622dc6ffed1aaab85504fbfffa23017fe8a48a3",
           "./extensions/@jupyterlite/pyodide-kernel-extension/static/pypi/all.json?sha256=f67dd037f0a3fd732fb23ec94f0f1578b5bd12ea0bafcff420696664e732559f"
         ]
       }
