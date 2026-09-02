@@ -198,4 +198,4 @@ def test_root_is_the_repo_root_not_the_directory_above_it():
     assert (root / "puremacro" / "long_panel.py").is_file(), root
     assert root == Path(lp.__file__).resolve().parents[1]
     # and every path built from it stays inside the repo
-    assert str(lp._pwt10_path()).startswith(str(root) + "/")
+    assert lp._pwt10_path().is_relative_to(root)
