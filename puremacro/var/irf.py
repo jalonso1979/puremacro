@@ -62,17 +62,45 @@ def gfevd(A_list, Sigma, horizon: int, normalize: bool = True) -> np.ndarray:
         Phi_list.append(Ph)
     Phi = np.stack(Phi_list)  # (H+1, n, n)
     sigma_jj = np.diag(Sigma)
+    # The estimand above is exactly invariant to a change of units
+    # y -> D y for diagonal positive D: under it A_i -> D A_i D^-1 and
+    # Sigma -> D Sigma D, so the numerator picks up d_i^2 d_j^2 / d_j^2 = d_i^2
+    # and the denominator picks up the same d_i^2, term by term.
+    #
+    # An ABSOLUTE floor breaks that invariance, because whether a variance
+    # falls under it depends on the units the caller happened to choose. A
+    # 1e-12 floor here used to move the Diebold-Yilmaz total connectedness
+    # index from 13.43 to 39.48 on one fixed VAR when a single variable was
+    # rescaled -- a pure units change, and a spillover index that depends on
+    # whether GDP is measured in billions or trillions is not measuring
+    # spillovers. It was silent, and the result stayed plausible.
+    #
+    # A degenerate variance is a real condition, so it is now reported rather
+    # than floored: for a positive-definite Sigma every sigma_jj is positive
+    # and no floor is needed at all.
+    bad = np.flatnonzero(~(sigma_jj > 0.0))
+    if bad.size:
+        raise np.linalg.LinAlgError(
+            f"gfevd: Sigma has a non-positive diagonal entry at variable(s) "
+            f"{bad.tolist()} (values {sigma_jj[bad].tolist()}). The "
+            f"Pesaran-Shin GFEVD divides by sigma_jj, so those shocks have no "
+            f"defined contribution. Drop the degenerate variable(s) or check "
+            f"the residual covariance."
+        )
     out = np.zeros((horizon + 1, n, n))
     num_cum = np.zeros((n, n))
     den_cum = np.zeros(n)
     for h in range(horizon + 1):
         Ph = Phi[h]
         PS = Ph @ Sigma  # (n, n)
-        num_cum += (PS ** 2) / np.maximum(sigma_jj, 1e-12)[None, :]
+        num_cum += (PS ** 2) / sigma_jj[None, :]
         # var(y_i, h-step) accumulator
         var_i = np.einsum("ij,jk,ik->i", Ph, Sigma, Ph)
         den_cum += np.maximum(var_i, 0.0)
-        theta = num_cum / np.maximum(den_cum, 1e-12)[:, None]
+        # den_cum >= diag(Sigma) > 0 from the h = 0 term (Phi_0 = I), so the
+        # guard below can only fire on a Sigma that is not positive definite,
+        # which the check above has already excluded.
+        theta = num_cum / den_cum[:, None]
         if normalize:
             row_sum = theta.sum(axis=1, keepdims=True)
             theta = theta / np.where(row_sum == 0, 1.0, row_sum)
