@@ -28,6 +28,7 @@ risk is concentrated in hand-rolled mechanisms, which is a small set.
 from __future__ import annotations
 
 import ast
+import re
 import inspect
 import json
 import subprocess
@@ -245,3 +246,44 @@ def test_the_attribution_registry_points_at_real_functions():
         for target in targets:
             src, lo, hi = _line_range(target)          # raises if it is wrong
             assert hi > lo, f"{target} resolved to an empty range"
+
+
+# ---------------------------------------------------------------------------
+# Tail-accuracy guard for p-values.
+# ---------------------------------------------------------------------------
+_CDF_COMPLEMENT = re.compile(r"1(?:\.0)?\s*-\s*[\w.]*\bcdf\s*\(")
+
+#: The only permitted `1 - cdf` in the package. It completes the top row of a
+#: Tauchen transition matrix so the row sums to one; it is a probability mass
+#: near one, not a p-value, and accuracy in the far tail is not what it needs.
+_CDF_COMPLEMENT_ALLOWED = {"puremacro/vfi/discretize.py"}
+
+
+def test_no_p_value_is_computed_as_one_minus_cdf():
+    """p-values must use the survival function, which is accurate in the tail.
+
+    ``1 - dist.cdf(x)`` loses every digit once ``cdf`` rounds to 1.0 in double
+    precision, and then reports a p-value of **exactly zero** — a number no
+    test statistic can produce and which reads as infinite significance. The
+    crossover is not exotic: at a two-sided normal ``|z| = 9`` the correct
+    p-value is 2.3e-19 and ``1 - cdf`` gives 0.0; a chi-square of 200 on 5
+    degrees of freedom is 2.8e-41 and gives 0.0. Both are ordinary values for
+    an over-identification test on a badly specified model, which is exactly
+    when a reader looks at the p-value.
+
+    ``dist.sf(x)`` is the same quantity evaluated without the cancellation, so
+    this is a pure accuracy fix: no correctly-reported p-value changes.
+    """
+    root = Path(__file__).resolve().parents[1]
+    offenders = []
+    for path in (root / "puremacro").rglob("*.py"):
+        rel = path.relative_to(root).as_posix()
+        if rel in _CDF_COMPLEMENT_ALLOWED:
+            continue
+        for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if _CDF_COMPLEMENT.search(line):
+                offenders.append(f"{rel}:{i}: {line.strip()}")
+    assert not offenders, (
+        "p-values computed as `1 - cdf` collapse to exactly 0.0 in the tail; "
+        "use `.sf(...)` instead:\n  " + "\n  ".join(offenders)
+    )

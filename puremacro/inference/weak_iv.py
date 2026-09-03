@@ -337,7 +337,7 @@ def anderson_rubin_test(
             residual_ss=float(rss_u),
         )
     F = ((rss_r - rss_u) / df_num) / (rss_u / df_den)
-    p_value = 1.0 - _f_dist.cdf(F, df_num, df_den)
+    p_value = _f_dist.sf(F, df_num, df_den)
     return ARTestResult(
         stat=float(F), p_value=float(p_value),
         df_num=int(df_num), df_den=int(df_den),

@@ -72,7 +72,7 @@ def hansen_j(
     r2 = 1.0 - rss / tss if tss > 0 else 0.0
     J = T * r2
     df = l - k
-    p_value = 1.0 - chi2.cdf(J, df=df) if df > 0 else np.nan
+    p_value = chi2.sf(J, df=df) if df > 0 else np.nan
     return {
         "stat": float(J),
         "p_value": float(p_value),

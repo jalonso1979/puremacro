@@ -256,7 +256,7 @@ def fit_korv_pooled(panel: pd.DataFrame) -> KorvFit:
     m_bar = _moments(res2.x, dat).mean(axis=0)
     J = float(n * (m_bar @ W1 @ m_bar))
     from scipy.stats import chi2
-    p_J = float(1 - chi2.cdf(J, df=1))
+    p_J = float(chi2.sf(J, df=1))
     se = _two_step_se(res2.x, dat, W1, n)
     if 'k_equip_share_inner' in panel.columns:
         sh = float(panel['k_equip_share_inner'].mean())
@@ -745,7 +745,7 @@ def fit_sigma_kl_pooled(
     m_bar = _gbar(sigma_kl)
     J = float(n * (m_bar @ W1 @ m_bar))
     from scipy.stats import chi2
-    p_J = float(1 - chi2.cdf(J, df=1))
+    p_J = float(chi2.sf(J, df=1))
     # Numerical Jacobian for SE.
     eps = 1e-5
     G = (_gbar(sigma_kl + eps) - _gbar(sigma_kl - eps)) / (2 * eps)
@@ -887,7 +887,7 @@ def fit_symmetric_nested_ces_joint(
     m_bar = _moments_symmetric(th, dat).mean(axis=0)
     J = float(n * (m_bar @ W1 @ m_bar))
     from scipy.stats import chi2
-    p_J = float(1 - chi2.cdf(J, df=1))
+    p_J = float(chi2.sf(J, df=1))
     # Sandwich SEs.
     eps = 1e-5
     G = np.zeros((4, 3))

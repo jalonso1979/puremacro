@@ -318,7 +318,7 @@ def cdh_did(
                 # effect, parallel trends) and CLT this is ~ N(0, 1).
                 from scipy.stats import norm
                 z = att_M_placebo / se_pl
-                placebo_p = float(2 * (1.0 - norm.cdf(abs(z))))
+                placebo_p = float(2 * norm.sf(abs(z)))
             else:
                 placebo_p = 1.0
         else:

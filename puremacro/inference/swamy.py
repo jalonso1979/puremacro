@@ -69,5 +69,5 @@ def swamy_test(
         diff = beta_hat[i] - beta_w  # (K,)
         S += float(diff @ prec[i] @ diff)
     df = K * (N - 1)
-    p_val = float(1.0 - stats.chi2.cdf(S, df))
+    p_val = float(stats.chi2.sf(S, df))
     return float(S), p_val, df

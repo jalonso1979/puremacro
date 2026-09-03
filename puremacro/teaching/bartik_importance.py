@@ -63,7 +63,7 @@ def pesaran_smith_heterogeneity(state_results: pd.DataFrame) -> dict:
     mean_beta = float((d["beta"] * weights).sum() / weights.sum())
     stat = float(((d["beta"] - mean_beta) ** 2 * weights).sum())
     df = int(len(d) - 1)
-    p = float(1.0 - _chi2.cdf(stat, df))
+    p = float(_chi2.sf(stat, df))
     return {"chi2": stat, "df": df, "p_value": p, "mean_beta": mean_beta}
 
 
@@ -113,7 +113,7 @@ def three_instrument_gmm(
             ).fit(cov_type="robust")
             j_partial = float(fit_partial.j_stat.stat)  # type: ignore[attr-defined]  # IVGMMResults not in stubs
             incr_j = max(j_full - j_partial, 0.0)
-            incr_p = float(1.0 - _chi2.cdf(incr_j, df=1))
+            incr_p = float(_chi2.sf(incr_j, df=1))
         except Exception:
             pass
 

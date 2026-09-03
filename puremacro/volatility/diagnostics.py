@@ -52,9 +52,9 @@ def arch_lm_test(u: np.ndarray, q: int = 5) -> dict:
     f = (r2 / q) / max((1 - r2) / (T - q - 1), 1e-12)
     return {
         "lm_stat":     float(lm),
-        "p_value":     float(1.0 - chi2.cdf(lm, df=q)),
+        "p_value":     float(chi2.sf(lm, df=q)),
         "f_stat":      float(f),
-        "f_p_value":   float(1.0 - f_dist.cdf(f, q, T - q - 1)),
+        "f_p_value":   float(f_dist.sf(f, q, T - q - 1)),
         "df":          int(q),
         "n_obs":       int(T),
     }
@@ -86,7 +86,7 @@ def ljung_box_squared(u: np.ndarray, lags: int = 10) -> dict:
     q_stat *= T * (T + 2)
     return {
         "q_stat":  float(q_stat),
-        "p_value": float(1.0 - chi2.cdf(q_stat, df=lags)),
+        "p_value": float(chi2.sf(q_stat, df=lags)),
         "df":      int(lags),
     }
 

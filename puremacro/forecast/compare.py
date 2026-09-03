@@ -55,9 +55,9 @@ def diebold_mariano(e1, e2, h: int = 1, loss: str = "mse", power: float = 2.0,
         correction = np.sqrt((T + 1 - 2 * h + h * (h - 1) / T) / T)
         stat = correction * stat
         # Use t-distribution with T-1 df under HLN correction
-        p_value = 2.0 * (1.0 - t_dist.cdf(abs(stat), df=T - 1))
+        p_value = 2.0 * t_dist.sf(abs(stat), df=T - 1)
     else:
-        p_value = 2.0 * (1.0 - norm.cdf(abs(stat)))
+        p_value = 2.0 * norm.sf(abs(stat))
     return {
         "stat": float(stat),
         "p_value": float(p_value),
@@ -107,7 +107,7 @@ def giacomini_white(e1, e2, h: int = 1, conditioning_vars=None,
         return {"stat": np.nan, "p_value": np.nan, "df": Sigma.shape[0]}
     stat = T * (Z @ Sigma_inv @ Z)
     df = Sigma.shape[0]
-    p_value = 1.0 - chi2.cdf(stat, df=df)
+    p_value = chi2.sf(stat, df=df)
     return {
         "stat": float(stat),
         "p_value": float(p_value),

@@ -122,7 +122,7 @@ def gaussian_lr_test(B0: np.ndarray, residuals: np.ndarray) -> dict:
         excess_kurts[j] = mu4 / max(sigma2 ** 2, 1e-24) - 3.0
     stat = float(T / 24.0 * np.sum(excess_kurts ** 2))
     df = n
-    p_value = float(1.0 - chi2.cdf(stat, df=df))
+    p_value = float(chi2.sf(stat, df=df))
     return {"stat": stat, "df": df, "p_value": p_value}
 
 

@@ -326,7 +326,7 @@ def sato_wald_test(
         df = 4
 
     from scipy.stats import chi2 as chi2_dist
-    p_value = float(1.0 - chi2_dist.cdf(chi2, df))
+    p_value = float(chi2_dist.sf(chi2, df))
     return {"chi2": chi2, "df": df, "p_value": p_value}
 
 

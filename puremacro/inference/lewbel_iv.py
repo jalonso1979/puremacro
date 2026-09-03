@@ -66,7 +66,7 @@ def _lewbel_diagnostic(X_endog_res: np.ndarray, Z: np.ndarray) -> dict:
     ss_res = float(np.sum((u2 - pred) ** 2))
     r2 = 1.0 - ss_res / max(ss_tot, 1e-300)
     stat = T * k_e * r2
-    p = float(1.0 - chi2.cdf(stat, df=k_z))
+    p = float(chi2.sf(stat, df=k_z))
     return {"stat": float(stat), "p_value": p}
 
 

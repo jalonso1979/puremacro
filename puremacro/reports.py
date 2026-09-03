@@ -101,7 +101,7 @@ def coef_table(
             row["t"] = beta[i] / se[i] if se[i] > 0 else np.nan
         if include_p:
             tt = beta[i] / se[i] if se[i] > 0 else np.nan
-            row["p"] = 2.0 * (1.0 - norm.cdf(abs(tt))) if not np.isnan(tt) else np.nan
+            row["p"] = 2.0 * norm.sf(abs(tt)) if not np.isnan(tt) else np.nan
         if include_ci:
             row[f"lo_{int((1-alpha)*100)}%"] = beta[i] - z * se[i]
             row[f"hi_{int((1-alpha)*100)}%"] = beta[i] + z * se[i]

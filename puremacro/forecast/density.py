@@ -97,7 +97,7 @@ def klic_amisano_giacomini(
     if s2 <= 0:
         return {"stat": np.nan, "p_value": np.nan, "n_obs": int(T)}
     stat = d_bar / np.sqrt(s2 / T)
-    p_value = 2.0 * (1.0 - t_dist.cdf(abs(stat), df=T - 1))
+    p_value = 2.0 * t_dist.sf(abs(stat), df=T - 1)
     return {"stat": float(stat), "p_value": float(p_value), "n_obs": int(T)}
 
 
@@ -208,7 +208,7 @@ def berkowitz_test(pits: np.ndarray) -> dict:
     ll_r_aligned = -0.5 * np.sum(np.log(2 * np.pi) + z[1:] ** 2)
     LR = 2.0 * (ll_unr - ll_r_aligned)
     from scipy.stats import chi2
-    p_value = 1.0 - chi2.cdf(LR, df=3) if LR >= 0 else np.nan
+    p_value = chi2.sf(LR, df=3) if LR >= 0 else np.nan
     return {
         "stat": float(LR),
         "p_value": float(p_value),

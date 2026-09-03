@@ -46,7 +46,7 @@ def cd_test(residuals_panel):
     cd_stat = np.sqrt(2 * T / (N * (N - 1))) * rho_sum
 
     # Two-tailed p-value from standard normal
-    p_value = 2 * (1 - norm.cdf(np.abs(cd_stat)))
+    p_value = 2 * norm.sf(np.abs(cd_stat))
 
     return float(cd_stat), float(p_value)
 

@@ -136,7 +136,7 @@ def ar_test(
     if var_num <= 0:
         return float("nan"), float("nan")
     stat = num / np.sqrt(var_num)
-    p = float(2.0 * (1.0 - stats.norm.cdf(abs(stat))))
+    p = float(2.0 * stats.norm.sf(abs(stat)))
     return stat, p
 
 
