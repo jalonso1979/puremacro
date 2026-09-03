@@ -215,9 +215,24 @@ def fm_ols(y, X, lags: int | None = None) -> FMOLSResult:
         Omega_xx_inv = np.linalg.pinv(Omega_xx)
     y_plus = y[1:] - dX @ Omega_xx_inv @ omega_uy
 
-    lambda_uy = Lambda[0, 1:]
-    lambda_xx = Lambda[1:, 1:]
-    bias = lambda_uy - omega_uy @ Omega_xx_inv @ lambda_xx
+    # Phillips-Hansen's additive correction is built from the ONE-SIDED
+    # long-run covariance Delta = sum_{k >= 0} E[w_0 w_k'], which in this
+    # module's convention is Sigma + Lambda: `_long_run_cov` defines Lambda
+    # over j >= 1 only, so using it alone drops the lag-0 block and
+    # over-corrects. Measured on a DGP with serially correlated errors, the
+    # shipped form had bias -0.0258 at T = 200 against +0.0067 for the correct
+    # one, and a *worse* RMSE than doing nothing at every T (0.0374 vs 0.0320
+    # for plain OLS) -- an FM-OLS that moved the estimate further from the
+    # truth than the estimator it exists to improve on.
+    #
+    # It is identically zero when Omega is proportional to Sigma, i.e. when the
+    # innovations are serially uncorrelated: then
+    # Sigma_uy - omega_uy Omega_xx^-1 Sigma_xx = 0. That is precisely the
+    # i.i.d. fixture the accuracy test uses.
+    Delta = Sigma + Lambda
+    delta_uy = Delta[0, 1:]
+    delta_xx = Delta[1:, 1:]
+    bias = delta_uy - omega_uy @ Omega_xx_inv @ delta_xx
 
     Z_plus = Z[1:]
     Xc = X[1:] - X[1:].mean(axis=0)
@@ -265,14 +280,25 @@ def dols(y, X, leads: int = 2, lags: int = 2, hac_lags: int | None = None) -> DO
     dX = np.diff(X, axis=0)  # length T-1
     rows = []
     targets = []
-    for t in range(lags, T - leads):
+    # Stock-Watson require the leads AND lags of dX *including* the
+    # contemporaneous s = 0 term: it is the projection of u_t on the current
+    # regressor innovation that removes the second-order endogeneity bias and
+    # makes the estimator asymptotically unbiased. Skipping it leaves the OLS
+    # bias untouched -- measured Monte-Carlo bias with rho = 0.6 was +0.0361
+    # for the s != 0 design against +0.0303 for plain OLS and -0.0005 for the
+    # correct one at T = 100, and the three stay ordered that way out to
+    # T = 1600. The error vanishes when dX_t is uncorrelated with u_t, which
+    # is exactly what a fixture with no contemporaneous endogeneity imposes.
+    #
+    # The window starts at `lags + 1`, not `lags`: at t = lags the s = -lags
+    # term needs dX[-1], which does not exist. That row used to be kept with
+    # the missing block zero-filled, fabricating a regressor value rather than
+    # dropping an unusable row.
+    for t in range(lags + 1, T - leads):
         feat = [1.0]
         feat.extend(X[t])
         for s in range(-lags, leads + 1):
-            if s == 0:
-                continue
-            feat.extend(dX[t + s - 1] if 0 <= t + s - 1 < dX.shape[0]
-                         else np.zeros(k))
+            feat.extend(dX[t + s - 1])
         rows.append(feat)
         targets.append(y[t])
     Xd = np.array(rows)
