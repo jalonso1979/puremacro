@@ -820,9 +820,19 @@ def _compute_irf(sol: "FertilitySolution", shock, horizon: int) -> pd.DataFrame:
     state = sol.N[:, s_idx] * sigma
     control = sol.L[:, s_idx] * sigma
     rows = [np.concatenate([state, control])]
+    # The solver's own partition (see solve_fertility, "Partition into
+    # Klein-convention matrices") is
+    #     x_t = G x_{t-1} + N eps_t        (states)
+    #     y_t = F x_{t-1} + L eps_t        (controls)
+    # so the control at t reads the LAGGED state. `control = F @ state` must
+    # therefore be evaluated BEFORE `state` is advanced. Advancing first made
+    # every control column one period early from h = 1 onward: the shipped
+    # y at horizon h was exactly the correct y at horizon h + 1, verified
+    # against the recursion above at every horizon. The states were unaffected,
+    # which is why nothing looked wrong.
     for _ in range(horizon):
-        state = sol.G @ state
         control = sol.F @ state
+        state = sol.G @ state
         rows.append(np.concatenate([state, control]))
     arr = np.array(rows)
     return pd.DataFrame(arr, columns=list(sol.var_names), index=range(horizon + 1))
@@ -841,9 +851,11 @@ def _compute_fevd(sol: "FertilitySolution", horizon: int) -> pd.DataFrame:
         state = sol.N[:, s_idx] * sigma
         control = sol.L[:, s_idx] * sigma
         irfs[0, :, s_idx] = np.concatenate([state, control])
+        # Same timing as _compute_irf: the control reads the lagged state, so
+        # F is applied before G advances it. See the note there.
         for h in range(1, horizon + 1):
-            state = sol.G @ state
             control = sol.F @ state
+            state = sol.G @ state
             irfs[h, :, s_idx] = np.concatenate([state, control])
     cum_sq = np.cumsum(irfs ** 2, axis=0)
     total = cum_sq.sum(axis=2, keepdims=True)

@@ -86,7 +86,11 @@ class FertilitySolution:
     N : ndarray, shape (n_states, n_shocks)
         Shock impact on states.
     F : ndarray, shape (n_controls, n_states)
-        Control policy (control at t given state at t).
+        Control policy on the LAGGED state: y_t = F x_{t-1} + L eps_t, which
+        is the partition `solve_fertility` actually builds. This entry used to
+        read "control at t given state at t", contradicting the solver, and an
+        IRF loop written against that wrong reading put every control one
+        period early.
     L : ndarray, shape (n_controls, n_shocks)
         Control response to contemporaneous shock.
     klein_solution : KleinSolution or None
