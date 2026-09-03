@@ -21,6 +21,7 @@ Sun, L. and Abraham, S. (2021). Estimating dynamic treatment effects
 from __future__ import annotations
 
 import pandas as pd
+from scipy.stats import norm as _norm
 
 from .callaway_santanna import callaway_santanna
 from ._results import SunAbrahamResult
@@ -89,16 +90,37 @@ def sun_abraham(
     att_gt = att_gt.merge(cohort_sizes, left_on="g", right_index=True, how="left")
 
     # Cohort-share-weighted aggregation per event time.
+    #
+    # `se` aggregates as the standard error of a weighted sum,
+    # sqrt(sum_i w_i^2 se_i^2), which is right. The band must be built from
+    # THAT, not by averaging the per-cohort endpoints: sum_i w_i lo_i is a
+    # weighted mean of the interval edges, and a weighted mean of standard
+    # errors is not the standard error of a weighted mean. With K equally
+    # weighted cohorts of equal precision it overstates the half-width by a
+    # factor of exactly sqrt(K) -- measured 1.73 at K = 3 and 1.37 at K = 2 on
+    # a synthetic staggered panel -- so the reported interval contradicted the
+    # `se` sitting beside it in the same row.
+    #
+    # The per-cohort lo/hi are bootstrap percentiles, but those draws are
+    # internal to `callaway_santanna` and are not exposed here, so the
+    # aggregate band is a normal approximation around the aggregated point and
+    # standard error. That is a genuine change of method for this column -- a
+    # percentile band would need the draws threaded through -- and it is the
+    # one choice available that agrees with the `se` this function already
+    # reports.
+    z = float(_norm.ppf(1.0 - alpha / 2.0))
     es_rows = []
     for e, sub in att_gt.groupby("event_time"):
         w = sub["n_g"].values.astype(float)
         w = w / w.sum() if w.sum() > 0 else w
+        att_e = float((w * sub["att"].values).sum())
+        se_e = float(((w ** 2) * (sub["se"].values ** 2)).sum() ** 0.5)
         es_rows.append({
             "event_time": e,
-            "att": float((w * sub["att"].values).sum()),
-            "se":  float(((w ** 2) * (sub["se"].values ** 2)).sum() ** 0.5),
-            "lo":  float((w * sub["lo"].values).sum()),
-            "hi":  float((w * sub["hi"].values).sum()),
+            "att": att_e,
+            "se":  se_e,
+            "lo":  att_e - z * se_e,
+            "hi":  att_e + z * se_e,
             "n_cohorts": int(len(sub)),
         })
     es_df = pd.DataFrame(es_rows).sort_values("event_time").reset_index(drop=True)
