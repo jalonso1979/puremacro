@@ -37,13 +37,21 @@ def _panel(n_units: int, n_periods: int, seed: int = 1) -> pd.DataFrame:
 
 @pytest.mark.parametrize("n_units", [10, 50, 200])
 def test_dk_bandwidth_depends_only_on_the_number_of_periods(monkeypatch, n_units):
+    """The bandwidth must follow floor(4*(T/100)^(2/9)) on the T the kernel sees.
+
+    T is taken from the time keys handed to `driscoll_kraay`, not from the raw
+    panel: the horizon loop drops rows for lags and leads, so the estimation
+    sample is shorter than the input. Deriving the expectation from what the
+    kernel actually receives keeps the test honest about the rule while still
+    pinning the thing that was wrong — the dependence on N.
+    """
     import puremacro.inference.dk as dk_mod
 
-    seen: list[int] = []
+    seen: list[tuple[int, int]] = []
     real = dk_mod.driscoll_kraay
 
     def spy(score, time_keys, lags):
-        seen.append(int(lags))
+        seen.append((int(lags), int(len(np.unique(time_keys)))))
         return real(score, time_keys, lags)
 
     monkeypatch.setattr(dk_mod, "driscoll_kraay", spy)
@@ -53,9 +61,40 @@ def test_dk_bandwidth_depends_only_on_the_number_of_periods(monkeypatch, n_units
     panel_lp_dk(df, y="y", x="x", horizons=[1], n_lags=2)
 
     assert seen, "driscoll_kraay was never called — the spy did not attach"
-    expected = max(1, int(round(4 * (n_periods / 100) ** (2 / 9))))
-    row_based = max(1, int(round(4 * (len(df) / 100) ** (2 / 9))))
-    assert set(seen) == {expected}, (
-        f"N={n_units}: bandwidth {sorted(set(seen))} != {expected} derived from "
-        f"T={n_periods}. The panel-row rule would give {row_based}."
+    for lags, t_used in seen:
+        expected = max(1, int(np.floor(4 * (t_used / 100) ** (2 / 9))))
+        row_based = max(1, int(np.floor(4 * (len(df) / 100) ** (2 / 9))))
+        assert lags == expected, (
+            f"N={n_units}: bandwidth {lags} != {expected} for the T={t_used} "
+            f"the kernel received. The panel-row rule would give {row_based}."
+        )
+
+
+def test_dk_bandwidth_is_identical_across_cross_section_sizes(monkeypatch):
+    """Same T, different N: the kernel must be handed the same bandwidth.
+
+    This is the property that failed. At T = 100 the bandwidth used to go
+    7 -> 10 -> 13 as N went 10 -> 50 -> 200, because it was derived from the
+    N*T row count. The cross-section has been summed away before the kernel
+    sees anything, so it cannot carry information about time dependence.
+    """
+    import puremacro.inference.dk as dk_mod
+
+    real = dk_mod.driscoll_kraay
+    per_n = {}
+    for n_units in (10, 50, 200):
+        seen: list[int] = []
+
+        def spy(score, time_keys, lags, _s=seen):
+            _s.append(int(lags))
+            return real(score, time_keys, lags)
+
+        monkeypatch.setattr(dk_mod, "driscoll_kraay", spy)
+        panel_lp_dk(_panel(n_units, 100), y="y", x="x", horizons=[1], n_lags=2)
+        assert seen
+        per_n[n_units] = sorted(set(seen))
+
+    values = {tuple(v) for v in per_n.values()}
+    assert len(values) == 1, (
+        f"bandwidth varied with the cross-section size: {per_n}"
     )

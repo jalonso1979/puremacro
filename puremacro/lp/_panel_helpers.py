@@ -144,7 +144,11 @@ def _focal_dk_se(out: dict) -> float:
     # believed the data had. The cross-section cannot carry that information;
     # it has already been summed away by the time the kernel sees anything.
     T_dk = int(len(np.unique(out["time_keys"])))
-    L = max(1, int(round(4 * (T_dk / 100) ** (2 / 9))))
+    # Floor, not round: `panel_dk`'s docstring states the rule as
+    # L = floor(4*(T/100)^(2/9)), and `cointegration_modern._long_run_cov`
+    # and `dols` both use floor. `round` disagreed with all three at, for
+    # example, T = 81 (3.817 -> 4 instead of 3).
+    L = max(1, int(np.floor(4 * (T_dk / 100) ** (2 / 9))))
     S = driscoll_kraay(score, out["time_keys"], lags=L)
     XtX_inv = out["XtX_inv"]
     vcov = XtX_inv @ S @ XtX_inv
