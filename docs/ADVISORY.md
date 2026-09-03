@@ -14,6 +14,56 @@ without re-running it), and what to do.
 
 ---
 
+## 2026-09-03 — eight more, versions up to and including 1.9.0
+
+**Fixed in the next release; not yet published.** A follow-up audit asked, of
+every estimator fixture in the package, *what condition does this fixture
+remove?* — the question all seven defects above turned on. It found eight more,
+each reproduced against a known truth before being touched.
+
+| Estimator | What was wrong | Unaffected when | Direction of the error |
+|---|---|---|---|
+| `cointegration_modern.dols` | Omitted the contemporaneous `dX_t` term, which is the one that removes the bias. The estimator was OLS with extra regressors. | `dX_t` is uncorrelated with `u_t` — no contemporaneous endogeneity | Bias tracked plain OLS at every sample size: **+0.036 vs OLS's +0.030** at T=100, where correct DOLS is −0.0005 |
+| `cointegration_modern.dols` | Kept a row whose missing `dX` lag was **zero-filled**, fabricating a regressor value | `lags = 0` | One extra observation, built from a value that was never measured |
+| `cointegration_modern.fm_ols` | Built the Phillips–Hansen correction from `Lambda` alone, dropping the lag-0 `Sigma` block | `Omega` is proportional to `Sigma` — serially uncorrelated innovations | Over-corrected. **RMSE worse than plain OLS** at T=200, 800 and 3200 |
+| `var.irf.gfevd` → `connectedness.spillover_index` | Divided by an absolute `1e-12` floor, breaking a scale invariance the estimand has by construction | No residual variance falls near the floor — i.e. the units happen to be large enough | Total connectedness moved **13.43 → 39.48** on one fixed VAR when a single variable was rescaled |
+| `dsge.gensys` | `Impact` dropped the `Pi N` term: solved as though expectation errors did not respond to shocks | `Pi N = 0` — no forward-looking behaviour left | On `y_t = a E_t y_{t+1} + eps_t` (truth `y_t = eps_t`) it returned **`[0, -2]`**: the variable did not respond to its own shock |
+| `dsge.gensys` | Raised on any model with **no unstable roots** (`Z2` a zero-column slice); uniqueness test was vacuous | The model has at least one unstable root | `x_t = rho x_{t-1} + eps` could not be solved at all |
+| `dsge.fertility_adj_costs` `irf`/`fevd` | Advanced the state before applying `F`, but controls read the *lagged* state | Horizon 0 only | Every control IRF **one period early**: reported `y(h)` was the correct `y(h+1)` |
+| `did.sun_abraham` | Event-study `lo`/`hi` averaged the per-cohort interval edges instead of using the aggregated `se` | One cohort per event time | Bands **`sqrt(K)` too wide** — measured 1.73 at K=3, 1.37 at K=2 — and inconsistent with the `se` in the same row |
+| 25 p-value sites across 16 modules | `1 - cdf` instead of the survival function | The p-value is above ~1e-16 | Returned **exactly 0.0** in the tail. Two-sided normal at \|z\| = 9 is 2.3e-19; chi-square 200 on 5 df is 2.8e-41 |
+
+### What to re-run
+
+- **Any `dols` or `fm_ols` estimate.** Both were systematically biased on the
+  data they exist for. `fm_ols` was further from the truth than plain OLS.
+- **Any Diebold–Yilmaz connectedness index** computed with the default
+  `identification="gfevd"` on data whose residual variances are small in the
+  units you used.
+- **Any `gensys` IRF.** The impact matrix was wrong for every model with
+  forward-looking behaviour, which is every model gensys is for.
+- **Any fertility-DSGE IRF or FEVD**, including the figures under
+  `docs/research/fertility_bk_diagnosis/`. Shift the control paths back one
+  period, or re-run.
+- **Any Sun–Abraham event-study band** at an event time with more than one
+  contributing cohort. The point estimates and `se` stand; the intervals were
+  too wide.
+- **Any p-value reported as exactly 0.0.** It was never zero.
+
+### A note on the tests
+
+Four separate artifacts asserted the `gensys` defect rather than catching it:
+three tests in `tests/test_dsge_gensys_coverage.py`, and the validation case
+`dsge.gensys_shock_impact_identity`, whose own citation stated the model
+**without** its `Pi eta_t` term — correct algebra from a truncated premise. The
+`sun_abraham` band contradicted the standard error printed beside it in the same
+row, so that one needed no external reference at all. And
+`FertilitySolution`'s docstring described `F` as acting on the current state
+while the solver builds it against the lagged one; the IRF loop was written
+against the docstring.
+
+---
+
 ## 2026-09-02 — seven estimators, versions 0.92.0 through 1.8.0
 
 **Fixed in 1.9.0.** Seven public estimators returned wrong numbers in

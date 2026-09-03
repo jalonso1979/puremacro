@@ -14,6 +14,58 @@ sin volver a correrla) y qué hacer.
 
 ---
 
+## 2026-09-03 — ocho más, versiones hasta 1.9.0 inclusive
+
+**Corregido en la próxima versión; aún no publicado.** Una auditoría posterior
+preguntó, de cada fixture de estimador del paquete, *¿qué condición elimina este
+fixture?* — la pregunta sobre la que giraban los siete defectos de arriba.
+Encontró ocho más, cada uno reproducido contra una verdad conocida antes de
+tocar nada.
+
+| Estimador | Qué estaba mal | No afectado cuando | Dirección del error |
+|---|---|---|---|
+| `cointegration_modern.dols` | Omitía el término contemporáneo `dX_t`, que es el que elimina el sesgo. El estimador era MCO con regresores extra. | `dX_t` no está correlacionado con `u_t` | El sesgo seguía al de MCO en todos los tamaños: **+0.036 frente a +0.030** en T=100, donde el DOLS correcto da −0.0005 |
+| `cointegration_modern.dols` | Conservaba una fila cuyo rezago de `dX` faltante se **rellenaba con ceros**, fabricando un valor de regresor | `lags = 0` | Una observación de más, construida con un valor nunca medido |
+| `cointegration_modern.fm_ols` | Construía la corrección de Phillips–Hansen sólo con `Lambda`, omitiendo el bloque `Sigma` de rezago 0 | `Omega` es proporcional a `Sigma` | Sobre-corregía. **ECM peor que MCO** en T=200, 800 y 3200 |
+| `var.irf.gfevd` → `connectedness.spillover_index` | Dividía por un piso absoluto de `1e-12`, rompiendo una invarianza de escala que el estimando tiene por construcción | Ninguna varianza residual cae cerca del piso | La conectividad total pasó de **13.43 a 39.48** en un mismo VAR al reescalar una variable |
+| `dsge.gensys` | `Impact` omitía el término `Pi N`: resolvía como si los errores de expectativas no respondieran a los choques | `Pi N = 0` | En `y_t = a E_t y_{t+1} + eps_t` (verdad `y_t = eps_t`) devolvía **`[0, -2]`**: la variable no respondía a su propio choque |
+| `dsge.gensys` | Lanzaba excepción con cualquier modelo **sin raíces inestables**; la prueba de unicidad era vacua | El modelo tiene al menos una raíz inestable | `x_t = rho x_{t-1} + eps` no podía resolverse |
+| `dsge.fertility_adj_costs` `irf`/`fevd` | Avanzaba el estado antes de aplicar `F`, pero los controles leen el estado *rezagado* | Sólo el horizonte 0 | Toda IRF de control **un periodo adelantada**: el `y(h)` reportado era el `y(h+1)` correcto |
+| `did.sun_abraham` | `lo`/`hi` promediaban los extremos por cohorte en vez de usar el `se` agregado | Una sola cohorte por tiempo de evento | Bandas **`sqrt(K)` veces más anchas** — 1.73 con K=3, 1.37 con K=2 — e inconsistentes con el `se` de su propia fila |
+| 25 sitios de valor-p en 16 módulos | `1 - cdf` en vez de la función de supervivencia | El valor-p supera ~1e-16 | Devolvían **exactamente 0.0** en la cola. Normal bilateral en \|z\| = 9 es 2.3e-19; chi-cuadrada 200 con 5 gl es 2.8e-41 |
+
+### Qué hay que volver a correr
+
+- **Cualquier estimación de `dols` o `fm_ols`.** Ambas estaban sesgadas
+  sistemáticamente sobre los datos para los que existen. `fm_ols` quedaba más
+  lejos de la verdad que MCO.
+- **Cualquier índice de conectividad de Diebold–Yilmaz** calculado con el
+  `identification="gfevd"` por defecto sobre datos cuyas varianzas residuales
+  sean pequeñas en las unidades empleadas.
+- **Cualquier IRF de `gensys`.** La matriz de impacto era incorrecta para todo
+  modelo con comportamiento prospectivo, que son todos los que gensys atiende.
+- **Cualquier IRF o FEVD del DSGE de fecundidad**, incluidas las figuras de
+  `docs/research/fertility_bk_diagnosis/`. Desplace las sendas de control un
+  periodo hacia atrás, o vuelva a correrlas.
+- **Cualquier banda de estudio de eventos de Sun–Abraham** en un tiempo de
+  evento con más de una cohorte. Las estimaciones puntuales y el `se` se
+  sostienen; los intervalos eran demasiado anchos.
+- **Cualquier valor-p reportado como exactamente 0.0.** Nunca fue cero.
+
+### Una nota sobre las pruebas
+
+Cuatro artefactos distintos afirmaban el defecto de `gensys` en vez de
+detectarlo: tres pruebas en `tests/test_dsge_gensys_coverage.py` y el caso de
+validación `dsge.gensys_shock_impact_identity`, cuya propia cita enunciaba el
+modelo **sin** su término `Pi eta_t` — álgebra correcta a partir de una premisa
+truncada. La banda de `sun_abraham` contradecía el error estándar impreso a su
+lado en la misma fila, así que ésa no requería referencia externa alguna. Y el
+docstring de `FertilitySolution` describía `F` actuando sobre el estado actual
+mientras el solver lo construye contra el rezagado; el bucle de IRF se escribió
+siguiendo el docstring.
+
+---
+
 ## 2026-09-02 — siete estimadores, versiones 0.92.0 a 1.8.0
 
 **Corregido en 1.9.0.** Siete estimadores públicos devolvieron números
