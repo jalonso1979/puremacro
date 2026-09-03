@@ -275,7 +275,8 @@ def _iter_ca(*, refetch: bool, since: str | None) -> Iterator[tuple]:
     if since:
         df = df[df[date_col] >= pd.Timestamp(since)]
 
-    for _, row in df.iterrows():
+    # Performance: Use to_dict('records') instead of iterrows() for ~25x faster iteration
+    for row in df.to_dict('records'):
         company = str(row.get(company_col) or "") if company_col else ""
         county = str(row.get(county_col) or "") if county_col else ""
         filing_type = (
@@ -508,7 +509,8 @@ def _iter_ny(*, refetch: bool, since: str | None) -> Iterator[tuple]:
     if since:
         df = df[df[date_col] >= pd.Timestamp(since)]
 
-    for _, row in df.iterrows():
+    # Performance: Use to_dict('records') instead of iterrows() for ~25x faster iteration
+    for row in df.to_dict('records'):
         company = str(row.get(company_col) or "") if company_col else ""
         county = str(row.get(county_col) or "") if county_col else ""
         filing_type = (
@@ -571,7 +573,8 @@ def _iter_wa(*, refetch: bool, since: str | None) -> Iterator[tuple]:
     if since:
         df = df[df["Received Date"] >= pd.Timestamp(since)]
 
-    for _, row in df.iterrows():
+    # Performance: Use to_dict('records') instead of iterrows() for ~25x faster iteration
+    for row in df.to_dict('records'):
         company = str(row.get("Company") or "")
         location = str(row.get("Location") or "")
         filing_type = (str(row.get("Closure Layoff") or "layoff")
@@ -634,7 +637,8 @@ def _iter_il(*, refetch: bool, since: str | None) -> Iterator[tuple]:
     if since:
         df = df[df[date_col] >= pd.Timestamp(since)]
 
-    for _, row in df.iterrows():
+    # Performance: Use to_dict('records') instead of iterrows() for ~25x faster iteration
+    for row in df.to_dict('records'):
         company = str(row.get(company_col) or "") if company_col else ""
         city = str(row.get(city_col) or "") if city_col else ""
         event = (str(row.get(event_col) or "layoff") if event_col
@@ -693,7 +697,8 @@ def _iter_md(*, refetch: bool, since: str | None) -> Iterator[tuple]:
     if since:
         df = df[df[date_col] >= pd.Timestamp(since)]
 
-    for _, row in df.iterrows():
+    # Performance: Use to_dict('records') instead of iterrows() for ~25x faster iteration
+    for row in df.to_dict('records'):
         company = str(row.get(company_col) or "") if company_col else ""
         location = str(row.get(location_col) or "") if location_col else ""
         filing_type = (str(row.get(type_col) or "layoff")
@@ -742,7 +747,8 @@ def _iter_va(*, refetch: bool, since: str | None) -> Iterator[tuple]:
     if since:
         df = df[df["Notice Date"] >= pd.Timestamp(since)]
 
-    for _, row in df.iterrows():
+    # Performance: Use to_dict('records') instead of iterrows() for ~25x faster iteration
+    for row in df.to_dict('records'):
         company = "" if pd.isna(row.get("Company")) else str(row.get("Company"))
         location = "" if pd.isna(row.get("Location")) else str(row.get("Location"))
         nt = row.get("Notice Type")
@@ -796,7 +802,8 @@ def _iter_wi(*, refetch: bool, since: str | None) -> Iterator[tuple]:
     df = df.dropna(subset=[date_col])
     if since:
         df = df[df[date_col] >= pd.Timestamp(since)]
-    for _, row in df.iterrows():
+    # Performance: Use to_dict('records') instead of iterrows() for ~25x faster iteration
+    for row in df.to_dict('records'):
         company = "" if pd.isna(row.get(company_col)) else str(row.get(company_col))
         city = "" if pd.isna(row.get(city_col)) else str(row.get(city_col))
         nt = row.get(type_col)
@@ -853,7 +860,8 @@ def _iter_warntracker(*, state: str, refetch: bool,
     if since:
         df = df[df["Notice Date"] >= pd.Timestamp(since)]
     landing = _WT_LANDING_TPL.format(state=state)
-    for _, row in df.iterrows():
+    # Performance: Use to_dict('records') instead of iterrows() for ~25x faster iteration
+    for row in df.to_dict('records'):
         company = "" if pd.isna(row.get("Company")) else str(row.get("Company"))
         city = ("" if pd.isna(row.get("City")) else str(row.get("City"))).strip()
         if "purchase" in city.lower() or "tier" in city.lower():
@@ -910,7 +918,8 @@ def _iter_bln_gcs(*, state: str, refetch: bool,
     df = df.dropna(subset=["notice_date"])
     if since:
         df = df[df["notice_date"] >= pd.Timestamp(since)]
-    for _, row in df.iterrows():
+    # Performance: Use to_dict('records') instead of iterrows() for ~25x faster iteration
+    for row in df.to_dict('records'):
         company = "" if pd.isna(row.get("company")) else str(row.get("company"))
         city = "" if pd.isna(row.get("city")) else str(row.get("city"))
         wn = row.get("workers")
@@ -968,7 +977,8 @@ def _iter_bln(*, state: str, refetch: bool,
     if since:
         df = df[df["notice_date"] >= pd.Timestamp(since)]
     landing = _BLN_LANDING_TPL.format(state=state, lower=state.lower())
-    for _, row in df.iterrows():
+    # Performance: Use to_dict('records') instead of iterrows() for ~25x faster iteration
+    for row in df.to_dict('records'):
         company = "" if pd.isna(row.get("company")) else str(row.get("company"))
         city = "" if pd.isna(row.get("city")) else str(row.get("city"))
         wn = row.get("workers")
@@ -1054,7 +1064,8 @@ def _iter_sc(*, refetch: bool, since: str | None) -> Iterator[tuple]:
         return
     df = pd.read_parquet(_SC_CACHE)
     state = "SC"
-    for _, row in df.iterrows():
+    # Performance: Use to_dict('records') instead of iterrows() for ~25x faster iteration
+    for row in df.to_dict('records'):
         date = _sc_pick_date(row)
         if date is None:
             continue
@@ -1097,7 +1108,8 @@ def _iter_hi(*, refetch: bool, since: str | None) -> Iterator[tuple]:
     if since:
         df = df[df["notice_date"] >= pd.Timestamp(since)]
     state = "HI"
-    for _, row in df.iterrows():
+    # Performance: Use to_dict('records') instead of iterrows() for ~25x faster iteration
+    for row in df.to_dict('records'):
         company = "" if pd.isna(row.get("company")) else str(row.get("company"))
         if not company:
             continue
@@ -1130,7 +1142,8 @@ def _iter_state_parquet(*, cache: Path, state: str, landing: str,
     df = df.dropna(subset=["notice_date"])
     if since:
         df = df[df["notice_date"] >= pd.Timestamp(since)]
-    for _, row in df.iterrows():
+    # Performance: Use to_dict('records') instead of iterrows() for ~25x faster iteration
+    for row in df.to_dict('records'):
         company = "" if pd.isna(row.get("company")) else str(row.get("company"))
         if not company.strip():
             continue
