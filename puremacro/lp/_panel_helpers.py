@@ -135,7 +135,16 @@ def _focal_dk_se(out: dict) -> float:
     X = out["X_within"]
     u = out["residuals"]
     score = X * u[:, None]
-    L = max(1, int(round(4 * (len(X) / 100) ** (2 / 9))))
+    # Driscoll-Kraay sums the scores across units FIRST and then runs
+    # Newey-West on the resulting length-T time series, so the Bartlett
+    # bandwidth is a rule on the number of PERIODS, not on the number of panel
+    # rows. Using len(X) = N*T inflated it by N^(2/9): at T = 100 the
+    # bandwidth went 7 -> 10 -> 13 as N went 10 -> 50 -> 200, so adding
+    # countries changed how many quarters of autocorrelation the kernel
+    # believed the data had. The cross-section cannot carry that information;
+    # it has already been summed away by the time the kernel sees anything.
+    T_dk = int(len(np.unique(out["time_keys"])))
+    L = max(1, int(round(4 * (T_dk / 100) ** (2 / 9))))
     S = driscoll_kraay(score, out["time_keys"], lags=L)
     XtX_inv = out["XtX_inv"]
     vcov = XtX_inv @ S @ XtX_inv
