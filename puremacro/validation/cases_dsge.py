@@ -152,7 +152,21 @@ def _klein_gensys_cross() -> dict:
 
 
 def _gensys_impact_identity() -> dict:
-    """(Gamma0 - G Gamma1) Impact - Psi must be the zero matrix."""
+    """Gamma0 Impact - Psi must lie in the column space of Pi.
+
+    This case used to assert `(Gamma0 - G Gamma1) Impact = Psi`, and its own
+    citation showed why that was wrong: it wrote the model as
+    `Gamma0 z_t = Gamma1 z_{t-1} + Psi eps_t`, dropping the `Pi eta_t` term.
+    The identity follows correctly from that truncated system and not from the
+    one gensys actually solves, so the case validated the shipped `Impact`
+    formula against a restatement of itself.
+
+    With the expectation errors kept, substituting z_t = G z_{t-1} + Impact eps
+    and matching the eps terms gives `Gamma0 Impact = Psi + Pi N`, where N is
+    the loading of eta on eps. N is not known here, so the testable content is
+    that `Gamma0 Impact - Psi` lies in the column space of Pi -- which the
+    corrected solver satisfies and the old one does not.
+    """
     from puremacro.dsge.gensys import gensys
 
     # A 2-shock forward model (Sims-shifted control), distinct from the
@@ -162,7 +176,9 @@ def _gensys_impact_identity() -> dict:
     Psi = np.array([[1.0, 0.5], [0.0, 0.3]])
     Pi = np.array([[0.0], [0.8]])
     sol = gensys(G0, G1, Psi, Pi)
-    resid = (G0 - sol.G @ G1) @ sol.Impact - Psi
+    target = G0 @ sol.Impact - Psi
+    N, *_ = np.linalg.lstsq(Pi, target, rcond=None)
+    resid = target - Pi @ N
     return {"eu_sum": float(sum(sol.eu)), "impact_residual": resid.ravel()}
 
 
@@ -296,16 +312,20 @@ CASES: list[ValidationCase] = [
     ValidationCase(
         id="dsge.gensys_shock_impact_identity",
         subsystem="dsge",
-        title="gensys impact obeys (Gamma0 - G Gamma1) Impact = Psi",
-        title_es="El impacto de gensys cumple (Gamma0 - G Gamma1) Impact = Psi",
+        title="gensys impact obeys Gamma0 Impact - Psi in col(Pi)",
+        title_es="El impacto de gensys cumple Gamma0 Impact - Psi en col(Pi)",
         mechanism=Mechanism.INTERNAL,
         compute=_gensys_impact_identity,
         reference=lambda: {"eu_sum": 2.0, "impact_residual": np.zeros(2 * 2)},
         tol=Tol.EXACT,
         citation=(
             "Shock-impact defining identity of the Sims (2002) solution form "
-            "z_t = G z_{t-1} + Impact eps_t: substituting into "
-            "Gamma0 z_t = Gamma1 z_{t-1} + Psi eps_t gives (Gamma0 - G Gamma1) Impact = Psi."
+            "z_t = G z_{t-1} + Impact eps_t: substituting into the FULL system "
+            "Gamma0 z_t = Gamma1 z_{t-1} + Psi eps_t + Pi eta_t and matching the "
+            "eps terms gives Gamma0 Impact = Psi + Pi N, so Gamma0 Impact - Psi "
+            "lies in the column space of Pi. The earlier form of this case "
+            "asserted (Gamma0 - G Gamma1) Impact = Psi, which follows only if "
+            "the Pi eta_t term is dropped from the model."
         ),
     ),
     ValidationCase(
