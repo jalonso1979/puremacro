@@ -14,12 +14,12 @@ sin volver a correrla) y qué hacer.
 
 ---
 
-## 2026-09-03 — ocho más, versiones hasta 1.9.0 inclusive
+## 2026-09-03 — doce más, versiones hasta 1.9.0 inclusive
 
-**Corregido en la próxima versión; aún no publicado.** Una auditoría posterior
+**Corregido en 1.10.0.** Una auditoría posterior
 preguntó, de cada fixture de estimador del paquete, *¿qué condición elimina este
 fixture?* — la pregunta sobre la que giraban los siete defectos de arriba.
-Encontró ocho más, cada uno reproducido contra una verdad conocida antes de
+Encontró doce más, cada uno reproducido contra una verdad conocida antes de
 tocar nada.
 
 | Estimador | Qué estaba mal | No afectado cuando | Dirección del error |
@@ -32,6 +32,11 @@ tocar nada.
 | `dsge.gensys` | Lanzaba excepción con cualquier modelo **sin raíces inestables**; la prueba de unicidad era vacua | El modelo tiene al menos una raíz inestable | `x_t = rho x_{t-1} + eps` no podía resolverse |
 | `dsge.fertility_adj_costs` `irf`/`fevd` | Avanzaba el estado antes de aplicar `F`, pero los controles leen el estado *rezagado* | Sólo el horizonte 0 | Toda IRF de control **un periodo adelantada**: el `y(h)` reportado era el `y(h+1)` correcto |
 | `did.sun_abraham` | `lo`/`hi` promediaban los extremos por cohorte en vez de usar el `se` agregado | Una sola cohorte por tiempo de evento | Bandas **`sqrt(K)` veces más anchas** — 1.73 con K=3, 1.37 con K=2 — e inconsistentes con el `se` de su propia fila |
+| `inference.weak_iv.kleibergen_paap_f` | El sándwich HC0 dividía entre `n` dos veces mientras el pan invertía el producto cruzado crudo `Z'Z`, que ya lleva ambos factores | Nunca — toda llamada estaba afectada | Devolvía **exactamente `n^2` veces** el estadístico correcto: 235,470 frente a una verdad de 5.89 con n=200. Los umbrales de Stock-Yogo rondan 10, así que reportaba "instrumentos fortísimos" para todo conjunto de datos y **jamás podía diagnosticar un instrumento débil** |
+| `inference.weak_iv.kleibergen_paap_f` | La función de influencia usaba `kron(Z_t, V_t)` donde el `vec` por columnas y el pan exigen `kron(V_t, Z_t)` | `k = 1` (un regresor endógeno) — ahí coinciden | Varianza robusta incorrecta con dos o más regresores endógenos |
+| `inference.weak_iv.anderson_rubin_band` | Comparaba un estadístico F contra `chi2.ppf(ci, df)`, pero es `df*F` lo que es `chi2(df)` | `df = 1` — el valor por defecto y el único ejercitado | Corte `df` veces mayor. La banda nominal del 90% tenía **100.0% de cobertura** con df=2 y df=4 |
+| `lp.panel_lp_dk` (vía `_focal_dk_se`) | El ancho de banda de Bartlett salía del número de filas `N*T`, pero el núcleo corre sobre la suma transversal de longitud `T` | `N = 1` | Ancho inflado por `N^(2/9)`: **7 -> 10 -> 13** con T=100 fijo al pasar N de 10 a 50 a 200. Agregar países cambiaba la autocorrelación supuesta |
+| `lp.mean_group_panel_lp` | No ordenaba su entrada, mientras `lp_hac` construye rezagos con `.shift()` posicional | Quien llama ya pasaba un marco ordenado | En un panel cuya respuesta verdadera en h=1 es 0.8: **0.765 ordenado, 0.055 con las mismas filas barajadas**. Silencioso, y atenuado hacia cero |
 | 25 sitios de valor-p en 16 módulos | `1 - cdf` en vez de la función de supervivencia | El valor-p supera ~1e-16 | Devolvían **exactamente 0.0** en la cola. Normal bilateral en \|z\| = 9 es 2.3e-19; chi-cuadrada 200 con 5 gl es 2.8e-41 |
 
 ### Qué hay que volver a correr

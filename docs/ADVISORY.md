@@ -14,11 +14,11 @@ without re-running it), and what to do.
 
 ---
 
-## 2026-09-03 — eight more, versions up to and including 1.9.0
+## 2026-09-03 — twelve more, versions up to and including 1.9.0
 
-**Fixed in the next release; not yet published.** A follow-up audit asked, of
+**Fixed in 1.10.0.** A follow-up audit asked, of
 every estimator fixture in the package, *what condition does this fixture
-remove?* — the question all seven defects above turned on. It found eight more,
+remove?* — the question all seven defects above turned on. It found twelve more,
 each reproduced against a known truth before being touched.
 
 | Estimator | What was wrong | Unaffected when | Direction of the error |
@@ -31,6 +31,11 @@ each reproduced against a known truth before being touched.
 | `dsge.gensys` | Raised on any model with **no unstable roots** (`Z2` a zero-column slice); uniqueness test was vacuous | The model has at least one unstable root | `x_t = rho x_{t-1} + eps` could not be solved at all |
 | `dsge.fertility_adj_costs` `irf`/`fevd` | Advanced the state before applying `F`, but controls read the *lagged* state | Horizon 0 only | Every control IRF **one period early**: reported `y(h)` was the correct `y(h+1)` |
 | `did.sun_abraham` | Event-study `lo`/`hi` averaged the per-cohort interval edges instead of using the aggregated `se` | One cohort per event time | Bands **`sqrt(K)` too wide** — measured 1.73 at K=3, 1.37 at K=2 — and inconsistent with the `se` in the same row |
+| `inference.weak_iv.kleibergen_paap_f` | HC0 sandwich divided by `n` twice while the bread inverted the raw `Z'Z`, which already carries both factors | Never — every call was affected | Returned **exactly `n^2` times** the correct statistic: 235,470 against a truth of 5.89 at n=200. Stock-Yogo thresholds are near 10, so it reported "overwhelmingly strong" for every dataset and **could never diagnose a weak instrument** |
+| `inference.weak_iv.kleibergen_paap_f` | Influence function used `kron(Z_t, V_t)` where the column-major `vec` and the bread both require `kron(V_t, Z_t)` | `k = 1` (one endogenous regressor) — then the two coincide | Wrong robust variance for two or more endogenous regressors |
+| `inference.weak_iv.anderson_rubin_band` | Compared an F statistic against `chi2.ppf(ci, df)`, but it is `df*F` that is `chi2(df)` | `df = 1` — the default, and the only value anything exercised | Cutoff `df` times too large. Nominal 90% band had **100.0% coverage** at df=2 and df=4 |
+| `lp.panel_lp_dk` (via `_focal_dk_se`) | Bartlett bandwidth derived from the panel row count `N*T`, but the kernel runs on the length-`T` cross-sectional sum | `N = 1` | Bandwidth inflated by `N^(2/9)`: **7 -> 10 -> 13** at fixed T=100 as N went 10 -> 50 -> 200. Adding countries changed the assumed autocorrelation |
+| `lp.mean_group_panel_lp` | Did not sort its input, while `lp_hac` builds lags with positional `.shift()` | The caller already passed a sorted frame | On a panel whose true h=1 response is 0.8: **0.765 sorted, 0.055 with the same rows shuffled**. Silent, and attenuated toward zero |
 | 25 p-value sites across 16 modules | `1 - cdf` instead of the survival function | The p-value is above ~1e-16 | Returned **exactly 0.0** in the tail. Two-sided normal at \|z\| = 9 is 2.3e-19; chi-square 200 on 5 df is 2.8e-41 |
 
 ### What to re-run
