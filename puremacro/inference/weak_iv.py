@@ -33,7 +33,14 @@ def anderson_rubin_band(
     ci         : confidence level (default 0.9).
     df         : degrees of freedom for the χ² critical (default 1 = scalar test).
     """
-    crit = chi2.ppf(ci, df)
+    # `f_stat_fn` returns an F-statistic (see the parameter docs), and it is
+    # df * F, not F, that is asymptotically chi2(df). Comparing F directly
+    # against chi2.ppf(ci, df) therefore uses a cutoff df times too large, so
+    # the band is too wide by exactly that factor for any df > 1. Measured
+    # coverage of the nominal 90% band on a just-identified AR design at
+    # n = 300: 100.0% at df = 2 and 100.0% at df = 4. df = 1 is unaffected,
+    # which is the default and the only case any fixture used.
+    crit = chi2.ppf(ci, df) / df
     accepted = np.array([f_stat_fn(b) <= crit for b in beta_grid], dtype=bool)
     if not accepted.any():
         warnings.warn("AR band is empty on the given grid; returning grid endpoints.")
@@ -177,15 +184,35 @@ def kleibergen_paap_f(
     # Influence function: psi_t = Z_t ⊗ v_t  for each observation.
     # Omega = (1/n) * sum_t psi_t psi_t'.
     # We compute the robust variance of vec(Pi_hat).
+    # `vec` here stacks COLUMNS (`ravel(order='F')` below), and
+    # vec(Z'V) = sum_t vec(Z_t V_t') = sum_t (V_t kron Z_t), since
+    # vec(a b') = b kron a. The operands used to be the other way round,
+    # `kron(Z[t], V[t])`, which disagrees with both the column-major `vec`
+    # and the `kron(I_k, (Z'Z)^-1)` bread below. For k = 1 the two coincide
+    # (V_t is a scalar), so the error only appears with two or more
+    # endogenous regressors -- the case no fixture exercised.
     meat = np.zeros((l * k, l * k))
     for t in range(n):
-        psi = np.kron(Z[t], V[t])   # length l*k
+        psi = np.kron(V[t], Z[t])   # length l*k
         meat += np.outer(psi, psi)
-    meat /= n
 
-    # Var(vec(Pi_hat)) = (I_k ⊗ (Z'Z)^{-1}) Omega (I_k ⊗ (Z'Z)^{-1}) / n
+    # Var(vec(Pi_hat)) = (I_k ⊗ (Z'Z)^{-1}) [sum_t psi psi'] (I_k ⊗ (Z'Z)^{-1}).
+    #
+    # `ZtZ_inv` inverts the RAW cross-product Z'Z, so the sum must be raw too:
+    # the bread already carries both factors of 1/n. Dividing `meat` by n and
+    # then the sandwich by n again made V_Pi exactly n^2 too small, and the
+    # Wald statistic built from its inverse exactly n^2 too LARGE. Measured
+    # against the heteroskedasticity-robust first-stage F -- which the rk Wald
+    # F equals at k = 1 -- the returned value was 235,470 against 5.89 at
+    # n = 200, and 8,755,485 against 13.68 at n = 800: ratios of 40,000,
+    # 160,000 and 640,000, i.e. n^2 to the digit.
+    #
+    # The direction is the dangerous one. Stock-Yogo thresholds sit near 10,
+    # so an F of six or seven figures reads as "instruments overwhelmingly
+    # strong" for every dataset, and the weak-instrument diagnostic this
+    # function exists to provide could never fire.
     Ik_ZZinv = np.kron(np.eye(k), ZtZ_inv)
-    V_Pi = Ik_ZZinv @ meat @ Ik_ZZinv / n
+    V_Pi = Ik_ZZinv @ meat @ Ik_ZZinv
 
     # rk statistic: minimum singular value of Pi_hat scaled by its s.e.
     # Approximation: Wald statistic for H0: rank(Pi) < k.
