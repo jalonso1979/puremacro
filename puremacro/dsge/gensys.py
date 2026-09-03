@@ -119,11 +119,34 @@ def gensys(
     # The unstable block of Q^H Π must be zero (Blanchard-Kahn rank condition).
     QH_Pi_unstable = QH_Pi[n_stable:, :]   # (n_unstable, n_eta)
 
-    # Check rank of Z2^H (the "uniqueness" check):
-    sv_Z2 = np.linalg.svd(Z2, compute_uv=False)
-    tol_Z2 = max(Z2.shape) * sv_Z2.max() * np.finfo(float).eps * 10
-    if np.all(sv_Z2 > tol_Z2):
+    # Existence and uniqueness both live on Q2 Pi, not on Z2.
+    #
+    # Premultiplying the system by Q^H and writing w_t = Z^H z_t gives
+    # S w_t = T w_{t-1} + Q^H Psi eps + Q^H Pi eta. Stability requires the
+    # unstable block w2 to be identically zero, and setting it to zero in its
+    # own equation leaves
+    #       0 = Q2 Psi eps + Q2 Pi eta,
+    # so the expectation errors are pinned down by the shocks through
+    # Q2 Pi. A solution exists iff Q2 Psi lies in the column space of Q2 Pi,
+    # and it is unique iff Q2 Pi has full column rank. The order condition
+    # above has already forced Q2 Pi to be square (n_eta == n_unstable), so
+    # here both conditions reduce to its nonsingularity.
+    #
+    # The previous test took singular values of `Z2`, a column slice of the
+    # unitary Z returned by the QZ. Those are all exactly 1 by construction,
+    # so `np.all(sv_Z2 > tol)` was true for every model ever passed in and
+    # eu[1] could not be 0: the indeterminacy branch below was unreachable.
+    if n_unstable == 0:
+        # No unstable modes to zero, so no expectation errors to solve for.
+        # (The order condition has already established n_eta == 0.)
         eu[1] = 1
+        Q2_Pi_sv = np.array([1.0])
+    else:
+        Q2_Pi_sv = np.linalg.svd(QH_Pi_unstable, compute_uv=False)
+        tol_Pi = (max(QH_Pi_unstable.shape) * Q2_Pi_sv.max()
+                  * np.finfo(float).eps * 10)
+        if Q2_Pi_sv.min() > tol_Pi:
+            eu[1] = 1
 
     if eu[1] == 0:
         G      = np.zeros((n, n))
@@ -143,13 +166,40 @@ def gensys(
     G_core = Z1 @ S11_inv @ T11 @ Z1.conj().T
     G = G_core.real
 
-    # Shock impact:  z_t = G z_{t-1} + Impact ε_t
-    # Impact = (Γ_0 - G Γ_1)^{-1} Ψ  [from the forward recursion]
-    LHS = Gamma0 - G @ Gamma1
-    try:
-        Impact = np.linalg.solve(LHS, Psi).real
-    except np.linalg.LinAlgError:
-        Impact = np.linalg.lstsq(LHS, Psi, rcond=None)[0].real
+    # Shock impact:  z_t = G z_{t-1} + Impact eps_t
+    #
+    # Matching the eps terms in Gamma0 z_t = Gamma1 z_{t-1} + Psi eps + Pi eta
+    # gives Gamma0 * Impact = Psi + Pi * N, where N is the loading of the
+    # expectation errors on the shocks. This used to read
+    # `Impact = (Gamma0 - G Gamma1)^{-1} Psi`, which drops the `Pi N` term
+    # entirely -- i.e. it solves the system as if the expectation errors did
+    # not respond to the shocks, when responding to them is the whole content
+    # of the rational-expectations solution.
+    #
+    # N is what zeroes the unstable modes: 0 = Q2 Psi eps + Q2 Pi eta forces
+    # eta = N eps with N = -(Q2 Pi)^-1 Q2 Psi. Substituting into the stable
+    # block, w1_t = S11^-1 T11 w1_{t-1} + S11^-1 (Q1 Psi + Q1 Pi N) eps, and
+    # z_t = Z1 w1_t.
+    #
+    # On y_t = a E_t y_{t+1} + eps_t, whose unique stable solution is
+    # y_t = eps_t, the old expression returned an impact of [0, -2] at
+    # a = 0.5: the variable did not respond to its own shock at all, and the
+    # sign was wrong on the other element. The error is zero only when
+    # Pi N = 0, i.e. when the expectation errors do not load on the shocks --
+    # which is to say, for models with no forward-looking behaviour left in
+    # them.
+    QH_Psi = Q.conj().T @ Psi
+    Q1_Psi = QH_Psi[:n_stable, :]
+    Q1_Pi = QH_Pi[:n_stable, :]
+    if n_unstable > 0:
+        Q2_Psi = QH_Psi[n_stable:, :]
+        # Square and nonsingular: the order condition and the uniqueness
+        # check above have both been passed by the time we get here.
+        N = -np.linalg.solve(QH_Pi_unstable, Q2_Psi)   # (n_eta, n_eps)
+        forcing = Q1_Psi + Q1_Pi @ N
+    else:
+        forcing = Q1_Psi
+    Impact = (Z1 @ S11_inv @ forcing).real
 
     return GensysSolution(
         G=G,

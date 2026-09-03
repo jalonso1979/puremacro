@@ -348,43 +348,70 @@ class TestGStability:
 # ---------------------------------------------------------------------------
 
 
-class TestShockImpactFormula:
-    """(G0 - G @ G1) @ Impact = Psi holds for every valid solution."""
+def _shock_identity_residual(G0, Psi, Pi, sol):
+    """Residual of  Gamma0 @ Impact = Psi + Pi @ N  after projecting out Pi.
 
-    def test_shock_formula_2var(self, model_2var):
-        """Shock formula holds for the 2-variable model."""
+    Substituting z_t = G z_{t-1} + Impact eps_t into
+    Gamma0 z_t = Gamma1 z_{t-1} + Psi eps_t + Pi eta_t and matching the eps
+    terms gives Gamma0 @ Impact = Psi + Pi @ N, where N is the loading of the
+    expectation errors on the shocks. N is not known a priori, so the testable
+    content is that (Gamma0 @ Impact - Psi) lies in the column space of Pi.
+    """
+    target = G0 @ sol.Impact - Psi
+    if Pi.shape[1] == 0:
+        return target
+    N, *_ = np.linalg.lstsq(Pi, target, rcond=None)
+    return target - Pi @ N
+
+
+class TestShockImpactFormula:
+    """Gamma0 @ Impact - Psi lies in the column space of Pi.
+
+    This class used to assert `(G0 - G @ G1) @ Impact == Psi`, which is not an
+    identity of the model at all: it is the old, incorrect `Impact` formula
+    restated as a test. It was derived from the code rather than from the
+    equations, so it could only ever confirm whatever the code already did.
+
+    The check is decisive rather than a matter of taste. On the model
+    x_t = rho x_{t-1} + eps, y_t = a E_t y_{t+1} + c x_t -- whose unique stable
+    solution y_t = c/(1 - a rho) x_t is known in closed form -- the CORRECT
+    impact vector [1, 3.0769, 2.1538] gives
+    (G0 - G G1) @ Impact = [0.3372, -2.0393, 1.6494], nowhere near Psi =
+    [1, 0, 0]. The analytically right answer failed the old assertion, and the
+    wrong one passed it.
+    """
+
+    def test_shock_identity_2var(self, model_2var):
+        """Shock identity holds for the 2-variable model."""
         G0, G1, Psi, Pi, _ = model_2var
         sol = gensys(G0, G1, Psi, Pi)
         assert sol.eu == (1, 1)
-        LHS = G0 - sol.G @ G1
         np.testing.assert_allclose(
-            LHS @ sol.Impact, Psi, atol=1e-10,
-            err_msg="(G0 - G @ G1) @ Impact must equal Psi",
+            _shock_identity_residual(G0, Psi, Pi, sol), 0.0, atol=1e-10,
+            err_msg="Gamma0 @ Impact - Psi must lie in the column space of Pi",
         )
 
-    def test_shock_formula_4var(self, model_4var):
-        """Shock formula holds for the 4-variable model."""
+    def test_shock_identity_4var(self, model_4var):
+        """Shock identity holds for the 4-variable model."""
         G0, G1, Psi, Pi, _ = model_4var
         sol = gensys(G0, G1, Psi, Pi)
         assert sol.eu == (1, 1)
-        LHS = G0 - sol.G @ G1
         np.testing.assert_allclose(
-            LHS @ sol.Impact, Psi, atol=1e-10,
-            err_msg="(G0 - G @ G1) @ Impact must equal Psi",
+            _shock_identity_residual(G0, Psi, Pi, sol), 0.0, atol=1e-10,
+            err_msg="Gamma0 @ Impact - Psi must lie in the column space of Pi",
         )
 
-    def test_shock_formula_multiple_shocks(self):
-        """Shock formula holds when n_eps=2."""
+    def test_shock_identity_multiple_shocks(self):
+        """Shock identity holds when n_eps=2."""
         G0 = np.array([[1.0, 0.0], [0.0, 0.8]])
         G1 = np.array([[0.7, 0.0], [-1.0, 1.0]])
         Psi = np.array([[1.0, 0.5], [0.0, 0.3]])
         Pi = np.array([[0.0], [0.8]])
         sol = gensys(G0, G1, Psi, Pi)
         assert sol.eu == (1, 1)
-        LHS = G0 - sol.G @ G1
         np.testing.assert_allclose(
-            LHS @ sol.Impact, Psi, atol=1e-10,
-            err_msg="Shock formula must hold for 2-shock system",
+            _shock_identity_residual(G0, Psi, Pi, sol), 0.0, atol=1e-10,
+            err_msg="Shock identity must hold for a 2-shock system",
         )
 
 
