@@ -44,6 +44,15 @@ def mean_group_panel_lp(
     z_crit = norm.ppf(1 - alpha / 2)
     df = df_wide.copy()
     df.index = df.index.set_names([entity_level, time_level])
+    # `lp_hac` builds its leads and lags with POSITIONAL `.shift()`, so the row
+    # order is the time order as far as it is concerned. Without this sort an
+    # unsorted frame silently produces nonsense lags: on an AR(1)-with-shock
+    # panel whose true h=1 response is 0.8, the sorted answer is 0.765 and the
+    # same data with its rows shuffled gives 0.055 -- attenuated almost to
+    # zero, with no error and no warning. `_panel_helpers.panel_lp_horizon_loop`
+    # and `cce.cce_panel_lp` both already sort; this path was the one that did
+    # not.
+    df = df.sort_index()
 
     entities = df.index.get_level_values(entity_level).unique()
     per_entity = {}
