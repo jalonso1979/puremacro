@@ -113,3 +113,21 @@ class LPResult(pd.DataFrame):
                 f"{lo_val:>10.4f}  {hi_val:>10.4f}"
             )
         return "\n".join(lines)
+
+    def to_markdown(self, index: bool = False) -> str:
+        """Render LP table as GitHub-flavored Markdown."""
+        from ..reports import _df_to_markdown
+
+        return _df_to_markdown(self.to_frame(), index=index)
+
+    def to_latex(self, index: bool = False) -> str:
+        """Render LP table as LaTeX tabular environment."""
+        from ..reports import _df_to_latex
+
+        return _df_to_latex(self.to_frame(), index=index)
+
+    def to_typst(self, index: bool = False) -> str:
+        """Render LP table as Typst table function."""
+        from ..reports import _df_to_typst
+
+        return _df_to_typst(self.to_frame(), index=index)

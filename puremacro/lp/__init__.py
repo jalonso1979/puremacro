@@ -9,7 +9,7 @@ from .lp_did import lp_did, LPDiDResult
 from .iv import lp_iv
 from .iv_lewbel import lp_iv_lewbel
 from .panel_iv import panel_lp_iv
-from .state_dep import lp_state_dep
+from .state_dep import lp_state_dep, lp_state_dep_iv
 from .smooth import lp_smooth
 from .asymmetric import lp_asymmetric
 from .mean_group import mean_group_panel_lp
@@ -21,7 +21,7 @@ from .la_lp import la_lp
 
 __all__ = [
     "lp_hac", "LPResult", "panel_lp", "panel_lp_dk", "lp_iv", "lp_iv_lewbel", "panel_lp_iv",
-    "lp_state_dep", "lp_smooth", "lp_asymmetric",
+    "lp_state_dep", "lp_state_dep_iv", "lp_smooth", "lp_asymmetric",
     "mean_group_panel_lp", "cce_panel_lp",
     "lp_garch_state", "lp_garch_in_mean",
     "lp_quantile", "la_lp",

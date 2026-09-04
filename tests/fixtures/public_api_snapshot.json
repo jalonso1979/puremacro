@@ -903,6 +903,7 @@
       "lp_quantile",
       "lp_smooth",
       "lp_state_dep",
+      "lp_state_dep_iv",
       "mean_group_panel_lp",
       "panel_lp",
       "panel_lp_dk",
@@ -967,7 +968,8 @@
     ],
     "puremacro.lp.state_dep": [
       "lp_smooth_transition_irf",
-      "lp_state_dep"
+      "lp_state_dep",
+      "lp_state_dep_iv"
     ],
     "puremacro.mcmc": [
       "autocorrelations",

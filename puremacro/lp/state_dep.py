@@ -246,4 +246,186 @@ def lp_smooth_transition_irf(
     return pd.DataFrame(rows)
 
 
-__all__ = ["lp_state_dep", "lp_smooth_transition_irf"]
+def lp_state_dep_iv(
+    df: pd.DataFrame,
+    y: str,
+    x: str,
+    z: str,
+    state: str,
+    horizons: Iterable[int] = range(0, 21),
+    n_lags: int = 2,
+    transition: str = "threshold",
+    gamma: float = 3.0,
+    threshold: float = 0.0,
+    controls: Sequence[str] | None = None,
+    alpha: float = 0.10,
+    *,
+    lags: int | None = None,
+    horizon: int | None = None,
+    ci: float | None = None,
+):
+    """State-dependent Local Projections with Instrumental Variables (Ramey-Zubairy 2018).
+
+    Estimates state-specific impulse responses and cumulative spending multipliers:
+        y_{t+h} - y_{t-1} = α_h
+                         + β_h^H (F(z_t) x_t)
+                         + β_h^L ((1 - F(z_t)) x_t)
+                         + controls + ε_{t,h}
+
+    where endogenous state components [F(z_t) x_t, (1-F(z_t)) x_t] are instrumented
+    by state-interacted instruments [F(z_t) z_t, (1-F(z_t)) z_t].
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Wide dataset containing outcome, policy variable, instrument, and state variable.
+    y : str
+        Outcome variable column name.
+    x : str
+        Endogenous shock / policy variable column name.
+    z : str
+        External instrument column name.
+    state : str
+        State variable column name (e.g. unemployment rate or output gap).
+    horizons : iterable of int, default range(0, 21)
+        Impulse response horizons.
+    n_lags : int, default 2
+        Number of lags of (x, y, controls) included as control variables.
+    transition : str, default 'threshold'
+        'threshold' for indicator I{state > threshold}, or 'logistic' for smooth transition.
+    gamma : float, default 3.0
+        Transition speed (if transition='logistic').
+    threshold : float, default 0.0
+        Threshold level.
+    controls : sequence of str, optional
+        Additional control column names.
+    alpha : float, default 0.10
+        Significance level for confidence intervals (0.10 -> 90% CI).
+    lags : int, optional
+        Alias for n_lags.
+    horizon : int, optional
+        Sets horizons = range(0, horizon + 1).
+    ci : float, optional
+        Confidence interval level (alpha = 1.0 - ci).
+
+    Returns
+    -------
+    LPResult
+        DataFrame subclass containing columns:
+        ``h``, ``beta_H``, ``se_H``, ``lo_H``, ``hi_H``,
+        ``beta_L``, ``se_L``, ``lo_L``, ``hi_L``, ``first_stage_f_H``, ``first_stage_f_L``.
+    """
+    from ._results import LPResult
+
+    if lags is not None:
+        n_lags = lags
+    if horizon is not None:
+        horizons = range(0, horizon + 1)
+    if ci is not None:
+        alpha = 1.0 - ci
+
+    horizons = list(horizons)
+    ctl = list(controls or [])
+    z_crit = norm.ppf(1 - alpha / 2)
+
+    rows = []
+    for h in horizons:
+        sub = df[[y, x, z, state] + ctl].copy()
+        sub["__dy_h__"] = sub[y].shift(-h) - sub[y].shift(1)
+        for lag in range(1, n_lags + 1):
+            sub[f"__{x}_L{lag}__"] = sub[x].shift(lag)
+            sub[f"__{y}_L{lag}__"] = sub[y].shift(lag)
+            for c in ctl:
+                sub[f"__{c}_L{lag}__"] = sub[c].shift(lag)
+        sub = sub.dropna()
+        if sub.empty:
+            rows.append({
+                "h": h,
+                "beta_H": np.nan, "se_H": np.nan, "lo_H": np.nan, "hi_H": np.nan,
+                "beta_L": np.nan, "se_L": np.nan, "lo_L": np.nan, "hi_L": np.nan,
+                "first_stage_f_H": np.nan, "first_stage_f_L": np.nan,
+            })
+            continue
+
+        # Compute transition weights F in [0, 1]
+        st = sub[state].values.astype(float)
+        if transition == "threshold":
+            if sub[state].min() < threshold < sub[state].max():
+                F = (st > threshold).astype(float)
+            else:
+                st_std = (st - st.mean()) / (st.std(ddof=0) if st.std(ddof=0) > 0 else 1.0)
+                F = (st_std > threshold).astype(float)
+        elif transition == "logistic":
+            st_std = (st - st.mean()) / (st.std(ddof=0) if st.std(ddof=0) > 0 else 1.0)
+            F = _logistic(st_std - threshold, gamma)
+        else:
+            raise ValueError(f"Unknown transition {transition!r}; use 'threshold' or 'logistic'")
+
+        if F.min() == F.max():
+            rows.append({
+                "h": h,
+                "beta_H": np.nan, "se_H": np.nan, "lo_H": np.nan, "hi_H": np.nan,
+                "beta_L": np.nan, "se_L": np.nan, "lo_L": np.nan, "hi_L": np.nan,
+                "first_stage_f_H": np.nan, "first_stage_f_L": np.nan,
+            })
+            continue
+
+        n = len(sub)
+        x_H = F * sub[x].values
+        x_L = (1.0 - F) * sub[x].values
+        z_H = F * sub[z].values
+        z_L = (1.0 - F) * sub[z].values
+
+        # Build baseline controls: constant, lags, and contemporaneous controls
+        controls_mat = [np.ones(n)]
+        for lag in range(1, n_lags + 1):
+            controls_mat.append(sub[f"__{x}_L{lag}__"].values)
+            controls_mat.append(sub[f"__{y}_L{lag}__"].values)
+            for c in ctl:
+                controls_mat.append(sub[f"__{c}_L{lag}__"].values)
+        for c in ctl:
+            controls_mat.append(sub[c].values)
+
+        # First stage instrument matrix: [W, z_H, z_L]
+        Z_fs = np.column_stack(controls_mat + [z_H, z_L])
+
+        try:
+            # First stages for high and low state
+            fs_H = ols_hac(x_H, Z_fs, lags=h + 1)
+            fs_L = ols_hac(x_L, Z_fs, lags=h + 1)
+
+            x_hat_H = Z_fs @ fs_H["beta"]
+            x_hat_L = Z_fs @ fs_L["beta"]
+
+            # First stage F stats (squared t on respective instrument)
+            f_H = float((fs_H["beta"][-2] / fs_H["se"][-2]) ** 2) if fs_H["se"][-2] > 0 else np.nan
+            f_L = float((fs_L["beta"][-1] / fs_L["se"][-1]) ** 2) if fs_L["se"][-1] > 0 else np.nan
+
+            # Second stage: dy_h on [1, x_hat_H, x_hat_L, controls without constant]
+            X2 = np.column_stack([np.ones(n), x_hat_H, x_hat_L] + controls_mat[1:])
+            out2 = ols_hac(sub["__dy_h__"].values, X2, lags=h + 1)
+
+            b_H = float(out2["beta"][1])
+            se_H = float(out2["se"][1])
+            b_L = float(out2["beta"][2])
+            se_L = float(out2["se"][2])
+        except Exception:
+            b_H = se_H = b_L = se_L = f_H = f_L = np.nan
+
+        rows.append({
+            "h": h,
+            "beta_H": b_H, "se_H": se_H,
+            "lo_H": b_H - z_crit * se_H, "hi_H": b_H + z_crit * se_H,
+            "beta_L": b_L, "se_L": se_L,
+            "lo_L": b_L - z_crit * se_L, "hi_L": b_L + z_crit * se_L,
+            "first_stage_f_H": f_H,
+            "first_stage_f_L": f_L,
+        })
+
+    res_df = pd.DataFrame(rows)
+    out_result = LPResult(res_df)
+    out_result.method = "state_dep_iv"
+    return out_result
+
+
+__all__ = ["lp_state_dep", "lp_smooth_transition_irf", "lp_state_dep_iv"]

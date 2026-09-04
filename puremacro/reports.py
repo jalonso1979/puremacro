@@ -58,6 +58,36 @@ def _df_to_latex(df: pd.DataFrame, index: bool = True) -> str:
     )
 
 
+def _df_to_typst(df: pd.DataFrame, index: bool = True) -> str:
+    """Self-contained Typst table renderer."""
+    df = df.copy()
+    if index:
+        df = df.reset_index()
+    cols = list(df.columns.astype(str))
+    n_cols = len(cols)
+    header_cells = [f"  [* {c} *]" for c in cols]
+    data_cells = []
+    for _, row in df.iterrows():
+        for v in row:
+            val_str = "" if pd.isna(v) else str(v)
+            data_cells.append(f"  [{val_str}]")
+    all_cells = ",\n".join(header_cells + data_cells)
+    return f"#table(\n  columns: {n_cols},\n{all_cells},\n)"
+
+
+def _p_stars(p: float) -> str:
+    """Conventional academic significance stars."""
+    if np.isnan(p):
+        return ""
+    if p < 0.01:
+        return "***"
+    if p < 0.05:
+        return "**"
+    if p < 0.10:
+        return "*"
+    return ""
+
+
 # ---------------------------------------------------------------------------
 # Coefficient tables
 # ---------------------------------------------------------------------------
@@ -72,6 +102,7 @@ def coef_table(
     include_p: bool = True,
     include_ci: bool = True,
     alpha: float = 0.05,
+    stars: bool = False,
 ) -> str:
     """Render a coefficient table.
 
@@ -80,7 +111,9 @@ def coef_table(
     beta : (k,) — point estimates.
     se   : (k,) — standard errors.
     names : optional regressor names; defaults to ``x0, x1, ...``.
-    fmt  : ``"markdown"``, ``"latex"`` or ``"plain"`` (whitespace).
+    fmt  : ``"markdown"``, ``"latex"``, ``"typst"``, or ``"plain"`` (whitespace).
+    stars : bool, default False
+        If True, append significance stars (* p<0.10, ** p<0.05, *** p<0.01) to coef.
 
     Returns
     -------
@@ -94,24 +127,35 @@ def coef_table(
     z = norm.ppf(1 - alpha / 2)
     rows = []
     for i in range(k):
+        tt = beta[i] / se[i] if se[i] > 0 else np.nan
+        p_val = 2.0 * norm.sf(abs(tt)) if not np.isnan(tt) else np.nan
+        coef_str = f"{beta[i]:.{digits}f}"
+        if stars:
+            coef_str += _p_stars(p_val)
         row = {"variable": names[i],
-               "coef": beta[i],
+               "coef": coef_str if stars else beta[i],
                "se": se[i]}
         if include_t:
-            row["t"] = beta[i] / se[i] if se[i] > 0 else np.nan
+            row["t"] = tt
         if include_p:
-            tt = beta[i] / se[i] if se[i] > 0 else np.nan
-            row["p"] = 2.0 * norm.sf(abs(tt)) if not np.isnan(tt) else np.nan
+            row["p"] = p_val
         if include_ci:
             row[f"lo_{int((1-alpha)*100)}%"] = beta[i] - z * se[i]
             row[f"hi_{int((1-alpha)*100)}%"] = beta[i] + z * se[i]
         rows.append(row)
     df = pd.DataFrame(rows).set_index("variable")
-    df = df.round(digits)
+    if not stars:
+        df = df.round(digits)
+    else:
+        # round numeric columns only
+        num_cols = [c for c in df.columns if c != "coef"]
+        df[num_cols] = df[num_cols].round(digits)
     if fmt == "markdown":
         return _df_to_markdown(df)
     if fmt == "latex":
         return _df_to_latex(df)
+    if fmt == "typst":
+        return _df_to_typst(df)
     return df.to_string()
 
 
@@ -227,6 +271,12 @@ class LPResult:
 
     def to_markdown(self) -> str:
         return _df_to_markdown(self.df)
+
+    def to_latex(self) -> str:
+        return _df_to_latex(self.df)
+
+    def to_typst(self) -> str:
+        return _df_to_typst(self.df)
 
 
 __all__ = [

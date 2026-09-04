@@ -36,6 +36,74 @@ class _IRFPlotMixin:
             ax=ax,
         )
 
+    def to_frame(
+        self,
+        *,
+        target_idx: int | None = None,
+        shock_idx: int | None = None,
+    ):
+        """Return a tidy pandas DataFrame of IRF estimates and bands."""
+        import pandas as pd
+
+        point = getattr(self, "irf_point", getattr(self, "irf_median", None))
+        lower = getattr(self, "irf_lower", None)
+        upper = getattr(self, "irf_upper", None)
+        if point is None:
+            raise ValueError("Result object does not contain impulse response matrices.")
+
+        H_plus, n_resp, n_shock = point.shape
+        rows = []
+        for h in range(H_plus):
+            if target_idx is not None and shock_idx is not None:
+                row = {
+                    "h": h,
+                    "point": float(point[h, target_idx, shock_idx]),
+                }
+                if lower is not None:
+                    row["lower"] = float(lower[h, target_idx, shock_idx])
+                if upper is not None:
+                    row["upper"] = float(upper[h, target_idx, shock_idx])
+                rows.append(row)
+            else:
+                for r in range(n_resp):
+                    for s in range(n_shock):
+                        row = {
+                            "h": h,
+                            "response": r,
+                            "shock": s,
+                            "point": float(point[h, r, s]),
+                        }
+                        if lower is not None:
+                            row["lower"] = float(lower[h, r, s])
+                        if upper is not None:
+                            row["upper"] = float(upper[h, r, s])
+                        rows.append(row)
+        return pd.DataFrame(rows)
+
+    def to_markdown(self, *, target_idx: int = 0, shock_idx: int = 0) -> str:
+        """Render IRF path for target_idx and shock_idx as Markdown."""
+        from ...reports import _df_to_markdown
+
+        return _df_to_markdown(
+            self.to_frame(target_idx=target_idx, shock_idx=shock_idx), index=False
+        )
+
+    def to_latex(self, *, target_idx: int = 0, shock_idx: int = 0) -> str:
+        """Render IRF path for target_idx and shock_idx as LaTeX."""
+        from ...reports import _df_to_latex
+
+        return _df_to_latex(
+            self.to_frame(target_idx=target_idx, shock_idx=shock_idx), index=False
+        )
+
+    def to_typst(self, *, target_idx: int = 0, shock_idx: int = 0) -> str:
+        """Render IRF path for target_idx and shock_idx as Typst."""
+        from ...reports import _df_to_typst
+
+        return _df_to_typst(
+            self.to_frame(target_idx=target_idx, shock_idx=shock_idx), index=False
+        )
+
 
 @dataclass(frozen=True)
 class ProxySVARResult(_IRFPlotMixin):
