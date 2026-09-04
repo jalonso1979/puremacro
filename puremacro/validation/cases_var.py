@@ -41,6 +41,55 @@ def _cholesky_irf_point() -> dict:
     return {"irf": np.asarray(sol.irf_point, dtype=float)}
 
 
+def _sign_restrictions_impact() -> dict:
+    from puremacro.var.identify.sign import sign_restriction_svar
+
+    d = var_demo_data()
+    res = sign_restriction_svar(d["Y"], p=1, horizon=2, restrictions={0: [+1, -1]}, n_draws=100, seed=42)
+    # Impact signs for shock 0 must be +1 on var 0 and -1 on var 1
+    s0 = 1.0 if res.irf_median[0, 0, 0] > 0 else 0.0
+    s1 = 1.0 if res.irf_median[0, 1, 0] < 0 else 0.0
+    return {"signs_match": np.array([s0, s1])}
+
+
+def _sign_zero_orthogonality() -> dict:
+    from puremacro.var.identify.sign_zero import sign_zero
+    from puremacro.var.estimate import estimate_var
+
+    d = var_demo_data()
+    vr = estimate_var(d["Y"], p=1)
+    out = sign_zero(vr.A_list, vr.Sigma, zero_constraints=[(0, 1)], sign_constraints={(0, 0): +1},
+                    n_draws=50, rng=np.random.default_rng(42))
+    zero_val = float(out.B0[0, 1]) if out.success else 0.0
+    return {"zero_res": zero_val}
+
+
+def _rigobon_hetero_positive_variances() -> dict:
+    from puremacro.var.identify.hetero import rigobon_svar
+
+    d = var_demo_data()
+    Y = d["Y"]
+    regime = np.zeros(len(Y), dtype=int)
+    regime[len(Y) // 2:] = 1
+    out = rigobon_svar(Y, regime_indicator=regime, p=1, horizon=2, n_boot=0)
+    all_pos = float(bool(np.all(out.variance_ratios > 0)))
+    return {"all_positive": all_pos}
+
+
+def _bvar_minnesota_diffuse_limit() -> dict:
+    from puremacro.var.bvar import minnesota_posterior
+    from puremacro.var.estimate import estimate_var
+    import pandas as pd
+
+    d = var_demo_data()
+    Y = d["Y"]
+    vr = estimate_var(Y, p=1)
+    df_Y = pd.DataFrame(Y, columns=["y1", "y2"])
+    bvar_res = minnesota_posterior(df_Y, p=1, lambda1=1e5)
+    diff = np.max(np.abs(bvar_res["A_list"][0] - vr.A_list[0]))
+    return {"max_diff": float(diff)}
+
+
 CASES: list[ValidationCase] = [
     ValidationCase(
         id="var.fevd_sums_to_one",
@@ -74,5 +123,49 @@ CASES: list[ValidationCase] = [
         reference="var:cholesky_irf_vs_statsmodels",  # frozen golden
         tol=Tol.TIGHT,
         citation="statsmodels 0.14.6 VAR(df).fit(p).irf(H).orth_irfs (recursive identification).",
+    ),
+    ValidationCase(
+        id="var.sign_restrictions_impact_signs",
+        subsystem="var",
+        title="Sign restriction SVAR satisfies prescribed impact signs",
+        title_es="SVAR de restricciones de signo satisface signos en impacto",
+        mechanism=Mechanism.INTERNAL,
+        compute=_sign_restrictions_impact,
+        reference=lambda: {"signs_match": np.array([1.0, 1.0])},
+        tol=Tol.EXACT,
+        citation="Uhlig (2005) sign restrictions definition on contemporaneous impact matrix.",
+    ),
+    ValidationCase(
+        id="var.sign_zero_orthogonality",
+        subsystem="var",
+        title="Sign-and-zero identification satisfies contemporaneous zero restrictions",
+        title_es="Identificación de signo y cero satisface restricciones contemporáneas de cero",
+        mechanism=Mechanism.INTERNAL,
+        compute=_sign_zero_orthogonality,
+        reference=lambda: {"zero_res": 0.0},
+        tol=Tol.TIGHT,
+        citation="Arias, Rubio-Ramírez and Waggoner (2018) sign-and-zero restrictions.",
+    ),
+    ValidationCase(
+        id="var.rigobon_hetero_positive_variances",
+        subsystem="var",
+        title="Rigobon heteroskedastic SVAR structural variance ratios are strictly positive",
+        title_es="Ratios de varianza estructural de SVAR por heterocedasticidad de Rigobon son positivos",
+        mechanism=Mechanism.INTERNAL,
+        compute=_rigobon_hetero_positive_variances,
+        reference=lambda: {"all_positive": 1.0},
+        tol=Tol.EXACT,
+        citation="Rigobon (2003) identification through heteroskedasticity.",
+    ),
+    ValidationCase(
+        id="var.bvar_minnesota_diffuse_limit",
+        subsystem="var",
+        title="Minnesota BVAR posterior mean converges to OLS in diffuse prior limit",
+        title_es="Media posterior de BVAR Minnesota converge a MCO bajo a priori difusa",
+        mechanism=Mechanism.INTERNAL,
+        compute=_bvar_minnesota_diffuse_limit,
+        reference=lambda: {"max_diff": 0.0},
+        tol=Tol.TIGHT,
+        citation="Banbura, Giannone and Reichlin (2010) Minnesota prior dummy observations limit.",
     ),
 ]

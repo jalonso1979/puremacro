@@ -241,4 +241,21 @@ CASES: list[ValidationCase] = [
         ),
         notes="Cross-method identity — no external reference package needed.",
     ),
+    ValidationCase(
+        id="lp.panel_dk_positive_definite",
+        subsystem="lp",
+        title="Driscoll-Kraay panel LP standard errors are strictly positive and finite",
+        title_es="Errores estándar de Driscoll-Kraay en PL de panel son positivos y finitos",
+        mechanism=Mechanism.INTERNAL,
+        compute=lambda: {
+            "all_positive": 1.0 if (
+                lambda r: np.all(r.se > 0) and np.all(np.isfinite(r.se))
+            )(__import__("puremacro.lp.panel_dk", fromlist=["panel_lp_dk"]).panel_lp_dk(
+                lp_panel_demo(), y="y", x="x", horizons=LP_HORIZONS, lags=LP_N_LAGS
+            )) else 0.0
+        },
+        reference=lambda: {"all_positive": 1.0},
+        tol=Tol.EXACT,
+        citation="Driscoll & Kraay (1998, REStat 80(4):549-560) HAC covariance positive-semidefiniteness.",
+    ),
 ]

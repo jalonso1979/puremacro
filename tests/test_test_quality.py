@@ -287,3 +287,85 @@ def test_no_p_value_is_computed_as_one_minus_cdf():
         "p-values computed as `1 - cdf` collapse to exactly 0.0 in the tail; "
         "use `.sf(...)` instead:\n  " + "\n  ".join(offenders)
     )
+
+
+# ---------------------------------------------------------------------------
+# AST guards: Panel sorting before shift, kron orientation, and conditioning.
+# ---------------------------------------------------------------------------
+
+def test_panel_lp_sorts_before_positional_shift():
+    """Panel estimators that compute lags/leads via positional shift must sort first.
+
+    Shifting an unsorted panel silently crosses entity or temporal boundaries,
+    producing corrupt design matrices without raising any error. Every panel
+    helper in `puremacro/lp/` must call .sort_index() or .sort_values() before
+    applying .shift().
+    """
+    root = Path(__file__).resolve().parents[1] / "puremacro" / "lp"
+    for py_file in sorted(root.glob("*.py")):
+        tree = ast.parse(py_file.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef):
+                has_shift = any(
+                    isinstance(n, ast.Call)
+                    and isinstance(n.func, ast.Attribute)
+                    and n.func.attr == "shift"
+                    for n in ast.walk(node)
+                )
+                args = [a.arg for a in node.args.args] + [a.arg for a in node.args.kwonlyargs]
+                is_panel = "entity_level" in args or "unit" in args or "panel" in args
+                has_groupby = any(
+                    isinstance(n, ast.Call)
+                    and isinstance(n.func, ast.Attribute)
+                    and n.func.attr == "groupby"
+                    for n in ast.walk(node)
+                )
+                if has_shift and (is_panel or has_groupby):
+                    has_sort = any(
+                        isinstance(n, ast.Call)
+                        and isinstance(n.func, ast.Attribute)
+                        and n.func.attr in ("sort_index", "sort_values")
+                        for n in ast.walk(node)
+                    )
+                    assert has_sort, (
+                        f"{py_file.name}:{node.name} applies positional shift to "
+                        "panel observations without explicitly calling sort_index or "
+                        "sort_values first."
+                    )
+
+
+def test_weak_iv_vec_matches_kron_fortran_convention():
+    """vec(Pi_hat) in weak_iv_rk_f must use order='F' to match np.kron."""
+    root = Path(__file__).resolve().parents[1]
+    tree = ast.parse((root / "puremacro" / "inference" / "weak_iv.py").read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name == "weak_iv_rk_f":
+            for n in ast.walk(node):
+                if isinstance(n, ast.Call) and getattr(n.func, "attr", "") == "ravel":
+                    kw = {k.arg: ast.literal_eval(k.value) for k in n.keywords if isinstance(k.value, ast.Constant)}
+                    assert kw.get("order") == "F", (
+                        "weak_iv_rk_f matrix vectorization must specify order='F' "
+                        "to align with np.kron's column-major vec convention."
+                    )
+
+
+def test_linear_algebra_uses_relative_conditioning_thresholds():
+    """Inversion and Cholesky singularity checks must be scale-invariant."""
+    root = Path(__file__).resolve().parents[1]
+    tree = ast.parse((root / "puremacro" / "_linalg.py").read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name in ("inv_xtx", "safe_cholesky"):
+            comparisons = [n for n in ast.walk(node) if isinstance(n, ast.Compare)]
+            has_rel = any(
+                isinstance(c.left, ast.Call)
+                and getattr(c.left.func, "attr", "") == "min"
+                and any(
+                    isinstance(r, ast.BinOp) and isinstance(r.op, ast.Mult)
+                    for r in c.comparators
+                )
+                for c in comparisons
+            )
+            assert has_rel, (
+                f"_linalg.py:{node.name} must use relative conditioning "
+                "(scaled by maximum pivot) rather than a scale-dependent constant."
+            )
