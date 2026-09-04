@@ -38,6 +38,7 @@ def sun_abraham(
     n_boot: int = 200,
     alpha: float = 0.10,
     seed: int = 0,
+    ci: float | None = None,
 ) -> SunAbrahamResult:
     """Sun-Abraham interaction-weighted event-study aggregation.
 
@@ -59,6 +60,8 @@ def sun_abraham(
         Two-sided coverage = ``1 − α`` (so 0.10 ⇒ 90 % CIs).
     seed : int, default 0
         RNG seed for the bootstrap.
+    ci : float, optional
+        Confidence interval coverage (alpha = 1.0 - ci).
 
     Returns
     -------
@@ -73,6 +76,9 @@ def sun_abraham(
         in event studies with heterogeneous treatment effects. JoE
         225(2), 175-199.
     """
+    if ci is not None:
+        alpha = 1.0 - ci
+
     cs = callaway_santanna(
         df, unit=unit, time=time, outcome=outcome,
         treat_time=treat_time, control=control,

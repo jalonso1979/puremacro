@@ -53,6 +53,8 @@ from puremacro.runtime.transport import (
 )
 from puremacro.runtime.transport import available as transport_available
 from puremacro.runtime import store
+from puremacro.runtime.colab import colab_auth_guide, generate_colab_notebook
+from puremacro.runtime import colab
 
 __all__ = [
     # capabilities
@@ -65,4 +67,6 @@ __all__ = [
     "enable_browser_network", "disable_browser_network",
     # storage
     "store",
+    # colab offload bridge
+    "colab", "colab_auth_guide", "generate_colab_notebook",
 ]

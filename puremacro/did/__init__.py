@@ -28,6 +28,7 @@ from .borusyak_jaravel_spiess import borusyak_jaravel_spiess
 from .synthetic_did import synthetic_did
 from .cdh import cdh_did
 from .sdid_multi import sdid_multi_cohort
+from .sensitivity import honest_did_sensitivity, HonestDiDResult
 from ._results import (
     CallawaySantannaResult,
     SunAbrahamResult,
@@ -42,8 +43,9 @@ __all__ = [
     "callaway_santanna", "sun_abraham",
     "borusyak_jaravel_spiess", "synthetic_did",
     "cdh_did", "sdid_multi_cohort",
+    "honest_did_sensitivity",
     # Result dataclasses
     "CallawaySantannaResult", "SunAbrahamResult",
     "BorusyakJaravelSpiessResult", "SyntheticDiDResult",
-    "CdHResult", "SDIDMultiResult",
+    "CdHResult", "SDIDMultiResult", "HonestDiDResult",
 ]

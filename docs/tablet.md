@@ -155,7 +155,40 @@ same numbers after this feature landed. Only parameters that change *cost* are
 clamped (`n_boot`, `n_draws`, `n_grid`, `n_sim`); `horizon` changes what is
 being estimated, so it is deliberately left alone.
 
-`with runtime.override("tablet"):` rehearses tablet budgets on a laptop.
+## 5. Offloading Heavy Compute to Google Colab
+
+When a simulation, bootstrap, or MCMC chain exceeds the memory or thermal envelope of an iPad, `puremacro.runtime` provides a bridge to export self-contained jobs to **Google Colab**:
+
+```python
+from puremacro.runtime import generate_colab_notebook, colab_auth_guide
+
+# Print step-by-step authentication instructions for mobile Safari / iPad
+print(colab_auth_guide())
+
+# Heavy computation script
+heavy_code = """
+import numpy as np
+from puremacro.var import favar
+
+# Runs 2,000 bootstrap draws on cloud CPUs
+res = favar(my_df, my_df["policy_rate"], n_factors=4, p=2, horizon=24, n_boot=2000)
+print(res.summary())
+"""
+
+# Export a 1-click self-contained Colab notebook with embedded data
+generate_colab_notebook(
+    code=heavy_code,
+    data_payloads={"my_df": panel_data},
+    title="FAVAR Heavy Bootstrap Run",
+    save_path="favar_colab_run.ipynb",
+    mount_drive=True,
+)
+```
+
+### Why this works seamlessly on iPad:
+- **Zero File Uploads**: `data_payloads` embeds your DataFrames directly as base64 strings into the notebook cells, so Colab runs without requiring manual CSV uploads.
+- **Guided Authentication**: Automatically generates cells prompting for Google account login (`auth.authenticate_user()`) and Drive mounting (`drive.mount('/content/drive')`).
+- **Cloud Acceleration**: Colab provides free cloud GPUs, multi-core CPUs, and expansive RAM, returning `.pmz` cartridges or LaTeX tables back to your Drive.
 
 ## Installing on Juno
 
@@ -185,3 +218,4 @@ interpreter and confirms on the target that `host == "pyodide"`,
 `XMLHttpRequest` — it is a browser API — so gate 6 cannot reach it either. Its
 callers, error paths and module patching are tested; the XHR call itself awaits
 confirmation from a real browser or Juno session.
+

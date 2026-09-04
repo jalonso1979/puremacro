@@ -349,6 +349,7 @@ def callaway_santanna(
     n_boot: int = 200,
     alpha: float = 0.10,
     seed: int = 0,
+    ci: float | None = None,
 ):
     """Callaway-Sant'Anna (2021) group-time average treatment effects.
 
@@ -392,6 +393,9 @@ def callaway_santanna(
     Callaway, B. and Sant'Anna, P.H.C. (2021). Difference-in-differences
         with multiple time periods. Journal of Econometrics 225(2), 200-230.
     """
+    if ci is not None:
+        alpha = 1.0 - ci
+
     if isinstance(df, pd.DataFrame):
         if group_g is not None or period_t is not None or unit_id is not None:
             raise TypeError(

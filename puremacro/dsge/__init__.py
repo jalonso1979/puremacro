@@ -24,6 +24,11 @@ from ._results import (
 from .estimate import estimate_dsge
 from .sw07_estimate import estimate_sw07
 from .fertility_adj_costs import solve_bgp, solve_fertility
+from .pruning import (
+    PrunedDSGESolution,
+    PrunedSimulationResult,
+    canonical_growth_2nd_order,
+)
 from . import priors, fertility_adj_costs
 
 __all__ = [
@@ -32,6 +37,7 @@ __all__ = [
     "DSGEPosteriorResult", "SW07PosteriorResult", "FertilitySolution",
     "estimate_dsge", "estimate_sw07",
     "solve_bgp", "solve_fertility",
+    "PrunedDSGESolution", "PrunedSimulationResult", "canonical_growth_2nd_order",
     "priors", "fertility_adj_costs",
 ]
 from . import smets_wouters  # re-export for back-compat with 0.50.0 callers

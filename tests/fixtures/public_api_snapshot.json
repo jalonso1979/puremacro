@@ -144,6 +144,7 @@
       "BorusyakJaravelSpiessResult",
       "CallawaySantannaResult",
       "CdHResult",
+      "HonestDiDResult",
       "PanelDiD",
       "SDIDMultiResult",
       "SunAbrahamResult",
@@ -151,6 +152,7 @@
       "borusyak_jaravel_spiess",
       "callaway_santanna",
       "cdh_did",
+      "honest_did_sensitivity",
       "sdid_multi_cohort",
       "sun_abraham",
       "synthetic_did"
@@ -183,9 +185,12 @@
       "KleinSolution",
       "LinearModel",
       "ModelError",
+      "PrunedDSGESolution",
+      "PrunedSimulationResult",
       "SW07PosteriorResult",
       "SteadyStateError",
       "build",
+      "canonical_growth_2nd_order",
       "estimate_dsge",
       "estimate_sw07",
       "fertility_adj_costs",
@@ -1717,10 +1722,13 @@
       "TransportError",
       "budgeted",
       "capabilities",
+      "colab",
+      "colab_auth_guide",
       "current_budget",
       "disable_browser_network",
       "enable_browser_network",
       "fit",
+      "generate_colab_notebook",
       "is_pyodide",
       "is_tablet",
       "override",
@@ -1745,6 +1753,10 @@
       "current",
       "fit",
       "override"
+    ],
+    "puremacro.runtime.colab": [
+      "colab_auth_guide",
+      "generate_colab_notebook"
     ],
     "puremacro.runtime.store": [
       "SCHEMA_VERSION",
@@ -2371,6 +2383,15 @@
       "tau",
       "treatment_time"
     ],
+    "puremacro.did.sensitivity.HonestDiDResult": [
+      "breakdown_value",
+      "ci",
+      "method",
+      "pre_trend_max",
+      "pre_trend_slope",
+      "table",
+      "target_horizons"
+    ],
     "puremacro.did.types.PanelDiD": [
       "df",
       "outcome",
@@ -2452,6 +2473,28 @@
       "ir",
       "shock_names",
       "var_names"
+    ],
+    "puremacro.dsge.pruning.PrunedDSGESolution": [
+      "F",
+      "G",
+      "G_sigmasigma",
+      "G_xx",
+      "H_sigmasigma",
+      "H_xx",
+      "L",
+      "N",
+      "control_names",
+      "shock_names",
+      "state_names"
+    ],
+    "puremacro.dsge.pruning.PrunedSimulationResult": [
+      "controls",
+      "controls_1st",
+      "controls_2nd",
+      "shocks",
+      "states",
+      "states_1st",
+      "states_2nd"
     ],
     "puremacro.dsge.smets_wouters.SWResult": [
       "G",
