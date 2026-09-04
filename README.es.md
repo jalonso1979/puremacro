@@ -245,16 +245,19 @@ T = 200
 Y = rng.standard_normal((T, 3)).cumsum(0)          # ndarray, shape (T, 3)
 
 # SVAR identificado por Cholesky con bandas de confianza al 90% mediante bootstrap de residuos.
-from puremacro.var.identify.cholesky import cholesky_svar
-res = cholesky_svar(Y, p=2, horizon=20, n_boot=500, ci=0.9)
-print("IRF array shape (H+1, n, n):", res.irf_point.shape)   # (21, 3, 3)
-# también disponibles: res.irf_lower, res.irf_upper, res.n_boot, res.n_fail
+from puremacro.var.identify import cholesky_svar
+res = cholesky_svar(Y, p=2, horizon=20, n_boot=500, ci=0.90)
+print(res.summary())
+res.plot(target_idx=0, shock_idx=0)        # Gráfico de FRI en 1 línea con bandas
+print(res.to_latex(target_idx=0, shock_idx=0))  # Tabla lista para LaTeX
 
 # LP-HAC para un solo país: respuesta de y a un choque sintético.
 panel = pd.DataFrame({"y": Y[:, 0], "shock": rng.standard_normal(T)})
-from puremacro.lp.jorda import lp_hac
-irf = lp_hac(panel, y="y", x="shock", horizons=range(0, 21), n_lags=2)
-print(irf.head())                       # columns: h, beta, se, t, lo, hi
+from puremacro.lp import lp_hac
+irf = lp_hac(panel, y="y", x="shock", horizon=20, lags=2, ci=0.90)
+print(irf.summary())
+irf.plot(title="Respuesta de y al choque estructural")
+print(irf.to_latex())                      # Tabla lista para LaTeX
 ```
 
 Las claves de API opcionales se resuelven de forma centralizada (no se necesita ninguna para los ejemplos sintéticos anteriores):
@@ -269,25 +272,33 @@ credentials.status()                  # see what's configured (no values leaked)
 
 Si proviene de Stata, MATLAB/Dynare o statsmodels:
 
-| Tarea / Estimador | Stata | MATLAB / Dynare | statsmodels / linearmodels | **`puremacro`** |
+| Tarea / Estimador | Stata | MATLAB / Dynare | statsmodels / linearmodels | **`puremacro 2.0`** |
 |---|---|---|---|---|
 | **SVAR de Cholesky** | `var y1 y2, lags(1/4)` + `irf create` | `varm` / VAR Toolbox | `VAR(Y).fit(4).irf(20)` | `var.identify.cholesky_svar(Y, p=4, horizon=20)` |
 | **SVAR de Blanchard–Quah** | `svar y1 y2, lreq(...)` | VAR Toolbox `bq_svar` | `SVAR(..., svar_type='B')` | `var.identify.bq_svar(Y, p=4, horizon=20)` |
 | **Restricciones de signo** | Plugin de usuario | Rubio-Ramírez / VAR Toolbox | — | `var.identify.sign_restrictions(Y, signs, p=4)` |
 | **SVAR con Proxy / IV externo** | `svariv` | Mertens & Ravn SVAR-IV | — | `var.identify.proxy_svar(Y, p=4, instrument_series=z)` |
-| **Proyecciones locales (HAC)** | `jorda` / MCO manual | Código de Jordà (2005) | `OLS(y_h, X).fit(cov_type='HAC')` | `lp.jorda.lp_hac(df, y="y", x="shock", horizons=range(21))` |
-| **PL de panel (Driscoll–Kraay)** | `xtscc` | Panel LP toolbox | `PanelOLS(..., cov_type='driscoll-kraay')` | `regress.lp.lp_panel(df, y="y", shock="z", se="driscoll_kraay")` |
+| **Proyecciones locales (HAC)** | `jorda` / MCO manual | Código de Jordà (2005) | `OLS(y_h, X).fit(cov_type='HAC')` | `lp.lp_hac(df, y="y", x="shock", horizon=20, lags=4)` |
+| **LP-IV dependiente de estado** | 2SLS con interacción manual | — | — | `lp.lp_state_dep_iv(df, y="y", x="g", z="news", state="u")` |
+| **PL de panel (Driscoll–Kraay)** | `xtscc` | Panel LP toolbox | `PanelOLS(..., cov_type='driscoll-kraay')` | `lp.panel_lp_dk(df, y="y", x="z", unit_col="id", time_col="t")` |
 | **GMM de panel dinámico** | `xtabond2 y L.y, gmm(y) two robust` | Arellano–Bond MATLAB | — | `dynpanel.ab_gmm(y, panel_id, time_id, two_step=True, windmeijer=True)` |
 | **DiD escalonado** | `csdid y, ivar(id) time(t) gvar(g)` | — | — | `did.callaway_santanna(df, unit="id", time="t", outcome="y", treat_time="g")` |
+| **DiD sintético** | `sdid y id t d` | synthdid paquete R | — | `did.synthetic_did(df, unit="id", time="t", outcome="y", treatment="d")` |
+| **VAR aumentado con factores (FAVAR)** | — | BBE (2005) MATLAB | — | `var.favar(panel_df, policy_series, n_factors=3, horizon=20)` |
 | **Iteración de función de valor** | — | VFIToolkit `ValueFnIter_Case1` | — | `vfi.VFIProblem(a_grid, z_grid, P_z, return_fn, beta).solve()` |
 | **DSGE lineal (QZ / BK)** | — | Dynare `stoch_simul` / Klein `solab` | — | `dsge.klein.klein_solve(A, B, C, n_pre=...)` |
-| **Raíz unitaria GLS (DF-GLS)** | `dfgls y, maxlag(4)` | Código ERS (1996) | `adfuller` | `tests.unit_root.dfgls_test(y, regression="ct")` |
-| **Ajuste estacional** | `x13 y` | Wrapper X-13 | `STL` / `x13` | `sa.stl.stl_sa(y)` / `sa.x11.x11_sa(y)` |
+| **DSGE a partir de ecuaciones** | — | Dynare `.mod` file | — | `dsge.build(equations, variables=..., states=..., shocks=...)` |
+| **Raíz unitaria GLS (DF-GLS)** | `dfgls y, maxlag(4)` | Código ERS (1996) | `adfuller` | `unit_root.dfgls_test(y, regression="ct")` |
+| **Ajuste estacional** | `x13 y` | Wrapper X-13 | `STL` / `x13` | `sa.stl_sa(y)` / `sa.x11_sa(y)` |
 
 Las replicaciones de extremo a extremo de artículos canónicos se encuentran en `puremacro/examples/` — Bloom 2009 (`bloom2009.py`), SVAR narrativo de Mertens-Ravn (`svariv_mertens_ravn.py`), narrativa monetaria de Romer-Romer (`romer_romer_*.py`) y aproximadamente 60 más. La mayoría (como el ejemplo de Uhlig anterior) son completamente sintéticos y no requieren datos ni claves; algunos leen datos incluidos en el paquete o descargados en línea.
 
 ## Documentación
 
+- **`docs/lp.md`** — Guía de proyecciones locales (LP-HAC, LP-IV, LP-IV dependiente de estado, LP de panel, `LPResult`).
+- **`docs/did.md`** — Diferencias en diferencias modernas (Callaway-Sant'Anna, Sun-Abraham, Borusyak-Jaravel-Spiess, DiD sintético).
+- **`docs/reporting.md`** — Exportación para publicaciones (LaTeX, Typst, Markdown, estrellas de significancia).
+- **`docs/var.md`** — VAR en forma reducida, identificación de SVAR, FAVAR, bandas bootstrap.
 - **`ARCHITECTURE.md`** — mapa de módulos, niveles de estabilidad, contrato con Pyodide, estándar de objetos de resultado. Léalo antes si va a contribuir o busca dónde vive algo.
 - **`CHANGELOG.md`** — diferencias por versión, incluidas las refactorizaciones internas.
 - **`docs/es/ADVISORY.md`** — avisos de corrección: versiones publicadas que devolvieron un número equivocado, y la condición exacta bajo la cual cada error se anula.
@@ -301,7 +312,7 @@ Las replicaciones de extremo a extremo de artículos canónicos se encuentran en
 
 ## Estado
 
-Paquete de investigación de un solo autor, en la versión **1.9.0**. La convención previa a 1.0 que esta sección describía —"las APIs pueden renombrarse libremente con los consumidores actualizados en el mismo commit"— dejó de ser cierta en 0.92.0: todo nombre en `tests/fixtures/public_api_snapshot.json` está cubierto por el gate 3 de publicación, y un renombramiento que no quede registrado ahí no pasa el gate. `docs/1.0_path.md` § 5 enumera qué subpaquetes están dentro de esa promesa y cuáles son experimentales.
+Versión de producción, distribuyendo **2.0.0**. Cubierto por el gate 3 de publicación en `docs/1.0_path.md` § 5 enumera qué subpaquetes están dentro de esa promesa y cuáles son experimentales.
 
 La CI está activa y corre en cada push: la suite sobre tres sistemas operativos y tres versiones de Python, el contrato con Pyodide, mypy, la guardia de deriva contra referencias, `mkdocs build --strict`, el despliegue del playground y una publicación en PyPI disparada por etiqueta mediante trusted publishing. Véase `.github/workflows/`. Aun así ejecute `python tools/release_check.py` localmente antes de etiquetar: los gates 5 y 6 son opcionales y la CI no los corre.
 

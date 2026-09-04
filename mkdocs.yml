@@ -56,8 +56,12 @@ nav:
       - Long national accounts panel: long_panel.md
   - Econometric Engines:
       - VAR & FAVAR: var.md
+      - Local Projections: lp.md
+      - Modern Difference-in-Differences: did.md
       - GDP Nowcasting: nowcast.md
       - Penalized Forecasting: forecast.md
+  - Publication & Reporting:
+      - Manuscript Tables & Exports: reporting.md
   - Structural Models:
       - Sequence-Space HANK: models.md
       - Climate Macro (DICE): climate.md

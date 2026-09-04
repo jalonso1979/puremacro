@@ -420,16 +420,19 @@ T = 200
 Y = rng.standard_normal((T, 3)).cumsum(0)          # ndarray, shape (T, 3)
 
 # Cholesky-identified SVAR with 90% residual-bootstrap bands.
-from puremacro.var.identify.cholesky import cholesky_svar
-res = cholesky_svar(Y, p=2, horizon=20, n_boot=500, ci=0.9)
-print("IRF array shape (H+1, n, n):", res.irf_point.shape)   # (21, 3, 3)
-# also available: res.irf_lower, res.irf_upper, res.n_boot, res.n_fail
+from puremacro.var.identify import cholesky_svar
+res = cholesky_svar(Y, p=2, horizon=20, n_boot=500, ci=0.90)
+print(res.summary())
+res.plot(target_idx=0, shock_idx=0)        # 1-line IRF plot with confidence bands
+print(res.to_latex(target_idx=0, shock_idx=0))  # Camera-ready LaTeX table
 
 # Single-country LP-HAC: response of y to a synthetic shock.
 panel = pd.DataFrame({"y": Y[:, 0], "shock": rng.standard_normal(T)})
-from puremacro.lp.jorda import lp_hac
-irf = lp_hac(panel, y="y", x="shock", horizons=range(0, 21), n_lags=2)
-print(irf.head())                       # columns: h, beta, se, t, lo, hi
+from puremacro.lp import lp_hac
+irf = lp_hac(panel, y="y", x="shock", horizon=20, lags=2, ci=0.90)
+print(irf.summary())
+irf.plot(title="Response of y to Structural Shock")
+print(irf.to_latex())                      # Camera-ready LaTeX table
 ```
 
 Optional API keys are resolved centrally (none are needed for the synthetic
@@ -445,21 +448,24 @@ credentials.status()                  # see what's configured (no values leaked)
 
 If you are transitioning from Stata, MATLAB/Dynare, or statsmodels:
 
-| Task / Estimator | Stata | MATLAB / Dynare | statsmodels / linearmodels | **`puremacro`** |
+| Task / Estimator | Stata | MATLAB / Dynare | statsmodels / linearmodels | **`puremacro 2.0`** |
 |---|---|---|---|---|
 | **Cholesky SVAR** | `var y1 y2, lags(1/4)` + `irf create` | `varm` / VAR Toolbox | `VAR(Y).fit(4).irf(20)` | `var.identify.cholesky_svar(Y, p=4, horizon=20)` |
 | **Blanchard–Quah SVAR** | `svar y1 y2, lreq(...)` | VAR Toolbox `bq_svar` | `SVAR(..., svar_type='B')` | `var.identify.bq_svar(Y, p=4, horizon=20)` |
 | **Sign Restrictions** | User plugin | Rubio-Ramírez / VAR Toolbox | — | `var.identify.sign_restrictions(Y, signs, p=4)` |
 | **Proxy / External IV SVAR** | `svariv` | Mertens & Ravn SVAR-IV | — | `var.identify.proxy_svar(Y, p=4, instrument_series=z)` |
-| **Local Projections (HAC)** | `jorda` / manual OLS | Jordà (2005) code | `OLS(y_h, X).fit(cov_type='HAC')` | `lp.jorda.lp_hac(df, y="y", x="shock", horizons=range(21))` |
-| **Panel LP (Driscoll–Kraay)** | `xtscc` | Panel LP toolbox | `PanelOLS(..., cov_type='driscoll-kraay')` | `regress.lp.lp_panel(df, y="y", shock="z", se="driscoll_kraay")` |
+| **Local Projections (HAC)** | `jorda` / manual OLS | Jordà (2005) code | `OLS(y_h, X).fit(cov_type='HAC')` | `lp.lp_hac(df, y="y", x="shock", horizon=20, lags=4)` |
+| **State-Dep LP-IV (Ramey-Zubairy)** | manual 2SLS interaction | — | — | `lp.lp_state_dep_iv(df, y="y", x="g", z="news", state="u")` |
+| **Panel LP (Driscoll–Kraay)** | `xtscc` | Panel LP toolbox | `PanelOLS(..., cov_type='driscoll-kraay')` | `lp.panel_lp_dk(df, y="y", x="z", unit_col="id", time_col="t")` |
 | **Dynamic Panel GMM** | `xtabond2 y L.y, gmm(y) two robust` | Arellano–Bond MATLAB | — | `dynpanel.ab_gmm(y, panel_id, time_id, two_step=True, windmeijer=True)` |
 | **Staggered DiD** | `csdid y, ivar(id) time(t) gvar(g)` | — | — | `did.callaway_santanna(df, unit="id", time="t", outcome="y", treat_time="g")` |
+| **Synthetic DiD** | `sdid y id t d` | synthdid R package | — | `did.synthetic_did(df, unit="id", time="t", outcome="y", treatment="d")` |
+| **Factor-Augmented VAR (FAVAR)**| — | BBE (2005) MATLAB | — | `var.favar(panel_df, policy_series, n_factors=3, horizon=20)` |
 | **Value Function Iteration** | — | VFIToolkit `ValueFnIter_Case1` | — | `vfi.VFIProblem(a_grid, z_grid, P_z, return_fn, beta).solve()` |
 | **Linear DSGE (QZ / BK)** | — | Dynare `stoch_simul` / Klein `solab` | — | `dsge.klein.klein_solve(A, B, C, n_pre=...)` |
 | **DSGE from equations** | — | Dynare `.mod` file | — | `dsge.build(equations, variables=..., states=..., shocks=...)` |
-| **GLS Unit Root (DF-GLS)** | `dfgls y, maxlag(4)` | ERS (1996) code | `adfuller` | `tests.unit_root.dfgls_test(y, regression="ct")` |
-| **Seasonal Adjustment** | `x13 y` | X-13 wrapper | `STL` / `x13` | `sa.stl.stl_sa(y)` / `sa.x11.x11_sa(y)` |
+| **GLS Unit Root (DF-GLS)** | `dfgls y, maxlag(4)` | ERS (1996) code | `adfuller` | `unit_root.dfgls_test(y, regression="ct")` |
+| **Seasonal Adjustment** | `x13 y` | X-13 wrapper | `STL` / `x13` | `sa.stl_sa(y)` / `sa.x11_sa(y)` |
 
 End-to-end replications of canonical papers live under `puremacro/examples/`
 — Bloom 2009 (`bloom2009.py`), Mertens-Ravn narrative SVAR
@@ -469,15 +475,14 @@ fully synthetic and need no data or keys; a few read bundled or fetched data.
 
 ## Documentation
 
-- **`ARCHITECTURE.md`** — module map, stability tiers, Pyodide
-  contract, result-object standard. Read this first if you're
-  contributing or trying to find where something lives.
+- **`docs/lp.md`** — Local Projections guide (LP-HAC, LP-IV, State-Dependent LP-IV, Panel LP, `LPResult`).
+- **`docs/did.md`** — Modern Difference-in-Differences (Callaway-Sant'Anna, Sun-Abraham, Borusyak-Jaravel-Spiess, Synthetic DiD).
+- **`docs/reporting.md`** — Publication reporting pipeline (LaTeX, Typst, Markdown, significance stars).
+- **`docs/var.md`** — Reduced-form VAR, SVAR identification, FAVAR, bootstrap bands.
+- **`ARCHITECTURE.md`** — module map, stability tiers, Pyodide contract, result-object standard.
 - **`CHANGELOG.md`** — per-release diff, including internal-only refactors.
-- **`docs/ADVISORY.md`** — correctness advisories: released versions
-  that returned a wrong number, and the exact condition under which
-  each error vanishes.
-- **Per-function docstrings** are the canonical reference; the module
-  docstring of each subpackage explains its scope.
+- **`docs/ADVISORY.md`** — correctness advisories: released versions that returned a wrong number.
+- **Per-function docstrings** are the canonical reference; the module docstring of each subpackage explains its scope.
 
 ## Conventions
 
@@ -492,11 +497,7 @@ fully synthetic and need no data or keys; a few read bundled or fetched data.
 
 ## Status
 
-Single-author research package, shipping **1.9.0**. The pre-1.0
-convention this section used to describe — "APIs rename freely with
-consumers updated in the same commit" — has not held since 0.92.0:
-every name in `tests/fixtures/public_api_snapshot.json` is covered by
-release gate 3, and a rename that is not recorded there fails the gate.
+Production release, shipping **2.0.0**. Covered by release gate 3 in
 `docs/1.0_path.md` § 5 lists which subpackages are inside that promise
 and which are research-experimental.
 
