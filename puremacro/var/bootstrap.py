@@ -68,7 +68,7 @@ def _kilian_bias_correct(Y, p, n_pilot=100, rng=None):
 
 def bootstrap_bands(Y, p, identify_fn, horizon, n_boot=500, alpha=0.10,
                     method="recursive", rng=None, bias_correct=False,
-                    n_pilot=100, band="pointwise", **id_kwargs):
+                    n_pilot=100, band="pointwise", n_jobs: int = 1, **id_kwargs):
     """Bootstrap IRF percentile bands.
 
     method: 'recursive' (residual recursive bootstrap; Kilian-Lutkepohl S12),
@@ -94,6 +94,9 @@ def bootstrap_bands(Y, p, identify_fn, horizon, n_boot=500, alpha=0.10,
           ``crit_value`` (n x n array of per-pair sup-t critical values;
           NaN where every horizon is degenerate). The 'pointwise' return
           contract is unchanged.
+
+    n_jobs: int, default 1
+        Number of parallel worker threads. Set to -1 to use all available CPU cores.
     """
     if band not in ("pointwise", "sup-t"):
         raise ValueError(f"unknown band {band!r}; use 'pointwise' or 'sup-t'")
@@ -117,26 +120,28 @@ def bootstrap_bands(Y, p, identify_fn, horizon, n_boot=500, alpha=0.10,
     T, n = Y_arr.shape
     irfs = np.zeros((n_boot, horizon + 1, n, n))
     A_stack = np.hstack(A_list)          # (n, n*p), lags newest-first
-    for b in range(n_boot):
-        if method == "recursive":
-            idx = rng.integers(0, len(residuals), size=len(residuals))
-            u_b = residuals[idx]
-        elif method == "wild":
-            xi = rng.choice([-1.0, 1.0], size=len(residuals))
-            u_b = residuals * xi[:, None]
-        elif method == "block":
-            block = max(1, int(round(T ** (1 / 3))))
-            n_blocks = int(np.ceil(len(residuals) / block))
-            starts = rng.integers(0, len(residuals) - block + 1, size=n_blocks)
-            u_b = np.concatenate([residuals[s:s + block] for s in starts])[:len(residuals)]
-        else:
-            raise ValueError(f"unknown method {method!r}")
+
+    # Pre-generate bootstrap innovations (vectorized across draws)
+    n_res = len(residuals)
+    if method == "recursive":
+        all_idx = rng.integers(0, n_res, size=(n_boot, n_res))
+        U = residuals[all_idx]
+    elif method == "wild":
+        all_xi = rng.choice(np.array([-1.0, 1.0]), size=(n_boot, n_res))
+        U = residuals[None, :, :] * all_xi[:, :, None]
+    elif method == "block":
+        block = max(1, int(round(T ** (1 / 3))))
+        n_blocks = int(np.ceil(n_res / block))
+        U = np.empty((n_boot, n_res, n))
+        for b in range(n_boot):
+            starts = rng.integers(0, n_res - block + 1, size=n_blocks)
+            U[b] = np.concatenate([residuals[s:s + block] for s in starts])[:n_res]
+    else:
+        raise ValueError(f"unknown method {method!r}")
+
+    def _eval_draw(b: int) -> np.ndarray:
+        u_b = U[b]
         Y_b = np.copy(Y_arr)
-        # One (n, n*p) matmul per period instead of p separate (n, n) ones.
-        # The stacked coefficient matrix is loop-invariant, so it is built once
-        # above the draw loop; the per-period cost was 61-76%% of the bootstrap.
-        # `[t-1 : t-1-p : -1]` is lags 1..p newest-first, matching the order the
-        # columns of `A_stack` were concatenated in.
         for t in range(p, T):
             Y_b[t] = (intercept
                       + A_stack @ Y_b[t - 1:t - 1 - p if t - 1 - p >= 0 else None:-1].ravel()
@@ -144,9 +149,22 @@ def bootstrap_bands(Y, p, identify_fn, horizon, n_boot=500, alpha=0.10,
         try:
             A_b, _, Sigma_b, _, _ = estimate_var(Y_b, p)
             B_b = identify_fn(A_b, Sigma_b, **id_kwargs)
-            irfs[b] = irf(A_b, B_b, horizon)
+            return irf(A_b, B_b, horizon)
         except Exception:
-            irfs[b] = np.nan
+            return np.full((horizon + 1, n, n), np.nan)
+
+    if n_jobs == 1:
+        for b in range(n_boot):
+            irfs[b] = _eval_draw(b)
+    else:
+        import concurrent.futures
+        import os
+
+        workers = os.cpu_count() or 1 if n_jobs < 0 else n_jobs
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
+            draw_results = list(ex.map(_eval_draw, range(n_boot)))
+        irfs = np.stack(draw_results, axis=0)
+
     point = np.nanpercentile(irfs, 50, axis=0)
     if band == "pointwise":
         lower = np.nanpercentile(irfs, alpha * 100 / 2, axis=0)

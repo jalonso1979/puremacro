@@ -26,6 +26,7 @@ def block_bootstrap(
     B: int = 999,
     block_length: int | None = None,
     rng: np.random.Generator | None = None,
+    n_jobs: int = 1,
 ) -> np.ndarray:
     """Run the overlapping block bootstrap on *residuals*.
 
@@ -34,13 +35,15 @@ def block_bootstrap(
     residuals:
         1-D array of length T (zero-mean recommended; re-centered inside).
     refit_fn:
-        Callable(e_boot: ndarray[T]) -> ndarray[n_stats].  Called B times.
+        Callable(e_boot: ndarray[T]) -> ndarray[n_stats]. Called B times.
     B:
         Number of bootstrap replications.
     block_length:
         Block length ℓ. Defaults to round(T^{1/3}).
     rng:
         NumPy Generator for reproducibility.
+    n_jobs:
+        Number of parallel worker threads. Set to -1 to use all available CPU cores.
 
     Returns
     -------
@@ -58,12 +61,23 @@ def block_bootstrap(
     n_starts = T - ell + 1          # number of possible starting points
     k = math.ceil(T / ell)           # blocks needed to cover length T
 
-    draws_list: list[np.ndarray] = []
-    for _ in range(B):
-        starts = rng.integers(0, n_starts, size=k)
-        # Build the bootstrap residual series by concatenating blocks
-        boot = np.concatenate([residuals[s : s + ell] for s in starts])[:T]
-        stat = refit_fn(boot)
-        draws_list.append(np.asarray(stat, dtype=float))
+    # Vectorized block indexing (identical random sequence)
+    starts = rng.integers(0, n_starts, size=(B, k))
+    offsets = np.arange(ell)
+    idx = (starts[:, :, None] + offsets[None, None, :]).reshape(B, k * ell)[:, :T]
+    boot_matrix = residuals[idx]
+
+    def _eval_draw(boot: np.ndarray) -> np.ndarray:
+        return np.asarray(refit_fn(boot), dtype=float)
+
+    if n_jobs == 1:
+        draws_list = [_eval_draw(boot_matrix[b]) for b in range(B)]
+    else:
+        import concurrent.futures
+        import os
+
+        workers = os.cpu_count() or 1 if n_jobs < 0 else n_jobs
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
+            draws_list = list(ex.map(_eval_draw, boot_matrix))
 
     return np.stack(draws_list, axis=0)   # shape (B, n_stats)

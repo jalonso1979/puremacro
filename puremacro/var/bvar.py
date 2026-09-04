@@ -314,22 +314,18 @@ def minnesota_gibbs(
     intercept_draws = np.empty((n_draws, n))
 
     total = n_draws + burn
-    keep_idx = 0
-    for it in range(total):
-        # Sigma | Y ~ IW(S_post, nu_post): sample via Bartlett.
-        Sigma_draw = _inv_wishart(S_post, nu_post, rng)
-        # vec(B) | Sigma ~ N(vec(B_post), Sigma kron XtX_inv)
-        L_sig = np.linalg.cholesky(Sigma_draw + 1e-12 * np.eye(n))
-        Z = rng.standard_normal(B_post.shape)               # (k, n)
-        B_draw = B_post + L_kron @ Z @ L_sig.T
+    # Batched vectorized sampling from NIW conjugate posterior
+    Sigma_all = _inv_wishart(S_post, nu_post, rng, size=total)
+    L_sig_all = np.linalg.cholesky(Sigma_all + 1e-12 * np.eye(n))
+    Z_all = rng.standard_normal((total, B_post.shape[0], n))
+    B_all = B_post[None, :, :] + L_kron @ Z_all @ L_sig_all.transpose(0, 2, 1)
 
-        if it < burn:
-            continue
-        intercept_draws[keep_idx] = B_draw[0]
-        for k in range(p):
-            A_draws[keep_idx, k] = B_draw[1 + k * n: 1 + (k + 1) * n].T
-        Sigma_draws[keep_idx] = Sigma_draw
-        keep_idx += 1
+    B_draws = B_all[burn:]
+    Sigma_draws = Sigma_all[burn:]
+    intercept_draws = B_draws[:, 0, :]
+    A_draws = np.empty((n_draws, p, n, n))
+    for k in range(p):
+        A_draws[:, k] = B_draws[:, 1 + k * n : 1 + (k + 1) * n, :].transpose(0, 2, 1)
 
     return {
         "A_draws": A_draws,
@@ -342,18 +338,33 @@ def minnesota_gibbs(
     }
 
 
-def _inv_wishart(S: np.ndarray, df: int, rng: np.random.Generator) -> np.ndarray:
+def _inv_wishart(
+    S: np.ndarray,
+    df: int,
+    rng: np.random.Generator,
+    size: int | None = None,
+) -> np.ndarray:
     """Draw Sigma ~ IW(S, df) via Bartlett decomposition of W = inv(Sigma) ~ W(inv(S), df)."""
     n = S.shape[0]
     S_inv = np.linalg.inv(S + 1e-12 * np.eye(n))
     L = np.linalg.cholesky(S_inv)
-    A = np.zeros((n, n))
-    for i in range(n):
-        A[i, i] = np.sqrt(rng.chisquare(df - i))
-        for j in range(i):
-            A[i, j] = rng.standard_normal()
-    W = L @ A @ A.T @ L.T
-    return np.linalg.inv(W)
+    if size is None:
+        A = np.zeros((n, n))
+        for i in range(n):
+            A[i, i] = np.sqrt(rng.chisquare(df - i))
+            for j in range(i):
+                A[i, j] = rng.standard_normal()
+        W = L @ A @ A.T @ L.T
+        return np.linalg.inv(W)
+    else:
+        A_batch = np.zeros((size, n, n))
+        for i in range(n):
+            A_batch[:, i, i] = np.sqrt(rng.chisquare(df - i, size=size))
+            for j in range(i):
+                A_batch[:, i, j] = rng.standard_normal(size=size)
+        LA = L @ A_batch
+        W_batch = LA @ LA.transpose(0, 2, 1)
+        return np.linalg.inv(W_batch)
 
 
 def _minnesota_log_marginal_likelihood(

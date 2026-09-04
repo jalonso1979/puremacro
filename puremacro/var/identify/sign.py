@@ -56,12 +56,26 @@ def sign_restriction_svar(
     P = safe_cholesky(Sigma, name="sign_restriction_svar")
     n = Sigma.shape[0]
 
+    has_impact = 0 in restrictions
+    impact_restr = restrictions[0] if has_impact else None
+    remaining_restr = {h: v for h, v in restrictions.items() if h != 0}
+
     accepted = []
     for _ in range(n_draws):
         R = _draw_orthogonal(n, rng)
         B = P @ R
+        # Fast path: reject candidates violating impact restrictions before computing IRFs
+        if has_impact:
+            reject = False
+            for i, s in enumerate(impact_restr):
+                if s != 0 and np.sign(B[i, 0]) != s:
+                    reject = True
+                    break
+            if reject:
+                continue
+
         ir = compute_irf(A_list, B, horizon)  # (H+1, n, n)
-        if _check_signs(ir, restrictions):
+        if not remaining_restr or _check_signs(ir, remaining_restr):
             accepted.append(ir)
 
     if len(accepted) == 0:

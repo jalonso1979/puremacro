@@ -25,6 +25,7 @@ def wild_bootstrap(
     refit_fn: Callable[[np.ndarray], np.ndarray],
     n_boot: int = 999,
     rng: Optional[np.random.Generator] = None,
+    n_jobs: int = 1,
 ) -> np.ndarray:
     """Rademacher wild bootstrap for scalar / LP regression inference.
 
@@ -36,10 +37,12 @@ def wild_bootstrap(
     residuals : ndarray of shape (T,) or (T, n)
         Fitted residuals (zero-mean recommended).
     refit_fn : callable
-        Signature: ``refit_fn(e_boot) -> ndarray``.  Called ``n_boot`` times.
+        Signature: ``refit_fn(e_boot) -> ndarray``. Called ``n_boot`` times.
     n_boot : int
         Number of bootstrap replications.
     rng : numpy Generator or None
+    n_jobs : int, default 1
+        Number of parallel worker threads. Set to -1 to use all available CPU cores.
 
     Returns
     -------
@@ -50,15 +53,27 @@ def wild_bootstrap(
         rng = default_rng()
     residuals = np.asarray(residuals, dtype=float)
     T = residuals.shape[0]
-    draws = []
-    for _ in range(n_boot):
-        w = rng.choice(np.array([-1.0, 1.0]), size=T)
+
+    # Batch generate Rademacher weights (identical random sequence, vectorized)
+    W = rng.choice(np.array([-1.0, 1.0]), size=(n_boot, T))
+
+    def _eval_draw(w: np.ndarray) -> np.ndarray:
         if residuals.ndim == 1:
             e_boot = residuals * w
         else:
             e_boot = residuals * w[:, None]
-        stat = refit_fn(e_boot)
-        draws.append(np.asarray(stat, dtype=float))
+        return np.asarray(refit_fn(e_boot), dtype=float)
+
+    if n_jobs == 1:
+        draws = [_eval_draw(W[b]) for b in range(n_boot)]
+    else:
+        import concurrent.futures
+        import os
+
+        workers = os.cpu_count() or 1 if n_jobs < 0 else n_jobs
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
+            draws = list(ex.map(_eval_draw, W))
+
     return np.stack(draws, axis=0)
 
 

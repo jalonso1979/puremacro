@@ -111,6 +111,7 @@ where = ["."]
 include = ["puremacro*"]
 
 [tool.setuptools.package-data]
+"puremacro" = ["py.typed"]
 "puremacro.dsge" = ["_sw07_data.csv"]
 # The benchmark datasets `puremacro.datasets` loads. Without this line the
 # loaders resolve to nothing outside the author's checkout — which is what
