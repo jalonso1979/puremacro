@@ -15,28 +15,54 @@ from ..inference._ols_helpers import ols_hac
 
 
 def lp_hac(
-    df: pd.DataFrame,
-    y: str,
-    x: str,
+    df: pd.DataFrame | np.ndarray,
+    y: str | np.ndarray | None = None,
+    x: str | None = None,
     horizons: Iterable[int] = range(0, 21),
     n_lags: int = 2,
-    controls: Sequence[str] | None = None,
+    controls: Sequence[str] | np.ndarray | None = None,
     alpha: float = 0.10,
+    *,
+    lags: int | None = None,
 ) -> pd.DataFrame:
-    """Estimate β_h from
-        y_{t+h} - y_{t-1} = α_h + β_h x_t + Σ γ_l z_{t-l} + ε_{t,h}
+    """Estimate local projection with Newey-West HAC standard errors.
+
+    Accepts either DataFrame input `lp_hac(df, y='y_col', x='x_col', ...)`
+    or 1D array/series input `lp_hac(y_series, shock_series, horizons=..., lags=...)`.
 
     HAC bandwidth = h + 1 (Plagborg-Møller-Wolf 2021 recommendation).
     Bands at level (1 - alpha) — default 90 %.
 
     Returns
     -------
-    pd.DataFrame with columns [h, beta, se, t, lo, hi] (one row per horizon).
+    pd.DataFrame with columns [h, beta, se, t, lo, hi] indexed by h.
     """
+    if lags is not None:
+        n_lags = lags
     horizons = list(horizons)
-    ctl = list(controls or [])
     z_crit = norm.ppf(1 - alpha / 2)
 
+    if not (isinstance(df, pd.DataFrame) and isinstance(y, str) and isinstance(x, str)):
+        y_vals = np.asarray(df, float)
+        x_vals = np.asarray(y, float)
+        data = {"y": y_vals, "x": x_vals}
+        ctl_names = []
+        if controls is not None:
+            C = np.asarray(controls, float)
+            if C.ndim == 1:
+                data["c0"] = C
+                ctl_names.append("c0")
+            elif C.ndim == 2:
+                for j in range(C.shape[1]):
+                    cname = f"c{j}"
+                    data[cname] = C[:, j]
+                    ctl_names.append(cname)
+        df = pd.DataFrame(data)
+        y = "y"
+        x = "x"
+        controls = ctl_names if ctl_names else None
+
+    ctl = list(controls or [])
     rows = []
     for h in horizons:
         sub = df[[y, x] + ctl].copy()
@@ -72,7 +98,9 @@ def lp_hac(
             "lo": beta_h - z_crit * se_h,
             "hi": beta_h + z_crit * se_h,
         })
-    return pd.DataFrame(rows)
+    res_df = pd.DataFrame(rows)
+    res_df.index = res_df["h"]
+    return res_df
 
 
 __all__ = ["lp_hac"]

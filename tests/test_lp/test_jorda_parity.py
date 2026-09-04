@@ -36,3 +36,28 @@ def test_lp_hac_recovers_known_response():
     # h=1: change y_{t+1} - y_{t-1} per unit x_t. With y_{t+1} = -0.4 x_t + ...
     # the LP captures β_1 ≈ -0.4 (give or take noise).
     assert abs(out.loc[out["h"] == 1, "beta"].iloc[0] - (-0.4)) < 0.15
+
+
+def test_lp_hac_array_input_and_lags_alias():
+    rng = np.random.default_rng(42)
+    T = 200
+    x = rng.standard_normal(T)
+    y = np.zeros(T)
+    for t in range(1, T):
+        y[t] = 0.5 * y[t - 1] - 0.3 * x[t - 1] + rng.standard_normal()
+    c1 = rng.standard_normal(T)
+    c2 = rng.standard_normal((T, 2))
+
+    # Test 1D array inputs with lags alias
+    out_arr = lp_hac(y, x, horizons=range(0, 5), lags=2)
+    assert set(out_arr.columns) >= {"h", "beta", "se", "lo", "hi"}
+    assert list(out_arr.index) == list(range(0, 5))
+    assert len(out_arr) == 5
+
+    # Test with 1D controls
+    out_c1 = lp_hac(y, x, horizons=range(0, 4), controls=c1, lags=1)
+    assert len(out_c1) == 4
+
+    # Test with 2D controls
+    out_c2 = lp_hac(y, x, horizons=range(0, 4), controls=c2, lags=1)
+    assert len(out_c2) == 4

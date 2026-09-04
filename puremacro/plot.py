@@ -39,27 +39,75 @@ def _new_ax(ax, figsize=(5.5, 3.2)):
     return ax.figure, ax
 
 
-def _irf_to_frame(irf) -> pd.DataFrame:
-    """Coerce dict-like or DataFrame IRFs into a DataFrame[h, beta, lo?, hi?]."""
+def _irf_to_frame(irf, target_idx: int = 0, shock_idx: int = 0) -> pd.DataFrame:
+    """Coerce dict-like, dataclass Result, or DataFrame IRFs into a DataFrame[h, beta, lo?, hi?]."""
     if isinstance(irf, pd.DataFrame) and "h" in irf.columns and "beta" in irf.columns:
         return irf
+    if hasattr(irf, "irf_point"):
+        point = np.asarray(irf.irf_point)
+        if point.ndim == 3:
+            point = point[:, target_idx, shock_idx]
+        elif point.ndim == 2:
+            point = point[:, target_idx]
+        elif point.ndim != 1:
+            raise ValueError(f"irf_point array has unexpected ndim {point.ndim}")
+        H = len(point)
+        df = pd.DataFrame({"h": np.arange(H), "beta": point})
+        if getattr(irf, "irf_lower", None) is not None:
+            lo = np.asarray(irf.irf_lower)
+            if lo.ndim == 3:
+                lo = lo[:, target_idx, shock_idx]
+            elif lo.ndim == 2:
+                lo = lo[:, target_idx]
+            df["lo"] = lo
+        if getattr(irf, "irf_upper", None) is not None:
+            hi = np.asarray(irf.irf_upper)
+            if hi.ndim == 3:
+                hi = hi[:, target_idx, shock_idx]
+            elif hi.ndim == 2:
+                hi = hi[:, target_idx]
+            df["hi"] = hi
+        return df
     if isinstance(irf, Mapping) and "irf_point" in irf:
         point = irf["irf_point"]
-        if not isinstance(point, pd.Series):
-            raise TypeError("dict-form irf_point must be a pd.Series indexed by horizon")
-        df = pd.DataFrame({"h": np.asarray(point.index), "beta": point.values})
+        if isinstance(point, pd.Series):
+            df = pd.DataFrame({"h": np.asarray(point.index), "beta": point.values})
+            if irf.get("irf_lower") is not None:
+                df["lo"] = np.asarray(irf["irf_lower"]).ravel()
+            if irf.get("irf_upper") is not None:
+                df["hi"] = np.asarray(irf["irf_upper"]).ravel()
+            return df
+        arr = np.asarray(point)
+        if arr.ndim == 3:
+            arr = arr[:, target_idx, shock_idx]
+        elif arr.ndim == 2:
+            arr = arr[:, target_idx]
+        elif arr.ndim != 1:
+            raise TypeError("dict-form irf_point must be a pd.Series or 1D/2D/3D ndarray")
+        df = pd.DataFrame({"h": np.arange(len(arr)), "beta": arr})
         if irf.get("irf_lower") is not None:
-            df["lo"] = np.asarray(irf["irf_lower"]).ravel()
+            lo = np.asarray(irf["irf_lower"])
+            if lo.ndim == 3:
+                lo = lo[:, target_idx, shock_idx]
+            elif lo.ndim == 2:
+                lo = lo[:, target_idx]
+            df["lo"] = lo.ravel()
         if irf.get("irf_upper") is not None:
-            df["hi"] = np.asarray(irf["irf_upper"]).ravel()
+            hi = np.asarray(irf["irf_upper"])
+            if hi.ndim == 3:
+                hi = hi[:, target_idx, shock_idx]
+            elif hi.ndim == 2:
+                hi = hi[:, target_idx]
+            df["hi"] = hi.ravel()
         return df
-    raise TypeError("irf must be a DataFrame[h,beta,...] or a dict with irf_point")
+    raise TypeError("irf must be a DataFrame[h,beta,...], a result dataclass, or a dict with irf_point")
 
 
 def plot_irf_single(irf, *, title: str = "", ylabel: str = "Response",
-                    scale: float = 1.0, ax=None) -> Figure:
+                    scale: float = 1.0, target_idx: int = 0, shock_idx: int = 0,
+                    ax=None) -> Figure:
     """Plot a single IRF with optional shaded band; series scaled by ``scale``."""
-    df = _irf_to_frame(irf)
+    df = _irf_to_frame(irf, target_idx=target_idx, shock_idx=shock_idx)
     fig, ax = _new_ax(ax)
     ax.plot(df["h"], df["beta"] * scale, color="0.0", linewidth=1.4, label="point")
     if {"lo", "hi"}.issubset(df.columns):
@@ -72,15 +120,18 @@ def plot_irf_single(irf, *, title: str = "", ylabel: str = "Response",
     return fig
 
 
-def plot_irf_multi(irf_by_label: Mapping[str, pd.DataFrame], *, title: str = "",
+def plot_irf_multi(irf_by_label: Mapping[str, Any], *, title: str = "",
                    ylabel: str = "Response", show_bands: bool = False,
-                   scale: float | Mapping[str, float] = 1.0, ax=None) -> Figure:
+                   scale: float | Mapping[str, float] = 1.0,
+                   target_idx: int = 0, shock_idx: int = 0,
+                   ax=None) -> Figure:
     """Overlay several IRFs (point + optional bands) using grayscale styles."""
     fig, ax = _new_ax(ax, figsize=(6.2, 3.5))
     n = len(irf_by_label)
     colors = _palette(n)
     styles = _styles(n)
-    for (label, df), c, ls in zip(irf_by_label.items(), colors, styles):
+    for (label, raw_irf), c, ls in zip(irf_by_label.items(), colors, styles):
+        df = _irf_to_frame(raw_irf, target_idx=target_idx, shock_idx=shock_idx)
         s = scale[label] if isinstance(scale, Mapping) else scale
         ax.plot(df["h"], df["beta"] * s, color=c, linestyle=ls,
                 linewidth=1.3, label=label)

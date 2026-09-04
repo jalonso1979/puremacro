@@ -3,7 +3,7 @@ from .cholesky import cholesky_svar as cholesky, compute_chol_shocks
 from .bq import bq_svar as bq
 from .sign import sign_restriction_svar as sign_restrictions
 from .narrative_sign import narrative_sign_svar, NarrativeRestriction
-from .proxy import proxy_svar as proxy
+from .proxy import proxy_svar as proxy, proxy_svar
 from .hetero import rigobon_svar as hetero, HeteroResult
 from .maxshare import maxshare, news_maxshare, identify_maxshare
 from .sign_zero import sign_zero

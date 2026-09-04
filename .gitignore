@@ -43,3 +43,6 @@ htmlcov/
 # Large data download caches (recreated via puremacro.fetch on demand)
 data/raw/sdmx.oecd.org/
 data/processed/
+
+# Agent scratch
+.claude/

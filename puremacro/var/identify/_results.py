@@ -51,6 +51,10 @@ class ProxySVARResult:
             f"  first-stage F (OP): {self.first_stage_F:.2f}  [{f_flag}]\n"
         )
 
+    def __getitem__(self, item):
+        target_irf = self.irf_point[:, :, 0]
+        return target_irf[item]
+
 
 @dataclass(frozen=True)
 class CholeskySVARResult:

@@ -42,7 +42,7 @@ def inv_xtx(X: np.ndarray, *, name: str = "OLS") -> np.ndarray:
     # poorly conditioned (cond(L)^2 = cond(X'X); 1e-7 here ≈ cond > 1e14).
     if not chol_failed:
         diag = np.abs(np.diag(L))
-        if diag.min() < 1e-7 * diag.max():
+        if diag.min() < 1e-6 * diag.max():
             chol_failed = True
 
     if chol_failed:

@@ -70,3 +70,24 @@ inline asserts on headline numbers so a numerical regression fails the build.
 (`puremacro/replication/data/tax14_*.csv`; regenerate with
 `tools/gen_notebook_data_tax14.py` — FRED fredgraph + Ramey's public HOM tax
 archive), so it too executes offline and deterministically.
+
+## Running on iPad Juno / Pyodide
+
+To run notebooks on an iPad using **Juno** or in-browser Pyodide kernels (Juno.sh / JupyterLite):
+
+1. **Installation via micropip (Pyodide / Juno.sh)**:
+   Because `pyarrow` has no Pyodide wheel, install with `deps=False`:
+   ```python
+   import micropip
+   await micropip.install("puremacro", deps=False)
+   ```
+2. **Compute Budgets & Memory Limits**:
+   iPadOS terminates processes that exceed device memory (~1.5–3 GB). Use `puremacro.runtime` to fit costly operations to tablet ceilings:
+   ```python
+   from puremacro import runtime
+   # Auto-scale bootstrap draws or posterior sampling to tablet size:
+   svar = runtime.budgeted(cholesky_svar)
+   ```
+3. **Bundled Offline Data**:
+   All benchmark datasets load offline via `puremacro.datasets` (`load_gali1999()`, `load_narrative_tax_shocks()`, etc.) without requiring network sockets or parquet engines.
+

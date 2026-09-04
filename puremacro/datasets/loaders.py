@@ -66,7 +66,7 @@ def load_gali1999() -> pd.DataFrame:
     if "date" in df.columns:
         df["date"] = pd.to_datetime(df["date"])
         df = df.set_index("date")
-        df.index = df.index.to_period("Q")
+        df.index = df.index.to_period("Q-DEC")
 
     if "ophnfb" in df.columns:
         df["dlprod"] = np.log(df["ophnfb"]).diff() * 100.0
@@ -95,7 +95,7 @@ def load_narrative_tax_shocks() -> pd.DataFrame:
     path = _resolve("tax14_narrative_tax_shocks.csv")
     df = pd.read_csv(path)
     if "date" in df.columns:
-        df["date"] = pd.PeriodIndex(df["date"], freq="Q")
+        df["date"] = pd.PeriodIndex(df["date"], freq="Q-DEC")
         df = df.set_index("date")
 
     if "mtr_u" in df.columns:
@@ -137,7 +137,7 @@ def load_macro_quarterly() -> pd.DataFrame:
         df_s = df_s.set_index("date")
         df_s[col_name] = pd.to_numeric(df_s[val_col], errors="coerce")
         df_q = df_s[[col_name]].resample("QE").last()
-        df_q.index = df_q.index.to_period("Q")
+        df_q.index = df_q.index.to_period("Q-DEC")
         dfs.append(df_q)
 
     # Quarterly average of Fed Funds
@@ -149,7 +149,7 @@ def load_macro_quarterly() -> pd.DataFrame:
     df_ff = df_ff.set_index("date")
     df_ff["fed_funds"] = pd.to_numeric(df_ff[val_col], errors="coerce")
     df_ff_q = df_ff[["fed_funds"]].resample("QE").mean()
-    df_ff_q.index = df_ff_q.index.to_period("Q")
+    df_ff_q.index = df_ff_q.index.to_period("Q-DEC")
     dfs.append(df_ff_q)
 
     df_merged = pd.concat(dfs, axis=1).dropna()

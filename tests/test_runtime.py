@@ -77,6 +77,23 @@ def test_js_module_on_a_workstation_is_not_a_browser(monkeypatch):
     assert caps_mod._detect_js_fetch("cpython") is False
 
 
+def test_looks_like_ipad_safari_detection(monkeypatch):
+    import types
+
+    monkeypatch.setattr(caps_mod, "_detect_host", lambda: "pyodide")
+    fake_js = types.ModuleType("js")
+    fake_nav = types.SimpleNamespace(maxTouchPoints=5, platform="MacIntel", userAgent="Macintosh")
+    fake_js.navigator = fake_nav
+    monkeypatch.setitem(sys.modules, "js", fake_js)
+    monkeypatch.setattr(caps_mod.importlib.util, "find_spec", lambda name: True if name == "js" else None)
+
+    assert caps_mod._looks_like_ipad_safari() is True
+
+    # When not a touch device (desktop Safari):
+    fake_nav.maxTouchPoints = 0
+    assert caps_mod._looks_like_ipad_safari() is False
+
+
 def test_environment_overrides_are_applied_and_recorded(monkeypatch):
     monkeypatch.setenv("PUREMACRO_DEVICE", "tablet")
     monkeypatch.setenv("PUREMACRO_SOCKETS", "0")

@@ -159,10 +159,35 @@ def _looks_like_ios() -> bool:
     return False
 
 
+def _looks_like_ipad_safari() -> bool:
+    """Detect modern iPadOS Safari in Pyodide.
+
+    Since iPadOS 13, Safari on iPad requests desktop sites by default,
+    sending a macOS User-Agent ('Macintosh; Intel Mac OS X ...').
+    The standard detection is navigator.maxTouchPoints > 1 on Mac platforms.
+    """
+    if _detect_host() != "pyodide" or importlib.util.find_spec("js") is None:
+        return False
+    try:  # pragma: no cover - only reachable under Pyodide
+        import js  # type: ignore[import-not-found]
+
+        nav = getattr(js, "navigator", None)
+        if nav is None:
+            return False
+        max_touch = int(getattr(nav, "maxTouchPoints", 0))
+        platform_str = str(getattr(nav, "platform", ""))
+        ua = str(getattr(nav, "userAgent", ""))
+        return max_touch > 1 and ("MacIntel" in platform_str or "Macintosh" in ua)
+    except Exception:
+        return False
+
+
 def _detect_device(host: str) -> str:
     if _looks_like_ios():
         return "tablet"
     if host == "pyodide":
+        if _looks_like_ipad_safari():
+            return "tablet"
         # A browser kernel on an unknown screen. Check the user agent if
         # the JS bridge is there — that is the only way to tell an iPad
         # Safari kernel from a desktop one.

@@ -110,3 +110,26 @@ def test_plot_irf_single_with_existing_ax():
     assert isinstance(out, Figure)
     assert out is fig
     plt.close(fig)
+
+
+def test_plot_irf_single_result_dataclass():
+    from dataclasses import dataclass
+
+    @dataclass
+    class DummyResult:
+        irf_point: np.ndarray
+        irf_lower: np.ndarray
+        irf_upper: np.ndarray
+
+    H, n = 11, 2
+    res = DummyResult(
+        irf_point=np.ones((H, n, n)) * 0.5,
+        irf_lower=np.zeros((H, n, n)),
+        irf_upper=np.ones((H, n, n)),
+    )
+    fig = plot_irf_single(res, title="dataclass path", target_idx=0, shock_idx=0)
+    assert isinstance(fig, Figure)
+    ax = fig.axes[0]
+    assert len(ax.lines) >= 1
+    plt.close(fig)
+

@@ -110,3 +110,27 @@ def test_proxy_impact_satisfies_the_covariance_identity():
     assert np.abs(B @ B.T - Sigma).max() < 1e-8
     Si = np.linalg.inv(Sigma)
     assert float(B[:, 0] @ Si @ B[:, 0]) == pytest.approx(1.0, abs=1e-10)
+
+
+def test_proxy_svar_aliases_and_sign_normalization():
+    Y, z = _synthetic_var_with_proxy(T=200, seed=123)
+    # Test lags and z keyword aliases
+    res_pos = proxy_svar(Y, z=z, lags=2, horizon=8, sign_var=0, sign=1.0, n_boot=20, seed=0)
+    assert res_pos.B[0, 0] > 0
+    assert res_pos.irf_point[0, 0, 0] > 0
+
+    res_neg = proxy_svar(Y, z=z, lags=2, horizon=8, sign_var=0, sign=-1.0, n_boot=20, seed=0)
+    assert res_neg.B[0, 0] < 0
+    assert res_neg.irf_point[0, 0, 0] < 0
+
+    # Opposite signs
+    assert np.allclose(res_pos.irf_point[:, :, 0], -res_neg.irf_point[:, :, 0])
+
+
+def test_proxy_svar_result_getitem():
+    Y, z = _synthetic_var_with_proxy(T=200, seed=123)
+    res = proxy_svar(Y, z=z, lags=2, horizon=5, n_boot=10, seed=0)
+    # __getitem__ slices the target structural shock irf_point[:, :, 0]
+    irf_target = res.irf_point[:, :, 0]
+    assert np.array_equal(res[0], irf_target[0])
+    assert np.array_equal(res[:3], irf_target[:3])

@@ -67,14 +67,18 @@ def _proxy_impact_factory(instrument_series, shock_target_idx=0):
 
 def proxy_svar(
     Y: np.ndarray,
+    instrument_series: np.ndarray | None = None,
     *,
-    p: int,
-    horizon: int,
-    instrument_series: np.ndarray,
+    p: int | None = None,
+    horizon: int = 20,
     shock_target_idx: int = 0,
     n_boot: int = 500,
     ci: float = 0.9,
     seed: int = 0,
+    lags: int | None = None,
+    sign_var: int = 0,
+    sign: float | None = None,
+    z: np.ndarray | None = None,
 ) -> ProxySVARResult:
     """Proxy-SVAR identification via external instrument (Mertens-Ravn 2013).
 
@@ -82,13 +86,12 @@ def proxy_svar(
     ----------
     Y : ndarray, shape (T, n)
         VAR data.
+    instrument_series : ndarray, shape (T,)
+        External instrument / proxy.
     p : int
-        VAR lag order.
+        VAR lag order (or pass ``lags=...``).
     horizon : int
         IRF horizon (returns ``horizon+1`` periods).
-    instrument_series : ndarray, shape (T,)
-        External instrument / proxy. The last ``T - p`` observations are aligned
-        to the VAR residuals.
     shock_target_idx : int, default 0
         Index of the structural shock targeted by the proxy. The identified shock
         is placed in column 0 of ``B`` regardless.
@@ -98,12 +101,28 @@ def proxy_svar(
         Confidence-interval level.
     seed : int, default 0
         Bootstrap RNG seed.
+    lags : int, optional
+        Alias for ``p``.
+    sign_var : int, default 0
+        Variable index for sign normalization.
+    sign : float, optional
+        Target sign for B[sign_var, 0] (e.g., -1 for contractionary shock).
+    z : ndarray, optional
+        Alias for ``instrument_series``.
 
     Returns
     -------
     ProxySVARResult
         See :class:`puremacro.var.identify._results.ProxySVARResult`.
     """
+    if lags is not None:
+        p = lags
+    if p is None:
+        p = 2
+    if z is not None:
+        instrument_series = z
+    if instrument_series is None:
+        raise ValueError("instrument_series is required for proxy_svar.")
     A_list, c, Sigma, resid, _ = estimate_var(Y, p)
     T_eff = resid.shape[0]
     z = np.asarray(instrument_series)[-T_eff:]
@@ -127,6 +146,13 @@ def proxy_svar(
     point = np.transpose(point, (2, 0, 1))
     lo = np.transpose(lo, (2, 0, 1))
     hi = np.transpose(hi, (2, 0, 1))
+    if sign is not None and np.sign(B[sign_var, 0]) != np.sign(sign):
+        B[:, 0] = -B[:, 0]
+        point[:, :, 0] = -point[:, :, 0]
+        lo_new = -hi[:, :, 0]
+        hi_new = -lo[:, :, 0]
+        lo[:, :, 0] = lo_new
+        hi[:, :, 0] = hi_new
     return ProxySVARResult(
         irf_point=point,
         irf_lower=lo,
