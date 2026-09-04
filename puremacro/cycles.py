@@ -42,6 +42,48 @@ class CycleResult:
     def __iter__(self):
         return iter((self.cycle, self.trend))
 
+    def __getitem__(self, idx: int):
+        if idx == 0:
+            return self.cycle
+        elif idx == 1:
+            return self.trend
+        raise IndexError("CycleResult only has index 0 (cycle) and 1 (trend).")
+
+    def __len__(self) -> int:
+        return 2
+
+    def plot(self, *, title: str = "", ax=None):
+        """Plot cyclical and trend components.
+
+        Lazily creates a 2-panel figure showing the cycle and trend.
+        """
+        import matplotlib.pyplot as plt
+
+        if ax is None:
+            fig, (ax_cyc, ax_tr) = plt.subplots(2, 1, figsize=(7, 4.5), sharex=True)
+        else:
+            fig = ax.figure
+            ax_cyc = ax
+            ax_tr = None
+
+        c = self.cycle
+        t = self.trend
+        idx = getattr(c, "index", np.arange(len(c)))
+
+        ax_cyc.plot(idx, c, color="0.0", lw=1.3, label="Cycle")
+        ax_cyc.axhline(0, color="0.6", ls="--", lw=0.8)
+        ax_cyc.set_ylabel("Cycle")
+        ax_cyc.set_title(title or f"Decomposition ({self.method})")
+        ax_cyc.legend(loc="best", frameon=False)
+
+        if ax_tr is not None:
+            ax_tr.plot(idx, t, color="0.2", lw=1.3, label="Trend")
+            ax_tr.set_ylabel("Trend")
+            ax_tr.legend(loc="best", frameon=False)
+            fig.tight_layout()
+
+        return fig
+
     def summary(self) -> str:
         n_obs = len(self.cycle)
         valid = int(np.sum(~np.isnan(np.asarray(self.cycle))))
@@ -57,7 +99,10 @@ def hamilton_filter(
     y,
     h: int = 8,
     p: int = 4,
-) -> tuple[np.ndarray, np.ndarray]:
+    *,
+    horizon: int | None = None,
+    lags: int | None = None,
+) -> CycleResult:
     """Hamilton (2018) regression filter for trend-cycle decomposition.
 
     Projects ``y_{t+h}`` on a constant and ``(y_t, y_{t-1}, ..., y_{t-p+1})``
@@ -75,39 +120,43 @@ def hamilton_filter(
     p : int, default 4
         Number of lags on the right-hand side. Default 4 is Hamilton's
         quarterly convention (1 year of lags).
+    horizon : int, optional
+        Standardized alias for ``h``.
+    lags : int, optional
+        Standardized alias for ``p``.
 
     Returns
     -------
-    cycle : ndarray or pd.Series, shape (T,)
-        Cyclical component. The first ``h + p - 1`` entries are ``NaN`` —
-        the regression has no value at those positions.
-    trend : ndarray or pd.Series, shape (T,)
-        Trend / projection component. Same NaN convention as cycle.
-
-    Notes
-    -----
-    Convention: ``cycle[t] + trend[t] == y[t]`` for all ``t >= h + p - 1``.
-
-    References
-    ----------
-    Hamilton, J.D. (2018). Why you should never use the Hodrick-Prescott
-        filter. Review of Economics and Statistics 100(5), 831-843.
+    CycleResult
+        Dataclass unpacking to ``(cycle, trend)`` with ``.cycle``, ``.trend``,
+        ``.summary()``, and ``.plot()``.
     """
+    if horizon is not None:
+        h = horizon
+    if lags is not None:
+        p = lags
+
     is_series = isinstance(y, pd.Series)
     idx = y.index if is_series else None
     y_arr = np.asarray(y, dtype=float).reshape(-1)
     T = y_arr.shape[0]
     lags_needed = h + p
-    if T < lags_needed:
+    if T < lags_needed + 1:
         raise ValueError(
-            f"hamilton_filter: input length {T} is shorter than h + p = {lags_needed}; "
-            f"need at least {lags_needed} observations."
+            f"hamilton_filter: sample size {T} is too short for h={h}, p={p} "
+            f"(need at least {lags_needed + 1})."
         )
-    n_obs = T - h - (p - 1)
-    X = np.empty((n_obs, p + 1))
+
+    # Build the design matrix: constant + p lags of y.
+    # Row t in the regression predicts y[t + h] from (1, y[t], ..., y[t - p + 1]).
+    # Usable baseline indices run from t = p - 1 to t = T - h - 1.
+    n_reg = T - h - p + 1
+    X = np.empty((n_reg, p + 1))
     X[:, 0] = 1.0
     for j in range(p):
         X[:, 1 + j] = y_arr[(p - 1 - j):(T - h - j)]
+
+    # Target: y_{t+h}, matching the row indexing above
     y_target = y_arr[(h + p - 1):T]
 
     beta = np.linalg.pinv(X) @ y_target
@@ -118,8 +167,15 @@ def hamilton_filter(
     cycle[h + p - 1:] = residual
     trend[h + p - 1:] = fitted
     if is_series and idx is not None:
-        return pd.Series(cycle, index=idx), pd.Series(trend, index=idx)
-    return cycle, trend
+        c_out, t_out = pd.Series(cycle, index=idx), pd.Series(trend, index=idx)
+    else:
+        c_out, t_out = cycle, trend
+    return CycleResult(
+        cycle=c_out,
+        trend=t_out,
+        method="hamilton",
+        params={"h": int(h), "p": int(p)},
+    )
 
 
 def baxter_king_filter(
@@ -190,8 +246,15 @@ def baxter_king_filter(
     valid = ~np.isnan(cycle)
     trend[valid] = y_arr[valid] - cycle[valid]
     if is_series and idx is not None:
-        return pd.Series(cycle, index=idx), pd.Series(trend, index=idx)
-    return cycle, trend
+        c_out, t_out = pd.Series(cycle, index=idx), pd.Series(trend, index=idx)
+    else:
+        c_out, t_out = cycle, trend
+    return CycleResult(
+        cycle=c_out,
+        trend=t_out,
+        method="baxter_king",
+        params={"low": int(low), "high": int(high), "K": int(K)},
+    )
 
 
 def christiano_fitzgerald_filter(
@@ -279,17 +342,26 @@ def christiano_fitzgerald_filter(
 
     trend = y_arr - cycle
     if is_series and idx is not None:
-        return pd.Series(cycle, index=idx), pd.Series(trend, index=idx)
-    return cycle, trend
+        c_out, t_out = pd.Series(cycle, index=idx), pd.Series(trend, index=idx)
+    else:
+        c_out, t_out = cycle, trend
+    return CycleResult(
+        cycle=c_out,
+        trend=t_out,
+        method="christiano_fitzgerald",
+        params={"low": int(low), "high": int(high), "drift": bool(drift)},
+    )
 
 
 def beveridge_nelson_filter(
     y,
     p: int = 4,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Beveridge-Nelson (1981) trend-cycle permanent-transitory decomposition.
+    *,
+    lags: int | None = None,
+) -> CycleResult:
+    """Beveridge-Nelson (1981) permanent-transitory decomposition.
 
-    Decomposes an integrated I(1) series into a permanent random walk with drift
+    Decomposes an I(1) series into a random walk with drift (the permanent component)
     and a stationary cyclical component via AR(p) forecasting of first differences.
 
     Parameters
@@ -298,13 +370,14 @@ def beveridge_nelson_filter(
         Integrated time series.
     p : int, default 4
         Autoregressive lag order for the first-differenced series.
+    lags : int, optional
+        Standardized alias for ``p``.
 
     Returns
     -------
-    cycle : ndarray or pd.Series, shape (T,)
-        Transitory cyclical component.
-    trend : ndarray or pd.Series, shape (T,)
-        Permanent trend component (``y - cycle``).
+    CycleResult
+        Dataclass unpacking to ``(cycle, trend)`` with ``.cycle``, ``.trend``,
+        ``.summary()``, and ``.plot()``.
 
     References
     ----------
@@ -313,6 +386,9 @@ def beveridge_nelson_filter(
         particular attention to measurement of the business cycle. Journal of
         Monetary Economics 7(2), 151-174.
     """
+    if lags is not None:
+        p = lags
+
     is_series = isinstance(y, pd.Series)
     idx = y.index if is_series else None
     y_arr = np.asarray(y, dtype=float).reshape(-1)
@@ -361,8 +437,15 @@ def beveridge_nelson_filter(
     valid = ~np.isnan(cycle)
     trend[valid] = y_arr[valid] - cycle[valid]
     if is_series and idx is not None:
-        return pd.Series(cycle, index=idx), pd.Series(trend, index=idx)
-    return cycle, trend
+        c_out, t_out = pd.Series(cycle, index=idx), pd.Series(trend, index=idx)
+    else:
+        c_out, t_out = cycle, trend
+    return CycleResult(
+        cycle=c_out,
+        trend=t_out,
+        method="beveridge_nelson",
+        params={"p": int(p)},
+    )
 
 
 def hp_filter(

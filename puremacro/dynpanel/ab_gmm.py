@@ -128,6 +128,7 @@ def ab_gmm(
     time_id: np.ndarray,
     *,
     lag_dep_var: int = 1,
+    lags: int | None = None,
     X_endog: np.ndarray | None = None,
     X_pred: np.ndarray | None = None,
     X_exog: np.ndarray | None = None,
@@ -149,6 +150,8 @@ def ab_gmm(
         Integer time identifier for each row. Gaps are allowed.
     lag_dep_var : int, default 1
         Number of lags of ``y`` on the right-hand side.
+    lags : int, optional
+        Standardized alias for ``lag_dep_var``.
     X_endog : ndarray of shape (NT, k_e) or None, default None
         Endogenous regressors (use lag window ``(lo, hi)`` in
         ``gmm_lag_window``).
@@ -180,6 +183,8 @@ def ab_gmm(
     ----------
     See module-level docstring.
     """
+    if lags is not None:
+        lag_dep_var = lags
     bundle = build_instruments(
         y,
         panel_id,

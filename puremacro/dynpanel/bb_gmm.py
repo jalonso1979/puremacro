@@ -249,6 +249,7 @@ def bb_gmm(
     time_id: np.ndarray,
     *,
     lag_dep_var: int = 1,
+    lags: int | None = None,
     X_endog: np.ndarray | None = None,
     X_pred: np.ndarray | None = None,
     X_exog: np.ndarray | None = None,
@@ -278,6 +279,8 @@ def bb_gmm(
     ----------
     See module-level docstring.
     """
+    if lags is not None:
+        lag_dep_var = lags
     # 1) Build the difference block (using the same machinery as ab_gmm)
     records = _build_panel_records(y, panel_id, time_id, X_endog, X_pred, X_exog)
     n_endog = records[0]["Xe"].shape[1] if records else 0

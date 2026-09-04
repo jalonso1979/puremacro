@@ -7,8 +7,38 @@ from typing import Optional
 import numpy as np
 
 
+class _IRFPlotMixin:
+    """Mixin providing .plot() to IRF result objects."""
+
+    def plot(
+        self,
+        *,
+        target_idx: int = 0,
+        shock_idx: int = 0,
+        title: str = "",
+        ylabel: str = "Response",
+        scale: float = 1.0,
+        ax=None,
+    ):
+        """Plot impulse response with error bands.
+
+        Lazily delegates to puremacro.plot.plot_irf_single.
+        """
+        from ...plot import plot_irf_single
+
+        return plot_irf_single(
+            self,
+            target_idx=target_idx,
+            shock_idx=shock_idx,
+            title=title,
+            ylabel=ylabel,
+            scale=scale,
+            ax=ax,
+        )
+
+
 @dataclass(frozen=True)
-class ProxySVARResult:
+class ProxySVARResult(_IRFPlotMixin):
     """Result of :func:`puremacro.var.identify.proxy.proxy_svar`.
 
     Attributes
@@ -57,7 +87,7 @@ class ProxySVARResult:
 
 
 @dataclass(frozen=True)
-class CholeskySVARResult:
+class CholeskySVARResult(_IRFPlotMixin):
     """Result of :func:`puremacro.var.identify.cholesky.cholesky_svar`.
 
     Attributes
@@ -98,7 +128,7 @@ class CholeskySVARResult:
 
 
 @dataclass(frozen=True)
-class BQSVARResult:
+class BQSVARResult(_IRFPlotMixin):
     """Result of :func:`puremacro.var.identify.bq.bq_svar`.
 
     Long-run-restriction SVAR (Blanchard-Quah 1989). The IRFs are
@@ -147,7 +177,7 @@ class BQSVARResult:
 
 
 @dataclass(frozen=True)
-class SignRestrictionResult:
+class SignRestrictionResult(_IRFPlotMixin):
     """Result of :func:`puremacro.var.identify.sign.sign_restriction_svar`.
 
     Sign-restriction SVAR per Rubio-Ramirez-Waggoner-Zha (2010). The
@@ -197,7 +227,7 @@ class SignRestrictionResult:
 
 
 @dataclass(frozen=True)
-class NarrativeSignSVARResult:
+class NarrativeSignSVARResult(_IRFPlotMixin):
     """Result of :func:`puremacro.var.identify.narrative_sign.narrative_sign_svar`.
 
     Sign-restriction SVAR sharpened with narrative restrictions per
@@ -277,7 +307,7 @@ class NarrativeSignSVARResult:
 
 
 @dataclass(frozen=True)
-class GKRobustBandsResult:
+class GKRobustBandsResult(_IRFPlotMixin):
     """Result of :func:`puremacro.var.identify.sign_robust.gk_robust_bands`
     and :func:`puremacro.var.identify.sign_robust.gk_robust_bands_from_gibbs`.
 
@@ -322,7 +352,7 @@ class GKRobustBandsResult:
 
 
 @dataclass(frozen=True)
-class NonGaussianSVARResult:
+class NonGaussianSVARResult(_IRFPlotMixin):
     """Result of :func:`puremacro.var.identify.non_gaussian.non_gaussian_svar`.
 
     LMS (2017) non-Gaussian SVAR via FastICA on reduced-form residuals.
@@ -429,7 +459,7 @@ class SignZeroResult:
 
 
 @dataclass(frozen=True)
-class PanelSVARResult:
+class PanelSVARResult(_IRFPlotMixin):
     """Result of :func:`puremacro.var.identify.panel.mean_group_svar`.
 
     Canova-Ciccarelli (2013) mean-group panel SVAR. Each country
@@ -487,7 +517,7 @@ class PanelSVARResult:
 
 
 @dataclass(frozen=True)
-class MaxShareResult:
+class MaxShareResult(_IRFPlotMixin):
     """Result of :func:`puremacro.var.identify.maxshare.identify_maxshare`.
 
     Faust-Uhlig (2003) max-share identification: pick the structural
@@ -549,7 +579,7 @@ class MaxShareResult:
 
 
 @dataclass(frozen=True)
-class MagMavSVARResult:
+class MagMavSVARResult(_IRFPlotMixin):
     """Result of :func:`puremacro.var.identify.magmav.magmav_svar`.
 
     Magnusson-Mavroeidis (2014) SVAR identified by continuous time-varying

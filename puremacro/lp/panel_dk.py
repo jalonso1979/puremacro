@@ -25,11 +25,22 @@ def panel_lp_dk(
     alpha: float = 0.10,
     entity_level: str = "code",
     time_level: str = "date",
+    *,
+    lags: int | None = None,
+    horizon: int | None = None,
+    ci: float | None = None,
 ) -> pd.DataFrame:
     """Two-way FE panel LP with Driscoll-Kraay HAC SE.
 
-    Returns DataFrame with columns ``[h, beta, se, t, lo, hi]``.
+    Returns LPResult (subclass of DataFrame) with columns ``[h, beta, se, t, lo, hi]``.
     """
+    if lags is not None:
+        n_lags = lags
+    if horizon is not None:
+        horizons = range(0, horizon + 1)
+    if ci is not None:
+        alpha = 1.0 - ci
+
     return panel_lp_horizon_loop(
         df_wide,
         y=y, x=x,

@@ -21,10 +21,20 @@ def panel_lp_iv(
     alpha: float = 0.10,
     entity_level: str = "code",
     time_level: str = "date",
+    *,
+    lags: int | None = None,
+    horizon: int | None = None,
+    ci: float | None = None,
 ) -> pd.DataFrame:
     """First stage: x_t ~ z_t + entity FE + time FE (within transform).
     Second stage: panel LP with the fitted x̂ in place of x.
-    Returns DataFrame with [h, beta, se, lo, hi, first_stage_f]."""
+    Returns LPResult with [h, beta, se, lo, hi, first_stage_f]."""
+    if lags is not None:
+        n_lags = lags
+    if horizon is not None:
+        horizons = range(0, horizon + 1)
+    if ci is not None:
+        alpha = 1.0 - ci
     df = df_wide.copy()
     df.index = df.index.set_names([entity_level, time_level])
     df = df.sort_index()

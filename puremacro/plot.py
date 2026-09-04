@@ -43,25 +43,32 @@ def _irf_to_frame(irf, target_idx: int = 0, shock_idx: int = 0) -> pd.DataFrame:
     """Coerce dict-like, dataclass Result, or DataFrame IRFs into a DataFrame[h, beta, lo?, hi?]."""
     if isinstance(irf, pd.DataFrame) and "h" in irf.columns and "beta" in irf.columns:
         return irf
-    if hasattr(irf, "irf_point"):
-        point = np.asarray(irf.irf_point)
+    raw_point = None
+    for attr in ("irf_point", "irf_median", "irf_mean", "irfs", "point", "irf"):
+        if hasattr(irf, attr) and getattr(irf, attr) is not None:
+            raw_point = getattr(irf, attr)
+            break
+    if raw_point is not None:
+        point = np.asarray(raw_point)
         if point.ndim == 3:
             point = point[:, target_idx, shock_idx]
         elif point.ndim == 2:
             point = point[:, target_idx]
         elif point.ndim != 1:
-            raise ValueError(f"irf_point array has unexpected ndim {point.ndim}")
+            raise ValueError(f"irf array has unexpected ndim {point.ndim}")
         H = len(point)
         df = pd.DataFrame({"h": np.arange(H), "beta": point})
-        if getattr(irf, "irf_lower", None) is not None:
-            lo = np.asarray(irf.irf_lower)
+        raw_lo = getattr(irf, "irf_lower", getattr(irf, "lower", None))
+        if raw_lo is not None:
+            lo = np.asarray(raw_lo)
             if lo.ndim == 3:
                 lo = lo[:, target_idx, shock_idx]
             elif lo.ndim == 2:
                 lo = lo[:, target_idx]
             df["lo"] = lo
-        if getattr(irf, "irf_upper", None) is not None:
-            hi = np.asarray(irf.irf_upper)
+        raw_hi = getattr(irf, "irf_upper", getattr(irf, "upper", None))
+        if raw_hi is not None:
+            hi = np.asarray(raw_hi)
             if hi.ndim == 3:
                 hi = hi[:, target_idx, shock_idx]
             elif hi.ndim == 2:

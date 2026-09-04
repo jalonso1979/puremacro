@@ -221,7 +221,15 @@ def panel_lp_horizon_loop(
             "lo": beta_h - z_crit * se_h,
             "hi": beta_h + z_crit * se_h,
         })
-    return pd.DataFrame(rows)
+    from ._results import LPResult
+
+    res = LPResult(rows)
+    if "h" in res.columns:
+        res.index = res["h"]
+    res.y_name = str(y)
+    res.x_name = str(x)
+    res.method = "panel_lp"
+    return res
 
 
 __all__ = [

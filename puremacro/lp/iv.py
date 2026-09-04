@@ -96,6 +96,9 @@ def lp_iv(
     alpha: float = 0.10,
     *,
     anderson_rubin: bool = False,
+    lags: int | None = None,
+    horizon: int | None = None,
+    ci: float | None = None,
 ) -> pd.DataFrame:
     """Single-country local projections with instrumental variables (LP-IV).
 
@@ -120,13 +123,26 @@ def lp_iv(
     anderson_rubin : bool, default False
         If True, also computes exact weak-instrument-robust Anderson-Rubin (1949)
         confidence intervals (``ar_lo``, ``ar_hi``, ``ar_set_type``).
+    lags : int, optional
+        Alias for ``n_lags``. Standardized keyword.
+    horizon : int, optional
+        If provided, sets ``horizons = range(0, horizon + 1)``.
+    ci : float, optional
+        Confidence level in (0, 1), e.g. 0.90 for 90% CI. Sets ``alpha = 1.0 - ci``.
 
     Returns
     -------
-    pd.DataFrame
-        DataFrame with columns ``[h, beta, se, t, lo, hi, first_stage_f]``
+    LPResult
+        DataFrame subclass with columns ``[h, beta, se, t, lo, hi, first_stage_f]``
         (plus ``[ar_lo, ar_hi, ar_set_type]`` when ``anderson_rubin=True``).
     """
+    if lags is not None:
+        n_lags = lags
+    if horizon is not None:
+        horizons = range(0, horizon + 1)
+    if ci is not None:
+        alpha = 1.0 - ci
+
     horizons = list(horizons)
     ctl = list(controls or [])
     z_crit = norm.ppf(1 - alpha / 2)
@@ -200,7 +216,15 @@ def lp_iv(
 
         rows.append(row)
 
-    return pd.DataFrame(rows)
+    from ._results import LPResult
+
+    res = LPResult(rows)
+    if "h" in res.columns:
+        res.index = res["h"]
+    res.y_name = str(y)
+    res.x_name = str(x)
+    res.method = "LP-IV"
+    return res
 
 
 __all__ = ["lp_iv"]

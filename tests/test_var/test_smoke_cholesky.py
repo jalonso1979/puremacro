@@ -51,3 +51,16 @@ def test_cholesky_smoke(toy_var2):
     # All FEVD entries should be between 0 and 1
     assert np.all(fev >= -1e-8) and np.all(fev <= 1.0 + 1e-8), \
         f"FEVD contains values outside [0, 1]"
+
+
+def test_cholesky_svar_lags_alias(toy_var2):
+    from puremacro.var.identify import cholesky as cholesky_svar, compute_chol_shocks
+
+    Y = toy_var2.values
+    res1 = cholesky_svar(Y, lags=1, horizon=6, n_boot=20, seed=42)
+    res2 = cholesky_svar(Y, p=1, horizon=6, n_boot=20, seed=42)
+    assert np.allclose(res1.irf_point, res2.irf_point)
+    assert res1.irf_point.shape == (7, 2, 2)
+
+    t_idx, shocks = compute_chol_shocks(Y, lags=1)
+    assert shocks.shape == (len(Y) - 1, 2)

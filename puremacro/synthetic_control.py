@@ -72,6 +72,27 @@ class SyntheticControlResult:
             f"{'present (%d donors)' % len(self.placebo_gaps.columns) if self.placebo_gaps is not None else 'not computed'}\n"
         )
 
+    def plot(self, *, title: str = "", ax=None):
+        """Plot actual vs synthetic outcome trajectories.
+
+        Lazily creates a figure comparing actual outcome vs synthetic counterfactual.
+        """
+        import matplotlib.pyplot as plt
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(6.5, 3.8))
+        else:
+            fig = ax.figure
+
+        ax.plot(self.actual.index, self.actual.values, color="0.0", lw=1.5, label="Actual")
+        ax.plot(self.synthetic.index, self.synthetic.values, color="0.4", ls="--", lw=1.5, label="Synthetic")
+        if len(self.treatment_effect) > 0:
+            treat_start = self.treatment_effect.index[0]
+            ax.axvline(treat_start, color="0.5", ls=":", lw=1.0, label="Intervention")
+        ax.set_title(title or "Synthetic Control: Actual vs. Synthetic")
+        ax.legend(loc="best", frameon=False)
+        return fig
+
 
 def _scm_weights(X_treat: np.ndarray, X_donors: np.ndarray,
                  V: np.ndarray | None = None) -> np.ndarray:

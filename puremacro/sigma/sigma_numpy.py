@@ -25,6 +25,13 @@ class SigmaObject:
     Sigma: np.ndarray = field(init=False, repr=False)
 
     def __post_init__(self):
+        import warnings
+        warnings.warn(
+            "puremacro.sigma.sigma_numpy.SigmaObject is deprecated and will be removed in 2.0.0; "
+            "use puremacro.volatility.sigma.SigmaObject instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
         self.sigma = np.asarray(self.sigma, dtype=float)
         self.R = np.asarray(self.R, dtype=float)
         # symmetrize

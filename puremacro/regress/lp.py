@@ -111,6 +111,13 @@ def lp_panel(
     Returns long-format DataFrame with columns:
         horizon, beta, se, t, p, ci_lo, ci_hi, n_obs
     """
+    import warnings
+    warnings.warn(
+        "puremacro.regress.lp is deprecated and will be removed in 2.0.0; "
+        "use puremacro.lp.panel.panel_lp or puremacro.lp.panel_dk.panel_lp_dk instead.",
+        FutureWarning,
+        stacklevel=2,
+    )
     if se != "driscoll_kraay":
         raise NotImplementedError(f"se={se!r} not implemented")
 

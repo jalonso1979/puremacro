@@ -34,17 +34,15 @@ def cholesky_factor(Sigma: np.ndarray) -> np.ndarray:
 def compute_chol_shocks(
     Y: np.ndarray,
     *,
-    p: int,
+    p: int | None = None,
     ordering: list[int] | None = None,
+    lags: int | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Identify Cholesky structural shocks for a fitted reduced-form VAR.
 
     Mirrors the OLS step inside :func:`_residual_bootstrap_var` but
     returns the shock matrix instead of an IRF. Useful when downstream
     analysis (LP-IV, FEVD on extra variables, narrative inspection)
-    needs the shocks themselves.
-
-    Parameters
     ----------
     Y : ndarray, shape (T, n)
         Observations, rows time-ordered, columns variables.
@@ -67,6 +65,11 @@ def compute_chol_shocks(
         Columns follow the ORIGINAL variable order, regardless of
         ``ordering``.
     """
+    if lags is not None:
+        p = lags
+    if p is None:
+        p = 1
+
     if ordering is not None:
         perm = np.array(ordering)
         Y_p = Y[:, perm]
@@ -170,12 +173,13 @@ def _residual_bootstrap_var(Y, p, horizon, n_boot=500, ci=0.9, seed=0, ordering=
 def cholesky_svar(
     Y: np.ndarray,
     *,
-    p: int,
-    horizon: int,
+    p: int | None = None,
+    horizon: int = 20,
     ordering: list[int] | None = None,
     n_boot: int = 500,
     ci: float = 0.9,
     seed: int = 0,
+    lags: int | None = None,
 ) -> CholeskySVARResult:
     """Cholesky SVAR. ``ordering`` re-orders variables before decomposition.
 
@@ -186,6 +190,10 @@ def cholesky_svar(
         ``irf_upper`` (each shaped ``(H+1, n, n)``), ``n_boot``,
         ``n_fail``, ``ci``.
     """
+    if lags is not None:
+        p = lags
+    if p is None:
+        p = 1
     point, lo, hi, n_fail = _residual_bootstrap_var(
         Y, p=p, horizon=horizon, n_boot=n_boot, ci=ci, seed=seed, ordering=ordering
     )

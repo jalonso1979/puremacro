@@ -48,13 +48,18 @@ def _bq_impact(A_list, Sigma, permanent_var_idx=0):
 def bq_svar(
     Y: np.ndarray,
     *,
-    p: int,
-    horizon: int,
+    p: int | None = None,
+    horizon: int = 20,
     permanent_var_idx: int = 0,
     n_boot: int = 500,
     ci: float = 0.9,
     seed: int = 0,
+    lags: int | None = None,
 ) -> BQSVARResult:
+    if lags is not None:
+        p = lags
+    if p is None:
+        p = 2
     rng = default_rng(seed)
     A_list, c, Sigma, resid, _ = estimate_var(Y, p)
     B = _bq_impact(A_list, Sigma, permanent_var_idx)

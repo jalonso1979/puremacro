@@ -890,6 +890,7 @@
     ],
     "puremacro.lp": [
       "LPDiDResult",
+      "LPResult",
       "cce_panel_lp",
       "la_lp",
       "lp_asymmetric",

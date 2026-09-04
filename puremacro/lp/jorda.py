@@ -24,6 +24,8 @@ def lp_hac(
     alpha: float = 0.10,
     *,
     lags: int | None = None,
+    horizon: int | None = None,
+    ci: float | None = None,
 ) -> pd.DataFrame:
     """Estimate local projection with Newey-West HAC standard errors.
 
@@ -35,10 +37,14 @@ def lp_hac(
 
     Returns
     -------
-    pd.DataFrame with columns [h, beta, se, t, lo, hi] indexed by h.
+    LPResult (subclass of pd.DataFrame) with columns [h, beta, se, t, lo, hi] indexed by h.
     """
     if lags is not None:
         n_lags = lags
+    if horizon is not None:
+        horizons = range(0, horizon + 1)
+    if ci is not None:
+        alpha = 1.0 - ci
     horizons = list(horizons)
     z_crit = norm.ppf(1 - alpha / 2)
 
@@ -98,9 +104,14 @@ def lp_hac(
             "lo": beta_h - z_crit * se_h,
             "hi": beta_h + z_crit * se_h,
         })
-    res_df = pd.DataFrame(rows)
-    res_df.index = res_df["h"]
-    return res_df
+    from ._results import LPResult
+
+    res = LPResult(rows)
+    res.index = res["h"]
+    res.y_name = str(y)
+    res.x_name = str(x)
+    res.method = "LP-HAC"
+    return res
 
 
 __all__ = ["lp_hac"]

@@ -348,3 +348,47 @@ def test_non_gaussian_svar_result_has_optional_diagnostic_fields():
     )
     assert res2.lr_test["df"] == 1
     assert res2.consistency_check["passed"] is True
+
+
+def test_svar_results_plot_method():
+    import matplotlib.pyplot as plt
+    from matplotlib.figure import Figure
+
+    res = CholeskySVARResult(
+        irf_point=np.ones((6, 2, 2)) * 0.5,
+        irf_lower=np.zeros((6, 2, 2)),
+        irf_upper=np.ones((6, 2, 2)),
+        n_boot=100,
+        n_fail=0,
+        ci=0.9,
+    )
+    fig = res.plot(target_idx=0, shock_idx=0)
+    assert isinstance(fig, Figure)
+    plt.close(fig)
+
+    res_proxy = ProxySVARResult(
+        irf_point=np.ones((6, 2, 2)) * 0.3,
+        irf_lower=np.zeros((6, 2, 2)),
+        irf_upper=np.ones((6, 2, 2)),
+        B=np.eye(2),
+        first_stage_F=35.0,
+        n_boot=100,
+        ci=0.9,
+    )
+    fig2 = res_proxy.plot(target_idx=1, shock_idx=0)
+    assert isinstance(fig2, Figure)
+    plt.close(fig2)
+
+    from puremacro.var.identify.hetero import HeteroResult
+    res_hetero = HeteroResult(
+        B=np.eye(2),
+        variance_ratios=np.ones(2),
+        irfs=np.ones((6, 2, 2)) * 0.4,
+        fevd=np.ones((6, 2, 2)),
+        lower=np.zeros((6, 2, 2)),
+        upper=np.ones((6, 2, 2)),
+        point=np.ones((6, 2, 2)) * 0.4,
+    )
+    fig3 = res_hetero.plot(target_idx=0, shock_idx=1)
+    assert isinstance(fig3, Figure)
+    plt.close(fig3)

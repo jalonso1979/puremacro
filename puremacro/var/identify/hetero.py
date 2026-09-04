@@ -96,6 +96,32 @@ class HeteroResult:
     upper: Optional[np.ndarray]   # (H+1, n, n) or None
     point: np.ndarray             # (H+1, n, n)
 
+    def plot(
+        self,
+        *,
+        target_idx: int = 0,
+        shock_idx: int = 0,
+        title: str = "",
+        ylabel: str = "Response",
+        scale: float = 1.0,
+        ax=None,
+    ):
+        """Plot impulse response with error bands.
+
+        Lazily delegates to puremacro.plot.plot_irf_single.
+        """
+        from ...plot import plot_irf_single
+
+        return plot_irf_single(
+            self,
+            target_idx=target_idx,
+            shock_idx=shock_idx,
+            title=title,
+            ylabel=ylabel,
+            scale=scale,
+            ax=ax,
+        )
+
 
 # --------------------------------------------------------------------------- #
 # Math helpers
@@ -153,13 +179,14 @@ def _rigobon_impact(
 def rigobon_svar(
     Y: np.ndarray,
     *,
-    p: int,
-    horizon: int,
+    p: int | None = None,
+    horizon: int = 20,
     regime_indicator: np.ndarray,
     n_boot: int = 500,
     ci: float = 0.9,
     seed: int = 0,
     block_len: Optional[int] = None,
+    lags: int | None = None,
 ) -> HeteroResult:
     """Rigobon (2003) SVAR identified via heteroskedasticity.
 
@@ -168,7 +195,7 @@ def rigobon_svar(
     Y : ndarray (T, n)
         Data matrix.
     p : int
-        VAR lag order.
+        VAR lag order (or pass ``lags=...``).
     horizon : int
         IRF horizon H (output covers h = 0 ... H).
     regime_indicator : array-like of int (T,) or (T-p,)
@@ -181,11 +208,17 @@ def rigobon_svar(
         Random seed.
     block_len : int or None
         Block length.  None -> round((T-p)^(1/3)).
+    lags : int or None
+        Alias for ``p``.
 
     Returns
     -------
     HeteroResult
     """
+    if lags is not None:
+        p = lags
+    if p is None:
+        p = 2
     rng = np.random.default_rng(seed)
 
     A_list, c, Sigma, residuals, _ = estimate_var(Y, p)
