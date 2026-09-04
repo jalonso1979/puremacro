@@ -2,6 +2,38 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## 2.0.0 (2026-09-04)
+
+### Major Milestone: puremacro 2.0
+puremacro 2.0 unifies the empirical macro toolbox into an integrated, production-grade platform for macroeconomic research, policy analysis, and teaching. Built in pure Python and strictly adhering to the 4-package Pyodide browser contract (`numpy`, `scipy`, `pandas`, `matplotlib`), 2.0 delivers a cohesive developer experience, high-performance vectorized inference, publication-ready reporting, and rigorous adversarial numerical stress tests.
+
+### Added
+- **Unified Result Architecture (`LPResult`)**:
+  - `puremacro.lp` estimators (`lp_hac`, `panel_lp`, `lp_smooth_transition_irf`, `lp_state_dep`, `lp_state_dep_iv`, `lp_garch_state`, `lp_garch_in_mean`) now return a unified `LPResult` object subclassing `pd.DataFrame`.
+  - Exposes standardized attributes (`point`, `se`, `ci_lower`, `ci_upper`, `method`, `horizons`), `.summary()` display, `.plot()` visualization, and multi-format exporters (`.to_markdown()`, `.to_latex()`, `.to_typst()`).
+- **Standardized Estimator Signatures**:
+  - Harmonized parameter names across Local Projections and Dynamic Panel estimators to standard macro terminology: `lags`, `horizon`, `ci` (while retaining complete backwards-compatible support for `n_lags`, `horizons`, `alpha`).
+- **Standardized IRF & Event-Study API**:
+  - Unified `_IRFPlotMixin` across all SVAR result dataclasses (`CholeskyResult`, `SignRestrictionResult`, `MaxShareResult`, `ProxySVARResult`, `HeteroskedasticSVARResult`, `LongRunSVARResult`), delivering `.plot()`, `.to_frame()`, `.to_markdown()`, `.to_latex()`, and `.to_typst()`.
+  - Added `.plot()` to `CycleResult` and `SyntheticControlResult`.
+  - Added `.to_frame()`, `.to_markdown()`, `.to_latex()`, and `.to_typst()` to `FAVARResult` and DiD results (`CallawaySantannaResult`, `SunAbrahamResult`, `BorusyakJaravelSpiessResult`, `SyntheticDiDResult`).
+- **Frontier Macro Econometric Estimators**:
+  - **State-Dependent LP-IV (`lp_state_dep_iv`)**: Ramey & Zubairy (2018) state-dependent local projections instrumented by external news/surprises, supporting threshold splits (e.g. unemployment rate slack) and logistic smooth transitions with HAC standard errors and first-stage F diagnostics.
+  - **End-to-End Factor-Augmented VAR (`favar`)**: Bernanke, Boivin & Eliasz (2005) with static factor extraction, orthogonalization against policy rates, joint VAR estimation, full panel IRF mapping, and residual bootstrap inference.
+- **High-Performance Vectorization & Parallel Bootstrap**:
+  - Multi-worker parallel bootstrap dispatch (`n_jobs`) using `ThreadPoolExecutor` in `wild_bootstrap`, `block_bootstrap`, and `bootstrap_bands`.
+  - Vectorized Rademacher wild bootstrap and vectorized moving block bootstrap index generation.
+  - Batched Inverse-Wishart and vectorized Normal-Inverse-Wishart posterior draws for Minnesota BVAR (`puremacro/var/bvar.py`), achieving >20x speedup for posterior Gibbs sampling.
+  - Impact-horizon sign restriction pre-filtering in `sign_restriction_svar`.
+- **Publication Reporting Pipeline**:
+  - Multi-format exporters (`.to_markdown()`, `.to_latex()`, `.to_typst()`) for seamless manuscript preparation in Quarto, typst, and LaTeX.
+  - Academic significance stars (`***` p<0.01, `**` p<0.05, `*` p<0.10) and formatted regression summaries in `puremacro.reports`.
+- **PEP 561 Typing**:
+  - Added `puremacro/py.typed` inline typing marker enabling full static type analysis in mypy and IDE language servers.
+- **Adversarial Stress Testing & Validation Gallery**:
+  - Introduced `tests/dgp_generators.py` and `tests/test_dgp_adversarial.py` testing near-singular covariance, extreme AR roots, fat-tailed innovations, and row-order invariance.
+  - Expanded validation gallery across cointegration (FM-OLS, DOLS), SVAR (sign restrictions, Rigobon heteroskedasticity), BVAR diffuse limits, and Driscoll-Kraay robust standard errors (all 81 validation scorecard cases pass).
+
 ## 1.10.0 (2026-09-03)
 
 ### Fixed — affects results published in every release up to and including 1.9.0
