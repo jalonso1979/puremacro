@@ -43,6 +43,25 @@ class CallawaySantannaResult:
             f"  overall ATT       : {self.att_overall:+.4f}\n"
         )
 
+    def to_frame(self) -> pd.DataFrame:
+        """Return event-study ATT estimates as a DataFrame."""
+        return self.att_event_study.copy()
+
+    def to_markdown(self, **kwargs) -> str:
+        """Export event-study ATTs to Markdown table."""
+        from puremacro.reports import _df_to_markdown
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        """Export event-study ATTs to LaTeX table."""
+        from puremacro.reports import _df_to_latex
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        """Export event-study ATTs to Typst table."""
+        from puremacro.reports import _df_to_typst
+        return _df_to_typst(self.to_frame(), **kwargs)
+
 
 @dataclass(frozen=True)
 class SunAbrahamResult:
@@ -78,6 +97,25 @@ class SunAbrahamResult:
             f"  event-study rows  : {n_es}\n"
             f"  overall ATT       : {self.att_overall:+.4f}\n"
         )
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return event-study ATT estimates as a DataFrame."""
+        return self.att_event_study.copy()
+
+    def to_markdown(self, **kwargs) -> str:
+        """Export event-study ATTs to Markdown table."""
+        from puremacro.reports import _df_to_markdown
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        """Export event-study ATTs to LaTeX table."""
+        from puremacro.reports import _df_to_latex
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        """Export event-study ATTs to Typst table."""
+        from puremacro.reports import _df_to_typst
+        return _df_to_typst(self.to_frame(), **kwargs)
 
 
 @dataclass(frozen=True)
@@ -116,6 +154,25 @@ class BorusyakJaravelSpiessResult:
             f"  event-study rows  : {n_es}\n"
             f"  overall ATT       : {self.att_overall:+.4f}\n"
         )
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return event-study ATT estimates as a DataFrame."""
+        return self.att_event_study.copy()
+
+    def to_markdown(self, **kwargs) -> str:
+        """Export event-study ATTs to Markdown table."""
+        from puremacro.reports import _df_to_markdown
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        """Export event-study ATTs to LaTeX table."""
+        from puremacro.reports import _df_to_latex
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        """Export event-study ATTs to Typst table."""
+        from puremacro.reports import _df_to_typst
+        return _df_to_typst(self.to_frame(), **kwargs)
 
 
 @dataclass(frozen=True)
@@ -165,6 +222,31 @@ class SyntheticDiDResult:
             f"  τ̂                 : {self.tau:+.4f} (se {self.se:.4f})\n"
             f"  CI                : [{self.lo:+.4f}, {self.hi:+.4f}]\n"
         )
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return summary of point estimate, standard error, and CI."""
+        return pd.DataFrame([{
+            "tau": self.tau,
+            "se": self.se,
+            "lo": self.lo,
+            "hi": self.hi,
+            "treatment_time": self.treatment_time,
+        }])
+
+    def to_markdown(self, **kwargs) -> str:
+        """Export summary to Markdown table."""
+        from puremacro.reports import _df_to_markdown
+        return _df_to_markdown(self.to_frame(), index=False, **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        """Export summary to LaTeX table."""
+        from puremacro.reports import _df_to_latex
+        return _df_to_latex(self.to_frame(), index=False, **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        """Export summary to Typst table."""
+        from puremacro.reports import _df_to_typst
+        return _df_to_typst(self.to_frame(), index=False, **kwargs)
 
 
 @dataclass(frozen=True)

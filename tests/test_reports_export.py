@@ -80,3 +80,21 @@ def test_coef_table_academic_stars():
     out_typ = coef_table(beta, se, stars=True, fmt="typst")
     assert "#table(" in out_typ
     assert "***" in out_typ
+
+
+def test_did_result_table_exports():
+    from puremacro.did._results import CallawaySantannaResult, SyntheticDiDResult
+
+    df_gt = pd.DataFrame([{"g": 2010, "t": 2010, "event_time": 0, "att": 1.2, "se": 0.3, "lo": 0.6, "hi": 1.8}])
+    df_es = pd.DataFrame([{"event_time": 0, "att": 1.2, "se": 0.3, "lo": 0.6, "hi": 1.8, "n_cohorts": 1}])
+    cs = CallawaySantannaResult(att_gt=df_gt, att_event_study=df_es, att_overall=1.2)
+
+    assert "|" in cs.to_markdown()
+    assert "\\begin{tabular}" in cs.to_latex()
+    assert "#table(" in cs.to_typst()
+
+    sdid = SyntheticDiDResult(tau=2.5, omega=pd.Series([1.0]), lambda_w=pd.Series([1.0]), se=0.5, lo=1.5, hi=3.5, treatment_time=2015.0)
+    assert "|" in sdid.to_markdown()
+    assert "\\begin{tabular}" in sdid.to_latex()
+    assert "#table(" in sdid.to_typst()
+

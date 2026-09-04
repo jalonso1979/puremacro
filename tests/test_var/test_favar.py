@@ -59,3 +59,26 @@ def test_favar_dimension_mismatch(synthetic_panel):
     panel, policy = synthetic_panel
     with pytest.raises(ValueError, match="favar: length of policy_var"):
         favar(panel, policy.iloc[:-10], n_factors=2)
+
+
+def test_favar_exports_and_plot(synthetic_panel):
+    panel, policy = synthetic_panel
+    res = favar(panel, policy, n_factors=2, p=1, horizon=4, n_boot=20, seed=42)
+
+    df = res.to_frame()
+    assert isinstance(df, pd.DataFrame)
+    assert df.shape == (5, 25)
+
+    md = res.to_markdown()
+    assert "|" in md
+
+    ltx = res.to_latex()
+    assert "\\begin{tabular}" in ltx
+
+    typ = res.to_typst()
+    assert "#table(" in typ
+
+    # Plot smoke test
+    fig = res.plot(variables=["Series_1", "Series_2"])
+    assert fig is not None
+

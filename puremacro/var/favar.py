@@ -76,6 +76,76 @@ class FAVARResult:
             lines.append(f"  Factor {k_i:<2d}                       : {var_share*100:.2f}%")
         return "\n".join(lines)
 
+    def to_frame(self) -> pd.DataFrame:
+        """Return full panel impulse responses as a DataFrame."""
+        return self.irf_panel.copy()
+
+    def to_markdown(self, **kwargs) -> str:
+        """Export panel IRFs to Markdown table."""
+        from puremacro.reports import _df_to_markdown
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        """Export panel IRFs to LaTeX table."""
+        from puremacro.reports import _df_to_latex
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        """Export panel IRFs to Typst table."""
+        from puremacro.reports import _df_to_typst
+        return _df_to_typst(self.to_frame(), **kwargs)
+
+    def plot(
+        self,
+        variables: Sequence[str] | None = None,
+        *,
+        figsize: tuple[float, float] | None = None,
+        ax: Any = None,
+    ):
+        """Plot impulse responses for selected panel variables with confidence bands."""
+        import matplotlib.pyplot as plt
+
+        vars_to_plot = list(variables) if variables is not None else self.variable_names[:min(4, len(self.variable_names))]
+        n_vars = len(vars_to_plot)
+
+        if ax is None:
+            n_cols = min(2, n_vars) if n_vars > 0 else 1
+            n_rows = int(np.ceil(n_vars / n_cols)) if n_vars > 0 else 1
+            fig, axes = plt.subplots(
+                n_rows, n_cols,
+                figsize=figsize or (5.5 * n_cols, 3.5 * n_rows),
+                squeeze=False,
+            )
+            axes_flat = axes.ravel()
+        else:
+            axes_flat = [ax] if not hasattr(ax, "__len__") else ax
+            fig = axes_flat[0].get_figure()
+
+        h_idx = range(self.horizon + 1)
+        for i, var in enumerate(vars_to_plot):
+            if i >= len(axes_flat):
+                break
+            a = axes_flat[i]
+            if var in self.irf_panel.columns:
+                pt = self.irf_panel[var].values
+                lo = self.irf_lower_panel[var].values
+                hi = self.irf_upper_panel[var].values
+
+                a.axhline(0, color="black", linestyle="--", linewidth=0.8, alpha=0.7)
+                a.plot(h_idx, pt, color="#1f77b4", linewidth=1.5, label="IRF")
+                a.fill_between(h_idx, lo, hi, color="#1f77b4", alpha=0.2, label="CI")
+                a.set_title(var)
+                a.set_xlabel("Horizon")
+                a.set_ylabel("Response")
+                a.grid(True, linestyle=":", alpha=0.5)
+
+        if ax is None:
+            for j in range(n_vars, len(axes_flat)):
+                axes_flat[j].set_visible(False)
+            fig.tight_layout()
+            return fig
+        return ax
+
 
 def favar(
     panel_data: pd.DataFrame | np.ndarray,
