@@ -1,0 +1,3 @@
+🎯 **What:** Added tests for the `attach_structural_covariates` function and its helper `_compute_county_structural` within `puremacro/build_subnational_panel.py`.
+📊 **Coverage:** Covered calculation of tradable/manufacturing shares, proper handling of missing structural data, and accurate mapping of the right-to-work flag based on states.
+✨ **Result:** Improved test coverage for subnational panel generation, guaranteeing robust calculations of structural variables and county-level exposure metrics.
