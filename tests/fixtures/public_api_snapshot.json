@@ -1769,7 +1769,11 @@
     ],
     "puremacro.runtime.colab": [
       "colab_auth_guide",
-      "generate_colab_notebook"
+      "colab_auth_snippet",
+      "colab_badge",
+      "generate_colab_notebook",
+      "load_colab_result",
+      "show_colab_offload_dialog"
     ],
     "puremacro.runtime.store": [
       "SCHEMA_VERSION",
