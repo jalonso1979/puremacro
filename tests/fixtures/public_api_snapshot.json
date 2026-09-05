@@ -215,6 +215,7 @@
       "estimate_sw07",
       "fertility_adj_costs",
       "klein_solve",
+      "load_dynare_mod",
       "load_mod",
       "parse_mod",
       "priors",
@@ -255,6 +256,13 @@
       "ShockDecompResult",
       "compute_fevd",
       "compute_shock_decomposition"
+    ],
+    "puremacro.dsge.dynare": [
+      "build_dynare",
+      "load_dynare_mod",
+      "load_mod",
+      "parse_mod",
+      "solve_dynare_2nd_order"
     ],
     "puremacro.dsge.estimate": [
       "estimate_dsge"
@@ -1054,13 +1062,21 @@
     "puremacro.models": [
       "DMPParameters",
       "DMPState",
+      "FakeNewsResult",
+      "FiscalTransferResult",
       "SequenceSpaceHANKResult",
       "dmp_irf",
       "dmp_steady_state",
+      "fake_news_algorithm",
+      "simulate_targeted_transfer",
       "solve_hank_sequence_space"
     ],
     "puremacro.models.hank_sequence_space": [
+      "FakeNewsResult",
+      "FiscalTransferResult",
       "SequenceSpaceHANKResult",
+      "fake_news_algorithm",
+      "simulate_targeted_transfer",
       "solve_hank_sequence_space"
     ],
     "puremacro.models.nested_dmp": [
@@ -2954,8 +2970,24 @@
       "v",
       "w"
     ],
+    "puremacro.models.hank_sequence_space.FakeNewsResult": [
+      "expectation_vectors",
+      "fake_news",
+      "horizon",
+      "jacobian"
+    ],
+    "puremacro.models.hank_sequence_space.FiscalTransferResult": [
+      "cumulative_multiplier",
+      "decile_incidence",
+      "impact_mpc",
+      "irf_consumption",
+      "mpc_by_group",
+      "target_group",
+      "transfer_amount"
+    ],
     "puremacro.models.hank_sequence_space.SequenceSpaceHANKResult": [
       "asset_grid",
+      "distribution",
       "irf_consumption",
       "irf_inflation",
       "irf_output",
@@ -2963,8 +2995,11 @@
       "jacobian_c_r",
       "jacobian_c_y",
       "mpc_distribution",
+      "policy_a",
+      "policy_c",
       "steady_state_mpc",
-      "steady_state_wealth_dist"
+      "steady_state_wealth_dist",
+      "trans_matrix"
     ],
     "puremacro.models.nested_dmp.dynamics.IRFResult": [
       "fed_type",

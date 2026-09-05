@@ -8,7 +8,7 @@ name = "puremacro"
 # `tools/release_check.py` gate 4 compares: pyproject.toml,
 # puremacro/__init__.py (`__version__`), the top `## X.Y.Z` heading in
 # CHANGELOG.md, and `version:` in CITATION.cff.
-version = "2.1.0"
+version = "2.2.0"
 description = "Pyodide-compatible empirical macro toolbox: SVAR + LP + GARCH + inference"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -62,6 +62,9 @@ dependencies = [
   # the legacy .xls GPR workbook, and is not a substitute.
   "openpyxl>=3.1",
 ]
+
+[project.scripts]
+puremacro-dynare = "puremacro.dsge.cli:main"
 
 [project.optional-dependencies]
 # pyarrow is now a base dependency (see [project.dependencies]) -- do not re-add it here.

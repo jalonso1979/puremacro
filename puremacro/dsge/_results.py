@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Tuple
+from typing import Any, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
@@ -497,6 +497,87 @@ class StochSimulResult:
         from puremacro.reports import _df_to_typst
 
         return _df_to_typst(self.theoretical_moments.to_frame(), **kwargs)
+
+    def plot(
+        self,
+        variables: Sequence[str] | None = None,
+        shocks: Sequence[str] | None = None,
+        *,
+        style: str = "publication",
+        figsize: tuple[float, float] | None = None,
+    ):
+        """Plot impulse response functions (IRFs).
+
+        Parameters
+        ----------
+        variables : Sequence[str], optional
+            Variables to include. Defaults to first 6 variables.
+        shocks : Sequence[str], optional
+            Structural shocks to plot. Defaults to first shock.
+        style : str, default 'publication'
+            Plot styling theme ('publication', 'dark', 'grayscale').
+        figsize : tuple[float, float], optional
+            Figure dimensions (width, height).
+
+        Returns
+        -------
+        matplotlib.figure.Figure | None
+        """
+        import matplotlib.pyplot as plt
+        from puremacro.plot import _palette
+
+        if not self.irfs:
+            return None
+
+        sel_shocks = list(shocks) if shocks is not None else list(self.shock_names[:1])
+        if not sel_shocks and self.shock_names:
+            sel_shocks = [self.shock_names[0]]
+
+        sel_vars = list(variables) if variables is not None else list(self.variable_names[:6])
+        if not sel_vars and self.variable_names:
+            sel_vars = list(self.variable_names)
+
+        pairs = [
+            (v, s)
+            for s in sel_shocks
+            for v in sel_vars
+            if f"{v}_{s}" in self.irfs
+        ]
+        if not pairs:
+            return None
+
+        n_plots = len(pairs)
+        n_cols = min(3, n_plots)
+        n_rows = (n_plots + n_cols - 1) // n_cols
+
+        if figsize is None:
+            figsize = (3.8 * n_cols, 2.8 * n_rows)
+
+        if style == "grayscale":
+            colors = _palette(max(1, len(pairs)))
+        else:
+            colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"] * (len(pairs) // 6 + 1)
+
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize, squeeze=False)
+        ax_flat = axes.flatten()
+
+        for idx, (v, s) in enumerate(pairs):
+            ax = ax_flat[idx]
+            series = self.irfs[f"{v}_{s}"]
+            h = np.arange(len(series))
+            col = colors[idx % len(colors)]
+            ax.plot(h, series.values, color=col, lw=1.8, label=f"{v} ({s})")
+            ax.axhline(0, color="gray", linestyle="--", lw=0.8, alpha=0.7)
+            ax.set_title(f"{v} to {s}", fontsize=10, fontweight="bold")
+            ax.set_xlabel("Horizon (periods)", fontsize=8)
+            ax.set_ylabel("Dev from SS", fontsize=8)
+            ax.grid(True, linestyle=":", alpha=0.5)
+
+        for idx in range(len(pairs), len(ax_flat)):
+            ax_flat[idx].set_visible(False)
+
+        fig.tight_layout()
+        return fig
 
 
 from .perfect_foresight import PerfectForesightResult

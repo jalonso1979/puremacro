@@ -2,6 +2,26 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## 2.2.0 (2026-09-05)
+
+### puremacro-dynare CLI, Fake News Algorithm & Frontier DSGE Showcase
+This release introduces the dedicated `puremacro-dynare` command-line tool, the Sequence-Space HANK Fake News Algorithm (Auclert et al. 2021), targeted fiscal transfer balance-sheet simulations, and comprehensive frontier DSGE showcase notebooks:
+
+- **`puremacro-dynare` CLI Runner (`puremacro.dsge.cli`)**:
+  - Dedicated command-line entry point `puremacro-dynare` to parse and solve standard Dynare `.mod` files directly in pure Python.
+  - Supports `--order {1,2}`, `--steady-only`, `--irf <H>`, `--fevd`, `--shock-decomp <data.csv>`, `--format {markdown,latex,typst,all}`, and `--plot`.
+- **Sequence-Space HANK Fake News Algorithm (`puremacro.models.hank_sequence_space`)**:
+  - `fake_news_algorithm`: Fast $\mathcal{O}(T^2)$ computation of sequence-space consumption Jacobians via expectation vectors $\mathcal{E}_t = (\Lambda^T)^t c_{ss}$ and the fundamental cumulation identity $\mathcal{J}_{t,s} = \mathcal{J}_{t-1,s-1} + \mathcal{F}_{t,s}$.
+  - `FakeNewsResult`: Container with full Jacobian $\mathcal{J}$, Fake News matrix $\mathcal{F}$, expectation vectors, and publication-ready dual-heatmap plotting.
+  - `simulate_targeted_transfer`: Simulates targeted fiscal stimulus checks (e.g. to constrained borrowers vs unconstrained savers) across wealth deciles, computing dynamic consumption paths and cumulative fiscal multipliers.
+  - `FiscalTransferResult`: Container with dynamic consumption IRFs, impact MPC, decile incidence tables, and dual-panel publication visualizations.
+- **Frontier Dynare Showcase Notebooks**:
+  - `notebooks/41_dynare_frontier_showcase.py` / `.ipynb` (English) and `41_dynare_frontier_showcase_es.py` / `.ipynb` (Spanish) covering Smets-Wouters (2007) solve, FEVD, historical shock decomposition, OccBin ZLB, Ramsey non-linear perfect foresight, and Bayesian MCMC estimation.
+  - Synchronized with `playground/content/` for the JupyterLite browser playground.
+- **Engine Refinements**:
+  - Added `.plot()` method to `StochSimulResult` for publication-ready multi-shock IRF grids.
+  - Re-exported `load_dynare_mod` alias in `puremacro.dsge`.
+
 ## 2.1.0 (2026-09-04)
 
 ### Frontier Dynare Engine Expansion

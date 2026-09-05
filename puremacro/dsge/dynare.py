@@ -1053,3 +1053,16 @@ def load_mod(
         tol=tol,
         method=method,
     )
+
+
+# Backwards compatibility alias
+load_dynare_mod = load_mod
+
+__all__ = [
+    "build_dynare",
+    "parse_mod",
+    "load_mod",
+    "load_dynare_mod",
+    "solve_dynare_2nd_order",
+]
+
