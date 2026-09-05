@@ -163,3 +163,93 @@ Renders the 4 standard Dynare output blocks:
 - **COEFFICIENTS OF AUTOCORRELATION**: Exact theoretical autocorrelations for lags 1 through 5.
 - **VARIANCE DECOMPOSITION**: Forecast error variance decomposition shares (in percent) across finite horizons (1, 4, 8, 16, 32) and asymptotic infinity.
 
+### 3. Canonical Lead-Lag Interface (`dsge.build_dynare`)
+
+Write models directly in Dynare's canonical dynamic representation:
+$$E_t [ f(y_{t+1}, y_t, y_{t-1}, u_t; \theta) ] = 0$$
+
+Unlike `dsge.build`, `build_dynare`:
+- Uses the standard five-argument signature `eqs(lead, curr, lag, shocks, params)`.
+- **Automatically detects predetermined states**: variables appearing with non-zero Jacobian in `lag` are classified as predetermined states, completely eliminating the manual `states=[...]` requirement.
+
+```python
+from puremacro import dsge
+
+def rbc(lead, curr, lag, shocks, p):
+    return [
+        curr.c**(-p.gamma) - p.beta * lead.c**(-p.gamma) * (p.alpha * np.exp(lead.a) * curr.k**(p.alpha - 1) + 1 - p.delta),
+        curr.k - (np.exp(curr.a) * lag.k**p.alpha - curr.c + (1 - p.delta) * lag.k),
+        curr.a - (p.rho * lag.a + shocks.eps),
+    ]
+
+m = dsge.build_dynare(
+    rbc,
+    variables=["k", "a", "c"],
+    shocks=["eps"],
+    params=dict(alpha=0.3, beta=0.99, delta=0.025, gamma=1.0, rho=0.8),
+    guess=dict(k=38.0, a=0.0, c=2.0),
+)
+# States ('k', 'a') and control ('c',) are automatically classified!
+```
+
+### 4. Pure-Python Dynare `.mod` File Parser (`dsge.load_mod`)
+
+Run standard Dynare `.mod` files directly in pure Python with zero MATLAB or Octave dependencies:
+
+```python
+from puremacro import dsge
+
+mod_text = """
+var c k a;
+varexo eps;
+parameters alpha beta delta gamma rho;
+
+alpha = 0.30;
+beta  = 0.99;
+delta = 0.025;
+gamma = 1.0;
+rho   = 0.80;
+
+model;
+  c^(-gamma) = beta * c(+1)^(-gamma) * (alpha * exp(a(+1)) * k^(alpha - 1.0) + 1.0 - delta);
+  k = exp(a) * k(-1)^alpha - c + (1.0 - delta) * k(-1);
+  a = rho * a(-1) + eps;
+end;
+
+initval;
+  k = 38.0;
+  a = 0.0;
+  c = 2.0;
+end;
+"""
+
+# Load from string or file path
+m = dsge.load_mod(mod_text)
+print(m.decision_rules().summary())
+print(m.theoretical_moments().summary())
+```
+
+### 5. Automated 2nd-Order Perturbation with Pruning (SGU 2004, Kim et al. 2008)
+
+Solve second-order approximations directly from Python equations or `.mod` files:
+
+```python
+# Pass order=2 to build_dynare or load_mod:
+sol_2nd = dsge.build_dynare(rbc, ..., order=2)
+# Or from an existing solved LinearModel:
+sol_2nd = m.solve_second_order()
+```
+
+This returns a `PrunedDSGESolution` solving the Schmitt-Grohé & Uribe (2004) generalized Sylvester system for $(H_{xx}, G_{xx})$ and the risk correction system for $(H_{\sigma\sigma}, G_{\sigma\sigma})$.
+
+Using the pruning algorithm of Kim, Kim, Schaumburg & Sims (2008), the state space is decomposed into first- and second-order components:
+$$x_t^{(1)} = G x_{t-1}^{(1)} + N u_t$$
+$$x_t^{(2)} = G x_{t-1}^{(2)} + \frac{1}{2} H_{xx} (x_{t-1}^{(1)} \otimes x_{t-1}^{(1)}) + \frac{1}{2} H_{\sigma\sigma} \sigma^2$$
+$$y_t^{(1)} = F x_t^{(1)} + L u_t$$
+$$y_t^{(2)} = F x_t^{(2)} + \frac{1}{2} G_{xx} (x_t^{(1)} \otimes x_t^{(1)}) + \frac{1}{2} G_{\sigma\sigma} \sigma^2$$
+
+Key capabilities:
+- **Unconditionally Stable Simulation**: `sol_2nd.simulate(periods=200, sigma=0.01)` avoids the explosive sample paths typical of unpruned quadratic approximations.
+- **Generalized Impulse Responses (GIRF)**: `sol_2nd.girf(shock="eps", size=0.01, horizon=20)` tracks state-dependent and non-linear impacts.
+- **Risk-Adjusted Ergodic Steady State**: `sol_2nd.stochastic_steady_state(sigma=0.01)` computes analytical precautionary shifts induced by volatility.
+

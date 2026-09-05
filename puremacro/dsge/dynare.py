@@ -39,6 +39,7 @@ from puremacro.dsge.build import (
     _FDSTEP,
 )
 from puremacro.dsge.klein import klein_solve
+from puremacro.dsge.pruning import PrunedDSGESolution
 
 
 def _remove_comments(text: str) -> str:
@@ -59,10 +60,12 @@ def build_dynare(
     steady_state: Mapping[str, float] | Sequence[float] | None = None,
     guess: Mapping[str, float] | Sequence[float] | None = None,
     states: Sequence[str] | None = None,
+    order: int = 1,
+    shock_cov: np.ndarray | None = None,
     tol: float = 1e-8,
     method: str = "complex",
     verify_derivatives: bool = True,
-) -> LinearModel:
+) -> LinearModel | PrunedDSGESolution:
     """Solve a DSGE model written in Dynare canonical lead-lag form.
 
     Parameters
@@ -99,6 +102,21 @@ def build_dynare(
     """
     if method not in ("complex", "central"):
         raise ValueError(f"unknown method {method!r}; expected 'complex' or 'central'")
+
+    if order == 2:
+        return solve_dynare_2nd_order(
+            equations,
+            variables=variables,
+            shocks=shocks,
+            params=params,
+            steady_state=steady_state,
+            guess=guess,
+            states=states,
+            shock_cov=shock_cov,
+            tol=tol,
+        )
+    elif order != 1:
+        raise ValueError(f"unsupported perturbation order {order}; must be 1 or 2")
 
     par_dict = dict(params or {})
     par_vec = _Vec(list(par_dict.keys()), list(par_dict.values()), what="parameter")
@@ -302,6 +320,200 @@ def build_dynare(
         C=C_klein,
         method=method,
         residual_norm=res_norm,
+        _dynare_equations=equations,
+        _params=par_dict,
+    )
+
+
+def solve_dynare_2nd_order(
+    equations: Callable,
+    *,
+    variables: Sequence[str],
+    shocks: Sequence[str],
+    params: Mapping[str, float] | None = None,
+    steady_state: Mapping[str, float] | Sequence[float] | None = None,
+    guess: Mapping[str, float] | Sequence[float] | None = None,
+    states: Sequence[str] | None = None,
+    shock_cov: np.ndarray | None = None,
+    tol: float = 1e-8,
+) -> PrunedDSGESolution:
+    """Solve second-order DSGE perturbation with pruning (Schmitt-Grohé & Uribe 2004, Kim et al. 2008).
+
+    Solves for the quadratic policy matrices (H_xx, G_xx) and volatility risk
+    corrections (H_σσ, G_σσ) using the generalized Sylvester system derived from
+    Dynare's canonical dynamic representation:
+        E_t [ f(y_{t+1}, y_t, y_{t-1}, u_t; θ) ] = 0
+
+    Parameters
+    ----------
+    equations : Callable
+        Function of five arguments: ``eqs(lead, curr, lag, shocks, params)``.
+    variables : Sequence[str]
+        Names of all endogenous variables in model order.
+    shocks : Sequence[str]
+        Names of structural innovations.
+    params : Mapping[str, float], optional
+        Parameter values.
+    steady_state : Mapping[str, float] | Sequence[float], optional
+        Exact steady state. Verified against equilibrium conditions.
+    guess : Mapping[str, float] | Sequence[float], optional
+        Initial guess for numerical steady-state solver.
+    states : Sequence[str], optional
+        Predetermined states. If None, auto-detected from columns of df/d(lag).
+    shock_cov : np.ndarray, optional
+        Covariance matrix of innovations Σ_u. Defaults to identity matrix I.
+    tol : float, default 1e-8
+        Tolerance for steady-state residual check.
+
+    Returns
+    -------
+    PrunedDSGESolution
+        Second-order pruned DSGE solution equipped with `.simulate()`, `.girf()`,
+        and `.stochastic_steady_state()`.
+    """
+    # 1. Solve 1st-order model via Klein QZ
+    m = build_dynare(
+        equations,
+        variables=variables,
+        shocks=shocks,
+        params=params,
+        steady_state=steady_state,
+        guess=guess,
+        states=states,
+        order=1,
+        tol=tol,
+    )
+
+    vars_list = list(m.variables)
+    states_list = list(m.states)
+    controls_list = list(m.controls)
+    shocks_list = list(m.shocks)
+
+    N = len(vars_list)
+    n_x = len(states_list)
+    n_y = len(controls_list)
+    n_e = len(shocks_list)
+
+    dr = m.decision_rules()
+    g_x = dr.ghx.loc[vars_list, states_list].to_numpy()
+    g_u = dr.ghu.loc[vars_list, shocks_list].to_numpy()
+
+    # Selectors for states and controls
+    P_s = np.zeros((n_x, N))
+    for j, s in enumerate(states_list):
+        P_s[j, vars_list.index(s)] = 1.0
+
+    P_c = np.zeros((n_y, N))
+    for j, c in enumerate(controls_list):
+        P_c[j, vars_list.index(c)] = 1.0
+
+    h_x = P_s @ g_x
+    h_u = P_s @ g_u
+
+    # 2. Compute second-order Hessian tensor of f at steady state
+    ss_arr = m.steady_state.loc[vars_list].to_numpy()
+    u0 = np.concatenate([ss_arr, ss_arr, ss_arr])
+    K_vars = 3 * N
+
+    par_dict = dict(params or {})
+    par_vec = _Vec(list(par_dict.keys()), list(par_dict.values()), what="parameter")
+    e0_vec = _Vec(shocks_list, np.zeros(n_e), what="shock")
+
+    def eval_f(u_vec):
+        lead = _Vec(vars_list, u_vec[0:N])
+        curr = _Vec(vars_list, u_vec[N:2 * N])
+        lag = _Vec(vars_list, u_vec[2 * N:3 * N])
+        return np.asarray(equations(lead, curr, lag, e0_vec, par_vec))
+
+    hc = _CSTEP
+    def grad_f(u_vec):
+        G_mat = np.zeros((N, K_vars))
+        for q in range(K_vars):
+            pert = np.asarray(u_vec, dtype=complex).copy()
+            pert[q] += 1j * hc
+            G_mat[:, q] = eval_f(pert).imag / hc
+        return G_mat
+
+    J0 = grad_f(u0)
+    A_plus = J0[:, 0:N]
+    A_0 = J0[:, N:2 * N]
+
+    H_f = np.zeros((N, K_vars, K_vars))
+    hd = 1e-5
+    for p in range(K_vars):
+        scale = max(1.0, abs(u0[p]))
+        h_step = hd * scale
+        up = u0.copy()
+        up[p] += h_step
+        um = u0.copy()
+        um[p] -= h_step
+        gp = grad_f(up)
+        gm = grad_f(um)
+        H_f[:, p, :] = (gp - gm) / (2.0 * h_step)
+
+    for i in range(N):
+        H_f[i] = 0.5 * (H_f[i] + H_f[i].T)
+
+    # 3. Form Sylvester system for g_xx
+    I_states = np.zeros((N, n_x))
+    for j, s in enumerate(states_list):
+        I_states[vars_list.index(s), j] = 1.0
+
+    M = np.vstack([g_x @ h_x, g_x, I_states])
+
+    K_tensor = np.zeros((N, n_x**2))
+    for i in range(N):
+        quad_i = M.T @ H_f[i] @ M
+        K_tensor[i] = quad_i.flatten()
+
+    A_hat = A_0 + A_plus @ g_x @ P_s
+    hx_kron = np.kron(h_x, h_x)
+    sys_mat = np.kron(np.eye(n_x**2), A_hat) + np.kron(hx_kron.T, A_plus)
+    rhs = -K_tensor.reshape(-1, order="F")
+
+    try:
+        vec_gxx = scipy.linalg.solve(sys_mat, rhs)
+    except scipy.linalg.LinAlgError:
+        vec_gxx = scipy.linalg.lstsq(sys_mat, rhs)[0]
+
+    g_xx = vec_gxx.reshape((N, n_x**2), order="F")
+    H_xx = P_s @ g_xx
+    G_xx = P_c @ g_xx
+
+    # 4. Volatility drift terms (H_sigmasigma, G_sigmasigma)
+    if shock_cov is None:
+        sigma_u = np.eye(n_e)
+    else:
+        sigma_u = np.asarray(shock_cov, dtype=float)
+
+    W_vec = np.zeros(N)
+    for i in range(N):
+        W_vec[i] = np.trace(g_u.T @ H_f[i, 0:N, 0:N] @ g_u @ sigma_u)
+
+    hu_cov = h_u @ sigma_u @ h_u.T
+    rhs_sig = -(A_plus @ g_xx @ hu_cov.flatten() + W_vec)
+
+    sys_sig = A_hat + A_plus
+    try:
+        g_ss = scipy.linalg.solve(sys_sig, rhs_sig)
+    except scipy.linalg.LinAlgError:
+        g_ss = scipy.linalg.lstsq(sys_sig, rhs_sig)[0]
+
+    H_ss = P_s @ g_ss
+    G_ss = P_c @ g_ss
+
+    return PrunedDSGESolution(
+        G=h_x,
+        N=h_u,
+        F=P_c @ g_x,
+        L=P_c @ g_u,
+        H_xx=H_xx,
+        H_sigmasigma=H_ss,
+        G_xx=G_xx,
+        G_sigmasigma=G_ss,
+        state_names=tuple(states_list),
+        control_names=tuple(controls_list),
+        shock_names=tuple(shocks_list),
     )
 
 
@@ -442,8 +654,11 @@ def load_mod(
     steady_state: Mapping[str, float] | Sequence[float] | None = None,
     guess: Mapping[str, float] | Sequence[float] | None = None,
     states: Sequence[str] | None = None,
+    order: int = 1,
+    shock_cov: np.ndarray | None = None,
+    tol: float = 1e-8,
     method: str = "complex",
-) -> LinearModel:
+) -> LinearModel | PrunedDSGESolution:
     """Load and solve a Dynare .mod file directly in puremacro.
 
     Parameters
@@ -458,14 +673,24 @@ def load_mod(
         Optional initial guess override.
     states : Sequence[str], optional
         Optional explicit states override. If None, automatically detected.
+    order : {1, 2}, default 1
+        Approximation order:
+        - 1: First-order linear approximation (returns LinearModel).
+        - 2: Second-order SGU (2004) perturbation with Kim et al. (2008) pruning
+             (returns PrunedDSGESolution).
+    shock_cov : np.ndarray, optional
+        Covariance matrix of innovations (default identity I).
+    tol : float, default 1e-8
+        Steady-state solver and verification tolerance.
     method : {'complex', 'central'}, default 'complex'
         Differentiation method for Jacobians.
 
     Returns
     -------
-    LinearModel
+    LinearModel | PrunedDSGESolution
         Solved model equipped with `.decision_rules()`, `.theoretical_moments()`,
-        and `.irf()`.
+        and `.irf()` (if order=1), or `.simulate()`, `.girf()`, and
+        `.stochastic_steady_state()` (if order=2).
     """
     text_str = str(path_or_text)
     if "\n" in text_str or ";" in text_str:
@@ -495,5 +720,8 @@ def load_mod(
         steady_state=steady_state,
         guess=final_guess,
         states=states,
+        order=order,
+        shock_cov=shock_cov,
+        tol=tol,
         method=method,
     )

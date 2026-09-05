@@ -195,6 +195,8 @@ class LinearModel:
     C: np.ndarray
     method: str
     residual_norm: float
+    _dynare_equations: Callable | None = None
+    _params: dict | None = None
 
     # -- inspection ----------------------------------------------------
 
@@ -613,6 +615,40 @@ class LinearModel:
                 f"[{self.units[name]}]"
             )
         return "\n".join(lines)
+
+    def solve_second_order(
+        self,
+        shock_cov: np.ndarray | None = None,
+    ):
+        """Solve second-order perturbation approximation with pruning (SGU 2004, Kim et al. 2008).
+
+        Parameters
+        ----------
+        shock_cov : np.ndarray, optional
+            Covariance matrix of innovations Σ_u. Defaults to identity matrix I.
+
+        Returns
+        -------
+        PrunedDSGESolution
+            Second-order solution equipped with `.simulate()`, `.girf()`, and
+            `.stochastic_steady_state()`.
+        """
+        if self._dynare_equations is None:
+            raise ModelError(
+                "solve_second_order requires the model to be built with build_dynare "
+                "or load_mod (using canonical lead-lag equations)."
+            )
+        from puremacro.dsge.dynare import solve_dynare_2nd_order
+
+        return solve_dynare_2nd_order(
+            self._dynare_equations,
+            variables=self.variables,
+            shocks=self.shocks,
+            params=self._params,
+            steady_state=self.steady_state.to_dict(),
+            states=self.states,
+            shock_cov=shock_cov,
+        )
 
 
 # ---------------------------------------------------------------------

@@ -30,7 +30,7 @@ from .pruning import (
     PrunedSimulationResult,
     canonical_growth_2nd_order,
 )
-from .dynare import build_dynare, parse_mod, load_mod
+from .dynare import build_dynare, parse_mod, load_mod, solve_dynare_2nd_order
 from . import priors, fertility_adj_costs
 
 __all__ = [
@@ -38,7 +38,7 @@ __all__ = [
     "build", "LinearModel", "ModelError", "SteadyStateError",
     "DSGEPosteriorResult", "SW07PosteriorResult", "FertilitySolution",
     "DynareDR", "TheoreticalMomentsResult",
-    "build_dynare", "parse_mod", "load_mod",
+    "build_dynare", "parse_mod", "load_mod", "solve_dynare_2nd_order",
     "estimate_dsge", "estimate_sw07",
     "solve_bgp", "solve_fertility",
     "PrunedDSGESolution", "PrunedSimulationResult", "canonical_growth_2nd_order",
