@@ -102,7 +102,7 @@ class LPResult(pd.DataFrame):
         lines = [f"Local Projection Result (method: {method})"]
         lines.append(f"{'h':>4}  {'beta':>10}  {'se':>10}  {'lo':>10}  {'hi':>10}")
         lines.append("-" * 52)
-        for _, row in self.iterrows():
+        for row in self.to_dict("records"):
             h_val = int(row["h"]) if "h" in row and not pd.isna(row["h"]) else 0
             b_val = row.get("beta", np.nan)
             se_val = row.get("se", np.nan)

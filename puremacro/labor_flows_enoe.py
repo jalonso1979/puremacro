@@ -815,7 +815,7 @@ def transitions_from_enoe(
         )
 
     monthly_rows = []
-    for ref_date, row in quarterly_observed.iterrows():
+    for ref_date, row in quarterly_observed.to_dict("index").items():
         P_Q = np.array([[row[f"p_{a}{b}"] for b in STATES] for a in STATES])
         try:
             P_M = quarterly_to_monthly_matrix(P_Q)
@@ -836,7 +836,7 @@ def transitions_from_enoe(
         )
 
     quarterly_chain_rows = []
-    for d, row in monthly.iterrows():
+    for d, row in monthly.to_dict("index").items():
         M = np.array([[row[f"p_{a}{b}"] for b in STATES] for a in STATES])
         P3 = M @ M @ M
         qd = d + pd.offsets.QuarterEnd(0)
