@@ -84,23 +84,37 @@ def disk_cache(
     disabled = (
         os.environ.get("PUREMACRO_CACHE_DISABLE") == "1" or refetch
     )
+    pmz = disk_cache_path(key, namespace=namespace, suffix=".pmz")
     pq = disk_cache_path(key, namespace=namespace, suffix=".parquet")
     pkl = disk_cache_path(key, namespace=namespace, suffix=".pkl")
 
     if not disabled:
+        if pmz.exists() and not _is_stale(pmz, ttl_seconds):
+            from .runtime.store import load_frame
+            return load_frame(pmz)
         if pq.exists() and not _is_stale(pq, ttl_seconds):
-            return pd.read_parquet(pq)
+            try:
+                return pd.read_parquet(pq)
+            except Exception:
+                pass
         if pkl.exists() and not _is_stale(pkl, ttl_seconds):
             with pkl.open("rb") as f:
                 return pickle.load(f)
 
     value = loader()
     if isinstance(value, (pd.DataFrame, pd.Series)):
-        pq.parent.mkdir(parents=True, exist_ok=True)
-        if isinstance(value, pd.Series):
-            value.to_frame(name=value.name or "value").to_parquet(pq, index=True)
-        else:
-            value.to_parquet(pq, index=True)
+        try:
+            pq.parent.mkdir(parents=True, exist_ok=True)
+            if isinstance(value, pd.Series):
+                value.to_frame(name=value.name or "value").to_parquet(pq, index=True)
+            else:
+                value.to_parquet(pq, index=True)
+        except Exception:
+            # Fallback to pyarrow-free puremacro store (.pmz)
+            from .runtime.store import save_frame
+            pmz.parent.mkdir(parents=True, exist_ok=True)
+            to_save = value.to_frame(name=value.name or "value") if isinstance(value, pd.Series) else value
+            save_frame(to_save, pmz)
     else:
         pkl.parent.mkdir(parents=True, exist_ok=True)
         with pkl.open("wb") as f:
