@@ -4,6 +4,85 @@
 
 Una **caja de herramientas de macroeconomía empírica compatible con Pyodide**: el código de los estimadores corre sobre numpy + scipy + pandas + matplotlib puros, de modo que el núcleo numérico sigue siendo importable bajo Pyodide (iPad / juno.sh, en la medida de lo posible — véase «juno.sh / iPad» más abajo). El destino soportado es una **instalación local** en una estación de trabajo convencional.
 
+## Inicio rápido en 5 minutos (API unificada 2.0)
+
+`puremacro 2.0` estandariza la API econométrica con convenciones de parámetros comunes (`lags`, `horizon`, `ci`), objetos de resultado dataclass congelados, visualización interactiva (`.plot()`) y exportación directa para publicación (`.to_latex()`, `.to_typst()`, `.to_markdown()`):
+
+### 1. Proyecciones Locales (LP) y Exportación para Publicación
+```python
+import numpy as np
+import pandas as pd
+from puremacro.lp import lp_hac
+
+# Serie de tiempo macroeconómica sintética
+rng = np.random.default_rng(42)
+T = 200
+shock = rng.standard_normal(T)
+gdp = np.cumsum(0.7 * shock + 0.3 * rng.standard_normal(T))
+df = pd.DataFrame({"gdp": gdp, "shock": shock})
+
+# API unificada: horizonte, retardos, nivel de confianza
+res = lp_hac(df, y="gdp", x="shock", horizon=12, lags=4, ci=0.90)
+
+# Visualización instantánea
+res.plot(title="Respuesta del PIB ante Choque de Política")
+
+# Exportación directa a LaTeX o Typst para tu artículo
+print(res.to_latex())
+print(res.to_typst())
+```
+
+### 2. DSGE de Segundo Orden y Paridad con Dynare
+Resuelve modelos DSGE no lineales hasta segundo orden con poda (*pruning*) de Kim, Kim, Schaumburg y Sims (2008), términos cruzados ($g_{xu}, g_{uu}$), corrección por riesgo ($g_{\sigma\sigma}$) y reglas de decisión compatibles con `oo_.dr`:
+```python
+from puremacro.dsge import build_dynare, load_mod
+
+# 1. Carga o define un modelo desde un archivo .mod con choques y stoch_simul
+model = load_mod("rbc.mod")  # o build_dynare(eqs, states, controls, shocks, order=2)
+
+# 2. Resuelve la aproximación podada de 2do orden
+sol = model.solve(order=2)
+
+# 3. Accede a las reglas de decisión de Dynare (oo_.dr)
+print(sol.oo_dr["ghx"])   # transición lineal de estados
+print(sol.oo_dr["ghxx"])  # curvatura cuadrática
+print(sol.oo_dr.summary())
+
+# 4. Momentos teóricos analíticos y descomposición de varianza
+mom = sol.theoretical_moments()
+print(mom.summary())
+print(mom.to_latex())
+```
+
+### 3. Descarga de Cómputo desde Juno / iPad hacia Google Colab
+Cuando trabajes en un iPad o en sesiones cliente de Pyodide con límites de memoria o CPU, descarga tareas intensivas a Google Colab sin fricción:
+```python
+from puremacro.runtime.colab import (
+    generate_colab_notebook,
+    show_colab_offload_dialog,
+    load_colab_result,
+)
+
+# Genera un cuaderno autocontenido con autenticación y montaje de Google Drive
+nb = generate_colab_notebook(
+    task_code="""
+import puremacro as pm
+res = pm.dsge.estimate_sw07(n_draws=10000, n_chains=4)
+pm.runtime.store.save_frame(res.summary(), "sw07_posterior.pmz")
+""",
+    mount_drive=True,
+    export_result_file="sw07_posterior.pmz",
+)
+
+# Abre Colab en 1 clic desde Juno o navegador
+show_colab_offload_dialog(nb, filename="sw07_offload.ipynb")
+
+# Carga el resultado .pmz de regreso en tu sesión local sin pyarrow
+posterior = load_colab_result("sw07_posterior.pmz")
+```
+
+---
+
 ## Contenido
 
 **Econometría central**
@@ -12,7 +91,7 @@ Una **caja de herramientas de macroeconomía empírica compatible con Pyodide**:
 - **Identificación de SVAR** (`var.identify.*`) — Cholesky, Blanchard-Quah, restricciones de signo (Rubio-Ramirez-Waggoner-Zha), restricciones de signo y cero (Arias-Rubio Ramirez-Waggoner), bandas robustas a las restricciones de signo (Giacomini-Kitagawa), variables proxy / instrumentos externos, máxima participación espectral / noticias, heterocedasticidad (Rigobon), no gaussiano (Lanne-Meitz-Saikkonen). Todos los estimadores públicos devuelven objetos `…Result` de tipo dataclass congelado.
 - **Proyecciones locales** (`lp.*`) — LP-HAC para un solo país, LP-IV, LP con retardos aumentados (Plagborg-Møller-Wolf), LP de panel con errores estándar agrupados / Driscoll-Kraay, LP dependiente del estado, LP suavizada (B-splines de Barnichon-Brownlees), LP asimétrica (Tenreyro-Thwaites), LP-GARCH en estado, LP-GARCH en media, grupo medio, CCE, LP cuantílica.
 - **Inferencia** (`inference.*`) — MCO con HAC central, Newey-West, Kiefer-Vogelsang de b fijo, Driscoll-Kraay; diagnósticos de instrumentos débiles (Cragg-Donald, Kleibergen-Paap, Anderson-Rubin, Montiel Olea-Pflueger); Hansen-J / Stock-Yogo para sobreidentificación; CD de Pesaran, homogeneidad de pendientes de Swamy, quiebres estructurales de Quandt-Andrews, curvas de especificación.
-- **Otros estimadores** — índice de derrame de Diebold-Yilmaz; comparación de pronósticos Diebold-Mariano / Giacomini-White y evaluación de pronósticos en densidad (CRPS, log-score); quiebres de Bai-Perron; pruebas de raíz unitaria (ADF, KPSS, PP, Zivot-Andrews); solver QZ de Klein para DSGE lineales (condición de Blanchard-Kahn verificada).
+- **Otros estimadores** — índice de derrame de Diebold-Yilmaz; comparación de pronósticos Diebold-Mariano / Giacomini-White y evaluación de pronósticos en densidad (CRPS, log-score); quiebres de Bai-Perron; pruebas de raíz unitaria (ADF, KPSS, PP, Zivot-Andrews); solver QZ de Klein para DSGE lineales y perturbación de segundo orden con poda de Kim et al. (2008), términos cruzados y paridad con Dynare `oo_.dr` (`dsge.dynare`).
 
 **Extensiones de macroeconomía moderna**
 

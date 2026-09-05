@@ -138,3 +138,60 @@ print(favar_res.summary())
 # Plot responses for specific macroeconomic variables
 favar_res.plot(variables=["Industrial_Production", "CPI", "Employment"])
 ```
+
+---
+
+## 7. DSGE Higher-Order Approximation & Dynare Parity
+
+Solve nonlinear DSGE models to 1st or 2nd order with Kim et al. (2008) pruning, cross-derivatives, and Dynare `oo_.dr` compatibility:
+
+```python
+from puremacro.dsge import build_dynare, load_mod
+
+# 1. Load native Dynare .mod file with shocks and stoch_simul options
+model = load_mod("rbc.mod")
+
+# 2. Solve 2nd-order perturbation with pruning
+sol = model.solve(order=2)
+
+# 3. Inspect policy rules matching Dynare oo_.dr structure
+print(sol.oo_dr["ghx"])   # first-order state derivatives
+print(sol.oo_dr["ghxx"])  # second-order state derivatives
+print(sol.oo_dr.summary())
+
+# 4. Analytical theoretical moments & variance decomposition
+mom = sol.theoretical_moments()
+print(mom.summary())
+print(mom.to_latex())
+```
+
+---
+
+## 8. iPad / Juno / Pyodide to Google Colab Offloader
+
+When working on a tablet or client-side Pyodide session that hits memory or runtime constraints, generate an executable Google Colab notebook with automatic Google Drive result syncing:
+
+```python
+from puremacro.runtime.colab import (
+    generate_colab_notebook,
+    show_colab_offload_dialog,
+    load_colab_result,
+)
+
+# 1. Generate notebook with auth and Drive mounting
+nb = generate_colab_notebook(
+    task_code="""
+import puremacro as pm
+res = pm.dsge.estimate_sw07(n_draws=10000, n_chains=4)
+pm.runtime.store.save_frame(res.summary(), "sw07_posterior.pmz")
+""",
+    mount_drive=True,
+    export_result_file="sw07_posterior.pmz",
+)
+
+# 2. Launch in Colab with 1 click
+show_colab_offload_dialog(nb, filename="sw07_offload.ipynb")
+
+# 3. Retrieve output back in local session via pure .pmz cartridge
+res = load_colab_result("sw07_posterior.pmz")
+```

@@ -30,6 +30,18 @@ puremacro 2.0 unifies the empirical macro toolbox into an integrated, production
   - Academic significance stars (`***` p<0.01, `**` p<0.05, `*` p<0.10) and formatted regression summaries in `puremacro.reports`.
 - **PEP 561 Typing**:
   - Added `puremacro/py.typed` inline typing marker enabling full static type analysis in mypy and IDE language servers.
+- **DSGE Higher-Order Approximation & Dynare Parity (`puremacro.dsge.dynare`)**:
+  - Implemented 2nd-order perturbation with cross-derivatives ($H_{xu}, H_{uu}, G_{xu}, G_{uu}$) and risk corrections ($g_{\sigma\sigma}$) in `solve_dynare_2nd_order`.
+  - Added Kim, Kim, Schaumburg & Sims (2008) pruning algorithm to eliminate explosive quadratic paths.
+  - Added Dynare `oo_.dr` decision rule structures (`DynareDR`, `Dynare2ndDR`) with MATLAB dict-like subscripting (`oo_dr['ghxx']`) and formatted policy reports.
+  - Added native Dynare `.mod` file parser (`load_mod`, `parse_mod`) supporting variable declarations, parameters, model blocks, `shocks; ... end;` blocks, and `stoch_simul(...)` options.
+  - Added analytical `theoretical_moments()` on `PrunedDSGESolution` delivering unconditional variances, covariances, correlations, autocorrelations, and variance decompositions.
+- **Juno / Pyodide to Google Colab Task Offloader (`puremacro.runtime.colab`)**:
+  - Complete round-trip workflow for executing heavy computations (e.g. 10,000-draw MCMC or wild bootstraps) on Google Colab from an iPad/Juno or client-side Pyodide session.
+  - Added `generate_colab_notebook` with Google Drive auto-sync and embedded data payloads.
+  - Added `colab_badge` and `show_colab_offload_dialog` for 1-click execution.
+  - Added `colab_auth_snippet` guiding users with Google Cloud ADC, Drive mounting, and Colab secrets token handling.
+  - Added `load_colab_result` to unpack `.pmz` cartridges back into local sessions without `pyarrow`.
 - **Adversarial Stress Testing & Validation Gallery**:
   - Introduced `tests/dgp_generators.py` and `tests/test_dgp_adversarial.py` testing near-singular covariance, extreme AR roots, fat-tailed innovations, and row-order invariance.
   - Expanded validation gallery across cointegration (FM-OLS, DOLS), SVAR (sign restrictions, Rigobon heteroskedasticity), BVAR diffuse limits, and Driscoll-Kraay robust standard errors (all 81 validation scorecard cases pass).

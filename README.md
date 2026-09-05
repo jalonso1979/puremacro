@@ -8,6 +8,85 @@ core stays importable under Pyodide (iPad / juno.sh, best-effort — see
 "juno.sh / iPad" below). The supported target is a local install on a
 regular workstation.
 
+## 5-Minute Quickstart (2.0 Unified API)
+
+`puremacro 2.0` standardizes the macro API around common parameter conventions (`lags`, `horizon`, `ci`), frozen-dataclass result objects, rich visualization (`.plot()`), and direct publication export (`.to_latex()`, `.to_typst()`, `.to_markdown()`):
+
+### 1. Local Projections (LP) & Publication-Grade Export
+```python
+import numpy as np
+import pandas as pd
+from puremacro.lp import lp_hac
+
+# Synthetic macro time series
+rng = np.random.default_rng(42)
+T = 200
+shock = rng.standard_normal(T)
+gdp = np.cumsum(0.7 * shock + 0.3 * rng.standard_normal(T))
+df = pd.DataFrame({"gdp": gdp, "shock": shock})
+
+# Unified API: horizon, lags, confidence level
+res = lp_hac(df, y="gdp", x="shock", horizon=12, lags=4, ci=0.90)
+
+# Instant visualization
+res.plot(title="Output Response to Monetary Shock")
+
+# Direct table export to LaTeX tabular or Typst table
+print(res.to_latex())
+print(res.to_typst())
+```
+
+### 2. DSGE Higher-Order Approximation & Dynare Parity
+Solve nonlinear DSGE models up to second order with Kim, Kim, Schaumburg & Sims (2008) pruning, cross-derivatives ($g_{xu}, g_{uu}$), risk corrections ($g_{\sigma\sigma}$), and Dynare `oo_.dr` parity:
+```python
+from puremacro.dsge import build_dynare, load_mod
+
+# 1. Define or load a model from .mod file with shocks and stoch_simul options
+model = load_mod("rbc.mod")  # or build_dynare(eqs, states, controls, shocks, order=2)
+
+# 2. Solve 2nd-order pruned perturbation
+sol = model.solve(order=2)
+
+# 3. Access Dynare-style decision rules (oo_.dr)
+print(sol.oo_dr["ghx"])   # first-order state transition
+print(sol.oo_dr["ghxx"])  # second-order state curvature
+print(sol.oo_dr.summary())
+
+# 4. Analytical theoretical moments & variance decomposition
+mom = sol.theoretical_moments()
+print(mom.summary())
+print(mom.to_latex())
+```
+
+### 3. Juno / iPad / Pyodide to Google Colab Offloading
+When working on an iPad or client-side Pyodide session with compute or memory constraints, seamlessly offload heavy tasks (e.g. 10,000-draw MCMC or large bootstrap SVARs) to Google Colab:
+```python
+from puremacro.runtime.colab import (
+    generate_colab_notebook,
+    show_colab_offload_dialog,
+    load_colab_result,
+)
+
+# Generate a self-contained Google Colab notebook with auth and Drive mounting
+nb = generate_colab_notebook(
+    task_code="""
+import puremacro as pm
+res = pm.dsge.estimate_sw07(n_draws=10000, n_chains=4)
+pm.runtime.store.save_frame(res.summary(), "sw07_posterior.pmz")
+""",
+    mount_drive=True,
+    export_result_file="sw07_posterior.pmz",
+)
+
+# Open Colab with 1 click in Juno or browser
+show_colab_offload_dialog(nb, filename="sw07_offload.ipynb")
+
+# Once Colab finishes, load the .pmz result back into your local session
+posterior = load_colab_result("sw07_posterior.pmz")
+```
+
+---
+
 ## What's in it
 
 **Core econometrics**
@@ -35,7 +114,8 @@ regular workstation.
   Diebold-Mariano / Giacomini-White forecast comparison + density-
   forecast scoring (CRPS, log score); Bai-Perron breaks; unit-root
   tests (ADF, KPSS, PP, Zivot-Andrews); Klein QZ solver for linear DSGE
-  (Blanchard-Kahn enforced).
+  and 2nd-order perturbation with Kim et al. (2008) pruning, cross-terms,
+  and Dynare `oo_.dr` parity (`dsge.dynare`).
 
 **Modern macro extensions**
 
@@ -149,24 +229,27 @@ helper. Coverage is constrained by what Wayback has snapshotted.
   (`labor_flows`) and 4-state F/I/U/N transitions from ENOE microdata
   for Mexico (`labor_flows_enoe`).
 
-**Running away from a workstation** (`runtime.*`, `pocket.*`, `longrun.*`)
+**Running away from a workstation** (`runtime.*`, `runtime.colab`, `pocket.*`, `longrun.*`)
 
 The package's headline promise is that the estimator core runs on an
-iPad. These three make the promise usable rather than merely true:
+iPad. These tools make the promise usable rather than merely true:
 `runtime` reports what the machine can actually do (sockets? parquet?
 threads?) and routes HTTP over the browser when there are no sockets;
+`runtime.colab` provides seamless task offloading to Google Colab with
+cloud auth and `.pmz` persistence when tasks exceed mobile memory;
 `pocket` packs data into portable, self-verifying `.pmz` cartridges so a
 panel built online opens offline; `longrun` runs bootstraps and chains in
 resumable chunks that survive the OS suspending the app, with results
 invariant to how the work was sliced. See "juno.sh / iPad" below.
 
-**DSGE sketchpad** (`dsge.build`)
+**DSGE sketchpad & Dynare parity** (`dsge.build`, `dsge.dynare`)
 
-Write the equilibrium conditions as a Python function and get a solved
-first-order approximation back — steady state, policy rules, IRFs — with
-the Jacobians taken by complex-step differentiation. No hand-derived
-matrices, no Dynare, no compiler, which is precisely what a tablet
-cannot provide.
+Write equilibrium conditions as a Python function or parse native Dynare
+`.mod` files (`load_mod`, `parse_mod`). Solves 1st- and 2nd-order approximations
+with complex-step differentiation, Kim-Kim-Schaumburg-Sims (2008) pruning,
+cross-derivatives ($g_{xu}, g_{uu}$), risk adjustments ($g_{\sigma\sigma}$),
+Dynare `oo_.dr` decision rules, and analytical theoretical moments (`stoch_simul`).
+No hand-derived matrices, no Fortran/C++ compiler, 100% Pyodide-ready.
 
 **Teaching artefacts**
 
@@ -328,6 +411,35 @@ what this machine should actually attempt, and
 Both are opt-in: no estimator default changed, so a script that runs on
 your laptop produces the same numbers it always did. Only cost knobs are
 clamped — `horizon` changes what is being estimated, so it is left alone.
+
+**Offloading heavy compute to Google Colab.** When tasks exceed tablet memory
+or CPU limits (such as full Bayesian MCMC chains or 10,000-draw wild bootstraps),
+`puremacro.runtime.colab` offloads the work seamlessly:
+
+```python
+from puremacro.runtime.colab import (
+    generate_colab_notebook,
+    show_colab_offload_dialog,
+    load_colab_result,
+)
+
+# 1. Package computation into a self-contained notebook with Drive sync
+nb = generate_colab_notebook(
+    task_code="""
+import puremacro as pm
+res = pm.dsge.estimate_sw07(n_draws=5000, n_chains=2)
+pm.runtime.store.save_frame(res.summary(), "sw07_result.pmz")
+""",
+    mount_drive=True,
+    export_result_file="sw07_result.pmz",
+)
+
+# 2. Open directly in Colab from Juno / Jupyter
+show_colab_offload_dialog(nb, filename="offload.ipynb")
+
+# 3. Retrieve output back in iPad/Pyodide session via pure-numpy .pmz format
+res_summary = load_colab_result("sw07_result.pmz")
+```
 
 ### Run the LLM features for free (local models)
 
