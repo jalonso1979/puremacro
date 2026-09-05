@@ -157,14 +157,16 @@ def _kalman_standard_update(
     except np.linalg.LinAlgError:
         F = F + 1e-10 * np.eye(n_obs)
         F_chol = safe_cholesky(F, name="kalman filter F (augmented)")
+    Zt_Pt = Z_t @ P_t.T
+    P_Zt = Zt_Pt.T
     F_inv_v = np.linalg.solve(F_chol.T, np.linalg.solve(F_chol, v))
-    F_inv_Zt = np.linalg.solve(F_chol.T, np.linalg.solve(F_chol, Z_t @ P_t.T))
-    K = (Tm @ P_t @ Z_t.T) @ np.linalg.inv(F)
+    F_inv_Zt = np.linalg.solve(F_chol.T, np.linalg.solve(F_chol, Zt_Pt))
+    K = Tm @ F_inv_Zt.T
 
-    a_filt_t = a_t + P_t @ Z_t.T @ F_inv_v
-    P_filt_t = P_t - P_t @ Z_t.T @ F_inv_Zt
+    a_filt_t = a_t + P_Zt @ F_inv_v
+    P_filt_t = P_t - P_Zt @ F_inv_Zt
     a_pred_next = Tm @ a_t + c + K @ v
-    P_pred_next = Tm @ P_t @ Tm.T + RQR - K @ F @ K.T
+    P_pred_next = Tm @ P_t @ Tm.T + RQR - (Tm @ P_Zt) @ K.T
 
     innov_full = np.full(n, np.nan)
     innov_full[obs] = v

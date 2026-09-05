@@ -101,18 +101,17 @@ def wild_bootstrap_var(
     lo_q = (1 - ci) / 2
     hi_q = 1 - lo_q
 
+    W = rng.choice(np.array([-1.0, 1.0]), size=(n_boot, len(resid)))
+    E_all = resid[None, :, :] * W[:, :, None]
+    A_stack = np.hstack(A_list)
+    Yb_all = np.empty((n_boot, T, n))
+    Yb_all[:, :p, :] = Y[:p]
+    for t in range(p, T):
+        lags = np.concatenate([Yb_all[:, t - 1 - l, :] for l in range(p)], axis=1)
+        Yb_all[:, t, :] = lags @ A_stack.T + c + E_all[:, t - p, :]
+
     for b in range(n_boot):
-        w = rng.choice([-1.0, 1.0], size=len(resid))
-        eps_b = resid * w[:, None]
-        Yb = np.zeros_like(Y)
-        Yb[:p] = Y[:p]
-        for t in range(p, T):
-            yt = c.copy()
-            for l in range(p):
-                yt += A_list[l] @ Yb[t - l - 1]
-            yt += eps_b[t - p]
-            Yb[t] = yt
-        A_b, _, Sigma_b, resid_b, _ = _ols_var(Yb, p)
+        A_b, _, Sigma_b, resid_b, _ = _ols_var(Yb_all[b], p)
         try:
             B_b = impact_fn(A_b, Sigma_b, resid_b)
         except np.linalg.LinAlgError:

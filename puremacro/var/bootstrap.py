@@ -33,17 +33,17 @@ def _kilian_bias_correct(Y, p, n_pilot=100, rng=None):
     T, n = Y_arr.shape
     bias_int = np.zeros_like(intercept)
     bias_A = [np.zeros_like(A) for A in A_list]
-    for _ in range(n_pilot):
-        idx = rng.integers(0, len(residuals), size=len(residuals))
-        u_b = residuals[idx]
-        Y_b = np.copy(Y_arr)
-        for t in range(p, T):
-            yt = intercept.copy()
-            for l in range(p):
-                yt += A_list[l] @ Y_b[t - l - 1]
-            Y_b[t] = yt + u_b[t - p]
+    all_idx = rng.integers(0, len(residuals), size=(n_pilot, len(residuals)))
+    U = residuals[all_idx]
+    A_stack = np.hstack(A_list)
+    Y_pilot = np.empty((n_pilot, T, n))
+    Y_pilot[:, :p, :] = Y_arr[:p]
+    for t in range(p, T):
+        lags = np.concatenate([Y_pilot[:, t - 1 - l, :] for l in range(p)], axis=1)
+        Y_pilot[:, t, :] = lags @ A_stack.T + intercept + U[:, t - p, :]
+    for b in range(n_pilot):
         try:
-            A_b, c_b, _, _, _ = estimate_var(Y_b, p)
+            A_b, c_b, _, _, _ = estimate_var(Y_pilot[b], p)
         except np.linalg.LinAlgError:
             continue
         bias_int += (c_b - intercept) / n_pilot
@@ -139,15 +139,16 @@ def bootstrap_bands(Y, p, identify_fn, horizon, n_boot=500, alpha=0.10,
     else:
         raise ValueError(f"unknown method {method!r}")
 
+    # Vectorized simulation of all bootstrap paths
+    Y_all = np.empty((n_boot, T, n))
+    Y_all[:, :p, :] = Y_arr[:p]
+    for t in range(p, T):
+        lags = np.concatenate([Y_all[:, t - 1 - l, :] for l in range(p)], axis=1)
+        Y_all[:, t, :] = lags @ A_stack.T + intercept + U[:, t - p, :]
+
     def _eval_draw(b: int) -> np.ndarray:
-        u_b = U[b]
-        Y_b = np.copy(Y_arr)
-        for t in range(p, T):
-            Y_b[t] = (intercept
-                      + A_stack @ Y_b[t - 1:t - 1 - p if t - 1 - p >= 0 else None:-1].ravel()
-                      + u_b[t - p])
         try:
-            A_b, _, Sigma_b, _, _ = estimate_var(Y_b, p)
+            A_b, _, Sigma_b, _, _ = estimate_var(Y_all[b], p)
             B_b = identify_fn(A_b, Sigma_b, **id_kwargs)
             return irf(A_b, B_b, horizon)
         except Exception:

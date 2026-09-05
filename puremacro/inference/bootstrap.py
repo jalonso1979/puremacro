@@ -13,7 +13,10 @@ def _ols_var(Y: np.ndarray, p: int):
     T, n = Y.shape
     X = np.column_stack([np.ones(T - p)] + [Y[p - l - 1 : T - l - 1] for l in range(p)])
     Yd = Y[p:]
-    B = np.linalg.lstsq(X, Yd, rcond=None)[0]
+    try:
+        B = np.linalg.solve(X.T @ X, X.T @ Yd)
+    except np.linalg.LinAlgError:
+        B = np.linalg.lstsq(X, Yd, rcond=None)[0]
     c = B[0]
     A_list = [B[1 + l * n : 1 + (l + 1) * n].T for l in range(p)]
     resid = Yd - X @ B
@@ -79,30 +82,24 @@ def residual_bootstrap(
 
     T_eff, n = residuals.shape
     p = len(A_list)
-    T = Y.shape[0]
     Y_init = Y[:p]
 
+    all_idx = rng.integers(0, T_eff, size=(n_draws, T_eff))
+    E_all = residuals[all_idx]
+    A_stack = np.hstack(A_list)
+
+    Y_all = np.empty((n_draws, p + T_eff, n))
+    Y_all[:, :p, :] = Y_init
+    for t in range(T_eff):
+        lags = np.concatenate([Y_all[:, p + t - 1 - lag, :] for lag in range(p)], axis=1)
+        Y_all[:, p + t, :] = lags @ A_stack.T + intercept + E_all[:, t, :]
+
     draws = []
-    for _ in range(n_draws):
-        # i.i.d. resample residuals
-        idx = rng.integers(0, T_eff, size=T_eff)
-        e_star = residuals[idx]
-
-        # Simulate Y*
-        Y_star = np.empty((p + T_eff, n))
-        Y_star[:p] = Y_init
-        for t in range(T_eff):
-            y_new = intercept.copy()
-            for lag in range(p):
-                y_new = y_new + A_list[lag] @ Y_star[p + t - lag - 1]
-            y_new = y_new + e_star[t]
-            Y_star[p + t] = y_new
-
+    for b in range(n_draws):
         if irf_fn is not None:
-            draw = irf_fn(Y_star, p, horizon)
+            draw = irf_fn(Y_all[b], p, horizon)
         else:
             draw = np.zeros((horizon + 1, n, n))
-
         draws.append(draw)
 
     return {"draws": draws}
