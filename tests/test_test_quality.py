@@ -369,3 +369,39 @@ def test_linear_algebra_uses_relative_conditioning_thresholds():
                 f"_linalg.py:{node.name} must use relative conditioning "
                 "(scaled by maximum pivot) rather than a scale-dependent constant."
             )
+
+
+def test_no_vacuous_or_empty_tests():
+    """Every test function under tests/ must execute meaningful logic.
+
+    An empty test function, a test containing only a docstring, or a test whose
+    body is solely `pass` or `...` provides illusory green coverage while asserting
+    nothing. This AST walk proves zero test functions in the suite are vacuous.
+    """
+    tests_dir = _TESTS
+    vacuous = []
+    for p in sorted(tests_dir.rglob("test_*.py")):
+        if p.name == Path(__file__).name:
+            continue
+        try:
+            tree = ast.parse(p.read_text(encoding="utf-8", errors="replace"))
+        except Exception:
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("test_"):
+                body = node.body
+                if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant) and isinstance(body[0].value.value, str):
+                    body = body[1:]
+                if not body:
+                    vacuous.append((p.relative_to(_ROOT).as_posix(), node.name, "empty-or-docstring-only"))
+                elif len(body) == 1:
+                    stmt = body[0]
+                    if isinstance(stmt, ast.Pass):
+                        vacuous.append((p.relative_to(_ROOT).as_posix(), node.name, "pass-only"))
+                    elif isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant) and stmt.value.value is ...:
+                        vacuous.append((p.relative_to(_ROOT).as_posix(), node.name, "ellipsis-only"))
+
+    assert not vacuous, (
+        f"Found {len(vacuous)} vacuous/empty test function(s):\n  "
+        + "\n  ".join(f"{f}:{name} ({reason})" for f, name, reason in vacuous)
+    )
