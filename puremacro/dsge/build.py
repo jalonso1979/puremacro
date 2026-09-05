@@ -71,15 +71,19 @@ from typing import Callable, Mapping, Sequence
 
 import numpy as np
 import pandas as pd
+import scipy.linalg
 import scipy.optimize
 
 from puremacro.dsge.klein import KleinSolution, klein_solve
+from puremacro.dsge._results import DynareDR, TheoreticalMomentsResult
 
 __all__ = [
     "ModelError",
     "SteadyStateError",
     "LinearModel",
     "build",
+    "DynareDR",
+    "TheoreticalMomentsResult",
 ]
 
 # Complex-step size. Any value small enough that h**2 underflows relative
@@ -221,6 +225,272 @@ class LinearModel:
             columns=list(self.states),
         )
         return frame.loc[list(self.variables)]
+
+    def decision_rules(self) -> DynareDR:
+        """Decision rule representation matching Dynare's oo_.dr structure.
+
+        First-order approximation around steady state:
+            y_t = ys + ghx * (x_{t-1} - xs) + ghu * u_t
+
+        Returns
+        -------
+        DynareDR
+            Container holding ghx, ghu, steady states, and variable labels.
+        """
+        G, F, N, L = (self.solution.G, self.solution.F,
+                      self.solution.N, self.solution.L)
+        ghx_block = np.vstack([G, F @ G])
+        ghu_block = np.vstack([N, F @ N + L])
+
+        order_vars = list(self.states) + list(self.controls)
+        df_ghx = pd.DataFrame(
+            ghx_block, index=order_vars, columns=list(self.states)
+        ).loc[list(self.variables)]
+        df_ghu = pd.DataFrame(
+            ghu_block, index=order_vars, columns=list(self.shocks)
+        ).loc[list(self.variables)]
+
+        return DynareDR(
+            ghx=df_ghx,
+            ghu=df_ghu,
+            ys=self.steady_state.loc[list(self.variables)],
+            state_variables=self.states,
+            variable_names=self.variables,
+            shock_names=self.shocks,
+        )
+
+    @property
+    def dynare_dr(self) -> DynareDR:
+        """Dynare decision rules property alias."""
+        return self.decision_rules()
+
+    def theoretical_moments(
+        self,
+        *,
+        sigma: float | Mapping[str, float] | None = None,
+        lags: int = 5,
+        fevd_horizons: Sequence[int | None] = (1, 4, 8, 16, 32, None),
+    ) -> TheoreticalMomentsResult:
+        """Calculate analytical theoretical moments matching Dynare's stoch_simul.
+
+        Solves the discrete Lyapunov equation for unconditional stationary moments,
+        cross-correlations, autocorrelations, and forecast error variance decomposition.
+
+        Parameters
+        ----------
+        sigma : float | Mapping[str, float], optional
+            Shock standard deviations. Default 1.0 for each shock.
+        lags : int, default 5
+            Number of autocorrelation lags to evaluate.
+        fevd_horizons : Sequence[int | None], default (1, 4, 8, 16, 32, None)
+            Forecast horizons for variance decomposition. None represents
+            asymptotic infinity (unconditional variance share).
+
+        Returns
+        -------
+        TheoreticalMomentsResult
+            Container with moments, covariance, correlation, autocorrelation, and FEVD.
+        """
+        g_eigs = np.abs(scipy.linalg.eigvals(self.solution.G))
+        if np.any(g_eigs >= 1.0 - 1e-7):
+            bad = g_eigs[g_eigs >= 1.0 - 1e-7]
+            raise ValueError(
+                f"State transition matrix G has non-stationary eigenvalues (|λ| >= 1.0: {bad}); "
+                "unconditional stationary moments do not exist."
+            )
+
+        n_s = self.n_states
+        n_c = self.n_controls
+        n_e = len(self.shocks)
+
+        if sigma is None:
+            sd = np.ones(n_e)
+        elif isinstance(sigma, Mapping):
+            sd = np.array([float(sigma.get(s, 1.0)) for s in self.shocks])
+        else:
+            sd = np.full(n_e, float(sigma))
+
+        sigma_u = np.diag(sd**2)
+
+        G, F, N, L = (self.solution.G, self.solution.F,
+                      self.solution.N, self.solution.L)
+
+        # Discrete Lyapunov equation for states covariance:
+        # Sigma_x = G @ Sigma_x @ G.T + N @ sigma_u @ N.T
+        q_mat = N @ sigma_u @ N.T
+        sigma_x = scipy.linalg.solve_discrete_lyapunov(G, q_mat)
+
+        # Cross terms and controls covariance:
+        # x_t = G x_{t-1} + N u_t => E[x_t u_t'] = N @ sigma_u
+        cov_xu = N @ sigma_u
+        sigma_xy = sigma_x @ F.T + cov_xu @ L.T
+        sigma_yx = sigma_xy.T
+        sigma_y = (
+            F @ sigma_x @ F.T
+            + L @ sigma_u @ L.T
+            + F @ cov_xu @ L.T
+            + L @ cov_xu.T @ F.T
+        )
+
+        order_vars = list(self.states) + list(self.controls)
+        full_cov = np.block([
+            [sigma_x, sigma_xy],
+            [sigma_yx, sigma_y],
+        ])
+
+        cov_df = pd.DataFrame(
+            full_cov, index=order_vars, columns=order_vars
+        ).loc[list(self.variables), list(self.variables)]
+
+        variances = np.diag(cov_df.to_numpy())
+        stds = np.sqrt(np.maximum(variances, 0.0))
+        means = np.array([float(self.steady_state[v]) for v in self.variables])
+
+        df_moments = pd.DataFrame(
+            {"Mean": means, "Std.Dev.": stds, "Variance": variances},
+            index=list(self.variables),
+        )
+
+        std_outer = np.outer(stds, stds)
+        std_outer[std_outer == 0.0] = np.nan
+        corr_mat = cov_df.to_numpy() / std_outer
+        np.fill_diagonal(corr_mat, 1.0)
+        df_corr = pd.DataFrame(
+            corr_mat, index=list(self.variables), columns=list(self.variables)
+        )
+
+        # Autocorrelations
+        autocorr_cols = [f"Lag {k}" for k in range(1, lags + 1)]
+        df_autocorr = pd.DataFrame(
+            index=list(self.variables), columns=autocorr_cols, dtype=float
+        )
+
+        for k in range(1, lags + 1):
+            g_pow = np.linalg.matrix_power(G, k)
+            gamma_x = g_pow @ sigma_x
+            gamma_xy = g_pow @ sigma_xy
+            gamma_yx = F @ gamma_x
+            gamma_yy = F @ gamma_xy
+
+            block_k = np.block([
+                [gamma_x, gamma_xy],
+                [gamma_yx, gamma_yy],
+            ])
+            df_gamma_k = pd.DataFrame(
+                block_k, index=order_vars, columns=order_vars
+            ).loc[list(self.variables), list(self.variables)]
+
+            diag_gamma = np.diag(df_gamma_k.to_numpy())
+            with np.errstate(divide="ignore", invalid="ignore"):
+                rho_k = np.where(variances > 1e-14, diag_gamma / variances, np.nan)
+            df_autocorr[f"Lag {k}"] = rho_k
+
+        # Variance Decomposition
+        df_fevd = self.fevd(horizons=fevd_horizons, sigma=sigma)
+
+        return TheoreticalMomentsResult(
+            moments=df_moments,
+            covariance=cov_df,
+            correlation=df_corr,
+            autocorr=df_autocorr,
+            fevd=df_fevd,
+        )
+
+    def fevd(
+        self,
+        horizons: Sequence[int | None] = (1, 4, 8, 16, 32, None),
+        sigma: float | Mapping[str, float] | None = None,
+    ) -> pd.DataFrame:
+        """Forecast error variance decomposition (FEVD) shares (in percent).
+
+        Parameters
+        ----------
+        horizons : Sequence[int | None], default (1, 4, 8, 16, 32, None)
+            Evaluation horizons. None represents asymptotic infinity.
+        sigma : float | Mapping[str, float], optional
+            Shock standard deviations.
+
+        Returns
+        -------
+        pd.DataFrame
+            MultiIndex DataFrame [Variable, Horizon] with percentage shares for each shock.
+        """
+        n_s = self.n_states
+        n_e = len(self.shocks)
+
+        if sigma is None:
+            sd = np.ones(n_e)
+        elif isinstance(sigma, Mapping):
+            sd = np.array([float(sigma.get(s, 1.0)) for s in self.shocks])
+        else:
+            sd = np.full(n_e, float(sigma))
+
+        G, F, N, L = (self.solution.G, self.solution.F,
+                      self.solution.N, self.solution.L)
+        order_vars = list(self.states) + list(self.controls)
+
+        rows = []
+        for h in horizons:
+            h_label = "Infinity" if h is None else int(h)
+            if h is None:
+                # Asymptotic variance shares via Lyapunov
+                v_shocks = np.zeros((len(self.variables), n_e))
+                for j in range(n_e):
+                    n_j = N[:, [j]]
+                    l_j = L[:, [j]]
+                    var_u_j = sd[j] ** 2
+                    q_j = n_j @ (n_j.T * var_u_j)
+                    sig_x_j = scipy.linalg.solve_discrete_lyapunov(G, q_j)
+                    cov_xu_j = n_j * var_u_j
+                    sig_xy_j = sig_x_j @ F.T + cov_xu_j @ l_j.T
+                    sig_y_j = (
+                        F @ sig_x_j @ F.T
+                        + l_j @ (l_j.T * var_u_j)
+                        + F @ cov_xu_j @ l_j.T
+                        + l_j @ cov_xu_j.T @ F.T
+                    )
+                    full_j = np.block([
+                        [sig_x_j, sig_xy_j],
+                        [sig_xy_j.T, sig_y_j],
+                    ])
+                    cov_j = pd.DataFrame(
+                        full_j, index=order_vars, columns=order_vars
+                    ).loc[list(self.variables), list(self.variables)]
+                    v_shocks[:, j] = np.diag(cov_j.to_numpy())
+
+                tot_v = v_shocks.sum(axis=1, keepdims=True)
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    shares = np.where(tot_v > 1e-14, (v_shocks / tot_v) * 100.0, 0.0)
+
+                for i, var in enumerate(self.variables):
+                    row_dict = {"Variable": var, "Horizon": h_label}
+                    for j, s in enumerate(self.shocks):
+                        row_dict[s] = shares[i, j]
+                    rows.append(row_dict)
+            else:
+                # Finite horizon h using MA responses
+                v_shocks = np.zeros((len(self.variables), n_e))
+                for j in range(n_e):
+                    e_vec = np.zeros(n_e)
+                    e_vec[j] = sd[j]
+                    paths = self._paths(int(h), e_vec)
+                    df_paths = pd.DataFrame(
+                        paths, columns=order_vars
+                    )[list(self.variables)].to_numpy()
+                    v_shocks[:, j] = np.sum(df_paths[: int(h) + 1] ** 2, axis=0)
+
+                tot_v = v_shocks.sum(axis=1, keepdims=True)
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    shares = np.where(tot_v > 1e-14, (v_shocks / tot_v) * 100.0, 0.0)
+
+                for i, var in enumerate(self.variables):
+                    row_dict = {"Variable": var, "Horizon": h_label}
+                    for j, s in enumerate(self.shocks):
+                        row_dict[s] = shares[i, j]
+                    rows.append(row_dict)
+
+        df_res = pd.DataFrame(rows).set_index(["Variable", "Horizon"])
+        return df_res
 
     # -- simulation ----------------------------------------------------
 

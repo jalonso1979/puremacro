@@ -127,4 +127,161 @@ class FertilitySolution:
         return _compute_fevd(self, horizon)
 
 
-__all__ = ["DSGEPosteriorResult", "SW07PosteriorResult", "FertilitySolution"]
+@dataclass(frozen=True)
+class DynareDR:
+    """Decision rule representation matching Dynare's oo_.dr structure.
+
+    First-order approximation around steady state:
+        y_t = ys + ghx * (x_{t-1} - xs) + ghu * u_t
+
+    Attributes
+    ----------
+    ghx : pd.DataFrame
+        (n_vars x n_states) matrix of policy derivatives with respect to lagged states.
+    ghu : pd.DataFrame
+        (n_vars x n_shocks) matrix of policy derivatives with respect to contemporaneous shocks.
+    ys : pd.Series
+        Steady-state values for all endogenous variables.
+    state_variables : tuple[str, ...]
+        Names of predetermined state variables.
+    variable_names : tuple[str, ...]
+        Names of all endogenous variables in model order.
+    shock_names : tuple[str, ...]
+        Names of structural shocks.
+    """
+
+    ghx: pd.DataFrame
+    ghu: pd.DataFrame
+    ys: pd.Series
+    state_variables: tuple[str, ...]
+    variable_names: tuple[str, ...]
+    shock_names: tuple[str, ...]
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return transition and policy functions matching Dynare's output layout.
+
+        Rows are [Constant, state(-1)..., shocks...], columns are endogenous variables.
+        """
+        rows = ["Constant"] + [f"{s}(-1)" for s in self.state_variables] + list(self.shock_names)
+        df = pd.DataFrame(index=rows, columns=list(self.variable_names), dtype=float)
+
+        # Constant row
+        for v in self.variable_names:
+            df.loc["Constant", v] = self.ys.get(v, 0.0)
+
+        # Lagged states rows
+        for s in self.state_variables:
+            row_lbl = f"{s}(-1)"
+            for v in self.variable_names:
+                df.loc[row_lbl, v] = self.ghx.loc[v, s]
+
+        # Shocks rows
+        for e in self.shock_names:
+            for v in self.variable_names:
+                df.loc[e, v] = self.ghu.loc[v, e]
+
+        return df
+
+    def summary(self) -> str:
+        """Render Dynare-style 'POLICY AND TRANSITION FUNCTIONS' table."""
+        df = self.to_frame()
+        lines = [
+            "POLICY AND TRANSITION FUNCTIONS (Dynare Format)",
+            "=" * 72,
+            df.round(6).to_string(),
+            "=" * 72,
+        ]
+        return "\n".join(lines)
+
+    def to_markdown(self, **kwargs) -> str:
+        """Export decision rules to Markdown table."""
+        from puremacro.reports import _df_to_markdown
+
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        """Export decision rules to LaTeX tabular format."""
+        from puremacro.reports import _df_to_latex
+
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        """Export decision rules to Typst table format."""
+        from puremacro.reports import _df_to_typst
+
+        return _df_to_typst(self.to_frame(), **kwargs)
+
+
+@dataclass(frozen=True)
+class TheoreticalMomentsResult:
+    """Analytical theoretical moments matching Dynare's stoch_simul.
+
+    Attributes
+    ----------
+    moments : pd.DataFrame
+        Table of [Mean, Std.Dev., Variance] for each endogenous variable.
+    covariance : pd.DataFrame
+        Unconditional covariance matrix (n_vars x n_vars).
+    correlation : pd.DataFrame
+        Unconditional correlation matrix (n_vars x n_vars).
+    autocorr : pd.DataFrame
+        Theoretical autocorrelation coefficients for lags 1 to n_lags.
+    fevd : pd.DataFrame
+        Forecast error variance decomposition percentage shares across horizons.
+    """
+
+    moments: pd.DataFrame
+    covariance: pd.DataFrame
+    correlation: pd.DataFrame
+    autocorr: pd.DataFrame
+    fevd: pd.DataFrame
+
+    def summary(self) -> str:
+        """Render complete Dynare-style theoretical moments report."""
+        lines = [
+            "THEORETICAL MOMENTS (Dynare stoch_simul)",
+            "=" * 72,
+            self.moments.round(6).to_string(),
+            "",
+            "MATRIX OF CORRELATIONS",
+            "-" * 72,
+            self.correlation.round(4).to_string(),
+            "",
+            "COEFFICIENTS OF AUTOCORRELATION",
+            "-" * 72,
+            self.autocorr.round(4).to_string(),
+            "",
+            "VARIANCE DECOMPOSITION (in percent)",
+            "-" * 72,
+            self.fevd.round(2).to_string(),
+            "=" * 72,
+        ]
+        return "\n".join(lines)
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return primary theoretical moments table."""
+        return self.moments.copy()
+
+    def to_markdown(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_markdown
+
+        return _df_to_markdown(self.moments, **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_latex
+
+        return _df_to_latex(self.moments, **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_typst
+
+        return _df_to_typst(self.moments, **kwargs)
+
+
+__all__ = [
+    "DSGEPosteriorResult",
+    "SW07PosteriorResult",
+    "FertilitySolution",
+    "DynareDR",
+    "TheoreticalMomentsResult",
+]

@@ -48,6 +48,9 @@ Klein-form matrices and the underlying `KleinSolution`:
 | `.irf(shock, horizon, size)` | impulse responses, horizons × variables |
 | `.simulate(periods, sigma, seed)` | stochastic simulation |
 | `.policy()` | decision rules as a labelled table |
+| `.decision_rules()` / `.dynare_dr` | `DynareDR` object matching Dynare's `oo_.dr` (`ghx`, `ghu`, `ys`) |
+| `.theoretical_moments()` | analytical moments, correlations, autocorrelations & FEVD (Dynare `stoch_simul`) |
+| `.fevd(horizons)` | analytical forecast error variance decomposition across finite & asymptotic horizons |
 | `.solution` | the `KleinSolution` — `G`, `F`, `N`, `L` |
 | `.A`, `.B`, `.C` | the matrices the Jacobians produced |
 
@@ -132,3 +135,31 @@ Both live in `tests/test_dsge/test_build.py`; the worked example is
     models: SW07 moves by 1.2e-12, and the course notebooks that call
     `klein_solve` reproduce byte-identical output — the old residual guard did
     fire on those, and its fallback recovered a correct `F`.
+
+## Dynare Compatibility: Decision Rules & Theoretical Moments
+
+To match the output of Dynare's `stoch_simul(order=1)`, `LinearModel` provides:
+
+### 1. Decision Rules (`m.decision_rules()` / `m.dynare_dr`)
+Maps Klein's state transition and policy functions into Dynare's standard representation:
+$$y_t = y^* + g_{x} (x_{t-1} - x^*) + g_{u} u_t$$
+
+```python
+dr = m.decision_rules()
+print(dr.summary())
+```
+Outputs the exact Dynare `POLICY AND TRANSITION FUNCTIONS` table with `Constant`, lagged states (`k(-1)`, `z(-1)`), and structural shocks.
+
+### 2. Theoretical Moments (`m.theoretical_moments()`)
+Solves the discrete Lyapunov equation $\Sigma_x = G \Sigma_x G' + N \Sigma_u N'$ for analytical unconditional moments without relying on stochastic simulation:
+
+```python
+mom = m.theoretical_moments(lags=5)
+print(mom.summary())
+```
+Renders the 4 standard Dynare output blocks:
+- **THEORETICAL MOMENTS**: Mean, Standard Deviation, and Variance for each variable.
+- **MATRIX OF CORRELATIONS**: Full cross-correlation matrix.
+- **COEFFICIENTS OF AUTOCORRELATION**: Exact theoretical autocorrelations for lags 1 through 5.
+- **VARIANCE DECOMPOSITION**: Forecast error variance decomposition shares (in percent) across finite horizons (1, 4, 8, 16, 32) and asymptotic infinity.
+

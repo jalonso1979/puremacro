@@ -181,6 +181,7 @@
     "puremacro.dsge": [
       "BlanchardKahnError",
       "DSGEPosteriorResult",
+      "DynareDR",
       "FertilitySolution",
       "KleinSolution",
       "LinearModel",
@@ -189,6 +190,7 @@
       "PrunedSimulationResult",
       "SW07PosteriorResult",
       "SteadyStateError",
+      "TheoreticalMomentsResult",
       "build",
       "canonical_growth_2nd_order",
       "estimate_dsge",
@@ -204,13 +206,17 @@
     ],
     "puremacro.dsge._results": [
       "DSGEPosteriorResult",
+      "DynareDR",
       "FertilitySolution",
-      "SW07PosteriorResult"
+      "SW07PosteriorResult",
+      "TheoreticalMomentsResult"
     ],
     "puremacro.dsge.build": [
+      "DynareDR",
       "LinearModel",
       "ModelError",
       "SteadyStateError",
+      "TheoreticalMomentsResult",
       "build"
     ],
     "puremacro.dsge.estimate": [
@@ -2411,6 +2417,14 @@
       "param_names",
       "seed"
     ],
+    "puremacro.dsge._results.DynareDR": [
+      "ghu",
+      "ghx",
+      "shock_names",
+      "state_variables",
+      "variable_names",
+      "ys"
+    ],
     "puremacro.dsge._results.FertilitySolution": [
       "F",
       "G",
@@ -2433,6 +2447,13 @@
       "n_burn_in",
       "param_names",
       "seed"
+    ],
+    "puremacro.dsge._results.TheoreticalMomentsResult": [
+      "autocorr",
+      "correlation",
+      "covariance",
+      "fevd",
+      "moments"
     ],
     "puremacro.dsge.build.LinearModel": [
       "A",
