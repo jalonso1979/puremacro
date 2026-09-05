@@ -141,3 +141,48 @@ class VarEstimateResult:
             "h": np.arange(horizon + 1),
             "response": irf_arr[:, target_idx, shock_idx],
         })
+
+    def to_markdown(
+        self,
+        target: int | str = 0,
+        shock: int | str = 0,
+        horizon: int = 20,
+        B0: np.ndarray | None = None,
+        **kwargs,
+    ) -> str:
+        """Render IRF table as Markdown."""
+        from ..reports import _df_to_markdown
+
+        return _df_to_markdown(
+            self.to_frame(target=target, shock=shock, horizon=horizon, B0=B0), **kwargs
+        )
+
+    def to_latex(
+        self,
+        target: int | str = 0,
+        shock: int | str = 0,
+        horizon: int = 20,
+        B0: np.ndarray | None = None,
+        **kwargs,
+    ) -> str:
+        """Render IRF table as LaTeX tabular."""
+        from ..reports import _df_to_latex
+
+        return _df_to_latex(
+            self.to_frame(target=target, shock=shock, horizon=horizon, B0=B0), **kwargs
+        )
+
+    def to_typst(
+        self,
+        target: int | str = 0,
+        shock: int | str = 0,
+        horizon: int = 20,
+        B0: np.ndarray | None = None,
+        **kwargs,
+    ) -> str:
+        """Render IRF table as Typst table."""
+        from ..reports import _df_to_typst
+
+        return _df_to_typst(
+            self.to_frame(target=target, shock=shock, horizon=horizon, B0=B0), **kwargs
+        )

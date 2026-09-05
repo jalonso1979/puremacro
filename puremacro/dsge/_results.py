@@ -63,6 +63,28 @@ class DSGEPosteriorResult:
             "mode":  [self.mode[n] for n in self.param_names],
         }, index=list(self.param_names))
 
+    def to_frame(self) -> pd.DataFrame:
+        """Return summary statistics as a DataFrame."""
+        return self.summary()
+
+    def to_markdown(self, **kwargs) -> str:
+        """Render summary table as Markdown."""
+        from puremacro.reports import _df_to_markdown
+
+        return _df_to_markdown(self.summary(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        """Render summary table as LaTeX tabular."""
+        from puremacro.reports import _df_to_latex
+
+        return _df_to_latex(self.summary(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        """Render summary table as Typst table."""
+        from puremacro.reports import _df_to_typst
+
+        return _df_to_typst(self.summary(), **kwargs)
+
 
 # Backward-compatibility alias for code that imports SW07PosteriorResult.
 # Resolves to the same class object; isinstance/pickle/type-hints continue

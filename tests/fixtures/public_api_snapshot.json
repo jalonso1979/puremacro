@@ -1725,8 +1725,17 @@
       "IRFResult",
       "LPResult",
       "coef_table",
+      "df_to_latex",
+      "df_to_markdown",
+      "df_to_typst",
+      "irf_to_dataframe",
+      "irf_to_latex",
       "irf_to_markdown",
-      "summary_to_markdown"
+      "irf_to_typst",
+      "summary_to_dataframe",
+      "summary_to_latex",
+      "summary_to_markdown",
+      "summary_to_typst"
     ],
     "puremacro.runtime": [
       "Budget",

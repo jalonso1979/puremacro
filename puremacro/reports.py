@@ -159,7 +159,7 @@ def coef_table(
     return df.to_string()
 
 
-def irf_to_markdown(
+def irf_to_dataframe(
     point: np.ndarray,
     lower: np.ndarray | None = None,
     upper: np.ndarray | None = None,
@@ -167,12 +167,8 @@ def irf_to_markdown(
     h_axis: Iterable[int] | None = None,
     var_names: Sequence[str] | None = None,
     digits: int = 3,
-) -> str:
-    """Render a (H+1) × n IRF matrix as a markdown table.
-
-    If ``lower`` / ``upper`` are given, columns alternate point estimate
-    and bracketed band, e.g. ``+0.123 [-0.045, +0.301]``.
-    """
+) -> pd.DataFrame:
+    """Convert IRF matrices to formatted pandas DataFrame."""
     point = np.asarray(point, dtype=float)
     if point.ndim == 3:
         # If user passes (H+1, n_resp, n_shock), pick the first shock by default.
@@ -197,15 +193,63 @@ def irf_to_markdown(
                          f"{upper[h_idx, i]:+.{digits}f}]")
             row[name] = cell
         rows.append(row)
-    return _df_to_markdown(pd.DataFrame(rows).set_index("h"))
+    return pd.DataFrame(rows).set_index("h")
 
 
-def summary_to_markdown(d: dict, *, title: str = "Result") -> str:
-    """Quick markdown summary for a flat result dict.
+def irf_to_markdown(
+    point: np.ndarray,
+    lower: np.ndarray | None = None,
+    upper: np.ndarray | None = None,
+    *,
+    h_axis: Iterable[int] | None = None,
+    var_names: Sequence[str] | None = None,
+    digits: int = 3,
+) -> str:
+    """Render a (H+1) × n IRF matrix as a markdown table.
 
-    Numeric scalars become a key/value table. NumPy arrays and pandas
-    objects are summarised by shape.
+    If ``lower`` / ``upper`` are given, columns alternate point estimate
+    and bracketed band, e.g. ``+0.123 [-0.045, +0.301]``.
     """
+    df = irf_to_dataframe(
+        point, lower, upper, h_axis=h_axis, var_names=var_names, digits=digits
+    )
+    return _df_to_markdown(df)
+
+
+def irf_to_latex(
+    point: np.ndarray,
+    lower: np.ndarray | None = None,
+    upper: np.ndarray | None = None,
+    *,
+    h_axis: Iterable[int] | None = None,
+    var_names: Sequence[str] | None = None,
+    digits: int = 3,
+) -> str:
+    """Render a (H+1) × n IRF matrix as a LaTeX tabular."""
+    df = irf_to_dataframe(
+        point, lower, upper, h_axis=h_axis, var_names=var_names, digits=digits
+    )
+    return _df_to_latex(df)
+
+
+def irf_to_typst(
+    point: np.ndarray,
+    lower: np.ndarray | None = None,
+    upper: np.ndarray | None = None,
+    *,
+    h_axis: Iterable[int] | None = None,
+    var_names: Sequence[str] | None = None,
+    digits: int = 3,
+) -> str:
+    """Render a (H+1) × n IRF matrix as a Typst table."""
+    df = irf_to_dataframe(
+        point, lower, upper, h_axis=h_axis, var_names=var_names, digits=digits
+    )
+    return _df_to_typst(df)
+
+
+def summary_to_dataframe(d: dict) -> pd.DataFrame:
+    """Format flat result dictionary into a 2-column DataFrame."""
     rows = []
     for key, val in d.items():
         if isinstance(val, (int, float, np.floating, np.integer)):
@@ -220,7 +264,29 @@ def summary_to_markdown(d: dict, *, title: str = "Result") -> str:
             rows.append({"key": key, "value": f"{type(val).__name__} (len {len(val)})"})
         else:
             rows.append({"key": key, "value": str(val)[:40]})
-    return f"### {title}\n\n" + _df_to_markdown(pd.DataFrame(rows), index=False)
+    return pd.DataFrame(rows)
+
+
+def summary_to_markdown(d: dict, *, title: str = "Result") -> str:
+    """Quick markdown summary for a flat result dict.
+
+    Numeric scalars become a key/value table. NumPy arrays and pandas
+    objects are summarised by shape.
+    """
+    df = summary_to_dataframe(d)
+    return f"### {title}\n\n" + _df_to_markdown(df, index=False)
+
+
+def summary_to_latex(d: dict, *, title: str = "Result") -> str:
+    """Quick LaTeX tabular summary for a flat result dict."""
+    df = summary_to_dataframe(d)
+    return f"% {title}\n" + _df_to_latex(df, index=False)
+
+
+def summary_to_typst(d: dict, *, title: str = "Result") -> str:
+    """Quick Typst table summary for a flat result dict."""
+    df = summary_to_dataframe(d)
+    return f"// {title}\n" + _df_to_typst(df, index=False)
 
 
 # ---------------------------------------------------------------------------
@@ -236,11 +302,37 @@ class IRFResult:
     method: str = ""
     alpha: float = 0.10
 
+    def to_frame(self, shock_idx: int = 0) -> pd.DataFrame:
+        point = np.asarray(self.point, dtype=float)
+        if point.ndim == 3:
+            p_slice = point[:, :, shock_idx]
+            l_slice = self.lower[:, :, shock_idx] if self.lower is not None else None
+            u_slice = self.upper[:, :, shock_idx] if self.upper is not None else None
+        else:
+            p_slice = point
+            l_slice = self.lower
+            u_slice = self.upper
+        H_plus, n = p_slice.shape
+        names = list(self.var_names) if self.var_names else [f"y{i}" for i in range(n)]
+        data = {"h": np.arange(H_plus)}
+        for i, name in enumerate(names):
+            data[name] = p_slice[:, i]
+            if l_slice is not None and u_slice is not None:
+                data[f"{name}_lower"] = l_slice[:, i]
+                data[f"{name}_upper"] = u_slice[:, i]
+        return pd.DataFrame(data).set_index("h")
+
     def to_markdown(self, **kwargs) -> str:
         return irf_to_markdown(
             self.point, self.lower, self.upper,
             var_names=self.var_names or None, **kwargs
         )
+
+    def to_latex(self, **kwargs) -> str:
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        return _df_to_typst(self.to_frame(), **kwargs)
 
     def at(self, h: int):
         """Return a (n_resp, n_shock) slice at horizon h with bands."""
@@ -279,7 +371,23 @@ class LPResult:
         return _df_to_typst(self.df)
 
 
+df_to_markdown = _df_to_markdown
+df_to_latex = _df_to_latex
+df_to_typst = _df_to_typst
+
 __all__ = [
-    "coef_table", "irf_to_markdown", "summary_to_markdown",
-    "IRFResult", "LPResult",
+    "coef_table",
+    "df_to_latex",
+    "df_to_markdown",
+    "df_to_typst",
+    "irf_to_dataframe",
+    "irf_to_latex",
+    "irf_to_markdown",
+    "irf_to_typst",
+    "summary_to_dataframe",
+    "summary_to_latex",
+    "summary_to_markdown",
+    "summary_to_typst",
+    "IRFResult",
+    "LPResult",
 ]

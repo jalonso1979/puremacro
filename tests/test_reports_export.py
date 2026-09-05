@@ -98,3 +98,107 @@ def test_did_result_table_exports():
     assert "\\begin{tabular}" in sdid.to_latex()
     assert "#table(" in sdid.to_typst()
 
+
+def test_var_estimate_result_exports():
+    from puremacro.var import fit_var
+
+    rng = np.random.default_rng(42)
+    Y = rng.standard_normal((100, 2))
+    res = fit_var(Y, p=2)
+
+    md = res.to_markdown(horizon=5)
+    assert "|" in md
+    assert "response" in md
+
+    ltx = res.to_latex(horizon=5)
+    assert "\\begin{tabular}" in ltx
+
+    typ = res.to_typst(horizon=5)
+    assert "#table(" in typ
+
+
+def test_reports_helper_exports():
+    from puremacro.reports import (
+        irf_to_dataframe,
+        irf_to_latex,
+        irf_to_markdown,
+        irf_to_typst,
+        summary_to_latex,
+        summary_to_markdown,
+        summary_to_typst,
+        df_to_latex,
+        df_to_markdown,
+        df_to_typst,
+        IRFResult,
+    )
+
+    pt = np.array([[1.0, 0.5], [0.8, 0.3]])
+    lo = pt - 0.2
+    hi = pt + 0.2
+
+    df = irf_to_dataframe(pt, lo, hi)
+    assert "y0" in df.columns
+    assert "y1" in df.columns
+
+    md = irf_to_markdown(pt, lo, hi)
+    assert "|" in md
+
+    ltx = irf_to_latex(pt, lo, hi)
+    assert "\\begin{tabular}" in ltx
+
+    typ = irf_to_typst(pt, lo, hi)
+    assert "#table(" in typ
+
+    d = {"n_obs": 100, "r2": 0.85, "name": "test"}
+    assert "|" in summary_to_markdown(d)
+    assert "\\begin{tabular}" in summary_to_latex(d)
+    assert "#table(" in summary_to_typst(d)
+
+    # IRFResult
+    irf = IRFResult(point=pt, lower=lo, upper=hi, var_names=("gdp", "cpi"))
+    assert "gdp" in irf.to_frame().columns
+    assert "\\begin{tabular}" in irf.to_latex()
+    assert "#table(" in irf.to_typst()
+
+
+def test_dsge_and_dynpanel_exports():
+    from puremacro.dsge._results import DSGEPosteriorResult
+    from puremacro.dynpanel._results import GMMResult
+
+    dsge = DSGEPosteriorResult(
+        draws=np.ones((2, 10, 2)),
+        param_names=("alpha", "beta"),
+        log_posterior_trace=np.zeros((2, 10)),
+        accept_rates=(0.3, 0.3),
+        mode={"alpha": 0.3, "beta": 0.99},
+        mode_hessian_inv=np.eye(2),
+        n_burn_in=2,
+        data_n_obs=100,
+        seed=42,
+    )
+    assert "|" in dsge.to_markdown()
+    assert "\\begin{tabular}" in dsge.to_latex()
+    assert "#table(" in dsge.to_typst()
+
+    gmm = GMMResult(
+        coefs=np.array([0.5]),
+        se=np.array([0.1]),
+        cov=np.array([[0.01]]),
+        names=("lag_y",),
+        hansen_j=1.2,
+        hansen_j_p=0.27,
+        hansen_j_df=1,
+        ar1_p=0.01,
+        ar2_p=0.45,
+        n_instruments=2,
+        n_obs=80,
+        n_panels=20,
+        step=2,
+        windmeijer=True,
+        estimator="ab",
+        converged=True,
+    )
+    assert "|" in gmm.to_markdown()
+    assert "\\begin{tabular}" in gmm.to_latex()
+    assert "#table(" in gmm.to_typst()
+

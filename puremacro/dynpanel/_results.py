@@ -115,5 +115,41 @@ class GMMResult:
             lines.append(f"  {nm:<18s} {b:+.4f}        {s:.4f}    {z:+.2f}")
         return "\n".join(lines) + "\n"
 
+    def to_frame(self):
+        """Return coefficient table as a pandas DataFrame."""
+        import pandas as pd
+        from scipy.stats import norm
+
+        rows = []
+        for nm, b, s in zip(self.names, self.coefs, self.se):
+            z = b / s if s > 0 else float("nan")
+            p_val = 2.0 * float(norm.sf(abs(z))) if not np.isnan(z) else float("nan")
+            rows.append({
+                "variable": nm,
+                "coef": float(b),
+                "se": float(s),
+                "z": float(z),
+                "p": p_val,
+            })
+        return pd.DataFrame(rows).set_index("variable")
+
+    def to_markdown(self, **kwargs) -> str:
+        """Render GMM estimates as Markdown table."""
+        from puremacro.reports import _df_to_markdown
+
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        """Render GMM estimates as LaTeX tabular."""
+        from puremacro.reports import _df_to_latex
+
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        """Render GMM estimates as Typst table."""
+        from puremacro.reports import _df_to_typst
+
+        return _df_to_typst(self.to_frame(), **kwargs)
+
 
 __all__ = ["GMMResult"]
