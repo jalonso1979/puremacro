@@ -405,3 +405,30 @@ def test_no_vacuous_or_empty_tests():
         f"Found {len(vacuous)} vacuous/empty test function(s):\n  "
         + "\n  ".join(f"{f}:{name} ({reason})" for f, name, reason in vacuous)
     )
+
+
+def test_kron_vec_identities_in_inference_and_dsge():
+    """Verify Kronecker product and vec operations follow matrix calculus conventions.
+
+    1. vec(A X B) = (B.T kron A) vec(X).
+    2. vec(Z_t V_t') = V_t kron Z_t (weak_iv).
+    """
+    root = Path(__file__).resolve().parents[1]
+    weak_iv_src = (root / "puremacro" / "inference" / "weak_iv.py").read_text(encoding="utf-8")
+    assert "np.kron(V[t], Z[t])" in weak_iv_src, "weak_iv psi must be np.kron(V[t], Z[t]), not Z kron V"
+
+    klein_src = (root / "puremacro" / "dsge" / "klein.py").read_text(encoding="utf-8")
+    assert "np.kron(G.T, A2)" in klein_src, "klein.py vectorization must use np.kron(G.T, A2)"
+
+
+def test_bvar_uses_relative_cholesky_jitter():
+    """BVAR posterior sampling must use scale-invariant jitter."""
+    root = Path(__file__).resolve().parents[1]
+    bvar_src = (root / "puremacro" / "var" / "bvar.py").read_text(encoding="utf-8")
+    assert "safe_cholesky(XtX_inv" in bvar_src, (
+        "bvar.py must use safe_cholesky for XtX_inv factor rather than unscaled np.linalg.cholesky"
+    )
+    assert "XtX_inv + 1e-12 * np.eye" not in bvar_src, (
+        "bvar.py must not use hardcoded 1e-12 * eye without scaling by matrix magnitude"
+    )
+

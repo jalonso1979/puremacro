@@ -18,7 +18,22 @@ def test_case_passes(res):
 
 def test_var_internal_cases_present():
     ids = {r.id for r in run_all(subsystem="var")}
-    assert {"var.fevd_sums_to_one", "var.stability_iff_spectral_radius"} <= ids
+    assert {
+        "var.fevd_sums_to_one",
+        "var.stability_iff_spectral_radius",
+        "var.narrative_sign_restrictions",
+        "var.bvar_minnesota_analytical_posterior",
+    } <= ids
+
+
+def test_cointegration_cases_present():
+    ids = {r.id for r in run_all(subsystem="cointegration")}
+    assert {
+        "cointegration.fmols_planted_beta",
+        "cointegration.dols_planted_beta",
+        "cointegration.fmols_dols_agreement",
+        "cointegration.dols_mitigates_endogeneity_bias",
+    } <= ids
 
 
 def test_var_cholesky_package_case_passes_against_golden():
@@ -27,3 +42,4 @@ def test_var_cholesky_package_case_passes_against_golden():
     assert r is not None, "Cholesky PACKAGE case missing"
     assert r.mechanism == "package" and r.tol == "tight"
     assert r.passed, f"margin={r.max_margin}; error={r.error}"
+

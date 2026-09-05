@@ -21,7 +21,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from .._linalg import inv_xtx
+from .._linalg import inv_xtx, safe_cholesky
 
 
 def _univariate_sigma(y: np.ndarray, p: int) -> float:
@@ -327,8 +327,10 @@ def minnesota_gibbs(
     S_post = resid.T @ resid                                  # (n, n)
     nu_post = Y_aug.shape[0] - X_aug.shape[1]
 
-    # Pre-Cholesky once; redraw each iter
-    L_kron = np.linalg.cholesky(XtX_inv + 1e-12 * np.eye(XtX_inv.shape[0]))
+    # Pre-Cholesky once with scale-invariant relative jitter; redraw each iter
+    diag_kron = np.diag(XtX_inv)
+    jitter_kron = 1e-12 * float(np.max(diag_kron)) if diag_kron.size else 0.0
+    L_kron = safe_cholesky(XtX_inv, name="bvar_XtX_inv", jitter=jitter_kron)
 
     A_draws = np.empty((n_draws, p, n, n))
     Sigma_draws = np.empty((n_draws, n, n))
@@ -337,7 +339,9 @@ def minnesota_gibbs(
     total = n_draws + burn
     # Batched vectorized sampling from NIW conjugate posterior
     Sigma_all = _inv_wishart(S_post, nu_post, rng, size=total)
-    L_sig_all = np.linalg.cholesky(Sigma_all + 1e-12 * np.eye(n))
+    mean_diag = np.mean(np.diagonal(Sigma_all, axis1=1, axis2=2))
+    jitter_sig = 1e-12 * float(mean_diag) if mean_diag > 0 else 1e-12
+    L_sig_all = np.linalg.cholesky(Sigma_all + jitter_sig * np.eye(n))
     Z_all = rng.standard_normal((total, B_post.shape[0], n))
     B_all = B_post[None, :, :] + L_kron @ Z_all @ L_sig_all.transpose(0, 2, 1)
 

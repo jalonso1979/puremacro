@@ -45,6 +45,19 @@ def _cross_method_diff() -> dict:
     return {"abs_diff": abs(b_fm - b_dols)}
 
 
+def _dols_mitigates_endogeneity() -> dict:
+    from puremacro.cointegration_modern import dols
+
+    d = _cointegration_demo_data(seed=20260904, T=350)
+    y, x, true_beta = d["y"], d["x"], d["true_beta"]
+    b_ols = float(np.dot(x, y) / np.dot(x, x))
+    res_dols = dols(y, x, leads=2, lags=2)
+    b_dols = float(res_dols.beta[0])
+    bias_dols = abs(b_dols - true_beta)
+    bias_ols = abs(b_ols - true_beta)
+    return {"dols_bias_strictly_smaller": 1.0 if bias_dols < bias_ols else 0.0}
+
+
 CASES: list[ValidationCase] = [
     ValidationCase(
         id="cointegration.fmols_planted_beta",
@@ -79,4 +92,16 @@ CASES: list[ValidationCase] = [
         tol=Tol.NUMERIC,
         citation="Cross-estimator asymptotic equivalence of FM-OLS and DOLS (Stock & Watson 1993).",
     ),
+    ValidationCase(
+        id="cointegration.dols_mitigates_endogeneity_bias",
+        subsystem="cointegration",
+        title="Stock-Watson DOLS eliminates second-order endogeneity bias vs static OLS",
+        title_es="DOLS de Stock-Watson elimina el sesgo de endogeneidad de segundo orden frente a MCO estático",
+        mechanism=Mechanism.INTERNAL,
+        compute=_dols_mitigates_endogeneity,
+        reference=lambda: {"dols_bias_strictly_smaller": 1.0},
+        tol=Tol.EXACT,
+        citation="Stock & Watson (1993, Econometrica 61(4):783-820); Hayashi (2000, Econometrics §10.3).",
+    ),
 ]
+

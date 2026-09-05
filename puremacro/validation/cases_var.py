@@ -90,6 +90,52 @@ def _bvar_minnesota_diffuse_limit() -> dict:
     return {"max_diff": float(diff)}
 
 
+def _narrative_sign_restrictions() -> dict:
+    from puremacro.var.identify.narrative_sign import narrative_sign_svar
+
+    d = var_demo_data()
+    res = narrative_sign_svar(
+        d["Y"],
+        p=1,
+        horizon=2,
+        sign_matrix={0: [+1.0, -1.0]},
+        restrictions=[(10, 0, +1)],
+        n_draws=300,
+        seed=42,
+    )
+    s0 = 1.0 if res.irf_median[0, 0, 0] > 0 else 0.0
+    s1 = 1.0 if res.irf_median[0, 1, 0] < 0 else 0.0
+    has_accepted = 1.0 if res.n_narrative_accepted > 0 else 0.0
+    return {"signs_and_accepted": np.array([s0, s1, has_accepted])}
+
+
+def _bvar_minnesota_analytical() -> dict:
+    from puremacro.var.bvar import minnesota_posterior, _build_minnesota_dummies, _univariate_sigma
+    import pandas as pd
+
+    d = var_demo_data()
+    Y = d["Y"]
+    df_Y = pd.DataFrame(Y, columns=["y1", "y2"])
+    res = minnesota_posterior(df_Y, p=1, lambda1=0.2, lambda2=1.0)
+    return {"A_post": np.asarray(res["A_list"][0], dtype=float)}
+
+
+def _bvar_minnesota_analytical_ref() -> dict:
+    from puremacro.var.bvar import _build_minnesota_dummies, _univariate_sigma
+
+    d = var_demo_data()
+    Y = d["Y"]
+    T, n = Y.shape
+    p = 1
+    sigmas = np.array([_univariate_sigma(Y[:, i], p) for i in range(n)])
+    Y_dep, X, Yd, Xd = _build_minnesota_dummies(Y, p, sigmas, 0.2, 1.0, 1.0, 100.0)
+    Y_aug = np.vstack([Y_dep, Yd])
+    X_aug = np.vstack([X, Xd])
+    B_closed = np.linalg.solve(X_aug.T @ X_aug, X_aug.T @ Y_aug)
+    A_closed = B_closed[1:].T
+    return {"A_post": np.asarray(A_closed, dtype=float)}
+
+
 CASES: list[ValidationCase] = [
     ValidationCase(
         id="var.fevd_sums_to_one",
@@ -168,4 +214,27 @@ CASES: list[ValidationCase] = [
         tol=Tol.TIGHT,
         citation="Banbura, Giannone and Reichlin (2010) Minnesota prior dummy observations limit.",
     ),
+    ValidationCase(
+        id="var.narrative_sign_restrictions",
+        subsystem="var",
+        title="Narrative sign restrictions SVAR satisfies historical shock and impact signs",
+        title_es="SVAR con restricciones de signo narrativas satisface signos de shocks históricos e impacto",
+        mechanism=Mechanism.INTERNAL,
+        compute=_narrative_sign_restrictions,
+        reference=lambda: {"signs_and_accepted": np.array([1.0, 1.0, 1.0])},
+        tol=Tol.EXACT,
+        citation="Antolín-Díaz and Rubio-Ramírez (2018, AER 108(10):2802-2829).",
+    ),
+    ValidationCase(
+        id="var.bvar_minnesota_analytical_posterior",
+        subsystem="var",
+        title="Minnesota BVAR posterior mean matches analytical augmented dummy OLS",
+        title_es="Media posterior de BVAR Minnesota coincide con MCO analítico de datos aumentados",
+        mechanism=Mechanism.INTERNAL,
+        compute=_bvar_minnesota_analytical,
+        reference=_bvar_minnesota_analytical_ref,
+        tol=Tol.TIGHT,
+        citation="Banbura, Giannone and Reichlin (2010, JAE 25(1):71-92) conjugate Normal-Inverse-Wishart.",
+    ),
 ]
+

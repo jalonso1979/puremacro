@@ -116,8 +116,7 @@ def _fit_ols(
     df["_score"] = resid * x
     cluster_sum = df.groupby("code")["_score"].sum().to_numpy()
     var_num = float(np.dot(cluster_sum, cluster_sum))
-    var_den = var_x ** 2
-    se = float(np.sqrt(var_num / max(var_den, 1e-12)))
+    se = float(np.sqrt(var_num) / var_x) if var_x > 0 else np.nan
     return CrossNestFit(
         sigma=beta, se=se, first_stage_F=None,
         n_obs=n, n_country=n_country,
@@ -139,8 +138,8 @@ def _fit_2sls(
     pi_hat = float(np.dot(z, x) / var_z)
     nu = x - pi_hat * z
     var_nu = float(np.dot(nu, nu) / max(n - 1, 1))
-    se_pi = float(np.sqrt(max(var_nu / max(var_z, 1e-12), 0.0)))
-    F = (pi_hat / se_pi) ** 2 if se_pi > 0 else np.nan
+    se_pi = float(np.sqrt(max(var_nu / var_z, 0.0))) if var_z > 0 else np.nan
+    F = (pi_hat / se_pi) ** 2 if (se_pi is not None and se_pi > 0) else np.nan
 
     # 2SLS slope: cov(z, y) / cov(z, x).
     sx = float(np.dot(z, x))
@@ -158,8 +157,7 @@ def _fit_2sls(
     df["_score_iv"] = resid * z
     cluster_sum = df.groupby("code")["_score_iv"].sum().to_numpy()
     var_num = float(np.dot(cluster_sum, cluster_sum))
-    var_den = (np.dot(z, x)) ** 2
-    se = float(np.sqrt(var_num / max(var_den, 1e-12)))
+    se = float(np.sqrt(var_num) / abs(sx)) if abs(sx) > 0 else np.nan
     return CrossNestFit(
         sigma=float(beta), se=se, first_stage_F=float(F),
         n_obs=n, n_country=n_country,

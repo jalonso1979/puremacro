@@ -82,15 +82,19 @@ def generate_near_unit_root_var(
     Sigma = generate_ill_conditioned_cov(n, cond=10.0, seed=seed)
     L = np.linalg.cholesky(Sigma)
 
-    # Construct random companion matrix scaled to spectral radius rho
-    dim = n * p
-    M = rng.standard_normal((dim, dim))
-    eigs = np.linalg.eigvals(M)
-    max_mod = np.max(np.abs(eigs))
-    M_scaled = M * (rho / max_mod)
-
-    # Extract block coefficients A_1..A_p from first n rows
-    A_list = [M_scaled[:n, l * n : (l + 1) * n] for l in range(p)]
+    # Construct coefficient matrices scaled to spectral radius rho via polynomial root scaling
+    A_raw = [rng.standard_normal((n, n)) for _ in range(p)]
+    if p == 1:
+        eigs = np.linalg.eigvals(A_raw[0])
+        rho_0 = float(np.max(np.abs(eigs)))
+        s = rho / max(rho_0, 1e-12)
+        A_list = [A_raw[0] * s]
+    else:
+        from puremacro.var.estimate import companion
+        C = companion(A_raw)
+        rho_0 = float(np.max(np.abs(np.linalg.eigvals(C))))
+        s = rho / max(rho_0, 1e-12)
+        A_list = [A_raw[k] * (s ** (k + 1)) for k in range(p)]
 
     # Simulate with burn-in
     burn = 100
@@ -183,3 +187,61 @@ def generate_unsorted_panel(
     if shuffle:
         df = df.sample(frac=1.0, random_state=seed)
     return df
+
+
+def generate_cointegrated_system(
+    T: int = 300,
+    beta: float | Sequence[float] = 2.0,
+    endogeneity: float = 0.6,
+    seed: int = 42,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Generate cointegrated series with controlled contemporaneous and dynamic endogeneity.
+
+    DGP:
+        y_t = beta' x_t + u_t
+        x_t = x_{t-1} + v_t
+        [u_t, v_t]' ~ N(0, Sigma) with Cov(u_t, v_t) = endogeneity * sigma_u * sigma_v
+
+    Parameters
+    ----------
+    T : int
+        Sample length.
+    beta : float or sequence of floats
+        True cointegrating vector.
+    endogeneity : float in (-1, 1)
+        Correlation between innovations to the levels equation (u) and regressors (v).
+    seed : int
+        RNG seed.
+
+    Returns
+    -------
+    y : np.ndarray, shape (T,)
+        Cointegrated dependent variable.
+    x : np.ndarray, shape (T, k) or (T,)
+        Integrated I(1) regressor(s).
+    true_beta : np.ndarray, shape (k,)
+        True parameter vector.
+    """
+    rng = np.random.default_rng(seed)
+    b = np.atleast_1d(np.asarray(beta, dtype=float))
+    k = len(b)
+
+    # Innovation covariance matrix for [u_t, v_{1,t}, ..., v_{k,t}]
+    dim = 1 + k
+    Sigma = np.eye(dim)
+    for j in range(1, dim):
+        Sigma[0, j] = endogeneity
+        Sigma[j, 0] = endogeneity
+
+    L = np.linalg.cholesky(Sigma)
+    innov = rng.standard_normal((T, dim)) @ L.T
+    u = innov[:, 0]
+    v = innov[:, 1:]
+
+    # I(1) random walk regressors
+    x = np.cumsum(v, axis=0)
+    # Cointegrating relation
+    y = x @ b + u
+
+    return y, (x[:, 0] if k == 1 else x), b
+

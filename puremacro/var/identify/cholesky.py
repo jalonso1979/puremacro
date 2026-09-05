@@ -101,6 +101,9 @@ def _residual_bootstrap_var(Y, p, horizon, n_boot=500, ci=0.9, seed=0, ordering=
     A_list, c, Sigma, resid, _ = estimate_var(Y, p)
     P = safe_cholesky(Sigma, name="cholesky_svar (point estimate)")
     point = compute_irf(A_list, P, horizon)  # (H+1, n, n)
+    if n_boot <= 0:
+        nan_bands = np.full_like(point, np.nan)
+        return point, nan_bands, nan_bands, 0
 
     T, n = Y.shape
     accepted = []  # only PD-Σ draws contribute to the percentile bands
