@@ -266,6 +266,11 @@ class LinearModel:
         """Dynare decision rules property alias."""
         return self.decision_rules()
 
+    @property
+    def oo_dr(self) -> DynareDR:
+        """Dynare oo_.dr alias for direct MATLAB/Dynare parity."""
+        return self.decision_rules()
+
     def theoretical_moments(
         self,
         *,

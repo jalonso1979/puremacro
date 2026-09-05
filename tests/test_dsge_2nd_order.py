@@ -181,3 +181,168 @@ def test_solve_second_order_unsupported_model():
     )
     with pytest.raises(ModelError, match="solve_second_order requires the model to be built with build_dynare"):
         m.solve_second_order()
+
+
+def test_pruned_dsge_solution_dynare_parity(rbc_setup):
+    """Verify PrunedDSGESolution matches Dynare's oo_.dr structure and methods."""
+    sol = build_dynare(
+        rbc_model,
+        variables=rbc_setup["variables"],
+        shocks=rbc_setup["shocks"],
+        params=rbc_setup["params"],
+        steady_state=rbc_setup["steady_state"],
+        order=2,
+    )
+    dr = sol.decision_rules()
+    assert dr.ghx.equals(sol.oo_dr.ghx)
+    assert dr.ghx.equals(sol.dynare_dr.ghx)
+
+    # Check shapes
+    assert dr.ghx.shape == (3, 2)
+    assert dr.ghu.shape == (3, 1)
+    assert dr.ghxx.shape == (3, 4)
+    assert dr.ghxu.shape == (3, 2)
+    assert dr.ghuu.shape == (3, 1)
+    assert len(dr.ghs2) == 3
+    assert len(dr.ys) == 3
+
+    # Dict-like access matching MATLAB oo_.dr struct
+    np.testing.assert_allclose(dr["ghx"].to_numpy(), dr.ghx.to_numpy())
+    np.testing.assert_allclose(dr["ghxx"].to_numpy(), dr.ghxx.to_numpy())
+    np.testing.assert_allclose(dr["ghxu"].to_numpy(), dr.ghxu.to_numpy())
+    np.testing.assert_allclose(dr["ghuu"].to_numpy(), dr.ghuu.to_numpy())
+    np.testing.assert_allclose(dr["ghs2"].to_numpy(), dr.ghs2.to_numpy())
+
+    with pytest.raises(KeyError, match="Dynare2ndDR has no field 'invalid_key'"):
+        _ = dr["invalid_key"]
+
+    # Table layout and export formats
+    df = dr.to_frame()
+    assert "Constant" in df.index
+    assert "0.5 * ghs2" in df.index
+    assert "k(-1)" in df.index
+    assert "eps" in df.index
+    assert list(df.columns) == list(rbc_setup["variables"])
+
+    summary_str = dr.summary()
+    assert "SECOND-ORDER POLICY AND TRANSITION FUNCTIONS" in summary_str
+    assert "ghxx" in summary_str
+
+    md_str = dr.to_markdown()
+    assert "|" in md_str
+
+    latex_str = dr.to_latex()
+    assert "\\begin{tabular}" in latex_str or "\\begin{table}" in latex_str
+
+    typst_str = dr.to_typst()
+    assert "#table" in typst_str
+
+
+def test_cross_terms_xu_uu(rbc_setup):
+    """Verify second-order cross-terms (H_xu, H_uu, G_xu, G_uu) are non-trivial."""
+    sol = build_dynare(
+        rbc_model,
+        variables=rbc_setup["variables"],
+        shocks=rbc_setup["shocks"],
+        params=rbc_setup["params"],
+        steady_state=rbc_setup["steady_state"],
+        order=2,
+    )
+    # H_xu: (n_x, n_x * n_e) = (2, 2)
+    assert sol.H_xu.shape == (2, 2)
+    # H_uu: (n_x, n_e * n_e) = (2, 1)
+    assert sol.H_uu.shape == (2, 1)
+    # G_xu: (n_y, n_x * n_e) = (1, 2)
+    assert sol.G_xu.shape == (1, 2)
+    # G_uu: (n_y, n_e * n_e) = (1, 1)
+    assert sol.G_uu.shape == (1, 1)
+
+    # Technology shock innovation creates positive curvature on capital accumulation
+    assert sol.H_uu[0, 0] > 0.0
+    # Shock enters technology purely linearly: H_uu for 'a' is 0
+    np.testing.assert_allclose(sol.H_uu[1, 0], 0.0, atol=1e-12)
+    np.testing.assert_allclose(sol.H_xu[1, :], 0.0, atol=1e-12)
+
+
+def test_pruned_theoretical_moments(rbc_setup):
+    """Verify theoretical_moments() works on PrunedDSGESolution."""
+    sol = build_dynare(
+        rbc_model,
+        variables=rbc_setup["variables"],
+        shocks=rbc_setup["shocks"],
+        params=rbc_setup["params"],
+        steady_state=rbc_setup["steady_state"],
+        order=2,
+    )
+    tm = sol.theoretical_moments(sigma=0.01, lags=3)
+    assert list(tm.moments.columns) == ["Mean", "Std.Dev.", "Variance"]
+    assert len(tm.moments) == 3
+    assert np.all(tm.moments["Std.Dev."] > 0.0)
+    assert tm.covariance.shape == (3, 3)
+    assert tm.correlation.shape == (3, 3)
+    np.testing.assert_allclose(np.diag(tm.correlation), 1.0)
+    assert tm.autocorr.shape == (3, 3)
+    assert "Lag 1" in tm.autocorr.columns
+
+
+def test_linear_model_oo_dr_dict_access(rbc_setup):
+    """Verify LinearModel.oo_dr property and __getitem__ support."""
+    m1 = build_dynare(
+        rbc_model,
+        variables=rbc_setup["variables"],
+        shocks=rbc_setup["shocks"],
+        params=rbc_setup["params"],
+        steady_state=rbc_setup["steady_state"],
+        order=1,
+    )
+    dr1 = m1.oo_dr
+    assert dr1.ghx.equals(m1.decision_rules().ghx)
+    np.testing.assert_allclose(dr1["ghx"].to_numpy(), dr1.ghx.to_numpy())
+    np.testing.assert_allclose(dr1["ghu"].to_numpy(), dr1.ghu.to_numpy())
+    with pytest.raises(KeyError, match="DynareDR has no field 'bad_key'"):
+        _ = dr1["bad_key"]
+
+
+def test_load_mod_shocks_and_stoch_simul(tmp_path):
+    """Verify load_mod parses shocks block and stoch_simul options."""
+    mod_text = """
+    var c, k, a;
+    varexo eps;
+    parameters alpha, beta, delta, gamma, rho;
+
+    alpha = 0.30;
+    beta = 0.99;
+    delta = 0.025;
+    gamma = 1.0;
+    rho = 0.80;
+
+    model;
+      c^(-gamma) = beta * c(+1)^(-gamma) * (alpha * exp(a(+1)) * k^(alpha - 1.0) + 1.0 - delta);
+      k = exp(a) * k(-1)^alpha - c + (1.0 - delta) * k(-1);
+      a = rho * a(-1) + eps;
+    end;
+
+    initval;
+      k = 21.436;
+      a = 0.0;
+      c = 1.972;
+    end;
+
+    shocks;
+      var eps; stderr 0.015;
+    end;
+
+    stoch_simul(order=2, pruning, irf=15);
+    """
+    p = tmp_path / "rbc_simul.mod"
+    p.write_text(mod_text, encoding="utf-8")
+
+    # Call load_mod with default order=None -> should pick up order=2 from stoch_simul
+    sol = load_mod(p)
+    assert isinstance(sol, PrunedDSGESolution)
+    assert sol.state_names == ("k", "a")
+    assert sol.control_names == ("c",)
+
+    # Check that shock_cov was parsed from stderr 0.015
+    sss = sol.stochastic_steady_state()
+    assert sss["states"]["k"] > 0.0

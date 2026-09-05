@@ -181,6 +181,7 @@
     "puremacro.dsge": [
       "BlanchardKahnError",
       "DSGEPosteriorResult",
+      "Dynare2ndDR",
       "DynareDR",
       "FertilitySolution",
       "KleinSolution",
@@ -210,6 +211,7 @@
     ],
     "puremacro.dsge._results": [
       "DSGEPosteriorResult",
+      "Dynare2ndDR",
       "DynareDR",
       "FertilitySolution",
       "SW07PosteriorResult",
@@ -2422,6 +2424,18 @@
       "param_names",
       "seed"
     ],
+    "puremacro.dsge._results.Dynare2ndDR": [
+      "ghs2",
+      "ghu",
+      "ghuu",
+      "ghx",
+      "ghxu",
+      "ghxx",
+      "shock_names",
+      "state_variables",
+      "variable_names",
+      "ys"
+    ],
     "puremacro.dsge._results.DynareDR": [
       "ghu",
       "ghx",
@@ -2506,14 +2520,26 @@
       "F",
       "G",
       "G_sigmasigma",
+      "G_uu",
+      "G_xu",
       "G_xx",
       "H_sigmasigma",
+      "H_uu",
+      "H_xu",
       "H_xx",
       "L",
       "N",
       "control_names",
+      "ghs2",
+      "ghu",
+      "ghuu",
+      "ghx",
+      "ghxu",
+      "ghxx",
       "shock_names",
-      "state_names"
+      "state_names",
+      "steady_state",
+      "variable_names"
     ],
     "puremacro.dsge.pruning.PrunedSimulationResult": [
       "controls",

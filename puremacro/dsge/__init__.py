@@ -20,7 +20,7 @@ from .build import LinearModel, ModelError, SteadyStateError, build
 from ._results import (
     DSGEPosteriorResult, SW07PosteriorResult,
     FertilitySolution,
-    DynareDR, TheoreticalMomentsResult,
+    DynareDR, Dynare2ndDR, TheoreticalMomentsResult,
 )
 from .estimate import estimate_dsge
 from .sw07_estimate import estimate_sw07
@@ -37,7 +37,7 @@ __all__ = [
     "klein_solve", "KleinSolution", "BlanchardKahnError",
     "build", "LinearModel", "ModelError", "SteadyStateError",
     "DSGEPosteriorResult", "SW07PosteriorResult", "FertilitySolution",
-    "DynareDR", "TheoreticalMomentsResult",
+    "DynareDR", "Dynare2ndDR", "TheoreticalMomentsResult",
     "build_dynare", "parse_mod", "load_mod", "solve_dynare_2nd_order",
     "estimate_dsge", "estimate_sw07",
     "solve_bgp", "solve_fertility",

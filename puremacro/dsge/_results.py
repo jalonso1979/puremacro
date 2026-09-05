@@ -157,6 +157,12 @@ class DynareDR:
     variable_names: tuple[str, ...]
     shock_names: tuple[str, ...]
 
+    def __getitem__(self, key: str):
+        """Allow dict-like access matching Dynare MATLAB struct conventions."""
+        if hasattr(self, key):
+            return getattr(self, key)
+        raise KeyError(f"DynareDR has no field {key!r}")
+
     def to_frame(self) -> pd.DataFrame:
         """Return transition and policy functions matching Dynare's output layout.
 
@@ -207,6 +213,105 @@ class DynareDR:
 
     def to_typst(self, **kwargs) -> str:
         """Export decision rules to Typst table format."""
+        from puremacro.reports import _df_to_typst
+
+        return _df_to_typst(self.to_frame(), **kwargs)
+
+
+@dataclass(frozen=True)
+class Dynare2ndDR:
+    """Second-order decision rule representation matching Dynare's oo_.dr structure.
+
+    Second-order approximation around steady state:
+        y_t = ys + 0.5 * ghs2 * sigma^2 + ghx * (x_{t-1} - xs) + ghu * u_t
+              + 0.5 * ghxx * ((x_{t-1} - xs) ⊗ (x_{t-1} - xs))
+              + ghxu * ((x_{t-1} - xs) ⊗ u_t)
+              + 0.5 * ghuu * (u_t ⊗ u_t)
+
+    Attributes
+    ----------
+    ghx : pd.DataFrame
+        (n_vars x n_states) matrix of first-order state policy derivatives.
+    ghu : pd.DataFrame
+        (n_vars x n_shocks) matrix of first-order shock policy derivatives.
+    ghxx : pd.DataFrame
+        (n_vars x n_states^2) matrix of second-order state policy derivatives.
+    ghxu : pd.DataFrame
+        (n_vars x (n_states * n_shocks)) matrix of cross state-shock derivatives.
+    ghuu : pd.DataFrame
+        (n_vars x n_shocks^2) matrix of second-order shock derivatives.
+    ghs2 : pd.Series
+        (n_vars,) vector of volatility / risk correction terms.
+    ys : pd.Series
+        Steady-state values for all endogenous variables.
+    state_variables : tuple[str, ...]
+        Names of predetermined state variables.
+    variable_names : tuple[str, ...]
+        Names of all endogenous variables in model order.
+    shock_names : tuple[str, ...]
+        Names of structural shocks.
+    """
+
+    ghx: pd.DataFrame
+    ghu: pd.DataFrame
+    ghxx: pd.DataFrame
+    ghxu: pd.DataFrame
+    ghuu: pd.DataFrame
+    ghs2: pd.Series
+    ys: pd.Series
+    state_variables: tuple[str, ...]
+    variable_names: tuple[str, ...]
+    shock_names: tuple[str, ...]
+
+    def __getitem__(self, key: str):
+        """Allow dict-like access matching Dynare MATLAB struct conventions."""
+        if hasattr(self, key):
+            return getattr(self, key)
+        raise KeyError(f"Dynare2ndDR has no field {key!r}")
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return transition and policy functions matching Dynare layout."""
+        rows = ["Constant", "0.5 * ghs2"]
+        rows += [f"{s}(-1)" for s in self.state_variables]
+        rows += list(self.shock_names)
+        df = pd.DataFrame(index=rows, columns=list(self.variable_names), dtype=float)
+
+        for v in self.variable_names:
+            df.loc["Constant", v] = self.ys.get(v, 0.0)
+            df.loc["0.5 * ghs2", v] = 0.5 * self.ghs2.get(v, 0.0)
+            for s in self.state_variables:
+                df.loc[f"{s}(-1)", v] = self.ghx.loc[v, s]
+            for e in self.shock_names:
+                df.loc[e, v] = self.ghu.loc[v, e]
+
+        return df
+
+    def summary(self) -> str:
+        """Render Dynare-style 2nd-order policy functions table."""
+        df = self.to_frame()
+        lines = [
+            "SECOND-ORDER POLICY AND TRANSITION FUNCTIONS (Dynare Format)",
+            "=" * 72,
+            df.round(6).to_string(),
+            "-" * 72,
+            f"State cross-terms (ghxx) shape : {self.ghxx.shape}",
+            f"State-shock terms (ghxu) shape : {self.ghxu.shape}",
+            f"Shock cross-terms (ghuu) shape : {self.ghuu.shape}",
+            "=" * 72,
+        ]
+        return "\n".join(lines)
+
+    def to_markdown(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_markdown
+
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_latex
+
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
         from puremacro.reports import _df_to_typst
 
         return _df_to_typst(self.to_frame(), **kwargs)
@@ -283,5 +388,6 @@ __all__ = [
     "SW07PosteriorResult",
     "FertilitySolution",
     "DynareDR",
+    "Dynare2ndDR",
     "TheoreticalMomentsResult",
 ]

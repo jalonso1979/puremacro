@@ -412,18 +412,19 @@ def solve_dynare_2nd_order(
 
     # 2. Compute second-order Hessian tensor of f at steady state
     ss_arr = m.steady_state.loc[vars_list].to_numpy()
-    u0 = np.concatenate([ss_arr, ss_arr, ss_arr])
-    K_vars = 3 * N
+    e0_arr = np.zeros(n_e)
+    u0 = np.concatenate([ss_arr, ss_arr, ss_arr, e0_arr])
+    K_vars = 3 * N + n_e
 
     par_dict = dict(params or {})
     par_vec = _Vec(list(par_dict.keys()), list(par_dict.values()), what="parameter")
-    e0_vec = _Vec(shocks_list, np.zeros(n_e), what="shock")
 
     def eval_f(u_vec):
         lead = _Vec(vars_list, u_vec[0:N])
         curr = _Vec(vars_list, u_vec[N:2 * N])
         lag = _Vec(vars_list, u_vec[2 * N:3 * N])
-        return np.asarray(equations(lead, curr, lag, e0_vec, par_vec))
+        shk = _Vec(shocks_list, u_vec[3 * N:3 * N + n_e])
+        return np.asarray(equations(lead, curr, lag, shk, par_vec))
 
     hc = _CSTEP
     def grad_f(u_vec):
@@ -437,6 +438,8 @@ def solve_dynare_2nd_order(
     J0 = grad_f(u0)
     A_plus = J0[:, 0:N]
     A_0 = J0[:, N:2 * N]
+    A_minus = J0[:, 2 * N:3 * N]
+    B_u = J0[:, 3 * N:3 * N + n_e]
 
     H_f = np.zeros((N, K_vars, K_vars))
     hd = 1e-5
@@ -454,31 +457,62 @@ def solve_dynare_2nd_order(
     for i in range(N):
         H_f[i] = 0.5 * (H_f[i] + H_f[i].T)
 
-    # 3. Form Sylvester system for g_xx
+    # 3. Form second-order derivative systems for g_xx, g_xu, g_uu
     I_states = np.zeros((N, n_x))
     for j, s in enumerate(states_list):
         I_states[vars_list.index(s), j] = 1.0
 
-    M = np.vstack([g_x @ h_x, g_x, I_states])
+    M_x = np.vstack([g_x @ h_x, g_x, I_states, np.zeros((n_e, n_x))])
+    M_u = np.vstack([g_x @ h_u, g_u, np.zeros((N, n_e)), np.eye(n_e)])
 
-    K_tensor = np.zeros((N, n_x**2))
+    K_xx_tensor = np.zeros((N, n_x**2))
+    K_xu_tensor = np.zeros((N, n_x * n_e))
+    K_uu_tensor = np.zeros((N, n_e**2))
     for i in range(N):
-        quad_i = M.T @ H_f[i] @ M
-        K_tensor[i] = quad_i.flatten()
+        quad_xx_i = M_x.T @ H_f[i] @ M_x
+        K_xx_tensor[i] = quad_xx_i.flatten()
+
+        quad_xu_i = M_x.T @ H_f[i] @ M_u
+        K_xu_tensor[i] = quad_xu_i.flatten()
+
+        quad_uu_i = M_u.T @ H_f[i] @ M_u
+        K_uu_tensor[i] = quad_uu_i.flatten()
 
     A_hat = A_0 + A_plus @ g_x @ P_s
     hx_kron = np.kron(h_x, h_x)
     sys_mat = np.kron(np.eye(n_x**2), A_hat) + np.kron(hx_kron.T, A_plus)
-    rhs = -K_tensor.reshape(-1, order="F")
+    rhs_xx = -K_xx_tensor.reshape(-1, order="F")
 
     try:
-        vec_gxx = scipy.linalg.solve(sys_mat, rhs)
+        vec_gxx = scipy.linalg.solve(sys_mat, rhs_xx)
     except scipy.linalg.LinAlgError:
-        vec_gxx = scipy.linalg.lstsq(sys_mat, rhs)[0]
+        vec_gxx = scipy.linalg.lstsq(sys_mat, rhs_xx)[0]
 
     g_xx = vec_gxx.reshape((N, n_x**2), order="F")
     H_xx = P_s @ g_xx
     G_xx = P_c @ g_xx
+
+    # State-shock cross terms g_xu: A_hat @ g_xu = - [ A_plus @ g_xx @ (h_x ⊗ h_u) + K_xu ]
+    hx_hu = np.kron(h_x, h_u)
+    rhs_xu = -(A_plus @ g_xx @ hx_hu + K_xu_tensor)
+    try:
+        g_xu = scipy.linalg.solve(A_hat, rhs_xu)
+    except scipy.linalg.LinAlgError:
+        g_xu = scipy.linalg.lstsq(A_hat, rhs_xu)[0]
+
+    H_xu = P_s @ g_xu
+    G_xu = P_c @ g_xu
+
+    # Shock quadratic terms g_uu: A_hat @ g_uu = - [ A_plus @ g_xx @ (h_u ⊗ h_u) + K_uu ]
+    hu_hu = np.kron(h_u, h_u)
+    rhs_uu = -(A_plus @ g_xx @ hu_hu + K_uu_tensor)
+    try:
+        g_uu = scipy.linalg.solve(A_hat, rhs_uu)
+    except scipy.linalg.LinAlgError:
+        g_uu = scipy.linalg.lstsq(A_hat, rhs_uu)[0]
+
+    H_uu = P_s @ g_uu
+    G_uu = P_c @ g_uu
 
     # 4. Volatility drift terms (H_sigmasigma, G_sigmasigma)
     if shock_cov is None:
@@ -491,7 +525,8 @@ def solve_dynare_2nd_order(
         W_vec[i] = np.trace(g_u.T @ H_f[i, 0:N, 0:N] @ g_u @ sigma_u)
 
     hu_cov = h_u @ sigma_u @ h_u.T
-    rhs_sig = -(A_plus @ g_xx @ hu_cov.flatten() + W_vec)
+    vec_hu_cov = hu_cov.flatten()
+    rhs_sig = -(A_plus @ g_xx @ vec_hu_cov + W_vec)
 
     sys_sig = A_hat + A_plus
     try:
@@ -514,6 +549,18 @@ def solve_dynare_2nd_order(
         state_names=tuple(states_list),
         control_names=tuple(controls_list),
         shock_names=tuple(shocks_list),
+        H_xu=H_xu,
+        H_uu=H_uu,
+        G_xu=G_xu,
+        G_uu=G_uu,
+        steady_state=m.steady_state,
+        variable_names=tuple(vars_list),
+        ghx=g_x,
+        ghu=g_u,
+        ghxx=g_xx,
+        ghxu=g_xu,
+        ghuu=g_uu,
+        ghs2=g_ss,
     )
 
 
@@ -535,6 +582,8 @@ def parse_mod(mod_text: str) -> dict:
         - ``guess``: dict of variable name -> initial steady-state guess
         - ``steady_state``: dict of variable name -> exact steady-state value (if declared)
         - ``equations``: compiled callable ``eqs(lead, curr, lag, shocks, params)``
+        - ``shock_cov``: covariance matrix of structural innovations if declared
+        - ``options``: dict of parsed stoch_simul options (e.g. order, pruning, irf)
     """
     clean_text = _remove_comments(mod_text)
 
@@ -564,7 +613,7 @@ def parse_mod(mod_text: str) -> dict:
     # Parameter assignments outside blocks
     for line in clean_text.split(";"):
         line = line.strip()
-        if "=" in line and not any(k in line for k in ["model", "initval", "steady_state_model"]):
+        if "=" in line and not any(k in line for k in ["model", "initval", "steady_state_model", "shocks"]):
             parts = line.split("=")
             pname = parts[0].strip()
             if pname in declared_params:
@@ -590,7 +639,71 @@ def parse_mod(mod_text: str) -> dict:
                     except Exception:
                         pass
 
-    # 5. Parse model block
+    # 5. Parse shocks block
+    shock_cov = np.eye(len(shocks))
+    shocks_match = re.search(r"\bshocks\s*;\s*(.*?)\s*end\s*;", clean_text, re.DOTALL)
+    has_shocks_block = False
+    if shocks_match:
+        has_shocks_block = True
+        for line in shocks_match.group(1).split(";"):
+            line = line.strip()
+            if not line:
+                continue
+            # Case 1: var <shock>; stderr <val>;
+            stderr_m = re.search(r"\bvar\s+([A-Za-z0-9_]+)\s*(?:;|,)?\s*stderr\s+([^;]+)", line)
+            if stderr_m:
+                sname = stderr_m.group(1).strip()
+                val_str = stderr_m.group(2).strip().replace("^", "**")
+                if sname in shocks:
+                    try:
+                        s_val = float(eval(val_str, {"__builtins__": None}, params))
+                        s_idx = shocks.index(sname)
+                        shock_cov[s_idx, s_idx] = s_val**2
+                    except Exception:
+                        pass
+                continue
+            # Case 2: var <shock> = <val>;
+            var_single = re.search(r"\bvar\s+([A-Za-z0-9_]+)\s*=\s*([^;]+)", line)
+            if var_single:
+                sname = var_single.group(1).strip()
+                val_str = var_single.group(2).strip().replace("^", "**")
+                if sname in shocks:
+                    try:
+                        s_val = float(eval(val_str, {"__builtins__": None}, params))
+                        s_idx = shocks.index(sname)
+                        shock_cov[s_idx, s_idx] = s_val
+                    except Exception:
+                        pass
+                continue
+            # Case 3: var <shock1>, <shock2> = <val>;
+            cov_match = re.search(r"\bvar\s+([A-Za-z0-9_]+)\s*,\s*([A-Za-z0-9_]+)\s*=\s*([^;]+)", line)
+            if cov_match:
+                s1, s2 = cov_match.group(1).strip(), cov_match.group(2).strip()
+                val_str = cov_match.group(3).strip().replace("^", "**")
+                if s1 in shocks and s2 in shocks:
+                    try:
+                        c_val = float(eval(val_str, {"__builtins__": None}, params))
+                        i1, i2 = shocks.index(s1), shocks.index(s2)
+                        shock_cov[i1, i2] = c_val
+                        shock_cov[i2, i1] = c_val
+                    except Exception:
+                        pass
+
+    # 6. Parse stoch_simul options
+    options: dict[str, Any] = {}
+    stoch_match = re.search(r"\bstoch_simul\s*(?:\(([^)]*)\))?\s*;", clean_text)
+    if stoch_match:
+        opts_str = stoch_match.group(1) or ""
+        ord_m = re.search(r"\border\s*=\s*(\d+)", opts_str)
+        if ord_m:
+            options["order"] = int(ord_m.group(1))
+        if "pruning" in opts_str:
+            options["pruning"] = True
+        irf_m = re.search(r"\birf\s*=\s*(\d+)", opts_str)
+        if irf_m:
+            options["irf"] = int(irf_m.group(1))
+
+    # 7. Parse model block
     model_match = re.search(r"\bmodel\s*(?:\([^)]*\))?\s*;\s*(.*?)\s*end\s*;", clean_text, re.DOTALL)
     if not model_match:
         raise ValueError("could not find 'model; ... end;' block in .mod content")
@@ -644,6 +757,8 @@ def parse_mod(mod_text: str) -> dict:
         "params": params,
         "guess": guess if guess else None,
         "equations": eq_callable,
+        "shock_cov": shock_cov if has_shocks_block else None,
+        "options": options,
     }
 
 
@@ -654,7 +769,7 @@ def load_mod(
     steady_state: Mapping[str, float] | Sequence[float] | None = None,
     guess: Mapping[str, float] | Sequence[float] | None = None,
     states: Sequence[str] | None = None,
-    order: int = 1,
+    order: int | None = None,
     shock_cov: np.ndarray | None = None,
     tol: float = 1e-8,
     method: str = "complex",
@@ -673,13 +788,14 @@ def load_mod(
         Optional initial guess override.
     states : Sequence[str], optional
         Optional explicit states override. If None, automatically detected.
-    order : {1, 2}, default 1
+    order : {1, 2}, optional
         Approximation order:
         - 1: First-order linear approximation (returns LinearModel).
         - 2: Second-order SGU (2004) perturbation with Kim et al. (2008) pruning
              (returns PrunedDSGESolution).
+        If None, uses order specified in stoch_simul block if present, else 1.
     shock_cov : np.ndarray, optional
-        Covariance matrix of innovations (default identity I).
+        Covariance matrix of innovations (defaults to declared shocks block or identity I).
     tol : float, default 1e-8
         Steady-state solver and verification tolerance.
     method : {'complex', 'central'}, default 'complex'
@@ -689,8 +805,8 @@ def load_mod(
     -------
     LinearModel | PrunedDSGESolution
         Solved model equipped with `.decision_rules()`, `.theoretical_moments()`,
-        and `.irf()` (if order=1), or `.simulate()`, `.girf()`, and
-        `.stochastic_steady_state()` (if order=2).
+        and `.irf()` (if order=1), or `.simulate()`, `.girf()`,
+        `.stochastic_steady_state()`, and `.decision_rules()` (if order=2).
     """
     text_str = str(path_or_text)
     if "\n" in text_str or ";" in text_str:
@@ -712,6 +828,15 @@ def load_mod(
     # Merge guess
     final_guess = guess or parsed.get("guess")
 
+    # Determine effective order
+    if order is None:
+        eff_order = parsed.get("options", {}).get("order", 1)
+    else:
+        eff_order = int(order)
+
+    # Determine effective shock_cov
+    eff_shock_cov = shock_cov if shock_cov is not None else parsed.get("shock_cov")
+
     return build_dynare(
         parsed["equations"],
         variables=parsed["variables"],
@@ -720,8 +845,8 @@ def load_mod(
         steady_state=steady_state,
         guess=final_guess,
         states=states,
-        order=order,
-        shock_cov=shock_cov,
+        order=eff_order,
+        shock_cov=eff_shock_cov,
         tol=tol,
         method=method,
     )

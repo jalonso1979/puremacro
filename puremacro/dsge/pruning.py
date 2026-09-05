@@ -135,6 +135,45 @@ class PrunedDSGESolution:
     state_names: tuple[str, ...]
     control_names: tuple[str, ...]
     shock_names: tuple[str, ...]
+    H_xu: np.ndarray | None = None
+    H_uu: np.ndarray | None = None
+    G_xu: np.ndarray | None = None
+    G_uu: np.ndarray | None = None
+    steady_state: pd.Series | None = None
+    variable_names: tuple[str, ...] | None = None
+    ghx: np.ndarray | None = None
+    ghu: np.ndarray | None = None
+    ghxx: np.ndarray | None = None
+    ghxu: np.ndarray | None = None
+    ghuu: np.ndarray | None = None
+    ghs2: np.ndarray | None = None
+
+    def __post_init__(self):
+        n_x, n_y, n_e = self.n_states, self.n_controls, self.n_shocks
+        if self.H_xu is None:
+            object.__setattr__(self, "H_xu", np.zeros((n_x, n_x * n_e)))
+        if self.H_uu is None:
+            object.__setattr__(self, "H_uu", np.zeros((n_x, n_e * n_e)))
+        if self.G_xu is None:
+            object.__setattr__(self, "G_xu", np.zeros((n_y, n_x * n_e)))
+        if self.G_uu is None:
+            object.__setattr__(self, "G_uu", np.zeros((n_y, n_e * n_e)))
+        if self.variable_names is None:
+            object.__setattr__(self, "variable_names", self.state_names + self.control_names)
+        if self.steady_state is None:
+            object.__setattr__(self, "steady_state", pd.Series(0.0, index=self.variable_names))
+        if self.ghx is None:
+            object.__setattr__(self, "ghx", np.vstack([self.G, self.F @ self.G]))
+        if self.ghu is None:
+            object.__setattr__(self, "ghu", np.vstack([self.N, self.F @ self.N + self.L]))
+        if self.ghxx is None:
+            object.__setattr__(self, "ghxx", np.vstack([self.H_xx, self.G_xx]))
+        if self.ghxu is None:
+            object.__setattr__(self, "ghxu", np.vstack([self.H_xu, self.G_xu]))
+        if self.ghuu is None:
+            object.__setattr__(self, "ghuu", np.vstack([self.H_uu, self.G_uu]))
+        if self.ghs2 is None:
+            object.__setattr__(self, "ghs2", np.concatenate([self.H_sigmasigma, self.G_sigmasigma]))
 
     @property
     def n_states(self) -> int:
@@ -157,6 +196,62 @@ class PrunedDSGESolution:
     def is_stable(self) -> bool:
         """Check whether the first-order transition G is strictly stable (|λ| < 1)."""
         return bool(np.all(np.abs(self.eigenvalues) < 1.0 - 1e-7))
+
+    def decision_rules(self):
+        """Decision rule representation matching Dynare's oo_.dr structure at 2nd order.
+
+        Returns
+        -------
+        Dynare2ndDR
+            Container holding ghx, ghu, ghxx, ghxu, ghuu, ghs2, steady states, and variable labels.
+        """
+        from ._results import Dynare2ndDR
+
+        v_names = list(self.variable_names)
+        s_names = list(self.state_names)
+        e_names = list(self.shock_names)
+
+        df_ghx = pd.DataFrame(self.ghx, index=v_names, columns=s_names)
+        df_ghu = pd.DataFrame(self.ghu, index=v_names, columns=e_names)
+
+        cols_xx = [f"{s1}_{s2}" for s1 in s_names for s2 in s_names]
+        df_ghxx = pd.DataFrame(self.ghxx, index=v_names, columns=cols_xx)
+
+        cols_xu = [f"{s}_{e}" for s in s_names for e in e_names]
+        df_ghxu = pd.DataFrame(self.ghxu, index=v_names, columns=cols_xu)
+
+        cols_uu = [f"{e1}_{e2}" for e1 in e_names for e2 in e_names]
+        df_ghuu = pd.DataFrame(self.ghuu, index=v_names, columns=cols_uu)
+
+        s_ghs2 = pd.Series(self.ghs2, index=v_names)
+        s_ys = (
+            self.steady_state.loc[v_names]
+            if isinstance(self.steady_state, pd.Series)
+            else pd.Series(self.steady_state, index=v_names)
+        )
+
+        return Dynare2ndDR(
+            ghx=df_ghx,
+            ghu=df_ghu,
+            ghxx=df_ghxx,
+            ghxu=df_ghxu,
+            ghuu=df_ghuu,
+            ghs2=s_ghs2,
+            ys=s_ys,
+            state_variables=self.state_names,
+            variable_names=self.variable_names,
+            shock_names=self.shock_names,
+        )
+
+    @property
+    def dynare_dr(self):
+        """Dynare decision rules property alias."""
+        return self.decision_rules()
+
+    @property
+    def oo_dr(self):
+        """Dynare oo_.dr alias for direct MATLAB/Dynare parity."""
+        return self.decision_rules()
 
     def simulate(
         self,
@@ -218,26 +313,36 @@ class PrunedDSGESolution:
 
         # Initial conditions at steady state: x1[0] = 0, x2[0] = 0
         y1[0] = self.L @ eps[0]
-        y2[0] = half_g_ss
+        kron_ee0 = np.kron(eps[0], eps[0])
+        y2[0] = 0.5 * (self.G_uu @ kron_ee0) + half_g_ss
 
         for t in range(1, total_t):
             e_t = eps[t]
             # 1st-order state update
             x1[t] = self.G @ x1[t - 1] + self.N @ e_t
 
-            # Quadratic term evaluated strictly on 1st-order state: kron(x1, x1)
+            # Quadratic state term: kron(x1, x1)
             kron_x1_prev = np.kron(x1[t - 1], x1[t - 1])
             quad_x = 0.5 * (self.H_xx @ kron_x1_prev)
+            # Cross state-shock term: kron(x1, e)
+            kron_xe_prev = np.kron(x1[t - 1], e_t)
+            cross_x = self.H_xu @ kron_xe_prev
+            # Quadratic shock term: kron(e, e)
+            kron_ee = np.kron(e_t, e_t)
+            quad_e = 0.5 * (self.H_uu @ kron_ee)
 
             # 2nd-order state update
-            x2[t] = self.G @ x2[t - 1] + quad_x + half_h_ss
+            x2[t] = self.G @ x2[t - 1] + quad_x + cross_x + quad_e + half_h_ss
 
             # Controls update
             kron_x1_curr = np.kron(x1[t], x1[t])
             quad_y = 0.5 * (self.G_xx @ kron_x1_curr)
+            kron_xe_curr = np.kron(x1[t], e_t)
+            cross_y = self.G_xu @ kron_xe_curr
+            quad_ye = 0.5 * (self.G_uu @ kron_ee)
 
             y1[t] = self.F @ x1[t] + self.L @ e_t
-            y2[t] = self.F @ x2[t] + quad_y + half_g_ss
+            y2[t] = self.F @ x2[t] + quad_y + cross_y + quad_ye + half_g_ss
 
         # Slice after burn-in
         x_tot = x1[burn:] + x2[burn:]
@@ -291,7 +396,7 @@ class PrunedDSGESolution:
         half_h_ss = 0.5 * self.H_sigmasigma * sig2
         half_g_ss = 0.5 * self.G_sigmasigma * sig2
 
-        y[0] = self.L @ eps[0] + half_g_ss
+        y[0] = self.L @ eps[0] + 0.5 * (self.G_uu @ np.kron(eps[0], eps[0])) + half_g_ss
 
         for t in range(1, total_t):
             e_t = eps[t]
@@ -304,11 +409,20 @@ class PrunedDSGESolution:
 
             kron_x = np.kron(x[t - 1], x[t - 1])
             quad_x = 0.5 * (self.H_xx @ kron_x)
-            x[t] = self.G @ x[t - 1] + self.N @ e_t + quad_x + half_h_ss
+            kron_xe = np.kron(x[t - 1], e_t)
+            cross_x = self.H_xu @ kron_xe
+            kron_ee = np.kron(e_t, e_t)
+            quad_e = 0.5 * (self.H_uu @ kron_ee)
+
+            x[t] = self.G @ x[t - 1] + self.N @ e_t + quad_x + cross_x + quad_e + half_h_ss
 
             kron_x_curr = np.kron(x[t], x[t])
             quad_y = 0.5 * (self.G_xx @ kron_x_curr)
-            y[t] = self.F @ x[t] + self.L @ e_t + quad_y + half_g_ss
+            kron_xe_curr = np.kron(x[t], e_t)
+            cross_y = self.G_xu @ kron_xe_curr
+            quad_ye = 0.5 * (self.G_uu @ kron_ee)
+
+            y[t] = self.F @ x[t] + self.L @ e_t + quad_y + cross_y + quad_ye + half_g_ss
 
         return x[burn:], y[burn:]
 
@@ -376,9 +490,12 @@ class PrunedDSGESolution:
             half_g_ss = 0.5 * self.G_sigmasigma * sig2
 
             y1[0] = self.F @ x1[0] + self.L @ e_mat[0]
+            kron_ee0 = np.kron(e_mat[0], e_mat[0])
             y2[0] = (
                 self.F @ x2[0]
                 + 0.5 * (self.G_xx @ np.kron(x1[0], x1[0]))
+                + (self.G_xu @ np.kron(x1[0], e_mat[0]))
+                + 0.5 * (self.G_uu @ kron_ee0)
                 + half_g_ss
             )
 
@@ -386,11 +503,16 @@ class PrunedDSGESolution:
                 e_t = e_mat[t]
                 x1[t] = self.G @ x1[t - 1] + self.N @ e_t
                 quad_x = 0.5 * (self.H_xx @ np.kron(x1[t - 1], x1[t - 1]))
-                x2[t] = self.G @ x2[t - 1] + quad_x + half_h_ss
+                cross_x = self.H_xu @ np.kron(x1[t - 1], e_t)
+                kron_ee = np.kron(e_t, e_t)
+                quad_e = 0.5 * (self.H_uu @ kron_ee)
+                x2[t] = self.G @ x2[t - 1] + quad_x + cross_x + quad_e + half_h_ss
 
                 y1[t] = self.F @ x1[t] + self.L @ e_t
                 quad_y = 0.5 * (self.G_xx @ np.kron(x1[t], x1[t]))
-                y2[t] = self.F @ x2[t] + quad_y + half_g_ss
+                cross_y = self.G_xu @ np.kron(x1[t], e_t)
+                quad_ye = 0.5 * (self.G_uu @ kron_ee)
+                y2[t] = self.F @ x2[t] + quad_y + cross_y + quad_ye + half_g_ss
 
             z_tot = np.hstack([x1 + x2, y1 + y2])
             return z_tot
@@ -470,16 +592,24 @@ class PrunedDSGESolution:
         vec_omega = omega.reshape(-1, order="F")
 
         sig2 = sigma**2
-        # E[x_t^{(2)}] = (I - G)^(-1) [ 0.5 * H_xx @ vec(omega) + 0.5 * H_sigmasigma * sig2 ]
+        # E[x_t^{(2)}] = (I - G)^(-1) [ 0.5 * H_xx @ vec(omega) + 0.5 * H_uu @ vec(sigma_e) + 0.5 * H_sigmasigma * sig2 ]
         i_minus_g = np.eye(n_x) - self.G
-        rhs_x = 0.5 * (self.H_xx @ vec_omega) + 0.5 * self.H_sigmasigma * sig2
+        vec_se = sigma_e.reshape(-1, order="F")
+        rhs_x = (
+            0.5 * (self.H_xx @ vec_omega)
+            + 0.5 * (self.H_uu @ vec_se)
+            + 0.5 * self.H_sigmasigma * sig2
+        )
         mu_x2 = scipy.linalg.solve(i_minus_g, rhs_x)
 
         # Controls ergodic mean:
-        # E[y_t] = F @ mu_x2 + 0.5 * G_xx @ vec(omega) + 0.5 * G_sigmasigma * sig2
+        # E[y_t] = F @ mu_x2 + 0.5 * G_xx @ vec(omega) + G_xu @ vec(N @ sigma_e) + 0.5 * G_uu @ vec(sigma_e) + 0.5 * G_sigmasigma * sig2
+        vec_n_se = (self.N @ sigma_e).reshape(-1, order="F")
         mu_y = (
             self.F @ mu_x2
             + 0.5 * (self.G_xx @ vec_omega)
+            + (self.G_xu @ vec_n_se)
+            + 0.5 * (self.G_uu @ vec_se)
             + 0.5 * self.G_sigmasigma * sig2
         )
 
@@ -487,6 +617,125 @@ class PrunedDSGESolution:
             "states": pd.Series(mu_x2, index=self.state_names, name="ergodic_mean_states"),
             "controls": pd.Series(mu_y, index=self.control_names, name="ergodic_mean_controls"),
         }
+
+    def theoretical_moments(
+        self,
+        *,
+        sigma: float = 1.0,
+        shock_cov: np.ndarray | None = None,
+        lags: int = 5,
+    ):
+        """Calculate theoretical unconditional moments under 2nd-order pruning.
+
+        Parameters
+        ----------
+        sigma : float, default 1.0
+            Perturbation parameter scale.
+        shock_cov : np.ndarray, optional
+            Covariance matrix of structural innovations.
+        lags : int, default 5
+            Number of autocorrelation lags to compute.
+
+        Returns
+        -------
+        TheoreticalMomentsResult
+            Table of moments, covariance, correlation, and autocorrelations.
+        """
+        from ._results import TheoreticalMomentsResult
+
+        n_x, n_y, n_e = self.n_states, self.n_controls, self.n_shocks
+        if shock_cov is None:
+            sigma_e = np.eye(n_e)
+        else:
+            sigma_e = np.asarray(shock_cov, dtype=float)
+
+        q_mat = self.N @ sigma_e @ self.N.T
+        omega_x = scipy.linalg.solve_discrete_lyapunov(self.G, q_mat)
+        omega_y = self.F @ omega_x @ self.F.T + self.L @ sigma_e @ self.L.T
+
+        sss = self.stochastic_steady_state(sigma=sigma, shock_cov=shock_cov)
+
+        all_names = list(self.variable_names)
+        n_all = len(all_names)
+
+        cov_xy = self.F @ omega_x
+        full_cov_1st = np.block([
+            [omega_x, cov_xy.T],
+            [cov_xy, omega_y],
+        ])
+        ord_names = list(self.state_names) + list(self.control_names)
+        name_to_ord = {name: ord_names.index(name) for name in all_names if name in ord_names}
+        cov_mat = np.zeros((n_all, n_all))
+        for i, vi in enumerate(all_names):
+            for j, vj in enumerate(all_names):
+                if vi in name_to_ord and vj in name_to_ord:
+                    cov_mat[i, j] = full_cov_1st[name_to_ord[vi], name_to_ord[vj]]
+
+        mean_vec = np.zeros(n_all)
+        ss_base = (
+            self.steady_state
+            if isinstance(self.steady_state, pd.Series)
+            else pd.Series(0.0, index=all_names)
+        )
+        for i, v in enumerate(all_names):
+            base_val = ss_base.get(v, 0.0)
+            if v in self.state_names:
+                mean_vec[i] = base_val + sss["states"][v]
+            elif v in self.control_names:
+                mean_vec[i] = base_val + sss["controls"][v]
+            else:
+                mean_vec[i] = base_val
+
+        stds = np.sqrt(np.maximum(1e-16, np.diag(cov_mat)))
+        variances = np.diag(cov_mat)
+
+        df_moments = pd.DataFrame(
+            {"Mean": mean_vec, "Std.Dev.": stds, "Variance": variances},
+            index=all_names,
+        )
+
+        std_outer = np.outer(stds, stds)
+        std_outer[std_outer == 0] = 1.0
+        corr_mat = cov_mat / std_outer
+        np.fill_diagonal(corr_mat, 1.0)
+        corr_mat = np.clip(corr_mat, -1.0, 1.0)
+
+        df_cov = pd.DataFrame(cov_mat, index=all_names, columns=all_names)
+        df_corr = pd.DataFrame(corr_mat, index=all_names, columns=all_names)
+
+        autocorr_cols = [f"Lag {k}" for k in range(1, lags + 1)]
+        df_autocorr = pd.DataFrame(index=all_names, columns=autocorr_cols, dtype=float)
+        g_power = np.eye(n_x)
+        for k in range(1, lags + 1):
+            g_power = g_power @ self.G
+            gamma_x_k = g_power @ omega_x
+            gamma_y_k = self.F @ gamma_x_k @ self.F.T
+            for i, v in enumerate(all_names):
+                var_i = df_moments.loc[v, "Variance"]
+                if var_i > 1e-14:
+                    if v in self.state_names:
+                        si = self.state_names.index(v)
+                        df_autocorr.loc[v, f"Lag {k}"] = float(gamma_x_k[si, si] / var_i)
+                    elif v in self.control_names:
+                        ci = self.control_names.index(v)
+                        df_autocorr.loc[v, f"Lag {k}"] = float(gamma_y_k[ci, ci] / var_i)
+                    else:
+                        df_autocorr.loc[v, f"Lag {k}"] = 0.0
+                else:
+                    df_autocorr.loc[v, f"Lag {k}"] = 0.0
+
+        fevd_horizons = [1, 4, 8, 16, 32]
+        df_fevd = pd.DataFrame(
+            index=all_names, columns=[f"H{h}" for h in fevd_horizons], dtype=float
+        ).fillna(0.0)
+
+        return TheoreticalMomentsResult(
+            moments=df_moments,
+            covariance=df_cov,
+            correlation=df_corr,
+            autocorr=df_autocorr,
+            fevd=df_fevd,
+        )
 
 
 def canonical_growth_2nd_order(
