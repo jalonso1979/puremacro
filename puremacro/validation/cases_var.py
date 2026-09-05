@@ -60,7 +60,7 @@ def _sign_zero_orthogonality() -> dict:
     vr = estimate_var(d["Y"], p=1)
     out = sign_zero(vr.A_list, vr.Sigma, zero_constraints=[(0, 1)], sign_constraints={(0, 0): +1},
                     n_draws=50, rng=np.random.default_rng(42))
-    zero_val = float(out.B0[0, 1]) if out.success else 0.0
+    zero_val = float(out.B0[0, 1]) if out.success and out.B0 is not None else 0.0
     return {"zero_res": zero_val}
 
 

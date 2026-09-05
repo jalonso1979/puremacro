@@ -183,7 +183,7 @@ def baxter_king_filter(
     low: int = 6,
     high: int = 32,
     K: int = 12,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> CycleResult:
     """Baxter-King (1999) bandpass filter for isolating business-cycle fluctuations.
 
     Constructs a symmetric approximation of the ideal bandpass filter with lead-lag
@@ -262,7 +262,7 @@ def christiano_fitzgerald_filter(
     low: int = 6,
     high: int = 32,
     drift: bool = True,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> CycleResult:
     """Christiano-Fitzgerald (2003) asymmetric bandpass filter.
 
     Computes optimal asymmetric finite-sample approximations to the ideal bandpass
@@ -274,23 +274,23 @@ def christiano_fitzgerald_filter(
     y : array_like, shape (T,)
         Time series.
     low : int, default 6
-        Minimum periodicity of the cycle (e.g. 6 quarters).
+        Minimum periodicity of the cycle (e.g. 6 quarters = 1.5 years).
     high : int, default 32
-        Maximum periodicity of the cycle (e.g. 32 quarters).
+        Maximum periodicity of the cycle (e.g. 32 quarters = 8 years).
     drift : bool, default True
-        If True, detrend with deterministic linear drift prior to filtering.
+        If True, detrend with deterministic drift before filtering.
 
     Returns
     -------
     cycle : ndarray or pd.Series, shape (T,)
-        Cyclical component for all ``T`` observations (no NaNs).
+        Cyclical component.
     trend : ndarray or pd.Series, shape (T,)
-        Trend component (``y - cycle``).
+        Trend / non-cyclical component.
 
     References
     ----------
-    Christiano, L.J. and Fitzgerald, T.J. (2003). The band pass filter.
-        International Economic Review 44(2), 435-465.
+    Christiano, L.J. and Fitzgerald, T.J. (2003). The band pass filter. International
+        Economic Review 44(2), 435-465.
     """
     is_series = isinstance(y, pd.Series)
     idx = y.index if is_series else None
@@ -299,14 +299,16 @@ def christiano_fitzgerald_filter(
     if T < 4:
         raise ValueError(f"christiano_fitzgerald_filter: sample size {T} too short (need >= 4).")
     if low <= 1 or high <= low:
-        raise ValueError(f"christiano_fitzgerald_filter: require 1 < low < high (got low={low}, high={high}).")
+        raise ValueError(
+            f"christiano_fitzgerald_filter: require 1 < low < high (got low={low}, high={high})."
+        )
 
+    # Remove linear drift if requested
     if drift:
-        slope = (y_arr[-1] - y_arr[0]) / (T - 1)
-        drift_trend = y_arr[0] + slope * np.arange(T)
-        y_star = y_arr - drift_trend
+        mu = (y_arr[-1] - y_arr[0]) / (T - 1)
+        y_star = y_arr - mu * np.arange(T)
     else:
-        y_star = y_arr - np.mean(y_arr)
+        y_star = y_arr
 
     w1 = 2.0 * np.pi / high
     w2 = 2.0 * np.pi / low
@@ -324,19 +326,17 @@ def christiano_fitzgerald_filter(
         val = b0 * y_star[t]
         if k_past > 0:
             val += np.dot(b[1 : k_past + 1], y_star[t - 1 : : -1])
-            A_t = -0.5 * b0 - np.sum(b[1 : k_past + 1])
-            val += A_t * y_star[0]
+            A_t = float(-0.5 * b0 - np.sum(b[1 : k_past + 1]))
         else:
-            A_t = -0.5 * b0
-            val += A_t * y_star[0]
+            A_t = float(-0.5 * b0)
+        val += A_t * y_star[0]
 
         if k_fut > 0:
             val += np.dot(b[1 : k_fut + 1], y_star[t + 1 :])
-            B_t = -0.5 * b0 - np.sum(b[1 : k_fut + 1])
-            val += B_t * y_star[-1]
+            B_t = float(-0.5 * b0 - np.sum(b[1 : k_fut + 1]))
         else:
-            B_t = -0.5 * b0
-            val += B_t * y_star[-1]
+            B_t = float(-0.5 * b0)
+        val += B_t * y_star[-1]
 
         cycle[t] = val
 

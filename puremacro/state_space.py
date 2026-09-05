@@ -138,7 +138,7 @@ def _kalman_standard_update(
     a_t: np.ndarray,
     P_t: np.ndarray,
     y_t: np.ndarray,
-    obs: np.ndarray,
+    obs: np.ndarray | None,
     Z_t: np.ndarray,
     d_t: np.ndarray,
     H_t: np.ndarray,
@@ -150,7 +150,7 @@ def _kalman_standard_update(
     log2pi: float,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, float]:
     n_obs = Z_t.shape[0]
-    v = y_t[obs] - Z_t @ a_t - d_t
+    v = (y_t - Z_t @ a_t - d_t) if obs is None else (y_t[obs] - Z_t @ a_t - d_t)
     F = Z_t @ P_t @ Z_t.T + H_t
     try:
         F_chol = np.linalg.cholesky(F)
@@ -168,12 +168,17 @@ def _kalman_standard_update(
     a_pred_next = Tm @ a_t + c + K @ v
     P_pred_next = Tm @ P_t @ Tm.T + RQR - (Tm @ P_Zt) @ K.T
 
-    innov_full = np.full(n, np.nan)
-    innov_full[obs] = v
-    F_full = np.zeros((n, n))
-    F_full[np.ix_(obs, obs)] = F
-    K_full = np.zeros((m, n))
-    K_full[:, obs] = K
+    if obs is None or n_obs == n:
+        innov_full = v
+        F_full = F
+        K_full = K
+    else:
+        innov_full = np.full(n, np.nan)
+        innov_full[obs] = v
+        F_full = np.zeros((n, n))
+        F_full[np.ix_(obs, obs)] = F
+        K_full = np.zeros((m, n))
+        K_full[:, obs] = K
 
     log_det = 2.0 * np.sum(np.log(np.diag(F_chol)))
     ll_t = -0.5 * (n_obs * log2pi + log_det + v @ F_inv_v)
@@ -267,56 +272,77 @@ def kalman_filter(
     loglik = 0.0
     log2pi = np.log(2.0 * np.pi)
 
-    for t in range(T_obs):
-        a_t = a_pred[t]
-        P_t = P_pred[t]
-        y_t = y[t]
-        obs = ~np.isnan(y_t)
-        n_obs = int(obs.sum())
-        if n_obs == 0:
-            a_filt[t] = a_t
-            P_filt[t] = P_t
-            a_pred[t + 1] = Tm @ a_t + c
-            P_pred[t + 1] = Tm @ P_t @ Tm.T + RQR
-            continue
-
-        Z_t = Z[obs]
-        d_t = d[obs]
-        H_t = H[np.ix_(obs, obs)]
-
-        # ---- Exact-diffuse path: process this period one obs at a time ----
-        if use_exact_diffuse and np.any(np.diag(P_inf) > 0.0):
+    has_nans = bool(np.isnan(y).any())
+    if not has_nans and not (use_exact_diffuse and np.any(np.diag(P_inf) > 0.0)):
+        Z_t, d_t, H_t = Z, d, H
+        for t in range(T_obs):
+            a_t = a_pred[t]
+            P_t = P_pred[t]
+            y_t = y[t]
             (
                 a_filt[t],
                 P_filt[t],
                 a_pred[t + 1],
                 P_pred[t + 1],
-                P_inf,
-                ll_t,
                 innov[t],
-            ) = _kalman_diffuse_update(
-                a_t, P_t, P_inf, y_t, obs, Z_t, d_t, H_t, Tm, c, RQR, n, log2pi
+                F_arr[t],
+                K_arr[t],
+                ll_t,
+            ) = _kalman_standard_update(
+                a_t, P_t, y_t, None, Z_t, d_t, H_t, Tm, c, RQR, n, m, log2pi
             )
             loglik += ll_t
-            # F and K bookkeeping (skip during diffuse since the matrices
-            # are not the standard ones; downstream smoother will read
-            # P_filt / a_filt instead).
-            continue
+    else:
+        for t in range(T_obs):
+            a_t = a_pred[t]
+            P_t = P_pred[t]
+            y_t = y[t]
+            obs = ~np.isnan(y_t)
+            n_obs = int(obs.sum())
+            if n_obs == 0:
+                a_filt[t] = a_t
+                P_filt[t] = P_t
+                a_pred[t + 1] = Tm @ a_t + c
+                P_pred[t + 1] = Tm @ P_t @ Tm.T + RQR
+                continue
 
-        # ---- Standard non-diffuse update ----
-        (
-            a_filt[t],
-            P_filt[t],
-            a_pred[t + 1],
-            P_pred[t + 1],
-            innov[t],
-            F_arr[t],
-            K_arr[t],
-            ll_t,
-        ) = _kalman_standard_update(
-            a_t, P_t, y_t, obs, Z_t, d_t, H_t, Tm, c, RQR, n, m, log2pi
-        )
-        loglik += ll_t
+            Z_t = Z[obs]
+            d_t = d[obs]
+            H_t = H[np.ix_(obs, obs)]
+
+            # ---- Exact-diffuse path: process this period one obs at a time ----
+            if use_exact_diffuse and np.any(np.diag(P_inf) > 0.0):
+                (
+                    a_filt[t],
+                    P_filt[t],
+                    a_pred[t + 1],
+                    P_pred[t + 1],
+                    P_inf,
+                    ll_t,
+                    innov[t],
+                ) = _kalman_diffuse_update(
+                    a_t, P_t, P_inf, y_t, obs, Z_t, d_t, H_t, Tm, c, RQR, n, log2pi
+                )
+                loglik += ll_t
+                # F and K bookkeeping (skip during diffuse since the matrices
+                # are not the standard ones; downstream smoother will read
+                # P_filt / a_filt instead).
+                continue
+
+            # ---- Standard non-diffuse update ----
+            (
+                a_filt[t],
+                P_filt[t],
+                a_pred[t + 1],
+                P_pred[t + 1],
+                innov[t],
+                F_arr[t],
+                K_arr[t],
+                ll_t,
+            ) = _kalman_standard_update(
+                a_t, P_t, y_t, obs, Z_t, d_t, H_t, Tm, c, RQR, n, m, log2pi
+            )
+            loglik += ll_t
 
     return {
         "a_pred": a_pred,

@@ -234,9 +234,9 @@ def qna_capital(panel: pd.DataFrame, *,
 
     out, growth, burn = [], {}, {}
     for code, g in panel.groupby(level="code", sort=True):
-        res = _process_country(code, g, assets, strict, need_defl, k0_window, k0, dq, mid, r_q, aggregate, capital_gains)
-        if res is not None:
-            f, gr, b = res
+        c_res = _process_country(code, g, assets, strict, need_defl, k0_window, k0, dq, mid, r_q, aggregate, capital_gains)
+        if c_res is not None:
+            f, gr, b = c_res
             growth[code] = gr
             burn[code] = b
             out.append(f)

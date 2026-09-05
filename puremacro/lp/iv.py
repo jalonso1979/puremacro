@@ -10,7 +10,7 @@ in the first stage (exact-identification single-instrument case).
 """
 from __future__ import annotations
 
-from typing import Iterable, Sequence
+from typing import Any, Iterable, Sequence
 
 import numpy as np
 import pandas as pd
@@ -158,7 +158,7 @@ def lp_iv(
                 sub[f"{c}_L{lag}"] = sub[c].shift(lag)
         sub = sub.dropna()
         if sub.empty:
-            row = {"h": h, "beta": np.nan, "se": np.nan, "t": np.nan,
+            row: dict[str, Any] = {"h": h, "beta": np.nan, "se": np.nan, "t": np.nan,
                    "lo": np.nan, "hi": np.nan, "first_stage_f": np.nan}
             if anderson_rubin:
                 row.update({"ar_lo": np.nan, "ar_hi": np.nan, "ar_set_type": "empty"})

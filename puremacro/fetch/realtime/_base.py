@@ -316,7 +316,7 @@ class VintagePanel:
         sub = self.df[(self.df["country"] == c) & (self.df["variable"] == v)]
         return sub[["date", "vintage", "value"]].reset_index(drop=True)
 
-    def _canon(self, variable: str) -> str:
+    def _canon(self, variable: str | None) -> str | None:
         """Match the caller's spelling against the panel's own.
 
         The panel stores canonical names (``vintage_panel`` canonicalises
@@ -337,8 +337,8 @@ class VintagePanel:
 
     def _resolve(self, country: str, variable: str | None) -> tuple[str, str]:
         c = str(country).upper()
-        variable = self._canon(variable)
-        if variable is None:
+        canon_var = self._canon(variable)
+        if canon_var is None:
             avail = sorted(self.df[self.df["country"] == c]["variable"].unique())
             if not avail:
                 raise KeyError(
@@ -349,8 +349,8 @@ class VintagePanel:
                     f"country {c!r} carries several variables {avail}; "
                     "pass variable= to disambiguate"
                 )
-            variable = avail[0]
-        return c, variable
+            canon_var = avail[0]
+        return c, canon_var
 
     def units_for(self, country: str, variable: str | None = None) -> str:
         """Units the catalogue declared for one series."""
@@ -609,7 +609,8 @@ class VintagePanel:
 
     @classmethod
     def concat(cls, panels: Iterable["VintagePanel"]) -> "VintagePanel":
-        frames, meta = [], {}
+        frames: list[pd.DataFrame] = []
+        meta: dict[str, Any] = {}
         for p in panels:
             if p is None:
                 continue
@@ -621,7 +622,8 @@ class VintagePanel:
                 if isinstance(v, dict) and isinstance(meta.get(k), dict):
                     meta[k] = {**meta[k], **v}
                 elif isinstance(v, list) and isinstance(meta.get(k), list):
-                    meta[k] = meta[k] + [x for x in v if x not in meta[k]]
+                    curr_list: list = meta[k]
+                    meta[k] = curr_list + [x for x in v if x not in curr_list]
                 else:
                     meta[k] = v
             if p.is_empty():

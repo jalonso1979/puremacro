@@ -6,7 +6,7 @@ Stdlib-only (``urllib`` + ``xml.etree.ElementTree``). Returns a list of
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
-from typing import Iterator
+from typing import Any, Iterator
 
 import pandas as pd
 
@@ -101,4 +101,29 @@ def iter_atom(url: str) -> Iterator[tuple]:
         yield date, f"{title} . {summary}", link
 
 
-__all__ = ["iter_rss", "iter_atom"]
+def parse_rss_feed(url: str, limit: int = 50) -> list[dict[str, Any]]:
+    """Parse an RSS or Atom feed into a list of item dictionaries."""
+    results: list[dict[str, Any]] = []
+    for date, text, link in iter_rss(url):
+        results.append({
+            "date": date,
+            "title": text,
+            "description": "",
+            "link": link,
+        })
+        if len(results) >= limit:
+            break
+    if not results:
+        for date, text, link in iter_atom(url):
+            results.append({
+                "date": date,
+                "title": text,
+                "description": "",
+                "link": link,
+            })
+            if len(results) >= limit:
+                break
+    return results
+
+
+__all__ = ["iter_rss", "iter_atom", "parse_rss_feed"]

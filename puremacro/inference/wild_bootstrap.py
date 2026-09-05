@@ -86,6 +86,7 @@ def wild_bootstrap_var(
     n_boot: int = 500,
     ci: float = 0.9,
     seed: int = 0,
+    n_jobs: int = 1,
 ):
     rng = default_rng(seed)
     A_list, c, Sigma, resid, X = _ols_var(Y, p)
@@ -93,11 +94,6 @@ def wild_bootstrap_var(
     point = _irf_from_var(A_list, horizon, B)
 
     T, n = Y.shape
-    # Only identified draws contribute to the percentile bands. A draw whose
-    # identification failed produced no statistic at all, so it carries no
-    # information about the bootstrap distribution.
-    accepted: list[np.ndarray] = []
-    n_fail = 0
     lo_q = (1 - ci) / 2
     hi_q = 1 - lo_q
 
@@ -110,21 +106,26 @@ def wild_bootstrap_var(
         lags = np.concatenate([Yb_all[:, t - 1 - l, :] for l in range(p)], axis=1)
         Yb_all[:, t, :] = lags @ A_stack.T + c + E_all[:, t - p, :]
 
-    for b in range(n_boot):
-        A_b, _, Sigma_b, resid_b, _ = _ols_var(Yb_all[b], p)
+    def _eval_draw(b_idx: int) -> np.ndarray | None:
+        A_b, _, Sigma_b, resid_b, _ = _ols_var(Yb_all[b_idx], p)
         try:
             B_b = impact_fn(A_b, Sigma_b, resid_b)
+            return _irf_from_var(A_b, horizon, B_b)
         except np.linalg.LinAlgError:
-            # Drop and warn -- the pattern CONTRIBUTING.md names, and which
-            # this function was the counter-example to. Writing `point` here
-            # instead placed a point mass exactly at the point estimate: with a
-            # failure fraction f, the reported 100(1-2a)% band was really the
-            # 100(1 - 2a/(1-f))% band, contracting monotonically in f, and at
-            # f >= 1-2a collapsing to zero width. A 100%-failed bootstrap
-            # returned lo == hi == point and said nothing about it.
-            n_fail += 1
-            continue
-        accepted.append(_irf_from_var(A_b, horizon, B_b))
+            return None
+
+    if n_jobs == 1:
+        res_list = [_eval_draw(b) for b in range(n_boot)]
+    else:
+        import concurrent.futures
+        import os
+
+        workers = os.cpu_count() or 1 if n_jobs < 0 else n_jobs
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
+            res_list = list(ex.map(_eval_draw, range(n_boot)))
+
+    accepted = [r for r in res_list if r is not None]
+    n_fail = n_boot - len(accepted)
 
     if not accepted:
         raise np.linalg.LinAlgError(

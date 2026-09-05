@@ -171,7 +171,7 @@ def generate_colab_notebook(
     dict
         Jupyter Notebook structure as a dict.
     """
-    cells = []
+    cells: list[dict[str, Any]] = []
 
     # Cell 1: Markdown Introduction & Guide
     cells.append({
@@ -408,7 +408,7 @@ def show_colab_offload_dialog(
     *,
     title: str = "puremacro Task Offloaded to Google Colab",
     drive_folder: str = "puremacro_jobs",
-) -> None:
+) -> Any:
     """Display interactive offloading instructions in Jupyter/Juno or terminal."""
     p = Path(notebook_path)
     abs_path = p.resolve()

@@ -44,6 +44,7 @@ unified Germany would silently fabricate an East German economy back to
 """
 from __future__ import annotations
 
+from typing import Any
 import warnings
 from dataclasses import dataclass, field
 
@@ -259,7 +260,9 @@ def splice_frame(
     if not segments:
         return pd.DataFrame(), pd.DataFrame(), {}
     cols = columns or list(segments[0][1].columns)
-    values, prov, seams = {}, {}, {}
+    values: dict[str, Any] = {}
+    prov: dict[str, Any] = {}
+    seams: dict[str, Any] = {}
     for col in cols:
         parts = [(lab, df[col]) for lab, df in segments if col in df.columns]
         if not parts:

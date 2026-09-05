@@ -60,23 +60,30 @@ def sign_restriction_svar(
     impact_restr = restrictions[0] if has_impact else None
     remaining_restr = {h: v for h, v in restrictions.items() if h != 0}
 
+    batch_size = min(1000, n_draws)
     accepted = []
-    for _ in range(n_draws):
-        R = _draw_orthogonal(n, rng)
-        B = P @ R
-        # Fast path: reject candidates violating impact restrictions before computing IRFs
-        if has_impact:
-            reject = False
-            for i, s in enumerate(impact_restr):
-                if s != 0 and np.sign(B[i, 0]) != s:
-                    reject = True
-                    break
-            if reject:
-                continue
+    for start in range(0, n_draws, batch_size):
+        cur_batch = min(batch_size, n_draws - start)
+        A = rng.standard_normal((cur_batch, n, n))
+        Q, R_mat = np.linalg.qr(A)
+        d = np.diagonal(R_mat, axis1=-2, axis2=-1)
+        signs = np.where(d >= 0, 1.0, -1.0)[:, None, :]
+        Q = Q * signs
+        B_batch = P @ Q  # shape (cur_batch, n, n)
 
-        ir = compute_irf(A_list, B, horizon)  # (H+1, n, n)
-        if not remaining_restr or _check_signs(ir, remaining_restr):
-            accepted.append(ir)
+        if has_impact and impact_restr is not None:
+            mask = np.ones(cur_batch, dtype=bool)
+            for i, s in enumerate(impact_restr):
+                if s != 0:
+                    mask &= (np.sign(B_batch[:, i, 0]) == s)
+            candidates = B_batch[mask]
+        else:
+            candidates = B_batch
+
+        for B in candidates:
+            ir = compute_irf(A_list, B, horizon)  # (H+1, n, n)
+            if not remaining_restr or _check_signs(ir, remaining_restr):
+                accepted.append(ir)
 
     if len(accepted) == 0:
         raise RuntimeError(

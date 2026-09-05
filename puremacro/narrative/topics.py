@@ -248,7 +248,7 @@ class NMF:
             W *= (Wt_num / Wt_den)
             
             # Check loss convergence: ||X - W H||_F
-            loss = np.linalg.norm(X - W @ H)
+            loss = float(np.linalg.norm(X - W @ H))
             if abs(prev_loss - loss) < self.tol:
                 break
             prev_loss = loss

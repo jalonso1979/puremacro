@@ -59,3 +59,44 @@ def test_var_bootstrap_bands_parallel_equivalence():
     np.testing.assert_allclose(res_seq["draws"], res_par["draws"])
     np.testing.assert_allclose(res_seq["lower"], res_par["lower"])
     np.testing.assert_allclose(res_seq["upper"], res_par["upper"])
+
+
+def test_wild_bootstrap_var_parallel_equivalence():
+    from puremacro.inference.wild_bootstrap import wild_bootstrap_var
+
+    rng = np.random.default_rng(404)
+    Y = rng.standard_normal((80, 2))
+
+    def id_fn(A_list, Sigma, resid):
+        return np.linalg.cholesky(Sigma)
+
+    pt_seq, lo_seq, hi_seq = wild_bootstrap_var(Y, p=1, horizon=3, impact_fn=id_fn, n_boot=20, seed=42, n_jobs=1)
+    pt_par, lo_par, hi_par = wild_bootstrap_var(Y, p=1, horizon=3, impact_fn=id_fn, n_boot=20, seed=42, n_jobs=2)
+
+    np.testing.assert_allclose(pt_seq, pt_par)
+    np.testing.assert_allclose(lo_seq, lo_par)
+    np.testing.assert_allclose(hi_seq, hi_par)
+
+
+def test_cum_irf_block_bootstrap_parallel():
+    import pandas as pd
+    from puremacro.inference.lp_block_bootstrap import cum_irf_block_bootstrap
+
+    rng = np.random.default_rng(505)
+    entities = ["US", "DE", "FR", "JP"]
+    times = pd.date_range("2000-01-01", periods=30, freq="QE")
+    idx = pd.MultiIndex.from_product([entities, times], names=["code", "date"])
+    df = pd.DataFrame({
+        "y": rng.standard_normal(len(idx)),
+        "x": rng.standard_normal(len(idx)),
+    }, index=idx)
+
+    res_seq = cum_irf_block_bootstrap(df, y="y", x="x", horizons=[0, 1, 2], B=10, seed=42, n_jobs=1)
+    res_par = cum_irf_block_bootstrap(df, y="y", x="x", horizons=[0, 1, 2], B=10, seed=42, n_jobs=2)
+
+    assert len(res_seq) == 3
+    assert len(res_par) == 3
+    np.testing.assert_allclose(res_seq["cum_beta"].values, res_par["cum_beta"].values)
+    np.testing.assert_allclose(res_seq["cum_lo"].values, res_par["cum_lo"].values)
+    np.testing.assert_allclose(res_seq["cum_hi"].values, res_par["cum_hi"].values)
+

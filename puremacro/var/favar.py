@@ -108,6 +108,7 @@ class FAVARResult:
         vars_to_plot = list(variables) if variables is not None else self.variable_names[:min(4, len(self.variable_names))]
         n_vars = len(vars_to_plot)
 
+        axes_flat: Any
         if ax is None:
             n_cols = min(2, n_vars) if n_vars > 0 else 1
             n_rows = int(np.ceil(n_vars / n_cols)) if n_vars > 0 else 1

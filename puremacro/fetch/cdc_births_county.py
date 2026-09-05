@@ -271,7 +271,8 @@ def _aggregate_year(year: int) -> Optional[pd.DataFrame]:
     except StopIteration:
         logger.warning("year %d: empty file", year); return None
     except _http_error() as e:
-        if e.response is not None and e.response.status_code == 404:
+        resp = getattr(e, "response", None)
+        if resp is not None and getattr(resp, "status_code", None) == 404:
             logger.warning("year %d: NBER 404 (file not available)", year)
             return None
         raise

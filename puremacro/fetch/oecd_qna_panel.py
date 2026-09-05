@@ -480,8 +480,8 @@ def _tidy(raw: pd.DataFrame, lookup: dict[tuple, str],
     if df.empty:
         return pd.DataFrame()
 
-    keys = zip(*(df[d] for d in dims))
-    df["name"] = [lookup.get(k) for k in keys]
+    dim_tuples = zip(*(df[d] for d in dims))
+    df["name"] = [lookup.get(k) for k in dim_tuples]
     df = df[df["name"].notna()]
     if df.empty:
         return pd.DataFrame()
@@ -1061,12 +1061,14 @@ def qna_panel(codes: Iterable[str] | None = None,
         raw_x = _download_flow(flow, codes_list, start, refresh)
         if raw_x.empty:
             continue
+        lookup_x: dict[tuple, str]
+        dims_x: tuple[str, ...]
         if isinstance(dim, tuple):
             # Two-dimensional key: the registry stores (TRANSACTION, ACTIVITY).
-            lookup_x = {(t, a): name for name, (t, a, _) in registry.items()}
+            lookup_x = {(val[0], val[1]): name for name, val in registry.items()}
             dims_x = dim
         else:
-            lookup_x = {(v,): name for name, (v, _) in registry.items()}
+            lookup_x = {(val[0],): name for name, val in registry.items()}
             dims_x = (dim,)
         tidy_x = _tidy(raw_x, lookup_x, dims_x, sa=sa, min_gain=sa_min_gain)
         if not tidy_x.empty:

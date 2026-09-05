@@ -47,7 +47,7 @@ def coerce_array_or_frame(
     required_dim: int | None = None,
     name: str = "var",
     dtype: type = float,
-) -> CoercedData:
+) -> _CoercedData:
     """Coerce array-like, Series, or DataFrame into a standardized CoercedData container.
 
     Parameters
@@ -74,6 +74,7 @@ def coerce_array_or_frame(
     index = None
     freq = None
     names: list[str] = []
+    arr: np.ndarray
 
     if isinstance(data, pd.DataFrame):
         index = data.index

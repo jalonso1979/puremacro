@@ -419,7 +419,7 @@ def _read_stata_subset(path: Path, wanted: set[str]) -> pd.DataFrame:
     return df
 
 
-def _normalize_anio(v) -> int | float:
+def _normalize_anio(v) -> int | float | None:
     """Normalize ANIO field to 4-digit year. Accepts int, float, or str.
 
     ENOE pre-2025 stores D_ANIO as 2-digit (18.0 = 2018). Some
@@ -479,7 +479,7 @@ def load_enoe_quarter(
         name for name, p in (("HOG", hog_path), ("SDEM", sdem_path), ("COE1", coe1_path))
         if p is None
     ]
-    if missing:
+    if missing or hog_path is None or sdem_path is None or coe1_path is None:
         raise FileNotFoundError(
             f"ENOE {year}q{quarter} missing table(s): {missing} in {qdir}"
         )

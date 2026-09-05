@@ -157,9 +157,8 @@ def parse_alfred_api_observations(payload: dict | str | bytes) -> pd.DataFrame:
     Each observation is ``{date, realtime_start, realtime_end,
     SERIES_YYYYMMDD: value, ...}``; missing values arrive as ``"."``.
     """
-    if isinstance(payload, (bytes, str)):
-        payload = json.loads(payload)
-    obs = payload.get("observations") or []
+    data: dict = json.loads(payload) if isinstance(payload, (bytes, str)) else payload
+    obs = data.get("observations") or []
     if not obs:
         return pd.DataFrame(columns=["date", "vintage", "value"])
     df = pd.DataFrame(obs)

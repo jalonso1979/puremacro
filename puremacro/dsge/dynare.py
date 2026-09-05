@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Callable, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 import numpy as np
 import pandas as pd
@@ -383,6 +383,9 @@ def solve_dynare_2nd_order(
         order=1,
         tol=tol,
     )
+
+    assert isinstance(m, LinearModel), "Order 2 perturbation requires a solved LinearModel"
+    assert m.steady_state is not None, "Order 2 perturbation requires steady state series"
 
     vars_list = list(m.variables)
     states_list = list(m.states)
@@ -748,7 +751,7 @@ def parse_mod(mod_text: str) -> dict:
             clean_eqs.append(line)
 
     # 7. Parse initval block
-    guess: dict[str, float] = {}
+    guess_init: dict[str, float] = {}
     initval_match = re.search(r"\binitval\s*;\s*(.*?)\bend\s*;", clean_text, re.DOTALL)
     if initval_match:
         for line in initval_match.group(1).split(";"):
@@ -759,7 +762,7 @@ def parse_mod(mod_text: str) -> dict:
                 vexpr = vval.strip().replace("^", "**")
                 if vname in variables:
                     try:
-                        guess[vname] = float(eval(vexpr, eval_scope, params))
+                        guess_init[vname] = float(eval(vexpr, eval_scope, params))
                     except Exception:
                         pass
 
@@ -888,7 +891,7 @@ def parse_mod(mod_text: str) -> dict:
 
     # 11. Multi-period lead and lag expansion
     clean_eqs, variables, steady_state, guess = _expand_multiperiod_leads_lags(
-        clean_eqs, variables, steady_state=steady_state, guess=guess if guess else None
+        clean_eqs, variables, steady_state=steady_state, guess=guess_init if guess_init else None
     )
 
     # 12. Compile equations to Python callable

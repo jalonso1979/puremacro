@@ -42,6 +42,7 @@ def cum_irf_block_bootstrap(
     seed: int = 42,
     time_effects: bool = False,
     band: str = "pointwise",
+    n_jobs: int = 1,
 ) -> pd.DataFrame:
     """Cumulative-IRF bands via the entity (cluster) bootstrap.
 
@@ -67,6 +68,8 @@ def cum_irf_block_bootstrap(
         sup-t band covers the whole cumulative-IRF path jointly with
         probability 1−α; the pointwise band only covers each horizon
         separately.
+    n_jobs
+        Number of parallel worker threads. Default 1. Set to -1 to use all CPUs.
 
     Returns
     -------
@@ -96,11 +99,7 @@ def cum_irf_block_bootstrap(
     if n_e < 2:
         raise ValueError(f"cluster bootstrap needs ≥2 entities; got {n_e}")
 
-    boot = np.full((B, len(horizons)), np.nan)
-    for b in range(B):
-        # Sample entities with replacement; relabel each draw with a unique
-        # synthetic ID so duplicates don't collide in the (entity, time) index.
-        sampled = rng.choice(entities, size=n_e, replace=True)
+    def _fit_draw(sampled) -> np.ndarray:
         pieces: list[pd.DataFrame] = []
         for k, e in enumerate(sampled):
             piece = df_wide.xs(e, level=0).copy()
@@ -115,10 +114,20 @@ def cum_irf_block_bootstrap(
             res_b = panel_lp(boot_panel, y=y, x=x, horizons=horizons,
                              n_lags=n_lags, controls=list(controls),
                              time_effects=time_effects)
-            boot[b] = res_b["beta"].to_numpy()
+            return res_b["beta"].to_numpy()
         except Exception:
-            # Failed fits leave NaN; nanpercentile handles them gracefully.
-            continue
+            return np.full(len(horizons), np.nan)
+
+    all_sampled = [rng.choice(entities, size=n_e, replace=True) for _ in range(B)]
+    if n_jobs == 1:
+        boot = np.array([_fit_draw(s) for s in all_sampled])
+    else:
+        import concurrent.futures
+        import os
+
+        workers = os.cpu_count() or 1 if n_jobs < 0 else n_jobs
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
+            boot = np.array(list(ex.map(_fit_draw, all_sampled)))
 
     cum_boot = np.nancumsum(boot, axis=1)
     cum_point = np.cumsum(point_betas)

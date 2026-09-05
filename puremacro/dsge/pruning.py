@@ -41,6 +41,8 @@ import numpy as np
 import pandas as pd
 import scipy.linalg
 
+from ._results import TheoreticalMomentsResult
+
 
 @dataclass(frozen=True)
 class PrunedSimulationResult:
@@ -555,7 +557,8 @@ class PrunedDSGESolution:
             Impulse responses ordered by self.variable_names, indexed by horizon 0..horizon.
         """
         df = self.girf(shock=shock, size=size, horizon=horizon, sigma=sigma, x0=x0)
-        cols = [v for v in self.variable_names if v in df.columns]
+        vars_tuple = self.variable_names if self.variable_names is not None else (self.state_names + self.control_names)
+        cols = [v for v in vars_tuple if v in df.columns]
         return df[cols]
 
     def plot(
@@ -623,14 +626,16 @@ class PrunedDSGESolution:
 
         # E[x_t^{(1)} ⊗ x_t^{(1)}] = vec(omega)
         vec_omega = omega.reshape(-1, order="F")
-
         sig2 = sigma**2
         # E[x_t^{(2)}] = (I - G)^(-1) [ 0.5 * H_xx @ vec(omega) + 0.5 * H_uu @ vec(sigma_e) + 0.5 * H_sigmasigma * sig2 ]
         i_minus_g = np.eye(n_x) - self.G
         vec_se = sigma_e.reshape(-1, order="F")
+        H_uu = self.H_uu if self.H_uu is not None else np.zeros((n_x, n_e * n_e))
+        G_xu = self.G_xu if self.G_xu is not None else np.zeros((n_y, n_x * n_e))
+        G_uu = self.G_uu if self.G_uu is not None else np.zeros((n_y, n_e * n_e))
         rhs_x = (
             0.5 * (self.H_xx @ vec_omega)
-            + 0.5 * (self.H_uu @ vec_se)
+            + 0.5 * (H_uu @ vec_se)
             + 0.5 * self.H_sigmasigma * sig2
         )
         mu_x2 = scipy.linalg.solve(i_minus_g, rhs_x)
@@ -641,8 +646,8 @@ class PrunedDSGESolution:
         mu_y = (
             self.F @ mu_x2
             + 0.5 * (self.G_xx @ vec_omega)
-            + (self.G_xu @ vec_n_se)
-            + 0.5 * (self.G_uu @ vec_se)
+            + (G_xu @ vec_n_se)
+            + 0.5 * (G_uu @ vec_se)
             + 0.5 * self.G_sigmasigma * sig2
         )
 
@@ -653,29 +658,31 @@ class PrunedDSGESolution:
 
     def theoretical_moments(
         self,
-        *,
         sigma: float = 1.0,
         shock_cov: np.ndarray | None = None,
-        lags: int = 5,
-    ):
-        """Calculate theoretical unconditional moments under 2nd-order pruning.
+        lags: int = 4,
+    ) -> TheoreticalMomentsResult:
+        """Compute analytical theoretical moments matching Dynare's stoch_simul.
+
+        Under the pruned second-order approximation, the first-order covariance
+        matrix is the unconditional covariance (since cross-order expectations
+        between 1st and 2nd order components vanish or enter at 4th order).
 
         Parameters
         ----------
         sigma : float, default 1.0
-            Perturbation parameter scale.
+            Scale parameter for perturbation.
         shock_cov : np.ndarray, optional
-            Covariance matrix of structural innovations.
-        lags : int, default 5
-            Number of autocorrelation lags to compute.
+            Covariance matrix of innovations (n_e x n_e). Default is identity.
+        lags : int, default 4
+            Number of autocorrelation lags to report.
 
         Returns
         -------
         TheoreticalMomentsResult
-            Table of moments, covariance, correlation, and autocorrelations.
+            Analytical moments [Mean, Std.Dev., Variance], correlation matrix,
+            autocorrelation matrix, and variance decomposition.
         """
-        from ._results import TheoreticalMomentsResult
-
         n_x, n_y, n_e = self.n_states, self.n_controls, self.n_shocks
         if shock_cov is None:
             sigma_e = np.eye(n_e)
@@ -688,7 +695,8 @@ class PrunedDSGESolution:
 
         sss = self.stochastic_steady_state(sigma=sigma, shock_cov=shock_cov)
 
-        all_names = list(self.variable_names)
+        vars_tuple = self.variable_names if self.variable_names is not None else (self.state_names + self.control_names)
+        all_names = list(vars_tuple)
         n_all = len(all_names)
 
         cov_xy = self.F @ omega_x
@@ -819,17 +827,18 @@ class PrunedDSGESolution:
         dr = self.decision_rules()
         theo = self.theoretical_moments(sigma=sigma, lags=lags)
 
+        vars_tuple = self.variable_names if self.variable_names is not None else (self.state_names + self.control_names)
         irfs: dict[str, pd.Series] = {}
         if irf > 0:
             for sh in self.shock_names:
                 df_irf = self.irf(shock=sh, horizon=irf, size=sigma, sigma=0.0)
-                for v in self.variable_names:
+                for v in vars_tuple:
                     irfs[f"{v}_{sh}"] = df_irf[v]
 
         sim_moments = None
         if periods > 0:
             sim_res = self.simulate(periods=periods, sigma=sigma, seed=seed, burn=burn)
-            sim_df = pd.concat([sim_res.states, sim_res.controls], axis=1)[list(self.variable_names)]
+            sim_df = pd.concat([sim_res.states, sim_res.controls], axis=1)[list(vars_tuple)]
             sim_moments = pd.DataFrame(
                 {
                     "Mean": sim_df.mean(axis=0),
@@ -838,7 +847,7 @@ class PrunedDSGESolution:
                     "Skewness": sim_df.skew(axis=0),
                     "Kurtosis": sim_df.kurtosis(axis=0),
                 },
-                index=list(self.variable_names),
+                index=list(vars_tuple),
             )
 
         return StochSimulResult(
@@ -847,7 +856,7 @@ class PrunedDSGESolution:
             simulated_moments=sim_moments,
             irfs=irfs,
             order=2,
-            variable_names=self.variable_names,
+            variable_names=vars_tuple,
             shock_names=self.shock_names,
         )
 

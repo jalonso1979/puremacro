@@ -95,18 +95,12 @@ class VarEstimateResult:
         """Plot impulse response of target variable to shock."""
         from ..plot import plot_irf_single
 
-        target_idx = target
-        if isinstance(target, str):
-            if target in self.names:
-                target_idx = self.names.index(target)
-            else:
-                target_idx = int(target)
-        shock_idx = shock
-        if isinstance(shock, str):
-            if shock in self.names:
-                shock_idx = self.names.index(shock)
-            else:
-                shock_idx = int(shock)
+        target_idx: int = (
+            self.names.index(target) if target in self.names else int(target)
+        ) if isinstance(target, str) else int(target)
+        shock_idx: int = (
+            self.names.index(shock) if shock in self.names else int(shock)
+        ) if isinstance(shock, str) else int(shock)
 
         irf_arr = self.irf(horizon=horizon, B0=B0)
         if not title:

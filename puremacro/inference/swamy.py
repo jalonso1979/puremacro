@@ -60,8 +60,8 @@ def swamy_test(
         L = safe_cholesky(np.asarray(sigma_hat[i], dtype=float),
                           name=f"Swamy Sigma_hat[{i}]")
         prec.append(np.linalg.solve(L.T, np.linalg.solve(L, np.eye(K))))
-    L_sum = safe_cholesky(sum(prec), name="Swamy precision sum")
-    rhs = sum(P @ b for P, b in zip(prec, beta_hat))
+    L_sum = safe_cholesky(np.sum(prec, axis=0), name="Swamy precision sum")
+    rhs = np.sum([P @ b for P, b in zip(prec, beta_hat)], axis=0)
     beta_w = np.linalg.solve(L_sum.T, np.linalg.solve(L_sum, rhs))
 
     S = 0.0

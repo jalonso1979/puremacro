@@ -7,7 +7,7 @@ figures print legibly without color.
 """
 from __future__ import annotations
 
-from typing import Mapping, Sequence, Union
+from typing import Any, Mapping, Sequence, Union
 
 import matplotlib.pyplot as plt
 import numpy as np

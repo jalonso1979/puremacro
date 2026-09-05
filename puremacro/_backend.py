@@ -83,6 +83,25 @@ def to_numpy(x) -> np.ndarray:
     return np.asarray(x)
 
 
+def njit_fallback(*args, **kwargs):
+    """Decorator compiling with numba.njit if numba is available, or no-op fallback."""
+    if backend_available("numba"):
+        try:
+            import numba
+
+            return numba.njit(*args, **kwargs)
+        except Exception:
+            pass
+
+    if len(args) == 1 and callable(args[0]) and not kwargs:
+        return args[0]
+
+    def decorator(fn):
+        return fn
+
+    return decorator
+
+
 __all__ = [
     "SUPPORTED",
     "backend_available",

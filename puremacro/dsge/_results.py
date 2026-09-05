@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Tuple
+from typing import Any, Tuple
 
 import numpy as np
 import pandas as pd
@@ -427,7 +427,7 @@ class StochSimulResult:
         Names of structural shocks.
     """
 
-    dr: object
+    dr: DynareDR | Dynare2ndDR | Any
     theoretical_moments: TheoreticalMomentsResult
     simulated_moments: pd.DataFrame | None
     irfs: dict[str, pd.Series]

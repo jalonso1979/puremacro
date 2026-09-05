@@ -118,9 +118,8 @@ def parse_ine_series(payload: dict | str | bytes) -> pd.Series:
     the API emits them (base-1986 GDP at 1970T1, for instance) and they
     are absence, not zero.
     """
-    if isinstance(payload, (bytes, str)):
-        payload = json.loads(payload)
-    rows = payload.get("Data") or []
+    data: dict = json.loads(payload) if isinstance(payload, (bytes, str)) else payload
+    rows = data.get("Data") or []
     out: dict[pd.Timestamp, float] = {}
     for o in rows:
         if o.get("Valor") is None:
@@ -132,7 +131,7 @@ def parse_ine_series(payload: dict | str | bytes) -> pd.Series:
         out[pd.Period(f"{int(year)}Q{int(q)}", freq="Q").to_timestamp()] = \
             float(o["Valor"])
     s = pd.Series(out, dtype=float).sort_index()
-    s.name = payload.get("COD")
+    s.name = data.get("COD")
     return s
 
 

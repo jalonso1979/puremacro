@@ -16,7 +16,7 @@ Kilian, L. (1998). Small-sample confidence intervals for impulse response
 from __future__ import annotations
 
 import math
-from typing import Callable, Optional, Sequence
+from typing import Any, Callable, Optional, Sequence
 
 import numpy as np
 
@@ -188,8 +188,7 @@ def moving_block_bootstrap(
     # Initial conditions: last p rows of Y (burn-in for simulation)
     Y_init = Y[:p]   # shape (p, n)
 
-    if irf_fn is None:
-        irf_fn = _default_irf_fn
+    fn: Callable = irf_fn if irf_fn is not None else _default_irf_fn
 
     draws = []
     for _ in range(n_draws):
@@ -199,8 +198,8 @@ def moving_block_bootstrap(
         # `pass_index` hands the caller the rows this draw actually used, so a
         # per-observation covariate can travel with its residual. Off by
         # default, so every existing 3-argument `irf_fn` is untouched.
-        draw = (irf_fn(Y_star, p, horizon, idx_star) if pass_index
-                else irf_fn(Y_star, p, horizon))
+        draw = (fn(Y_star, p, horizon, idx_star) if pass_index
+                else fn(Y_star, p, horizon))
         if draw is not None:
             draws.append(draw)
 
@@ -215,6 +214,7 @@ def _default_irf_fn(
     Y_star: np.ndarray,
     p: int,
     horizon: int,
+    *args: Any,
 ) -> np.ndarray:
     """Re-estimate VAR(p) on Y_star and return Cholesky IRFs.
 
