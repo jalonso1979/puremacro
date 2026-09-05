@@ -564,6 +564,82 @@ def solve_dynare_2nd_order(
     )
 
 
+def _extract_ids(raw_str: str) -> list[str]:
+    """Extract valid identifier names from declaration string, stripping TeX and attributes."""
+    s = re.sub(r"\$[^$]*\$", " ", raw_str)
+    s = re.sub(r"\([^)]*\)", " ", s)
+    tokens = [t.strip() for t in s.replace(",", " ").split()]
+    return [t for t in tokens if t and re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", t)]
+
+
+def _expand_multiperiod_leads_lags(
+    raw_eqs: list[str],
+    variables: list[str],
+    steady_state: dict[str, float] | None = None,
+    guess: dict[str, float] | None = None,
+) -> tuple[list[str], list[str], dict[str, float] | None, dict[str, float] | None]:
+    """Expand leads and lags with |offset| >= 2 into first-order auxiliary variables."""
+    lag_leads_needed = set()
+    for eq in raw_eqs:
+        for v in variables:
+            matches = re.findall(rf"\b{v}\s*\(\s*([+-]?\d+)\s*\)", eq)
+            for m in matches:
+                offset = int(m)
+                if abs(offset) >= 2:
+                    lag_leads_needed.add((v, offset))
+
+    if not lag_leads_needed:
+        return raw_eqs, list(variables), steady_state, guess
+
+    aux_vars: list[str] = []
+    aux_eqs: list[str] = []
+    replacements: dict[str, str] = {}
+
+    for v, offset in sorted(lag_leads_needed, key=lambda x: (x[0], abs(x[1]))):
+        if offset <= -2:
+            k = abs(offset)
+            for step in range(1, k):
+                aux_name = f"AUX_LAG_{v}_{step}"
+                if aux_name not in aux_vars:
+                    aux_vars.append(aux_name)
+                    prev = f"{v}(-1)" if step == 1 else f"AUX_LAG_{v}_{step-1}(-1)"
+                    aux_eqs.append(f"{aux_name} = {prev}")
+            replacements[rf"\b{v}\s*\(\s*{offset}\s*\)"] = f"AUX_LAG_{v}_{k-1}(-1)"
+        elif offset >= 2:
+            k = offset
+            for step in range(1, k):
+                aux_name = f"AUX_LEAD_{v}_{step}"
+                if aux_name not in aux_vars:
+                    aux_vars.append(aux_name)
+                    prev = f"{v}(+1)" if step == 1 else f"AUX_LEAD_{v}_{step-1}(+1)"
+                    aux_eqs.append(f"{aux_name} = {prev}")
+            replacements[rf"\b{v}\s*\(\s*\+?{offset}\s*\)"] = f"AUX_LEAD_{v}_{k-1}(+1)"
+
+    new_eqs = []
+    for eq in raw_eqs:
+        mod_eq = eq
+        for pat, rep in replacements.items():
+            mod_eq = re.sub(pat, rep, mod_eq)
+        new_eqs.append(mod_eq)
+
+    updated_eqs = new_eqs + aux_eqs
+    updated_vars = list(variables) + aux_vars
+
+    updated_ss = dict(steady_state) if steady_state is not None else None
+    if updated_ss is not None:
+        for aux in aux_vars:
+            root_var = aux.split("_")[2]
+            updated_ss[aux] = updated_ss.get(root_var, 0.0)
+
+    updated_guess = dict(guess) if guess is not None else None
+    if updated_guess is not None:
+        for aux in aux_vars:
+            root_var = aux.split("_")[2]
+            updated_guess[aux] = updated_guess.get(root_var, 1.0)
+
+    return updated_eqs, updated_vars, updated_ss, updated_guess
+
+
 def parse_mod(mod_text: str) -> dict:
     """Parse a Dynare .mod file string into structured declarations and Python equations.
 
@@ -579,117 +655,221 @@ def parse_mod(mod_text: str) -> dict:
         - ``variables``: list of endogenous variable names
         - ``shocks``: list of exogenous innovation names
         - ``params``: dict of parameter name -> float value
+        - ``predetermined_variables``: list of predetermined variable names (if declared)
         - ``guess``: dict of variable name -> initial steady-state guess
         - ``steady_state``: dict of variable name -> exact steady-state value (if declared)
         - ``equations``: compiled callable ``eqs(lead, curr, lag, shocks, params)``
         - ``shock_cov``: covariance matrix of structural innovations if declared
         - ``options``: dict of parsed stoch_simul options (e.g. order, pruning, irf)
+        - ``varobs``: list of observable variables (if declared)
     """
     clean_text = _remove_comments(mod_text)
 
+    # Remove known blocks to isolate top-level declarations and parameters
+    block_pattern = r"\b(model|initval|steady_state_model|shocks|estimated_params)\b(?:\([^)]*\))?\s*;.*?\bend\s*;"
+    non_block_text = re.sub(block_pattern, "", clean_text, flags=re.DOTALL)
+
     # 1. Parse var
-    var_match = re.search(r"\bvar\s+([^;]+);", clean_text)
+    var_match = re.search(r"\bvar\b\s+([^;]+);", non_block_text)
     if not var_match:
         raise ValueError("could not find 'var ...;' declaration in .mod content")
-    raw_vars = var_match.group(1).replace(",", " ").split()
-    variables = [v.strip() for v in raw_vars if v.strip()]
+    variables = _extract_ids(var_match.group(1))
 
     # 2. Parse varexo
-    varexo_match = re.search(r"\bvarexo\s+([^;]+);", clean_text)
+    varexo_match = re.search(r"\bvarexo\b\s+([^;]+);", non_block_text)
     if not varexo_match:
         raise ValueError("could not find 'varexo ...;' declaration in .mod content")
-    raw_shocks = varexo_match.group(1).replace(",", " ").split()
-    shocks = [s.strip() for s in raw_shocks if s.strip()]
+    shocks = _extract_ids(varexo_match.group(1))
 
-    # 3. Parse parameters and values
+    # 3. Parse predetermined_variables (if declared)
+    predet_match = re.search(r"\bpredetermined_variables\b\s+([^;]+);", non_block_text)
+    predetermined_variables = _extract_ids(predet_match.group(1)) if predet_match else []
+
+    # 4. Parse varobs (if declared)
+    varobs_match = re.search(r"\bvarobs\b\s+([^;]+);", non_block_text)
+    varobs = _extract_ids(varobs_match.group(1)) if varobs_match else []
+
+    # 5. Parse parameters and sequential definitions outside blocks
     params: dict[str, float] = {}
-    param_decl_matches = re.findall(r"\bparameters\s+([^;]+);", clean_text)
+    param_decl_matches = re.findall(r"\bparameters\b\s+([^;]+);", non_block_text)
     declared_params = set()
     for decl in param_decl_matches:
-        for p in decl.replace(",", " ").split():
-            if p.strip():
-                declared_params.add(p.strip())
+        declared_params.update(_extract_ids(decl))
 
-    # Parameter assignments outside blocks
-    for line in clean_text.split(";"):
+    eval_scope = {
+        "exp": np.exp,
+        "log": np.log,
+        "sqrt": np.sqrt,
+        "np": np,
+        "__builtins__": None,
+    }
+
+    for line in non_block_text.split(";"):
         line = line.strip()
-        if "=" in line and not any(k in line for k in ["model", "initval", "steady_state_model", "shocks"]):
-            parts = line.split("=")
+        if "=" in line:
+            parts = line.split("=", 1)
             pname = parts[0].strip()
             if pname in declared_params:
+                rhs_expr = parts[1].strip().replace("^", "**")
                 try:
-                    # Safe arithmetic evaluation of numeric parameter expressions
-                    val = float(eval(parts[1].strip(), {"__builtins__": None}, {}))
+                    val = float(eval(rhs_expr, eval_scope, params))
                     params[pname] = val
+                    eval_scope[pname] = val
                 except Exception:
                     pass
 
-    # 4. Parse initval block
+    # 6. Parse model block and local parameters (#name = expr;)
+    model_match = re.search(r"\bmodel\s*(?:\([^)]*\))?\s*;\s*(.*?)\bend\s*;", clean_text, re.DOTALL)
+    if not model_match:
+        raise ValueError("could not find 'model; ... end;' block in .mod content")
+
+    raw_lines = model_match.group(1).split(";")
+    clean_eqs = []
+    for line in raw_lines:
+        line = line.strip()
+        if not line:
+            continue
+        # Strip equation tags e.g. [name='...']
+        line = re.sub(r"\[.*?\]", "", line).strip()
+        if not line:
+            continue
+        if line.startswith("#"):
+            m_local = re.match(r"#\s*([A-Za-z0-9_]+)\s*=\s*(.*)", line)
+            if m_local:
+                loc_name = m_local.group(1).strip()
+                loc_expr = m_local.group(2).strip().replace("^", "**")
+                try:
+                    val = float(eval(loc_expr, eval_scope, params))
+                    params[loc_name] = val
+                    eval_scope[loc_name] = val
+                except Exception:
+                    pass
+        else:
+            clean_eqs.append(line)
+
+    # 7. Parse initval block
     guess: dict[str, float] = {}
-    initval_match = re.search(r"\binitval\s*;\s*(.*?)\s*end\s*;", clean_text, re.DOTALL)
+    initval_match = re.search(r"\binitval\s*;\s*(.*?)\bend\s*;", clean_text, re.DOTALL)
     if initval_match:
         for line in initval_match.group(1).split(";"):
             line = line.strip()
             if "=" in line:
-                vname, vval = line.split("=")
+                vname, vval = line.split("=", 1)
                 vname = vname.strip()
+                vexpr = vval.strip().replace("^", "**")
                 if vname in variables:
                     try:
-                        guess[vname] = float(eval(vval.strip(), {"__builtins__": None}, params))
+                        guess[vname] = float(eval(vexpr, eval_scope, params))
                     except Exception:
                         pass
 
-    # 5. Parse shocks block
+    # 8. Parse steady_state_model block (if present)
+    steady_state: dict[str, float] | None = None
+    ss_match = re.search(r"\bsteady_state_model\s*;\s*(.*?)\bend\s*;", clean_text, re.DOTALL)
+    if ss_match:
+        steady_state = {v: 0.0 for v in variables}
+        for line in ss_match.group(1).split(";"):
+            line = line.strip()
+            if "=" in line:
+                vname, vexpr = line.split("=", 1)
+                vname = vname.strip()
+                vexpr = vexpr.strip().replace("^", "**")
+                if vname in variables:
+                    try:
+                        val = float(eval(vexpr, eval_scope, params))
+                        steady_state[vname] = val
+                        eval_scope[vname] = val
+                    except Exception:
+                        pass
+
+    # 9. Parse shocks block
     shock_cov = np.eye(len(shocks))
-    shocks_match = re.search(r"\bshocks\s*;\s*(.*?)\s*end\s*;", clean_text, re.DOTALL)
+    shocks_match = re.search(r"\bshocks\s*;\s*(.*?)\bend\s*;", clean_text, re.DOTALL)
     has_shocks_block = False
     if shocks_match:
         has_shocks_block = True
-        for line in shocks_match.group(1).split(";"):
-            line = line.strip()
-            if not line:
+        current_shock = None
+        for stmt in shocks_match.group(1).split(";"):
+            stmt = stmt.strip()
+            if not stmt:
                 continue
-            # Case 1: var <shock>; stderr <val>;
-            stderr_m = re.search(r"\bvar\s+([A-Za-z0-9_]+)\s*(?:;|,)?\s*stderr\s+([^;]+)", line)
-            if stderr_m:
-                sname = stderr_m.group(1).strip()
-                val_str = stderr_m.group(2).strip().replace("^", "**")
-                if sname in shocks:
-                    try:
-                        s_val = float(eval(val_str, {"__builtins__": None}, params))
-                        s_idx = shocks.index(sname)
-                        shock_cov[s_idx, s_idx] = s_val**2
-                    except Exception:
-                        pass
+            # Case 1: corr s1, s2 = val;
+            corr_m = re.search(r"\bcorr\s+([A-Za-z0-9_]+)\s*,\s*([A-Za-z0-9_]+)\s*=\s*(.*)", stmt)
+            if corr_m:
+                s1, s2, val_str = corr_m.group(1), corr_m.group(2), corr_m.group(3).replace("^", "**")
+                try:
+                    c_val = float(eval(val_str, eval_scope, params))
+                    i1, i2 = shocks.index(s1), shocks.index(s2)
+                    std1 = np.sqrt(max(0.0, shock_cov[i1, i1]))
+                    std2 = np.sqrt(max(0.0, shock_cov[i2, i2]))
+                    cov_val = c_val * std1 * std2
+                    shock_cov[i1, i2] = cov_val
+                    shock_cov[i2, i1] = cov_val
+                except Exception:
+                    pass
                 continue
-            # Case 2: var <shock> = <val>;
-            var_single = re.search(r"\bvar\s+([A-Za-z0-9_]+)\s*=\s*([^;]+)", line)
+
+            # Case 2: var s1, s2 = val; (covariance)
+            cov_m = re.search(r"\bvar\s+([A-Za-z0-9_]+)\s*,\s*([A-Za-z0-9_]+)\s*=\s*(.*)", stmt)
+            if cov_m:
+                s1, s2, val_str = cov_m.group(1), cov_m.group(2), cov_m.group(3).replace("^", "**")
+                try:
+                    c_val = float(eval(val_str, eval_scope, params))
+                    i1, i2 = shocks.index(s1), shocks.index(s2)
+                    shock_cov[i1, i2] = c_val
+                    shock_cov[i2, i1] = c_val
+                except Exception:
+                    pass
+                continue
+
+            # Case 3: var s = val;
+            var_single = re.search(r"\bvar\s+([A-Za-z0-9_]+)\s*=\s*(.*)", stmt)
             if var_single:
-                sname = var_single.group(1).strip()
-                val_str = var_single.group(2).strip().replace("^", "**")
+                sname, val_str = var_single.group(1), var_single.group(2).replace("^", "**")
                 if sname in shocks:
                     try:
-                        s_val = float(eval(val_str, {"__builtins__": None}, params))
+                        s_val = float(eval(val_str, eval_scope, params))
                         s_idx = shocks.index(sname)
                         shock_cov[s_idx, s_idx] = s_val
                     except Exception:
                         pass
                 continue
-            # Case 3: var <shock1>, <shock2> = <val>;
-            cov_match = re.search(r"\bvar\s+([A-Za-z0-9_]+)\s*,\s*([A-Za-z0-9_]+)\s*=\s*([^;]+)", line)
-            if cov_match:
-                s1, s2 = cov_match.group(1).strip(), cov_match.group(2).strip()
-                val_str = cov_match.group(3).strip().replace("^", "**")
-                if s1 in shocks and s2 in shocks:
+
+            # Case 4: var s, stderr val; or var s; stderr val;
+            stderr_inline = re.search(r"\bvar\s+([A-Za-z0-9_]+)\s*(?:;|,)?\s*stderr\s+(.*)", stmt)
+            if stderr_inline:
+                sname = stderr_inline.group(1).strip()
+                val_str = stderr_inline.group(2).strip().replace("^", "**")
+                if sname in shocks:
                     try:
-                        c_val = float(eval(val_str, {"__builtins__": None}, params))
-                        i1, i2 = shocks.index(s1), shocks.index(s2)
-                        shock_cov[i1, i2] = c_val
-                        shock_cov[i2, i1] = c_val
+                        s_val = float(eval(val_str, eval_scope, params))
+                        s_idx = shocks.index(sname)
+                        shock_cov[s_idx, s_idx] = s_val**2
                     except Exception:
                         pass
+                continue
 
-    # 6. Parse stoch_simul options
+            # Case 5: var s; (sets current shock for subsequent stderr statement)
+            var_stmt = re.search(r"\bvar\s+([A-Za-z0-9_]+)$", stmt)
+            if var_stmt:
+                current_shock = var_stmt.group(1)
+                continue
+
+            # Case 6: stderr val; (following previous var s;)
+            stderr_stmt = re.search(r"\bstderr\s+(.*)", stmt)
+            if stderr_stmt and current_shock:
+                val_str = stderr_stmt.group(1).replace("^", "**")
+                if current_shock in shocks:
+                    try:
+                        s_val = float(eval(val_str, eval_scope, params))
+                        s_idx = shocks.index(current_shock)
+                        shock_cov[s_idx, s_idx] = s_val**2
+                    except Exception:
+                        pass
+                current_shock = None
+                continue
+
+    # 10. Parse stoch_simul options
     options: dict[str, Any] = {}
     stoch_match = re.search(r"\bstoch_simul\s*(?:\(([^)]*)\))?\s*;", clean_text)
     if stoch_match:
@@ -702,14 +882,16 @@ def parse_mod(mod_text: str) -> dict:
         irf_m = re.search(r"\birf\s*=\s*(\d+)", opts_str)
         if irf_m:
             options["irf"] = int(irf_m.group(1))
+        per_m = re.search(r"\bperiods\s*=\s*(\d+)", opts_str)
+        if per_m:
+            options["periods"] = int(per_m.group(1))
 
-    # 7. Parse model block
-    model_match = re.search(r"\bmodel\s*(?:\([^)]*\))?\s*;\s*(.*?)\s*end\s*;", clean_text, re.DOTALL)
-    if not model_match:
-        raise ValueError("could not find 'model; ... end;' block in .mod content")
+    # 11. Multi-period lead and lag expansion
+    clean_eqs, variables, steady_state, guess = _expand_multiperiod_leads_lags(
+        clean_eqs, variables, steady_state=steady_state, guess=guess if guess else None
+    )
 
-    raw_eqs = [e.strip() for e in model_match.group(1).split(";") if e.strip()]
-
+    # 12. Compile equations to Python callable
     def transform_expr(expr: str) -> str:
         s = expr.replace("^", "**")
         s = re.sub(r"\blog\(", "np.log(", s)
@@ -733,7 +915,7 @@ def parse_mod(mod_text: str) -> dict:
         return s
 
     py_exprs = []
-    for eq in raw_eqs:
+    for eq in clean_eqs:
         if "=" in eq:
             lhs, rhs = eq.split("=", 1)
             t_lhs = transform_expr(lhs.strip())
@@ -755,10 +937,13 @@ def parse_mod(mod_text: str) -> dict:
         "variables": variables,
         "shocks": shocks,
         "params": params,
+        "predetermined_variables": predetermined_variables if predetermined_variables else None,
         "guess": guess if guess else None,
+        "steady_state": steady_state if steady_state else None,
         "equations": eq_callable,
         "shock_cov": shock_cov if has_shocks_block else None,
         "options": options,
+        "varobs": varobs if varobs else None,
     }
 
 
@@ -787,7 +972,8 @@ def load_mod(
     guess : Mapping[str, float] | Sequence[float], optional
         Optional initial guess override.
     states : Sequence[str], optional
-        Optional explicit states override. If None, automatically detected.
+        Optional explicit states override. If None, automatically detected
+        or taken from ``predetermined_variables`` if declared.
     order : {1, 2}, optional
         Approximation order:
         - 1: First-order linear approximation (returns LinearModel).
@@ -825,8 +1011,16 @@ def load_mod(
     if params:
         merged_params.update(params)
 
+    # Merge steady state
+    final_ss = steady_state if steady_state is not None else parsed.get("steady_state")
+
     # Merge guess
     final_guess = guess or parsed.get("guess")
+    if final_ss is None and final_guess is None:
+        final_guess = {v: 0.0 for v in parsed["variables"]}
+
+    # Predetermined variables fallback
+    final_states = states if states is not None else parsed.get("predetermined_variables")
 
     # Determine effective order
     if order is None:
@@ -842,9 +1036,9 @@ def load_mod(
         variables=parsed["variables"],
         shocks=parsed["shocks"],
         params=merged_params,
-        steady_state=steady_state,
+        steady_state=final_ss,
         guess=final_guess,
-        states=states,
+        states=final_states,
         order=eff_order,
         shock_cov=eff_shock_cov,
         tol=tol,

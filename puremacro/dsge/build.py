@@ -75,7 +75,7 @@ import scipy.linalg
 import scipy.optimize
 
 from puremacro.dsge.klein import KleinSolution, klein_solve
-from puremacro.dsge._results import DynareDR, TheoreticalMomentsResult
+from puremacro.dsge._results import DynareDR, TheoreticalMomentsResult, StochSimulResult
 
 __all__ = [
     "ModelError",
@@ -84,6 +84,7 @@ __all__ = [
     "build",
     "DynareDR",
     "TheoreticalMomentsResult",
+    "StochSimulResult",
 ]
 
 # Complex-step size. Any value small enough that h**2 underflows relative
@@ -635,6 +636,97 @@ class LinearModel:
         block = np.hstack([xs[:total], ys])
         frame = pd.DataFrame(block, columns=list(self.states) + list(self.controls))
         return frame.iloc[burn:].reset_index(drop=True)[list(self.variables)]
+
+    def stoch_simul(
+        self,
+        *,
+        order: int = 1,
+        irf: int = 40,
+        periods: int = 0,
+        sigma: float | Mapping[str, float] | None = None,
+        seed: int = 0,
+        burn: int = 100,
+        lags: int = 5,
+    ) -> StochSimulResult:
+        """Execute Dynare-compatible stoch_simul routine.
+
+        Computes:
+        1. Decision rules (oo_.dr)
+        2. Analytical theoretical moments (moments, covariance, correlation, autocorrelations, FEVD)
+        3. Impulse response functions for all structural shocks
+        4. Simulated sample moments (if periods > 0)
+
+        Parameters
+        ----------
+        order : int, default 1
+            Approximation order. If order=2, delegates to solve_second_order().stoch_simul(...).
+        irf : int, default 40
+            Horizon for impulse response functions. Set to 0 to skip IRFs.
+        periods : int, default 0
+            Number of simulation periods. If > 0, generates simulated moments.
+        sigma : float | Mapping[str, float], optional
+            Shock standard deviations. Default 1.0 for each shock.
+        seed : int, default 0
+            RNG seed for simulation when periods > 0.
+        burn : int, default 100
+            Burn-in periods dropped before calculating simulated moments.
+        lags : int, default 5
+            Number of autocorrelation lags.
+
+        Returns
+        -------
+        StochSimulResult
+            Container holding dr, theoretical_moments, simulated_moments, irfs, and export methods.
+        """
+        if order == 2:
+            sol2 = self.solve_second_order()
+            s_val = 1.0 if sigma is None else (float(sigma) if isinstance(sigma, (int, float)) else 1.0)
+            return sol2.stoch_simul(
+                order=2,
+                irf=irf,
+                periods=periods,
+                sigma=s_val,
+                seed=seed,
+                burn=burn,
+                lags=lags,
+            )
+        elif order != 1:
+            raise ValueError(f"unsupported perturbation order {order}; must be 1 or 2")
+
+        dr = self.decision_rules()
+        theo = self.theoretical_moments(sigma=sigma, lags=lags)
+
+        irfs: dict[str, pd.Series] = {}
+        if irf > 0:
+            for sh in self.shocks:
+                sh_size = 1.0 if sigma is None else (sigma.get(sh, 1.0) if isinstance(sigma, Mapping) else float(sigma))
+                df_irf = self.irf(shock=sh, horizon=irf, size=sh_size)
+                for v in self.variables:
+                    irfs[f"{v}_{sh}"] = df_irf[v]
+
+        sim_moments = None
+        if periods > 0:
+            sim_df = self.simulate(periods=periods, sigma=sigma, seed=seed, burn=burn)
+            sim_moments = pd.DataFrame(
+                {
+                    "Mean": sim_df.mean(axis=0),
+                    "Std.Dev.": sim_df.std(axis=0),
+                    "Variance": sim_df.var(axis=0),
+                    "Skewness": sim_df.skew(axis=0),
+                    "Kurtosis": sim_df.kurtosis(axis=0),
+                },
+                index=list(self.variables),
+            )
+
+        return StochSimulResult(
+            dr=dr,
+            theoretical_moments=theo,
+            simulated_moments=sim_moments,
+            irfs=irfs,
+            order=1,
+            variable_names=self.variables,
+            shock_names=self.shocks,
+        )
 
     def summary(self) -> str:
         """One-screen description: sizes, steady state, BK verdict."""

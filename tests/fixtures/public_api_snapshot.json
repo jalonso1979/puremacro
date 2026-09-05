@@ -191,6 +191,7 @@
       "PrunedSimulationResult",
       "SW07PosteriorResult",
       "SteadyStateError",
+      "StochSimulResult",
       "TheoreticalMomentsResult",
       "build",
       "build_dynare",
@@ -215,6 +216,7 @@
       "DynareDR",
       "FertilitySolution",
       "SW07PosteriorResult",
+      "StochSimulResult",
       "TheoreticalMomentsResult"
     ],
     "puremacro.dsge.build": [
@@ -222,6 +224,7 @@
       "LinearModel",
       "ModelError",
       "SteadyStateError",
+      "StochSimulResult",
       "TheoreticalMomentsResult",
       "build"
     ],
@@ -2479,6 +2482,15 @@
       "n_burn_in",
       "param_names",
       "seed"
+    ],
+    "puremacro.dsge._results.StochSimulResult": [
+      "dr",
+      "irfs",
+      "order",
+      "shock_names",
+      "simulated_moments",
+      "theoretical_moments",
+      "variable_names"
     ],
     "puremacro.dsge._results.TheoreticalMomentsResult": [
       "autocorr",

@@ -405,6 +405,100 @@ class TheoreticalMomentsResult:
         return _df_to_typst(self.moments, **kwargs)
 
 
+@dataclass(frozen=True)
+class StochSimulResult:
+    """Consolidated result of Dynare stoch_simul execution.
+
+    Attributes
+    ----------
+    dr : DynareDR | Dynare2ndDR
+        First- or second-order decision rule structure (oo_.dr).
+    theoretical_moments : TheoreticalMomentsResult
+        Analytical unconditional moments, correlations, autocorrelations, and FEVD.
+    simulated_moments : pd.DataFrame | None
+        Sample moments if simulation with periods > 0 was requested.
+    irfs : dict[str, pd.Series]
+        Dictionary of impulse response functions keyed by '{var}_{shock}'.
+    order : int
+        Approximation order (1 or 2).
+    variable_names : tuple[str, ...]
+        Names of all endogenous variables.
+    shock_names : tuple[str, ...]
+        Names of structural shocks.
+    """
+
+    dr: object
+    theoretical_moments: TheoreticalMomentsResult
+    simulated_moments: pd.DataFrame | None
+    irfs: dict[str, pd.Series]
+    order: int
+    variable_names: tuple[str, ...]
+    shock_names: tuple[str, ...]
+
+    def __getitem__(self, key: str):
+        """Allow subscript access matching Dynare struct conventions."""
+        if hasattr(self, key):
+            return getattr(self, key)
+        if key in self.irfs:
+            return self.irfs[key]
+        raise KeyError(f"StochSimulResult has no attribute or IRF series {key!r}")
+
+    def to_frame(self, shock: str | None = None) -> pd.DataFrame:
+        """Return IRFs as a DataFrame.
+
+        If shock is provided, returns (H+1 x n_vars) for that shock.
+        Otherwise, returns a wide DataFrame of all '{var}_{shock}' IRF paths.
+        """
+        if shock is not None:
+            cols = {
+                v: self.irfs[f"{v}_{shock}"]
+                for v in self.variable_names
+                if f"{v}_{shock}" in self.irfs
+            }
+            return pd.DataFrame(cols)
+        return pd.DataFrame(self.irfs)
+
+    def summary(self) -> str:
+        """Render complete consolidated Dynare stoch_simul report."""
+        lines = [
+            f"DYNARE STOCH_SIMUL REPORT (Order {self.order})",
+            "=" * 72,
+            f"Endogenous variables : {len(self.variable_names)}",
+            f"Exogenous shocks     : {len(self.shock_names)}",
+            "-" * 72,
+            self.dr.summary(),
+            "",
+            self.theoretical_moments.summary(),
+        ]
+        if self.simulated_moments is not None:
+            lines += [
+                "",
+                "MOMENTS OF SIMULATED VARIABLES",
+                "-" * 72,
+                self.simulated_moments.round(6).to_string(),
+                "=" * 72,
+            ]
+        return "\n".join(lines)
+
+    def to_markdown(self, **kwargs) -> str:
+        """Export primary theoretical moments to Markdown."""
+        from puremacro.reports import _df_to_markdown
+
+        return _df_to_markdown(self.theoretical_moments.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        """Export primary theoretical moments to LaTeX."""
+        from puremacro.reports import _df_to_latex
+
+        return _df_to_latex(self.theoretical_moments.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        """Export primary theoretical moments to Typst."""
+        from puremacro.reports import _df_to_typst
+
+        return _df_to_typst(self.theoretical_moments.to_frame(), **kwargs)
+
+
 __all__ = [
     "DSGEPosteriorResult",
     "SW07PosteriorResult",
@@ -412,4 +506,5 @@ __all__ = [
     "DynareDR",
     "Dynare2ndDR",
     "TheoreticalMomentsResult",
+    "StochSimulResult",
 ]

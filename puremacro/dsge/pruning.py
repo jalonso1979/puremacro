@@ -525,6 +525,39 @@ class PrunedDSGESolution:
         df_girf = pd.DataFrame(diff, index=pd.RangeIndex(t_steps, name="h"), columns=cols)
         return df_girf
 
+    def irf(
+        self,
+        shock: int | str = 0,
+        horizon: int = 20,
+        size: float = 1.0,
+        sigma: float = 0.0,
+        x0: np.ndarray | None = None,
+    ) -> pd.DataFrame:
+        """Impulse responses for the 2nd-order pruned model around steady state.
+
+        Parameters
+        ----------
+        shock : int or str, default 0
+            Index or name of the innovation to shock.
+        horizon : int, default 20
+            Number of periods after impact.
+        size : float, default 1.0
+            Magnitude of innovation.
+        sigma : float, default 0.0
+            Perturbation parameter scale σ. Default 0.0 evaluates deterministic
+            impulse responses starting from deterministic steady state.
+        x0 : np.ndarray, optional
+            Initial state vector.
+
+        Returns
+        -------
+        pd.DataFrame
+            Impulse responses ordered by self.variable_names, indexed by horizon 0..horizon.
+        """
+        df = self.girf(shock=shock, size=size, horizon=horizon, sigma=sigma, x0=x0)
+        cols = [v for v in self.variable_names if v in df.columns]
+        return df[cols]
+
     def plot(
         self,
         shock: int | str = 0,
@@ -735,6 +768,87 @@ class PrunedDSGESolution:
             correlation=df_corr,
             autocorr=df_autocorr,
             fevd=df_fevd,
+        )
+
+    def stoch_simul(
+        self,
+        *,
+        order: int = 2,
+        irf: int = 40,
+        periods: int = 0,
+        sigma: float = 1.0,
+        seed: int = 0,
+        burn: int = 100,
+        lags: int = 5,
+    ):
+        """Execute Dynare-compatible 2nd-order stoch_simul routine.
+
+        Computes:
+        1. Second-order decision rules (oo_.dr)
+        2. Theoretical unconditional moments under pruning (with volatility risk correction)
+        3. Impulse response functions for all structural shocks
+        4. Simulated sample moments (if periods > 0)
+
+        Parameters
+        ----------
+        order : int, default 2
+            Approximation order (must be 2).
+        irf : int, default 40
+            Horizon for impulse response functions. Set to 0 to skip IRFs.
+        periods : int, default 0
+            Number of simulation periods. If > 0, generates simulated moments.
+        sigma : float, default 1.0
+            Shock standard deviation / perturbation scale parameter.
+        seed : int, default 0
+            RNG seed for simulation when periods > 0.
+        burn : int, default 100
+            Burn-in periods dropped before calculating simulated moments.
+        lags : int, default 5
+            Number of autocorrelation lags.
+
+        Returns
+        -------
+        StochSimulResult
+            Container holding dr, theoretical_moments, simulated_moments, irfs, and export methods.
+        """
+        from ._results import StochSimulResult
+
+        if order != 2:
+            raise ValueError(f"PrunedDSGESolution only supports order=2, got order={order}")
+
+        dr = self.decision_rules()
+        theo = self.theoretical_moments(sigma=sigma, lags=lags)
+
+        irfs: dict[str, pd.Series] = {}
+        if irf > 0:
+            for sh in self.shock_names:
+                df_irf = self.irf(shock=sh, horizon=irf, size=sigma, sigma=0.0)
+                for v in self.variable_names:
+                    irfs[f"{v}_{sh}"] = df_irf[v]
+
+        sim_moments = None
+        if periods > 0:
+            sim_res = self.simulate(periods=periods, sigma=sigma, seed=seed, burn=burn)
+            sim_df = pd.concat([sim_res.states, sim_res.controls], axis=1)[list(self.variable_names)]
+            sim_moments = pd.DataFrame(
+                {
+                    "Mean": sim_df.mean(axis=0),
+                    "Std.Dev.": sim_df.std(axis=0),
+                    "Variance": sim_df.var(axis=0),
+                    "Skewness": sim_df.skew(axis=0),
+                    "Kurtosis": sim_df.kurtosis(axis=0),
+                },
+                index=list(self.variable_names),
+            )
+
+        return StochSimulResult(
+            dr=dr,
+            theoretical_moments=theo,
+            simulated_moments=sim_moments,
+            irfs=irfs,
+            order=2,
+            variable_names=self.variable_names,
+            shock_names=self.shock_names,
         )
 
 
