@@ -17,6 +17,7 @@ import pandas as pd
 from scipy.stats import norm
 
 from ..inference.lewbel_iv import lewbel_iv
+from ._results import LPResult
 
 
 def lp_iv_lewbel(
@@ -31,7 +32,10 @@ def lp_iv_lewbel(
     entity_level: str = "code",
     time_level: str = "date",
     alpha: float = 0.10,
-) -> pd.DataFrame:
+    lags: int | None = None,
+    horizon: int | None = None,
+    ci: float | None = None,
+) -> LPResult:
     """Local-projection IV using Lewbel-constructed instruments.
 
     Specification at horizon h:
@@ -41,8 +45,14 @@ def lp_iv_lewbel(
 
     Returns
     -------
-    DataFrame with columns ``[h, beta, se, t, lo, hi, first_stage_F, lewbel_p]``.
+    LPResult with columns ``[h, beta, se, t, lo, hi, first_stage_F, lewbel_p]``.
     """
+    if lags is not None:
+        n_lags = lags
+    if horizon is not None:
+        horizons = range(0, horizon + 1)
+    if ci is not None:
+        alpha = 1.0 - ci
     horizons = list(horizons)
     controls = list(controls)
     z_crit = norm.ppf(1 - alpha / 2)
@@ -108,7 +118,13 @@ def lp_iv_lewbel(
             "first_stage_F": float(res.first_stage_F),
             "lewbel_p": float(res.lewbel_diagnostic["p_value"]),
         })
-    return pd.DataFrame(rows)
+    res = LPResult(rows)
+    if "h" in res.columns:
+        res.index = res["h"]
+    res.y_name = str(y)
+    res.x_name = str(x_endog)
+    res.method = "LP-IV-Lewbel"
+    return res
 
 
 __all__ = ["lp_iv_lewbel"]

@@ -17,6 +17,7 @@ import pandas as pd
 from scipy.stats import norm
 
 from .jorda import lp_hac
+from ._results import LPResult
 
 
 def mean_group_panel_lp(
@@ -30,7 +31,11 @@ def mean_group_panel_lp(
     entity_level: str = "code",
     time_level: str = "date",
     min_obs: int = 30,
-) -> pd.DataFrame:
+    *,
+    lags: int | None = None,
+    horizon: int | None = None,
+    ci: float | None = None,
+) -> LPResult:
     """Estimate panel LP via Pesaran-Smith Mean Group.
 
     For each entity c with at least `min_obs` observations, run lp_hac
@@ -38,8 +43,14 @@ def mean_group_panel_lp(
         β̂^MG_h = (1/N) Σ_c β_h^c
         SE_h = sqrt( (1 / (N (N-1))) Σ_c (β_h^c - β̂^MG_h)^2 )
 
-    Returns DataFrame with [h, beta, se, lo, hi, n_entities_used].
+    Returns LPResult with [h, beta, se, lo, hi, n_entities_used].
     """
+    if lags is not None:
+        n_lags = lags
+    if horizon is not None:
+        horizons = range(0, horizon + 1)
+    if ci is not None:
+        alpha = 1.0 - ci
     horizons = list(horizons); ctl = list(controls or [])
     z_crit = norm.ppf(1 - alpha / 2)
     df = df_wide.copy()
@@ -92,7 +103,13 @@ def mean_group_panel_lp(
             "hi": beta_mg + z_crit * se_mg,
             "n_entities_used": int(n_h),
         })
-    return pd.DataFrame(rows)
+    res = LPResult(rows)
+    if "h" in res.columns:
+        res.index = res["h"]
+    res.y_name = str(y)
+    res.x_name = str(x)
+    res.method = "mean_group_panel_lp"
+    return res
 
 
 __all__ = ["mean_group_panel_lp"]

@@ -14,6 +14,7 @@ from scipy.interpolate import BSpline
 from scipy.stats import norm
 
 from .jorda import lp_hac
+from ._results import LPResult
 
 
 def lp_smooth(
@@ -26,7 +27,11 @@ def lp_smooth(
     n_knots: int = 6,
     lambda_: float | None = None,
     alpha: float = 0.10,
-) -> pd.DataFrame:
+    *,
+    lags: int | None = None,
+    horizon: int | None = None,
+    ci: float | None = None,
+) -> LPResult:
     """Smooth the IRF surface across horizons.
 
     Internally:
@@ -36,8 +41,14 @@ def lp_smooth(
          where P is the second-difference penalty matrix.
       4. λ chosen by GCV unless supplied.
 
-    Returns DataFrame with columns [h, beta, se, lo, hi, lambda].
+    Returns LPResult with columns [h, beta, se, lo, hi, lambda].
     """
+    if lags is not None:
+        n_lags = lags
+    if horizon is not None:
+        horizons = range(0, horizon + 1)
+    if ci is not None:
+        alpha = 1.0 - ci
     horizons = list(horizons)
     H = len(horizons)
     h_arr = np.array(horizons, dtype=float)
@@ -83,7 +94,7 @@ def lp_smooth(
     # Smoothed SE: A diag(se_raw^2) A'  → diag
     se_smooth = np.sqrt(np.einsum('ij,j,ij->i', A, se_raw ** 2, A))
 
-    return pd.DataFrame({
+    res = LPResult({
         "h": horizons,
         "beta": beta_smooth,
         "se": se_smooth,
@@ -91,6 +102,12 @@ def lp_smooth(
         "hi": beta_smooth + z_crit * se_smooth,
         "lambda": [lambda_] * H,
     })
+    if "h" in res.columns:
+        res.index = res["h"]
+    res.y_name = str(y)
+    res.x_name = str(x)
+    res.method = "LP-smooth"
+    return res
 
 
 __all__ = ["lp_smooth"]

@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 
 from .state_dep import lp_state_dep
+from ._results import LPResult
 from ..garch.fit import garch11_fit
 
 
@@ -22,18 +23,35 @@ def lp_garch_state(
     threshold: float = 0.0,
     controls: Sequence[str] | None = None,
     alpha: float = 0.10,
-):
+    *,
+    lags: int | None = None,
+    horizon: int | None = None,
+    ci: float | None = None,
+) -> LPResult:
     """If sigma_col is None, fit GARCH(1,1) on x's first differences and
     use the resulting σ_t as the regime state."""
+    if lags is not None:
+        n_lags = lags
+    if horizon is not None:
+        horizons = range(0, horizon + 1)
+    if ci is not None:
+        alpha = 1.0 - ci
     df = df.copy()
     if sigma_col is None:
         eps = df[x].diff().dropna()
         garch = garch11_fit(eps)
         df["__sigma__"] = garch.sigma.reindex(df.index).ffill().bfill()
         sigma_col = "__sigma__"
-    return lp_state_dep(df, y=y, x=x, state=sigma_col, horizons=horizons,
+    out = lp_state_dep(df, y=y, x=x, state=sigma_col, horizons=horizons,
                         n_lags=n_lags, transition=transition, gamma=gamma,
                         threshold=threshold, controls=controls, alpha=alpha)
+    res = LPResult(out)
+    if "h" in res.columns:
+        res.index = res["h"]
+    res.y_name = str(y)
+    res.x_name = str(x)
+    res.method = "LP-garch-state"
+    return res
 
 
 __all__ = ["lp_garch_state"]

@@ -62,6 +62,12 @@ class CallawaySantannaResult:
         from puremacro.reports import _df_to_typst
         return _df_to_typst(self.to_frame(), **kwargs)
 
+    def plot(self, *, ax=None, title: str = "Callaway-Sant'Anna Event Study", **kwargs):
+        """Plot event-study ATT estimates with confidence intervals."""
+        from puremacro.plot import plot_event_study
+        return plot_event_study(self.att_event_study, ax=ax, title=title, **kwargs)
+
+
 
 @dataclass(frozen=True)
 class SunAbrahamResult:
@@ -116,6 +122,12 @@ class SunAbrahamResult:
         """Export event-study ATTs to Typst table."""
         from puremacro.reports import _df_to_typst
         return _df_to_typst(self.to_frame(), **kwargs)
+
+    def plot(self, *, ax=None, title: str = "Sun-Abraham Event Study", **kwargs):
+        """Plot event-study ATT estimates with confidence intervals."""
+        from puremacro.plot import plot_event_study
+        return plot_event_study(self.att_event_study, ax=ax, title=title, **kwargs)
+
 
 
 @dataclass(frozen=True)
@@ -173,6 +185,12 @@ class BorusyakJaravelSpiessResult:
         """Export event-study ATTs to Typst table."""
         from puremacro.reports import _df_to_typst
         return _df_to_typst(self.to_frame(), **kwargs)
+
+    def plot(self, *, ax=None, title: str = "Borusyak-Jaravel-Spiess Event Study", **kwargs):
+        """Plot event-study ATT estimates with confidence intervals."""
+        from puremacro.plot import plot_event_study
+        return plot_event_study(self.att_event_study, ax=ax, title=title, **kwargs)
+
 
 
 @dataclass(frozen=True)

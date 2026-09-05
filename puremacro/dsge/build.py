@@ -547,7 +547,46 @@ class LinearModel:
         frame.index.name = "h"
         return frame[list(self.variables)]
 
+    def plot(
+        self,
+        shock: str | None = None,
+        horizon: int = 20,
+        size: float = 1.0,
+        variables: Sequence[str] | None = None,
+        *,
+        ax=None,
+        title: str = "",
+        ylabel: str = "Response",
+    ):
+        """Plot impulse responses for the DSGE model."""
+        from ..plot import _new_ax
+
+        if shock is None:
+            if not self.shocks:
+                raise ValueError("Model has no shocks declared to plot.")
+            shock = self.shocks[0]
+
+        df = self.irf(shock=shock, horizon=horizon, size=size)
+        if variables is not None:
+            vars_to_plot = [v for v in variables if v in df.columns]
+        else:
+            vars_to_plot = list(df.columns)
+
+        fig, ax = _new_ax(ax)
+        for col in vars_to_plot:
+            ax.plot(df.index, df[col], label=col, linewidth=1.2)
+
+        ax.axhline(0.0, color="0.3", linewidth=0.6, linestyle=":")
+        ax.set_xlabel("Horizon (h)")
+        ax.set_ylabel(ylabel)
+        if not title:
+            title = f"DSGE IRF to {shock} shock"
+        ax.set_title(title)
+        ax.legend(loc="best", frameon=False)
+        return fig
+
     def simulate(self, periods: int = 200, *, sigma=None, seed: int = 0,
+
                  burn: int = 100) -> pd.DataFrame:
         """Simulate the model with i.i.d. Gaussian innovations.
 

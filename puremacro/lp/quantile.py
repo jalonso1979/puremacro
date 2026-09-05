@@ -19,6 +19,8 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import linprog
 
+from ._results import LPResult
+
 
 def _qreg(y: np.ndarray, X: np.ndarray, tau: float) -> np.ndarray:
     """Quantile regression of y on X at quantile tau.
@@ -54,13 +56,23 @@ def lp_quantile(
     n_boot: int = 200,
     alpha: float = 0.10,
     seed: int = 0,
-) -> pd.DataFrame:
+    *,
+    lags: int | None = None,
+    horizon: int | None = None,
+    ci: float | None = None,
+) -> LPResult:
     """Adrian-Boyarchenko-Giannone "vulnerable growth"-style quantile LP.
 
     Returns
     -------
-    pd.DataFrame with columns [h, tau, beta, lo, hi].
+    LPResult with columns [h, tau, beta, lo, hi].
     """
+    if lags is not None:
+        n_lags = lags
+    if horizon is not None:
+        horizons = range(0, horizon + 1)
+    if ci is not None:
+        alpha = 1.0 - ci
     horizons = list(horizons)
     ctl = list(controls or [])
     rng = np.random.default_rng(seed)
@@ -105,7 +117,11 @@ def lp_quantile(
             rows.append({"h": h, "tau": tau, "beta": beta_x,
                          "lo": lo, "hi": hi})
 
-    return pd.DataFrame(rows)
+    res = LPResult(rows)
+    res.y_name = str(y)
+    res.x_name = str(x)
+    res.method = "LP-quantile"
+    return res
 
 
 __all__ = ["lp_quantile"]

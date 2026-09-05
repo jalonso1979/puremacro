@@ -403,6 +403,41 @@ class PrunedDSGESolution:
         df_girf = pd.DataFrame(diff, index=pd.RangeIndex(t_steps, name="h"), columns=cols)
         return df_girf
 
+    def plot(
+        self,
+        shock: int | str = 0,
+        size: float = 1.0,
+        horizon: int = 20,
+        sigma: float = 1.0,
+        variables: Sequence[str] | None = None,
+        *,
+        ax=None,
+        title: str = "",
+        ylabel: str = "GIRF Response",
+    ):
+        """Plot pruned Generalized Impulse Response Functions (GIRF)."""
+        from ..plot import _new_ax
+
+        df = self.girf(shock=shock, size=size, horizon=horizon, sigma=sigma)
+        if variables is not None:
+            vars_to_plot = [v for v in variables if v in df.columns]
+        else:
+            vars_to_plot = list(df.columns)
+
+        fig, ax = _new_ax(ax)
+        for col in vars_to_plot:
+            ax.plot(df.index, df[col], label=col, linewidth=1.2)
+
+        ax.axhline(0.0, color="0.3", linewidth=0.6, linestyle=":")
+        ax.set_xlabel("Horizon (h)")
+        ax.set_ylabel(ylabel)
+        if not title:
+            s_name = shock if isinstance(shock, str) else self.shock_names[shock]
+            title = f"Pruned DSGE GIRF to {s_name} shock"
+        ax.set_title(title)
+        ax.legend(loc="best", frameon=False)
+        return fig
+
     def stochastic_steady_state(
         self, sigma: float = 1.0, shock_cov: np.ndarray | None = None
     ) -> dict[str, pd.Series]:

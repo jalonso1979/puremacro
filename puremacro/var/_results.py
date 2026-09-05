@@ -29,6 +29,7 @@ class VarEstimateResult:
     Sigma: np.ndarray
     resid: np.ndarray
     X: np.ndarray
+    names: tuple[str, ...] = ()
 
     def __iter__(self):
         """Support legacy `A_list, c, Sigma, resid, X = estimate_var(...)` unpack."""
@@ -58,3 +59,85 @@ class VarEstimateResult:
             f"  effective T       : {T_eff}\n"
             f"  Σ trace           : {float(np.trace(self.Sigma)):.4f}\n"
         )
+
+    def irf(self, horizon: int = 20, B0: np.ndarray | None = None) -> np.ndarray:
+        """Compute orthogonalised impulse responses of shape (horizon+1, n, n).
+
+        If B0 is not provided, defaults to the lower-triangular Cholesky factor of Sigma.
+        """
+        from .irf import irf as compute_irf
+        from .._linalg import safe_cholesky
+
+        if B0 is None:
+            B0 = safe_cholesky(self.Sigma, name="VarEstimateResult.irf")
+        return compute_irf(self.A_list, B0, horizon=horizon)
+
+    def fevd(self, horizon: int = 20, B0: np.ndarray | None = None) -> np.ndarray:
+        """Compute forecast-error variance decomposition of shape (horizon+1, n, n)."""
+        from .irf import fevd as compute_fevd
+        from .._linalg import safe_cholesky
+
+        if B0 is None:
+            B0 = safe_cholesky(self.Sigma, name="VarEstimateResult.fevd")
+        return compute_fevd(self.A_list, B0, horizon=horizon)
+
+    def plot(
+        self,
+        target: int | str = 0,
+        shock: int | str = 0,
+        horizon: int = 20,
+        B0: np.ndarray | None = None,
+        title: str = "",
+        ylabel: str = "Response",
+        scale: float = 1.0,
+        ax=None,
+    ):
+        """Plot impulse response of target variable to shock."""
+        from ..plot import plot_irf_single
+
+        target_idx = target
+        if isinstance(target, str):
+            if target in self.names:
+                target_idx = self.names.index(target)
+            else:
+                target_idx = int(target)
+        shock_idx = shock
+        if isinstance(shock, str):
+            if shock in self.names:
+                shock_idx = self.names.index(shock)
+            else:
+                shock_idx = int(shock)
+
+        irf_arr = self.irf(horizon=horizon, B0=B0)
+        if not title:
+            y_name = self.names[target_idx] if target_idx < len(self.names) else f"y_{target_idx}"
+            s_name = self.names[shock_idx] if shock_idx < len(self.names) else f"shock_{shock_idx}"
+            title = f"Response of {y_name} to {s_name}"
+
+        return plot_irf_single(
+            irf_arr,
+            target_idx=target_idx,
+            shock_idx=shock_idx,
+            title=title,
+            ylabel=ylabel,
+            scale=scale,
+            ax=ax,
+        )
+
+    def to_frame(
+        self,
+        target: int | str = 0,
+        shock: int | str = 0,
+        horizon: int = 20,
+        B0: np.ndarray | None = None,
+    ):
+        """Return a tidy DataFrame of the IRF path for target variable to shock."""
+        import pandas as pd
+
+        target_idx = self.names.index(target) if isinstance(target, str) and target in self.names else int(target)
+        shock_idx = self.names.index(shock) if isinstance(shock, str) and shock in self.names else int(shock)
+        irf_arr = self.irf(horizon=horizon, B0=B0)
+        return pd.DataFrame({
+            "h": np.arange(horizon + 1),
+            "response": irf_arr[:, target_idx, shock_idx],
+        })

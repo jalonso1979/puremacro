@@ -39,11 +39,13 @@ def _univariate_sigma(y: np.ndarray, p: int) -> float:
 
 def minnesota_posterior(
     Y: pd.DataFrame,
-    p: int,
+    p: int | None = None,
     lambda1: float = 0.2,
     lambda2: float = 0.5,
     lambda3: float = 1.0,
     intercept_prior_std: float = 1e3,
+    *,
+    lags: int | None = None,
 ) -> dict:
     """Compute the posterior mean of a Minnesota-prior BVAR via dummy
     observations.
@@ -52,7 +54,7 @@ def minnesota_posterior(
     ----------
     Y : pd.DataFrame
         T × n panel of endogenous variables.
-    p : int
+    p : int, optional
         Number of lags.
     lambda1 : float
         Overall prior tightness. Smaller = tighter (more shrinkage to RW).
@@ -62,6 +64,9 @@ def minnesota_posterior(
         Lag-decay exponent. Larger = faster decay of prior std with k.
     intercept_prior_std : float
         Diffuse prior std on the intercept (large = nearly uninformative).
+    lags : int, optional
+        Keyword alias for ``p``.
+
 
     Returns
     -------
@@ -73,6 +78,13 @@ def minnesota_posterior(
         residuals : (T-p, n) — residuals at posterior mean
         lambda1, lambda2, lambda3 : floats — hyperparameters used
     """
+    if lags is not None:
+        if p is not None and p != lags:
+            raise ValueError(f"Conflicting lag arguments: p={p}, lags={lags}")
+        p = lags
+    if p is None:
+        raise ValueError("Must specify lag order via positional `p` or keyword `lags=...`")
+
     Y_arr = np.asarray(Y, dtype=float)
     T, n = Y_arr.shape
 
@@ -253,8 +265,9 @@ def _build_minnesota_dummies(
 
 def minnesota_gibbs(
     Y: pd.DataFrame,
-    p: int,
+    p: int | None = None,
     *,
+    lags: int | None = None,
     n_draws: int = 1000,
     burn: int = 500,
     lambda1: float = 0.2,
@@ -271,6 +284,7 @@ def minnesota_gibbs(
 
         Sigma | Y ~ IW(S_post, nu_post)
         vec(B) | Sigma, Y ~ N(vec(B_post), Sigma kron (X*'X*)^{-1})
+
 
     where (Y*, X*) stack data and dummies.
 
@@ -290,6 +304,13 @@ def minnesota_gibbs(
         intercept_draws : (n_draws, n)
         nu_post       : posterior degrees of freedom
     """
+    if lags is not None:
+        if p is not None and p != lags:
+            raise ValueError(f"Conflicting lag arguments: p={p}, lags={lags}")
+        p = lags
+    if p is None:
+        raise ValueError("Must specify lag order via positional `p` or keyword `lags=...`")
+
     if rng is None:
         rng = np.random.default_rng()
     Y_arr = np.asarray(Y, dtype=float)
@@ -441,8 +462,9 @@ def _minnesota_log_marginal_likelihood(
 
 def minnesota_optimal_lambda(
     Y: pd.DataFrame,
-    p: int,
+    p: int | None = None,
     *,
+    lags: int | None = None,
     intercept_prior_std: float = 1e3,
     lambda1_grid=(0.05, 0.1, 0.2, 0.3, 0.5, 1.0, 2.0),
     lambda2_grid=(0.5, 1.0),
@@ -456,6 +478,13 @@ def minnesota_optimal_lambda(
     of GLP 2015; their full hierarchical procedure also optimises over
     a Sum-of-Coefficients prior tightness, which we omit for brevity.
     """
+    if lags is not None:
+        if p is not None and p != lags:
+            raise ValueError(f"Conflicting lag arguments: p={p}, lags={lags}")
+        p = lags
+    if p is None:
+        raise ValueError("Must specify lag order via positional `p` or keyword `lags=...`")
+
     Y_arr = np.asarray(Y, dtype=float)
     best: tuple[float, Any] = (-np.inf, None)
     grid = []

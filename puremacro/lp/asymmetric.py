@@ -18,6 +18,7 @@ import pandas as pd
 from scipy.stats import norm
 
 from ..inference._ols_helpers import ols_hac
+from ._results import LPResult
 
 
 def lp_asymmetric(
@@ -28,7 +29,11 @@ def lp_asymmetric(
     n_lags: int = 2,
     controls: Sequence[str] | None = None,
     alpha: float = 0.10,
-) -> pd.DataFrame:
+    *,
+    lags: int | None = None,
+    horizon: int | None = None,
+    ci: float | None = None,
+) -> LPResult:
     """Estimate
         y_{t+h} - y_{t-1} = α_h
                          + β_h^+ x_t · 1{x_t > 0}
@@ -36,11 +41,18 @@ def lp_asymmetric(
                          + Σ γ_l z_{t-l} + ε
     via Newey-West HAC. Bands at level (1-alpha).
 
-    Returns DataFrame with columns
+    Returns LPResult with columns
         [h, beta_pos, se_pos, lo_pos, hi_pos,
             beta_neg, se_neg, lo_neg, hi_neg].
     """
-    horizons = list(horizons); ctl = list(controls or [])
+    if lags is not None:
+        n_lags = lags
+    if horizon is not None:
+        horizons = range(0, horizon + 1)
+    if ci is not None:
+        alpha = 1.0 - ci
+    horizons = list(horizons)
+    ctl = list(controls or [])
     z_crit = norm.ppf(1 - alpha / 2)
     rows = []
     for h in horizons:
@@ -83,7 +95,13 @@ def lp_asymmetric(
             "lo_neg": beta_neg - z_crit * se_neg,
             "hi_neg": beta_neg + z_crit * se_neg,
         })
-    return pd.DataFrame(rows)
+    res = LPResult(rows)
+    if "h" in res.columns:
+        res.index = res["h"]
+    res.y_name = str(y)
+    res.x_name = str(x)
+    res.method = "LP-asymmetric"
+    return res
 
 
 __all__ = ["lp_asymmetric"]

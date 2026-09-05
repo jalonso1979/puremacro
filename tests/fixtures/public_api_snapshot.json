@@ -1648,6 +1648,7 @@
       "sandwich_vcov"
     ],
     "puremacro.plot": [
+      "plot_event_study",
       "plot_fan",
       "plot_fan_from_paths",
       "plot_fevd",
@@ -3289,6 +3290,7 @@
       "Sigma",
       "X",
       "c",
+      "names",
       "resid"
     ],
     "puremacro.var.favar.FAVARResult": [

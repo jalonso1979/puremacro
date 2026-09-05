@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 
 from .jorda import lp_hac
+from ._results import LPResult
 from ..garch.fit import garch11_fit
 
 
@@ -18,15 +19,32 @@ def lp_garch_in_mean(
     n_lags: int = 2,
     controls: Sequence[str] | None = None,
     alpha: float = 0.10,
-):
+    *,
+    lags: int | None = None,
+    horizon: int | None = None,
+    ci: float | None = None,
+) -> LPResult:
     """Fit GARCH(1,1) on Δx, then run lp_hac with σ_t added to controls."""
+    if lags is not None:
+        n_lags = lags
+    if horizon is not None:
+        horizons = range(0, horizon + 1)
+    if ci is not None:
+        alpha = 1.0 - ci
     df = df.copy()
     eps = df[x].diff().dropna()
     garch = garch11_fit(eps)
     df["__sigma__"] = garch.sigma.reindex(df.index).ffill().bfill()
     extra = list(controls or []) + ["__sigma__"]
-    return lp_hac(df, y=y, x=x, horizons=horizons, n_lags=n_lags,
-                   controls=extra, alpha=alpha)
+    out = lp_hac(df, y=y, x=x, horizons=horizons, n_lags=n_lags,
+                 controls=extra, alpha=alpha)
+    res = LPResult(out)
+    if "h" in res.columns:
+        res.index = res["h"]
+    res.y_name = str(y)
+    res.x_name = str(x)
+    res.method = "LP-garch-in-mean"
+    return res
 
 
 __all__ = ["lp_garch_in_mean"]

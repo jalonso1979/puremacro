@@ -3,7 +3,22 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from puremacro.lp import LPResult, lp_hac, panel_lp, panel_lp_dk, lp_iv
+from puremacro.lp import (
+    LPResult,
+    lp_hac,
+    panel_lp,
+    panel_lp_dk,
+    lp_iv,
+    lp_asymmetric,
+    lp_smooth,
+    lp_quantile,
+    la_lp,
+    lp_iv_lewbel,
+    cce_panel_lp,
+    mean_group_panel_lp,
+    lp_garch_state,
+    lp_garch_in_mean,
+)
 
 
 def test_lp_result_properties_and_dataframe_behavior():
@@ -121,3 +136,121 @@ def test_lp_iv_standardized_keywords_and_result():
     assert len(res) == 4
     assert res.method == "LP-IV"
     assert "first_stage_f" in res.columns
+
+
+def test_lp_asymmetric_standardized_keywords_and_result():
+    rng = np.random.default_rng(42)
+    df = pd.DataFrame({"y": rng.standard_normal(100), "x": rng.standard_normal(100)})
+    res = lp_asymmetric(df, y="y", x="x", horizon=3, lags=1, ci=0.90)
+    assert isinstance(res, LPResult)
+    assert isinstance(res, pd.DataFrame)
+    assert len(res) == 4
+    assert res.method == "LP-asymmetric"
+
+
+def test_lp_smooth_standardized_keywords_and_result():
+    rng = np.random.default_rng(42)
+    df = pd.DataFrame({"y": rng.standard_normal(100), "x": rng.standard_normal(100)})
+    res = lp_smooth(df, y="y", x="x", horizon=4, lags=1, ci=0.90)
+    assert isinstance(res, LPResult)
+    assert isinstance(res, pd.DataFrame)
+    assert len(res) == 5
+    assert res.method == "LP-smooth"
+
+
+def test_lp_quantile_standardized_keywords_and_result():
+    rng = np.random.default_rng(42)
+    df = pd.DataFrame({"y": rng.standard_normal(80), "x": rng.standard_normal(80)})
+    res = lp_quantile(df, y="y", x="x", quantiles=[0.5], horizon=2, lags=1, ci=0.90, n_boot=5)
+    assert isinstance(res, LPResult)
+    assert isinstance(res, pd.DataFrame)
+    assert len(res) == 3
+    assert res.method == "LP-quantile"
+
+
+def test_la_lp_standardized_keywords_and_result():
+    rng = np.random.default_rng(42)
+    df = pd.DataFrame({"y": rng.standard_normal(100), "x": rng.standard_normal(100)})
+    res = la_lp(df, y="y", x="x", horizon=3, lags=1, ci=0.90)
+    assert isinstance(res, LPResult)
+    assert isinstance(res, pd.DataFrame)
+    assert len(res) == 4
+    assert res.method == "la_lp"
+
+
+def test_lp_iv_lewbel_standardized_keywords_and_result():
+    rng = np.random.default_rng(42)
+    rows = []
+    for i in range(3):
+        for t in range(40):
+            rows.append({
+                "code": f"E{i}",
+                "date": pd.Timestamp("2020-01-01") + pd.DateOffset(months=t),
+                "y": rng.standard_normal(),
+                "x": rng.standard_normal(),
+                "z": rng.standard_normal(),
+            })
+    df = pd.DataFrame(rows)
+    res = lp_iv_lewbel(df, y="y", x_endog="x", heterosk_source="z", horizon=2, lags=1, ci=0.90)
+    assert isinstance(res, LPResult)
+    assert isinstance(res, pd.DataFrame)
+    assert len(res) == 3
+    assert res.method == "LP-IV-Lewbel"
+
+
+def test_cce_panel_lp_standardized_keywords_and_result():
+    rng = np.random.default_rng(42)
+    rows = []
+    for i in range(3):
+        for t in range(30):
+            rows.append({
+                "code": f"E{i}",
+                "date": pd.Timestamp("2020-01-01") + pd.DateOffset(months=t),
+                "y": rng.standard_normal(),
+                "x": rng.standard_normal(),
+            })
+    df = pd.DataFrame(rows).set_index(["code", "date"]).sort_index()
+    res = cce_panel_lp(df, y="y", x="x", horizon=2, lags=1, ci=0.90)
+    assert isinstance(res, LPResult)
+    assert isinstance(res, pd.DataFrame)
+    assert len(res) == 3
+    assert res.method == "cce_panel_lp"
+
+
+def test_mean_group_panel_lp_standardized_keywords_and_result():
+    rng = np.random.default_rng(42)
+    rows = []
+    for i in range(3):
+        for t in range(35):
+            rows.append({
+                "code": f"E{i}",
+                "date": pd.Timestamp("2020-01-01") + pd.DateOffset(months=t),
+                "y": rng.standard_normal(),
+                "x": rng.standard_normal(),
+            })
+    df = pd.DataFrame(rows).set_index(["code", "date"]).sort_index()
+    res = mean_group_panel_lp(df, y="y", x="x", horizon=2, lags=1, ci=0.90, min_obs=20)
+    assert isinstance(res, LPResult)
+    assert isinstance(res, pd.DataFrame)
+    assert len(res) == 3
+    assert res.method == "mean_group_panel_lp"
+
+
+def test_lp_garch_state_standardized_keywords_and_result():
+    rng = np.random.default_rng(42)
+    df = pd.DataFrame({"y": rng.standard_normal(60), "x": rng.standard_normal(60)})
+    res = lp_garch_state(df, y="y", x="x", horizon=2, lags=1, ci=0.90)
+    assert isinstance(res, LPResult)
+    assert isinstance(res, pd.DataFrame)
+    assert len(res) == 3
+    assert res.method == "LP-garch-state"
+
+
+def test_lp_garch_in_mean_standardized_keywords_and_result():
+    rng = np.random.default_rng(42)
+    df = pd.DataFrame({"y": rng.standard_normal(60), "x": rng.standard_normal(60)})
+    res = lp_garch_in_mean(df, y="y", x="x", horizon=2, lags=1, ci=0.90)
+    assert isinstance(res, LPResult)
+    assert isinstance(res, pd.DataFrame)
+    assert len(res) == 3
+    assert res.method == "LP-garch-in-mean"

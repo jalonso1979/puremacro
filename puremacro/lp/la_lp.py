@@ -17,6 +17,7 @@ import pandas as pd
 from scipy.stats import norm
 
 from .._linalg import inv_xtx
+from ._results import LPResult
 
 
 def _ols_eicker_huber(y: np.ndarray, X: np.ndarray) -> dict:
@@ -38,7 +39,11 @@ def la_lp(
     extra_lags: int | None = None,
     controls: Sequence[str] | None = None,
     alpha: float = 0.10,
-) -> pd.DataFrame:
+    *,
+    lags: int | None = None,
+    horizon: int | None = None,
+    ci: float | None = None,
+) -> LPResult:
     """PMW (2021) lag-augmented LP with Eicker-Huber-White SE.
 
     Parameters
@@ -50,6 +55,12 @@ def la_lp(
         If None, defaults to max(horizons), which makes coverage uniform
         across all reported horizons.
     """
+    if lags is not None:
+        n_lags = lags
+    if horizon is not None:
+        horizons = range(0, horizon + 1)
+    if ci is not None:
+        alpha = 1.0 - ci
     horizons = list(horizons)
     ctl = list(controls or [])
     z_crit = norm.ppf(1 - alpha / 2)
@@ -94,7 +105,13 @@ def la_lp(
             "hi": beta_h + z_crit * se_h,
             "p_aug": p_aug,
         })
-    return pd.DataFrame(rows)
+    res = LPResult(rows)
+    if "h" in res.columns:
+        res.index = res["h"]
+    res.y_name = str(y)
+    res.x_name = str(x)
+    res.method = "la_lp"
+    return res
 
 
 __all__ = ["la_lp"]

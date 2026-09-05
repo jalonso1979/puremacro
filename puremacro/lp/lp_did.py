@@ -154,6 +154,12 @@ class LPDiDResult:
             f"{pre_line}{h0_line}"
         )
 
+    def plot(self, *, ax=None, title: str = "LP-DiD Event Study", **kwargs):
+        """Plot LP-DiD event study estimates with confidence intervals."""
+        from puremacro.plot import plot_event_study
+        return plot_event_study(self.estimates, ax=ax, title=title, **kwargs)
+
+
 
 def lp_did(
     panel: pd.DataFrame,

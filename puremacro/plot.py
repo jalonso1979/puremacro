@@ -275,6 +275,82 @@ def plot_spillover(spill_df: pd.DataFrame, *, title: str = "", ax=None) -> Figur
     return fig
 
 
+def plot_event_study(
+    df_or_result,
+    *,
+    title: str = "Event Study ATT",
+    xlabel: str = "Event Time",
+    ylabel: str = "Treatment Effect",
+    ax=None,
+) -> Figure:
+    """Plot event-study coefficients with confidence intervals.
+
+    Supports CallawaySantannaResult, SunAbrahamResult, BorusyakJaravelSpiessResult,
+    LPDiDResult, or any DataFrame with event time and estimate columns.
+    """
+    df = df_or_result
+    if hasattr(df, "att_event_study"):
+        df = df.att_event_study
+    elif hasattr(df, "estimates"):
+        df = df.estimates
+
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError(f"Expected DataFrame or Result object with event study table, got {type(df)}")
+
+    # Detect time column
+    time_col = None
+    for col in ("event_time", "h", "time", "rel_time"):
+        if col in df.columns:
+            time_col = col
+            break
+    if time_col is None:
+        raise ValueError(f"Could not identify event time column in {list(df.columns)}")
+
+    # Detect point estimate column
+    est_col = None
+    for col in ("att", "beta", "estimate", "point", "coef"):
+        if col in df.columns:
+            est_col = col
+            break
+    if est_col is None:
+        raise ValueError(f"Could not identify estimate column in {list(df.columns)}")
+
+    # Detect bounds or standard errors
+    has_bounds = False
+    lo_col, hi_col = None, None
+    for lo_candidate, hi_candidate in [("lo", "hi"), ("ci_lower", "ci_upper"), ("lower", "upper")]:
+        if lo_candidate in df.columns and hi_candidate in df.columns:
+            lo_col, hi_col = lo_candidate, hi_candidate
+            has_bounds = True
+            break
+
+    fig, ax = _new_ax(ax)
+    t = df[time_col].values.astype(float)
+    y = df[est_col].values.astype(float)
+
+    if has_bounds:
+        lo = df[lo_col].values.astype(float)
+        hi = df[hi_col].values.astype(float)
+        yerr = np.vstack([y - lo, hi - y])
+        ax.errorbar(t, y, yerr=yerr, fmt="o", color="0.0", ecolor="0.4", elinewidth=1.2, capsize=3, label="ATT")
+    elif "se" in df.columns:
+        se = df["se"].values.astype(float)
+        ax.errorbar(t, y, yerr=1.96 * se, fmt="o", color="0.0", ecolor="0.4", elinewidth=1.2, capsize=3, label="ATT (95% CI)")
+    else:
+        ax.plot(t, y, marker="o", color="0.0", label="ATT")
+
+    ax.axhline(0.0, color="0.3", linewidth=0.8, linestyle=":")
+    # Pre/post separation line
+    if np.any(t < 0) and np.any(t >= 0):
+        ax.axvline(-0.5, color="0.5", linewidth=0.8, linestyle="--")
+
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    if title:
+        ax.set_title(title)
+    return fig
+
+
 __all__ = [
     "plot_irf_single",
     "plot_irf_multi",
@@ -282,4 +358,6 @@ __all__ = [
     "plot_fan",
     "plot_fan_from_paths",
     "plot_spillover",
+    "plot_event_study",
 ]
+

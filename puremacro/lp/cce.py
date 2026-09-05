@@ -16,6 +16,8 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 
+from ._results import LPResult
+
 
 def _entity_fe_ols(sub: pd.DataFrame, y_col: str, x_cols: Sequence[str],
                    entity_level: str) -> dict:
@@ -56,7 +58,11 @@ def cce_panel_lp(
     alpha: float = 0.10,
     entity_level: str = "code",
     time_level: str = "date",
-) -> pd.DataFrame:
+    *,
+    lags: int | None = None,
+    horizon: int | None = None,
+    ci: float | None = None,
+) -> LPResult:
     """Estimate panel LP β_h with Pesaran-CCE common-factor correction.
 
     Augments the regression with the time-by-time cross-sectional means
@@ -68,8 +74,14 @@ def cce_panel_lp(
     already serve as proxies for the common time component, so adding
     time dummies would create exact collinearity with those proxies.
 
-    Returns DataFrame with [h, beta, se, lo, hi].
+    Returns LPResult with [h, beta, se, lo, hi].
     """
+    if lags is not None:
+        n_lags = lags
+    if horizon is not None:
+        horizons = range(0, horizon + 1)
+    if ci is not None:
+        alpha = 1.0 - ci
     horizons = list(horizons); ctl = list(controls)
     z_crit = norm.ppf(1 - alpha / 2)
 
@@ -118,7 +130,13 @@ def cce_panel_lp(
             "lo": beta_h - z_crit * se_h,
             "hi": beta_h + z_crit * se_h,
         })
-    return pd.DataFrame(rows)
+    res = LPResult(rows)
+    if "h" in res.columns:
+        res.index = res["h"]
+    res.y_name = str(y)
+    res.x_name = str(x)
+    res.method = "cce_panel_lp"
+    return res
 
 
 __all__ = ["cce_panel_lp"]
