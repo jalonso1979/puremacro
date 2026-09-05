@@ -1,3 +1,5 @@
+> 🇬🇧 English · 🇪🇸 [Español](es/reporting.md)
+
 # Publication & Manuscript Reporting
 
 Macroeconomic research requires clear, reproducible dissemination. Translating empirical estimates, standard errors, and confidence bands from Python into papers has historically required manual formatting, brittle scripts, or heavy external dependencies.

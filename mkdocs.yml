@@ -47,37 +47,78 @@ markdown_extensions:
   - tables
 
 nav:
-  - Overview: index.md
-  - Quickstart: quickstart.md
-  - Correctness advisories: ADVISORY.md
-  - Data:
-      - Quarterly National Accounts: national_accounts.md
-      - Real-time data (vintages): real_time_data.md
-      - Long national accounts panel: long_panel.md
-  - Econometric Engines:
-      - VAR & FAVAR: var.md
-      - Local Projections: lp.md
-      - Modern Difference-in-Differences: did.md
-      - GDP Nowcasting: nowcast.md
-      - Penalized Forecasting: forecast.md
-  - Publication & Reporting:
-      - Manuscript Tables & Exports: reporting.md
-  - Structural Models:
-      - Sequence-Space HANK: models.md
-      - Climate Macro (DICE): climate.md
-      - DSGE Sketchpad: dsge_build.md
-  - Running Anywhere (iPad / browser): tablet.md
-  - Performance & Benchmarks: benchmarks.md
-  # These pages existed on disk and were unreachable from the nav, so the site
-  # rendered without them and nothing said so. `mkdocs build --strict` in CI
-  # (see .github/workflows/ci.yml) now fails on a nav entry with no file; it
-  # cannot catch a file with no nav entry, so keep this list in sync by hand.
-  - Reference:
-      - Validation & goldens: VALIDATION.md
-      - Connector health: CONNECTOR_HEALTH.md
-      - Credentials: CREDENTIALS.md
-      - Cache database: CACHE_DB.md
-      - Signal contract: SIGNAL_CONTRACT.md
-      - Examples gallery: examples_gallery.md
-      - Lexicon review: lexicon_review.md
-      - Path to 1.0: 1.0_path.md
+  - English Documentation:
+      - Overview: index.md
+      - Quickstart: quickstart.md
+      - Correctness advisories: ADVISORY.md
+      - Data:
+          - Quarterly National Accounts: national_accounts.md
+          - Real-time data (vintages): real_time_data.md
+          - Long national accounts panel: long_panel.md
+      - Econometric Engines:
+          - VAR & FAVAR: var.md
+          - Narrative Sign Restrictions SVAR: narrative_sign_svar.md
+          - BVAR with Stochastic Volatility: bvar_sv.md
+          - Local Projections: lp.md
+          - Smooth Local Projections: smooth_lp.md
+          - Modern Difference-in-Differences: did.md
+          - Honest DiD Sensitivity: honest_did.md
+          - GDP Nowcasting: nowcast.md
+          - Penalized Forecasting: forecast.md
+      - Publication & Reporting:
+          - Manuscript Tables & Exports: reporting.md
+      - Structural Models:
+          - Sequence-Space HANK: models.md
+          - Non-Linear HANK Transitions: hank_nonlinear.md
+          - Gertler-Karadi (2011) DSGE: gertler_karadi.md
+          - Climate Macro (DICE): climate.md
+          - DSGE Sketchpad & Dynare: dsge_build.md
+      - Running Anywhere (iPad / browser): tablet.md
+      - Performance & Benchmarks: benchmarks.md
+      - Reference:
+          - Validation & goldens: VALIDATION.md
+          - Connector health: CONNECTOR_HEALTH.md
+          - Credentials: CREDENTIALS.md
+          - Cache database: CACHE_DB.md
+          - Signal contract: SIGNAL_CONTRACT.md
+          - Examples gallery: examples_gallery.md
+          - Lexicon review: lexicon_review.md
+          - Path to 1.0: 1.0_path.md
+  - Documentación en Español:
+      - Inicio: es/index.md
+      - Inicio rápido: es/quickstart.md
+      - Avisos de corrección: es/ADVISORY.md
+      - Datos:
+          - Cuentas nacionales trimestrales: es/national_accounts.md
+          - Datos en tiempo real (vintages): es/real_time_data.md
+          - Panel largo de cuentas nacionales: es/long_panel.md
+      - Motores econométricos:
+          - VAR y FAVAR: es/var.md
+          - SVAR con restricciones narrativas de signo: es/narrative_sign_svar.md
+          - BVAR con volatilidad estocástica: es/bvar_sv.md
+          - Proyecciones locales: es/lp.md
+          - Proyecciones locales suavizadas: es/smooth_lp.md
+          - Diferencias en diferencias modernas: es/did.md
+          - Sensibilidad en DiD honesto: es/honest_did.md
+          - Nowcasting del PIB: es/nowcast.md
+          - Pronóstico penalizado: es/forecast.md
+      - Publicación e informes:
+          - Tablas y exportación de manuscritos: es/reporting.md
+      - Modelos estructurales:
+          - HANK en el espacio de secuencias: es/models.md
+          - Transiciones no lineales en HANK: es/hank_nonlinear.md
+          - DSGE de Gertler-Karadi (2011): es/gertler_karadi.md
+          - Macroeconomía del clima (DICE): es/climate.md
+          - Cuaderno de bocetos DSGE y Dynare: es/dsge_build.md
+      - Ejecución en cualquier entorno (iPad / navegador): es/tablet.md
+      - Rendimiento y pruebas comparativas: es/benchmarks.md
+      - Referencia:
+          - Validación y referencias: es/VALIDATION.md
+          - Estado de conectores: es/CONNECTOR_HEALTH.md
+          - Credenciales: es/CREDENTIALS.md
+          - Base de datos de caché: es/CACHE_DB.md
+          - Contrato de señales: es/SIGNAL_CONTRACT.md
+          - Galería de ejemplos: es/examples_gallery.md
+          - Revisión de léxico: es/lexicon_review.md
+          - Ruta a 1.0: es/1.0_path.md
+

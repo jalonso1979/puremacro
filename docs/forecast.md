@@ -1,3 +1,5 @@
+> 🇬🇧 English · 🇪🇸 [Español](es/forecast.md)
+
 # Penalized Forecasting
 
 `puremacro.forecast.forecast_penalized` answers one question: out of a wide

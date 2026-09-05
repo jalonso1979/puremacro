@@ -1,3 +1,5 @@
+> 🇬🇧 English · 🇪🇸 [Español](es/real_time_data.md)
+
 # Real-time data (vintages)
 
 A **vintage** is one published edition of a series. Statistical offices

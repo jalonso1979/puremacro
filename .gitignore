@@ -46,3 +46,12 @@ data/processed/
 
 # Agent scratch
 .claude/
+.agents/
+ORIGINAL_REQUEST.md
+PROJECT.md
+TEST_INFRA.md
+TEST_READY.md
+
+# Documentation build
+site/
+uv.lock

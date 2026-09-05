@@ -152,6 +152,7 @@
       "borusyak_jaravel_spiess",
       "callaway_santanna",
       "cdh_did",
+      "honest_did",
       "honest_did_sensitivity",
       "sdid_multi_cohort",
       "sun_abraham",
@@ -187,7 +188,9 @@
       "DynareDR",
       "FEVDResult",
       "FertilitySolution",
+      "GK2011_PARAMS",
       "GammaPrior",
+      "GertlerKaradiResult",
       "InvGammaPrior",
       "KleinSolution",
       "LinearModel",
@@ -207,6 +210,7 @@
       "UniformPrior",
       "build",
       "build_dynare",
+      "build_gertler_karadi_model",
       "canonical_growth_2nd_order",
       "compute_fevd",
       "compute_shock_decomposition",
@@ -222,8 +226,10 @@
       "solve_bgp",
       "solve_dynare_2nd_order",
       "solve_fertility",
+      "solve_gertler_karadi",
       "solve_occbin",
-      "solve_perfect_foresight"
+      "solve_perfect_foresight",
+      "solve_steady_state"
     ],
     "puremacro.dsge._qz": [
       "ordqz_sorted"
@@ -979,7 +985,8 @@
       "mean_group_panel_lp",
       "panel_lp",
       "panel_lp_dk",
-      "panel_lp_iv"
+      "panel_lp_iv",
+      "smooth_lp"
     ],
     "puremacro.lp._panel_helpers": [
       "_focal_cluster_se",
@@ -1036,7 +1043,8 @@
       "lp_quantile"
     ],
     "puremacro.lp.smooth": [
-      "lp_smooth"
+      "lp_smooth",
+      "smooth_lp"
     ],
     "puremacro.lp.state_dep": [
       "lp_smooth_transition_irf",
@@ -1064,20 +1072,24 @@
       "DMPState",
       "FakeNewsResult",
       "FiscalTransferResult",
+      "NonlinearHANKResult",
       "SequenceSpaceHANKResult",
       "dmp_irf",
       "dmp_steady_state",
       "fake_news_algorithm",
       "simulate_targeted_transfer",
-      "solve_hank_sequence_space"
+      "solve_hank_sequence_space",
+      "solve_nonlinear_transition"
     ],
     "puremacro.models.hank_sequence_space": [
       "FakeNewsResult",
       "FiscalTransferResult",
+      "NonlinearHANKResult",
       "SequenceSpaceHANKResult",
       "fake_news_algorithm",
       "simulate_targeted_transfer",
-      "solve_hank_sequence_space"
+      "solve_hank_sequence_space",
+      "solve_nonlinear_transition"
     ],
     "puremacro.models.nested_dmp": [
       "ComparativeStatics",
@@ -2009,9 +2021,11 @@
       "scorecard"
     ],
     "puremacro.var": [
+      "BVAR_SVResult",
       "FAVARResult",
       "VarEstimateResult",
       "bootstrap_bands",
+      "bvar_sv",
       "companion",
       "favar",
       "fevd",
@@ -2031,6 +2045,11 @@
       "minnesota_optimal_lambda",
       "minnesota_posterior"
     ],
+    "puremacro.var.bvar_sv": [
+      "BVAR_SVResult",
+      "BVAR_SV_IRF",
+      "bvar_sv"
+    ],
     "puremacro.var.diagnostics": [
       "block_exogeneity",
       "granger_causality"
@@ -2047,6 +2066,7 @@
       "MagMavSVARResult",
       "MaxShareResult",
       "NarrativeRestriction",
+      "NarrativeSignResult",
       "NarrativeSignSVARResult",
       "NonGaussianSVARResult",
       "PanelSVARResult",
@@ -2060,6 +2080,7 @@
       "gk_robust_bands_from_gibbs",
       "hetero",
       "identify_maxshare",
+      "identify_narrative_sign",
       "magmav_svar",
       "maxshare",
       "mean_group_svar",
@@ -2080,6 +2101,9 @@
     ],
     "puremacro.var.identify.narrative_sign": [
       "NarrativeRestriction",
+      "NarrativeSignResult",
+      "NarrativeSignSVARResult",
+      "identify_narrative_sign",
       "narrative_sign_svar"
     ],
     "puremacro.var.identify.non_gaussian": [
@@ -2609,6 +2633,19 @@
       "eigenvalues",
       "eu"
     ],
+    "puremacro.dsge.gertler_karadi.GertlerKaradiResult": [
+      "binding_periods",
+      "irf",
+      "model",
+      "occbin_result",
+      "params",
+      "regimes",
+      "shock_size",
+      "shock_type",
+      "solver_method",
+      "steady_state",
+      "variables"
+    ],
     "puremacro.dsge.klein.KleinSolution": [
       "F",
       "G",
@@ -2985,18 +3022,44 @@
       "target_group",
       "transfer_amount"
     ],
+    "puremacro.models.hank_sequence_space.NonlinearHANKResult": [
+      "U",
+      "converged",
+      "horizon",
+      "irf_consumption_linear",
+      "irf_consumption_nonlinear",
+      "irf_inflation_linear",
+      "irf_inflation_nonlinear",
+      "irf_output_linear",
+      "irf_output_nonlinear",
+      "irf_rate_linear",
+      "irf_rate_nonlinear",
+      "iterations",
+      "linear_path",
+      "nonlinear_path",
+      "norm_history",
+      "residuals",
+      "shock_seq",
+      "shock_var",
+      "steady_state_model"
+    ],
     "puremacro.models.hank_sequence_space.SequenceSpaceHANKResult": [
       "asset_grid",
+      "beta",
       "distribution",
+      "gamma",
       "irf_consumption",
       "irf_inflation",
       "irf_output",
       "irf_rate",
       "jacobian_c_r",
       "jacobian_c_y",
+      "kappa",
       "mpc_distribution",
+      "phi_pi",
       "policy_a",
       "policy_c",
+      "r_ss",
       "steady_state_mpc",
       "steady_state_wealth_dist",
       "trans_matrix"
@@ -3478,6 +3541,23 @@
       "names",
       "resid"
     ],
+    "puremacro.var.bvar_sv.BVAR_SVResult": [
+      "a_draws",
+      "beta_draws",
+      "data",
+      "h_draws",
+      "irf_lower",
+      "irf_median",
+      "irf_upper",
+      "lags",
+      "log_scores",
+      "mu_draws",
+      "n_burn",
+      "n_draws",
+      "phi_draws",
+      "r_hat",
+      "sigma_h_draws"
+    ],
     "puremacro.var.favar.FAVARResult": [
       "explained_variance_ratio",
       "factors",
@@ -3535,15 +3615,40 @@
       "max_fev_at",
       "q"
     ],
-    "puremacro.var.identify._results.NarrativeSignSVARResult": [
+    "puremacro.var.identify._results.NarrativeSignResult": [
+      "A_list",
+      "B",
       "ci",
       "ess",
+      "fevd_median",
+      "intercept",
       "irf_lower",
       "irf_median",
       "irf_upper",
       "n_draws",
       "n_narrative_accepted",
       "n_traditional_accepted",
+      "names",
+      "residuals",
+      "restriction_fail_counts",
+      "restriction_labels",
+      "weights"
+    ],
+    "puremacro.var.identify._results.NarrativeSignSVARResult": [
+      "A_list",
+      "B",
+      "ci",
+      "ess",
+      "fevd_median",
+      "intercept",
+      "irf_lower",
+      "irf_median",
+      "irf_upper",
+      "n_draws",
+      "n_narrative_accepted",
+      "n_traditional_accepted",
+      "names",
+      "residuals",
       "restriction_fail_counts",
       "restriction_labels",
       "weights"

@@ -2,6 +2,44 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## 2.3.0 (2026-09-05)
+
+### Frontier Macroeconometrics & Quantitative Macro
+This release introduces six major empirical econometrics and quantitative macroeconomic modeling capabilities across SVAR identification, causal inference, local projections, sequence-space HANK, financial frictions DSGE, and Bayesian time series:
+
+- **Narrative Sign Restrictions in SVAR (`puremacro.var.identify.identify_narrative_sign`)**:
+  - Implements Antolín-Díaz & Rubio-Ramírez (AER 2018) conditional rotation filtering.
+  - Supports historical date shock signs $\text{sign}(\varepsilon_{i, t^*}) = s$ and shock contribution dominance $|\varepsilon_{i, t^*} \cdot H_{j, i}| > \sum_{k \neq i} |\varepsilon_{k, t^*} \cdot H_{j, k}|$.
+  - Replicates canonical 1979Q4 Volcker monetary shock within 5% tolerance against published benchmarks.
+  - Returns `NarrativeSignResult` with acceptance diagnostics, IRFs, FEVD, historical shock decomposition, and publication plotting.
+- **Honest DiD Sensitivity Bounds (`puremacro.did.honest_did`)**:
+  - Implements Rambachan & Roth (REStud 2023) post-treatment sensitivity bounds $\Delta^{SD}(M)$ and $\Delta^{RM}(\bar{M})$ for staggered Difference-in-Differences.
+  - Computes worst-case bias bounds via SciPy HiGHS linear programming backend, Imbens-Manski robust confidence intervals, and breakdown value $M^*$.
+  - Returns `HonestDiDResult` with publication-ready sensitivity curve plots.
+- **Smooth Local Projections (`puremacro.lp.smooth_lp`)**:
+  - Implements Barnichon & Brownlees (REStud 2019) penalized cubic B-spline Local Projections across all horizons $h = 0, \dots, H$.
+  - Joint penalized GLS estimation with automated GCV/AIC/BIC selection of smoothing parameter $\lambda$.
+  - Achieves lower variance than unpenalized LP while preserving unbiasedness.
+  - Returns standard `LPResult` with analytical and bootstrap confidence intervals.
+- **Non-Linear Sequence-Space Transitions for HANK (`puremacro.models.hank_sequence_space.solve_nonlinear_transition`)**:
+  - Implements Auclert, Bardóczy, Rognlie, and Straub (Econometrica 2021) sequence-space general equilibrium simulation for large MIT shocks.
+  - Solves the sequence of market-clearing conditions $\mathbf{H}(\mathbf{U}, \mathbf{Z}) = 0$ over horizon $T$ via Broyden's method with Sherman-Morrison rank-1 updates.
+  - Machine-precision convergence ($\|H\|_\infty < 10^{-6}$) in $< 3$ seconds in pure Python.
+  - Returns `NonlinearTransitionResult` with comparative non-linear vs linearized transition paths.
+- **Gertler-Karadi (2011) DSGE with Banking Frictions (`puremacro.dsge.gertler_karadi`)**:
+  - Implements the canonical macro-banking model of Gertler & Karadi (JME 2011) with bank moral hazard and endogenous leverage constraints.
+  - Solvable via Klein (2000) linear perturbation and piecewise-linear OccBin for occasionally binding leverage constraints and credit spread spikes.
+  - Returns `GertlerKaradiResult` with steady-state checks, decision rules, and simulation paths.
+- **Bayesian VAR with Stochastic Volatility (`puremacro.var.bvar_sv`)**:
+  - Implements BVAR with time-varying residual covariance via pure NumPy/SciPy MCMC.
+  - Gibbs sampler combining Minnesota prior shrinkage with the 7-component Gaussian mixture sampler (Kim, Shephard & Chib 1998) and fast triangular sampling (Carriero, Clark & Marcellino 2016/2019).
+  - Evaluates split-$\hat{R}$ convergence diagnostics, volatility-conditioned IRFs, and predictive log-scores.
+  - Returns `BVAR_SVResult` with fan charts and posterior volatility paths.
+- **Testing, Verification & Bilingual Documentation**:
+  - 4-Tier E2E test suite (`tests/e2e/test_e2e_suite.py`) with 76 tests; full test suite (6,988 passed, 0 failed).
+  - 12 new parallel user guides in English (`docs/*.md`) and Spanish (`docs/es/*.md`).
+  - Strict MkDocs site compilation verified with 0 broken links and 0 warnings.
+
 ## 2.2.0 (2026-09-05)
 
 ### puremacro-dynare CLI, Fake News Algorithm & Frontier DSGE Showcase

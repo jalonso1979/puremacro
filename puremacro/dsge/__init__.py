@@ -35,6 +35,13 @@ from .pruning import (
 from .dynare import build_dynare, parse_mod, load_mod, load_dynare_mod, solve_dynare_2nd_order
 from .perfect_foresight import PerfectForesightResult, solve_perfect_foresight
 from .occbin import OccBinConstraint, OccBinResult, solve_occbin
+from .gertler_karadi import (
+    GK2011_PARAMS,
+    GertlerKaradiResult,
+    build_gertler_karadi_model,
+    solve_gertler_karadi,
+    solve_steady_state,
+)
 from .priors import (
     Prior,
     BetaPrior,
@@ -59,6 +66,7 @@ __all__ = [
     "build_dynare", "parse_mod", "load_mod", "load_dynare_mod", "solve_dynare_2nd_order",
     "PerfectForesightResult", "solve_perfect_foresight",
     "OccBinConstraint", "OccBinResult", "solve_occbin",
+    "solve_gertler_karadi", "GertlerKaradiResult", "GK2011_PARAMS", "solve_steady_state", "build_gertler_karadi_model",
     "estimate_dsge", "estimate_dsge_bayesian", "estimate_sw07",
     "solve_bgp", "solve_fertility",
     "PrunedDSGESolution", "PrunedSimulationResult", "canonical_growth_2nd_order",
@@ -67,3 +75,5 @@ __all__ = [
     "priors", "fertility_adj_costs",
 ]
 from . import smets_wouters  # re-export for back-compat with 0.50.0 callers
+from . import gertler_karadi
+

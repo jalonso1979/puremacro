@@ -1,3 +1,5 @@
+> 🇬🇧 English · 🇪🇸 [Español](es/long_panel.md)
+
 # The long national accounts panel
 
 `qna_panel` gives you the OECD's quarterly national accounts, which for

@@ -1,3 +1,5 @@
+> 🇬🇧 English · 🇪🇸 [Español](es/benchmarks.md)
+
 # Computational Performance Benchmarks
 
 `puremacro` is engineered for ultra-fast, zero-overhead execution using vectorized NumPy and SciPy routines.

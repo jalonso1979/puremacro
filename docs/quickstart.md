@@ -1,3 +1,5 @@
+> 🇬🇧 English · 🇪🇸 [Español](es/quickstart.md)
+
 # Quickstart Guide
 
 Get up and running with `puremacro 2.0` in less than 2 minutes. All core estimators run on pure Python, NumPy, SciPy, Pandas, and Matplotlib — no C compilers, no Fortran runtimes, and 100% Pyodide/browser compatible.

@@ -104,7 +104,7 @@ posterior = load_colab_result("sw07_posterior.pmz")
 - **Ciclos / cointegración / factores** — filtro de tendencia-ciclo de Hamilton 2018 (`cycles`), FM-OLS de Phillips-Hansen / DOLS de Stock-Watson / Phillips-Ouliaris (`cointegration_modern`), factores PCA + criterio IC de Bai-Ng (`factor`), MIDAS (`midas`), GMM de sistema CES de KORV (2000) (`korv_gmm`), control sintético + inferencia placebo (`synthetic_control`).
 - **Espectral / wavelet** (`spectral`, `wavelet`) — PSD de Welch / espectro cruzado / coherencia (solo numpy.fft); descomposición de varianza wavelet MODWT-Haar.
 - **Volatilidad realizada** (`realized_vol`) — varianza realizada, variación bipotencial, HAR-RV de Corsi.
-- **Agentes heterogéneos / iteración sobre función de valor** (`vfi.*`) — iteración sobre la función de valor con EGM, ciclo de vida de horizonte finito, OLG, choques agregados de Krusell-Smith, entrada/salida de empresas de Hopenhayn, Epstein-Zin, tipos permanentes, trayectorias de transición y estimación por método de momentos; backend de referencia en numpy con aceleración opcional mediante numba / mlx / cupy. Véanse los cuadernos en `notebooks/` para una galería de ejemplos.
+- **Agentes heterogéneos / VFI / HANK en el espacio de secuencias** (`vfi.*`, `models.hank_sequence_space`) — iteración sobre la función de valor con EGM, ciclo de vida de horizonte finito, OLG, choques agregados de Krusell-Smith, entrada/salida de empresas de Hopenhayn, Epstein-Zin, tipos permanentes, trayectorias de transición y estimación por método de momentos. Además, HANK completo en el espacio de secuencias (Auclert et al. 2021) con el algoritmo Fake News en $\mathcal{O}(T^2)$ (`fake_news_algorithm`, `FakeNewsResult`) y simulaciones de transferencias fiscales focalizadas entre deciles de riqueza (`simulate_targeted_transfer`, `FiscalTransferResult`); backend de referencia en numpy con aceleración opcional mediante numba / mlx / cupy. Véanse los cuadernos en `notebooks/` para una galería de ejemplos.
 
 **Econometría narrativa** (`narrative.*`)
 
@@ -138,13 +138,13 @@ Los conectores bloqueados por WAF / protección anti-bot (EUR-Lex, Parlamento Eu
 - **Utilidades de datos misceláneas** — cargador EU-KLEMS 2023 (`klems`), agregador NEER del BIS (`bis_neer`), empalme homogéneo de vintage G9 (`long_panel`), participación laboral de Gollin (`labor_share`), series en tiempo real por vintage (`vintages`), ajuste estacional (`sa`).
 - **Flujos laborales** — transiciones E/U/N de tres estados a partir de los agregados CPS del BLS (`labor_flows`) y transiciones F/I/U/N de cuatro estados a partir de los microdatos ENOE para México (`labor_flows_enoe`).
 
-**Trabajar fuera de una estación de trabajo** (`runtime.*`, `pocket.*`, `longrun.*`)
+**Trabajar fuera de una estación de trabajo** (`runtime.*`, `runtime.colab`, `pocket.*`, `longrun.*`)
 
-La promesa central del paquete es que el núcleo de estimadores corre en un iPad. Estos tres módulos hacen que esa promesa sea utilizable, y no sólo cierta: `runtime` informa de lo que la máquina puede hacer realmente (¿sockets? ¿parquet? ¿hilos?) y encamina el HTTP por el navegador cuando no hay sockets; `pocket` empaqueta datos en cartuchos `.pmz` portátiles y autoverificables, de modo que un panel construido en línea se abre sin conexión; `longrun` ejecuta bootstraps y cadenas en trozos reanudables que sobreviven a la suspensión de la aplicación por parte del sistema, con resultados invariantes al modo en que se troceó el trabajo. Véase «juno.sh / iPad» más abajo.
+La promesa central del paquete es que el núcleo de estimadores corre en un iPad. Estos módulos hacen que esa promesa sea utilizable, y no sólo cierta: `runtime` informa de lo que la máquina puede hacer realmente (¿sockets? ¿parquet? ¿hilos?) y encamina el HTTP por el navegador cuando no hay sockets; `runtime.colab` proporciona descarga transparente de tareas pesadas a Google Colab con sincronización y persistencia en `.pmz`; `pocket` empaqueta datos en cartuchos `.pmz` portátiles y autoverificables, de modo que un panel construido en línea se abre sin conexión; `longrun` ejecuta bootstraps y cadenas en trozos reanudables que sobreviven a la suspensión de la aplicación por parte del sistema, con resultados invariantes al modo en que se troceó el trabajo. Véase «juno.sh / iPad» más abajo.
 
-**Cuaderno de bocetos DSGE** (`dsge.build`)
+**Cuaderno de bocetos DSGE, paridad con Dynare y motores de frontera** (`dsge.build`, `dsge.dynare`, `dsge.cli`, `dsge.occbin`, `dsge.bayesian`, `dsge.perfect_foresight`)
 
-Escriba las condiciones de equilibrio como una función de Python y obtenga a cambio una aproximación de primer orden resuelta — estado estacionario, reglas de decisión, IRFs —, con los jacobianos obtenidos por diferenciación de paso complejo. Sin matrices derivadas a mano, sin Dynare y sin compilador: justo lo que una tableta no puede ofrecer.
+Escriba las condiciones de equilibrio como una función de Python o cargue archivos `.mod` estándar de Dynare (`load_mod`, `parse_mod`). Resuelve aproximaciones de 1er y 2do orden con diferenciación de paso complejo, poda (*pruning*) de Kim, Kim, Schaumburg y Sims (2008), derivadas cruzadas ($g_{xu}, g_{uu}$), correcciones por riesgo ($g_{\sigma\sigma}$), reglas de decisión de Dynare `oo_.dr` y momentos teóricos analíticos (`stoch_simul`). Incluye la herramienta de línea de comandos `puremacro-dynare`, el algoritmo lineal por tramos OccBin de Guerrieri e Iacoviello (2015) para cotas de tasa cero (ZLB), relajación no lineal de Newton-Raphson de Boucekkine-Juillard para previsión perfecta y estimación bayesiana completa por MCMC (Laplace + Metropolis-Hastings adaptativo). Sin matrices derivadas a mano, sin compiladores Fortran/C++, 100% compatible con Pyodide.
 
 **Artefactos docentes**
 
@@ -366,21 +366,39 @@ Si proviene de Stata, MATLAB/Dynare o statsmodels:
 | **VAR aumentado con factores (FAVAR)** | — | BBE (2005) MATLAB | — | `var.favar(panel_df, policy_series, n_factors=3, horizon=20)` |
 | **Iteración de función de valor** | — | VFIToolkit `ValueFnIter_Case1` | — | `vfi.VFIProblem(a_grid, z_grid, P_z, return_fn, beta).solve()` |
 | **DSGE lineal (QZ / BK)** | — | Dynare `stoch_simul` / Klein `solab` | — | `dsge.klein.klein_solve(A, B, C, n_pre=...)` |
-| **DSGE a partir de ecuaciones** | — | Dynare `.mod` file | — | `dsge.build(equations, variables=..., states=..., shocks=...)` |
+| **DSGE a partir de ecuaciones / .mod** | — | Dynare `.mod` file | — | `dsge.load_mod("rbc.mod")` / `dsge.build_dynare(eqs)` |
+| **DSGE con poda de 2do orden** | — | Dynare `stoch_simul(order=2, pruning)` | — | `dsge.build_dynare(eqs, order=2)` / `m.solve_second_order()` |
+| **Línea de comandos `puremacro-dynare`** | — | `dynare model.mod` en terminal | — | `puremacro-dynare model.mod --order 2 --fevd --plot` |
+| **OccBin (ZLB / lineal por tramos)** | — | Dynare `occbin_solver` / Guerrieri & Iacoviello | — | `dsge.solve_occbin(m_normal, m_zlb, constraint, shocks)` |
+| **Previsión perfecta no lineal** | — | Dynare `simul` (Boucekkine-Juillard) | — | `dsge.solve_perfect_foresight(m, shocks, T=100)` |
+| **DSGE Bayesiano (MCMC)** | — | Dynare `estimation(...)` (Metropolis-Hastings) | — | `dsge.estimate_dsge_bayesian(m, data, priors, n_draws=10000)` |
+| **Fake News en espacio de secuencias** | — | SSJ (Auclert et al. 2021) Python/Julia | — | `models.fake_news_algorithm(T=40)` / `models.simulate_targeted_transfer(...)` |
 | **Raíz unitaria GLS (DF-GLS)** | `dfgls y, maxlag(4)` | Código ERS (1996) | `adfuller` | `unit_root.dfgls_test(y, regression="ct")` |
 | **Ajuste estacional** | `x13 y` | Wrapper X-13 | `STL` / `x13` | `sa.stl_sa(y)` / `sa.x11_sa(y)` |
 
-Las replicaciones de extremo a extremo de artículos canónicos se encuentran en `puremacro/examples/` — Bloom 2009 (`bloom2009.py`), SVAR narrativo de Mertens-Ravn (`svariv_mertens_ravn.py`), narrativa monetaria de Romer-Romer (`romer_romer_*.py`) y aproximadamente 60 más. La mayoría (como el ejemplo de Uhlig anterior) son completamente sintéticos y no requieren datos ni claves; algunos leen datos incluidos en el paquete o descargados en línea.
+Las replicaciones de extremo a extremo de artículos canónicos se encuentran en `puremacro/examples/` — Bloom 2009 (`bloom2009.py`), SVAR narrativo de Mertens-Ravn (`svariv_mertens_ravn.py`), narrativa monetaria de Romer-Romer (`romer_romer_*.py`), escaparate de frontera de Smets-Wouters 2007 (`41_dynare_frontier_showcase.py`) y aproximadamente 75 más. La mayoría (como el ejemplo de Uhlig anterior) son completamente sintéticos y no requieren datos ni claves; algunos leen datos incluidos en el paquete o descargados en línea.
 
 ## Documentación
 
-- **`docs/lp.md`** — Guía de proyecciones locales (LP-HAC, LP-IV, LP-IV dependiente de estado, LP de panel, `LPResult`).
-- **`docs/did.md`** — Diferencias en diferencias modernas (Callaway-Sant'Anna, Sun-Abraham, Borusyak-Jaravel-Spiess, DiD sintético).
-- **`docs/reporting.md`** — Exportación para publicaciones (LaTeX, Typst, Markdown, estrellas de significancia).
-- **`docs/var.md`** — VAR en forma reducida, identificación de SVAR, FAVAR, bandas bootstrap.
-- **`ARCHITECTURE.md`** — mapa de módulos, niveles de estabilidad, contrato con Pyodide, estándar de objetos de resultado. Léalo antes si va a contribuir o busca dónde vive algo.
-- **`CHANGELOG.md`** — diferencias por versión, incluidas las refactorizaciones internas.
-- **`docs/es/ADVISORY.md`** — avisos de corrección: versiones publicadas que devolvieron un número equivocado, y la condición exacta bajo la cual cada error se anula.
+- **`docs/es/quickstart.md`** — Guía de inicio rápido en 2 minutos cubriendo estimadores principales y exportación para publicaciones.
+- **`docs/es/dsge_build.md`** — Modelos DSGE desde ecuaciones, cargador de archivos `.mod`, poda de 2do orden, CLI `puremacro-dynare`, OccBin ZLB, relajación no lineal y MCMC bayesiano.
+- **`docs/es/models.md`** — Modelos estructurales: HANK en el espacio de secuencias, algoritmo Fake News, transferencias focalizadas y búsqueda y emparejamiento DMP.
+- **`docs/es/var.md`** — VAR en forma reducida, identificación de SVAR (Cholesky, signos, narrativa, proxy/IV), FAVAR y bandas bootstrap.
+- **`docs/es/lp.md`** — Guía de proyecciones locales (LP-HAC, LP-IV, LP dependiente de estado, LP de panel, `LPResult`).
+- **`docs/es/did.md`** — Diferencias en diferencias modernas (Callaway-Sant'Anna, Sun-Abraham, Borusyak-Jaravel-Spiess, DiD sintético).
+- **`docs/es/nowcast.md`** — Nowcasting del PIB (modelos de factores dinámicos de frecuencias mixtas, bordes irregulares, descomposición de noticias).
+- **`docs/es/climate.md`** — Macroeconomía del clima: simulador hacia adelante del modelo DICE de Nordhaus y contabilidad del coste social del carbono.
+- **`docs/es/forecast.md`** — Pronóstico macroeconómico penalizado: Elastic Net y Lasso Adaptativo mediante descenso por coordenadas.
+- **`docs/es/reporting.md`** — Exportación para publicaciones (tablas LaTeX, Typst, Markdown, estrellas de significancia).
+- **`docs/es/tablet.md`** — Ejecución en iPad, Juno y WebAssembly, con descarga de cómputo a Google Colab.
+- **`docs/es/benchmarks.md`** — Rendimiento y pruebas comparativas de velocidad computacional entre motores econométricos.
+- **`docs/es/national_accounts.md`** — Extracción de cuentas nacionales trimestrales de la OCDE, deflactores e identidades contables.
+- **`docs/es/real_time_data.md`** — Añadas de datos en tiempo real, triángulos de revisión y contraste de noticia frente a ruido de Mankiw-Shapiro.
+- **`docs/es/long_panel.md`** — Panel largo histórico de cuentas nacionales (series empalmadas por ratio de España y Japón).
+- **`docs/es/examples_gallery.md`** — Galería exhaustiva con el estado de ejecución y gráficos de los ejemplos del paquete.
+- **`docs/es/ADVISORY.md`** — Avisos de corrección: versiones publicadas que devolvieron un número equivocado y condición de anulación.
+- **`ARCHITECTURE.md`** — Mapa de módulos, niveles de estabilidad, contrato con Pyodide, estándar de objetos de resultado.
+- **`CHANGELOG.md`** — Diferencias por versión, incluidas las refactorizaciones internas.
 - **Docstrings por función** como referencia canónica; el docstring de módulo de cada subpaquete explica su alcance.
 
 ## Convenciones
@@ -391,7 +409,7 @@ Las replicaciones de extremo a extremo de artículos canónicos se encuentran en
 
 ## Estado
 
-Versión de producción, distribuyendo **2.0.0**. Cubierto por el gate 3 de publicación en `docs/1.0_path.md` § 5 enumera qué subpaquetes están dentro de esa promesa y cuáles son experimentales.
+Versión de producción, distribuyendo **2.3.0**. Cubierto por el gate 3 de publicación en `docs/1.0_path.md` § 5 enumera qué subpaquetes están dentro de esa promesa y cuáles son experimentales.
 
 La CI está activa y corre en cada push: la suite sobre tres sistemas operativos y tres versiones de Python, el contrato con Pyodide, mypy, la guardia de deriva contra referencias, `mkdocs build --strict`, el despliegue del playground y una publicación en PyPI disparada por etiqueta mediante trusted publishing. Véase `.github/workflows/`. Aun así ejecute `python tools/release_check.py` localmente antes de etiquetar: los gates 5 y 6 son opcionales y la CI no los corre.
 

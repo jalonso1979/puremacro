@@ -1,3 +1,5 @@
+> 🇬🇧 English · 🇪🇸 [Español](es/tablet.md)
+
 # Running anywhere: iPad, Juno, and the browser
 
 `puremacro`'s numerical core is pure numpy + scipy + pandas + matplotlib, which

@@ -1,3 +1,5 @@
+> 🇬🇧 English · 🇪🇸 [Español](es/nowcast.md)
+
 # GDP Nowcasting
 
 GDP is quarterly and it is late — four to eight weeks after the quarter ends,

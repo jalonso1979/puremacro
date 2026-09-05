@@ -21,6 +21,7 @@ the first-treatment period for a unit (NaN for never-treated controls).
 The CdH and multi-cohort SDID estimators take **four 1-D arrays**
 ``(y, treatment, panel_id, time_id)`` instead — see their docstrings.
 """
+
 from .types import PanelDiD
 from .callaway_santanna import callaway_santanna
 from .sun_abraham import sun_abraham
@@ -28,7 +29,7 @@ from .borusyak_jaravel_spiess import borusyak_jaravel_spiess
 from .synthetic_did import synthetic_did
 from .cdh import cdh_did
 from .sdid_multi import sdid_multi_cohort
-from .sensitivity import honest_did_sensitivity, HonestDiDResult
+from .sensitivity import honest_did, honest_did_sensitivity, HonestDiDResult
 from ._results import (
     CallawaySantannaResult,
     SunAbrahamResult,
@@ -40,12 +41,20 @@ from ._results import (
 
 __all__ = [
     "PanelDiD",
-    "callaway_santanna", "sun_abraham",
-    "borusyak_jaravel_spiess", "synthetic_did",
-    "cdh_did", "sdid_multi_cohort",
+    "callaway_santanna",
+    "sun_abraham",
+    "borusyak_jaravel_spiess",
+    "synthetic_did",
+    "cdh_did",
+    "sdid_multi_cohort",
+    "honest_did",
     "honest_did_sensitivity",
     # Result dataclasses
-    "CallawaySantannaResult", "SunAbrahamResult",
-    "BorusyakJaravelSpiessResult", "SyntheticDiDResult",
-    "CdHResult", "SDIDMultiResult", "HonestDiDResult",
+    "CallawaySantannaResult",
+    "SunAbrahamResult",
+    "BorusyakJaravelSpiessResult",
+    "SyntheticDiDResult",
+    "CdHResult",
+    "SDIDMultiResult",
+    "HonestDiDResult",
 ]

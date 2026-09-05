@@ -87,9 +87,10 @@ import pandas as pd
 from numpy.random import default_rng
 
 from ..._linalg import safe_cholesky
+from .._results import VarEstimateResult
 from ..estimate import estimate_var
 from ..irf import irf as compute_irf
-from ._results import NarrativeSignSVARResult
+from ._results import NarrativeSignResult, NarrativeSignSVARResult
 
 _VALID_KINDS = {"shock_sign", "hd_dominance", "shock_bound"}
 _VALID_DOMINANCE = {"most", "overwhelming"}
@@ -425,36 +426,32 @@ def _draw_niw_posterior(
     return A_list_draw, c_draw, Sigma_draw
 
 
-def narrative_sign_svar(
-    Y: np.ndarray,
+_SENTINEL = object()
+
+
+def identify_narrative_sign(
+    Y: np.ndarray | pd.DataFrame | VarEstimateResult,
+    restrictions: list | None = None,
     *,
-    p: int,
-    horizon: int,
-    sign_matrix,
-    restrictions,
+    p: int | None = None,
+    horizon: int | None = None,
+    horizons: int | None = None,
+    sign_matrix: dict | np.ndarray | None = _SENTINEL,
     dates=None,
     bayes_draws: bool = False,
     n_draws: int = 2000,
     n_weight_sims: int = 500,
     ci: float = 0.9,
     seed: int = 0,
-) -> NarrativeSignSVARResult:
+    **kwargs,
+) -> NarrativeSignResult:
     """Sign-restricted SVAR sharpened with AD-RR (2018) / LMN (2021) narrative restrictions.
 
     Parameters
     ----------
-    Y : (T, n) ndarray
-        Data matrix.
-    p : int
-        VAR lag order.
-    horizon : int
-        IRF horizon H.
-    sign_matrix : dict or ndarray
-        Traditional sign restrictions: ``{h: S}`` with ``S`` of shape
-        (n, n) — ``S[i, j]`` in {-1, 0, +1} restricts the response of
-        variable i to shock j at horizon h — or of shape (n,), applied
-        to shock column 0. A bare array is treated as ``{0: S}``.
-    restrictions : list
+    Y : (T, n) ndarray, pd.DataFrame, or VarEstimateResult
+        Data matrix or fitted reduced-form VAR result.
+    restrictions : list, optional
         Narrative restrictions. Each item may be a
         :class:`NarrativeRestriction`, a plain ``(date, shock, sign)``
         tuple (Type I shorthand), or a
@@ -463,6 +460,18 @@ def narrative_sign_svar(
         targeting shock 0; see module docstring). An empty list
         reproduces plain traditional sign restrictions with unit
         weights — useful as a comparator.
+    p : int, optional
+        VAR lag order. Automatically inferred if Y is a VarEstimateResult.
+    horizon : int, optional
+        IRF horizon H. Defaults to 20.
+    horizons : int, optional
+        Alias for horizon.
+    sign_matrix : dict or ndarray, optional
+        Traditional sign restrictions: ``{h: S}`` with ``S`` of shape
+        (n, n) — ``S[i, j]`` in {-1, 0, +1} restricts the response of
+        variable i to shock j at horizon h — or of shape (n,), applied
+        to shock column 0. A bare array is treated as ``{0: S}``.
+        If omitted, no traditional sign restrictions are imposed.
     dates : array-like of datetime-like, length T, optional
         Calendar stamps for the rows of ``Y``. Required when any
         restriction date is not an integer row index.
@@ -482,9 +491,9 @@ def narrative_sign_svar(
 
     Returns
     -------
-    NarrativeSignSVARResult
+    NarrativeSignResult
         Frozen dataclass: weighted-percentile IRF bands, acceptance and
-        importance-weight diagnostics, per-draw weights.
+        importance-weight diagnostics, per-draw weights, FEVD, and historical decomposition.
 
     Raises
     ------
@@ -495,8 +504,50 @@ def narrative_sign_svar(
     ValueError / TypeError
         On malformed inputs (message names ``narrative_sign_svar``).
     """
-    Y = np.asarray(Y, dtype=float)
-    T, n = Y.shape
+    if restrictions is None:
+        if "restrictions" in kwargs:
+            restrictions = kwargs["restrictions"]
+        else:
+            restrictions = []
+
+    if horizons is not None:
+        horizon = horizons
+    if horizon is None:
+        horizon = 20
+
+    if sign_matrix is _SENTINEL:
+        sign_matrix = {}
+    elif sign_matrix is None:
+        raise ValueError(
+            "narrative_sign_svar: sign_matrix is required (traditional sign "
+            "restrictions); pass e.g. {0: S} with S an (n, n) array of +1/-1/0"
+        )
+
+    if isinstance(Y, VarEstimateResult):
+        A_list_ols = Y.A_list
+        c_ols = Y.c
+        Sigma_ols = Y.Sigma
+        resid_ols = Y.resid
+        X_design = Y.X
+        p = len(A_list_ols)
+        names = tuple(Y.names)
+        T_eff, n = resid_ols.shape
+        T = T_eff + p
+        B_ols = np.vstack([c_ols[None, :]] + [A_list_ols[l].T for l in range(p)])
+        Y_dep = resid_ols + X_design @ B_ols
+    else:
+        names = tuple(str(c) for c in Y.columns) if hasattr(Y, "columns") else ()
+        Y_arr = np.asarray(Y, dtype=float)
+        T, n = Y_arr.shape
+        if p is None:
+            if "lags" in kwargs:
+                p = int(kwargs["lags"])
+            else:
+                raise ValueError("narrative_sign_svar: lag order p is required")
+        A_list_ols, c_ols, Sigma_ols, resid_ols, X_design = estimate_var(Y_arr, p)
+        T_eff = resid_ols.shape[0]
+        Y_dep = Y_arr[p:]
+
     # Two independent child streams: the Haar rotation stream is then
     # invariant to the narrative-restriction set for a given seed, so
     # n_traditional_accepted is comparable across specifications.
@@ -516,12 +567,9 @@ def narrative_sign_svar(
                 f"match T={T} rows of Y"
             )
 
-    A_list_ols, c_ols, Sigma_ols, resid_ols, X_design = estimate_var(Y, p)
     P_ols = safe_cholesky(Sigma_ols, name="narrative_sign_svar")
-    T_eff = resid_ols.shape[0]
     
     if bayes_draws:
-        Y_dep = Y[p:]
         XtX = X_design.T @ X_design
         XtX_inv = np.linalg.inv(XtX)
         B_hat = XtX_inv @ (X_design.T @ Y_dep)
@@ -574,6 +622,8 @@ def narrative_sign_svar(
 
     H_full = max(horizon, max_L)
     accepted_ir: list[np.ndarray] = []
+    accepted_B: list[np.ndarray] = []
+    accepted_fevd: list[np.ndarray] = []
     weights: list[float] = []
     n_trad = 0
     fail_counts = np.zeros(len(specs), dtype=int)
@@ -604,8 +654,15 @@ def narrative_sign_svar(
         if not _check_sign_matrix(ir_full, targets):
             continue
         n_trad += 1
+
+        cum_sq = np.cumsum(ir_full[: horizon + 1] ** 2, axis=0)
+        tot_k = cum_sq.sum(axis=2, keepdims=True)
+        fevd_k = cum_sq / np.where(tot_k == 0, 1.0, tot_k)
+
         if not specs:
             accepted_ir.append(ir_full[: horizon + 1])
+            accepted_B.append(B.copy())
+            accepted_fevd.append(fevd_k)
             weights.append(1.0)
             continue
         eps = resid_cur @ np.linalg.inv(B).T  # (T_eff, n) structural shocks
@@ -623,6 +680,8 @@ def narrative_sign_svar(
             omega = ok_sim.all(axis=1).mean()
             omega = max(omega, 1.0 / n_weight_sims)  # floor: cap weight
         accepted_ir.append(ir_full[: horizon + 1])
+        accepted_B.append(B.copy())
+        accepted_fevd.append(fevd_k)
         weights.append(1.0 / omega)
 
     if n_trad == 0:
@@ -647,10 +706,24 @@ def narrative_sign_svar(
     hi_q = 1.0 - lo_q
     ess = float(w.sum() ** 2 / (w ** 2).sum())
 
-    return NarrativeSignSVARResult(
-        irf_median=_weighted_quantile(draws, 0.5, w),
-        irf_lower=_weighted_quantile(draws, lo_q, w),
-        irf_upper=_weighted_quantile(draws, hi_q, w),
+    irf_med = _weighted_quantile(draws, 0.5, w)
+    irf_lo = _weighted_quantile(draws, lo_q, w)
+    irf_hi = _weighted_quantile(draws, hi_q, w)
+
+    fevd_stack = np.stack(accepted_fevd, axis=0)
+    fevd_med = _weighted_quantile(fevd_stack, 0.5, w)
+    tot_fevd = fevd_med.sum(axis=2, keepdims=True)
+    fevd_med = fevd_med / np.where(tot_fevd == 0, 1.0, tot_fevd)
+
+    # Median-target representative impact matrix:
+    dists = np.sum((draws - irf_med) ** 2, axis=(1, 2, 3))
+    k_star = int(np.argmin(dists))
+    B_star = accepted_B[k_star]
+
+    return NarrativeSignResult(
+        irf_median=irf_med,
+        irf_lower=irf_lo,
+        irf_upper=irf_hi,
         n_draws=n_draws,
         n_traditional_accepted=n_trad,
         n_narrative_accepted=len(accepted_ir),
@@ -659,7 +732,16 @@ def narrative_sign_svar(
         ci=ci,
         restriction_labels=tuple(spec.label() for spec, _ in specs),
         restriction_fail_counts=tuple(int(x) for x in fail_counts),
+        A_list=tuple(A_list_ols),
+        B=B_star,
+        residuals=resid_ols,
+        intercept=c_ols,
+        fevd_median=fevd_med,
+        names=names,
     )
+
+
+narrative_sign_svar = identify_narrative_sign
 
 
 def _weighted_quantile(values: np.ndarray, q: float, weights: np.ndarray) -> np.ndarray:
@@ -683,4 +765,11 @@ def _weighted_quantile(values: np.ndarray, q: float, weights: np.ndarray) -> np.
     return out.reshape(shape_rest)
 
 
-__all__ = ["narrative_sign_svar", "NarrativeRestriction"]
+__all__ = [
+    "identify_narrative_sign",
+    "narrative_sign_svar",
+    "NarrativeRestriction",
+    "NarrativeSignResult",
+    "NarrativeSignSVARResult",
+]
+

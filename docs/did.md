@@ -1,3 +1,5 @@
+> 🇬🇧 English · 🇪🇸 [Español](es/did.md)
+
 # Modern Difference-in-Differences (DiD)
 
 Classical Two-Way Fixed Effects (TWFE) regressions of the form:

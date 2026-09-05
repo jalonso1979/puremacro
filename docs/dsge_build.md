@@ -1,3 +1,5 @@
+> 🇬🇧 English · 🇪🇸 [Español](es/dsge_build.md)
+
 # DSGE sketchpad: models from equations, not matrices
 
 `puremacro.dsge.klein_solve` has always solved linear rational-expectations
@@ -252,4 +254,176 @@ Key capabilities:
 - **Unconditionally Stable Simulation**: `sol_2nd.simulate(periods=200, sigma=0.01)` avoids the explosive sample paths typical of unpruned quadratic approximations.
 - **Generalized Impulse Responses (GIRF)**: `sol_2nd.girf(shock="eps", size=0.01, horizon=20)` tracks state-dependent and non-linear impacts.
 - **Risk-Adjusted Ergodic Steady State**: `sol_2nd.stochastic_steady_state(sigma=0.01)` computes analytical precautionary shifts induced by volatility.
+
+---
+
+### 6. `puremacro-dynare` CLI Runner
+
+`puremacro 2.2.0` introduces the `puremacro-dynare` command-line executable (`puremacro.dsge.cli`), allowing researchers and students to parse, solve, and simulate Dynare models directly from terminal or shell scripts:
+
+```bash
+# Basic solve and display policy rules
+puremacro-dynare rbc.mod
+
+# Solve to 2nd order with pruning and generate FEVD table
+puremacro-dynare rbc.mod --order 2 --fevd
+
+# Export camera-ready tables in all formats (Markdown, LaTeX, Typst) and save IRF plots
+puremacro-dynare rbc.mod --irf 20 --format all --plot
+
+# Run historical shock decomposition from an observable dataset
+puremacro-dynare rbc.mod --shock-decomp us_macro_data.csv --plot
+```
+
+CLI options:
+- `--order {1,2}`: Perturbation approximation order (default: 1).
+- `--steady-only`: Compute and display the steady-state vector without solving dynamics.
+- `--irf <HORIZON>`: Compute impulse response functions up to specified horizon.
+- `--fevd`: Compute analytical forecast error variance decomposition shares.
+- `--shock-decomp <CSV>`: Perform Kalman-smoothed historical shock decomposition from observable data.
+- `--format {markdown,latex,typst,all}`: Output export format for tables.
+- `--plot`: Render and display or save matplotlib impulse response plots.
+
+---
+
+### 7. OccBin: Occasionally Binding Constraints (ZLB)
+
+`puremacro.dsge.occbin` implements the piecewise-linear solution method of Guerrieri & Iacoviello (2015) for models with occasionally binding constraints, such as the Zero Lower Bound (ZLB) on nominal interest rates or collateral borrowing constraints.
+
+It computes the time path of regime switches between the reference (unconstrained) regime $M_1$ and the alternative (constrained) regime $M_2$ via backward recursion:
+
+```python
+from puremacro.dsge import solve_occbin, OccBinConstraint
+
+# Define reference unconstrained model (Taylor rule) and constrained model (ZLB)
+m_ref = dsge.load_mod("nk_taylor.mod")
+m_zlb = dsge.load_mod("nk_zlb.mod")
+
+# Define constraint: bind when shadow nominal interest rate r <= 0
+constraint = OccBinConstraint(
+    variable="r",
+    threshold=0.0,
+    direction="below",  # binds when variable <= threshold
+)
+
+# Solve dynamic path under a contractionary demand shock
+res_occbin = solve_occbin(
+    m_reference=m_ref,
+    m_constrained=m_zlb,
+    constraint=constraint,
+    shocks={"eps_demand": -0.04},
+    horizon=30,
+)
+
+print(res_occbin.summary())
+print("Periods at ZLB:", res_occbin.regime_history)
+
+# Publication plot with shaded ZLB constraint regime
+res_occbin.plot(title="New Keynesian Dynamics with OccBin ZLB")
+```
+
+`OccBinResult` attributes:
+- `simulation`: DataFrame of time paths for all variables.
+- `regime_history`: Sequence of booleans indicating whether the constraint bound at each period $t$.
+- `duration`: Total number of periods spent in the constrained regime.
+- `.plot()`: Time-series plot with shaded intervals for the binding regime.
+- `.to_latex()`, `.to_typst()`, `.to_markdown()`: Multi-format table exports.
+
+---
+
+### 8. Non-Linear Simulation & Perfect Foresight
+
+`puremacro.dsge.perfect_foresight` implements the Boucekkine (1995) / Juillard (1996) stacked relaxation Newton-Raphson solver for non-linear deterministic transitions under perfect foresight.
+
+Given a sequence of known or anticipated future shocks $\{u_t\}_{t=1}^T$, it solves the full non-linear system $f(y_{t+1}, y_t, y_{t-1}, u_t) = 0$ simultaneously using a block-tridiagonal sparse Jacobian solved via SuperLU:
+
+```python
+from puremacro.dsge import solve_perfect_foresight
+
+# Solve perfect-foresight transition for a permanent 5% TFP increase over 100 quarters
+pf_res = solve_perfect_foresight(
+    m,
+    shocks={"eps_a": [0.05] + [0.0] * 99},
+    T=100,
+    max_iter=50,
+    tol=1e-8,
+)
+
+print(pf_res.summary())
+print("Converged in iterations:", pf_res.iterations)
+print("Max residual norm:", pf_res.max_residual)
+
+# Plot full non-linear transition path
+pf_res.plot()
+```
+
+---
+
+### 9. Bayesian DSGE MCMC Estimation
+
+`puremacro.dsge.bayesian` provides a complete Bayesian estimation workflow with zero external compiled dependencies:
+
+1. **Prior Specification**: Flexible prior distributions (`BetaPrior`, `GammaPrior`, `InvGammaPrior`, `NormalPrior`, `UniformPrior`).
+2. **Mode-Finding**: Numerical maximization of the log-posterior likelihood via L-BFGS-B or Nelder-Mead.
+3. **Laplace Approximation**: Numerical Hessian inversion at the posterior mode to construct the proposal covariance matrix $\Sigma_{\text{prop}}$.
+4. **Adaptive Random-Walk Metropolis-Hastings (RWMH)**: Generates posterior draws with target acceptance rate tuning (Roberts-Gelman-Gilks 1997).
+5. **Convergence Diagnostics**: Split-$\hat{R}$ (Gelman-Rubin) and Geweke spectral convergence tests.
+
+```python
+import pandas as pd
+from puremacro.dsge import estimate_dsge_bayesian
+from puremacro.dsge.priors import BetaPrior, GammaPrior, InvGammaPrior
+
+# 1. Observable data
+data = pd.read_csv("us_macro_data.csv")
+
+# 2. Prior distribution dictionary
+priors = {
+    "alpha": BetaPrior(mean=0.33, std=0.05),
+    "beta":  BetaPrior(mean=0.99, std=0.005),
+    "rho":   BetaPrior(mean=0.80, std=0.10),
+    "sigma": InvGammaPrior(mean=0.01, std=0.005),
+}
+
+# 3. Estimate model
+bayes_res = estimate_dsge_bayesian(
+    model=m,
+    data=data,
+    priors=priors,
+    n_draws=10000,
+    burn_in=2000,
+    n_chains=2,
+    seed=42,
+)
+
+print(bayes_res.summary())
+print("Posterior mean estimates:\n", bayes_res.posterior_mean)
+print("Convergence Gelman-Rubin R-hat:\n", bayes_res.r_hat)
+
+# Plot prior vs posterior distribution densities
+bayes_res.plot_priors_posteriors()
+
+# Export camera-ready LaTeX table with prior means, posterior means, and 90% HPDI
+print(bayes_res.to_latex())
+```
+
+---
+
+### 10. FEVD & Historical Shock Decomposition
+
+`puremacro.dsge.decomposition` provides analytical Forecast Error Variance Decomposition and Kalman-smoothed Historical Shock Decomposition:
+
+```python
+# 1. Analytical FEVD across horizons [1, 4, 8, 16, inf]
+fevd_res = m.fevd_result(horizons=[1, 4, 8, 16, 40])
+print(fevd_res.summary())
+print(fevd_res.to_latex())
+
+# 2. Historical Shock Decomposition
+decomp_res = m.shock_decomposition(data_obs=data)
+print(decomp_res.summary())
+
+# Publication-grade stacked bar chart of historical shock contributions
+decomp_res.plot(variable="output", title="Historical Output Shock Decomposition")
+```
 

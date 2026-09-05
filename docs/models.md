@@ -1,3 +1,5 @@
+> 🇬🇧 English · 🇪🇸 [Español](es/models.md)
+
 # Sequence-Space HANK
 
 `puremacro.models` is the structural side of the package: models you solve for a
@@ -21,14 +23,16 @@ New Keynesian economy, and it returns in **0.21 s**.
 
 | module | import path | what it solves |
 |---|---|---|
-| `hank_sequence_space` | `puremacro.models` | one-asset HANK. EGM steady state, GE transition by one `T x T` linear solve |
+| `hank_sequence_space` | `puremacro.models` | one-asset HANK: EGM steady state, exact $\mathcal{O}(T^2)$ Fake News algorithm, targeted fiscal transfers, and GE transition by one `T x T` linear solve |
 | `dmp_regime_dependent` | `puremacro.models` | representative-firm DMP, Hall sticky wages, regime-dependent vacancy cost and TFP bump |
 | `nested_dmp` (package) | `puremacro.models.nested_dmp` | heterogeneous-firm DMP with Bayesian beliefs about the policy rule: steady state, perfect-foresight IRF, IRF-matching estimation, recursive stochastic solve, welfare sweep |
 | `smm` | `puremacro.models.smm` | moment loader and objective for estimating `dmp_regime_dependent` against local-projection IRFs |
 
-`puremacro.models.__all__` re-exports only the first two —
+`puremacro.models.__all__` re-exports:
 `DMPParameters`, `DMPState`, `dmp_steady_state`, `dmp_irf`,
-`SequenceSpaceHANKResult`, `solve_hank_sequence_space`. `nested_dmp` and `smm`
+`SequenceSpaceHANKResult`, `solve_hank_sequence_space`,
+`FakeNewsResult`, `FiscalTransferResult`,
+`fake_news_algorithm`, and `simulate_targeted_transfer`. `nested_dmp` and `smm`
 are reached by their own paths.
 
 ## What the sequence-space method buys
@@ -60,12 +64,67 @@ around a single steady state. It cannot tell you about a ZLB episode, a
 state-dependent multiplier, or anything where the size or sign of the shock
 changes the propagation.
 
-## The Jacobians in this implementation are parametric
+---
 
-**Read this before you interpret an IRF.** The shipped code does *not* run the
-fake-news algorithm. The household block — EGM policy, Young's-method stationary
-distribution, MPC by wealth — is solved in full, and then exactly one scalar
-from it, the aggregate MPC, is used to fill the Jacobians in closed form:
+## 1. Exact Fake News Algorithm (`fake_news_algorithm`)
+
+Auclert et al. (2021) showed that computing the $T \times T$ sequence-space Jacobian directly by brute-force numerical simulation requires $T$ separate forward simulations. The **Fake News Algorithm** reduces this computational complexity to $\mathcal{O}(T^2)$ using backward expectation iteration.
+
+The algorithm defines the *fake news matrix* $\mathcal{F}$ where $\mathcal{F}_{t,s}$ represents the revision in the agent's expectation of period-$t$ consumption upon receiving news at date 0 about an innovation occurring at date $s$:
+$$\mathcal{F}_{t,s} = (\mathbf{D}_{ss} \mathcal{E}_t)' \cdot d\mathbf{a}^*_s$$
+
+Once $\mathcal{F}$ is formed, the full sequence-space Jacobian $\mathcal{J}$ is recovered through the fundamental cumulation identity:
+$$\mathcal{J}_{t,s} = \mathcal{J}_{t-1,s-1} + \mathcal{F}_{t,s}$$
+
+```python
+from puremacro.models import fake_news_algorithm
+
+# Compute exact sequence-space consumption Jacobians
+fn_res = fake_news_algorithm(T=40, n_a=100, beta=0.985, r_ss=0.01)
+print(fn_res.summary())
+
+# Access matrices as tidy DataFrames
+df_jac = fn_res.to_frame(which="jacobian")
+df_f   = fn_res.to_frame(which="fake_news")
+
+# 1-line publication visualization: heatmaps of F and J
+fn_res.plot()
+
+# Export table to LaTeX or Typst
+print(fn_res.to_latex())
+```
+
+---
+
+## 2. Targeted Fiscal Transfers (`simulate_targeted_transfer`)
+
+Heterogeneous-agent models allow realistic macro-policy simulations that representative-agent models cannot evaluate, such as the macroeconomic stimulus effects of targeted stimulus checks across income and wealth deciles.
+
+`puremacro.models.simulate_targeted_transfer` simulates the aggregate and distributional consequences of an emergency fiscal transfer:
+
+```python
+from puremacro.models import simulate_targeted_transfer
+
+# Stimulus targeted to bottom 30% wealth constrained households
+transfer_res = simulate_targeted_transfer(
+    transfer_amount=500.0,
+    target_deciles=[1, 2, 3],
+    T=30,
+)
+
+print(transfer_res.summary())
+print("Aggregate impact MPC:", transfer_res.impact_mpc)
+print("Cumulative fiscal multiplier:", transfer_res.cumulative_multiplier)
+
+# Dual-panel publication visualization: consumption IRF and wealth-decile incidence
+transfer_res.plot()
+```
+
+---
+
+## 3. Parametric Sequence-Space Solver (`solve_hank_sequence_space`)
+
+In addition to the exact Fake News engine, `solve_hank_sequence_space` provides an ultra-fast closed-form general equilibrium solver that ties steady-state EGM policy to analytical intertemporal Jacobians:
 
 ```
 decay = 1 - agg_mpc

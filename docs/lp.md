@@ -1,3 +1,5 @@
+> 🇬🇧 English · 🇪🇸 [Español](es/lp.md)
+
 # Local Projections (LP)
 
 Local Projections (Jordà 2005) estimate impulse response functions by running a sequence of direct predictive regressions for each horizon $h = 0, 1, \dots, H$:

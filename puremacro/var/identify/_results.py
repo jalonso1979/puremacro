@@ -295,8 +295,8 @@ class SignRestrictionResult(_IRFPlotMixin):
 
 
 @dataclass(frozen=True)
-class NarrativeSignSVARResult(_IRFPlotMixin):
-    """Result of :func:`puremacro.var.identify.narrative_sign.narrative_sign_svar`.
+class NarrativeSignResult(_IRFPlotMixin):
+    """Result of :func:`puremacro.var.identify.narrative_sign.identify_narrative_sign`.
 
     Sign-restriction SVAR sharpened with narrative restrictions per
     Antolín-Díaz & Rubio-Ramírez (2018). Bands are pointwise *weighted*
@@ -335,6 +335,18 @@ class NarrativeSignSVARResult(_IRFPlotMixin):
     restriction_fail_counts : tuple of int
         Per-restriction count of traditionally-accepted draws on which
         the restriction failed — the binding-ness diagnostic.
+    A_list : tuple of ndarray or list of ndarray, optional
+        VAR autoregressive coefficient matrices A_1, ..., A_p.
+    B : ndarray, shape (n, n), optional
+        Representative structural impact matrix (median-target draw).
+    residuals : ndarray, shape (T_eff, n), optional
+        Reduced-form VAR residuals.
+    intercept : ndarray, shape (n,), optional
+        VAR intercept vector c.
+    fevd_median : ndarray, shape (H+1, n, n), optional
+        Forecast error variance decomposition.
+    names : tuple of str, optional
+        Variable names.
 
     References
     ----------
@@ -353,12 +365,170 @@ class NarrativeSignSVARResult(_IRFPlotMixin):
     ci: float
     restriction_labels: tuple
     restriction_fail_counts: tuple
+    A_list: tuple[np.ndarray, ...] | list[np.ndarray] | None = None
+    B: np.ndarray | None = None
+    residuals: np.ndarray | None = None
+    intercept: np.ndarray | None = None
+    fevd_median: np.ndarray | None = None
+    names: tuple[str, ...] = ()
+
+    @property
+    def acceptance_rate(self) -> float:
+        """Overall acceptance rate: narrative accepted / total attempted draws."""
+        return float(self.n_narrative_accepted / max(self.n_draws, 1))
+
+    @property
+    def traditional_acceptance_rate(self) -> float:
+        """Traditional acceptance rate: traditional accepted / total attempted draws."""
+        return float(self.n_traditional_accepted / max(self.n_draws, 1))
+
+    @property
+    def narrative_acceptance_rate(self) -> float:
+        """Narrative acceptance rate: narrative accepted / traditional accepted draws."""
+        return float(self.n_narrative_accepted / max(self.n_traditional_accepted, 1))
+
+    @property
+    def effective_draws(self) -> float:
+        """Kish effective sample size (ESS) of accepted narrative draws."""
+        return float(self.ess)
+
+    def irf(self, horizon: int | None = None) -> np.ndarray:
+        """Return median impulse responses up to horizon.
+
+        Parameters
+        ----------
+        horizon : int, optional
+            Horizon up to which IRFs are returned. If None, returns all
+            computed horizons (shape (H+1, n, n)).
+
+        Returns
+        -------
+        np.ndarray
+            Array of shape (horizon + 1, n, n).
+        """
+        if horizon is None:
+            return self.irf_median
+        if horizon < 0:
+            raise ValueError(f"horizon must be >= 0; got {horizon}")
+        H = self.irf_median.shape[0] - 1
+        if horizon <= H:
+            return self.irf_median[: horizon + 1]
+        if self.A_list is not None and self.B is not None:
+            from ..irf import irf as compute_irf
+            return compute_irf(self.A_list, self.B, horizon)
+        return self.irf_median
+
+    def fevd(self, horizon: int | None = None) -> np.ndarray:
+        """Forecast error variance decomposition.
+
+        Parameters
+        ----------
+        horizon : int, optional
+            Horizon up to which FEVD shares are returned. If None, returns all
+            computed horizons.
+
+        Returns
+        -------
+        np.ndarray
+            Array of shape (horizon + 1, n, n) where [h, i, j] is the share of
+            variable i's forecast error variance explained by shock j at horizon h.
+        """
+        if self.fevd_median is not None:
+            if horizon is None:
+                return self.fevd_median
+            if horizon + 1 <= self.fevd_median.shape[0]:
+                return self.fevd_median[: horizon + 1]
+
+        irf_mat = self.irf(horizon)
+        cum_sq = np.cumsum(irf_mat ** 2, axis=0)
+        total = cum_sq.sum(axis=2, keepdims=True)
+        total = np.where(total == 0, 1.0, total)
+        return cum_sq / total
+
+    def historical_decomposition(
+        self,
+        *,
+        variable: int | str | None = None,
+        shock: int | str | None = None,
+        init_y: np.ndarray | None = None,
+    ):
+        """Historical decomposition of series into structural shock contributions.
+
+        Parameters
+        ----------
+        variable : int or str, optional
+            Variable index or name to extract. If specified, returns a DataFrame
+            of shock contributions for this variable.
+        shock : int or str, optional
+            Shock index or name to extract. If specified (with variable=None),
+            returns a DataFrame of contributions across all variables for this shock.
+        init_y : ndarray, shape (p, n), optional
+            Pre-sample initial condition.
+
+        Returns
+        -------
+        pd.DataFrame or dict
+            If both variable and shock are None, returns dict with keys
+            'shocks' (shape (T_eff, n, n)) and 'deterministic' (shape (T_eff, n)).
+            Otherwise returns a tidy pandas DataFrame.
+        """
+        import pandas as pd
+        from ..irf import historical_decomp
+
+        if self.A_list is None or self.B is None or self.residuals is None:
+            raise ValueError(
+                "Historical decomposition requires VAR coefficients (A_list), "
+                "structural impact matrix (B), and residuals."
+            )
+
+        hd = historical_decomp(
+            self.A_list, self.B, self.residuals, init_y=init_y, intercept=self.intercept
+        )
+        shocks = hd["shocks"]          # (T_eff, n, n)
+        det = hd["deterministic"]      # (T_eff, n)
+        n = shocks.shape[1]
+
+        var_names = list(self.names) if len(self.names) == n else [f"y_{i}" for i in range(n)]
+        shock_names = [f"shock_{j}" for j in range(n)]
+
+        if variable is not None:
+            if isinstance(variable, str) and variable in var_names:
+                v_idx = var_names.index(variable)
+            else:
+                v_idx = int(variable)
+            if not (0 <= v_idx < n):
+                raise ValueError(f"variable index {v_idx} out of range [0, {n-1}]")
+
+            if shock is not None:
+                if isinstance(shock, str) and shock in shock_names:
+                    s_idx = shock_names.index(shock)
+                else:
+                    s_idx = int(shock)
+                if not (0 <= s_idx < n):
+                    raise ValueError(f"shock index {s_idx} out of range [0, {n-1}]")
+                return pd.DataFrame({shock_names[s_idx]: shocks[:, v_idx, s_idx]})
+
+            df_dict = {shock_names[j]: shocks[:, v_idx, j] for j in range(n)}
+            df_dict["deterministic"] = det[:, v_idx]
+            return pd.DataFrame(df_dict)
+
+        if shock is not None:
+            if isinstance(shock, str) and shock in shock_names:
+                s_idx = shock_names.index(shock)
+            else:
+                s_idx = int(shock)
+            if not (0 <= s_idx < n):
+                raise ValueError(f"shock index {s_idx} out of range [0, {n-1}]")
+            df_dict = {var_names[i]: shocks[:, i, s_idx] for i in range(n)}
+            return pd.DataFrame(df_dict)
+
+        return hd
 
     def summary(self) -> str:
         H = self.irf_median.shape[0] - 1
         n = self.irf_median.shape[1]
-        trad_rate = self.n_traditional_accepted / max(self.n_draws, 1)
-        narr_rate = self.n_narrative_accepted / max(self.n_traditional_accepted, 1)
+        trad_rate = self.traditional_acceptance_rate
+        narr_rate = self.narrative_acceptance_rate
         lines = [
             "Narrative-sign SVAR result (AD-RR 2018)",
             f"  variables (n)     : {n}",
@@ -372,6 +542,10 @@ class NarrativeSignSVARResult(_IRFPlotMixin):
         for lab, fails in zip(self.restriction_labels, self.restriction_fail_counts):
             lines.append(f"    - {lab}: failed {fails}/{self.n_traditional_accepted}")
         return "\n".join(lines) + "\n"
+
+
+NarrativeSignSVARResult = NarrativeSignResult
+
 
 
 @dataclass(frozen=True)

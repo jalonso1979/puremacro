@@ -1,3 +1,5 @@
+> 🇬🇧 English · 🇪🇸 [Español](es/var.md)
+
 # VAR & FAVAR
 
 `puremacro.var` fits a reduced-form VAR and then answers the only question a

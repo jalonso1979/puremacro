@@ -142,13 +142,15 @@ posterior = load_colab_result("sw07_posterior.pmz")
   spectrum / coherence (numpy.fft only); MODWT-Haar wavelet variance
   decomposition.
 - **Realized volatility** (`realized_vol`) — realized variance, bipower
-  variation, Corsi HAR-RV.
-- **Heterogeneous-agent / VFI** (`vfi.*`) — value-function iteration with
+- **Heterogeneous-agent / VFI / Sequence-Space HANK** (`vfi.*`, `models.hank_sequence_space`) — value-function iteration with
   EGM, finite-horizon life-cycle, OLG, Krusell-Smith aggregate shocks,
   Hopenhayn firm entry/exit, Epstein-Zin, permanent types, transition
-  paths, and method-of-moments estimation; numpy reference backend with
-  optional numba / mlx / cupy acceleration. See `notebooks/` for a
-  showcase suite.
+  paths, and method-of-moments estimation. In addition, full sequence-space
+  HANK (Auclert et al. 2021) featuring the $\mathcal{O}(T^2)$ Fake News
+  Algorithm (`fake_news_algorithm`, `FakeNewsResult`) and targeted fiscal
+  transfer simulations across wealth deciles (`simulate_targeted_transfer`,
+  `FiscalTransferResult`); numpy reference backend with optional
+  numba / mlx / cupy acceleration. See `notebooks/` for a showcase suite.
 
 **Narrative econometrics** (`narrative.*`)
 
@@ -242,14 +244,19 @@ panel built online opens offline; `longrun` runs bootstraps and chains in
 resumable chunks that survive the OS suspending the app, with results
 invariant to how the work was sliced. See "juno.sh / iPad" below.
 
-**DSGE sketchpad & Dynare parity** (`dsge.build`, `dsge.dynare`)
+**DSGE sketchpad, Dynare parity & frontier engines** (`dsge.build`, `dsge.dynare`, `dsge.cli`, `dsge.occbin`, `dsge.bayesian`, `dsge.perfect_foresight`)
 
 Write equilibrium conditions as a Python function or parse native Dynare
 `.mod` files (`load_mod`, `parse_mod`). Solves 1st- and 2nd-order approximations
 with complex-step differentiation, Kim-Kim-Schaumburg-Sims (2008) pruning,
 cross-derivatives ($g_{xu}, g_{uu}$), risk adjustments ($g_{\sigma\sigma}$),
 Dynare `oo_.dr` decision rules, and analytical theoretical moments (`stoch_simul`).
-No hand-derived matrices, no Fortran/C++ compiler, 100% Pyodide-ready.
+Includes the dedicated `puremacro-dynare` CLI tool, Guerrieri-Iacoviello (2015)
+OccBin piecewise-linear algorithm for occasionally binding constraints (ZLB),
+Boucekkine-Juillard stacked Newton-Raphson relaxation for non-linear perfect
+foresight, and full Bayesian MCMC estimation (Laplace Hessian covariance +
+adaptive Random-Walk Metropolis-Hastings). No hand-derived matrices, no
+Fortran/C++ compiler, 100% Pyodide-ready.
 
 **Teaching artefacts**
 
@@ -266,8 +273,8 @@ covered by the Pyodide promise.**
 pip install puremacro
 ```
 
-This pulls the six base dependencies (numpy, scipy, pandas, matplotlib,
-requests, pyarrow) — everything the estimators, the `fetch` layer and the
+This pulls the seven base dependencies (numpy, scipy, pandas, matplotlib,
+requests, pyarrow, openpyxl) — everything the estimators, the `fetch` layer and the
 parquet code paths need. Extras are only for the optional features listed
 below.
 
@@ -575,22 +582,41 @@ If you are transitioning from Stata, MATLAB/Dynare, or statsmodels:
 | **Factor-Augmented VAR (FAVAR)**| — | BBE (2005) MATLAB | — | `var.favar(panel_df, policy_series, n_factors=3, horizon=20)` |
 | **Value Function Iteration** | — | VFIToolkit `ValueFnIter_Case1` | — | `vfi.VFIProblem(a_grid, z_grid, P_z, return_fn, beta).solve()` |
 | **Linear DSGE (QZ / BK)** | — | Dynare `stoch_simul` / Klein `solab` | — | `dsge.klein.klein_solve(A, B, C, n_pre=...)` |
-| **DSGE from equations** | — | Dynare `.mod` file | — | `dsge.build(equations, variables=..., states=..., shocks=...)` |
+| **DSGE from equations / .mod** | — | Dynare `.mod` file | — | `dsge.load_mod("rbc.mod")` / `dsge.build_dynare(eqs)` |
+| **DSGE 2nd-Order Pruning** | — | Dynare `stoch_simul(order=2, pruning)` | — | `dsge.build_dynare(eqs, order=2)` / `m.solve_second_order()` |
+| **`puremacro-dynare` CLI** | — | `dynare model.mod` command-line | — | `puremacro-dynare model.mod --order 2 --fevd --plot` |
+| **OccBin (ZLB / piecewise)** | — | Dynare `occbin_solver` / Guerrieri & Iacoviello | — | `dsge.solve_occbin(m_normal, m_zlb, constraint, shocks)` |
+| **Non-Linear Perfect Foresight** | — | Dynare `simul` (Boucekkine-Juillard) | — | `dsge.solve_perfect_foresight(m, shocks, T=100)` |
+| **Bayesian DSGE (MCMC)** | — | Dynare `estimation(...)` (Metropolis-Hastings) | — | `dsge.estimate_dsge_bayesian(m, data, priors, n_draws=10000)` |
+| **Sequence-Space Fake News** | — | SSJ (Auclert et al. 2021) Python/Julia | — | `models.fake_news_algorithm(T=40)` / `models.simulate_targeted_transfer(...)` |
 | **GLS Unit Root (DF-GLS)** | `dfgls y, maxlag(4)` | ERS (1996) code | `adfuller` | `unit_root.dfgls_test(y, regression="ct")` |
 | **Seasonal Adjustment** | `x13 y` | X-13 wrapper | `STL` / `x13` | `sa.stl_sa(y)` / `sa.x11_sa(y)` |
 
 End-to-end replications of canonical papers live under `puremacro/examples/`
 — Bloom 2009 (`bloom2009.py`), Mertens-Ravn narrative SVAR
 (`svariv_mertens_ravn.py`), Romer-Romer monetary narrative
-(`romer_romer_*.py`), and ~60 more. Most (like the Uhlig example above) are
+(`romer_romer_*.py`), Smets-Wouters 2007 frontier showcase (`41_dynare_frontier_showcase.py`),
+and ~75 more. Most (like the Uhlig example above) are
 fully synthetic and need no data or keys; a few read bundled or fetched data.
 
 ## Documentation
 
+- **`docs/quickstart.md`** — 2-minute quickstart covering core estimators and publication workflows.
+- **`docs/dsge_build.md`** — DSGE models from equations, native Dynare `.mod` loader, 2nd-order pruning, `puremacro-dynare` CLI, OccBin ZLB, non-linear relaxation, and Bayesian MCMC.
+- **`docs/models.md`** — Structural models: Sequence-Space HANK, Fake News algorithm, targeted transfers, and DMP search-and-matching.
+- **`docs/var.md`** — Reduced-form VAR, SVAR identification (Cholesky, signs, narrative, proxy/IV), FAVAR, and bootstrap bands.
 - **`docs/lp.md`** — Local Projections guide (LP-HAC, LP-IV, State-Dependent LP-IV, Panel LP, `LPResult`).
 - **`docs/did.md`** — Modern Difference-in-Differences (Callaway-Sant'Anna, Sun-Abraham, Borusyak-Jaravel-Spiess, Synthetic DiD).
-- **`docs/reporting.md`** — Publication reporting pipeline (LaTeX, Typst, Markdown, significance stars).
-- **`docs/var.md`** — Reduced-form VAR, SVAR identification, FAVAR, bootstrap bands.
+- **`docs/nowcast.md`** — GDP Nowcasting (Mixed-frequency dynamic factor models, ragged edges, news decomposition).
+- **`docs/climate.md`** — Climate macroeconomics: Nordhaus DICE forward simulator and Social Cost of Carbon accounting.
+- **`docs/forecast.md`** — Penalized macroeconomic forecasting: Coordinate-descent Elastic Net and Adaptive Lasso.
+- **`docs/reporting.md`** — Publication reporting pipeline (LaTeX tabular, Typst tables, Markdown, significance stars).
+- **`docs/tablet.md`** — Running on iPad, Juno, and WebAssembly, with Google Colab compute offloading.
+- **`docs/benchmarks.md`** — Performance and computational benchmarks across econometric engines.
+- **`docs/national_accounts.md`** — OECD Quarterly National Accounts extraction, deflators, and accounting identities.
+- **`docs/real_time_data.md`** — Real-time data vintages, revision triangles, and Mankiw-Shapiro news-vs-noise testing.
+- **`docs/long_panel.md`** — Historical long national accounts panel (ratio-spliced Spanish and Japanese series).
+- **`docs/es/`** — Complete parallel documentation suite in native academic Spanish.
 - **`ARCHITECTURE.md`** — module map, stability tiers, Pyodide contract, result-object standard.
 - **`CHANGELOG.md`** — per-release diff, including internal-only refactors.
 - **`docs/ADVISORY.md`** — correctness advisories: released versions that returned a wrong number.
@@ -609,7 +635,7 @@ fully synthetic and need no data or keys; a few read bundled or fetched data.
 
 ## Status
 
-Production release, shipping **2.0.0**. Covered by release gate 3 in
+Production release, shipping **2.3.0**. Covered by release gate 3 in
 `docs/1.0_path.md` § 5 lists which subpackages are inside that promise
 and which are research-experimental.
 

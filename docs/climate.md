@@ -1,3 +1,5 @@
+> 🇬🇧 English · 🇪🇸 [Español](es/climate.md)
+
 # Climate Macro (DICE)
 
 `puremacro.climate` carries a compact Nordhaus DICE simulator whose job is to

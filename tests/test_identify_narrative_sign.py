@@ -45,7 +45,9 @@ import pytest
 
 from puremacro.var.identify import (
     NarrativeRestriction,
+    NarrativeSignResult,
     NarrativeSignSVARResult,
+    identify_narrative_sign,
     narrative_sign_svar,
 )
 
@@ -387,3 +389,158 @@ def test_hd_dominance_window_runs():
                                      dominance="most")])
     assert res.n_narrative_accepted > 0
     assert res.irf_median.shape == (9, N, N)
+
+
+# ---------------------------------------------------------------------------
+# Public API Standardization & Result Capabilities (v2.3.0)
+# ---------------------------------------------------------------------------
+
+def test_identify_narrative_sign_api_and_class_name():
+    """Verify primary identify_narrative_sign function and NarrativeSignResult class."""
+    res = identify_narrative_sign(
+        Y_SIM, CORRECT_RESTRICTIONS, p=1, horizons=8, sign_matrix=SIGN_MATRIX,
+        n_draws=1000, n_weight_sims=200, seed=0,
+    )
+    assert isinstance(res, NarrativeSignResult)
+    assert isinstance(res, NarrativeSignSVARResult)
+    assert NarrativeSignSVARResult is NarrativeSignResult
+    assert identify_narrative_sign is narrative_sign_svar
+
+
+def test_acceptance_diagnostics_properties():
+    """Verify acceptance diagnostics properties on NarrativeSignResult."""
+    res = _run(CORRECT_RESTRICTIONS, n_draws=1000)
+    assert hasattr(res, "acceptance_rate")
+    assert hasattr(res, "traditional_acceptance_rate")
+    assert hasattr(res, "narrative_acceptance_rate")
+    assert hasattr(res, "effective_draws")
+
+    assert res.acceptance_rate == float(res.n_narrative_accepted / res.n_draws)
+    assert res.traditional_acceptance_rate == float(res.n_traditional_accepted / res.n_draws)
+    assert res.narrative_acceptance_rate == float(res.n_narrative_accepted / res.n_traditional_accepted)
+    assert res.effective_draws == float(res.ess)
+    assert 0.0 < res.acceptance_rate <= 1.0
+
+
+def test_svar_irf_fevd_and_historical_decomposition():
+    """Verify .irf(), .fevd(), and .historical_decomposition() capabilities."""
+    res = _run(CORRECT_RESTRICTIONS, n_draws=1000)
+
+    # 1. .irf()
+    irf_all = res.irf()
+    assert irf_all.shape == (9, N, N)
+    np.testing.assert_array_equal(irf_all, res.irf_median)
+
+    irf_h4 = res.irf(horizon=4)
+    assert irf_h4.shape == (5, N, N)
+    np.testing.assert_array_equal(irf_h4, res.irf_median[:5])
+
+    with pytest.raises(ValueError, match="horizon"):
+        res.irf(horizon=-1)
+
+    # 2. .fevd()
+    fevd_all = res.fevd()
+    assert fevd_all.shape == (9, N, N)
+    for h in range(9):
+        for i in range(N):
+            np.testing.assert_allclose(fevd_all[h, i, :].sum(), 1.0, atol=1e-6)
+
+    fevd_h4 = res.fevd(horizon=4)
+    assert fevd_h4.shape == (5, N, N)
+
+    # 3. .historical_decomposition()
+    hd_all = res.historical_decomposition()
+    assert isinstance(hd_all, dict)
+    assert "shocks" in hd_all and "deterministic" in hd_all
+    assert hd_all["shocks"].shape == (T - 1, N, N)
+    assert hd_all["deterministic"].shape == (T - 1, N)
+
+    # Variable decomposition into DataFrame
+    hd_var0 = res.historical_decomposition(variable=0)
+    assert isinstance(hd_var0, pd.DataFrame)
+    assert set(hd_var0.columns) == {"shock_0", "shock_1", "shock_2", "deterministic"}
+    assert len(hd_var0) == T - 1
+
+    # Shock decomposition across variables
+    hd_shock0 = res.historical_decomposition(shock=0)
+    assert isinstance(hd_shock0, pd.DataFrame)
+    assert len(hd_shock0.columns) == N
+    assert len(hd_shock0) == T - 1
+
+    # Specific variable and shock pair
+    hd_v0_s0 = res.historical_decomposition(variable=0, shock=0)
+    assert isinstance(hd_v0_s0, pd.DataFrame)
+    assert list(hd_v0_s0.columns) == ["shock_0"]
+
+    # Bounds validation
+    with pytest.raises(ValueError, match="variable index"):
+        res.historical_decomposition(variable=99)
+    with pytest.raises(ValueError, match="shock index"):
+        res.historical_decomposition(shock=99)
+
+
+def test_identify_narrative_sign_from_var_estimate_result():
+    """Verify identify_narrative_sign accepts VarEstimateResult directly."""
+    from puremacro.var.estimate import estimate_var
+
+    var_res = estimate_var(Y_SIM, p=1)
+    res_direct = identify_narrative_sign(
+        var_res, CORRECT_RESTRICTIONS, horizons=8, sign_matrix=SIGN_MATRIX,
+        n_draws=1000, n_weight_sims=200, seed=0,
+    )
+    res_raw = identify_narrative_sign(
+        Y_SIM, CORRECT_RESTRICTIONS, p=1, horizons=8, sign_matrix=SIGN_MATRIX,
+        n_draws=1000, n_weight_sims=200, seed=0,
+    )
+    np.testing.assert_array_equal(res_direct.irf_median, res_raw.irf_median)
+    assert res_direct.acceptance_rate == res_raw.acceptance_rate
+    assert res_direct.n_narrative_accepted == res_raw.n_narrative_accepted
+
+
+def test_result_presentation_methods():
+    """Verify result presentation contract (.summary, .plot, .to_latex, .to_typst, .to_markdown, .to_frame)."""
+    res = _run(CORRECT_RESTRICTIONS, n_draws=1000)
+
+    # .to_frame()
+    df = res.to_frame(target_idx=0, shock_idx=0)
+    assert isinstance(df, pd.DataFrame)
+    assert {"h", "point", "lower", "upper"} <= set(df.columns)
+
+    # .to_markdown()
+    md = res.to_markdown(target_idx=0, shock_idx=0)
+    assert isinstance(md, str)
+    assert "|  h |" in md or "| h |" in md
+
+    # .to_latex()
+    latex = res.to_latex(target_idx=0, shock_idx=0)
+    assert isinstance(latex, str)
+    assert "\\begin{tabular}" in latex
+
+    # .to_typst()
+    typst = res.to_typst(target_idx=0, shock_idx=0)
+    assert isinstance(typst, str)
+    assert "#table" in typst
+
+    # .plot()
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots()
+    res_ax = res.plot(target_idx=0, shock_idx=0, ax=ax)
+    assert res_ax is not None
+    plt.close(fig)
+
+
+def test_bayesian_draws_mode():
+    """Verify bayes_draws=True runs and yields valid NarrativeSignResult with diagnostics."""
+    res = narrative_sign_svar(
+        Y_SIM, p=1, horizon=4, sign_matrix=SIGN_MATRIX,
+        restrictions=[(TSTAR, 0, +1)], bayes_draws=True,
+        n_draws=200, seed=1,
+    )
+    assert isinstance(res, NarrativeSignResult)
+    assert res.acceptance_rate > 0.0
+    assert res.effective_draws > 0.0
+    assert res.irf().shape == (5, N, N)
+

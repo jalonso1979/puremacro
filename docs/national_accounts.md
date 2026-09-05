@@ -1,3 +1,5 @@
+> 🇬🇧 English · 🇪🇸 [Español](es/national_accounts.md)
+
 # Quarterly National Accounts
 
 `puremacro.fetch` builds a quarterly national accounts panel from the OECD's

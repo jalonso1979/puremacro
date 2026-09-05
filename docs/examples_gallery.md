@@ -1,3 +1,5 @@
+> 🇬🇧 English · 🇪🇸 [Español](es/examples_gallery.md)
+
 # puremacro examples gallery
 
 Generated: 2026-09-02T16:18:09Z

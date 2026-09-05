@@ -232,6 +232,11 @@ class SequenceSpaceHANKResult:
     policy_a: np.ndarray = field(default_factory=lambda: np.zeros((0, 0)))
     distribution: np.ndarray = field(default_factory=lambda: np.zeros((0, 0)))
     trans_matrix: np.ndarray = field(default_factory=lambda: np.zeros((0, 0)))
+    beta: float = 0.985
+    gamma: float = 1.0
+    r_ss: float = 0.01
+    phi_pi: float = 1.5
+    kappa: float = 0.1
 
     def summary(self) -> str:
         lines = [
@@ -283,6 +288,221 @@ class SequenceSpaceHANKResult:
             amount=amount,
             T=horizon,
         )
+
+    def solve_nonlinear(
+        self,
+        shock_seq: Sequence[float] | np.ndarray | None = None,
+        shock_var: str = "r",
+        horizon: int = 300,
+        max_iter: int = 100,
+        tol: float = 1e-6,
+        backtracking: bool = True,
+        **kwargs: Any,
+    ) -> NonlinearHANKResult:
+        """Solve non-linear transition dynamics using Broyden's method."""
+        return solve_nonlinear_transition(
+            ss_model=self,
+            shock_seq=shock_seq,
+            shock_var=shock_var,
+            horizon=horizon,
+            max_iter=max_iter,
+            tol=tol,
+            backtracking=backtracking,
+            **kwargs,
+        )
+
+
+@dataclass(frozen=True)
+class NonlinearHANKResult:
+    """Results from Non-Linear Sequence-Space HANK transition dynamics (Auclert et al. 2021).
+
+    Attributes
+    ----------
+    U : np.ndarray
+        Solved sequence of endogenous variables (output deviations dY) over horizon T.
+    residuals : np.ndarray
+        Market-clearing residual sequence H(U, Z) over horizon T.
+    iterations : int
+        Number of Broyden Quasi-Newton iterations until convergence.
+    converged : bool
+        Whether the Broyden solver achieved ||H||_inf < tol.
+    linear_path : np.ndarray
+        General equilibrium output path from linearized sequence-space model.
+    nonlinear_path : np.ndarray
+        General equilibrium output path from non-linear Broyden solver (equals U).
+    norm_history : list[float]
+        History of maximum residual norms ||H_k||_inf across iterations.
+    irf_output_linear : np.ndarray
+        Linear output impulse response path dY_linear (T,).
+    irf_output_nonlinear : np.ndarray
+        Non-linear output impulse response path dY_nonlinear (T,).
+    irf_consumption_linear : np.ndarray
+        Linear consumption impulse response path dC_linear (T,).
+    irf_consumption_nonlinear : np.ndarray
+        Non-linear consumption impulse response path dC_nonlinear (T,).
+    irf_rate_linear : np.ndarray
+        Linear real interest rate response path dr_linear (T,).
+    irf_rate_nonlinear : np.ndarray
+        Non-linear real interest rate response path dr_nonlinear (T,).
+    irf_inflation_linear : np.ndarray
+        Linear inflation path dpi_linear (T,).
+    irf_inflation_nonlinear : np.ndarray
+        Non-linear inflation path dpi_nonlinear (T,).
+    shock_var : str
+        Shock variable identifier ('r' for monetary, 'G' for fiscal).
+    shock_seq : np.ndarray
+        Exogenous shock sequence Z over horizon T.
+    horizon : int
+        Simulation horizon length T.
+    steady_state_model : Any
+        Underlying steady-state SequenceSpaceHANKResult model.
+    """
+    U: np.ndarray
+    residuals: np.ndarray
+    iterations: int
+    converged: bool
+    linear_path: np.ndarray
+    nonlinear_path: np.ndarray
+    norm_history: list[float]
+    irf_output_linear: np.ndarray
+    irf_output_nonlinear: np.ndarray
+    irf_consumption_linear: np.ndarray
+    irf_consumption_nonlinear: np.ndarray
+    irf_rate_linear: np.ndarray
+    irf_rate_nonlinear: np.ndarray
+    irf_inflation_linear: np.ndarray
+    irf_inflation_nonlinear: np.ndarray
+    shock_var: str
+    shock_seq: np.ndarray
+    horizon: int
+    steady_state_model: Any = None
+
+    def summary(self) -> str:
+        """Produce academic text summary of non-linear transition dynamics."""
+        s_name = "Monetary Policy Shock" if self.shock_var in ("r", "monetary", "interest_rate", "rate") else "Fiscal Spending Shock"
+        peak_shock = float(np.max(np.abs(self.shock_seq)))
+        max_res = float(np.max(np.abs(self.residuals)))
+        peak_y_lin = float(self.linear_path[0])
+        peak_y_nonlin = float(self.nonlinear_path[0])
+        diff_y = peak_y_nonlin - peak_y_lin
+        peak_c_lin = float(self.irf_consumption_linear[0])
+        peak_c_nonlin = float(self.irf_consumption_nonlinear[0])
+        peak_r_nonlin = float(self.irf_rate_nonlinear[0])
+        sum_shock = float(np.sum(self.shock_seq))
+        multiplier = float(np.sum(self.nonlinear_path) / (sum_shock + 1e-12)) if abs(sum_shock) > 1e-12 else 0.0
+
+        lines = [
+            "Non-Linear Sequence-Space HANK Transition Dynamics (Auclert et al. 2021)",
+            "=" * 72,
+            f"Horizon T                       : {self.horizon} quarters",
+            f"Shock Variable                  : {self.shock_var.upper()} ({s_name})",
+            f"Shock Peak Magnitude            : {peak_shock:.6f}",
+            f"Broyden Solver Status           : {'CONVERGED' if self.converged else 'NOT CONVERGED'} in {self.iterations} iterations",
+            f"Final Residual ||H||_inf        : {max_res:.6e}",
+            "-" * 72,
+            "General Equilibrium Impulse Response Comparison:",
+            f"  Peak Output Impact (Linear)   : {peak_y_lin:.6f}",
+            f"  Peak Output Impact (Non-linear): {peak_y_nonlin:.6f}",
+            f"  Output Difference (Nonlin-Lin): {diff_y:.6f}",
+            f"  Peak Consumption (Linear)     : {peak_c_lin:.6f}",
+            f"  Peak Consumption (Non-linear) : {peak_c_nonlin:.6f}",
+            f"  Peak Real Rate Impact (Nonlin): {peak_r_nonlin:.6f}",
+            f"  Cumulative Output Multiplier  : {multiplier:.4f}",
+            "=" * 72,
+        ]
+        return "\n".join(lines)
+
+    def to_frame(self) -> pd.DataFrame:
+        """Convert simulation paths into a structured DataFrame."""
+        data = {
+            "Output_Linear": self.linear_path,
+            "Output_Nonlinear": self.nonlinear_path,
+            "Consumption_Linear": self.irf_consumption_linear,
+            "Consumption_Nonlinear": self.irf_consumption_nonlinear,
+            "Rate_Linear": self.irf_rate_linear,
+            "Rate_Nonlinear": self.irf_rate_nonlinear,
+            "Inflation_Linear": self.irf_inflation_linear,
+            "Inflation_Nonlinear": self.irf_inflation_nonlinear,
+            "Residual": self.residuals,
+        }
+        return pd.DataFrame(
+            data,
+            index=[f"t={t}" for t in range(self.horizon)],
+        )
+
+    def to_markdown(self, **kwargs: Any) -> str:
+        """Render simulation paths as Markdown table."""
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs: Any) -> str:
+        """Render simulation paths as LaTeX tabular environment."""
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs: Any) -> str:
+        """Render simulation paths as Typst table markup."""
+        return _df_to_typst(self.to_frame(), **kwargs)
+
+    def plot(self, style: str = "publication", figsize: tuple[float, float] = (11.0, 8.0)):
+        """Plot 4-panel comparison of linear vs non-linear general equilibrium paths.
+
+        Panels:
+        1. Output Y (Linear vs Non-Linear)
+        2. Consumption C (Linear vs Non-Linear)
+        3. Real Rate r (Linear vs Non-Linear)
+        4. Market Clearing Residuals H
+        """
+        colors = _palette(3) if style == "grayscale" else ["#1f77b4", "#d62728", "#2ca02c"]
+        fig, axes = plt.subplots(2, 2, figsize=figsize)
+        t_grid = np.arange(self.horizon)
+
+        # Panel 1: Output Y
+        ax1 = axes[0, 0]
+        ax1.plot(t_grid, self.linear_path, label="Linear Path", color=colors[0], linestyle="--", lw=1.8)
+        ax1.plot(t_grid, self.nonlinear_path, label="Non-Linear Path", color=colors[1], lw=2.2)
+        ax1.axhline(0, color="gray", linestyle=":", lw=0.8)
+        ax1.set_title(r"Output Path $\mathbf{Y}$ ($Y_t - Y_{ss}$)", fontsize=11, fontweight="bold")
+        ax1.set_xlabel("Horizon (quarters)", fontsize=9)
+        ax1.set_ylabel("Output Deviation", fontsize=9)
+        ax1.grid(True, linestyle=":", alpha=0.5)
+        ax1.legend(loc="best", frameon=False, fontsize=9)
+
+        # Panel 2: Consumption C
+        ax2 = axes[0, 1]
+        ax2.plot(t_grid, self.irf_consumption_linear, label="Linear Path", color=colors[0], linestyle="--", lw=1.8)
+        ax2.plot(t_grid, self.irf_consumption_nonlinear, label="Non-Linear Path", color=colors[1], lw=2.2)
+        ax2.axhline(0, color="gray", linestyle=":", lw=0.8)
+        ax2.set_title(r"Aggregate Consumption $\mathbf{C}$ ($C_t - C_{ss}$)", fontsize=11, fontweight="bold")
+        ax2.set_xlabel("Horizon (quarters)", fontsize=9)
+        ax2.set_ylabel("Consumption Deviation", fontsize=9)
+        ax2.grid(True, linestyle=":", alpha=0.5)
+        ax2.legend(loc="best", frameon=False, fontsize=9)
+
+        # Panel 3: Real Interest Rate r
+        ax3 = axes[1, 0]
+        ax3.plot(t_grid, self.irf_rate_linear, label="Linear Path", color=colors[0], linestyle="--", lw=1.8)
+        ax3.plot(t_grid, self.irf_rate_nonlinear, label="Non-Linear Path", color=colors[1], lw=2.2)
+        ax3.axhline(0, color="gray", linestyle=":", lw=0.8)
+        ax3.set_title(r"Real Interest Rate $\mathbf{r}$ ($r_t - r_{ss}$)", fontsize=11, fontweight="bold")
+        ax3.set_xlabel("Horizon (quarters)", fontsize=9)
+        ax3.set_ylabel("Real Rate Deviation", fontsize=9)
+        ax3.grid(True, linestyle=":", alpha=0.5)
+        ax3.legend(loc="best", frameon=False, fontsize=9)
+
+        # Panel 4: Market Clearing Residuals H
+        ax4 = axes[1, 1]
+        ax4.plot(t_grid, self.residuals, label=r"Residual $\mathbf{H}_t$", color=colors[2], lw=1.8)
+        ax4.axhline(0, color="gray", linestyle="-", lw=0.6)
+        ax4.axhline(1e-6, color="red", linestyle=":", lw=0.8, label=r"Tol $\pm 10^{-6}$")
+        ax4.axhline(-1e-6, color="red", linestyle=":", lw=0.8)
+        max_res = np.max(np.abs(self.residuals))
+        ax4.set_title(rf"Market Clearing Residuals $\mathbf{{H}}$ ($\|H\|_\infty = {max_res:.2e}$)", fontsize=11, fontweight="bold")
+        ax4.set_xlabel("Horizon (quarters)", fontsize=9)
+        ax4.set_ylabel("Market Clearing Residual", fontsize=9)
+        ax4.grid(True, linestyle=":", alpha=0.5)
+        ax4.legend(loc="best", frameon=False, fontsize=9)
+
+        fig.tight_layout()
+        return fig
 
 
 def fake_news_algorithm(
@@ -709,6 +929,305 @@ def solve_hank_sequence_space(
         policy_a=a_pol,
         distribution=D,
         trans_matrix=Lambda,
+        beta=beta,
+        gamma=gamma,
+        r_ss=r_ss,
+        phi_pi=phi_pi,
+        kappa=kappa,
+    )
+
+
+def solve_nonlinear_transition(
+    ss_model: SequenceSpaceHANKResult | Mapping[str, Any] | None = None,
+    shock_seq: Sequence[float] | np.ndarray | None = None,
+    shock_var: str = "r",
+    horizon: int = 300,
+    max_iter: int = 100,
+    tol: float = 1e-6,
+    backtracking: bool = True,
+    **kwargs: Any,
+) -> NonlinearHANKResult:
+    """Solve Non-Linear General Equilibrium Transition Dynamics for large MIT shocks.
+
+    Implements the sequence-space Broyden Quasi-Newton method of Auclert, Bardóczy,
+    Rognlie & Straub (2021, Econometrica):
+    1. Evaluates the non-linear household consumption function C(Y, r) over horizon T
+       via backward Endogenous Grid Method and forward simulation of the household distribution.
+    2. Constructs market-clearing residual sequence:
+       H_t = Y_t - C_t(Y, r(Y, Z)) - G_t = 0
+    3. Solves H(U, Z) = 0 via Broyden's Quasi-Newton method with Sherman-Morrison
+       rank-1 inverse Jacobian updates:
+       - Initial inverse Jacobian B_0 = J_ss^{-1} from steady-state sequence-space Jacobian.
+       - Iteration step: Delta U_k = - B_k @ H(U_k).
+       - Backtracking line search ensuring norm contraction.
+       - Sherman-Morrison rank-1 update:
+         B_{k+1} = B_k + ((Delta U_k - B_k @ Delta H_k) @ (Delta U_k^T @ B_k)) / (Delta U_k^T @ B_k @ Delta H_k)
+       - Terminating when ||H||_inf < tol.
+
+    Parameters
+    ----------
+    ss_model : SequenceSpaceHANKResult, dict, or None, optional
+        Pre-solved steady-state HANK model result or parameters. If None,
+        solves steady-state problem automatically.
+    shock_seq : Sequence[float] or np.ndarray, optional
+        Exogenous MIT shock path over horizon. If None, defaults to a 100 bps
+        monetary shock: 0.01 * (0.7 ** np.arange(horizon)).
+    shock_var : {'r', 'G', 'monetary', 'fiscal'}, default 'r'
+        Type of shock: 'r' for monetary policy shock, 'G' for fiscal spending shock.
+    horizon : int, default 300
+        Simulation horizon length T (quarters).
+    max_iter : int, default 100
+        Maximum number of Broyden iterations.
+    tol : float, default 1e-6
+        Convergence tolerance on ||H||_inf.
+    backtracking : bool, default True
+        Whether to perform backtracking line search.
+    **kwargs : Any
+        Additional parameters passed to steady-state solver or model overrides.
+
+    Returns
+    -------
+    NonlinearHANKResult
+        Structured result containing linear vs non-linear general equilibrium paths,
+        residuals, iterations, convergence status, and .plot().
+    """
+    # 1. Resolve Steady-State Model
+    if ss_model is None:
+        ss_model = solve_hank_sequence_space(T=min(horizon, 40), **kwargs)
+    elif isinstance(ss_model, Mapping):
+        ss_model = solve_hank_sequence_space(**ss_model)
+    elif not isinstance(ss_model, SequenceSpaceHANKResult):
+        raise TypeError(
+            f"ss_model must be SequenceSpaceHANKResult, Mapping, or None, got {type(ss_model)}"
+        )
+
+    # 2. Extract Model Parameters
+    beta = float(kwargs.get("beta", getattr(ss_model, "beta", 0.985)))
+    gamma = float(kwargs.get("gamma", getattr(ss_model, "gamma", 1.0)))
+    r_ss = float(kwargs.get("r_ss", getattr(ss_model, "r_ss", 0.01)))
+    phi_pi = float(kwargs.get("phi_pi", getattr(ss_model, "phi_pi", 1.5)))
+    kappa = float(kwargs.get("kappa", getattr(ss_model, "kappa", 0.1)))
+    w_ss = float(kwargs.get("w_ss", 1.0))
+
+    # 3. Steady-State Grids and Distribution
+    a_grid = np.asarray(ss_model.asset_grid, dtype=float)
+    n_a = len(a_grid)
+    c_ss = np.asarray(ss_model.policy_c, dtype=float)
+    D_ss = np.asarray(ss_model.distribution, dtype=float)
+    n_s = c_ss.shape[1] if c_ss.ndim == 2 else 2
+    s_grid = np.array([0.5, 1.5]) if n_s == 2 else np.linspace(0.5, 1.5, n_s)
+    pi_s = np.array([[0.9, 0.1], [0.1, 0.9]]) if n_s == 2 else np.eye(n_s)
+
+    C_ss = float(np.sum(D_ss * c_ss))
+    Y_ss = C_ss
+
+    # 4. Process Shock Sequence & Shock Variable
+    s_var = shock_var.lower().strip()
+    is_monetary = s_var in ("r", "monetary", "interest_rate", "rate")
+    is_fiscal = s_var in ("g", "fiscal", "spending", "transfer")
+    if not is_monetary and not is_fiscal:
+        raise ValueError(
+            f"Unknown shock_var: {shock_var!r}. Must be 'r' (monetary) or 'G' (fiscal)."
+        )
+
+    if shock_seq is None:
+        base_mag = 0.01
+        shock_seq_full = base_mag * (0.7 ** np.arange(horizon))
+    else:
+        shock_arr = np.asarray(shock_seq, dtype=float).ravel()
+        if len(shock_arr) == 0:
+            shock_seq_full = np.zeros(horizon)
+        elif len(shock_arr) < horizon:
+            shock_seq_full = np.zeros(horizon)
+            shock_seq_full[:len(shock_arr)] = shock_arr
+        elif len(shock_arr) > horizon:
+            horizon = len(shock_arr)
+            shock_seq_full = shock_arr.copy()
+        else:
+            shock_seq_full = shock_arr.copy()
+
+    # 5. Build Sequence-Space GE Matrices for horizon T
+    K_pi = np.zeros((horizon, horizon))
+    for t in range(horizon):
+        for s in range(t, horizon):
+            K_pi[t, s] = kappa * (beta ** (s - t))
+
+    Shift_K_pi = np.zeros((horizon, horizon))
+    Shift_K_pi[:-1, :] = K_pi[1:, :]
+    M_r_Y = phi_pi * K_pi - Shift_K_pi
+
+    agg_mpc = float(ss_model.steady_state_mpc)
+    J_C_Y = np.zeros((horizon, horizon))
+    J_C_r = np.zeros((horizon, horizon))
+    decay = 1.0 - agg_mpc
+    for s in range(horizon):
+        for t in range(horizon):
+            if t >= s:
+                J_C_Y[t, s] = agg_mpc * (decay ** (t - s))
+                J_C_r[t, s] = - (1.0 / gamma) * (beta ** (t - s + 1)) * (0.8 ** (t - s))
+            else:
+                J_C_Y[t, s] = agg_mpc * (0.5 ** (s - t))
+                J_C_r[t, s] = - (1.0 / gamma) * (0.5 ** (s - t))
+
+    J_ss = np.eye(horizon) - J_C_Y - J_C_r @ M_r_Y
+    B0 = np.linalg.inv(J_ss)
+
+    # 6. Linear Sequence-Space Solution
+    if is_monetary:
+        RHS = J_C_r @ shock_seq_full
+        dY_linear = np.linalg.solve(J_ss, RHS)
+        dC_linear = dY_linear.copy()
+        dpi_linear = K_pi @ dY_linear
+        dr_linear = M_r_Y @ dY_linear + shock_seq_full
+    else:
+        RHS = shock_seq_full
+        dY_linear = np.linalg.solve(J_ss, RHS)
+        dC_linear = dY_linear - shock_seq_full
+        dpi_linear = K_pi @ dY_linear
+        dr_linear = M_r_Y @ dY_linear
+
+    # 7. Non-Linear Forward-Backward Simulator
+    shock_r = shock_seq_full if is_monetary else np.zeros(horizon)
+    shock_G = shock_seq_full if is_fiscal else np.zeros(horizon)
+
+    c_path = np.zeros((horizon, n_a, n_s))
+    a_path = np.zeros((horizon, n_a, n_s))
+    C_seq = np.zeros(horizon)
+    D_dest = np.zeros((n_a, n_s))
+
+    def compute_C(dY: np.ndarray) -> np.ndarray:
+        dr = M_r_Y @ dY + shock_r
+        r_seq = r_ss + dr
+        w_seq = np.maximum(w_ss * (1.0 + dY / Y_ss), 1e-6)
+        c_next = c_ss.copy()
+
+        for t in reversed(range(horizon)):
+            r_t = r_seq[t]
+            r_tp1 = r_seq[t + 1] if t + 1 < horizon else r_ss
+            r_denom = max(1.0 + r_t, 1e-6)
+            w_t = w_seq[t]
+
+            mu_next = np.maximum(c_next, 1e-8) ** (-gamma)
+            exp_mu = mu_next @ pi_s.T
+            c_endo = (beta * max(1.0 + r_tp1, 1e-6) * exp_mu) ** (-1.0 / gamma)
+
+            for s_i in range(n_s):
+                cash = (1.0 + r_t) * a_grid + w_t * s_grid[s_i]
+                a_endo = (c_endo[:, s_i] + a_grid - w_t * s_grid[s_i]) / r_denom
+                c_cur = np.interp(a_grid, a_endo, c_endo[:, s_i])
+                c_cur = np.minimum(c_cur, cash)
+                c_cur = np.maximum(c_cur, 1e-8)
+                c_path[t, :, s_i] = c_cur
+                a_path[t, :, s_i] = cash - c_cur
+            c_next = c_path[t]
+
+        D = D_ss.copy()
+        for t in range(horizon):
+            C_seq[t] = np.sum(D * c_path[t])
+            a_dest = a_path[t]
+            idx = np.searchsorted(a_grid, a_dest)
+            idx_l = np.clip(idx - 1, 0, n_a - 1)
+            idx_h = np.clip(idx, 0, n_a - 1)
+            denom = a_grid[idx_h] - a_grid[idx_l]
+            denom = np.where(denom == 0, 1.0, denom)
+            w_h = np.where(idx_h == idx_l, 0.0, (a_dest - a_grid[idx_l]) / denom)
+            w_h = np.clip(w_h, 0.0, 1.0)
+            w_l = 1.0 - w_h
+
+            for s_i in range(n_s):
+                D_dest[:, s_i] = (
+                    np.bincount(idx_l[:, s_i], weights=D[:, s_i] * w_l[:, s_i], minlength=n_a)
+                    + np.bincount(idx_h[:, s_i], weights=D[:, s_i] * w_h[:, s_i], minlength=n_a)
+                )
+            D = D_dest @ pi_s
+            d_sum = np.sum(D)
+            if d_sum > 0:
+                D = D / d_sum
+        return C_seq.copy()
+
+    def H_func(dY: np.ndarray) -> np.ndarray:
+        return dY - (compute_C(dY) - C_ss) - shock_G
+
+    # 8. Broyden Solver with Sherman-Morrison rank-1 updates
+    U = np.zeros(horizon)
+    H_val = H_func(U)
+    B = B0.copy()
+    norm_history: list[float] = []
+    converged = False
+
+    for it in range(max_iter):
+        norm = float(np.max(np.abs(H_val)))
+        norm_history.append(norm)
+        if norm < tol:
+            converged = True
+            break
+
+        dU = - B @ H_val
+        if backtracking:
+            step = 1.0
+            best_U = U + step * dU
+            best_H = H_func(best_U)
+            best_norm = float(np.max(np.abs(best_H)))
+            if best_norm >= norm:
+                for _ in range(4):
+                    step *= 0.5
+                    U_trial = U + step * dU
+                    H_trial = H_func(U_trial)
+                    n_trial = float(np.max(np.abs(H_trial)))
+                    if n_trial < best_norm:
+                        best_norm = n_trial
+                        best_U = U_trial
+                        best_H = H_trial
+                    if n_trial < norm:
+                        break
+            U_new = best_U
+            H_new = best_H
+        else:
+            U_new = U + dU
+            H_new = H_func(U_new)
+
+        delta_U = U_new - U
+        delta_H = H_new - H_val
+        u_vec = delta_U - B @ delta_H
+        v_vec = delta_U @ B
+        denom = float(np.dot(v_vec, delta_H))
+        if abs(denom) > 1e-14:
+            B = B + np.outer(u_vec, v_vec) / denom
+
+        U = U_new
+        H_val = H_new
+
+    final_norm = float(np.max(np.abs(H_val)))
+    if final_norm < tol:
+        converged = True
+
+    # 9. Compute non-linear paths and assemble result
+    dY_nonlinear = U.copy()
+    C_nonlinear = compute_C(dY_nonlinear)
+    dC_nonlinear = C_nonlinear - C_ss
+    dpi_nonlinear = K_pi @ dY_nonlinear
+    dr_nonlinear = M_r_Y @ dY_nonlinear + shock_r
+
+    return NonlinearHANKResult(
+        U=U,
+        residuals=H_val,
+        iterations=len(norm_history),
+        converged=converged,
+        linear_path=dY_linear,
+        nonlinear_path=dY_nonlinear,
+        norm_history=norm_history,
+        irf_output_linear=dY_linear,
+        irf_output_nonlinear=dY_nonlinear,
+        irf_consumption_linear=dC_linear,
+        irf_consumption_nonlinear=dC_nonlinear,
+        irf_rate_linear=dr_linear,
+        irf_rate_nonlinear=dr_nonlinear,
+        irf_inflation_linear=dpi_linear,
+        irf_inflation_nonlinear=dpi_nonlinear,
+        shock_var=s_var,
+        shock_seq=shock_seq_full,
+        horizon=horizon,
+        steady_state_model=ss_model,
     )
 
 
@@ -716,7 +1235,9 @@ __all__ = [
     "SequenceSpaceHANKResult",
     "FakeNewsResult",
     "FiscalTransferResult",
+    "NonlinearHANKResult",
     "solve_hank_sequence_space",
     "fake_news_algorithm",
     "simulate_targeted_transfer",
+    "solve_nonlinear_transition",
 ]
