@@ -2,6 +2,27 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## 2.1.0 (2026-09-04)
+
+### Frontier Dynare Engine Expansion
+This release introduces 4 major structural macroeconomic modeling capabilities with zero compiled dependencies:
+
+- **Forecast Error Variance Decomposition (FEVD) & Historical Shock Decomposition (`puremacro.dsge.decomposition`)**:
+  - `FEVDResult`: Analytical VMA variance shares across arbitrary horizons $h \in \{1, 4, 8, \dots, \infty\}$ via discrete Lyapunov equation.
+  - `ShockDecompResult`: Kalman-smoothed historical shock decomposition with machine-zero additivity ($\approx 10^{-14}$ error).
+  - Integrated directly on `LinearModel` via `.fevd_result()` and `.shock_decomposition()`.
+- **OccBin: Occasionally Binding Constraints (`puremacro.dsge.occbin`)**:
+  - `OccBinConstraint` & `OccBinResult`: Guerrieri & Iacoviello (2015) backward-recursion piecewise-linear algorithm for Zero Lower Bound (ZLB) and borrowing constraints.
+  - Multi-regime timeline tracking with regime-shaded publication visualization (`.plot()`).
+- **Deterministic Non-Linear Simulation / Perfect Foresight (`puremacro.dsge.perfect_foresight`)**:
+  - `PerfectForesightResult`: Stacked Newton-Raphson relaxation solver (Boucekkine 1995, Juillard 1996) with block-tridiagonal sparse Jacobian solved via SuperLU (`scipy.sparse.linalg.spsolve`).
+  - Supports pre-announced policy adjustments, permanent regime transitions, and non-linear Ramsey growth dynamics.
+- **Bayesian DSGE Estimation Pipeline (`puremacro.dsge.bayesian`)**:
+  - `BayesianEstimationResult`: Full Bayesian MCMC estimation (mode-finding via L-BFGS-B / Nelder-Mead $\rightarrow$ Laplace approximation Hessian covariance $\rightarrow$ adaptive Random-Walk Metropolis-Hastings).
+  - Split-$\hat{R}$ and Geweke convergence diagnostics; prior-posterior density plots (`.plot_priors_posteriors()`).
+- **Publication Formatter Extensions**:
+  - All new result objects support `.to_latex()`, `.to_typst()`, `.to_markdown()`, and `.plot(style="publication")`.
+
 ## 2.0.1 (2026-09-04)
 
 ### Release 2.0.1
