@@ -1,0 +1,6 @@
+🧹 [Refactor build_g9_long_panel by extracting helper functions]
+
+🎯 **What:** The overly long function `build_g9_long_panel` was broken down into smaller, modular private helper functions (`_get_pwt10`, `_get_klems2023`, `_get_stan`, `_get_klems_legacy`, `_combine_ls_sources`, and `_merge_ls_and_pk`).
+💡 **Why:** This refactoring significantly improves the readability, modularity, and testability of the code without altering the underlying logic. The main function now acts as a high-level orchestrator.
+✅ **Verification:** Re-ran `pytest tests/test_long_panel.py` to ensure all functionality is preserved, and the tests passed successfully. Ran `mypy puremacro/long_panel.py` for type checking, which reported no issues. The code logic for compiling the data sources remains identical.
+✨ **Result:** Improved maintainability and clarity within `puremacro/long_panel.py`.

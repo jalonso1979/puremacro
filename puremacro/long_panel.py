@@ -255,6 +255,103 @@ def load_klems_legacy(
     )
 
 
+
+def _get_pwt10(countries: list[str], start: int) -> tuple[pd.DataFrame, pd.DataFrame]:
+    pk = pd.DataFrame(columns=["code", "year", "log_relprice_equip", "vintage_PK"])
+    ls_pwt = pd.DataFrame(columns=["code", "year", "log_LS", "vintage_LS"])
+    try:
+        pwt = load_pwt10(countries=countries, start=start, end=2019)
+        if len(pwt) > 0:
+            pk = pwt.dropna(subset=["log_relprice_equip"])[
+                ["code", "year", "log_relprice_equip"]
+            ].copy()
+            pk["vintage_PK"] = "pwt10"
+            ls_pwt_src = pwt.dropna(subset=["log_LS_pwt"])[
+                ["code", "year", "log_LS_pwt"]
+            ].copy()
+            ls_pwt_src = ls_pwt_src.rename(columns={"log_LS_pwt": "log_LS"})
+            ls_pwt_src["vintage_LS"] = "pwt10_labsh"
+            ls_pwt = ls_pwt_src
+    except FileNotFoundError:
+        pass
+    return pk, ls_pwt
+
+def _get_klems2023() -> pd.DataFrame:
+    ls_klems2023 = pd.DataFrame(columns=["code", "year", "log_LS", "vintage_LS"])
+    try:
+        from puremacro.klems import load_klems_panel
+        cache_dir = _ROOT / "data" / "raw" / "euklems"
+        kdf = load_klems_panel(cache_dir=cache_dir, industry="TOT", equip_def="tangible",
+                               include_investment=False)
+        if len(kdf) > 0:
+            sub = kdf.dropna(subset=["comp_total", "va"]).copy()
+            sub = sub[(sub["comp_total"] > 0) & (sub["va"] > 0)]
+            sub["log_LS"] = np.log(sub["comp_total"]) - np.log(sub["va"])
+            sub["vintage_LS"] = "klems2023"
+            ls_klems2023 = sub[["code", "year", "log_LS", "vintage_LS"]]
+    except Exception:
+        pass
+    return ls_klems2023
+
+def _get_stan(countries: list[str], start: int, end: int) -> pd.DataFrame:
+    ls_stan = load_oecd_stan_ls(
+        countries=countries, start=start, end=end
+    ).rename(columns={"log_LS_stan": "log_LS"})
+    if len(ls_stan) > 0:
+        ls_stan = ls_stan.copy()
+        ls_stan["vintage_LS"] = "oecd_stan"
+    else:
+        ls_stan = pd.DataFrame(columns=["code", "year", "log_LS", "vintage_LS"])
+    return ls_stan
+
+def _get_klems_legacy(countries: list[str], start: int) -> pd.DataFrame:
+    ls_klems_leg = load_klems_legacy(
+        countries=countries, start=start, end=2007
+    ).rename(columns={"log_LS_klems_leg": "log_LS"})
+    if len(ls_klems_leg) > 0:
+        ls_klems_leg = ls_klems_leg.copy()
+        ls_klems_leg["vintage_LS"] = "klems_legacy_08"
+    else:
+        ls_klems_leg = pd.DataFrame(columns=["code", "year", "log_LS", "vintage_LS"])
+    return ls_klems_leg
+
+def _combine_ls_sources(sources: list[pd.DataFrame]) -> pd.DataFrame:
+    sources = [s for s in sources if len(s) > 0]
+    ls_all = pd.concat(sources, ignore_index=True) if sources else pd.DataFrame(columns=["code", "year", "log_LS", "vintage_LS"])
+    if len(ls_all) > 0:
+        priority = {
+            "pwt10_labsh": 0,
+            "klems2023": 1,
+            "oecd_stan": 2,
+            "klems_legacy_08": 3,
+        }
+        ls_all["pri"] = ls_all["vintage_LS"].map(priority)
+        ls_all = (
+            ls_all.sort_values(["code", "year", "pri"])
+            .drop_duplicates(["code", "year"], keep="first")
+            .drop(columns="pri")
+        )
+    return ls_all
+
+def _merge_ls_and_pk(ls_all: pd.DataFrame, pk: pd.DataFrame) -> pd.DataFrame:
+    if len(ls_all) > 0 and len(pk) > 0:
+        panel = ls_all.merge(pk, on=["code", "year"], how="outer")
+    elif len(ls_all) > 0:
+        panel = ls_all.copy()
+        panel["log_relprice_equip"] = np.nan
+        panel["vintage_PK"] = pd.NA
+    elif len(pk) > 0:
+        panel = pk.copy()
+        panel["log_LS"] = np.nan
+        panel["vintage_LS"] = pd.NA
+    else:
+        panel = pd.DataFrame(
+            columns=["code", "year", "log_LS", "vintage_LS",
+                     "log_relprice_equip", "vintage_PK"]
+        )
+    return panel
+
+
 def build_g9_long_panel(
     *,
     start: int = 1975,
@@ -282,94 +379,15 @@ def build_g9_long_panel(
     The ``vintage_LS`` and ``vintage_PK`` columns flag which source
     supplied each (code, year) cell, for the splice audit.
     """
-    # ---- log_relprice_equip + log_LS_pwt: PWT 10.0 ----
-    pk = pd.DataFrame(columns=["code", "year", "log_relprice_equip", "vintage_PK"])
-    ls_pwt = pd.DataFrame(columns=["code", "year", "log_LS", "vintage_LS"])
-    try:
-        pwt = load_pwt10(countries=list(countries), start=start, end=2019)
-        if len(pwt) > 0:
-            pk = pwt.dropna(subset=["log_relprice_equip"])[
-                ["code", "year", "log_relprice_equip"]
-            ].copy()
-            pk["vintage_PK"] = "pwt10"
-            ls_pwt_src = pwt.dropna(subset=["log_LS_pwt"])[
-                ["code", "year", "log_LS_pwt"]
-            ].copy()
-            ls_pwt_src = ls_pwt_src.rename(columns={"log_LS_pwt": "log_LS"})
-            ls_pwt_src["vintage_LS"] = "pwt10_labsh"
-            ls_pwt = ls_pwt_src
-    except FileNotFoundError:
-        pass
+    clist = list(countries)
 
-    # ---- log_LS: KLEMS-2023 (priority 1) ----
-    ls_klems2023 = pd.DataFrame(columns=["code", "year", "log_LS", "vintage_LS"])
-    try:
-        from puremacro.klems import load_klems_panel
-        cache_dir = _ROOT / "data" / "raw" / "euklems"
-        kdf = load_klems_panel(cache_dir=cache_dir, industry="TOT", equip_def="tangible",
-                               include_investment=False)
-        if len(kdf) > 0:
-            sub = kdf.dropna(subset=["comp_total", "va"]).copy()
-            sub = sub[(sub["comp_total"] > 0) & (sub["va"] > 0)]
-            sub["log_LS"] = np.log(sub["comp_total"]) - np.log(sub["va"])
-            sub["vintage_LS"] = "klems2023"
-            ls_klems2023 = sub[["code", "year", "log_LS", "vintage_LS"]]
-    except Exception:
-        pass
+    pk, ls_pwt = _get_pwt10(clist, start)
+    ls_klems2023 = _get_klems2023()
+    ls_stan = _get_stan(clist, start, end)
+    ls_klems_leg = _get_klems_legacy(clist, start)
 
-    # ---- log_LS: OECD-STAN (priority 2) ----
-    ls_stan = load_oecd_stan_ls(
-        countries=list(countries), start=start, end=end
-    ).rename(columns={"log_LS_stan": "log_LS"})
-    if len(ls_stan) > 0:
-        ls_stan = ls_stan.copy()
-        ls_stan["vintage_LS"] = "oecd_stan"
-    else:
-        ls_stan = pd.DataFrame(columns=["code", "year", "log_LS", "vintage_LS"])
-
-    # ---- log_LS: EU-KLEMS legacy (priority 3) ----
-    ls_klems_leg = load_klems_legacy(
-        countries=list(countries), start=start, end=2007
-    ).rename(columns={"log_LS_klems_leg": "log_LS"})
-    if len(ls_klems_leg) > 0:
-        ls_klems_leg = ls_klems_leg.copy()
-        ls_klems_leg["vintage_LS"] = "klems_legacy_08"
-    else:
-        ls_klems_leg = pd.DataFrame(columns=["code", "year", "log_LS", "vintage_LS"])
-
-    # Concatenate, filling NaN where one source provides a column the others don't.
-    sources = [s for s in [ls_pwt, ls_klems2023, ls_stan, ls_klems_leg] if len(s) > 0]
-    ls_all = pd.concat(sources, ignore_index=True) if sources else pd.DataFrame(columns=["code", "year", "log_LS", "vintage_LS"])
-    if len(ls_all) > 0:
-        priority = {
-            "pwt10_labsh": 0,
-            "klems2023": 1,
-            "oecd_stan": 2,
-            "klems_legacy_08": 3,
-        }
-        ls_all["pri"] = ls_all["vintage_LS"].map(priority)
-        ls_all = (
-            ls_all.sort_values(["code", "year", "pri"])
-            .drop_duplicates(["code", "year"], keep="first")
-            .drop(columns="pri")
-        )
-
-    # ---- merge LS + PK on (code, year) outer ----
-    if len(ls_all) > 0 and len(pk) > 0:
-        panel = ls_all.merge(pk, on=["code", "year"], how="outer")
-    elif len(ls_all) > 0:
-        panel = ls_all.copy()
-        panel["log_relprice_equip"] = np.nan
-        panel["vintage_PK"] = pd.NA
-    elif len(pk) > 0:
-        panel = pk.copy()
-        panel["log_LS"] = np.nan
-        panel["vintage_LS"] = pd.NA
-    else:
-        panel = pd.DataFrame(
-            columns=["code", "year", "log_LS", "vintage_LS",
-                     "log_relprice_equip", "vintage_PK"]
-        )
+    ls_all = _combine_ls_sources([ls_pwt, ls_klems2023, ls_stan, ls_klems_leg])
+    panel = _merge_ls_and_pk(ls_all, pk)
 
     if len(panel) > 0:
         panel = panel[(panel["year"] >= start) & (panel["year"] <= end)]
