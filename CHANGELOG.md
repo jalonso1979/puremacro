@@ -2,6 +2,11 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## 2.0.1 (2026-09-04)
+
+### Release 2.0.1
+Packaging and PyPI release update: includes complete Phase 1 through Phase 4 implementations with Dynare-compatible solver and 2nd-order pruning, LPResult standardization, adversarial DGPs, parallel bootstraps, backend acceleration, and full mypy type completeness.
+
 ## 2.0.0 (2026-09-04)
 
 ### Major Milestone: puremacro 2.0
