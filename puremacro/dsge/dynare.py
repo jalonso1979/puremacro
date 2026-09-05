@@ -65,6 +65,7 @@ def build_dynare(
     tol: float = 1e-8,
     method: str = "complex",
     verify_derivatives: bool = True,
+    check_steady_state: bool = True,
 ) -> LinearModel | PrunedDSGESolution:
     """Solve a DSGE model written in Dynare canonical lead-lag form.
 
@@ -137,7 +138,7 @@ def build_dynare(
             ss_arr = np.asarray(steady_state, dtype=float)
         res_0 = ss_res(ss_arr)
         max_err = float(np.max(np.abs(res_0)))
-        if max_err > tol:
+        if check_steady_state and max_err > tol:
             worst_eq = int(np.argmax(np.abs(res_0)))
             raise SteadyStateError(
                 f"the supplied steady state does not solve the model: "
@@ -322,6 +323,11 @@ def build_dynare(
         residual_norm=res_norm,
         _dynare_equations=equations,
         _params=par_dict,
+        _A_plus=A_plus,
+        _A_0=A_0,
+        _A_minus=A_minus,
+        _B_u=B_u,
+        _shock_cov=shock_cov,
     )
 
 

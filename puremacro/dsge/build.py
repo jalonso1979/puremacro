@@ -198,6 +198,11 @@ class LinearModel:
     residual_norm: float
     _dynare_equations: Callable | None = None
     _params: dict | None = None
+    _A_plus: np.ndarray | None = None
+    _A_0: np.ndarray | None = None
+    _A_minus: np.ndarray | None = None
+    _B_u: np.ndarray | None = None
+    _shock_cov: np.ndarray | None = None
 
     # -- inspection ----------------------------------------------------
 
@@ -499,6 +504,25 @@ class LinearModel:
 
         df_res = pd.DataFrame(rows).set_index(["Variable", "Horizon"])
         return df_res
+
+    def fevd_result(
+        self,
+        horizons: Sequence[int | None] | None = None,
+        sigma: float | Mapping[str, float] | None = None,
+    ):
+        """Compute Forecast Error Variance Decomposition as a FEVDResult."""
+        from .decomposition import compute_fevd
+        return compute_fevd(self, horizons=horizons, sigma=sigma)
+
+    def shock_decomposition(
+        self,
+        data: pd.DataFrame,
+        initial_state: np.ndarray | None = None,
+        sigma: float | Mapping[str, float] | None = None,
+    ):
+        """Compute Historical Shock Decomposition as a ShockDecompResult."""
+        from .decomposition import compute_shock_decomposition
+        return compute_shock_decomposition(self, data, initial_state=initial_state, sigma=sigma)
 
     # -- simulation ----------------------------------------------------
 

@@ -179,24 +179,39 @@
       "PanelDiD"
     ],
     "puremacro.dsge": [
+      "BayesianEstimationResult",
+      "BetaPrior",
       "BlanchardKahnError",
       "DSGEPosteriorResult",
       "Dynare2ndDR",
       "DynareDR",
+      "FEVDResult",
       "FertilitySolution",
+      "GammaPrior",
+      "InvGammaPrior",
       "KleinSolution",
       "LinearModel",
       "ModelError",
+      "NormalPrior",
+      "OccBinConstraint",
+      "OccBinResult",
+      "PerfectForesightResult",
+      "Prior",
       "PrunedDSGESolution",
       "PrunedSimulationResult",
       "SW07PosteriorResult",
+      "ShockDecompResult",
       "SteadyStateError",
       "StochSimulResult",
       "TheoreticalMomentsResult",
+      "UniformPrior",
       "build",
       "build_dynare",
       "canonical_growth_2nd_order",
+      "compute_fevd",
+      "compute_shock_decomposition",
       "estimate_dsge",
+      "estimate_dsge_bayesian",
       "estimate_sw07",
       "fertility_adj_costs",
       "klein_solve",
@@ -205,7 +220,9 @@
       "priors",
       "solve_bgp",
       "solve_dynare_2nd_order",
-      "solve_fertility"
+      "solve_fertility",
+      "solve_occbin",
+      "solve_perfect_foresight"
     ],
     "puremacro.dsge._qz": [
       "ordqz_sorted"
@@ -215,9 +232,14 @@
       "Dynare2ndDR",
       "DynareDR",
       "FertilitySolution",
+      "PerfectForesightResult",
       "SW07PosteriorResult",
       "StochSimulResult",
       "TheoreticalMomentsResult"
+    ],
+    "puremacro.dsge.bayesian": [
+      "BayesianEstimationResult",
+      "estimate_dsge_bayesian"
     ],
     "puremacro.dsge.build": [
       "DynareDR",
@@ -227,6 +249,12 @@
       "StochSimulResult",
       "TheoreticalMomentsResult",
       "build"
+    ],
+    "puremacro.dsge.decomposition": [
+      "FEVDResult",
+      "ShockDecompResult",
+      "compute_fevd",
+      "compute_shock_decomposition"
     ],
     "puremacro.dsge.estimate": [
       "estimate_dsge"
@@ -256,7 +284,23 @@
       "KleinSolution",
       "klein_solve"
     ],
+    "puremacro.dsge.occbin": [
+      "OccBinConstraint",
+      "OccBinResult",
+      "solve_occbin"
+    ],
+    "puremacro.dsge.perfect_foresight": [
+      "PerfectForesightResult",
+      "solve_perfect_foresight"
+    ],
     "puremacro.dsge.priors": [
+      "BetaPrior",
+      "GammaPrior",
+      "InvGammaPrior",
+      "NormalPrior",
+      "Prior",
+      "UniformPrior",
+      "ensure_prior",
       "log_prior",
       "param_bounds",
       "param_names",
@@ -2499,12 +2543,28 @@
       "fevd",
       "moments"
     ],
+    "puremacro.dsge.bayesian.BayesianEstimationResult": [
+      "acceptance_rate",
+      "chains",
+      "diagnostics",
+      "log_posterior_mode",
+      "mode",
+      "mode_se",
+      "param_names",
+      "posterior_summary",
+      "priors"
+    ],
     "puremacro.dsge.build.LinearModel": [
       "A",
       "B",
       "C",
+      "_A_0",
+      "_A_minus",
+      "_A_plus",
+      "_B_u",
       "_dynare_equations",
       "_params",
+      "_shock_cov",
       "controls",
       "method",
       "residual_norm",
@@ -2514,6 +2574,18 @@
       "steady_state",
       "units",
       "variables"
+    ],
+    "puremacro.dsge.decomposition.FEVDResult": [
+      "horizons",
+      "shock_names",
+      "table",
+      "variable_names"
+    ],
+    "puremacro.dsge.decomposition.ShockDecompResult": [
+      "components",
+      "shock_names",
+      "smoothed_shocks",
+      "variable_names"
     ],
     "puremacro.dsge.gensys.GensysSolution": [
       "G",
@@ -2540,6 +2612,33 @@
       "ir",
       "shock_names",
       "var_names"
+    ],
+    "puremacro.dsge.occbin.OccBinConstraint": [
+      "operator",
+      "relax_operator",
+      "relax_threshold",
+      "relax_variable",
+      "threshold",
+      "variable"
+    ],
+    "puremacro.dsge.occbin.OccBinResult": [
+      "binding_periods",
+      "constrained_model",
+      "constraint",
+      "converged",
+      "iterations",
+      "reference_model",
+      "regimes",
+      "shadow_path",
+      "simulated_path"
+    ],
+    "puremacro.dsge.perfect_foresight.PerfectForesightResult": [
+      "converged",
+      "iterations",
+      "path",
+      "residual_norm",
+      "terminal_error",
+      "variable_names"
     ],
     "puremacro.dsge.pruning.PrunedDSGESolution": [
       "F",

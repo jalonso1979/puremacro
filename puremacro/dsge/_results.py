@@ -499,6 +499,8 @@ class StochSimulResult:
         return _df_to_typst(self.theoretical_moments.to_frame(), **kwargs)
 
 
+from .perfect_foresight import PerfectForesightResult
+
 __all__ = [
     "DSGEPosteriorResult",
     "SW07PosteriorResult",
@@ -507,4 +509,5 @@ __all__ = [
     "Dynare2ndDR",
     "TheoreticalMomentsResult",
     "StochSimulResult",
+    "PerfectForesightResult",
 ]

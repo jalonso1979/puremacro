@@ -51,24 +51,198 @@ def _logpdf_invgamma(x: float, s: float, nu: float) -> float:
     return float(stats.invgamma.logpdf(x, a=a, scale=scale))
 
 
+def _logpdf_uniform(x: float, mean: float, std: float) -> float:
+    """log-pdf of Uniform distribution parameterized by mean and std."""
+    width = math.sqrt(12.0) * std
+    return -math.log(max(width, 1e-12))
+
+
 _DIST_LOGPDF = {
     "beta":     _logpdf_beta,
     "gamma":    _logpdf_gamma,
     "normal":   _logpdf_normal,
     "invgamma": _logpdf_invgamma,
+    "uniform":  _logpdf_uniform,
 }
 
 
-def _logpdf_for_spec(spec: dict, x: float) -> float:
+def _logpdf_for_spec(spec: dict | Prior, x: float) -> float:
     """Dispatch to the correct log-pdf given a single param spec and a value."""
-    if not (spec["lb"] <= x <= spec["ub"]):
+    lb = spec["lb"]
+    ub = spec["ub"]
+    if not (lb <= x <= ub):
         return -math.inf
     dist = spec["dist"]
+    if dist == "uniform":
+        return -math.log(max(ub - lb, 1e-12))
     try:
         fn = _DIST_LOGPDF[dist]
     except KeyError as exc:
         raise ValueError(f"unknown distribution {dist!r} for prior spec") from exc
     return fn(x, spec["mean"], spec["std"])
+
+
+class Prior:
+    """Base class for Bayesian prior distributions in DSGE models."""
+
+    def __init__(
+        self,
+        dist: str,
+        mean: float,
+        std: float,
+        lb: float = -math.inf,
+        ub: float = math.inf,
+    ) -> None:
+        self.dist = dist
+        self.mean = float(mean)
+        self.std = float(std)
+        self.lb = float(lb)
+        self.ub = float(ub)
+
+    def logpdf(self, x: float | np.ndarray) -> float | np.ndarray:
+        if isinstance(x, (int, float, np.floating)):
+            return _logpdf_for_spec(self, float(x))
+        arr = np.asarray(x, dtype=float)
+        out = np.empty_like(arr)
+        for idx, val in np.ndenumerate(arr):
+            out[idx] = _logpdf_for_spec(self, float(val))
+        return out
+
+    def pdf(self, x: float | np.ndarray) -> float | np.ndarray:
+        return np.exp(self.logpdf(x))
+
+    def __getitem__(self, key: str):
+        if key == "dist":
+            return self.dist
+        if key == "mean":
+            return self.mean
+        if key == "std":
+            return self.std
+        if key == "lb":
+            return self.lb
+        if key == "ub":
+            return self.ub
+        raise KeyError(key)
+
+    def __contains__(self, key: str) -> bool:
+        return key in ("dist", "mean", "std", "lb", "ub")
+
+    def get(self, key: str, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+    def to_dict(self) -> dict:
+        return {
+            "dist": self.dist,
+            "mean": self.mean,
+            "std": self.std,
+            "lb": self.lb,
+            "ub": self.ub,
+        }
+
+    def __repr__(self) -> str:
+        return (
+            f"{self.__class__.__name__}(mean={self.mean}, std={self.std}, "
+            f"lb={self.lb}, ub={self.ub})"
+        )
+
+
+class BetaPrior(Prior):
+    """Beta prior parameterized by mean and std (Dynare/Pfeifer convention)."""
+
+    def __init__(
+        self,
+        mean: float = 0.5,
+        std: float = 0.1,
+        lb: float = 1e-4,
+        ub: float = 0.9999,
+    ) -> None:
+        super().__init__("beta", mean, std, lb, ub)
+
+
+class InvGammaPrior(Prior):
+    """Inverse-Gamma prior under Dynare inv_gamma_pdf convention (P1=s, P2=nu)."""
+
+    def __init__(
+        self,
+        mean: float | None = None,
+        std: float | None = None,
+        lb: float = 1e-4,
+        ub: float = math.inf,
+        *,
+        s: float | None = None,
+        nu: float | None = None,
+    ) -> None:
+        val_s = s if s is not None else (mean if mean is not None else 0.1)
+        val_nu = nu if nu is not None else (std if std is not None else 2.0)
+        super().__init__("invgamma", val_s, val_nu, lb, ub)
+
+    @property
+    def s(self) -> float:
+        return self.mean
+
+    @property
+    def nu(self) -> float:
+        return self.std
+
+
+class NormalPrior(Prior):
+    """Normal prior parameterized by mean and std."""
+
+    def __init__(
+        self,
+        mean: float = 0.0,
+        std: float = 1.0,
+        lb: float = -math.inf,
+        ub: float = math.inf,
+    ) -> None:
+        super().__init__("normal", mean, std, lb, ub)
+
+
+class GammaPrior(Prior):
+    """Gamma prior parameterized by mean and std."""
+
+    def __init__(
+        self,
+        mean: float = 1.0,
+        std: float = 0.5,
+        lb: float = 1e-4,
+        ub: float = math.inf,
+    ) -> None:
+        super().__init__("gamma", mean, std, lb, ub)
+
+
+class UniformPrior(Prior):
+    """Uniform prior on [lb, ub]."""
+
+    def __init__(self, lb: float = 0.0, ub: float = 1.0) -> None:
+        mean = (lb + ub) / 2.0
+        std = (ub - lb) / math.sqrt(12.0)
+        super().__init__("uniform", mean, std, lb, ub)
+
+
+def ensure_prior(spec: dict | Prior) -> Prior:
+    """Convert dict prior spec or return Prior instance."""
+    if isinstance(spec, Prior):
+        return spec
+    dist = spec["dist"].lower()
+    mean = spec.get("mean", 0.0)
+    std = spec.get("std", 1.0)
+    lb = spec.get("lb", -math.inf)
+    ub = spec.get("ub", math.inf)
+    if dist == "beta":
+        return BetaPrior(mean=mean, std=std, lb=lb, ub=ub)
+    elif dist in ("invgamma", "inv_gamma"):
+        return InvGammaPrior(mean=mean, std=std, lb=lb, ub=ub)
+    elif dist == "normal":
+        return NormalPrior(mean=mean, std=std, lb=lb, ub=ub)
+    elif dist == "gamma":
+        return GammaPrior(mean=mean, std=std, lb=lb, ub=ub)
+    elif dist == "uniform":
+        return UniformPrior(lb=lb, ub=ub)
+    return Prior(dist, mean, std, lb, ub)
 
 
 def log_prior(params: dict, priors: dict) -> float:
@@ -116,6 +290,13 @@ def param_names(priors: dict) -> tuple[str, ...]:
 
 
 __all__ = [
+    "Prior",
+    "BetaPrior",
+    "InvGammaPrior",
+    "NormalPrior",
+    "GammaPrior",
+    "UniformPrior",
+    "ensure_prior",
     "log_prior",
     "prior_means",
     "prior_stds",
