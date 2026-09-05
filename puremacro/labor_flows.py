@@ -225,7 +225,7 @@ def _quarterly_chain(p_monthly: pd.DataFrame) -> pd.DataFrame:
                 [row["p_UE"], row["p_UU"], row["p_UN"]],
                 [row["p_NE"], row["p_NU"], row["p_NN"]],
             ])
-            for _, row in group.iloc[:3].iterrows()
+            for row in group.iloc[:3].to_dict("records")
         ]
         prod = mats[0] @ mats[1] @ mats[2]
         out.append({

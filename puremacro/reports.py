@@ -67,7 +67,7 @@ def _df_to_typst(df: pd.DataFrame, index: bool = True) -> str:
     n_cols = len(cols)
     header_cells = [f"  [* {c} *]" for c in cols]
     data_cells = []
-    for _, row in df.iterrows():
+    for row in df.itertuples(index=False, name=None):
         for v in row:
             val_str = "" if pd.isna(v) else str(v)
             data_cells.append(f"  [{val_str}]")
