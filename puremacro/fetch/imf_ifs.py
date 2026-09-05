@@ -1,6 +1,6 @@
 """IMF International Financial Statistics (IFS) monthly fetcher.
 
-Endpoint: ``http://dataservices.imf.org/REST/SDMX_JSON.svc/CompactData/IFS/<key>``.
+Endpoint: ``https://dataservices.imf.org/REST/SDMX_JSON.svc/CompactData/IFS/<key>``.
 
 We pull three monthly indicators across ~140 countries since 1948:
 
@@ -28,7 +28,7 @@ import pandas as pd
 
 from .._codes import is_country
 
-_BASE = "http://dataservices.imf.org/REST/SDMX_JSON.svc/CompactData/IFS"
+_BASE = "https://dataservices.imf.org/REST/SDMX_JSON.svc/CompactData/IFS"
 _TIMEOUT = 120
 
 _EMPTY = pd.DataFrame(
