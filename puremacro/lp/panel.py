@@ -282,7 +282,8 @@ def lp_panel_regime_interaction(
                 "n_entities": n_entities_h0 if h == horizons[0] else np.nan,
             })
 
-    return pd.DataFrame(rows)
+    from ._results import LPResult
+    return LPResult(rows)
 
 
 __all__ = ["panel_lp", "lp_panel_regime_interaction"]

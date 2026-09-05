@@ -105,7 +105,8 @@ def lp_state_dep(
             "beta_L": beta_L, "se_L": se_L,
             "lo_L": beta_L - z_crit * se_L, "hi_L": beta_L + z_crit * se_L,
         })
-    return pd.DataFrame(rows)
+    from ._results import LPResult
+    return LPResult(rows)
 
 
 def lp_smooth_transition_irf(
@@ -243,7 +244,8 @@ def lp_smooth_transition_irf(
             "hi_low": b_low + z_crit * se_low,
         })
 
-    return pd.DataFrame(rows)
+    from ._results import LPResult
+    return LPResult(rows)
 
 
 def lp_state_dep_iv(
