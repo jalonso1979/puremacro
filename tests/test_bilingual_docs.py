@@ -36,6 +36,7 @@ _USER_DOCS = [
     "ADVISORY.md",
     "narrative_sign_svar.md",
     "honest_did.md",
+    "spatial.md",
     "smooth_lp.md",
     "hank_nonlinear.md",
     "gertler_karadi.md",

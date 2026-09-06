@@ -63,6 +63,7 @@ nav:
           - Smooth Local Projections: smooth_lp.md
           - Modern Difference-in-Differences: did.md
           - Honest DiD Sensitivity: honest_did.md
+          - Spatial Econometrics: spatial.md
           - GDP Nowcasting: nowcast.md
           - Penalized Forecasting: forecast.md
       - Publication & Reporting:
@@ -100,6 +101,7 @@ nav:
           - Proyecciones locales suavizadas: es/smooth_lp.md
           - Diferencias en diferencias modernas: es/did.md
           - Sensibilidad en DiD honesto: es/honest_did.md
+          - Econometría espacial: es/spatial.md
           - Nowcasting del PIB: es/nowcast.md
           - Pronóstico penalizado: es/forecast.md
       - Publicación e informes:

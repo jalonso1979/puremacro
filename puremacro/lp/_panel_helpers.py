@@ -206,6 +206,42 @@ def _focal_dk_se(out: dict) -> float:
     return float(np.sqrt(np.diag(vcov))[0])
 
 
+def make_conley_se_fn(
+    coords,
+    *,
+    cutoff_km: float,
+    time_lags: int | None = None,
+    kernel: str = "bartlett",
+    metric: str = "haversine",
+):
+    """Build the ``se_fn`` for ``cov_type='conley'``: Conley (1999) spatial
+    HAC across entities with a Bartlett kernel in time (Hsiang 2010).
+
+    ``coords`` gives one ``[lat, lon]`` pair per entity (DataFrame indexed by
+    entity id, or a mapping). ``time_lags=None`` uses the Driscoll-Kraay
+    bandwidth rule ``floor(4 (T/100)^(2/9))`` on the number of periods.
+    """
+    from ..spatial.hac import spatial_hac_panel_meat
+
+    def _se(out: dict) -> float:
+        X = out["X_within"]
+        u = out["residuals"]
+        if time_lags is None:
+            T_dk = int(len(np.unique(out["time_keys"])))
+            L = max(1, int(np.floor(4 * (T_dk / 100) ** (2 / 9))))
+        else:
+            L = int(time_lags)
+        S = spatial_hac_panel_meat(
+            X, u, coords, out["entity_keys"], out["time_keys"],
+            cutoff_km, L, kernel=kernel, metric=metric,
+        )
+        XtX_inv = out["XtX_inv"]
+        vcov = XtX_inv @ S @ XtX_inv
+        return float(np.sqrt(np.diag(vcov))[0])
+
+    return _se
+
+
 def panel_lp_horizon_loop(
     df_wide: pd.DataFrame,
     *,

@@ -35,12 +35,18 @@
       "safe_cholesky"
     ],
     "puremacro.bartik": [
+      "ShiftShareIVResult",
       "build_base_year_shares",
       "build_county_epu",
       "build_exposure_iv",
       "build_rolling_shares",
       "estimate_industry_sensitivities",
-      "rotemberg_weights"
+      "rotemberg_weights",
+      "shift_share_iv"
+    ],
+    "puremacro.bartik.akm": [
+      "ShiftShareIVResult",
+      "shift_share_iv"
     ],
     "puremacro.bis_neer": [
       "_BIS_TO_ISO3",
@@ -1939,6 +1945,46 @@
       "shapley_table",
       "shapley_var"
     ],
+    "puremacro.spatial": [
+      "GearyResult",
+      "MoranResult",
+      "SpatialWeights",
+      "conley_cov",
+      "conley_se",
+      "contiguity_weights",
+      "distance_weights",
+      "economic_weights",
+      "gearys_c",
+      "haversine_km",
+      "kernel_matrix",
+      "knn_weights",
+      "morans_i",
+      "pairwise_distances",
+      "spatial_hac_panel_cov",
+      "spatial_hac_panel_meat"
+    ],
+    "puremacro.spatial.diagnostics": [
+      "GearyResult",
+      "MoranResult",
+      "gearys_c",
+      "morans_i"
+    ],
+    "puremacro.spatial.hac": [
+      "conley_cov",
+      "conley_se",
+      "kernel_matrix",
+      "spatial_hac_panel_cov",
+      "spatial_hac_panel_meat"
+    ],
+    "puremacro.spatial.weights": [
+      "SpatialWeights",
+      "contiguity_weights",
+      "distance_weights",
+      "economic_weights",
+      "haversine_km",
+      "knn_weights",
+      "pairwise_distances"
+    ],
     "puremacro.spectral": [
       "WelchCrossResult",
       "business_cycle_band_power",
@@ -2407,6 +2453,23 @@
     ]
   },
   "result_classes": {
+    "puremacro.bartik.akm.ShiftShareIVResult": [
+      "alpha",
+      "beta",
+      "ci_lower",
+      "ci_upper",
+      "first_stage_F",
+      "n_sectors",
+      "n_units",
+      "p_value",
+      "rotemberg_weights",
+      "se",
+      "se_akm",
+      "se_robust",
+      "se_type",
+      "shocks_residualized",
+      "t"
+    ],
     "puremacro.capital.CapitalResult": [
       "aggregate",
       "burn_in",
@@ -3528,6 +3591,40 @@
       "psd_enforce",
       "psd_tol",
       "sigma"
+    ],
+    "puremacro.spatial.diagnostics.GearyResult": [
+      "C",
+      "expected",
+      "n",
+      "n_perm",
+      "p_norm",
+      "p_rand",
+      "p_sim",
+      "variance_norm",
+      "variance_rand",
+      "z_norm",
+      "z_rand"
+    ],
+    "puremacro.spatial.diagnostics.MoranResult": [
+      "I",
+      "expected",
+      "lag_values",
+      "n",
+      "n_perm",
+      "p_norm",
+      "p_rand",
+      "p_sim",
+      "variance_norm",
+      "variance_rand",
+      "z_norm",
+      "z_rand",
+      "z_values"
+    ],
+    "puremacro.spatial.weights.SpatialWeights": [
+      "W",
+      "ids",
+      "kind",
+      "row_standardized"
     ],
     "puremacro.spectral.WelchCrossResult": [
       "Pxx",

@@ -51,6 +51,7 @@
 
 8. **Frontier methods (2.3)**:
    - **Narrative sign restrictions** ([guide](narrative_sign_svar.md)), **Honest DiD** ([guide](honest_did.md)), **Smooth local projections** ([guide](smooth_lp.md)), **Non-linear sequence-space HANK** ([guide](hank_nonlinear.md)), **Gertler-Karadi (2011) DSGE** ([guide](gertler_karadi.md)) and **BVAR with stochastic volatility** ([guide](bvar_sv.md)).
+   - **Spatial econometrics** ([guide](spatial.md)): spatial weights, Moran's I / Geary's C, Conley spatial HAC on cross-sections and panel local projections, and shift-share IV with Adão-Kolesár-Morales errors.
 
 ---
 

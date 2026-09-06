@@ -15,6 +15,7 @@ from scipy.stats import norm
 
 from ._panel_helpers import (
     _focal_cluster_se,
+    make_conley_se_fn,
     _focal_dk_se,
     as_panel_index,
     panel_lp_horizon_loop,
@@ -39,6 +40,11 @@ def panel_lp(
     unit_col: str | None = None,
     time_col: str | None = None,
     cov_type: str = "cluster",
+    coords=None,
+    cutoff_km: float | None = None,
+    time_lags: int | None = None,
+    kernel: str = "bartlett",
+    metric: str = "haversine",
 ) -> pd.DataFrame:
     """Estimate β_h from
         y^{(c)}_{t+h} - y^{(c)}_{t-1} = μ_c + τ_t + β_h x^{(c)}_t + … + ε
@@ -62,10 +68,22 @@ def panel_lp(
         Column (or level) names identifying entity and time; when given
         they build the MultiIndex from a long-form frame and override
         ``entity_level`` / ``time_level``.
-    cov_type : {'cluster', 'driscoll-kraay'}, default 'cluster'
+    cov_type : {'cluster', 'driscoll-kraay', 'conley'}, default 'cluster'
         ``'cluster'`` = cluster-robust by entity; ``'driscoll-kraay'``
         (alias ``'dk'``) = Driscoll-Kraay HAC, identical to
-        :func:`panel_lp_dk`.
+        :func:`panel_lp_dk`; ``'conley'`` (alias ``'spatial'``) = Conley
+        (1999) spatial HAC across entities within ``cutoff_km`` combined
+        with a Bartlett kernel in time (``time_lags``; ``None`` = the
+        Driscoll-Kraay bandwidth rule). Requires ``coords``.
+    coords : DataFrame or mapping, optional
+        One ``[lat, lon]`` pair per entity (index = entity id) for
+        ``cov_type='conley'``; ``metric='euclidean'`` for planar ``[x, y]``.
+    cutoff_km : float, optional
+        Distance beyond which entities are treated as spatially independent
+        (kilometres for ``metric='haversine'``). Required with ``'conley'``.
+    time_lags, kernel, metric
+        Conley options: time bandwidth, spatial kernel (``'bartlett'`` or
+        ``'uniform'``), distance metric.
 
     Returns LPResult (subclass of DataFrame) with columns ``[h, beta, se, t, lo, hi]``.
     """
@@ -76,9 +94,15 @@ def panel_lp(
         se_fn = _focal_cluster_se
     elif cov in ("driscoll-kraay", "dk", "driscollkraay"):
         se_fn = _focal_dk_se
+    elif cov in ("conley", "spatial", "spatial-hac"):
+        if coords is None or cutoff_km is None:
+            raise ValueError(
+                "panel_lp: cov_type='conley' needs coords= (one [lat, lon] per entity) and cutoff_km=")
+        se_fn = make_conley_se_fn(
+            coords, cutoff_km=float(cutoff_km), time_lags=time_lags, kernel=kernel, metric=metric)
     else:
         raise ValueError(
-            f"panel_lp: cov_type must be 'cluster' or 'driscoll-kraay'; got {cov_type!r}")
+            f"panel_lp: cov_type must be 'cluster', 'driscoll-kraay' or 'conley'; got {cov_type!r}")
     df_wide, entity_level, time_level = as_panel_index(
         df_wide, entity_level=entity_level, time_level=time_level,
         unit_col=unit_col, time_col=time_col, func="panel_lp")

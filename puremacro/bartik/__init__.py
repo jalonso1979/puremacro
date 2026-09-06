@@ -3,6 +3,7 @@ from .shares import build_base_year_shares, build_rolling_shares
 from .sensitivity import estimate_industry_sensitivities
 from .county_epu import build_county_epu
 from .exposure_iv import build_exposure_iv, rotemberg_weights
+from .akm import shift_share_iv, ShiftShareIVResult
 
 __all__ = [
     "build_base_year_shares",
@@ -11,4 +12,6 @@ __all__ = [
     "build_county_epu",
     "build_exposure_iv",
     "rotemberg_weights",
+    "shift_share_iv",
+    "ShiftShareIVResult",
 ]

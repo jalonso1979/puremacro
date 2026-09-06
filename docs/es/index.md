@@ -51,6 +51,7 @@
 
 8. **Métodos de frontera (2.3)**:
    - **Restricciones narrativas de signo** ([guía](narrative_sign_svar.md)), **DiD honesto** ([guía](honest_did.md)), **Proyecciones locales suavizadas** ([guía](smooth_lp.md)), **HANK no lineal en el espacio de secuencias** ([guía](hank_nonlinear.md)), **DSGE de Gertler-Karadi (2011)** ([guía](gertler_karadi.md)) y **BVAR con volatilidad estocástica** ([guía](bvar_sv.md)).
+   - **Econometría espacial** ([guía](spatial.md)): matrices de pesos espaciales, I de Moran / C de Geary, HAC espacial de Conley en cortes transversales y proyecciones locales de panel, y VI shift-share con errores de Adão-Kolesár-Morales.
 
 ---
 

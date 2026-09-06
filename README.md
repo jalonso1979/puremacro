@@ -260,7 +260,12 @@ helper. Coverage is constrained by what Wayback has snapshotted.
   composition + external loaders (FRED API key path); backbone of the
   LP-IV machinery.
 - **Bartik / shift-share** (`bartik.*`) — shares, sensitivities,
-  Rotemberg weights, county-level EPU exposure.
+  Rotemberg weights, county-level EPU exposure, and `shift_share_iv`
+  (2SLS with Adão-Kolesár-Morales shock-level standard errors).
+- **Spatial econometrics** (`spatial.*`) — spatial weights (contiguity,
+  k-NN, distance decay, economic flows), Moran's I / Geary's C, Conley
+  spatial HAC and the Hsiang space-time HAC behind
+  `panel_lp(cov_type="conley")`; see `docs/spatial.md`.
 - **Misc data utilities** — EU-KLEMS 2023 loader (`klems`), BIS NEER
   aggregator (`bis_neer`), G9 homogeneous-vintage splice
   (`long_panel`), Gollin labor share (`labor_share`), real-time
@@ -664,6 +669,7 @@ fully synthetic and need no data or keys; a few read bundled or fetched data.
 - **`docs/dsge_build.md`** — DSGE models from equations, native Dynare `.mod` loader, 2nd-order pruning, `puremacro-dynare` CLI, OccBin ZLB, non-linear relaxation, and Bayesian MCMC.
 - **`docs/models.md`** — Structural models: Sequence-Space HANK, Fake News algorithm, targeted transfers, and DMP search-and-matching.
 - **`docs/narrative_sign_svar.md`**, **`docs/honest_did.md`**, **`docs/smooth_lp.md`**, **`docs/hank_nonlinear.md`**, **`docs/gertler_karadi.md`**, **`docs/bvar_sv.md`** — the six 2.3 feature guides (each with a Spanish twin under `docs/es/`).
+- **`docs/spatial.md`** — spatial weights, Moran's I / Geary's C, Conley spatial HAC (cross-section and panel local projections) and shift-share IV with Adão-Kolesár-Morales errors (Spanish twin under `docs/es/`).
 - **`docs/var.md`** — Reduced-form VAR, SVAR identification (Cholesky, signs, narrative, proxy/IV), FAVAR, and bootstrap bands.
 - **`docs/lp.md`** — Local Projections guide (LP-HAC, LP-IV, State-Dependent LP-IV, Panel LP, `LPResult`).
 - **`docs/did.md`** — Modern Difference-in-Differences (Callaway-Sant'Anna, Sun-Abraham, Borusyak-Jaravel-Spiess, Synthetic DiD).
@@ -695,7 +701,7 @@ fully synthetic and need no data or keys; a few read bundled or fetched data.
 
 ## Status
 
-Production release, shipping **2.3.1**. `docs/1.0_path.md` § 5 lists which
+Production release, shipping **2.4.0**. `docs/1.0_path.md` § 5 lists which
 subpackages are inside the release-gate promise and which are
 research-experimental.
 
