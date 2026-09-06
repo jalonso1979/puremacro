@@ -31,6 +31,7 @@ import warnings
 from typing import Optional
 
 import numpy as np
+from ._results import _IRFPlotMixin
 import scipy.linalg
 
 from ..estimate import estimate_var
@@ -67,7 +68,7 @@ def _canonical_signs(B: np.ndarray) -> np.ndarray:
 # --------------------------------------------------------------------------- #
 
 @dataclass(frozen=True)
-class HeteroResult:
+class HeteroResult(_IRFPlotMixin):
     """Output of Rigobon heteroskedasticity identification.
 
     Attributes
@@ -96,11 +97,23 @@ class HeteroResult:
     upper: Optional[np.ndarray]   # (H+1, n, n) or None
     point: np.ndarray             # (H+1, n, n)
 
+    def summary(self) -> str:
+        H = self.irfs.shape[0] - 1
+        n = self.irfs.shape[1]
+        lines = [
+            "Rigobon heteroskedasticity SVAR",
+            f"  variables: {n}, horizon: {H}",
+            "  variance ratios (regime 1 / regime 0) per shock: "
+            + ", ".join(f"{v:.3f}" for v in np.asarray(self.variance_ratios)),
+            f"  bootstrap bands: {'yes' if self.lower is not None else 'no'}",
+        ]
+        return "\n".join(lines)
+
     def plot(
         self,
         *,
-        target_idx: int = 0,
-        shock_idx: int = 0,
+        target_idx: int | None = 0,
+        shock_idx: int | None = 0,
         title: str = "",
         ylabel: str = "Response",
         scale: float = 1.0,
@@ -108,8 +121,14 @@ class HeteroResult:
     ):
         """Plot impulse response with error bands.
 
-        Lazily delegates to puremacro.plot.plot_irf_single.
+        Lazily delegates to puremacro.plot.plot_irf_single; ``target_idx=None``
+        or ``shock_idx=None`` draws the multi-panel grid of the mixin.
         """
+        if target_idx is None or shock_idx is None:
+            return _IRFPlotMixin.plot(
+                self, target_idx=target_idx, shock_idx=shock_idx,
+                title=title, ylabel=ylabel, scale=scale, ax=ax,
+            )
         from ...plot import plot_irf_single
 
         return plot_irf_single(

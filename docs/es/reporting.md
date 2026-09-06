@@ -27,9 +27,19 @@ No se requieren librerías de terceros (como `tabulate` o `stargazer`). Todo el 
 Todos los estimadores de proyecciones locales (`lp_hac`, `lp_iv`, `lp_state_dep`, `lp_state_dep_iv`, `panel_lp`) devuelven un objeto `LPResult`:
 
 ```python
+import numpy as np
+import pandas as pd
 from puremacro.lp import lp_hac
 
+# Un pequeño conjunto trimestral sintético (sustitúyalo por su propio DataFrame)
+rng = np.random.default_rng(0)
+T = 200
+policy_rate = rng.standard_normal(T)
+gdp = np.cumsum(-0.15 * policy_rate + 0.3 * rng.standard_normal(T))
+df = pd.DataFrame({"gdp": gdp, "policy_rate": policy_rate})
+
 res = lp_hac(df, y="gdp", x="policy_rate", horizon=8, lags=2, ci=0.90)
+
 
 # Exportar a LaTeX
 latex_str = res.to_latex()
@@ -44,11 +54,26 @@ markdown_str = res.to_markdown()
 Salida típica para Typst:
 ```typst
 #table(
-  columns: (auto, auto, auto, auto, auto, auto),
-  table.header([h], [beta], [se], [t], [lo], [hi]),
-  [0], [-0.1423], [0.0381], [-3.73], [-0.2050], [-0.0796],
-  [1], [-0.2811], [0.0512], [-5.49], [-0.3653], [-0.1969],
-  [2], [-0.3540], [0.0624], [-5.67], [-0.4566], [-0.2514],
+  columns: 6,
+  [* h *],
+  [* beta *],
+  [* se *],
+  [* t *],
+  [* lo *],
+  [* hi *],
+  [0],
+  [-0.168952],
+  [0.022707],
+  [-7.44069],
+  [-0.206301],
+  [-0.131603],
+  [1],
+  [-0.182836],
+  [0.030485],
+  [-5.997644],
+  [-0.232979],
+  [-0.132693],
+  ...
 )
 ```
 
@@ -56,12 +81,19 @@ Salida típica para Typst:
 
 ### VAR Estructural (`_IRFPlotMixin`)
 
-Todos los resultados de SVAR (`CholeskyResult`, `ProxySVARResult`, `SignRestrictionResult`, `MaxShareResult`, etc.) admiten exportación multiformato:
+Todos los resultados de SVAR (`CholeskySVARResult`, `ProxySVARResult`, `SignRestrictionResult`, `MaxShareResult`, etc.) admiten exportación multiformato:
 
 ```python
 from puremacro.var.identify import cholesky_svar
 
+# VAR(1) de tres variables simulado para el ejemplo
+A = np.array([[0.5, 0.1, 0.0], [0.0, 0.4, 0.1], [0.1, 0.0, 0.3]])
+Y = np.zeros((300, 3))
+for t in range(1, 300):
+    Y[t] = A @ Y[t - 1] + rng.standard_normal(3)
+
 res = cholesky_svar(Y, p=2, horizon=12, ci=0.90)
+
 
 # Exportar malla completa de FRI como DataFrame ordenado
 df_tidy = res.to_frame()
@@ -79,7 +111,16 @@ markdown_irf = res.to_markdown(target_idx=0, shock_idx=0)
 ```python
 from puremacro.var import favar
 
-favar_res = favar(panel_df, policy_series, n_factors=3, horizon=12)
+# Panel informativo (T x N) y una serie de política, simulados para el ejemplo
+factor = np.cumsum(rng.standard_normal(300)) * 0.1
+panel_df = pd.DataFrame(
+    np.outer(factor, rng.uniform(0.5, 1.5, 12)) + 0.3 * rng.standard_normal((300, 12)),
+    columns=[f"x{i}" for i in range(12)],
+)
+policy_series = pd.Series(0.5 * factor + 0.2 * rng.standard_normal(300), name="policy_rate")
+
+favar_res = favar(panel_df, policy_series, n_factors=3, horizon=12, n_boot=50)
+
 
 # Exportar tabla completa de respuestas de corte transversal
 print(favar_res.to_latex())
@@ -95,7 +136,17 @@ Todas las dataclasses de resultados de DiD escalonado (`CallawaySantannaResult`,
 ```python
 from puremacro.did import callaway_santanna
 
-res_cs = callaway_santanna(df, unit="id", time="year", outcome="y", treat_time="g")
+# Panel con adopción escalonada: 40 unidades, 12 años, cohortes tratadas en 2006 y 2009
+rows = []
+for i in range(40):
+    g = {0: 2006, 1: 2009, 2: np.nan}[i % 3]
+    for year in range(2000, 2012):
+        effect = 2.0 if (not np.isnan(g) and year >= g) else 0.0
+        rows.append({"id": i, "year": year, "g": g, "y": 0.1 * (year - 2000) + effect + rng.standard_normal()})
+did_df = pd.DataFrame(rows)
+
+res_cs = callaway_santanna(did_df, unit="id", time="year", outcome="y", treat_time="g", n_boot=50)
+
 
 # Exportar dinámica del estudio de eventos
 latex_did = res_cs.to_latex()
@@ -132,12 +183,12 @@ print(coef_table(beta, se, names=names, stars=True, fmt="markdown"))
 
 ### Ejemplo de salida en LaTeX:
 ```latex
-\begin{tabular}{lrr}
-Variable & Coef & Std.Err \\
+\begin{tabular}{lrrrrrr}
+variable & coef & se & t & p & lo\_95\% & hi\_95\% \\
 \hline
-Tasa de interés & 0.4520*** & (0.0850) \\
-Gasto público & -1.2380*** & (0.3120) \\
-Recorte de impuestos & 0.0810 & (0.0740) \\
+Tasa de interés & 0.452*** & 0.085 & 5.318 & 0.000 & 0.285 & 0.619 \\
+Gasto público & -1.238*** & 0.312 & -3.968 & 0.000 & -1.850 & -0.626 \\
+Recorte de impuestos & 0.081 & 0.074 & 1.095 & 0.274 & -0.064 & 0.226 \\
 \end{tabular}
 ```
 
@@ -148,7 +199,7 @@ Recorte de impuestos & 0.0810 & (0.0740) \\
 ### Quarto (`.qmd`)
 En documentos Quarto, utilice la opción `#| output: asis` para insertar tablas directamente en documentos PDF o HTML:
 
-```python
+```text
 ```{python}
 #| output: asis
 from puremacro.lp import lp_hac
@@ -162,6 +213,8 @@ print(res.to_markdown())
 Guarde la tabla generada e inclúyala en su archivo principal de Typst:
 
 ```python
+import os
+os.makedirs("tablas", exist_ok=True)   # carpeta de tablas del manuscrito
 with open("tablas/multiplicadores.typ", "w") as f:
     f.write(res.to_typst())
 ```

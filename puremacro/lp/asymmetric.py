@@ -19,6 +19,7 @@ from scipy.stats import norm
 
 from ..inference._ols_helpers import ols_hac
 from ._results import LPResult
+from ._common import resolve_lp_kwargs
 
 
 def lp_asymmetric(
@@ -45,12 +46,8 @@ def lp_asymmetric(
         [h, beta_pos, se_pos, lo_pos, hi_pos,
             beta_neg, se_neg, lo_neg, hi_neg].
     """
-    if lags is not None:
-        n_lags = lags
-    if horizon is not None:
-        horizons = range(0, horizon + 1)
-    if ci is not None:
-        alpha = 1.0 - ci
+    horizons, n_lags, alpha = resolve_lp_kwargs(
+        horizons, n_lags, alpha, lags=lags, horizon=horizon, ci=ci, name="lp_asymmetric")
     horizons = list(horizons)
     ctl = list(controls or [])
     z_crit = norm.ppf(1 - alpha / 2)
@@ -101,6 +98,7 @@ def lp_asymmetric(
     res.y_name = str(y)
     res.x_name = str(x)
     res.method = "LP-asymmetric"
+    res.ci_level = 1.0 - alpha
     return res
 
 

@@ -24,9 +24,15 @@ except ImportError:
 
 
 def _proxy_impact_factory(instrument_series, shock_target_idx=0):
-    def _impact(A_list, Sigma, resid):
+    def _impact(A_list, Sigma, resid, w=None):
         T_eff = resid.shape[0]
-        z = np.asarray(instrument_series)[-T_eff:]
+        z = np.asarray(instrument_series, dtype=float)[-T_eff:]
+        if w is not None:
+            # Wild-bootstrap draw: re-sign the proxy with the same Rademacher
+            # weights applied to the residuals (Mertens & Ravn 2013). Without
+            # this the draw-level covariance Cov(w*u, z) has a random sign and
+            # the bands collapse onto zero.
+            z = z * np.asarray(w, dtype=float)[-T_eff:]
         z = z - z.mean()
         # Under the proxy assumptions E[z eps_1] = phi != 0 and E[z eps_j] = 0,
         # Cov(u, z) = B E[eps z] = phi * b_1, so `Pi` is the impact column up to

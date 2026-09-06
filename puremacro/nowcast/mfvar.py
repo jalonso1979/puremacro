@@ -21,7 +21,11 @@ imposes the temporal-aggregation constraint at quarter-end months:
     y^Q_t = (1/3)(m_n^*_t + m_n^*_{t-1} + m_n^*_{t-2}),    t mod 3 == 0,
 
 where intra-quarter months mark ``y^Q`` as NaN. ``p`` must be ≥ 3 so
-the 3-lag aggregation lives in the companion state.
+the 3-lag aggregation lives in the companion state. Quarterly values
+stamped at the first or middle month of their quarter
+(``quarter_end_offset`` 0 or 1) are moved to the quarter-end month
+internally, so the constraint always binds the three months of the
+quarter the value belongs to.
 
 References
 ----------
@@ -52,18 +56,26 @@ def mf_var(
     ----------
     df : DataFrame
         Monthly-indexed panel. ``quarterly_col`` carries the published
-        quarterly value at the quarter-end month and NaN elsewhere; the
-        other columns are observed every month.
+        quarterly value once per quarter (at the month given by
+        ``quarter_end_offset``) and NaN elsewhere; the other columns are
+        observed every month.
     quarterly_col : str
         Name of the column holding the quarterly variable.
     p : int, default 3
         VAR lag length. Must be ≥ 3 because the 3-month aggregation
         constraint requires three lags of the latent monthly state.
     quarter_end_offset : int, default 2
-        Position of the quarter-end month within a quarter (0 = first
-        month, 2 = last month). For end-of-quarter dating use the
-        default; if your quarterly observations are stamped at the
-        first month of the quarter pass 0.
+        Month of the quarter at which the quarterly value is stamped:
+        ``2`` = last month of the quarter (end-of-quarter dating, the
+        default), ``1`` = middle month, ``0`` = first month. A value
+        stamped at month ``t`` with offset ``o`` is the average of months
+        ``t - o, …, t - o + 2``; internally the observation is moved to
+        ``t + (2 - o)`` so that the backward-looking aggregation row of the
+        state-space form binds exactly those three months. When the last
+        stamped value's quarter extends past the end of ``df`` the state
+        is run ``2 - o`` months beyond the frame and truncated back.
+    diffuse_scale : float, default 1e6
+        Initial state-covariance scale (approximately diffuse prior).
 
     Returns
     -------
@@ -82,6 +94,10 @@ def mf_var(
             "p must be >= 3 so the 3-month aggregation lives in the "
             "companion state."
         )
+    if quarter_end_offset not in (0, 1, 2):
+        raise ValueError(
+            f"quarter_end_offset must be 0, 1 or 2; got {quarter_end_offset!r}"
+        )
     cols = list(df.columns)
     if quarterly_col not in cols:
         raise ValueError(f"quarterly_col {quarterly_col!r} not in df.columns")
@@ -89,21 +105,36 @@ def mf_var(
     n = len(cols)
     n_monthly = len(monthly_cols)
 
-    Y_obs = df[monthly_cols + [quarterly_col]].values.astype(float)
-    T = Y_obs.shape[0]
+    Y_data = df[monthly_cols + [quarterly_col]].values.astype(float)
+    T = Y_data.shape[0]
+    q_col_idx = n - 1
+
+    # Re-stamp the quarterly observations at the quarter-end month so the
+    # backward-looking aggregation row (t, t-1, t-2) covers the quarter the
+    # value belongs to. Values whose quarter runs past the frame are kept by
+    # extending the observation matrix with all-NaN monthly rows.
+    shift = 2 - int(quarter_end_offset)
+    if shift > 0:
+        Y_obs = np.full((T + shift, n), np.nan)
+        Y_obs[:T, :n_monthly] = Y_data[:, :n_monthly]
+        Y_obs[shift:, q_col_idx] = Y_data[:, q_col_idx]
+    else:
+        Y_obs = Y_data.copy()
+    T_work = Y_obs.shape[0]
 
     # 1) Initialise: VAR on the *imputed* panel.
     # For the quarterly variable, naively fill NaN by forward-filling the
     # last published quarterly value divided by 3 — gives a plausible
     # starting monthly path while the EM-Kalman picks up the true one.
     Y_init = Y_obs.copy()
-    q_col_idx = n - 1
     last_q = np.nan
-    for t in range(T):
+    for t in range(T_work):
         if not np.isnan(Y_init[t, q_col_idx]):
             last_q = Y_init[t, q_col_idx] / 3.0
         Y_init[t, q_col_idx] = last_q
-    # Drop leading rows where the quarterly value is still NaN.
+    # Drop rows still carrying a NaN in any column (leading months before
+    # the first quarterly observation, holes in monthly columns, and the
+    # all-NaN extension rows).
     valid = ~np.isnan(Y_init).any(axis=1)
     if valid.sum() < p + 2:
         raise ValueError(
@@ -148,8 +179,8 @@ def mf_var(
 
     # 3) Kalman smoother. NaN entries in Y_obs are honoured.
     sm = kalman_smoother(Y_obs, ssm, diffuse_scale=diffuse_scale)
-    a_smooth = sm["a_smooth"]                                # (T, n*p)
-    factors_monthly = a_smooth[:, :n]                        # (T, n)
+    a_smooth = sm["a_smooth"]                                # (T_work, n*p)
+    factors_monthly = a_smooth[:T, :n]                       # (T, n)
 
     # 4) Build a "filled" DataFrame: for the quarterly column we report
     # the smoothed monthly path of m_n^*; for monthly columns we leave

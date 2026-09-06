@@ -60,26 +60,42 @@ def cragg_donald_f(
     Y: np.ndarray,
     X: np.ndarray,
     Z: np.ndarray,
+    W: np.ndarray | None = None,
 ) -> float:
-    """Cragg-Donald (1993) minimum eigenvalue F-statistic for weak instruments.
+    """Cragg-Donald (1993) minimum-eigenvalue F-statistic for weak instruments.
 
-    Tests the null hypothesis of weak instruments in IV/TSLS regressions
-    with potentially multiple endogenous regressors.
+    The Stock-Yogo (2005) form of the statistic,
+
+        CD = λ_min( Σ_VV^{-1/2} X' P_Z X Σ_VV^{-1/2} ) / l,
+
+    where ``P_Z`` is the projection on the (partialled) instruments,
+    ``Σ_VV = V'V / (n - l - m)`` is the covariance **matrix** of the
+    first-stage residuals ``V = X - P_Z X`` and ``l`` is the number of
+    excluded instruments. Dividing by ``l`` (not by the number of
+    endogenous regressors ``k``) is what makes the value comparable with
+    the Stock-Yogo critical values, and reduces it to the textbook
+    first-stage F when ``k = 1``.
 
     Parameters
     ----------
     Y : ndarray of shape (n,)
         Dependent variable (not used directly; signature for consistency).
-    X : ndarray of shape (n, k)
+    X : ndarray of shape (n, k) or (n,)
         Endogenous regressors (n observations, k endogenous variables).
-    Z : ndarray of shape (n, l)
-        Instruments (l >= k required for identification).
+    Z : ndarray of shape (n, l) or (n,)
+        Excluded instruments (l >= k required for identification).
+    W : ndarray of shape (n, m) or None
+        Included exogenous regressors (a constant column, controls). They
+        are partialled out of both ``X`` and ``Z`` and cost ``m`` degrees
+        of freedom in ``Σ_VV``. Nothing is added by default, so pass a
+        column of ones in ``W`` when the first stage has an intercept.
 
     Returns
     -------
     float
-        Cragg-Donald F-statistic: minimum eigenvalue of the concentration matrix
-        divided by k (number of endogenous regressors).
+        Cragg-Donald F-statistic. With ``k = 1`` this is exactly the
+        first-stage F for the excluded instruments (homoskedastic);
+        compare with :func:`puremacro.inference.over_id.stock_yogo_cv`.
 
     References
     ----------
@@ -87,36 +103,62 @@ def cragg_donald_f(
         in instrumental variable models. Econometric Theory, 9(2), 222-240.
     Stock, J.H. and Yogo, M. (2005). Testing for weak instruments in linear IV
         regression. In Andrews and Stock (eds), Identification and Inference for
-        Econometric Models. Cambridge University Press.
+        Econometric Models. Cambridge University Press. (eq. 2.6 and 3.1)
     """
-    n = X.shape[0]
-    k = X.shape[1] if X.ndim > 1 else 1
-    X = np.atleast_2d(X).T if X.ndim == 1 else X
-    Z = np.atleast_2d(Z).T if Z.ndim == 1 else Z
+    X = np.asarray(X, dtype=float)
+    Z = np.asarray(Z, dtype=float)
+    X = X.reshape(-1, 1) if X.ndim == 1 else X
+    Z = Z.reshape(-1, 1) if Z.ndim == 1 else Z
+    n, k = X.shape
     l = Z.shape[1]
-
+    if Z.shape[0] != n:
+        raise ValueError(
+            f"cragg_donald_f: X has {n} rows but Z has {Z.shape[0]}"
+        )
     if l < k:
         raise ValueError(
             f"Need at least as many instruments (l={l}) as endogenous regressors (k={k})."
         )
 
-    # Project out any included exogenous regressors (assumed none here for purity).
-    # First stage: regress each X_j on Z.
-    Mz = np.eye(n) - Z @ np.linalg.solve(Z.T @ Z, Z.T)
-    X_tilde = X - Z @ np.linalg.solve(Z.T @ Z, Z.T @ X)   # residuals of X on Z
-    X_hat = X - X_tilde                                      # fitted values
+    m = 0
+    if W is not None:
+        W = np.asarray(W, dtype=float)
+        W = W.reshape(-1, 1) if W.ndim == 1 else W
+        if W.shape[0] != n:
+            raise ValueError(
+                f"cragg_donald_f: X has {n} rows but W has {W.shape[0]}"
+            )
+        m = W.shape[1]
+        WtW_inv = inv_xtx(W, name="cragg_donald_f (partialling W)")
+        X = X - W @ (WtW_inv @ (W.T @ X))
+        Z = Z - W @ (WtW_inv @ (W.T @ Z))
 
-    # Concentration matrix: (X_hat' X_hat) scaled by sigma^2 of first-stage residuals.
-    # Use average sigma^2 across endogenous regressors.
-    sigma2 = np.mean(np.sum(X_tilde ** 2, axis=0)) / (n - l)
-    if sigma2 <= 0:
-        return 0.0
+    dof = n - l - m
+    if dof <= 0:
+        raise ValueError(
+            f"cragg_donald_f: n - l - m = {dof} <= 0; not enough observations"
+        )
 
-    conc = X_hat.T @ X_hat / sigma2
-    # Minimum eigenvalue of concentration matrix / k.
-    eigvals = np.linalg.eigvalsh(conc)
-    cd_stat = float(np.min(eigvals)) / k
-    return cd_stat
+    # First stage: X = Z Pi + V  (on the partialled variables).
+    ZtZ_inv = inv_xtx(Z, name="cragg_donald_f")
+    X_hat = Z @ (ZtZ_inv @ (Z.T @ X))          # P_Z X
+    V = X - X_hat                              # first-stage residuals
+
+    # Sigma_VV^{-1/2} from the eigen-decomposition of the (k x k) residual
+    # covariance MATRIX -- not a scalar average of the residual variances,
+    # which ignores the correlation between the first-stage errors of the
+    # different endogenous regressors.
+    Sigma_VV = V.T @ V / dof
+    w, U = np.linalg.eigh(Sigma_VV)
+    if np.min(w) <= 0:
+        raise np.linalg.LinAlgError(
+            "cragg_donald_f: first-stage residual covariance is singular "
+            "(an endogenous regressor is perfectly explained by the "
+            "instruments/controls, or two endogenous regressors are collinear)"
+        )
+    S_m12 = (U * w ** -0.5) @ U.T
+    G = S_m12 @ (X_hat.T @ X_hat) @ S_m12 / l
+    return float(np.min(np.linalg.eigvalsh(G)))
 
 
 def kleibergen_paap_f(

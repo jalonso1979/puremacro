@@ -127,7 +127,7 @@ codigo_latex = res_rm.to_latex()
 
 ### `honest_did`
 
-```python
+```text
 honest_did(
     b_hat: Any = None,
     sigma: np.ndarray | Sequence[Sequence[float]] | None = None,

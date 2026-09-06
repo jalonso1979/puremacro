@@ -41,8 +41,23 @@ def _new_ax(ax, figsize=(5.5, 3.2)):
 
 def _irf_to_frame(irf, target_idx: int = 0, shock_idx: int = 0) -> pd.DataFrame:
     """Coerce dict-like, dataclass Result, or DataFrame IRFs into a DataFrame[h, beta, lo?, hi?]."""
-    if isinstance(irf, pd.DataFrame) and "h" in irf.columns and "beta" in irf.columns:
-        return irf
+    if isinstance(irf, pd.DataFrame):
+        if "beta" in irf.columns:
+            if "h" in irf.columns:
+                return irf
+            out = pd.DataFrame(irf)
+            out.insert(0, "h", np.asarray(irf.index))
+            return out
+        labels = [str(c)[len("beta_"):] for c in irf.columns
+                  if str(c).startswith("beta_") and len(str(c)) > len("beta_")]
+        if labels:
+            raise TypeError(
+                "regime/sign IRF frame (columns "
+                f"{['beta_' + s for s in labels]}); use _irf_groups / "
+                "plot_irf_single, which draw one line per label")
+        raise TypeError(
+            "DataFrame IRF must carry a 'beta' column (or 'beta_<label>' "
+            f"columns); got columns {list(irf.columns)}")
     raw_point = None
     for attr in ("irf_point", "irf_median", "irf_mean", "irfs", "point", "irf"):
         if hasattr(irf, attr) and getattr(irf, attr) is not None:
@@ -110,16 +125,63 @@ def _irf_to_frame(irf, target_idx: int = 0, shock_idx: int = 0) -> pd.DataFrame:
     raise TypeError("irf must be a DataFrame[h,beta,...], a result dataclass, or a dict with irf_point")
 
 
+def _irf_groups(irf, target_idx: int = 0, shock_idx: int = 0
+                ) -> list[tuple[str, pd.DataFrame]]:
+    """Split an IRF input into ``(label, DataFrame[h, beta, lo?, hi?])`` pairs.
+
+    * a plain result gives one unlabeled group;
+    * a regime / sign frame with ``beta_<label>`` columns (``lp_state_dep``,
+      ``lp_state_dep_iv``, ``lp_asymmetric``, ``lp_garch_state``) gives one
+      group per label, each with its own ``lo``/``hi`` band when present;
+    * a quantile frame (``h`` repeated across a ``tau`` column, as returned by
+      ``lp_quantile``) gives one group per quantile.
+    """
+    if isinstance(irf, pd.DataFrame):
+        cols = [str(c) for c in irf.columns]
+        if "beta" in cols:
+            if "tau" in cols and "h" in cols and irf["h"].duplicated().any():
+                keep = [c for c in ("h", "beta", "lo", "hi") if c in cols]
+                return [(f"tau={float(tau):g}", pd.DataFrame(sub[keep]).reset_index(drop=True))
+                        for tau, sub in irf.groupby("tau", sort=True)]
+            return [("", _irf_to_frame(irf, target_idx=target_idx, shock_idx=shock_idx))]
+        labels = [c[len("beta_"):] for c in cols
+                  if c.startswith("beta_") and len(c) > len("beta_")]
+        if labels:
+            h = irf["h"].to_numpy() if "h" in cols else np.asarray(irf.index)
+            groups = []
+            for lab in labels:
+                d = pd.DataFrame({"h": h, "beta": irf[f"beta_{lab}"].to_numpy()})
+                if f"lo_{lab}" in cols and f"hi_{lab}" in cols:
+                    d["lo"] = irf[f"lo_{lab}"].to_numpy()
+                    d["hi"] = irf[f"hi_{lab}"].to_numpy()
+                groups.append((lab, d))
+            return groups
+    return [("", _irf_to_frame(irf, target_idx=target_idx, shock_idx=shock_idx))]
+
+
 def plot_irf_single(irf, *, title: str = "", ylabel: str = "Response",
                     scale: float = 1.0, target_idx: int = 0, shock_idx: int = 0,
                     ax=None) -> Figure:
-    """Plot a single IRF with optional shaded band; series scaled by ``scale``."""
-    df = _irf_to_frame(irf, target_idx=target_idx, shock_idx=shock_idx)
+    """Plot one IRF (line + shaded band), or one line and band per regime /
+    sign label / quantile for multi-coefficient LP results; series scaled by
+    ``scale``."""
+    groups = _irf_groups(irf, target_idx=target_idx, shock_idx=shock_idx)
     fig, ax = _new_ax(ax)
-    ax.plot(df["h"], df["beta"] * scale, color="0.0", linewidth=1.4, label="point")
-    if {"lo", "hi"}.issubset(df.columns):
-        ax.fill_between(df["h"], df["lo"] * scale, df["hi"] * scale,
-                        color="0.75", alpha=0.5, linewidth=0, label="band")
+    if len(groups) == 1:
+        df = groups[0][1]
+        ax.plot(df["h"], df["beta"] * scale, color="0.0", linewidth=1.4, label="point")
+        if {"lo", "hi"}.issubset(df.columns):
+            ax.fill_between(df["h"], df["lo"] * scale, df["hi"] * scale,
+                            color="0.75", alpha=0.5, linewidth=0, label="band")
+    else:
+        n = len(groups)
+        for (label, df), c, ls in zip(groups, _palette(n), _styles(n)):
+            ax.plot(df["h"], df["beta"] * scale, color=c, linestyle=ls,
+                    linewidth=1.4, label=label)
+            if {"lo", "hi"}.issubset(df.columns):
+                ax.fill_between(df["h"], df["lo"] * scale, df["hi"] * scale,
+                                color=c, alpha=0.18, linewidth=0)
+        ax.legend(loc="best", frameon=False)
     ax.axhline(0.0, color="0.3", linewidth=0.6, linestyle=":")
     ax.set_xlabel("Horizon (h)")
     ax.set_ylabel(ylabel)
@@ -134,12 +196,19 @@ def plot_irf_multi(irf_by_label: Mapping[str, Any], *, title: str = "",
                    ax=None) -> Figure:
     """Overlay several IRFs (point + optional bands) using grayscale styles."""
     fig, ax = _new_ax(ax, figsize=(6.2, 3.5))
-    n = len(irf_by_label)
+    # Expand regime / sign / quantile results into one entry per label so
+    # every coefficient path gets its own line.
+    entries: list[tuple[str, pd.DataFrame, float]] = []
+    for label, raw_irf in irf_by_label.items():
+        s = scale[label] if isinstance(scale, Mapping) else scale
+        groups = _irf_groups(raw_irf, target_idx=target_idx, shock_idx=shock_idx)
+        for sub_label, df in groups:
+            name = label if sub_label == "" else f"{label} [{sub_label}]"
+            entries.append((name, df, s))
+    n = len(entries)
     colors = _palette(n)
     styles = _styles(n)
-    for (label, raw_irf), c, ls in zip(irf_by_label.items(), colors, styles):
-        df = _irf_to_frame(raw_irf, target_idx=target_idx, shock_idx=shock_idx)
-        s = scale[label] if isinstance(scale, Mapping) else scale
+    for (label, df, s), c, ls in zip(entries, colors, styles):
         ax.plot(df["h"], df["beta"] * s, color=c, linestyle=ls,
                 linewidth=1.3, label=label)
         if show_bands and {"lo", "hi"}.issubset(df.columns):

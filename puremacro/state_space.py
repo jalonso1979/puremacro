@@ -6,10 +6,13 @@ State-space form
     alpha_{t+1} = T_mat @ alpha_t + c + R_mat @ eta_t,   eta_t ~ N(0, Q)
     y_t         = Z_mat @ alpha_t + d + eps_t,           eps_t ~ N(0, H)
 
-System matrices may be supplied as 2-D arrays (time-invariant) or 3-D
-arrays of shape (T, ...) (time-varying). Missing observations are
-encoded as ``np.nan`` in y; the filter drops the corresponding rows of
-Z, H, d for that period.
+System matrices are **time-invariant** 2-D arrays: ``T`` (m, m),
+``Z`` (n, m), ``R`` (m, r), ``Q`` (r, r), ``H`` (n, n), plus the
+intercepts ``c`` (m,) and ``d`` (n,). Time-varying (3-D, ``(T, ...)``)
+system matrices are not supported; :class:`StateSpaceModel` raises a
+``ValueError`` when given one. Missing observations are encoded as
+``np.nan`` in y; the filter drops the corresponding rows of Z, H, d for
+that period.
 
 This module is the foundation for: Stock-Watson dynamic factor models,
 unobserved-components / Beveridge-Nelson / Watson UC, nowcasting
@@ -64,14 +67,46 @@ class StateSpaceModel:
     d: Optional[np.ndarray] = None
 
     def __post_init__(self):
+        self.T = np.asarray(self.T, dtype=float)
+        self.Z = np.asarray(self.Z, dtype=float)
+        self.Q = np.asarray(self.Q, dtype=float)
+        self.H = np.asarray(self.H, dtype=float)
+        for name, mat in (("T", self.T), ("Z", self.Z), ("Q", self.Q), ("H", self.H)):
+            if mat.ndim != 2:
+                raise ValueError(
+                    f"StateSpaceModel.{name} must be a 2-D (time-invariant) array; "
+                    f"got shape {mat.shape}. Time-varying (T, ...) system matrices "
+                    "are not supported."
+                )
         m = self.T.shape[0]
         n = self.Z.shape[0]
+        if self.T.shape != (m, m):
+            raise ValueError(f"StateSpaceModel.T must be square (m, m); got {self.T.shape}")
+        if self.Z.shape[1] != m:
+            raise ValueError(f"StateSpaceModel.Z must be (n, m) with m = {m}; got {self.Z.shape}")
+        if self.H.shape != (n, n):
+            raise ValueError(f"StateSpaceModel.H must be (n, n) with n = {n}; got {self.H.shape}")
         if self.R is None:
             self.R = np.eye(m)
+        else:
+            self.R = np.asarray(self.R, dtype=float)
+            if self.R.ndim != 2 or self.R.shape[0] != m:
+                raise ValueError(f"StateSpaceModel.R must be (m, r) with m = {m}; got {self.R.shape}")
+        r = self.R.shape[1]
+        if self.Q.shape != (r, r):
+            raise ValueError(f"StateSpaceModel.Q must be (r, r) with r = {r}; got {self.Q.shape}")
         if self.c is None:
             self.c = np.zeros(m)
+        else:
+            self.c = np.asarray(self.c, dtype=float).reshape(-1)
+            if self.c.shape != (m,):
+                raise ValueError(f"StateSpaceModel.c must be (m,) with m = {m}; got {self.c.shape}")
         if self.d is None:
             self.d = np.zeros(n)
+        else:
+            self.d = np.asarray(self.d, dtype=float).reshape(-1)
+            if self.d.shape != (n,):
+                raise ValueError(f"StateSpaceModel.d must be (n,) with n = {n}; got {self.d.shape}")
 
 
 
@@ -205,8 +240,8 @@ def kalman_filter(
     ----------
     a0 : initial state mean. Defaults to zeros.
     P0 : initial state covariance. Defaults to ``diffuse_scale * I_m``
-         (approximately diffuse — a clean implementation of exact diffuse
-         init is deferred to v2).
+         (approximately diffuse). Pass ``diffuse_states=[...]`` for the
+         exact-diffuse initialisation of those state indices instead.
 
     Returns
     -------

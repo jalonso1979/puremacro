@@ -79,7 +79,7 @@ def test_coef_table_academic_stars():
 
     out_typ = coef_table(beta, se, stars=True, fmt="typst")
     assert "#table(" in out_typ
-    assert "***" in out_typ
+    assert "\\*\\*\\*" in out_typ  # Typst escapes the stars so they render literally
 
 
 def test_did_result_table_exports():

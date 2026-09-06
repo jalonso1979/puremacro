@@ -23,7 +23,7 @@ from __future__ import annotations
 import pandas as pd
 from scipy.stats import norm as _norm
 
-from .callaway_santanna import callaway_santanna
+from .callaway_santanna import callaway_santanna, _resolve_control
 from ._results import SunAbrahamResult
 
 
@@ -39,6 +39,7 @@ def sun_abraham(
     alpha: float = 0.10,
     seed: int = 0,
     ci: float | None = None,
+    control_group: str | None = None,
 ) -> SunAbrahamResult:
     """Sun-Abraham interaction-weighted event-study aggregation.
 
@@ -62,6 +63,8 @@ def sun_abraham(
         RNG seed for the bootstrap.
     ci : float, optional
         Confidence interval coverage (alpha = 1.0 - ci).
+    control_group : str, optional
+        Alias for ``control`` (the ``csdid`` / R ``did`` spelling).
 
     Returns
     -------
@@ -78,6 +81,7 @@ def sun_abraham(
     """
     if ci is not None:
         alpha = 1.0 - ci
+    control = _resolve_control(control, control_group)
 
     cs = callaway_santanna(
         df, unit=unit, time=time, outcome=outcome,

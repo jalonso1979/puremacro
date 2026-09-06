@@ -1,4 +1,8 @@
 """Robust standard errors, bootstraps, weak-IV diagnostics, panel tests."""
+# Load the compatibility submodule first so that a later
+# ``import puremacro.inference.newey_west`` finds it in sys.modules and does
+# not rebind this package attribute; the public callable then wins the name.
+from . import newey_west as _newey_west_module  # noqa: F401
 from .hac import newey_west_se as newey_west
 from .bootstrap import residual_bootstrap as bootstrap_resample
 from .block_bootstrap import block_bootstrap

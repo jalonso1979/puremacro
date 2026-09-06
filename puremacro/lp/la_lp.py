@@ -18,6 +18,7 @@ from scipy.stats import norm
 
 from .._linalg import inv_xtx
 from ._results import LPResult
+from ._common import resolve_lp_kwargs
 
 
 def _ols_eicker_huber(y: np.ndarray, X: np.ndarray) -> dict:
@@ -55,12 +56,8 @@ def la_lp(
         If None, defaults to max(horizons), which makes coverage uniform
         across all reported horizons.
     """
-    if lags is not None:
-        n_lags = lags
-    if horizon is not None:
-        horizons = range(0, horizon + 1)
-    if ci is not None:
-        alpha = 1.0 - ci
+    horizons, n_lags, alpha = resolve_lp_kwargs(
+        horizons, n_lags, alpha, lags=lags, horizon=horizon, ci=ci, name="la_lp")
     horizons = list(horizons)
     ctl = list(controls or [])
     z_crit = norm.ppf(1 - alpha / 2)
@@ -111,6 +108,7 @@ def la_lp(
     res.y_name = str(y)
     res.x_name = str(x)
     res.method = "la_lp"
+    res.ci_level = 1.0 - alpha
     return res
 
 

@@ -12,6 +12,7 @@ import pandas as pd
 from scipy.stats import norm
 
 from ..inference._ols_helpers import ols_hac
+from ._common import resolve_lp_kwargs
 
 
 def lp_hac(
@@ -39,12 +40,8 @@ def lp_hac(
     -------
     LPResult (subclass of pd.DataFrame) with columns [h, beta, se, t, lo, hi] indexed by h.
     """
-    if lags is not None:
-        n_lags = lags
-    if horizon is not None:
-        horizons = range(0, horizon + 1)
-    if ci is not None:
-        alpha = 1.0 - ci
+    horizons, n_lags, alpha = resolve_lp_kwargs(
+        horizons, n_lags, alpha, lags=lags, horizon=horizon, ci=ci, name="lp_hac")
     horizons = list(horizons)
     z_crit = norm.ppf(1 - alpha / 2)
 
@@ -111,6 +108,7 @@ def lp_hac(
     res.y_name = str(y)
     res.x_name = str(x)
     res.method = "LP-HAC"
+    res.ci_level = 1.0 - alpha
     return res
 
 

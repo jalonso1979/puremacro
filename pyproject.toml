@@ -8,7 +8,7 @@ name = "puremacro"
 # `tools/release_check.py` gate 4 compares: pyproject.toml,
 # puremacro/__init__.py (`__version__`), the top `## X.Y.Z` heading in
 # CHANGELOG.md, and `version:` in CITATION.cff.
-version = "2.3.0"
+version = "2.3.1"
 description = "Pyodide-compatible empirical macro toolbox: SVAR + LP + GARCH + inference"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -119,7 +119,7 @@ include = ["puremacro*"]
 
 [tool.setuptools.package-data]
 "puremacro" = ["py.typed"]
-"puremacro.dsge" = ["_sw07_data.csv"]
+"puremacro.dsge" = ["_sw07_data.csv", "_references/*.mod"]
 # The benchmark datasets `puremacro.datasets` loads. Without this line the
 # loaders resolve to nothing outside the author's checkout — which is what
 # they did before 1.2.0.

@@ -57,6 +57,7 @@ import pandas as pd
 from scipy.stats import norm
 
 from .._linalg import inv_xtx
+from ._common import resolve_lp_kwargs
 
 _ALLOWED_WEIGHTS = ("equal", "vw")
 
@@ -175,6 +176,9 @@ def lp_did(
     controls: Optional[Sequence[str]] = None,
     cluster: str = "unit",
     alpha: float = 0.10,
+    lags: int = 0,
+    horizon: int | None = None,
+    ci: float | None = None,
 ) -> LPDiDResult:
     """LP-DiD event-study estimates per Dube-Girardi-Jordà-Taylor (2023).
 
@@ -210,13 +214,21 @@ def lp_did(
         (DGJT §2.4).
     controls : sequence of str, optional
         Additional regressor columns, entered linearly (values at the
-        observation ``(i, t)``; pre-determined controls such as lagged
-        outcome changes are the user's responsibility to construct).
+        observation ``(i, t)``); see ``lags`` for lagged outcome changes.
     cluster : str, default 'unit'
         ``'unit'`` clusters standard errors by the ``unit`` column;
         any other value must name a column of ``panel`` to cluster on.
     alpha : float, default 0.10
         Two-sided level; CI half-width uses the normal critical value.
+    lags : int, default 0
+        Number of pre-determined lagged outcome changes
+        ``Δy_{i,t-k} = y_{i,t-k} - y_{i,t-k-1}``, ``k = 1..lags``, added to
+        the controls (DGJT's ``dylags``); observations without enough
+        history are dropped. ``0`` (default) is the baseline LP-DiD.
+    horizon : int, optional
+        2.0 alias: ``horizon=H`` sets ``horizons = range(0, H + 1)``.
+    ci : float, optional
+        2.0 alias: coverage of the bands, ``alpha = 1 - ci``.
 
     Returns
     -------
@@ -245,6 +257,8 @@ def lp_did(
     # ------------------------------------------------------------------
     # Validation
     # ------------------------------------------------------------------
+    horizons, lags, alpha = resolve_lp_kwargs(
+        horizons, lags, alpha, horizon=horizon, ci=ci, name="lp_did")
     if weights not in _ALLOWED_WEIGHTS:
         raise ValueError(
             f"lp_did: weights must be one of {_ALLOWED_WEIGHTS}, got {weights!r}")
@@ -289,6 +303,12 @@ def lp_did(
 
     df = df.sort_values([unit, time], kind="mergesort").reset_index(drop=True)
     g = df.groupby(unit, sort=False)
+
+    # Lagged outcome changes Δy_{i,t-k} as pre-determined controls.
+    for k in range(1, lags + 1):
+        col = f"__dy_lag{k}__"
+        df[col] = g[y].shift(k) - g[y].shift(k + 1)
+        ctl.append(col)
 
     D = df[treat].astype(float)
     D_prev = g[treat].shift(1).astype(float)

@@ -386,7 +386,7 @@ tells you it happened.
 |---|---|---|
 | `cholesky`, `bq`, `identify_maxshare` | recursive residual | **dropped**; warns above 5%; raises if all fail |
 | `magmav_svar` | regime-preserving residual | dropped; warns above 5%; NaN bands if all fail |
-| `proxy` | Rademacher wild | **replaced by the point estimate**, silently |
+| `proxy` | Rademacher wild (residuals *and* proxy re-signed together) | dropped; warning above 5% failures; `n_fail` reported |
 | `hetero` | moving block | replaced by the point IRF, silently |
 | `favar` | recursive residual | replaced by the point IRF, silently |
 | `gk_robust_bands` | recursive residual | NaN row, excluded by `nanpercentile` |

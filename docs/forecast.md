@@ -12,7 +12,24 @@ defined but is fitting noise. It returns a sparse coefficient vector and a
 single point forecast.
 
 ```python
+import numpy as np
+import pandas as pd
 from puremacro.forecast import forecast_penalized
+
+# The shipped 30-predictor panel: AR(1) indicators, four of which drive y one step ahead.
+rng = np.random.default_rng(123)
+T, P = 160, 30
+X = np.zeros((T, P))
+for j in range(P):
+    rho = rng.uniform(0.3, 0.8)
+    for t in range(1, T):
+        X[t, j] = rho * X[t - 1, j] + rng.normal(scale=0.8)
+y = np.full(T, 2.0)
+for t in range(1, T):
+    y[t] = 2.0 + 1.8 * X[t-1, 1] - 1.4 * X[t-1, 5] + 1.2 * X[t-1, 12] - 0.9 * X[t-1, 22] + rng.normal(scale=0.5)
+dates = pd.date_range("2010-01-01", periods=T, freq="MS")
+X_panel = pd.DataFrame(X, index=dates, columns=[f"Macro_Indicator_{j+1:02d}" for j in range(P)])
+y_target = pd.Series(y, index=dates, name="CPI Inflation")
 
 res = forecast_penalized(X_panel, y_target, horizon=1, alpha=1.0, adaptive=True)
 res.forecast            # one float: ŷ_{T+h}
@@ -21,8 +38,8 @@ print(res.summary())
 ```
 
 Notebook 34 (`notebooks/34_penalized_macro_forecasting.py`) and
-`puremacro/examples/penalized_macro_forecasting.py` run the whole thing on a
-30-predictor simulated panel. Nothing on this page touches the network.
+`puremacro/examples/penalized_macro_forecasting.py` run the whole thing on
+that panel. Nothing on this page touches the network.
 
 ## The estimator
 
@@ -36,9 +53,11 @@ the corner of that family you get.
 | `1.0` | `True` | **Adaptive Lasso** (Zou 2006) |
 | `0 < α < 1` | `False` | Elastic Net (Zou & Hastie 2005) |
 | `0 < α < 1` | `True` | Adaptive Elastic Net |
-| `0.0` | either | nominally Ridge — **do not use it**, see below |
+| `0.0` | `False` | Ridge — closed-form path, see below |
+| `0.0` | `True` | weighted Ridge (penalty `w_j β_j²`) |
 
-The objective, on standardized predictors, is
+`alpha` must lie in `[0, 1]`; anything else raises `ValueError`. The
+objective, on standardized predictors, is
 
 ```
 min  (1/2T) Σ_t (y_{t+h} - β₀ - x_t'β)²  +  λ Σ_j w_j [ α|β_j| + ½(1-α)β_j² ]
@@ -71,7 +90,7 @@ Everything after `y_target` is keyword-only.
 | `X_panel` | — | `(T, P)` DataFrame or ndarray of predictors dated *t* |
 | `y_target` | — | `(T,)` Series or ndarray of the target |
 | `horizon` | `1` | direct horizon *h*; `y_{t+h}` is regressed on `X_t` |
-| `alpha` | `0.5` | elastic-net mixing; `1.0` = Lasso, `0.0` = Ridge |
+| `alpha` | `0.5` | elastic-net mixing in `[0, 1]`; `1.0` = Lasso, `0.0` = Ridge |
 | `adaptive` | `True` | adaptive weighting of the penalty |
 | `n_lambdas` | `40` | points on the λ grid |
 | `lambda_min_ratio` | `1e-3` | `λ_min / λ_max` |
@@ -119,11 +138,26 @@ over `n_lambdas` points spaced geometrically from `λ_max` down to
 `λ_max · lambda_min_ratio`. The `df` count is taken on the *standardized*
 coefficients, while `selected_features` thresholds the un-standardized ones, so
 on a panel with wildly different column scales the two counts can differ by one
-or two. `λ_max` is the standard closed form — the smallest
+or two. For `alpha > 0`, `λ_max` is the standard closed form — the smallest
 penalty that drives every coefficient to zero, `max_j |x_j'(y-ȳ)| / (T α w_j)`
 — verified: at `λ_max` exactly 0 coefficients survive and one appears at
 `0.999 λ_max`. Ties go to the largest λ, i.e. to the sparser model. Each λ is
 fitted from a cold start; there is no warm-starting down the path.
+
+**Ridge (`alpha=0`) is a different path.** No finite λ zeroes a ridge
+coefficient, so the grid is anchored on the spectrum instead: with `e_max` the
+largest eigenvalue of the weighted `X'X/T` (`X W^{-1/2}`, `W = diag(w_j)`),
+`λ_max = 10 · e_max` — where every direction of `X` is shrunk by a factor of at
+least 11 — and the default `lambda_min_ratio` puts `λ_min` at `0.01 · e_max`,
+where the leading direction is shrunk by 1%. The path is solved in closed form
+from one SVD, and the BIC's `df` is the trace of the hat matrix,
+`Σ_j d_j² / (d_j² + T λ)` plus one for the intercept, not a count of non-zeros
+(which would be `P` at every λ). On the shipped example `alpha=0.0,
+adaptive=False` spans `[0.024, 24.3]` and reaches R² 0.967 against 0.968 for
+OLS — at the low edge of the grid, because with `T = 159 ≫ P = 30` the BIC has
+no reason to shrink — while `alpha=0.0, adaptive=True` finds an interior
+optimum at λ\* = 2.03 with R² 0.964. Ridge never selects: `selected_features`
+lists all `P` names.
 
 **There is no cross-validation anywhere in this function, or anywhere in
 `puremacro.forecast`.** No k-fold, no rolling-origin CV, no blocked or purged
@@ -143,18 +177,16 @@ Two consequences to plan around:
   selected sets and losses, not λ.
 - **Check the chosen λ is interior.** If it lands on either end of the grid,
   the grid did not bracket the BIC minimum and the answer is an artefact of
-  `lambda_min_ratio`:
+  `lambda_min_ratio`. It happens for real. At `alpha=0.02, adaptive=True` on
+  the shipped example the default grid pins to `λ_min = 3.68` and returns 11
+  predictors with R² 0.956; `lambda_min_ratio=1e-5` moves the optimum into the
+  interior at λ\* = 2.29 (13 predictors, R² 0.961), and adding `n_lambdas=60`
+  refines it to λ\* = 1.01 (16 predictors, R² 0.966).
 
-  ```python
-  edges = (res.bic_path.index[0], res.bic_path.index[-1])
-  assert res.optimal_lambda not in edges, "widen lambda_min_ratio"
-  ```
-
-  It happens for real. At `alpha=0.02, adaptive=True` on the shipped example
-  the default grid pins to `λ_min = 3.68` and returns 11 predictors with
-  R² 0.956; `lambda_min_ratio=1e-5` moves the optimum into the interior at
-  λ\* = 2.29 (13 predictors, R² 0.961), and adding `n_lambdas=60` refines it to
-  λ\* = 1.01 (16 predictors, R² 0.966).
+```python
+edges = (res.bic_path.index[0], res.bic_path.index[-1])
+assert res.optimal_lambda not in edges, "widen lambda_min_ratio"
+```
 
 ## Standardisation, and what a coefficient means
 
@@ -201,28 +233,19 @@ A frozen `PenalizedForecastResult` dataclass:
 | `bic_path` | `pd.Series`, length `n_lambdas` | index = λ descending from `λ_max`; values = BIC |
 | `horizon` | `int` | the `h` you passed, echoed |
 
-Plus `.summary()`, a formatted string. When `X_panel` is an ndarray the feature
-names are generated as `X_1 … X_P`.
+Plus the presentation methods: `.summary()` (a formatted string),
+`.to_frame()` (every candidate with its coefficient and a `selected` flag),
+`.to_markdown()` / `.to_latex()` / `.to_typst()` (that table rendered through
+`puremacro.reports`) and `.plot()` (horizontal bars of the selected
+coefficients, or the BIC path when nothing survived; returns the Figure). When
+`X_panel` is an ndarray the feature names are generated as `X_1 … X_P`.
 
 There is no standard error, no confidence interval and no predictive density —
 post-selection inference on a penalized fit is not valid without a debiasing
 step this module does not implement, and none is pretended.
 
-## Six things that will bite you
+## Five things that will bite you
 
-- **`alpha=0.0` is broken.** `λ_max` divides by `max(α·w_j, 1e-4)`, so with
-  α = 0 the denominator falls back to the `1e-4` floor and the whole grid is
-  10⁴ times too high: on the shipped example it spans `[15.7, 15679]` instead
-  of `[0.0016, 1.57]`. The ridge shrinkage denominator in the coordinate step is
-  `1 + λ(1-α)w_j`, so even the *least*-penalized point on that grid shrinks
-  every coefficient by a factor of about 1/16.7. Worse, `df` is counted as the
-  number of non-zero coefficients — correct for the Lasso, wrong for a ridge
-  fit, where the effective df is the trace of the hat matrix. The result:
-  `alpha=0.0, adaptive=False` minimises BIC at `λ_max` and returns the sample
-  mean, in-sample R² **0.0002**, against 0.961 for the Lasso on the same data.
-  `alpha=0.0, adaptive=True` pins to the other end and manages 0.880. Use
-  `alpha=0.05` for a ridge-like fit — it behaves (4 predictors, R² 0.959) —
-  and check the λ is interior.
 - **NaNs propagate silently and the R² lies.** There is no `dropna`, no mask
   and no complete-case filter. One NaN anywhere in `X_panel` returns
   `forecast=nan`, `selected_features=[]` and `in_sample_r2=1.0` — the R² is
@@ -233,8 +256,8 @@ step this module does not implement, and none is pretended.
 - **Alignment is positional; the index is ignored.** `y_target` is converted
   with `.to_numpy()` and never joined on `X_panel`'s index. Shifting the
   target's DatetimeIndex by five years produces a bit-identical result. Line the
-  two up yourself. Mismatched *lengths* do raise, but as an opaque numpy
-  `matmul` dimension error rather than a check.
+  two up yourself. Mismatched *lengths* raise
+  `ValueError: y_target has 155 rows but X_panel has 160; alignment is positional`.
 - **`T - horizon` must be at least 10.** Below that it raises
   `ValueError: forecast_penalized: effective training sample too small (9 rows)`.
 - **`in_sample_r2` is in-sample and BIC-selected.** With `P > T` it goes to
@@ -242,7 +265,10 @@ step this module does not implement, and none is pretended.
   more predictors than it has training rows (40–45 across six seeds, against 39
   rows) and reports R² 1.000. It is a diagnostic of the fit, never evidence
   about the forecast.
-- **`alpha` is not validated.** `alpha=2.0` runs and returns a result.
+- **`horizon` is not validated.** `horizon=0` returns the in-sample fit at the
+  last row and a negative value takes the same branch (see above). `alpha`,
+  `n_lambdas` and `lambda_min_ratio` *are* validated: `alpha=2.0`, which used
+  to run, now raises.
 
 ## Turning one number into a track record
 
@@ -257,6 +283,7 @@ Apple M3 Pro, so an 80-origin loop is a few seconds:
 import numpy as np
 from puremacro.forecast import forecast_penalized, diebold_mariano
 
+X, y = X_panel, y_target          # the shipped panel from the first block
 h, start = 1, 120
 preds, actuals = [], []
 for t in range(start, len(y) - h):

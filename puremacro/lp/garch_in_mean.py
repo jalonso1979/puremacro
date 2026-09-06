@@ -9,6 +9,7 @@ import pandas as pd
 from .jorda import lp_hac
 from ._results import LPResult
 from ..garch.fit import garch11_fit
+from ._common import resolve_lp_kwargs
 
 
 def lp_garch_in_mean(
@@ -25,12 +26,8 @@ def lp_garch_in_mean(
     ci: float | None = None,
 ) -> LPResult:
     """Fit GARCH(1,1) on Δx, then run lp_hac with σ_t added to controls."""
-    if lags is not None:
-        n_lags = lags
-    if horizon is not None:
-        horizons = range(0, horizon + 1)
-    if ci is not None:
-        alpha = 1.0 - ci
+    horizons, n_lags, alpha = resolve_lp_kwargs(
+        horizons, n_lags, alpha, lags=lags, horizon=horizon, ci=ci, name="lp_garch_in_mean")
     df = df.copy()
     eps = df[x].diff().dropna()
     garch = garch11_fit(eps)
@@ -44,6 +41,7 @@ def lp_garch_in_mean(
     res.y_name = str(y)
     res.x_name = str(x)
     res.method = "LP-garch-in-mean"
+    res.ci_level = 1.0 - alpha
     return res
 
 

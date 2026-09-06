@@ -1,9 +1,48 @@
-"""Frozen-dataclass result objects for puremacro.inference."""
+"""Frozen-dataclass result objects for puremacro.inference.
+
+Every result implements the presentation contract shared by the package's
+result objects: ``summary()`` (plain text), ``to_frame()`` (a tidy
+``pandas.DataFrame``), ``to_markdown()`` / ``to_latex()`` / ``to_typst()``
+(rendered through the :mod:`puremacro.reports` table helpers) and
+``plot()`` (a matplotlib ``Figure``).
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
+import pandas as pd
+
+
+def _render(df: pd.DataFrame, fmt: str) -> str:
+    """Render a table through the shared reports helpers."""
+    from ..reports import _df_to_latex, _df_to_markdown, _df_to_typst
+
+    if fmt == "markdown":
+        return _df_to_markdown(df, index=False)
+    if fmt == "latex":
+        return _df_to_latex(df, index=False)
+    if fmt == "typst":
+        return _df_to_typst(df, index=False)
+    raise ValueError(f"unknown fmt {fmt!r}")  # pragma: no cover
+
+
+def _fmt(v: Any, digits: int) -> Any:
+    if isinstance(v, (bool, np.bool_)):
+        return bool(v)
+    if isinstance(v, (int, np.integer)):
+        return int(v)
+    if isinstance(v, (float, np.floating)):
+        return round(float(v), digits)
+    return v
+
+
+def _kv_frame(rows: list[tuple[str, Any]], digits: int) -> pd.DataFrame:
+    return pd.DataFrame(
+        {"statistic": [r[0] for r in rows],
+         "value": [_fmt(r[1], digits) for r in rows]}
+    )
 
 
 @dataclass(frozen=True)
@@ -44,6 +83,54 @@ class ARTestResult:
             f"  df (num, den)     : ({self.df_num}, {self.df_den})\n"
             f"  residual SS       : {self.residual_ss:.4f}\n"
         )
+
+    def to_frame(self, digits: int = 4) -> pd.DataFrame:
+        """Two-column ``statistic`` / ``value`` table."""
+        return _kv_frame([
+            ("F", self.stat),
+            ("p_value", self.p_value),
+            ("df_num", self.df_num),
+            ("df_den", self.df_den),
+            ("residual_ss", self.residual_ss),
+        ], digits)
+
+    def to_markdown(self, digits: int = 4) -> str:
+        """Render as GitHub-flavored Markdown."""
+        return _render(self.to_frame(digits), "markdown")
+
+    def to_latex(self, digits: int = 4) -> str:
+        """Render as a LaTeX ``tabular``."""
+        return _render(self.to_frame(digits), "latex")
+
+    def to_typst(self, digits: int = 4) -> str:
+        """Render as a Typst ``#table``."""
+        return _render(self.to_frame(digits), "typst")
+
+    def plot(self, *, alpha: float = 0.05, title: str = "", ax=None):
+        """Plot the null F(df_num, df_den) density with the observed
+        statistic and the ``1 - alpha`` critical value marked. Returns the
+        Figure."""
+        from scipy.stats import f as _f_dist
+
+        from ..plot import _new_ax
+
+        fig, ax = _new_ax(ax)
+        if self.df_num > 0 and self.df_den > 0 and np.isfinite(self.stat):
+            crit = float(_f_dist.ppf(1 - alpha, self.df_num, self.df_den))
+            hi = max(crit, self.stat) * 1.25 + 1e-9
+            grid = np.linspace(1e-6, hi, 400)
+            ax.plot(grid, _f_dist.pdf(grid, self.df_num, self.df_den),
+                    color="0.1", lw=1.0, label=f"F({self.df_num}, {self.df_den})")
+            ax.axvline(crit, color="0.5", ls="--", lw=0.9,
+                       label=f"{100 * (1 - alpha):.0f}% critical value")
+            ax.axvline(self.stat, color="0.1", ls="-", lw=1.4,
+                       label=f"AR statistic (p={self.p_value:.3f})")
+            ax.legend(frameon=False, fontsize=8)
+        ax.set_xlabel("F")
+        ax.set_ylabel("density")
+        ax.set_title(title or "Anderson-Rubin test")
+        fig.tight_layout()
+        return fig
 
 
 @dataclass(frozen=True)
@@ -107,6 +194,47 @@ class SupTBandResult:
             f"  mean band width   : {width.mean():.4f}\n"
         )
 
+    def to_frame(self, digits: int = 4) -> pd.DataFrame:
+        """Per-coordinate table with columns ``h``, ``center``, ``scale``,
+        ``lower``, ``upper``."""
+        H = self.lower.shape[0]
+        return pd.DataFrame({
+            "h": np.arange(H),
+            "center": np.round(np.asarray(self.center, dtype=float), digits),
+            "scale": np.round(np.asarray(self.scale, dtype=float), digits),
+            "lower": np.round(np.asarray(self.lower, dtype=float), digits),
+            "upper": np.round(np.asarray(self.upper, dtype=float), digits),
+        })
+
+    def to_markdown(self, digits: int = 4) -> str:
+        """Render the band table as GitHub-flavored Markdown."""
+        return _render(self.to_frame(digits), "markdown")
+
+    def to_latex(self, digits: int = 4) -> str:
+        """Render the band table as a LaTeX ``tabular``."""
+        return _render(self.to_frame(digits), "latex")
+
+    def to_typst(self, digits: int = 4) -> str:
+        """Render the band table as a Typst ``#table``."""
+        return _render(self.to_frame(digits), "typst")
+
+    def plot(self, *, title: str = "", ylabel: str = "response", ax=None):
+        """Plot the center path with the simultaneous band. Returns the Figure."""
+        from ..plot import _new_ax
+
+        fig, ax = _new_ax(ax)
+        h = np.arange(self.lower.shape[0])
+        ax.fill_between(h, self.lower, self.upper, color="0.85",
+                        label=f"{100 * (1 - self.alpha):.0f}% sup-t band")
+        ax.plot(h, self.center, color="0.1", lw=1.2, label="center")
+        ax.axhline(0.0, color="0.6", lw=0.6)
+        ax.set_xlabel("h")
+        ax.set_ylabel(ylabel)
+        ax.set_title(title or f"Sup-t band ({self.method}, c={self.crit_value:.3f})")
+        ax.legend(frameon=False, fontsize=8)
+        fig.tight_layout()
+        return fig
+
 
 @dataclass(frozen=True)
 class LewbelIVResult:
@@ -127,7 +255,8 @@ class LewbelIVResult:
     n_obs : int
         Sample size after dropping rows with NaN inputs.
     n_iv_constructed : int
-        Number of Lewbel instruments constructed (k_z × k_endog).
+        Number of Lewbel instruments constructed: (number of non-constant
+        columns of ``heterosk_source``) × k_endog.
     first_stage_F : float
         First-stage F statistic for the **first** endogenous regressor only
         (joint significance of the constructed IVs). Multi-regressor extension
@@ -163,3 +292,57 @@ class LewbelIVResult:
             f"  first-stage F            : {self.first_stage_F:.2f}\n"
             f"  Lewbel diag p-value      : {diag['p_value']:.4f} [{strength}]\n"
         )
+
+    def to_frame(self, digits: int = 4,
+                 names: list[str] | None = None) -> pd.DataFrame:
+        """Coefficient table with columns ``variable``, ``beta``, ``se``, ``t``."""
+        beta = np.asarray(self.beta, dtype=float).ravel()
+        if names is None:
+            names = [f"x{i}" for i in range(beta.size)]
+        if len(names) != beta.size:
+            raise ValueError(
+                f"names has {len(names)} entries but beta has {beta.size}"
+            )
+        return pd.DataFrame({
+            "variable": list(names),
+            "beta": np.round(beta, digits),
+            "se": np.round(np.asarray(self.se, dtype=float).ravel(), digits),
+            "t": np.round(np.asarray(self.t, dtype=float).ravel(), digits),
+        })
+
+    def to_markdown(self, digits: int = 4, names: list[str] | None = None) -> str:
+        """Render the coefficient table as GitHub-flavored Markdown."""
+        return _render(self.to_frame(digits, names), "markdown")
+
+    def to_latex(self, digits: int = 4, names: list[str] | None = None) -> str:
+        """Render the coefficient table as a LaTeX ``tabular``."""
+        return _render(self.to_frame(digits, names), "latex")
+
+    def to_typst(self, digits: int = 4, names: list[str] | None = None) -> str:
+        """Render the coefficient table as a Typst ``#table``."""
+        return _render(self.to_frame(digits, names), "typst")
+
+    def plot(self, *, names: list[str] | None = None, level: float = 0.95,
+             title: str = "", ax=None):
+        """Coefficient plot with ``level`` normal confidence intervals.
+        Returns the Figure."""
+        from scipy.stats import norm
+
+        from ..plot import _new_ax
+
+        fig, ax = _new_ax(ax)
+        beta = np.asarray(self.beta, dtype=float).ravel()
+        se = np.asarray(self.se, dtype=float).ravel()
+        if names is None:
+            names = [f"x{i}" for i in range(beta.size)]
+        z = float(norm.ppf(0.5 + level / 2))
+        pos = np.arange(beta.size)
+        ax.errorbar(pos, beta, yerr=z * se, fmt="o", color="0.1",
+                    ecolor="0.4", capsize=3)
+        ax.axhline(0.0, color="0.6", lw=0.6)
+        ax.set_xticks(pos)
+        ax.set_xticklabels(list(names))
+        ax.set_ylabel("coefficient")
+        ax.set_title(title or f"Lewbel IV (first-stage F={self.first_stage_F:.1f})")
+        fig.tight_layout()
+        return fig

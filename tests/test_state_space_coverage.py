@@ -660,3 +660,51 @@ def test_all_exports():
     assert "kalman_filter" in state_space.__all__
     assert "kalman_smoother" in state_space.__all__
     assert "simulation_smoother" in state_space.__all__
+
+
+# ---------------------------------------------------------------------------
+# System-matrix validation (v2.3.x regression): time-invariant 2-D only
+# ---------------------------------------------------------------------------
+
+class TestSystemMatrixValidation:
+    """The module docstring used to claim 3-D ``(T, ...)`` time-varying
+    matrices were accepted; they crashed deep inside the recursions
+    (``ValueError: Input must be 1- or 2-d`` / matmul mismatch). The
+    docstring now says time-invariant only and the container raises a
+    clear error up front."""
+
+    def test_time_varying_Z_raises_clear_error(self):
+        with pytest.raises(ValueError, match="time-invariant"):
+            StateSpaceModel(T=np.eye(1), Z=np.ones((200, 1, 1)),
+                            Q=np.array([[0.09]]), H=np.array([[0.49]]))
+
+    def test_time_varying_T_raises_clear_error(self):
+        with pytest.raises(ValueError, match="time-invariant"):
+            StateSpaceModel(T=np.tile(np.eye(1), (200, 1, 1)), Z=np.eye(1),
+                            Q=np.array([[0.09]]), H=np.array([[0.49]]))
+
+    def test_inconsistent_shapes_raise(self):
+        with pytest.raises(ValueError, match="Z must be"):
+            StateSpaceModel(T=np.eye(2), Z=np.ones((1, 3)), Q=np.eye(2), H=np.eye(1))
+        with pytest.raises(ValueError, match="H must be"):
+            StateSpaceModel(T=np.eye(2), Z=np.ones((1, 2)), Q=np.eye(2), H=np.eye(2))
+        with pytest.raises(ValueError, match="Q must be"):
+            StateSpaceModel(T=np.eye(2), Z=np.ones((1, 2)), Q=np.eye(1), H=np.eye(1))
+        with pytest.raises(ValueError, match="R must be"):
+            StateSpaceModel(T=np.eye(2), Z=np.ones((1, 2)), Q=np.eye(1), H=np.eye(1),
+                            R=np.ones((3, 1)))
+        with pytest.raises(ValueError, match="c must be"):
+            StateSpaceModel(T=np.eye(2), Z=np.ones((1, 2)), Q=np.eye(2), H=np.eye(1),
+                            c=np.zeros(3))
+
+    def test_module_docstring_no_longer_claims_time_varying_support(self):
+        import puremacro.state_space as ss
+        assert "time-invariant" in ss.__doc__
+        assert "not supported" in ss.__doc__
+        assert "(time-varying)" not in ss.__doc__
+
+    def test_valid_2d_model_with_selection_matrix_still_works(self):
+        m = StateSpaceModel(T=np.array([[1.2, -0.4], [1.0, 0.0]]), Z=np.array([[1.0, 0.0]]),
+                            Q=np.array([[1.0]]), H=np.array([[0.3]]), R=np.array([[1.0], [0.0]]))
+        out = kalman_filter(np.zeros(10), m)
+        assert np.isfinite(out["loglik"])

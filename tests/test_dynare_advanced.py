@@ -66,12 +66,29 @@ def test_sw07_pfeifer_full_solve():
     assert "labobs" in df_ea.columns
     assert "robs" in df_ea.columns
 
+    # The model is determinate: a unique stable solution with nonzero,
+    # equation-satisfying decision rules (before 2.3.1 the engine dropped the
+    # lead-of-state Jacobian block, the BK check failed and every rule was 0).
+    assert m.solution.eu == (1, 1)
+    assert np.abs(dr.ghu.to_numpy()).max() > 1.0
+    assert np.abs(res.irfs["robs_em"].to_numpy()).max() > 0.05
+    states = list(m.states)
+    F_full = dr.ghx.to_numpy()
+    L_full = dr.ghu.to_numpy()
+    s_idx = [list(m.variables).index(v) for v in states]
+    resid_x = m._A_plus @ F_full @ m.solution.G + m._A_0 @ F_full + m._A_minus[:, s_idx]
+    resid_u = m._A_plus @ F_full @ m.solution.N + m._A_0 @ L_full + m._B_u
+    assert np.abs(resid_x).max() < 1e-9
+    assert np.abs(resid_u).max() < 1e-9
+
     # Formatted reports
     summ = res.summary()
     assert "DYNARE STOCH_SIMUL REPORT (Order 1)" in summ
     assert "\\begin{tabular}" in res.to_latex()
     assert "#table" in res.to_typst()
-    assert "| Mean |" in res.to_markdown() or "| Std.Dev. |" in res.to_markdown()
+    md = res.to_markdown()
+    # column padding depends on the numbers' width, so check the headers only
+    assert "Mean" in md and "Std.Dev." in md and md.startswith("|")
 
 
 def test_hansen_1985_rbc_1st_and_2nd_order():

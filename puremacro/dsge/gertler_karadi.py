@@ -35,8 +35,9 @@ Features
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Sequence, cast
 
+import warnings
 import numpy as np
 import pandas as pd
 import scipy.optimize
@@ -108,6 +109,10 @@ def solve_steady_state(params: Mapping[str, float] | None = None) -> dict[str, f
     if params is not None:
         p.update(params)
 
+    if not (0.0 < float(p["beta"]) < 1.0):
+        raise ValueError(f"beta must lie in (0, 1) for a well-defined steady state, got {p['beta']!r}")
+    if not (0.0 < float(p["theta_b"]) < 1.0):
+        raise ValueError(f"theta_b (banker survival probability) must lie in (0, 1), got {p['theta_b']!r}")
     beta = p["beta"]
     R = 1.0 / beta
     theta_b = p["theta_b"]
@@ -133,7 +138,13 @@ def solve_steady_state(params: Mapping[str, float] | None = None) -> dict[str, f
         phi_ic = eta_val / (lambda_b - nu_val)
         return phi_nw - phi_ic
 
-    sol_prem = scipy.optimize.brentq(res_prem, 1e-6, 0.05)
+    try:
+        sol_prem = scipy.optimize.brentq(res_prem, 1e-6, 0.05)
+    except ValueError as exc:
+        raise ValueError(
+            "solve_steady_state: no steady-state credit spread in (0, 5%) for these "
+            "parameters (check beta < 1, 0 < theta_b < 1, lambda_b, omega_b)"
+        ) from exc
     prem_ss = float(sol_prem)
     Rk_ss = R + prem_ss
     phi_ss = (1.0 - theta_b * R) / (theta_b * prem_ss + omega_b)
@@ -402,14 +413,18 @@ def build_gertler_karadi_model(
     else:
         raise ValueError(f"unknown regime {regime!r}; expected 'reference' or 'constrained'")
 
-    return build_dynare(
+    return cast(LinearModel, build_dynare(
         eq_fn,
         variables=GK_VARIABLES,
         shocks=GK_SHOCKS,
         params=full_params,
         steady_state=ss,
+        # Only the reference regime must satisfy Blanchard-Kahn; an OccBin
+        # alternative regime is solved by backward recursion from the reference
+        # rule and is allowed to be indeterminate/unstable on its own.
+        strict=(regime == "reference"),
         check_steady_state=check_steady_state,
-    )
+    ))
 
 
 # ---------------------------------------------------------------------------
@@ -454,6 +469,7 @@ class GertlerKaradiResult:
     shock_size: float = -0.05
     binding_periods: int = 0
     regimes: list[int] = field(default_factory=list)
+    converged: bool = True
     model: Any | None = None
     occbin_result: Any | None = None
     params: dict[str, float] = field(default_factory=dict)
@@ -474,6 +490,8 @@ class GertlerKaradiResult:
         """Render a formatted text summary of calibration and simulation results."""
         horizon = len(self.irf)
         status = f"Piecewise-linear (OccBin), {self.binding_periods} binding period(s)" if self.solver_method == "occbin" else "Linear (Klein QZ)"
+        if not self.converged:
+            status += " -- WARNING: regime iteration did NOT converge; path is unreliable"
         
         lines = [
             "GERTLER-KARADI (2011) FINANCIAL FRICTIONS DSGE REPORT",
@@ -560,6 +578,11 @@ class GertlerKaradiResult:
             variables = [v for v in variables if v in self.irf.columns]
 
         n_vars = len(variables)
+        if n_vars == 0:
+            raise ValueError(
+                "plot: none of the requested variables exist in the simulated path; "
+                f"available: {list(self.irf.columns)}"
+            )
         n_cols = min(3, n_vars)
         n_rows = (n_vars + n_cols - 1) // n_cols
 
@@ -674,6 +697,9 @@ def solve_gertler_karadi(
         Result container with impulse responses, steady-state dictionary,
         solver diagnostics, and visualization methods.
     """
+    if int(horizon) != horizon or horizon < 1:
+        raise ValueError(f"horizon must be a positive integer number of quarters, got {horizon!r}")
+    horizon = int(horizon)
     p_dict = dict(GK2011_PARAMS)
     if params is not None:
         p_dict.update(params)
@@ -763,6 +789,15 @@ def solve_gertler_karadi(
             horizon=horizon,
         )
 
+        occ_converged = bool(getattr(res_occ, "converged", True))
+        if not occ_converged:
+            warnings.warn(
+                f"solve_gertler_karadi: the OccBin regime iteration did not converge "
+                f"within max_iter={max_iter}; the returned path is unreliable. "
+                "Increase max_iter or shorten the horizon.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
         return GertlerKaradiResult(
             irf=res_occ.simulated_path.copy(),
             variables=GK_VARIABLES,
@@ -772,6 +807,7 @@ def solve_gertler_karadi(
             shock_size=shock_size,
             binding_periods=res_occ.binding_periods,
             regimes=res_occ.regimes,
+            converged=occ_converged,
             model=ref_model,
             occbin_result=res_occ,
             params=p_dict,

@@ -7,11 +7,20 @@ common applied case of staggered adoption. The procedure is:
   1. Identify treatment **cohorts** — groups of units that first switch
      to treatment at the same calendar time ``g``.
   2. For each cohort ``g``, run single-cohort SDID using cohort
-     members as the treated block and (a) never-treated units plus
-     (b) units not yet treated at ``g`` as donors. This guarantees a
-     non-empty donor pool for every cohort even in fully-staggered
-     designs without never-treated units (so long as the last cohort
-     is not the only one).
+     members as the treated block and a donor pool that is **untreated
+     throughout the SDID window** (see ``control`` below):
+
+     - ``"never_treated"`` — never-treated units over the full panel
+       (the convention of the ``synthdid`` staggered-adoption vignette).
+     - ``"not_yet_treated"`` — never-treated **and** not-yet-treated
+       units (``treat_time > g``), with the window truncated at the
+       next cohort's switch date so every donor is still untreated in
+       every period used. This guarantees a non-empty donor pool even
+       in fully-staggered designs without never-treated units (so long
+       as the last cohort is not the only one).
+     - ``"auto"`` (default) — never-treated donors when at least two
+       exist, otherwise the not-yet-treated rule.
+
   3. Aggregate the cohort-specific ATTs:
 
      - ``"att"`` — cohort-size-weighted mean of the per-cohort ATTs.
@@ -47,6 +56,8 @@ import pandas as pd
 from ._results import SDIDMultiResult
 from .synthetic_did import synthetic_did
 
+_CONTROL_CHOICES = ("auto", "never_treated", "not_yet_treated")
+
 
 def _identify_cohorts(d: np.ndarray, p: np.ndarray, t: np.ndarray):
     """For each unit, the first time at which ``D = 1`` (or ``NaN`` if
@@ -77,13 +88,39 @@ def _build_long_df(y, d, p, t, cohort_of):
     })
 
 
+def _cohort_donor_window(
+    df_full: pd.DataFrame, g: float, cohort_members: np.ndarray, control: str,
+) -> tuple[np.ndarray, Optional[float]]:
+    """Donor units for cohort ``g`` and the (exclusive) end of the SDID
+    window, ``None`` meaning the full panel.
+
+    Donors are only ever used over periods in which they are untreated:
+    not-yet-treated donors force the window to stop at the earliest of
+    their own switch dates.
+    """
+    unit_tt = df_full.groupby("unit")["treat_time"].first()
+    nt_units = unit_tt.index[unit_tt.isna()].to_numpy()
+    nyt_units = unit_tt.index[unit_tt > g].to_numpy()
+    nt_units = np.setdiff1d(nt_units, cohort_members)
+    nyt_units = np.setdiff1d(nyt_units, cohort_members)
+
+    if control == "never_treated" or (control == "auto" and len(nt_units) >= 2):
+        return nt_units, None
+    donors = np.concatenate([nt_units, nyt_units])
+    if len(nyt_units) == 0:
+        return donors, None
+    window_end = float(unit_tt.loc[nyt_units].min())
+    return donors, window_end
+
+
 def _sdid_per_cohort(
     df_full: pd.DataFrame,
     *,
     seed: int,
+    control: str = "auto",
 ):
-    """Run single-cohort SDID for each cohort using a donor pool of
-    never-treated + not-yet-treated units. Returns (cohort_times_array,
+    """Run single-cohort SDID for each cohort on a donor pool that is
+    untreated throughout the window. Returns (cohort_times_array,
     cohort_atts_array, cohort_sizes_array).
     """
     cohort_times = np.sort(df_full.loc[~df_full["treat_time"].isna(),
@@ -97,20 +134,20 @@ def _sdid_per_cohort(
                                        "unit"].unique()
         if len(cohort_members) == 0:
             continue
-        # Donors: never-treated + not-yet-treated (treat_time > g).
-        donor_mask = df_full["treat_time"].isna() | (df_full["treat_time"] > g)
-        donor_units = df_full.loc[donor_mask, "unit"].unique()
-        donor_units = np.setdiff1d(donor_units, cohort_members)
+        donor_units, window_end = _cohort_donor_window(
+            df_full, float(g), cohort_members, control,
+        )
         if len(donor_units) < 2:
             continue
         keep = np.concatenate([cohort_members, donor_units])
         sub = df_full[df_full["unit"].isin(keep)].copy()
+        if window_end is not None:
+            # Drop periods from the next cohort's switch onwards so every
+            # not-yet-treated donor stays untreated throughout the window.
+            sub = sub[sub["time"] < window_end]
         # Re-write treat_time so only cohort members carry g; donors carry NaN.
         sub_treat_time = np.where(sub["unit"].isin(cohort_members), g, np.nan)
         sub["treat_time"] = sub_treat_time
-        # Drop time periods past the *next* cohort's switch so donors stay
-        # untreated throughout the SDID window. This isolates the (g, post)
-        # comparison cleanly.
         try:
             with warnings.catch_warnings():
                 # n_boot=0 inside synthetic_did triggers harmless
@@ -119,7 +156,8 @@ def _sdid_per_cohort(
                 # call so suppress them.
                 warnings.simplefilter("ignore", RuntimeWarning)
                 res = synthetic_did(sub, n_boot=0, seed=seed)
-        except (ValueError, Exception):
+        except ValueError:
+            # Too few pre / post periods or donors inside the window.
             continue
         cohort_atts.append(float(res.tau))
         cohort_sizes.append(int(len(cohort_members)))
@@ -136,6 +174,7 @@ def sdid_multi_cohort(
     time_id,
     *,
     aggregation: str = "att",
+    control: str = "auto",
     n_boot: int = 500,
     seed: Optional[int] = None,
 ) -> SDIDMultiResult:
@@ -157,6 +196,13 @@ def sdid_multi_cohort(
         ``"att"`` returns a single cohort-size-weighted ATT. ``"att_g_t"``
         additionally returns the full ``cohort × event-time`` grid in
         the ``att_g_t`` field.
+    control : {"auto", "never_treated", "not_yet_treated"}, default "auto"
+        Donor pool for each cohort. ``"never_treated"`` uses never-treated
+        units over the full panel; ``"not_yet_treated"`` also admits units
+        treated later than ``g`` but truncates the SDID window at their
+        earliest switch date so no donor is ever treated inside the
+        window; ``"auto"`` picks ``"never_treated"`` when at least two
+        never-treated units exist and ``"not_yet_treated"`` otherwise.
     n_boot : int, default 500
         Cluster-bootstrap replications.
     seed : int | None
@@ -170,6 +216,12 @@ def sdid_multi_cohort(
 
     Notes
     -----
+    A cohort is skipped when fewer than two donors remain or its window
+    holds fewer than two pre-periods / one post-period; with
+    ``control="not_yet_treated"`` and no never-treated units the last
+    cohort therefore never has an estimate. A ``ValueError`` is raised
+    when no cohort at all is identifiable.
+
     Single-cohort SDID is run on each cohort with seed ``0`` so that
     repeated invocations are deterministic. The bootstrap loop uses
     ``seed + b`` per replicate.
@@ -187,6 +239,10 @@ def sdid_multi_cohort(
         raise ValueError(
             f"aggregation must be 'att' or 'att_g_t', got {aggregation!r}"
         )
+    if control not in _CONTROL_CHOICES:
+        raise ValueError(
+            f"control must be one of {_CONTROL_CHOICES}; got {control!r}"
+        )
 
     y = np.asarray(y, dtype=float)
     d = np.asarray(treatment).astype(int)
@@ -198,14 +254,23 @@ def sdid_multi_cohort(
 
     cohort_of, units, _times = _identify_cohorts(d, p, t)
     df_full = _build_long_df(y, d, p, t, cohort_of)
+    n_never = int(sum(1 for u in units if np.isnan(cohort_of[u])))
+    if control == "never_treated" and n_never < 2:
+        raise ValueError(
+            "control='never_treated' needs at least two never-treated units "
+            f"(found {n_never}); use control='not_yet_treated' or 'auto'"
+        )
 
     point_seed = 0 if seed is None else int(seed)
     cohort_times, cohort_atts, cohort_sizes = _sdid_per_cohort(
-        df_full, seed=point_seed,
+        df_full, seed=point_seed, control=control,
     )
     if len(cohort_atts) == 0:
-        raise ValueError("no identifiable cohorts (need at least one treated "
-                          "cohort with >= 2 donors)")
+        raise ValueError(
+            "no identifiable cohorts: every cohort has fewer than two "
+            "untreated donors or fewer than two pre-periods / one "
+            "post-period inside its donor window"
+        )
     weights = cohort_sizes / cohort_sizes.sum()
     att_point = float(np.sum(weights * cohort_atts))
 
@@ -230,14 +295,17 @@ def sdid_multi_cohort(
             boot_df = pd.concat(boot_rows, ignore_index=True)
             try:
                 _, b_atts, b_sizes = _sdid_per_cohort(
-                    boot_df, seed=point_seed + b + 1,
+                    boot_df, seed=point_seed + b + 1, control=control,
                 )
                 if len(b_atts) > 0 and b_sizes.sum() > 0:
                     w_b = b_sizes / b_sizes.sum()
                     boot_atts[b] = float(np.sum(w_b * b_atts))
             except Exception:
                 continue
-    se = float(np.nanstd(boot_atts, ddof=0)) if n_boot > 0 else float("nan")
+    if n_boot > 0 and np.isfinite(boot_atts).any():
+        se = float(np.nanstd(boot_atts, ddof=0))
+    else:
+        se = float("nan")
 
     # ---------------- att_g_t grid ----------------
     if aggregation == "att_g_t":

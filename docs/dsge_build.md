@@ -102,7 +102,7 @@ Determinacy is not an assumption you assert but a property of the solve. In the
 worked New Keynesian example, violating the Taylor principle is a raised
 exception rather than a footnote:
 
-```python
+```text
 solve(phi_pi=0.9)
 # BlanchardKahnError: Blanchard-Kahn indeterminacy: 2 unstable generalised
 # eigenvalues vs 3 forward-looking variables
@@ -236,10 +236,9 @@ print(m.theoretical_moments().summary())
 Solve second-order approximations directly from Python equations or `.mod` files:
 
 ```python
-# Pass order=2 to build_dynare or load_mod:
-sol_2nd = dsge.build_dynare(rbc, ..., order=2)
-# Or from an existing solved LinearModel:
-sol_2nd = m.solve_second_order()
+# Second order: pass order=2 to load_mod / build_dynare, or re-solve an existing model
+sol_2nd = m.solve(order=2)              # PrunedDSGESolution (Kim-Kim-Schaumburg-Sims pruning)
+print(sol_2nd.oo_dr.summary())          # ghx, ghu, ghxx, ghxu, ghuu, ghs2 in Dynare layout
 ```
 
 This returns a `PrunedDSGESolution` solving the Schmitt-Grohé & Uribe (2004) generalized Sylvester system for $(H_{xx}, G_{xx})$ and the risk correction system for $(H_{\sigma\sigma}, G_{\sigma\sigma})$.
@@ -293,33 +292,50 @@ CLI options:
 It computes the time path of regime switches between the reference (unconstrained) regime $M_1$ and the alternative (constrained) regime $M_2$ via backward recursion:
 
 ```python
-from puremacro.dsge import solve_occbin, OccBinConstraint
+import numpy as np
+from puremacro.dsge import build_dynare, solve_occbin, OccBinConstraint
 
-# Define reference unconstrained model (Taylor rule) and constrained model (ZLB)
-m_ref = dsge.load_mod("nk_taylor.mod")
-m_zlb = dsge.load_mod("nk_zlb.mod")
+# Three-equation New Keynesian model. The constrained regime pegs the nominal
+# rate at the zero lower bound (r = -r_ss in deviations from steady state).
+params = {"beta": 0.99, "sigma": 1.0, "kappa": 0.1, "phi_pi": 1.5, "phi_y": 0.125, "rho_g": 0.8, "r_ss": 0.01}
+variables = ["y", "pi", "r", "g"]
+shocks = ["eps_r", "eps_g"]
+steady_state = {v: 0.0 for v in variables}
 
-# Define constraint: bind when shadow nominal interest rate r <= 0
-constraint = OccBinConstraint(
-    variable="r",
-    threshold=0.0,
-    direction="below",  # binds when variable <= threshold
-)
+def nk_taylor(lead, curr, lag, shocks_v, p):
+    return [
+        curr.y - lead.y + (curr.r - lead.pi) / p.sigma - curr.g,          # dynamic IS
+        curr.pi - p.beta * lead.pi - p.kappa * curr.y,                     # NK Phillips curve
+        curr.r - p.phi_pi * curr.pi - p.phi_y * curr.y - shocks_v.eps_r,   # Taylor rule
+        curr.g - p.rho_g * lag.g - shocks_v.eps_g,                         # demand shock process
+    ]
 
-# Solve dynamic path under a contractionary demand shock
-res_occbin = solve_occbin(
-    m_reference=m_ref,
-    m_constrained=m_zlb,
-    constraint=constraint,
-    shocks={"eps_demand": -0.04},
-    horizon=30,
-)
+def nk_zlb(lead, curr, lag, shocks_v, p):
+    return [
+        curr.y - lead.y + (curr.r - lead.pi) / p.sigma - curr.g,
+        curr.pi - p.beta * lead.pi - p.kappa * curr.y,
+        curr.r - (-p.r_ss),                                                # rate pegged at the ZLB
+        curr.g - p.rho_g * lag.g - shocks_v.eps_g,
+    ]
 
+m_ref = build_dynare(nk_taylor, variables=variables, shocks=shocks, params=params, steady_state=steady_state)
+# A pegged-rate regime is indeterminate on its own; OccBin only needs its Jacobians,
+# so the alternative regime is built with strict=False.
+m_zlb = build_dynare(nk_zlb, variables=variables, shocks=shocks, params=params,
+                     steady_state=steady_state, check_steady_state=False, strict=False)
+
+# The constraint binds when the shadow rate falls below the bound
+constraint = OccBinConstraint(variable="r", threshold=-params["r_ss"], operator="<")
+
+horizon = 30
+shock_seq = np.zeros((horizon, len(shocks)))
+shock_seq[0, shocks.index("eps_g")] = -0.04        # contractionary demand shock at t=0
+
+res_occbin = solve_occbin(m_ref, m_zlb, constraint, shock_sequence=shock_seq, horizon=horizon)
 print(res_occbin.summary())
-print("Periods at ZLB:", res_occbin.regime_history)
-
-# Publication plot with shaded ZLB constraint regime
-res_occbin.plot(title="New Keynesian Dynamics with OccBin ZLB")
+print("Periods at the ZLB:", res_occbin.binding_periods)
+print("Regime per period (1 = constrained):", res_occbin.regimes)
+res_occbin.plot()
 ```
 
 `OccBinResult` attributes:
@@ -338,22 +354,41 @@ res_occbin.plot(title="New Keynesian Dynamics with OccBin ZLB")
 Given a sequence of known or anticipated future shocks $\{u_t\}_{t=1}^T$, it solves the full non-linear system $f(y_{t+1}, y_t, y_{t-1}, u_t) = 0$ simultaneously using a block-tridiagonal sparse Jacobian solved via SuperLU:
 
 ```python
+import numpy as np
 from puremacro.dsge import solve_perfect_foresight
 
-# Solve perfect-foresight transition for a permanent 5% TFP increase over 100 quarters
+# Deterministic Ramsey model in levels:
+#   1/c_t = beta / c_{t+1} * (alpha A_t k_t^(alpha-1) + 1 - delta)
+#   k_t   = A_t k_{t-1}^alpha + (1 - delta) k_{t-1} - c_t
+alpha, beta, delta = 0.33, 0.96, 0.10
+r_ss = 1.0 / beta - (1.0 - delta)
+k_ss = (alpha / r_ss) ** (1.0 / (1.0 - alpha))
+c_ss = k_ss ** alpha - delta * k_ss
+
+def ramsey(y_plus, y_curr, y_lag, exo):
+    c_p, k_p = y_plus
+    c, k = y_curr
+    c_m, k_m = y_lag
+    A = float(np.ravel(exo)[0])
+    return [
+        1.0 / c - beta / c_p * (alpha * A * k ** (alpha - 1.0) + 1.0 - delta),
+        k - (A * k_m ** alpha + (1.0 - delta) * k_m - c),
+    ]
+
+# A +5% TFP boost in period 5, announced at t=0: consumption jumps before the shock arrives
+n_periods = 100
+tfp_path = np.ones(n_periods)
+tfp_path[4] = 1.05
+
 pf_res = solve_perfect_foresight(
-    m,
-    shocks={"eps_a": [0.05] + [0.0] * 99},
-    T=100,
-    max_iter=50,
-    tol=1e-8,
+    ramsey,
+    y_init=np.array([c_ss, k_ss]),
+    y_ss=np.array([c_ss, k_ss]),
+    exogenous_path=tfp_path,
+    n_periods=n_periods,
+    variable_names=["c", "k"],
 )
-
 print(pf_res.summary())
-print("Converged in iterations:", pf_res.iterations)
-print("Max residual norm:", pf_res.max_residual)
-
-# Plot full non-linear transition path
 pf_res.plot()
 ```
 
@@ -370,40 +405,38 @@ pf_res.plot()
 5. **Convergence Diagnostics**: Split-$\hat{R}$ (Gelman-Rubin) and Geweke spectral convergence tests.
 
 ```python
-import pandas as pd
+import numpy as np
 from puremacro.dsge import estimate_dsge_bayesian
-from puremacro.dsge.priors import BetaPrior, GammaPrior, InvGammaPrior
+from puremacro.dsge.priors import BetaPrior, InvGammaPrior
+from puremacro.state_space import StateSpaceModel, kalman_filter
 
-# 1. Observable data
-data = pd.read_csv("us_macro_data.csv")
+# Observable: y_t = rho y_{t-1} + sigma eps_t, T = 300 (stand-in for your model's likelihood)
+rng = np.random.default_rng(42)
+y = np.zeros(300)
+for t in range(1, 300):
+    y[t] = 0.7 * y[t - 1] + 0.4 * rng.standard_normal()
+y = y[:, None]
 
-# 2. Prior distribution dictionary
+def log_likelihood(params):
+    rho, sigma = (params["rho"], params["sigma"]) if isinstance(params, dict) else (params[0], params[1])
+    ssm = StateSpaceModel(T=np.array([[rho]]), Z=np.array([[1.0]]), R=np.array([[1.0]]),
+                          Q=np.array([[sigma ** 2]]), H=np.array([[1e-6]]))
+    return kalman_filter(y, ssm)["loglik"]
+
 priors = {
-    "alpha": BetaPrior(mean=0.33, std=0.05),
-    "beta":  BetaPrior(mean=0.99, std=0.005),
-    "rho":   BetaPrior(mean=0.80, std=0.10),
-    "sigma": InvGammaPrior(mean=0.01, std=0.005),
+    "rho": BetaPrior(mean=0.6, std=0.15, lb=0.01, ub=0.99),
+    "sigma": InvGammaPrior(mean=0.3, std=2.0, lb=0.01, ub=3.0),
 }
 
-# 3. Estimate model
 bayes_res = estimate_dsge_bayesian(
-    model=m,
-    data=data,
-    priors=priors,
-    n_draws=10000,
-    burn_in=2000,
-    n_chains=2,
-    seed=42,
+    log_likelihood, priors,
+    initial_params=np.array([0.6, 0.3]),
+    n_draws=1000, n_burn=200, n_chains=2, seed=42,
 )
-
 print(bayes_res.summary())
-print("Posterior mean estimates:\n", bayes_res.posterior_mean)
-print("Convergence Gelman-Rubin R-hat:\n", bayes_res.r_hat)
 
-# Plot prior vs posterior distribution densities
+# Prior vs posterior densities, and a camera-ready table
 bayes_res.plot_priors_posteriors()
-
-# Export camera-ready LaTeX table with prior means, posterior means, and 90% HPDI
 print(bayes_res.to_latex())
 ```
 
@@ -414,16 +447,18 @@ print(bayes_res.to_latex())
 `puremacro.dsge.decomposition` provides analytical Forecast Error Variance Decomposition and Kalman-smoothed Historical Shock Decomposition:
 
 ```python
-# 1. Analytical FEVD across horizons [1, 4, 8, 16, inf]
+# 1. Analytical FEVD across horizons [1, 4, 8, 16, 40]
 fevd_res = m.fevd_result(horizons=[1, 4, 8, 16, 40])
 print(fevd_res.summary())
 print(fevd_res.to_latex())
 
-# 2. Historical Shock Decomposition
-decomp_res = m.shock_decomposition(data_obs=data)
+# 2. Historical shock decomposition of a sample (here simulated from the model;
+#    pass your observed data with one column per variable)
+data = m.simulate(periods=80, seed=1)
+decomp_res = m.shock_decomposition(data)
 print(decomp_res.summary())
 
-# Publication-grade stacked bar chart of historical shock contributions
-decomp_res.plot(variable="output", title="Historical Output Shock Decomposition")
+# Stacked bar chart of the historical shock contributions
+decomp_res.plot(variable="c")
 ```
 

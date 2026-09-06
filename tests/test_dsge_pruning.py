@@ -90,11 +90,13 @@ def test_pruning_prevents_explosive_trajectories():
 def test_girf_asymmetry_and_dynamics():
     sol = canonical_growth_2nd_order()
 
-    # Positive vs negative shock
-    girf_pos = sol.girf("eps", size=+2.0, horizon=30)
-    girf_neg = sol.girf("eps", size=-2.0, horizon=30)
+    # Positive vs negative shock. The growth model's consumption response to
+    # a persistent TFP shock is hump-shaped (it keeps rising for decades as
+    # capital accumulates), so mean reversion is checked at a long horizon.
+    girf_pos = sol.girf("eps", size=+2.0, horizon=400)
+    girf_neg = sol.girf("eps", size=-2.0, horizon=400)
 
-    assert len(girf_pos) == 31
+    assert len(girf_pos) == 401
     assert "k" in girf_pos.columns
     assert "c" in girf_pos.columns
 

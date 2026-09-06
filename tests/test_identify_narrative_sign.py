@@ -349,9 +349,10 @@ def test_hd_window_beyond_sample_raises():
 
 
 def test_sign_matrix_validation():
-    with pytest.raises(ValueError, match="sign_matrix"):
-        narrative_sign_svar(Y_SIM, p=1, horizon=8, sign_matrix=None,
-                            restrictions=[], n_draws=100, seed=0)
+    # NOTE (audit M1/M106): this test used to assert that sign_matrix=None
+    # raises 'sign_matrix is required' — enshrining a bug, since None is the
+    # documented default and omitting the argument was already allowed. See
+    # test_sign_matrix_none_behaves_like_omitted below for the fixed contract.
     with pytest.raises(ValueError, match="entries"):
         narrative_sign_svar(Y_SIM, p=1, horizon=8,
                             sign_matrix={0: np.full((N, N), 2.0)},
@@ -544,3 +545,293 @@ def test_bayesian_draws_mode():
     assert res.effective_draws > 0.0
     assert res.irf().shape == (5, N, N)
 
+
+
+# ---------------------------------------------------------------------------
+# Regression tests for the v2.3.0 audit (r1-narrative-svar / review-r1-narrative)
+# Each test documents the behaviour of the old code in its docstring.
+# ---------------------------------------------------------------------------
+
+import warnings
+
+
+def _qe_dates():
+    """Quarter-END stamps (1950Q1 .. ), the pandas `freq="QE"` convention."""
+    return pd.date_range("1950-01-01", periods=T, freq="QE")
+
+
+def test_sign_matrix_none_behaves_like_omitted():
+    """Old code: sign_matrix=None raised 'sign_matrix is required' while
+    omitting the argument silently imposed nothing (M1/M106). None is the
+    documented default and must mean 'no traditional sign restrictions'."""
+    a = narrative_sign_svar(Y_SIM, p=1, horizon=4, sign_matrix=None,
+                            restrictions=[(TSTAR, 0, +1)], n_draws=100, seed=0)
+    b = narrative_sign_svar(Y_SIM, p=1, horizon=4,
+                            restrictions=[(TSTAR, 0, +1)], n_draws=100, seed=0)
+    assert a.n_traditional_accepted == 100 == b.n_traditional_accepted
+    np.testing.assert_array_equal(a.irf_median, b.irf_median)
+
+
+def test_integer_date_is_row_index_even_with_dates():
+    """C4: with dates= given, an integer date was re-interpreted as
+    pd.Timestamp(int) (epoch nanoseconds) and the quarter fallback silently
+    remapped it to 1970Q1 — a different restricted date, no error. An integer
+    must always be the 0-based row index into Y, and a Timestamp / ISO string
+    must map to the same shock row."""
+    from puremacro.var.identify.narrative_sign import _map_date_to_eps_row
+
+    dates = _qe_dates()
+    assert _map_date_to_eps_row(TSTAR, dates, p=1, T=T) == TSTAR - 1
+    assert _map_date_to_eps_row(TSTAR, None, p=1, T=T) == TSTAR - 1
+    assert _map_date_to_eps_row(np.int64(TSTAR), dates, p=2, T=T) == TSTAR - 2
+
+    res_int_dates = _run([(TSTAR, 0, +1)], n_draws=600, dates=dates)
+    res_ts_dates = _run([(dates[TSTAR], 0, +1)], n_draws=600, dates=dates)
+    res_iso_dates = _run([(str(dates[TSTAR].date()), 0, +1)], n_draws=600, dates=dates)
+    res_int = _run([(TSTAR, 0, +1)], n_draws=600)
+    for r in (res_ts_dates, res_iso_dates, res_int):
+        assert r.n_narrative_accepted == res_int_dates.n_narrative_accepted
+        assert r.restriction_fail_counts == res_int_dates.restriction_fail_counts
+        np.testing.assert_array_equal(r.irf_median, res_int_dates.irf_median)
+
+
+def test_dataframe_datetimeindex_supplies_dates_automatically():
+    """Old code discarded a DataFrame's DatetimeIndex and raised 'restriction
+    date must be an integer row index ... when `dates` is not supplied' for a
+    timestamp restriction. The index must be used as `dates` automatically
+    (PeriodIndex too); an explicit dates= still wins."""
+    dates = _qe_dates()
+    df = pd.DataFrame(Y_SIM, index=dates, columns=["a", "b", "c"])
+    announcement = dates[TSTAR] - pd.Timedelta(days=40)  # mid-quarter date
+    auto = narrative_sign_svar(df, p=1, horizon=8, sign_matrix=SIGN_MATRIX,
+                               restrictions=[(announcement, 0, +1)],
+                               n_draws=600, seed=0)
+    explicit = _run([(TSTAR, 0, +1)], n_draws=600)
+    np.testing.assert_array_equal(auto.irf_median, explicit.irf_median)
+    assert auto.names == ("a", "b", "c")
+
+    periods = pd.period_range("1950Q1", periods=T, freq="Q")
+    dfp = pd.DataFrame(Y_SIM, index=periods)
+    via_period = narrative_sign_svar(
+        dfp, p=1, horizon=8, sign_matrix=SIGN_MATRIX,
+        restrictions=[(periods[TSTAR].to_timestamp(), 0, +1)], n_draws=600, seed=0,
+    )
+    np.testing.assert_array_equal(via_period.irf_median, explicit.irf_median)
+
+
+def test_period_fallback_does_not_remap_across_months():
+    """Review finding 11: the year-month / quarter fallback silently mapped a
+    date whose month was missing from a *monthly* index (2002-07 deleted) to
+    the neighbouring month. The fallback is now the period implied by the
+    index spacing: same month on a monthly index, same quarter on a quarterly
+    index, exact match on anything finer."""
+    from puremacro.var.identify.narrative_sign import _map_date_to_eps_row
+
+    mdates = pd.date_range("1990-01-01", periods=T, freq="MS")
+    md2 = mdates.delete(150)
+    with pytest.raises(ValueError, match="not found"):
+        _map_date_to_eps_row(mdates[150], md2, p=1, T=T - 1)
+    # within-month day on a monthly index -> that month
+    assert _map_date_to_eps_row(mdates[150] + pd.Timedelta(days=10), mdates, p=1, T=T) == 149
+    # within-quarter announcement on a quarter-end index -> that quarter's stamp
+    qe = _qe_dates()
+    assert _map_date_to_eps_row(qe[TSTAR] - pd.Timedelta(days=40), qe, p=1, T=T) == TSTAR - 1
+    # daily index: exact matches only
+    ddates = pd.date_range("2000-01-01", periods=T, freq="D")
+    with pytest.raises(ValueError, match="not found"):
+        _map_date_to_eps_row(ddates[-1] + pd.Timedelta(days=1), ddates, p=1, T=T)
+    # a float is neither a row index nor a date: reject instead of epoch-ns
+    with pytest.raises(ValueError, match="integer row index"):
+        _map_date_to_eps_row(59.0, qe, p=1, T=T)
+
+
+def test_unknown_keyword_arguments_raise_typeerror():
+    """M3/M102: a **kwargs sink swallowed typos such as n_draw=, ci_level=
+    and bogus=, silently running with the defaults."""
+    for bad in (dict(n_draw=5), dict(ci_level=0.5), dict(bogus=1), dict(bootstrap=True)):
+        with pytest.raises(TypeError):
+            _run([], n_draws=50, **bad)
+
+
+def test_horizon_and_lag_aliases_conflict_loudly():
+    """M3: horizon=3 with horizons=7 silently used 7. Aliases must agree;
+    `lags` mirrors estimate_var's alias for p."""
+    with pytest.raises(ValueError, match="conflicting horizon"):
+        narrative_sign_svar(Y_SIM, p=1, horizon=3, horizons=7,
+                            sign_matrix=SIGN_MATRIX, n_draws=50, seed=0)
+    a = narrative_sign_svar(Y_SIM, p=1, horizons=5, sign_matrix=SIGN_MATRIX,
+                            n_draws=300, seed=0)
+    b = narrative_sign_svar(Y_SIM, p=1, horizon=5, sign_matrix=SIGN_MATRIX,
+                            n_draws=300, seed=0)
+    assert a.irf_median.shape == (6, N, N)
+    np.testing.assert_array_equal(a.irf_median, b.irf_median)
+    with pytest.raises(ValueError, match="conflicting p"):
+        narrative_sign_svar(Y_SIM, p=1, lags=2, horizon=3,
+                            sign_matrix=SIGN_MATRIX, n_draws=50, seed=0)
+    c = narrative_sign_svar(Y_SIM, lags=1, horizon=5, sign_matrix=SIGN_MATRIX,
+                            n_draws=300, seed=0)
+    np.testing.assert_array_equal(c.irf_median, b.irf_median)
+
+
+def test_ci_and_draw_counts_are_validated():
+    """Audit (e): ci=1.5, 0.0, -0.2 and 90 were accepted silently (ci=-0.2
+    produced lower > upper); n_weight_sims=0 raised ZeroDivisionError."""
+    for ci in (1.5, 0.0, -0.2, 90, 1.0):
+        with pytest.raises(ValueError, match="ci must be"):
+            _run([], n_draws=50, ci=ci)
+    with pytest.raises(ValueError, match="n_weight_sims"):
+        narrative_sign_svar(Y_SIM, p=1, horizon=2, sign_matrix=SIGN_MATRIX,
+                            restrictions=[], n_draws=50, n_weight_sims=0, seed=0)
+    with pytest.raises(ValueError, match="n_draws"):
+        _run([], n_draws=0)
+    with pytest.raises(ValueError, match="horizon must be >= 0"):
+        narrative_sign_svar(Y_SIM, p=1, horizons=-1, sign_matrix=SIGN_MATRIX,
+                            restrictions=[], n_draws=50, seed=0)
+
+
+def test_shock_sign_restriction_requires_explicit_sign():
+    """The dataclass default sign=+1 let `NarrativeRestriction(kind='shock_sign', ...)`
+    silently restrict the shock to be positive; a Type I restriction without a
+    sign is now an error, and float signs are normalised to int."""
+    with pytest.raises(ValueError, match="sign"):
+        NarrativeRestriction(kind="shock_sign", date=10, shock=0)
+    r = NarrativeRestriction(kind="shock_sign", date=10, shock=0, sign=1.0)
+    assert r.sign == 1 and isinstance(r.sign, int)
+    with pytest.raises(ValueError, match="sign must be"):
+        NarrativeRestriction(kind="shock_sign", date=10, shock=0, sign=2)
+
+
+def test_irf_and_fevd_beyond_horizon_are_weighted_medians():
+    """M4/M104: irf(h > H) returned compute_irf(A_list, B_star) — the IRF of
+    a single representative draw — and fevd(h > H) that draw's FEVD, so the
+    first H+1 rows changed meaning (max diff 0.68 vs irf_median). Both must
+    be the weighted median across the accepted draws extended to h."""
+    from puremacro.var.irf import irf as compute_irf
+
+    res = _run(CORRECT_RESTRICTIONS, n_draws=1500)  # H = 8
+    ext = res.irf(20)
+    assert ext.shape == (21, N, N)
+    np.testing.assert_allclose(ext[:9], res.irf_median, atol=1e-12)
+    single = compute_irf(list(res.A_list), res.B, 20)
+    assert not np.allclose(ext, single)
+    fe = res.fevd(20)
+    assert fe.shape == (21, N, N)
+    np.testing.assert_allclose(fe[:9], res.fevd_median, atol=1e-12)
+    np.testing.assert_allclose(fe.sum(axis=2), 1.0, atol=1e-9)
+    # the per-draw objects behind the extension are exposed
+    assert res.accepted_B.shape == (res.n_narrative_accepted, N, N)
+    assert res.accepted_A is None  # OLS mode: every draw shares A_list
+    np.testing.assert_allclose(res.B @ res.B.T, res.Sigma, atol=1e-10)
+    # without stored draws the extension refuses rather than returning one draw
+    bare = dataclasses.replace(res, accepted_B=None)
+    with pytest.raises(ValueError, match="per-draw"):
+        bare.irf(20)
+    with pytest.raises(ValueError, match="per-draw"):
+        bare.fevd(20)
+
+
+def test_historical_decomposition_identity_holds_by_default():
+    """Review check: the default init_y=0 broke y_t = det_t + sum_j shocks_t[:, j]
+    on data with non-zero initial conditions (max error ~7). The first p
+    observations are now stored and used by default, also when Y is a
+    VarEstimateResult (recovered from the design matrix)."""
+    from puremacro.var.estimate import estimate_var
+
+    Y = Y_SIM + np.array([10.0, 5.0, -3.0])
+    Y[0] += np.array([3.0, -2.0, 1.0])
+    res = narrative_sign_svar(Y, p=1, horizon=4, sign_matrix=SIGN_MATRIX,
+                              restrictions=[(TSTAR, 0, +1)], n_draws=300, seed=0)
+    hd = res.historical_decomposition()
+    np.testing.assert_allclose(hd["deterministic"] + hd["shocks"].sum(axis=2),
+                               Y[1:], atol=1e-9)
+    np.testing.assert_array_equal(res.init_y, Y[:1])
+
+    vr = estimate_var(Y, p=2)
+    res2 = narrative_sign_svar(vr, horizon=4, sign_matrix=SIGN_MATRIX,
+                               restrictions=[(TSTAR, 0, +1)], n_draws=300, seed=0)
+    np.testing.assert_allclose(res2.init_y, Y[:2])
+    hd2 = res2.historical_decomposition()
+    np.testing.assert_allclose(hd2["deterministic"] + hd2["shocks"].sum(axis=2),
+                               Y[2:], atol=1e-9)
+    # explicit zeros still give the pure-intercept counterfactual
+    hd0 = res.historical_decomposition(init_y=np.zeros((1, N)))
+    assert not np.allclose(hd0["deterministic"], hd["deterministic"])
+
+
+def test_few_survivors_warning():
+    """Audit (d): n_draws=50 left a single surviving draw whose bands
+    collapsed onto the median (ESS 1.0) with no warning."""
+    rng = np.random.default_rng(0)
+    Yr = rng.standard_normal((120, 3))
+    with pytest.warns(RuntimeWarning, match="bands may collapse"):
+        r = narrative_sign_svar(Yr, p=1, horizon=4,
+                                sign_matrix={0: np.array([+1, -1, -1])},
+                                restrictions=[(10, 0, +1)], n_draws=50, seed=0)
+    assert r.n_narrative_accepted < 10
+    # a healthy run emits nothing
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        _run(CORRECT_RESTRICTIONS, n_draws=1000)
+
+
+def test_omega_floor_is_counted_and_warned():
+    """M5: with an almost-impossible narrative pattern every omega_hat was 0,
+    every weight was floored to exactly n_weight_sims and the ESS read as
+    fully efficient — with no warning and no trace in summary()."""
+    R = [NarrativeRestriction(kind="hd_dominance", date=TSTAR, shock=0,
+                              variable=0, window=2, dominance="overwhelming"),
+         NarrativeRestriction(kind="shock_bound", date=TSTAR, shock=0,
+                              min_magnitude=3.0)]
+    with pytest.warns(RuntimeWarning, match="floored"):
+        r = narrative_sign_svar(Y_SIM, p=1, horizon=8, sign_matrix=SIGN_MATRIX,
+                                restrictions=R, n_draws=1500, n_weight_sims=25,
+                                seed=11)
+    assert r.n_weight_floor > 0
+    assert np.all(r.weights <= 25.0 + 1e-12)
+    assert "omega floor" in r.summary()
+
+
+def test_weight_concentration_warning():
+    """Docs §2 promised an ESS warning 'if weight concentration is severe';
+    grep found no warning in the module. _warn_diagnostics fires when the
+    Kish ESS is below 10% of the accepted draws and stays silent otherwise."""
+    from puremacro.var.identify.narrative_sign import _warn_diagnostics
+
+    common = dict(n_trad=400, ci=0.9, n_weight_floor=0, n_weight_sims=500,
+                  n_unstable=0, n_draws=1000)
+    with pytest.warns(RuntimeWarning, match="concentrated"):
+        _warn_diagnostics(n_accepted=200, ess=12.0, **common)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        _warn_diagnostics(n_accepted=200, ess=150.0, **common)
+
+
+def test_plot_multi_panel_when_index_is_none():
+    """M2: the documented res.plot(shock_idx=0, target_idx=None) raised
+    'Per-column arrays must each be 1-dimensional'; it now draws one panel
+    per response variable (and an n x n grid when both are None)."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    res = _run(CORRECT_RESTRICTIONS, n_draws=500)
+    fig = res.plot(shock_idx=0, target_idx=None)
+    assert len(fig.axes) == N
+    plt.close(fig)
+    fig2 = res.plot(shock_idx=None, target_idx=None)
+    assert len(fig2.axes) == N * N
+    plt.close(fig2)
+    fig3 = res.plot(target_idx=1, shock_idx=None, title="row")
+    assert len(fig3.axes) == N
+    plt.close(fig3)
+    _, ax = plt.subplots()
+    with pytest.raises(ValueError, match="ax="):
+        res.plot(target_idx=None, ax=ax)
+    plt.close("all")
+
+
+def test_summary_reports_reduced_form_mode():
+    res = _run(CORRECT_RESTRICTIONS, n_draws=500)
+    s = res.summary()
+    assert "reduced form      : OLS point estimate" in s
+    assert not res.bayes_draws and res.n_unstable_draws == 0

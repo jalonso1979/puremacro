@@ -76,14 +76,28 @@ def lewbel_iv(
     X_exog: np.ndarray,
     heterosk_source: np.ndarray,
 ) -> LewbelIVResult:
-    """2SLS with Lewbel-constructed instruments.
+    """2SLS with Lewbel-constructed instruments ``(Z - Zbar) * nu_hat``.
 
     Parameters
     ----------
     y : (T,) outcome.
     X_endog : (T, k_endog) endogenous regressors.
     X_exog : (T, k_exog) exogenous regressors (must include a constant column).
-    heterosk_source : (T, k_z) observed drivers of heteroskedasticity in X_endog.
+    heterosk_source : (T, k_z) observed drivers of heteroskedasticity in the
+        first-stage error ``nu`` of X_endog on X_exog. In Lewbel's textbook
+        case this is a subset of (or all of) ``X_exog``; an external
+        exogenous driver works too. Constant columns (e.g. the intercept
+        when ``heterosk_source is X_exog``) are dropped, since
+        ``(Z - Zbar)`` vanishes for them; ``n_iv_constructed`` counts only
+        the non-constant columns times ``k_endog``.
+
+    Notes
+    -----
+    The instruments are ``(Z_k - mean(Z_k)) * nu_hat_j`` for every
+    non-constant column ``k`` of ``heterosk_source`` and every endogenous
+    regressor ``j``, where ``nu_hat`` is the OLS residual of ``X_endog`` on
+    ``X_exog`` (Lewbel 2012, eq. 5). ``Z`` is centred, not residualised on
+    ``X_exog``.
     """
     y = np.asarray(y, dtype=float).reshape(-1)
     X_endog = np.asarray(X_endog, dtype=float)
@@ -111,16 +125,33 @@ def lewbel_iv(
             stacklevel=2,
         )
 
-    # 1. Frisch-Waugh residualise X_endog and Z against X_exog.
-    X_endog_res = _residualise(X_endog, X_exog)
-    Z_res = _residualise(Z_source, X_exog)
+    # 0. Constant columns of the heteroskedasticity source carry no
+    #    identifying variation: (Z - Zbar) is identically zero for them, so
+    #    the constructed instrument would be a zero column (singular first
+    #    stage) and the BP diagnostic would carry two intercepts. This is
+    #    what made the textbook ``heterosk_source=X_exog`` call crash.
+    is_const = np.all(np.isclose(Z_source, Z_source[0:1, :], atol=1e-12), axis=0)
+    if is_const.all():
+        raise ValueError(
+            "lewbel_iv: every column of heterosk_source is constant; Lewbel "
+            "instruments need a variable that drives heteroskedasticity in "
+            "the first-stage error."
+        )
+    Z_source = Z_source[:, ~is_const]
+    k_z = Z_source.shape[1]
 
-    # 2. Construct Lewbel IVs: Z_res * centred_endog (defensive centring;
-    #    centred_endog is already mean-zero by Frisch-Waugh when X_exog
-    #    contains a constant — re-centring guards user misuse).
+    # 1. Frisch-Waugh residualise X_endog against X_exog: nu_hat.
+    X_endog_res = _residualise(X_endog, X_exog)
+
+    # 2. Construct Lewbel (2012) IVs: (Z - Zbar) * nu_hat. Z is CENTRED, not
+    #    residualised on X_exog: in the textbook case Z is a subset of (or
+    #    equal to) X_exog, and residualising would make it identically zero.
+    Z_c = Z_source - Z_source.mean(axis=0, keepdims=True)
+    #    (defensive centring of nu_hat; it is already mean-zero by
+    #    Frisch-Waugh when X_exog contains a constant).
     centred_endog = X_endog_res - X_endog_res.mean(axis=0, keepdims=True)
-    # Column (k, j) of Z_constructed = Z_res[:, k] * centred_endog[:, j]
-    Z_constructed = np.einsum("tk,tj->tkj", Z_res, centred_endog).reshape(T, k_z * k_endog)
+    # Column (k, j) of Z_constructed = Z_c[:, k] * centred_endog[:, j]
+    Z_constructed = np.einsum("tk,tj->tkj", Z_c, centred_endog).reshape(T, k_z * k_endog)
 
     # 3. Diagnostic on identifying strength.
     diag = _lewbel_diagnostic(X_endog_res, Z_source)

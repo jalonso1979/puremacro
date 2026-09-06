@@ -12,9 +12,9 @@ tightened policy:
   (III) it was the *overwhelming* contributor to the unexpected rise in
         the federal funds rate that quarter.
 
-The headline result replicated here: the narrative restrictions sharply
-tighten the sign-identified set, because they discard rotations whose
-"monetary shock" column cannot account for the Volcker episode.
+The headline mechanism illustrated here: the narrative restrictions
+sharply tighten the sign-identified set, because they discard rotations
+whose "monetary shock" column cannot account for the Volcker episode.
 
 Data: a **synthetic-but-calibrated** quarterly DGP (1965Q1-2007Q4,
 T=172) — persistence and impact signs loosely match a standard
@@ -22,6 +22,12 @@ FFR / CPI-inflation / output-growth monetary VAR, and a +3.5 s.d.
 monetary shock is planted in 1979Q4. Synthetic data keeps the demo
 deterministic, offline, and fast (< 60 s); swap in FRED series via
 ``puremacro.fetch`` for a real-data version.
+
+This is **not** a replication of the paper's numbers: AD-RR's
+application uses Uhlig's (2005) six-variable monthly US dataset, which
+this package cannot fetch offline, and reports its IRFs graphically.
+``tests/test_replication_adrr2018.py`` therefore pins a regression
+snapshot of this demo's own output, not published values.
 
 The Type-I restriction enters as a ``NarrativeEvent`` (the package's
 narrative-layer object; the adapter uses its announcement ``date`` and

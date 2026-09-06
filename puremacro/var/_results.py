@@ -109,7 +109,7 @@ class VarEstimateResult:
             title = f"Response of {y_name} to {s_name}"
 
         return plot_irf_single(
-            irf_arr,
+            {"irf_point": irf_arr, "names": list(self.names)},
             target_idx=target_idx,
             shock_idx=shock_idx,
             title=title,

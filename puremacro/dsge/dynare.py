@@ -37,8 +37,10 @@ from puremacro.dsge.build import (
     _Vec,
     _CSTEP,
     _FDSTEP,
+    _jacobian,
+    _verify_jacobian,
 )
-from puremacro.dsge.klein import klein_solve
+from puremacro.dsge.klein import KleinSolution, klein_solve
 from puremacro.dsge.pruning import PrunedDSGESolution
 
 
@@ -49,6 +51,135 @@ def _remove_comments(text: str) -> str:
     # Line comments // and %
     text = re.sub(r"(//|%).*$", "", text, flags=re.MULTILINE)
     return text
+
+
+def _lead_lag_jacobians(
+    equations: Callable,
+    variables: Sequence[str],
+    shocks: Sequence[str],
+    par_vec: _Vec,
+    ss_arr: np.ndarray,
+    method: str,
+    *,
+    verify: bool = False,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Jacobians of ``f(lead, curr, lag, shocks)`` at the steady state.
+
+    Returns ``(A_plus, A_0, A_minus, B_u)`` = ``(df/d lead, df/d curr,
+    df/d lag, df/d shocks)``. With ``verify=True`` (complex step only) each
+    block is cross-checked against a central finite difference in a fixed
+    random direction and :class:`ModelError` is raised when they disagree —
+    the only way to catch a residual function that is not analytic, since
+    complex-step returns a *wrong* derivative through ``abs()``, ``max()``
+    or a ``float()`` cast without any error.
+    """
+    variables = list(variables)
+    shocks = list(shocks)
+    n_vars, n_shocks = len(variables), len(shocks)
+    ss_arr = np.asarray(ss_arr, dtype=float)
+    e_zero = np.zeros(n_shocks)
+
+    def f_lead(v):
+        d = np.asarray(v).dtype
+        return equations(_Vec(variables, v), _Vec(variables, ss_arr.astype(d)),
+                         _Vec(variables, ss_arr.astype(d)), _Vec(shocks, e_zero.astype(d)), par_vec)
+
+    def f_curr(v):
+        d = np.asarray(v).dtype
+        return equations(_Vec(variables, ss_arr.astype(d)), _Vec(variables, v),
+                         _Vec(variables, ss_arr.astype(d)), _Vec(shocks, e_zero.astype(d)), par_vec)
+
+    def f_lag(v):
+        d = np.asarray(v).dtype
+        return equations(_Vec(variables, ss_arr.astype(d)), _Vec(variables, ss_arr.astype(d)),
+                         _Vec(variables, v), _Vec(shocks, e_zero.astype(d)), par_vec)
+
+    def f_shock(e):
+        d = np.asarray(e).dtype
+        return equations(_Vec(variables, ss_arr.astype(d)), _Vec(variables, ss_arr.astype(d)),
+                         _Vec(variables, ss_arr.astype(d)), _Vec(shocks, e), par_vec)
+
+    A_plus = _jacobian(f_lead, ss_arr, n_vars, method)
+    A_0 = _jacobian(f_curr, ss_arr, n_vars, method)
+    A_minus = _jacobian(f_lag, ss_arr, n_vars, method)
+    B_u = _jacobian(f_shock, e_zero, n_vars, method) if n_shocks else np.zeros((n_vars, 0))
+
+    if verify and method == "complex":
+        for label, f, x0, J in (
+            ("lead (t+1)", f_lead, ss_arr, A_plus),
+            ("current (t)", f_curr, ss_arr, A_0),
+            ("lag (t-1)", f_lag, ss_arr, A_minus),
+            ("shock", f_shock, e_zero, B_u),
+        ):
+            _verify_jacobian(label, f, x0, J)
+
+    return A_plus, A_0, A_minus, B_u
+
+
+def _solve_lead_lag_system(
+    A_plus: np.ndarray,
+    A_0: np.ndarray,
+    A_minus: np.ndarray,
+    B_u: np.ndarray,
+    state_idx: Sequence[int],
+    *,
+    strict: bool,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, KleinSolution, np.ndarray, np.ndarray]:
+    """Solve ``A_+ E_t y_{t+1} + A_0 y_t + A_- y_{t-1} + B_u u_t = 0`` by Klein QZ.
+
+    The Klein vector stacks the lagged copies of the state variables
+    (predetermined) with *all* current variables (non-predetermined):
+
+        z_t = [s_{t-1}; y_t],   s_t = P_s y_t
+
+    so the system is the ``n`` model equations plus ``n_s`` identity rows
+    ``s_t = P_s y_t``; nothing is dropped, and a variable may appear at
+    ``t-1``, ``t`` and ``t+1`` at once (TFP in every textbook Euler
+    equation, C/I/Pi in medium-scale models). The unique stable solution
+    ``y_t = F_full s_{t-1} + L_full u_t`` is Dynare's ``ghx`` / ``ghu``
+    directly, and ``s_t = G s_{t-1} + N u_t`` with ``G = P_s F_full``,
+    ``N = P_s L_full``.
+
+    Returns ``(A_klein, B_klein, C_klein, solution, F_full, L_full)``.
+    """
+    n = A_0.shape[0]
+    n_s = len(state_idx)
+    n_u = B_u.shape[1]
+    P_s = np.zeros((n_s, n))
+    for j, idx in enumerate(state_idx):
+        P_s[j, idx] = 1.0
+
+    A_klein = np.zeros((n + n_s, n + n_s))
+    B_klein = np.zeros((n + n_s, n + n_s))
+    C_klein = np.zeros((n + n_s, n_u))
+    A_klein[:n, n_s:] = A_plus
+    B_klein[:n, :n_s] = -A_minus[:, list(state_idx)]
+    B_klein[:n, n_s:] = -A_0
+    C_klein[:n, :] = -B_u
+    A_klein[n:, :n_s] = np.eye(n_s)
+    B_klein[n:, n_s:] = P_s
+
+    sol_full = klein_solve(A_klein, B_klein, n_pre=n_s, C=C_klein, strict=strict)
+    F_full = np.asarray(sol_full.F, dtype=float)
+    L_full = np.asarray(sol_full.L, dtype=float)
+    return A_klein, B_klein, C_klein, sol_full, F_full, L_full
+
+
+def _check_lead_lag_residual(
+    A_plus: np.ndarray, A_0: np.ndarray, A_minus_s: np.ndarray, B_u: np.ndarray,
+    F_full: np.ndarray, L_full: np.ndarray, G: np.ndarray, N: np.ndarray,
+) -> float:
+    """Max residual of the equilibrium conditions under the solved rule.
+
+    Substituting ``y_t = F s_{t-1} + L u_t`` and ``s_t = G s_{t-1} + N u_t``
+    into ``A_+ E_t y_{t+1} + A_0 y_t + A_- s_{t-1} + B_u u_t = 0`` gives
+    ``A_+ F G + A_0 F + A_- = 0`` (state terms) and ``A_+ F N + A_0 L + B_u
+    = 0`` (shock terms).
+    """
+    r_x = A_plus @ F_full @ G + A_0 @ F_full + A_minus_s
+    r_u = A_plus @ F_full @ N + A_0 @ L_full + B_u
+    return max(float(np.max(np.abs(r_x))) if r_x.size else 0.0,
+               float(np.max(np.abs(r_u))) if r_u.size else 0.0)
 
 
 def build_dynare(
@@ -66,8 +197,19 @@ def build_dynare(
     method: str = "complex",
     verify_derivatives: bool = True,
     check_steady_state: bool = True,
+    strict: bool = True,
 ) -> LinearModel | PrunedDSGESolution:
     """Solve a DSGE model written in Dynare canonical lead-lag form.
+
+    The model ``E_t f(y_{t+1}, y_t, y_{t-1}, u_t) = 0`` is linearised in
+    levels around the steady state and solved as the Klein system whose
+    predetermined vector stacks the lagged states ``s_{t-1}`` and whose
+    non-predetermined vector is *every* current variable, with identity
+    rows ``s_t = P_s y_t``. Variables that appear at ``t-1`` and ``t+1``
+    simultaneously (the TFP process inside an Euler equation, habits,
+    investment adjustment costs) are handled exactly; nothing is dropped.
+    The decision rules come out in Dynare's timing,
+    ``y_t = ys + ghx (s_{t-1} - ss) + ghu u_t``.
 
     Parameters
     ----------
@@ -88,18 +230,35 @@ def build_dynare(
     states : Sequence[str], optional
         Predetermined state variables. If None (default), **automatically
         detected** from the Jacobian columns with respect to ``lag``.
+    order : {1, 2}, default 1
+        Perturbation order. ``2`` returns the pruned second-order solution.
+    shock_cov : np.ndarray, optional
+        Innovation covariance Σ_u. Used as the default for theoretical
+        moments, IRF sizes (one standard deviation) and simulations, and
+        for the second-order risk correction.
     tol : float, default 1e-8
         Numerical tolerance for steady-state residual check.
     method : {'complex', 'central'}, default 'complex'
-        Differentiation method for Jacobians.
+        Differentiation method for Jacobians (and, at order 2, Hessians).
     verify_derivatives : bool, default True
-        Whether to check complex-step Jacobians against finite differences.
+        Cross-check the complex-step Jacobians against finite differences
+        and raise :class:`ModelError` if they disagree — the only way to
+        catch a residual function that is not analytic (``abs``, ``max``,
+        ``float()`` casts), since complex-step fails silently on those.
+    check_steady_state : bool, default True
+        Verify that the supplied steady state solves the equations.
+    strict : bool, default True
+        Raise :class:`~puremacro.dsge.klein.BlanchardKahnError` when the
+        model has no unique stable solution. With ``strict=False`` the
+        model is returned with ``solution.eu`` flagged and zero matrices;
+        its decision-rule methods then refuse to run.
 
     Returns
     -------
-    LinearModel
+    LinearModel | PrunedDSGESolution
         Solved model equipped with `.decision_rules()`, `.theoretical_moments()`,
-        `.fevd()`, `.irf()`, and `.simulate()`.
+        `.fevd()`, `.irf()`, and `.simulate()` (order 1), or the pruned
+        second-order solution (order 2).
     """
     if method not in ("complex", "central"):
         raise ValueError(f"unknown method {method!r}; expected 'complex' or 'central'")
@@ -115,10 +274,20 @@ def build_dynare(
             states=states,
             shock_cov=shock_cov,
             tol=tol,
+            method=method,
+            verify_derivatives=verify_derivatives,
+            check_steady_state=check_steady_state,
+            strict=strict,
         )
     elif order != 1:
         raise ValueError(f"unsupported perturbation order {order}; must be 1 or 2")
 
+    variables = list(variables)
+    shocks = list(shocks)
+    if len(set(variables)) != len(variables):
+        raise ModelError(f"duplicate variable names in {variables}")
+    if len(set(shocks)) != len(shocks):
+        raise ModelError(f"duplicate shock names in {shocks}")
     par_dict = dict(params or {})
     par_vec = _Vec(list(par_dict.keys()), list(par_dict.values()), what="parameter")
     n_vars = len(variables)
@@ -133,10 +302,19 @@ def build_dynare(
 
     if steady_state is not None:
         if isinstance(steady_state, Mapping):
+            missing = [v for v in variables if v not in steady_state]
+            if missing:
+                raise ModelError(f"steady_state is missing values for {missing}")
             ss_arr = np.array([float(steady_state[v]) for v in variables])
         else:
             ss_arr = np.asarray(steady_state, dtype=float)
         res_0 = ss_res(ss_arr)
+        if res_0.shape != (n_vars,):
+            raise ModelError(
+                f"equations() returned {res_0.shape[0] if res_0.ndim else 1} "
+                f"residual(s) for {n_vars} variables — a square system needs one "
+                f"equation per variable"
+            )
         max_err = float(np.max(np.abs(res_0)))
         if check_steady_state and max_err > tol:
             worst_eq = int(np.argmax(np.abs(res_0)))
@@ -151,6 +329,13 @@ def build_dynare(
             g_arr = np.array([float(guess.get(v, 1.0)) for v in variables])
         else:
             g_arr = np.asarray(guess, dtype=float)
+        res_g = ss_res(g_arr)
+        if res_g.shape != (n_vars,):
+            raise ModelError(
+                f"equations() returned {res_g.shape[0] if res_g.ndim else 1} "
+                f"residual(s) for {n_vars} variables — a square system needs one "
+                f"equation per variable"
+            )
         sol = scipy.optimize.root(ss_res, g_arr, method="hybr")
         if not sol.success or float(np.max(np.abs(sol.fun))) > tol:
             raise SteadyStateError(
@@ -160,121 +345,27 @@ def build_dynare(
 
     ss_series = pd.Series(ss_arr, index=variables, name="steady_state")
 
-    # 2. Complex-step Jacobians at steady state
-    # Equations are E_t f(lead, curr, lag, shocks) = 0
-    # A_+ = df/d(lead), A_0 = df/d(curr), A_- = df/d(lag), B_u = df/d(shocks)
-    A_plus = np.zeros((n_vars, n_vars))
-    A_0 = np.zeros((n_vars, n_vars))
-    A_minus = np.zeros((n_vars, n_vars))
-    B_u = np.zeros((n_vars, n_shocks))
+    # 2. Jacobians at steady state:  A_+ = df/d(lead), A_0 = df/d(curr),
+    #    A_- = df/d(lag), B_u = df/d(shocks)
+    A_plus, A_0, A_minus, B_u = _lead_lag_jacobians(
+        equations, variables, shocks, par_vec, ss_arr, method,
+        verify=verify_derivatives,
+    )
 
-    e_zero = np.zeros(n_shocks)
-
-    if method == "complex":
-        step = _CSTEP
-        base_ss = np.asarray(ss_arr, dtype=complex)
-        base_e = np.asarray(e_zero, dtype=complex)
-
-        for j in range(n_vars):
-            pert_p = base_ss.copy()
-            pert_p[j] += 1j * step
-            out_p = equations(
-                _Vec(variables, pert_p),
-                _Vec(variables, base_ss),
-                _Vec(variables, base_ss),
-                _Vec(shocks, base_e),
-                par_vec,
-            )
-            A_plus[:, j] = np.asarray(out_p, dtype=complex).imag / step
-
-            pert_0 = base_ss.copy()
-            pert_0[j] += 1j * step
-            out_0 = equations(
-                _Vec(variables, base_ss),
-                _Vec(variables, pert_0),
-                _Vec(variables, base_ss),
-                _Vec(shocks, base_e),
-                par_vec,
-            )
-            A_0[:, j] = np.asarray(out_0, dtype=complex).imag / step
-
-            pert_m = base_ss.copy()
-            pert_m[j] += 1j * step
-            out_m = equations(
-                _Vec(variables, base_ss),
-                _Vec(variables, base_ss),
-                _Vec(variables, pert_m),
-                _Vec(shocks, base_e),
-                par_vec,
-            )
-            A_minus[:, j] = np.asarray(out_m, dtype=complex).imag / step
-
-        for j in range(n_shocks):
-            pert_e = base_e.copy()
-            pert_e[j] += 1j * step
-            out_e = equations(
-                _Vec(variables, base_ss),
-                _Vec(variables, base_ss),
-                _Vec(variables, base_ss),
-                _Vec(shocks, pert_e),
-                par_vec,
-            )
-            B_u[:, j] = np.asarray(out_e, dtype=complex).imag / step
-    else:
-        # Central difference
-        for j in range(n_vars):
-            h_j = _FDSTEP * max(1.0, abs(ss_arr[j]))
-            up_ss, dn_ss = ss_arr.copy(), ss_arr.copy()
-            up_ss[j] += h_j
-            dn_ss[j] -= h_j
-
-            out_p_up = equations(
-                _Vec(variables, up_ss), _Vec(variables, ss_arr), _Vec(variables, ss_arr), _Vec(shocks, e_zero), par_vec
-            )
-            out_p_dn = equations(
-                _Vec(variables, dn_ss), _Vec(variables, ss_arr), _Vec(variables, ss_arr), _Vec(shocks, e_zero), par_vec
-            )
-            A_plus[:, j] = (np.asarray(out_p_up, dtype=float) - np.asarray(out_p_dn, dtype=float)) / (2.0 * h_j)
-
-            out_0_up = equations(
-                _Vec(variables, ss_arr), _Vec(variables, up_ss), _Vec(variables, ss_arr), _Vec(shocks, e_zero), par_vec
-            )
-            out_0_dn = equations(
-                _Vec(variables, ss_arr), _Vec(variables, dn_ss), _Vec(variables, ss_arr), _Vec(shocks, e_zero), par_vec
-            )
-            A_0[:, j] = (np.asarray(out_0_up, dtype=float) - np.asarray(out_0_dn, dtype=float)) / (2.0 * h_j)
-
-            out_m_up = equations(
-                _Vec(variables, ss_arr), _Vec(variables, ss_arr), _Vec(variables, up_ss), _Vec(shocks, e_zero), par_vec
-            )
-            out_m_dn = equations(
-                _Vec(variables, ss_arr), _Vec(variables, ss_arr), _Vec(variables, dn_ss), _Vec(shocks, e_zero), par_vec
-            )
-            A_minus[:, j] = (np.asarray(out_m_up, dtype=float) - np.asarray(out_m_dn, dtype=float)) / (2.0 * h_j)
-
-        for j in range(n_shocks):
-            h_e = _FDSTEP
-            up_e, dn_e = e_zero.copy(), e_zero.copy()
-            up_e[j] += h_e
-            dn_e[j] -= h_e
-            out_e_up = equations(
-                _Vec(variables, ss_arr), _Vec(variables, ss_arr), _Vec(variables, ss_arr), _Vec(shocks, up_e), par_vec
-            )
-            out_e_dn = equations(
-                _Vec(variables, ss_arr), _Vec(variables, ss_arr), _Vec(variables, ss_arr), _Vec(shocks, dn_e), par_vec
-            )
-            B_u[:, j] = (np.asarray(out_e_up, dtype=float) - np.asarray(out_e_dn, dtype=float)) / (2.0 * h_e)
-
-    # 3. Automatic variable role classification
+    # 3. Variable role classification: a state is anything that enters
+    #    with a lag (or was declared predetermined).
     if states is None:
-        detected_states = []
-        for j, v in enumerate(variables):
-            col_norm = float(np.linalg.norm(A_minus[:, j]))
-            if col_norm > 1e-10:
-                detected_states.append(v)
-        states_tuple = tuple(detected_states)
+        states_tuple = tuple(
+            v for j, v in enumerate(variables)
+            if float(np.linalg.norm(A_minus[:, j])) > 1e-10
+        )
     else:
         states_tuple = tuple(states)
+        unknown = [s for s in states_tuple if s not in variables]
+        if unknown:
+            raise ModelError(f"states {unknown} are not in variables {variables}")
+        if len(set(states_tuple)) != len(states_tuple):
+            raise ModelError(f"duplicate state names in {list(states_tuple)}")
 
     controls_tuple = tuple(v for v in variables if v not in states_tuple)
 
@@ -284,27 +375,44 @@ def build_dynare(
             "Pass explicit states=[...] if this is an atypical model."
         )
 
-    # 4. Partition and solve system via Klein QZ
-    # Permute variables so states come first: [states, controls]
-    perm_order = list(states_tuple) + list(controls_tuple)
-    perm_idx = [variables.index(v) for v in perm_order]
+    # 4. Klein QZ on the stacked system z_t = [s_{t-1}; y_t]
+    state_idx = [variables.index(v) for v in states_tuple]
+    A_klein, B_klein, C_klein, sol_full, F_full, L_full = _solve_lead_lag_system(
+        A_plus, A_0, A_minus, B_u, state_idx, strict=strict,
+    )
+
     n_s = len(states_tuple)
+    ctrl_idx = [variables.index(v) for v in controls_tuple]
+    if tuple(sol_full.eu) == (1, 1):
+        G = F_full[state_idx]
+        N = L_full[state_idx]
+        F = F_full[ctrl_idx]
+        L = L_full[ctrl_idx]
+        resid = _check_lead_lag_residual(
+            A_plus, A_0, A_minus[:, state_idx], B_u, F_full, L_full, G, N,
+        )
+        scale = max(1.0, float(np.max(np.abs(A_plus))), float(np.max(np.abs(A_0))),
+                    float(np.max(np.abs(A_minus))), float(np.max(np.abs(B_u))) if B_u.size else 1.0)
+        if resid > 1e-6 * scale:
+            raise ModelError(
+                f"the QZ solution does not satisfy the model's own equilibrium "
+                f"conditions (max residual {resid:.2e}); the pencil is probably "
+                "numerically singular. Check the model for redundant or "
+                "inconsistent equations."
+            )
+    else:
+        G = np.zeros((n_s, n_s))
+        N = np.zeros((n_s, n_shocks))
+        F = np.zeros((len(ctrl_idx), n_s))
+        L = np.zeros((len(ctrl_idx), n_shocks))
 
-    A_p_perm = A_plus[:, perm_idx]
-    A_0_perm = A_0[:, perm_idx]
-    A_m_perm = A_minus[:, perm_idx]
+    solution = KleinSolution(
+        G=G, F=F, N=N, L=L, eu=tuple(sol_full.eu), eigenvalues=sol_full.eigenvalues,
+    )
 
-    # Klein system: A * E_t z_{t+1} = B * z_t + C * u_t
-    # In lead-lag timing:
-    # (A_0)_{:, :n_s} * s_{t+1} + (A_+)_{:, n_s:} * E_t c_{t+1} = -(A_-)_{:, :n_s} * s_t - (A_0)_{:, n_s:} * c_t - B_u * u_t
-    A_klein = np.hstack([A_0_perm[:, :n_s], A_p_perm[:, n_s:]])
-    B_klein = np.hstack([-A_m_perm[:, :n_s], -A_0_perm[:, n_s:]])
-    C_klein = -B_u
-
-    solution = klein_solve(A_klein, B_klein, n_pre=n_s, C=C_klein)
-
-    # Unit classification
-    units = {v: "log" if ss_series[v] > 0 else "level" for v in variables}
+    # Dynare-form models are approximated in levels: every reported
+    # deviation is a level deviation, whatever the sign of the steady state.
+    units = {v: "level" for v in variables}
 
     res_norm = float(np.max(np.abs(ss_res(ss_arr))))
 
@@ -327,7 +435,8 @@ def build_dynare(
         _A_0=A_0,
         _A_minus=A_minus,
         _B_u=B_u,
-        _shock_cov=shock_cov,
+        _shock_cov=None if shock_cov is None else np.asarray(shock_cov, dtype=float),
+        timing="dynare",
     )
 
 
@@ -342,13 +451,22 @@ def solve_dynare_2nd_order(
     states: Sequence[str] | None = None,
     shock_cov: np.ndarray | None = None,
     tol: float = 1e-8,
+    method: str = "complex",
+    verify_derivatives: bool = True,
+    check_steady_state: bool = True,
+    strict: bool = True,
 ) -> PrunedDSGESolution:
     """Solve second-order DSGE perturbation with pruning (Schmitt-Grohé & Uribe 2004, Kim et al. 2008).
 
-    Solves for the quadratic policy matrices (H_xx, G_xx) and volatility risk
-    corrections (H_σσ, G_σσ) using the generalized Sylvester system derived from
-    Dynare's canonical dynamic representation:
-        E_t [ f(y_{t+1}, y_t, y_{t-1}, u_t; θ) ] = 0
+    Solves for the quadratic policy matrices (``ghxx``, ``ghxu``, ``ghuu``)
+    and the volatility risk correction (``ghs2``) of Dynare's second-order
+    decision rule
+
+        y_t = ys + 0.5 ghs2 + ghx x + ghu u + 0.5 ghxx (x ⊗ x)
+              + ghxu (x ⊗ u) + 0.5 ghuu (u ⊗ u),      x = s_{t-1} - ss,
+
+    from the canonical dynamic representation
+    ``E_t [ f(y_{t+1}, y_t, y_{t-1}, u_t; θ) ] = 0``.
 
     Parameters
     ----------
@@ -367,9 +485,22 @@ def solve_dynare_2nd_order(
     states : Sequence[str], optional
         Predetermined states. If None, auto-detected from columns of df/d(lag).
     shock_cov : np.ndarray, optional
-        Covariance matrix of innovations Σ_u. Defaults to identity matrix I.
+        Covariance matrix of innovations Σ_u used for the risk correction
+        ``ghs2`` and as the default shock covariance of the returned
+        solution. Defaults to the identity matrix.
     tol : float, default 1e-8
         Tolerance for steady-state residual check.
+    method : {'complex', 'central'}, default 'complex'
+        Differentiation method. ``'central'`` uses finite differences for
+        the Jacobians and the Hessians (about 1e-5 relative accuracy) and
+        is the choice for residual functions that are not analytic.
+    verify_derivatives : bool, default True
+        Cross-check complex-step Jacobians against finite differences.
+    check_steady_state : bool, default True
+        Verify that a supplied steady state solves the equations.
+    strict : bool, default True
+        Raise :class:`~puremacro.dsge.klein.BlanchardKahnError` when the
+        first-order model has no unique stable solution.
 
     Returns
     -------
@@ -377,6 +508,9 @@ def solve_dynare_2nd_order(
         Second-order pruned DSGE solution equipped with `.simulate()`, `.girf()`,
         and `.stochastic_steady_state()`.
     """
+    if method not in ("complex", "central"):
+        raise ValueError(f"unknown method {method!r}; expected 'complex' or 'central'")
+
     # 1. Solve 1st-order model via Klein QZ
     m = build_dynare(
         equations,
@@ -388,6 +522,10 @@ def solve_dynare_2nd_order(
         states=states,
         order=1,
         tol=tol,
+        method=method,
+        verify_derivatives=verify_derivatives,
+        check_steady_state=check_steady_state,
+        strict=True,
     )
 
     assert isinstance(m, LinearModel), "Order 2 perturbation requires a solved LinearModel"
@@ -403,6 +541,7 @@ def solve_dynare_2nd_order(
     n_y = len(controls_list)
     n_e = len(shocks_list)
 
+    # First-order rules in Dynare timing: y_t = g_x s_{t-1} + g_u u_t
     dr = m.decision_rules()
     g_x = dr.ghx.loc[vars_list, states_list].to_numpy()
     g_u = dr.ghu.loc[vars_list, shocks_list].to_numpy()
@@ -419,7 +558,8 @@ def solve_dynare_2nd_order(
     h_x = P_s @ g_x
     h_u = P_s @ g_u
 
-    # 2. Compute second-order Hessian tensor of f at steady state
+    # 2. First and second derivatives of f at the steady state, stacked
+    #    over (lead, curr, lag, shocks)
     ss_arr = m.steady_state.loc[vars_list].to_numpy()
     e0_arr = np.zeros(n_e)
     u0 = np.concatenate([ss_arr, ss_arr, ss_arr, e0_arr])
@@ -435,23 +575,37 @@ def solve_dynare_2nd_order(
         shk = _Vec(shocks_list, u_vec[3 * N:3 * N + n_e])
         return np.asarray(equations(lead, curr, lag, shk, par_vec))
 
-    hc = _CSTEP
-    def grad_f(u_vec):
-        G_mat = np.zeros((N, K_vars))
-        for q in range(K_vars):
-            pert = np.asarray(u_vec, dtype=complex).copy()
-            pert[q] += 1j * hc
-            G_mat[:, q] = eval_f(pert).imag / hc
-        return G_mat
+    if method == "complex":
+        hc = _CSTEP
 
-    J0 = grad_f(u0)
-    A_plus = J0[:, 0:N]
-    A_0 = J0[:, N:2 * N]
-    A_minus = J0[:, 2 * N:3 * N]
-    B_u = J0[:, 3 * N:3 * N + n_e]
+        def grad_f(u_vec):
+            G_mat = np.zeros((N, K_vars))
+            base = np.asarray(u_vec, dtype=complex)
+            for q in range(K_vars):
+                pert = base.copy()
+                pert[q] += 1j * hc
+                G_mat[:, q] = eval_f(pert).imag / hc
+            return G_mat
+
+        hd = 1e-5
+    else:
+        def grad_f(u_vec):
+            G_mat = np.zeros((N, K_vars))
+            base = np.asarray(u_vec, dtype=float)
+            for q in range(K_vars):
+                step = _FDSTEP * max(1.0, abs(base[q]))
+                up, dn = base.copy(), base.copy()
+                up[q] += step
+                dn[q] -= step
+                G_mat[:, q] = (eval_f(up).astype(float) - eval_f(dn).astype(float)) / (2.0 * step)
+            return G_mat
+
+        hd = 1e-4
+
+    A_plus = np.asarray(m._A_plus, dtype=float)
+    A_0 = np.asarray(m._A_0, dtype=float)
 
     H_f = np.zeros((N, K_vars, K_vars))
-    hd = 1e-5
     for p in range(K_vars):
         scale = max(1.0, abs(u0[p]))
         h_step = hd * scale
@@ -466,7 +620,8 @@ def solve_dynare_2nd_order(
     for i in range(N):
         H_f[i] = 0.5 * (H_f[i] + H_f[i].T)
 
-    # 3. Form second-order derivative systems for g_xx, g_xu, g_uu
+    # 3. Second-order systems for g_xx, g_xu, g_uu.  With
+    #    y_{t+1} = g(h(x, u), u', σ), y_t = g(x, u), y_{t-1} -> x (states only):
     I_states = np.zeros((N, n_x))
     for j, s in enumerate(states_list):
         I_states[vars_list.index(s), j] = 1.0
@@ -478,15 +633,11 @@ def solve_dynare_2nd_order(
     K_xu_tensor = np.zeros((N, n_x * n_e))
     K_uu_tensor = np.zeros((N, n_e**2))
     for i in range(N):
-        quad_xx_i = M_x.T @ H_f[i] @ M_x
-        K_xx_tensor[i] = quad_xx_i.flatten()
+        K_xx_tensor[i] = (M_x.T @ H_f[i] @ M_x).flatten()
+        K_xu_tensor[i] = (M_x.T @ H_f[i] @ M_u).flatten()
+        K_uu_tensor[i] = (M_u.T @ H_f[i] @ M_u).flatten()
 
-        quad_xu_i = M_x.T @ H_f[i] @ M_u
-        K_xu_tensor[i] = quad_xu_i.flatten()
-
-        quad_uu_i = M_u.T @ H_f[i] @ M_u
-        K_uu_tensor[i] = quad_uu_i.flatten()
-
+    # (A_0 + A_+ g_x P_s) g_xx + A_+ g_xx (h_x ⊗ h_x) = -K_xx
     A_hat = A_0 + A_plus @ g_x @ P_s
     hx_kron = np.kron(h_x, h_x)
     sys_mat = np.kron(np.eye(n_x**2), A_hat) + np.kron(hx_kron.T, A_plus)
@@ -501,7 +652,7 @@ def solve_dynare_2nd_order(
     H_xx = P_s @ g_xx
     G_xx = P_c @ g_xx
 
-    # State-shock cross terms g_xu: A_hat @ g_xu = - [ A_plus @ g_xx @ (h_x ⊗ h_u) + K_xu ]
+    # State-shock cross terms: A_hat g_xu = -[ A_+ g_xx (h_x ⊗ h_u) + K_xu ]
     hx_hu = np.kron(h_x, h_u)
     rhs_xu = -(A_plus @ g_xx @ hx_hu + K_xu_tensor)
     try:
@@ -512,7 +663,7 @@ def solve_dynare_2nd_order(
     H_xu = P_s @ g_xu
     G_xu = P_c @ g_xu
 
-    # Shock quadratic terms g_uu: A_hat @ g_uu = - [ A_plus @ g_xx @ (h_u ⊗ h_u) + K_uu ]
+    # Shock quadratic terms: A_hat g_uu = -[ A_+ g_xx (h_u ⊗ h_u) + K_uu ]
     hu_hu = np.kron(h_u, h_u)
     rhs_uu = -(A_plus @ g_xx @ hu_hu + K_uu_tensor)
     try:
@@ -523,19 +674,26 @@ def solve_dynare_2nd_order(
     H_uu = P_s @ g_uu
     G_uu = P_c @ g_uu
 
-    # 4. Volatility drift terms (H_sigmasigma, G_sigmasigma)
+    # 4. Volatility correction g_σσ. Differentiating twice in σ, with
+    #    y_{t+1} = g(h(x,u), σ ε', σ) and g_σ = 0:
+    #        (A_0 + A_+ g_x P_s + A_+) g_σσ = -[ A_+ g_uu vec(Σ_u)
+    #                                          + Σ_i tr(g_u' f_i,y+y+ g_u Σ_u) ]
+    #    The first term is next period's *own* shock curvature g_uu — not
+    #    g_xx (h_u ⊗ h_u), which would treat u_{t+1} as if it entered
+    #    through the state.
     if shock_cov is None:
         sigma_u = np.eye(n_e)
     else:
         sigma_u = np.asarray(shock_cov, dtype=float)
+        if sigma_u.shape != (n_e, n_e):
+            raise ValueError(f"shock_cov must be ({n_e}, {n_e}), got {sigma_u.shape}")
 
     W_vec = np.zeros(N)
     for i in range(N):
         W_vec[i] = np.trace(g_u.T @ H_f[i, 0:N, 0:N] @ g_u @ sigma_u)
 
-    hu_cov = h_u @ sigma_u @ h_u.T
-    vec_hu_cov = hu_cov.flatten()
-    rhs_sig = -(A_plus @ g_xx @ vec_hu_cov + W_vec)
+    vec_sigma = sigma_u.flatten()
+    rhs_sig = -(A_plus @ g_uu @ vec_sigma + W_vec)
 
     sys_sig = A_hat + A_plus
     try:
@@ -570,6 +728,9 @@ def solve_dynare_2nd_order(
         ghxu=g_xu,
         ghuu=g_uu,
         ghs2=g_ss,
+        params=par_dict,
+        shock_cov=sigma_u,
+        first_order=m,
     )
 
 
@@ -756,40 +917,49 @@ def parse_mod(mod_text: str) -> dict:
         else:
             clean_eqs.append(line)
 
+    def _eval_assignment_block(body: str, block_name: str) -> dict[str, float]:
+        """Evaluate ``name = expr;`` lines in order, keeping temporaries in scope.
+
+        Dynare lets ``steady_state_model`` / ``initval`` blocks define helper
+        quantities (``rk = 1/beta - 1 + delta;``) that later lines use;
+        those must be evaluated, not discarded. An assignment that cannot
+        be evaluated is a hard error naming the line, not a silent zero.
+        """
+        local_scope: dict[str, float] = dict(params)
+        for raw in body.split(";"):
+            stmt = raw.strip()
+            if not stmt or "=" not in stmt:
+                continue
+            name, expr = stmt.split("=", 1)
+            name = name.strip()
+            expr = expr.strip().replace("^", "**")
+            if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", name):
+                continue
+            try:
+                local_scope[name] = float(eval(expr, eval_scope, local_scope))
+            except Exception as exc:
+                raise ValueError(
+                    f"could not evaluate '{name} = {expr};' in the {block_name} block: "
+                    f"{type(exc).__name__}: {exc}"
+                ) from None
+        return local_scope
+
     # 7. Parse initval block
     guess_init: dict[str, float] = {}
     initval_match = re.search(r"\binitval\s*;\s*(.*?)\bend\s*;", clean_text, re.DOTALL)
     if initval_match:
-        for line in initval_match.group(1).split(";"):
-            line = line.strip()
-            if "=" in line:
-                vname, vval = line.split("=", 1)
-                vname = vname.strip()
-                vexpr = vval.strip().replace("^", "**")
-                if vname in variables:
-                    try:
-                        guess_init[vname] = float(eval(vexpr, eval_scope, params))
-                    except Exception:
-                        pass
+        init_scope = _eval_assignment_block(initval_match.group(1), "initval")
+        guess_init = {v: init_scope[v] for v in variables if v in init_scope}
 
     # 8. Parse steady_state_model block (if present)
     steady_state: dict[str, float] | None = None
     ss_match = re.search(r"\bsteady_state_model\s*;\s*(.*?)\bend\s*;", clean_text, re.DOTALL)
     if ss_match:
-        steady_state = {v: 0.0 for v in variables}
-        for line in ss_match.group(1).split(";"):
-            line = line.strip()
-            if "=" in line:
-                vname, vexpr = line.split("=", 1)
-                vname = vname.strip()
-                vexpr = vexpr.strip().replace("^", "**")
-                if vname in variables:
-                    try:
-                        val = float(eval(vexpr, eval_scope, params))
-                        steady_state[vname] = val
-                        eval_scope[vname] = val
-                    except Exception:
-                        pass
+        ss_scope = _eval_assignment_block(ss_match.group(1), "steady_state_model")
+        steady_state = {v: ss_scope.get(v, 0.0) for v in variables}
+        for v in variables:
+            if v in ss_scope:
+                eval_scope[v] = ss_scope[v]
 
     # 9. Parse shocks block
     shock_cov = np.eye(len(shocks))
@@ -880,7 +1050,9 @@ def parse_mod(mod_text: str) -> dict:
 
     # 10. Parse stoch_simul options
     options: dict[str, Any] = {}
-    stoch_match = re.search(r"\bstoch_simul\s*(?:\(([^)]*)\))?\s*;", clean_text)
+    # Dynare allows a variable list after the option parentheses:
+    # ``stoch_simul(order=2, irf=20) y c k;`` — the options still count.
+    stoch_match = re.search(r"\bstoch_simul\s*(?:\(([^)]*)\))?[^;]*;", clean_text)
     if stoch_match:
         opts_str = stoch_match.group(1) or ""
         ord_m = re.search(r"\border\s*=\s*(\d+)", opts_str)
@@ -967,13 +1139,18 @@ def load_mod(
     shock_cov: np.ndarray | None = None,
     tol: float = 1e-8,
     method: str = "complex",
+    verify_derivatives: bool = True,
+    strict: bool = True,
 ) -> LinearModel | PrunedDSGESolution:
     """Load and solve a Dynare .mod file directly in puremacro.
 
     Parameters
     ----------
     path_or_text : str or Path
-        Either a file path to a .mod file, or a raw string containing the .mod contents.
+        Either a file path to a .mod file, or a raw string containing the
+        .mod contents. A :class:`~pathlib.Path`, or a string without any
+        ``;`` / newline (which cannot be .mod source), is treated as a path
+        and must exist.
     params : Mapping[str, float], optional
         Optional parameter overrides.
     steady_state : Mapping[str, float] | Sequence[float], optional
@@ -994,7 +1171,14 @@ def load_mod(
     tol : float, default 1e-8
         Steady-state solver and verification tolerance.
     method : {'complex', 'central'}, default 'complex'
-        Differentiation method for Jacobians.
+        Differentiation method for Jacobians (and Hessians at order 2).
+    verify_derivatives : bool, default True
+        Cross-check complex-step Jacobians against finite differences and
+        raise :class:`ModelError` on disagreement (non-analytic equations).
+    strict : bool, default True
+        Raise :class:`~puremacro.dsge.klein.BlanchardKahnError` when the
+        Blanchard-Kahn condition fails instead of returning zero decision
+        rules.
 
     Returns
     -------
@@ -1002,16 +1186,28 @@ def load_mod(
         Solved model equipped with `.decision_rules()`, `.theoretical_moments()`,
         and `.irf()` (if order=1), or `.simulate()`, `.girf()`,
         `.stochastic_steady_state()`, and `.decision_rules()` (if order=2).
+
+    Raises
+    ------
+    FileNotFoundError
+        ``path_or_text`` looks like a path but no such file exists.
+    BlanchardKahnError
+        No unique stable solution (when ``strict``).
     """
     text_str = str(path_or_text)
-    if "\n" in text_str or ";" in text_str:
-        text = text_str
-    else:
+    looks_like_path = isinstance(path_or_text, Path) or (
+        "\n" not in text_str and ";" not in text_str
+    )
+    if looks_like_path:
         p = Path(path_or_text)
-        if p.is_file():
-            text = p.read_text(encoding="utf-8")
-        else:
-            text = text_str
+        if not p.is_file():
+            raise FileNotFoundError(
+                f"no .mod file at {p!s} (resolved from {Path.cwd()!s}); pass a path "
+                "to an existing file or the .mod source text itself"
+            )
+        text = p.read_text(encoding="utf-8")
+    else:
+        text = text_str
 
     parsed = parse_mod(text)
 
@@ -1052,6 +1248,8 @@ def load_mod(
         shock_cov=eff_shock_cov,
         tol=tol,
         method=method,
+        verify_derivatives=verify_derivatives,
+        strict=strict,
     )
 
 

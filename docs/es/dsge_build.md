@@ -69,7 +69,7 @@ Por el contrario, los **controles** con visión de futuro (*forward-looking*) ha
 
 La determinación no es una premisa impuesta sino una propiedad comprobada durante la resolución. Si se viola el principio de Taylor en un modelo nuevo keynesiano, el resolvedor levanta una excepción explícita:
 
-```python
+```text
 solve(phi_pi=0.9)
 # BlanchardKahnError: Blanchard-Kahn indeterminacy: 2 unstable generalised
 # eigenvalues vs 3 forward-looking variables
@@ -146,7 +146,32 @@ Ejecute archivos `.mod` directamente en Python puro sin dependencias de MATLAB u
 ```python
 from puremacro import dsge
 
-m = dsge.load_mod("rbc.mod")
+mod_text = """
+var c k a;
+varexo eps;
+parameters alpha beta delta gamma rho;
+
+alpha = 0.30;
+beta  = 0.99;
+delta = 0.025;
+gamma = 1.0;
+rho   = 0.80;
+
+model;
+  c^(-gamma) = beta * c(+1)^(-gamma) * (alpha * exp(a(+1)) * k^(alpha - 1.0) + 1.0 - delta);
+  k = exp(a) * k(-1)^alpha - c + (1.0 - delta) * k(-1);
+  a = rho * a(-1) + eps;
+end;
+
+initval;
+  k = 38.0;
+  a = 0.0;
+  c = 2.0;
+end;
+"""
+
+# Cargar desde texto o desde una ruta de archivo
+m = dsge.load_mod(mod_text)
 print(m.decision_rules().summary())
 print(m.theoretical_moments().summary())
 ```
@@ -158,9 +183,9 @@ print(m.theoretical_moments().summary())
 Resuelva aproximaciones cuadráticas estables siguiendo el algoritmo de Schmitt-Grohé y Uribe (2004) y Kim, Kim, Schaumburg y Sims (2008):
 
 ```python
-sol_2nd = m.solve_second_order()
-# o directamente al construir el modelo:
-sol_2nd = dsge.build_dynare(rbc, ..., order=2)
+# Segundo orden: pase order=2 a load_mod / build_dynare, o vuelva a resolver un modelo existente
+sol_2nd = m.solve(order=2)              # PrunedDSGESolution (Kim-Kim-Schaumburg-Sims pruning)
+print(sol_2nd.oo_dr.summary())          # ghx, ghu, ghxx, ghxu, ghuu, ghs2 en formato Dynare
 ```
 
 Descompone el espacio de estados en componentes de primer y segundo orden:
@@ -203,29 +228,50 @@ puremacro-dynare rbc.mod --shock-decomp datos_macro.csv --plot
 Calcula la trayectoria de alternancia de regímenes entre el régimen de referencia $M_1$ y el régimen restringido $M_2$ mediante recursión hacia atrás:
 
 ```python
-from puremacro.dsge import solve_occbin, OccBinConstraint
+import numpy as np
+from puremacro.dsge import build_dynare, solve_occbin, OccBinConstraint
 
-m_ref = dsge.load_mod("nk_taylor.mod")
-m_zlb = dsge.load_mod("nk_zlb.mod")
+# Modelo neokeynesiano de tres ecuaciones. El régimen restringido fija la tasa
+# nominal en el límite inferior cero (r = -r_ss en desviaciones del estado estacionario).
+params = {"beta": 0.99, "sigma": 1.0, "kappa": 0.1, "phi_pi": 1.5, "phi_y": 0.125, "rho_g": 0.8, "r_ss": 0.01}
+variables = ["y", "pi", "r", "g"]
+shocks = ["eps_r", "eps_g"]
+steady_state = {v: 0.0 for v in variables}
 
-# Definir la restricción: activa cuando la tasa nominal sombra r <= 0
-constraint = OccBinConstraint(
-    variable="r",
-    threshold=0.0,
-    direction="below",
-)
+def nk_taylor(lead, curr, lag, shocks_v, p):
+    return [
+        curr.y - lead.y + (curr.r - lead.pi) / p.sigma - curr.g,          # dynamic IS
+        curr.pi - p.beta * lead.pi - p.kappa * curr.y,                     # NK Phillips curve
+        curr.r - p.phi_pi * curr.pi - p.phi_y * curr.y - shocks_v.eps_r,   # Taylor rule
+        curr.g - p.rho_g * lag.g - shocks_v.eps_g,                         # demand shock process
+    ]
 
-res_occbin = solve_occbin(
-    m_reference=m_ref,
-    m_constrained=m_zlb,
-    constraint=constraint,
-    shocks={"eps_demand": -0.04},
-    horizon=30,
-)
+def nk_zlb(lead, curr, lag, shocks_v, p):
+    return [
+        curr.y - lead.y + (curr.r - lead.pi) / p.sigma - curr.g,
+        curr.pi - p.beta * lead.pi - p.kappa * curr.y,
+        curr.r - (-p.r_ss),                                                # rate pegged at the ZLB
+        curr.g - p.rho_g * lag.g - shocks_v.eps_g,
+    ]
 
+m_ref = build_dynare(nk_taylor, variables=variables, shocks=shocks, params=params, steady_state=steady_state)
+# Un régimen con tasa fija es indeterminado por sí solo; OccBin solo necesita sus
+# jacobianos, por eso el régimen alternativo se construye con strict=False.
+m_zlb = build_dynare(nk_zlb, variables=variables, shocks=shocks, params=params,
+                     steady_state=steady_state, check_steady_state=False, strict=False)
+
+# La restricción se activa cuando la tasa sombra cae por debajo del límite
+constraint = OccBinConstraint(variable="r", threshold=-params["r_ss"], operator="<")
+
+horizon = 30
+shock_seq = np.zeros((horizon, len(shocks)))
+shock_seq[0, shocks.index("eps_g")] = -0.04        # choque de demanda contractivo en t=0
+
+res_occbin = solve_occbin(m_ref, m_zlb, constraint, shock_sequence=shock_seq, horizon=horizon)
 print(res_occbin.summary())
-print("Períodos en ZLB:", res_occbin.regime_history)
-res_occbin.plot(title="Dinámica Nuevo Keynesiana con OccBin ZLB")
+print("Períodos en el límite inferior cero:", res_occbin.binding_periods)
+print("Régimen por período (1 = restringido):", res_occbin.regimes)
+res_occbin.plot()
 ```
 
 ---
@@ -235,17 +281,40 @@ res_occbin.plot(title="Dinámica Nuevo Keynesiana con OccBin ZLB")
 `puremacro.dsge.perfect_foresight` implementa el método de relajación apilada de Newton-Raphson de Boucekkine (1995) y Juillard (1996) para resolver transiciones deterministas no lineales exactas:
 
 ```python
+import numpy as np
 from puremacro.dsge import solve_perfect_foresight
 
-# Transición determinista no lineal ante choque permanente de PTF del 5%
-pf_res = solve_perfect_foresight(
-    m,
-    shocks={"eps_a": [0.05] + [0.0] * 99},
-    T=100,
-    max_iter=50,
-    tol=1e-8,
-)
+# Modelo de Ramsey determinista en niveles:
+#   1/c_t = beta / c_{t+1} * (alpha A_t k_t^(alpha-1) + 1 - delta)
+#   k_t   = A_t k_{t-1}^alpha + (1 - delta) k_{t-1} - c_t
+alpha, beta, delta = 0.33, 0.96, 0.10
+r_ss = 1.0 / beta - (1.0 - delta)
+k_ss = (alpha / r_ss) ** (1.0 / (1.0 - alpha))
+c_ss = k_ss ** alpha - delta * k_ss
 
+def ramsey(y_plus, y_curr, y_lag, exo):
+    c_p, k_p = y_plus
+    c, k = y_curr
+    c_m, k_m = y_lag
+    A = float(np.ravel(exo)[0])
+    return [
+        1.0 / c - beta / c_p * (alpha * A * k ** (alpha - 1.0) + 1.0 - delta),
+        k - (A * k_m ** alpha + (1.0 - delta) * k_m - c),
+    ]
+
+# Un alza de +5% en la PTF en el período 5, anunciada en t=0: el consumo salta antes de que llegue el choque
+n_periods = 100
+tfp_path = np.ones(n_periods)
+tfp_path[4] = 1.05
+
+pf_res = solve_perfect_foresight(
+    ramsey,
+    y_init=np.array([c_ss, k_ss]),
+    y_ss=np.array([c_ss, k_ss]),
+    exogenous_path=tfp_path,
+    n_periods=n_periods,
+    variable_names=["c", "k"],
+)
 print(pf_res.summary())
 pf_res.plot()
 ```
@@ -262,30 +331,37 @@ pf_res.plot()
 5. Diagnósticos de convergencia $\hat{R}$ dividida (Gelman-Rubin) y prueba espectral de Geweke.
 
 ```python
-import pandas as pd
+import numpy as np
 from puremacro.dsge import estimate_dsge_bayesian
-from puremacro.dsge.priors import BetaPrior, GammaPrior, InvGammaPrior
+from puremacro.dsge.priors import BetaPrior, InvGammaPrior
+from puremacro.state_space import StateSpaceModel, kalman_filter
 
-data = pd.read_csv("datos_macro.csv")
+# Observable: y_t = rho y_{t-1} + sigma eps_t, T = 300 (sustituto de la verosimilitud de su modelo)
+rng = np.random.default_rng(42)
+y = np.zeros(300)
+for t in range(1, 300):
+    y[t] = 0.7 * y[t - 1] + 0.4 * rng.standard_normal()
+y = y[:, None]
+
+def log_likelihood(params):
+    rho, sigma = (params["rho"], params["sigma"]) if isinstance(params, dict) else (params[0], params[1])
+    ssm = StateSpaceModel(T=np.array([[rho]]), Z=np.array([[1.0]]), R=np.array([[1.0]]),
+                          Q=np.array([[sigma ** 2]]), H=np.array([[1e-6]]))
+    return kalman_filter(y, ssm)["loglik"]
 
 priors = {
-    "alpha": BetaPrior(mean=0.33, std=0.05),
-    "beta":  BetaPrior(mean=0.99, std=0.005),
-    "rho":   BetaPrior(mean=0.80, std=0.10),
-    "sigma": InvGammaPrior(mean=0.01, std=0.005),
+    "rho": BetaPrior(mean=0.6, std=0.15, lb=0.01, ub=0.99),
+    "sigma": InvGammaPrior(mean=0.3, std=2.0, lb=0.01, ub=3.0),
 }
 
 bayes_res = estimate_dsge_bayesian(
-    model=m,
-    data=data,
-    priors=priors,
-    n_draws=10000,
-    burn_in=2000,
-    n_chains=2,
-    seed=42,
+    log_likelihood, priors,
+    initial_params=np.array([0.6, 0.3]),
+    n_draws=1000, n_burn=200, n_chains=2, seed=42,
 )
-
 print(bayes_res.summary())
+
+# Densidades a priori y a posteriori, y una tabla lista para publicación
 bayes_res.plot_priors_posteriors()
 print(bayes_res.to_latex())
 ```
@@ -295,12 +371,17 @@ print(bayes_res.to_latex())
 ### 10. Descomposición Histórica de Choques y FEVD
 
 ```python
-# Descomposición analítica de varianza del error de pronóstico (FEVD)
+# 1. FEVD analítica en los horizontes [1, 4, 8, 16, 40]
 fevd_res = m.fevd_result(horizons=[1, 4, 8, 16, 40])
 print(fevd_res.summary())
+print(fevd_res.to_latex())
 
-# Descomposición histórica de choques suavizada por Kalman
-decomp_res = m.shock_decomposition(data_obs=data)
+# 2. Descomposición histórica de choques de una muestra (aquí simulada del modelo;
+#    pase sus datos observados con una columna por variable)
+data = m.simulate(periods=80, seed=1)
+decomp_res = m.shock_decomposition(data)
 print(decomp_res.summary())
-decomp_res.plot(variable="output", title="Descomposición Histórica del Producto")
+
+# Gráfico de barras apiladas de las contribuciones históricas de los choques
+decomp_res.plot(variable="c")
 ```

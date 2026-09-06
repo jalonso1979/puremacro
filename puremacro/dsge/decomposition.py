@@ -8,10 +8,13 @@ Vector Moving Average (VMA) representation:
     Psi_0 = D
     Psi_k = C @ (A^(k-1)) @ B   for k >= 1
 
-Variance shares at finite horizon h:
+Variance shares at finite horizon h (Dynare's conditional variance decomposition):
     V_{i, j}(h) = sum_{k=0}^{h-1} (Psi_k[i, j])^2 * sigma_j^2
     MSE_i(h)    = sum_j V_{i, j}(h)
     Share_{i, j}(h) = V_{i, j}(h) / MSE_i(h)
+
+A row with MSE_i(h) = 0 has no defined shares: it is reported as NaN (with a
+ZeroVarianceWarning), never padded with a uniform 1/n_shocks.
 
 Asymptotic variance shares (horizon = None or np.inf) via discrete Lyapunov:
     Sigma_{s, j} = solve_discrete_lyapunov(A, sigma_j^2 * (B_{:, j} @ B_{:, j}^T))
@@ -33,6 +36,7 @@ import pandas as pd
 import scipy.linalg
 from matplotlib.figure import Figure
 
+from puremacro.dsge._moments import conditional_fevd
 from puremacro.plot import _new_ax, _palette
 from puremacro.reports import _df_to_latex, _df_to_markdown, _df_to_typst
 from puremacro.state_space import StateSpaceModel, kalman_smoother
@@ -63,7 +67,13 @@ class FEVDResult:
 
     def __post_init__(self) -> None:
         if self.table is not None and not self.table.empty:
-            row_sums = self.table[self.shock_names].sum(axis=1)
+            block = self.table[self.shock_names]
+            # Rows whose forecast-error variance is zero carry NaN shares
+            # (undefined), so the invariant is checked on the defined rows.
+            defined = block.notna().all(axis=1)
+            if not bool(defined.any()):
+                return
+            row_sums = block[defined].sum(axis=1)
             # Check invariant: row sums must equal 1.0 (or 100.0) within machine precision
             diff_one = np.abs(row_sums - 1.0)
             diff_hundred = np.abs(row_sums - 100.0)
@@ -151,7 +161,7 @@ class FEVDResult:
 
             bottom = np.zeros(len(h_labels))
             for s_idx, shk in enumerate(self.shock_names):
-                shares = sub[shk].to_numpy()
+                shares = np.nan_to_num(sub[shk].to_numpy(dtype=float), nan=0.0)
                 ax.bar(
                     x_pos,
                     shares,
@@ -463,14 +473,16 @@ def compute_fevd(
         unconditional variance shares computed via the discrete Lyapunov equation.
         Defaults to (1, 4, 8, 16, 32, None).
     sigma : float | Mapping[str, float] | Sequence[float], optional
-        Shock standard deviations. Defaults to model-defined shock standard
-        deviations or 1.0.
+        Shock standard deviations. Defaults to the shock covariance declared
+        with the model (``shocks`` block / ``shock_cov=``) or 1.0.
 
     Returns
     -------
     FEVDResult
         Frozen dataclass with multi-index DataFrame ('Variable', 'Horizon')
-        and export / plotting methods.
+        and export / plotting methods. Shares are fractions summing to 1;
+        a variable with zero forecast-error variance at a horizon has NaN
+        shares there (and a ``ZeroVarianceWarning`` is issued).
     """
     (
         A,
@@ -485,104 +497,15 @@ def compute_fevd(
     ) = _extract_companion_matrices(model, sigma)
 
     if horizons is None:
-        eval_horizons: Sequence[int | None] = (1, 4, 8, 16, 32, None)
+        eval_horizons: list[int | None] = [1, 4, 8, 16, 32, None]
     else:
         eval_horizons = list(horizons)
 
-    n_v = len(variables)
-    n_u = len(shocks)
-
-    # Determine maximum finite horizon
-    finite_horizons = [
-        int(h)
-        for h in eval_horizons
-        if h is not None and not (isinstance(h, float) and np.isinf(h))
-    ]
-    max_h = max(finite_horizons, default=0)
-
-    # Precompute VMA coefficients: Psi_0 = D, Psi_k = C @ A^(k-1) @ B
-    Psi: list[np.ndarray] = []
-    if max_h > 0:
-        Psi.append(D)
-        A_pow = np.eye(len(states))
-        for k in range(1, max_h):
-            Psi.append(C @ A_pow @ B)
-            A_pow = A_pow @ A
-
-    rows: list[dict[str, Any]] = []
-    processed_horizons: list[Any] = []
-
-    for h in eval_horizons:
-        is_asymptotic = h is None or (isinstance(h, (float, np.floating)) and np.isinf(h)) or h == "Infinity"
-        if is_asymptotic:
-            h_label: str | int = "Infinity"
-        else:
-            assert h is not None
-            h_label = int(h)
-        processed_horizons.append(h_label)
-
-        if is_asymptotic:
-            # Asymptotic unconditional variance shares via discrete Lyapunov
-            v_shocks = np.zeros((n_v, n_u))
-            for j in range(n_u):
-                b_j = B[:, [j]]
-                d_j = D[:, [j]]
-                var_u_j = sigmas[j] ** 2
-                q_j = var_u_j * (b_j @ b_j.T)
-                try:
-                    sig_s_j = scipy.linalg.solve_discrete_lyapunov(A, q_j)
-                except Exception:
-                    sig_s_j = np.zeros_like(A)
-                v_shocks[:, j] = var_u_j * (d_j[:, 0] ** 2) + np.diag(C @ sig_s_j @ C.T)
-
-            tot_v = v_shocks.sum(axis=1, keepdims=True)
-            has_var = (tot_v > 1e-15)[:, 0]
-            shares = np.zeros((n_v, n_u))
-            if np.any(has_var):
-                shares[has_var] = v_shocks[has_var] / tot_v[has_var]
-            if np.any(~has_var):
-                shares[~has_var] = 1.0 / n_u
-
-            # Strict normalization to guarantee machine-precision sum == 1.0
-            row_sums = shares.sum(axis=1, keepdims=True)
-            shares = shares / row_sums
-
-            for i, var in enumerate(variables):
-                row_dict: dict[str, Any] = {"Variable": var, "Horizon": h_label}
-                for j, s in enumerate(shocks):
-                    row_dict[s] = float(shares[i, j])
-                rows.append(row_dict)
-        else:
-            assert h is not None
-            h_int = int(h)
-            v_shocks = np.zeros((n_v, n_u))
-            for k in range(h_int):
-                v_shocks += (Psi[k] ** 2) * (sigmas ** 2)
-
-            tot_v = v_shocks.sum(axis=1, keepdims=True)
-            has_var = (tot_v > 1e-15)[:, 0]
-            shares = np.zeros((n_v, n_u))
-            if np.any(has_var):
-                shares[has_var] = v_shocks[has_var] / tot_v[has_var]
-            if np.any(~has_var):
-                shares[~has_var] = 1.0 / n_u
-
-            # Strict normalization to guarantee machine-precision sum == 1.0
-            row_sums = shares.sum(axis=1, keepdims=True)
-            shares = shares / row_sums
-
-            for i, var in enumerate(variables):
-                row_dict = {"Variable": var, "Horizon": h_label}
-                for j, s in enumerate(shocks):
-                    row_dict[s] = float(shares[i, j])
-                rows.append(row_dict)
-
-    df_fevd = pd.DataFrame(rows).set_index(["Variable", "Horizon"])
-    horizons_list = [h for h in eval_horizons]
+    df_fevd = conditional_fevd(A, B, C, D, sigmas, eval_horizons, variables, shocks)
 
     return FEVDResult(
         table=df_fevd,
-        horizons=horizons_list,
+        horizons=[h for h in eval_horizons],
         variable_names=list(variables),
         shock_names=list(shocks),
     )

@@ -130,7 +130,8 @@ def test_fevd_smets_wouters():
     """Test FEVD on Smets-Wouters (2007) canonical 44-variable 7-shock system."""
     sol = solve_sw07()
     horizons = [1, 4, 8, 16, 32, 40, None]
-    fevd_res = compute_fevd(sol, horizons=horizons)
+    with pytest.warns(UserWarning, match="forecast-error variance is zero"):
+        fevd_res = compute_fevd(sol, horizons=horizons)
 
     assert isinstance(fevd_res, FEVDResult)
     assert len(fevd_res.variable_names) == 44
@@ -140,7 +141,26 @@ def test_fevd_smets_wouters():
     table = fevd_res.table
     assert list(table.columns) == list(fevd_res.shock_names)
 
-    # ADVERSARIAL PROPERTY: row sums strictly equal 1.0 for all 44 variables and all horizons
+    # The lagged-copy auxiliaries (``c_lag = c(-1)`` ...) are known one period
+    # ahead, so their 1-step forecast error is exactly zero and their shares
+    # are undefined: NaN, never a padded 1/7. Every other row sums to 1.
+    lag_rows = [(v, 1) for v in fevd_res.variable_names if v.endswith("_lag")]
+    assert len(lag_rows) > 0
+    for key in lag_rows:
+        assert table.loc[key].isna().all(), key
+    # The hand-coded SW07 state space also carries the two ARMA markup
+    # processes (spinf, sw) whose innovation enters through a lagged
+    # auxiliary, so their 1-step forecast error is zero as well. Undefined
+    # rows are allowed only at horizon 1 and only when the whole row is NaN.
+    nan_rows = table[table.isna().any(axis=1)]
+    assert nan_rows.isna().all(axis=1).all()
+    assert set(nan_rows.index.get_level_values(1)) == {1}
+    assert set(lag_rows) <= set(nan_rows.index)
+    defined = table.dropna(how="any")
+    assert len(defined) == len(table) - len(nan_rows)
+    table = defined
+
+    # ADVERSARIAL PROPERTY: row sums strictly equal 1.0 for all 44 variables and all defined horizons
     row_sums = table.sum(axis=1)
     np.testing.assert_allclose(row_sums.to_numpy(), 1.0, atol=1e-12)
 

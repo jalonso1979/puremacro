@@ -35,17 +35,44 @@ print(res.to_typst())
 ### 2. DSGE de Segundo Orden y Paridad con Dynare
 Resuelve modelos DSGE no lineales hasta segundo orden con poda (*pruning*) de Kim, Kim, Schaumburg y Sims (2008), términos cruzados ($g_{xu}, g_{uu}$), corrección por riesgo ($g_{\sigma\sigma}$) y reglas de decisión compatibles con `oo_.dr`:
 ```python
-from puremacro.dsge import build_dynare, load_mod
+from puremacro.dsge import load_mod
 
-# 1. Carga o define un modelo desde un archivo .mod con choques y stoch_simul
-model = load_mod("rbc.mod")  # o build_dynare(eqs, states, controls, shocks, order=2)
+# 1. Un archivo .mod de Dynare: una ruta o, como aquí, el propio texto
+rbc_mod = """
+var c k a;
+varexo eps;
+parameters alpha beta delta gamma rho;
 
-# 2. Resuelve la aproximación podada de 2do orden
+alpha = 0.30;
+beta  = 0.99;
+delta = 0.025;
+gamma = 1.0;
+rho   = 0.80;
+
+model;
+  c^(-gamma) = beta * c(+1)^(-gamma) * (alpha * exp(a(+1)) * k^(alpha - 1.0) + 1.0 - delta);
+  k = exp(a) * k(-1)^alpha - c + (1.0 - delta) * k(-1);
+  a = rho * a(-1) + eps;
+end;
+
+initval;
+  k = 38.0;
+  a = 0.0;
+  c = 2.0;
+end;
+
+shocks;
+  var eps; stderr 0.01;
+end;
+"""
+model = load_mod(rbc_mod)   # LinearModel de primer orden (load_mod(rbc_mod, order=2) va directo al segundo orden)
+
+# 2. Resolver la perturbación de segundo orden con poda
 sol = model.solve(order=2)
 
-# 3. Accede a las reglas de decisión de Dynare (oo_.dr)
-print(sol.oo_dr["ghx"])   # transición lineal de estados
-print(sol.oo_dr["ghxx"])  # curvatura cuadrática
+# 3. Reglas de decisión al estilo Dynare (oo_.dr)
+print(sol.oo_dr["ghx"])   # transición de estados de primer orden
+print(sol.oo_dr["ghxx"])  # curvatura de segundo orden
 print(sol.oo_dr.summary())
 
 # 4. Momentos teóricos analíticos y descomposición de varianza
@@ -63,22 +90,23 @@ from puremacro.runtime.colab import (
     load_colab_result,
 )
 
-# Genera un cuaderno autocontenido con autenticación y montaje de Google Drive
+# 1. Empaqueta la tarea pesada en un cuaderno autocontenido (con celdas de autenticación
+#    y montaje de Drive). La variable `result` de la tarea se exporta como cartucho .pmz.
 nb = generate_colab_notebook(
-    task_code="""
+    """
 import puremacro as pm
-res = pm.dsge.estimate_sw07(n_draws=10000, n_chains=4)
-pm.runtime.store.save_frame(res.summary(), "sw07_posterior.pmz")
+result = pm.dsge.estimate_sw07(n_draws=10000, n_chains=4)
 """,
     mount_drive=True,
-    export_result_file="sw07_posterior.pmz",
+    save_path="sw07_offload.ipynb",
+    output_filename="sw07_posterior.pmz",
 )
 
-# Abre Colab en 1 clic desde Juno o navegador
-show_colab_offload_dialog(nb, filename="sw07_offload.ipynb")
+# 2. Muestra las instrucciones (tarjeta HTML en Juno / Jupyter, texto en la terminal)
+show_colab_offload_dialog("sw07_offload.ipynb")
 
-# Carga el resultado .pmz de regreso en tu sesión local sin pyarrow
-posterior = load_colab_result("sw07_posterior.pmz")
+# 3. Cuando el cartucho vuelva desde Google Drive, cárgalo en la sesión local:
+#    posterior = load_colab_result("sw07_posterior.pmz")
 ```
 
 ---
@@ -92,6 +120,15 @@ posterior = load_colab_result("sw07_posterior.pmz")
 - **Proyecciones locales** (`lp.*`) — LP-HAC para un solo país, LP-IV, LP con retardos aumentados (Plagborg-Møller-Wolf), LP de panel con errores estándar agrupados / Driscoll-Kraay, LP dependiente del estado, LP suavizada (B-splines de Barnichon-Brownlees), LP asimétrica (Tenreyro-Thwaites), LP-GARCH en estado, LP-GARCH en media, grupo medio, CCE, LP cuantílica.
 - **Inferencia** (`inference.*`) — MCO con HAC central, Newey-West, Kiefer-Vogelsang de b fijo, Driscoll-Kraay; diagnósticos de instrumentos débiles (Cragg-Donald, Kleibergen-Paap, Anderson-Rubin, Montiel Olea-Pflueger); Hansen-J / Stock-Yogo para sobreidentificación; CD de Pesaran, homogeneidad de pendientes de Swamy, quiebres estructurales de Quandt-Andrews, curvas de especificación.
 - **Otros estimadores** — índice de derrame de Diebold-Yilmaz; comparación de pronósticos Diebold-Mariano / Giacomini-White y evaluación de pronósticos en densidad (CRPS, log-score); quiebres de Bai-Perron; pruebas de raíz unitaria (ADF, KPSS, PP, Zivot-Andrews); solver QZ de Klein para DSGE lineales y perturbación de segundo orden con poda de Kim et al. (2008), términos cruzados y paridad con Dynare `oo_.dr` (`dsge.dynare`).
+
+**Métodos de frontera (2.3)**
+
+- **Restricciones narrativas de signo** (`var.identify.identify_narrative_sign`) — Antolín-Díaz y Rubio-Ramírez (2018): restricciones de signo del choque y de contribución histórica con pesos de importancia; véase `docs/es/narrative_sign_svar.md`.
+- **DiD honesto** (`did.honest_did`) — Rambachan y Roth (2023): conjuntos de sensibilidad de suavidad y magnitud relativa con intervalos de longitud fija y valores de quiebre; véase `docs/es/honest_did.md`.
+- **Proyecciones locales suavizadas** (`lp.smooth_lp`) — Barnichon y Brownlees (2019): LP penalizadas con B-splines y selección GCV/AIC/BIC/CV; véase `docs/es/smooth_lp.md`.
+- **HANK no lineal en el espacio de secuencias** (`models.hank_sequence_space.solve_nonlinear_transition`) — transiciones de Broyden para choques MIT grandes sobre jacobianos genuinos de los hogares; véase `docs/es/hank_nonlinear.md`.
+- **Gertler-Karadi (2011)** (`dsge.gertler_karadi`) — DSGE con fricciones bancarias bajo Klein y OccBin; véase `docs/es/gertler_karadi.md`.
+- **BVAR con volatilidad estocástica** (`var.bvar_sv`) — muestreador de Gibbs KSC + FFBS, R̂ dividido, FRI condicionadas a la volatilidad, puntuaciones logarítmicas fuera de muestra y gráficos de abanico; véase `docs/es/bvar_sv.md`.
 
 **Extensiones de macroeconomía moderna**
 
@@ -189,12 +226,14 @@ Para los conectores que requieren caché en disco bajo demanda y regulación por
 Suba el directorio `puremacro/` a su espacio de trabajo en juno.sh y luego, en una celda de cuaderno:
 
 ```python
+# requiere: un kernel de Jupyter (magia de IPython)
 %pip install ./puremacro
 ```
 
 **Advertencia desde que `pyarrow` es dependencia base:** ese comando resuelve el conjunto completo de dependencias y `pyarrow` no tiene rueda para Pyodide, así que bajo un núcleo Pyodide falla. Instale el núcleo de estimadores sin resolución de dependencias y añada a mano sólo lo que necesite:
 
 ```python
+# requiere: Pyodide (JupyterLite / juno.sh); `await` solo es válido allí
 import micropip
 await micropip.install("puremacro", deps=False)
 await micropip.install(["numpy", "scipy", "pandas", "matplotlib", "requests"])
@@ -236,15 +275,24 @@ Los puntos de acceso deben enviar `Access-Control-Allow-Origin` — algunas API 
 **Sin pyarrow.** Empaquete los datos donde estén la red y pyarrow, y ábralos donde no estén. Un cartucho es un único archivo autoverificable que lleva consigo su propia procedencia:
 
 ```python
+import numpy as np
+import pandas as pd
 from puremacro import pocket
+
+# Un DataFrame para transportar (en la práctica: el panel recién descargado)
+panel = pd.DataFrame(
+    {"USA": [1.0, 1.2, 1.1], "DEU": [0.8, 0.9, 1.0]},
+    index=pd.period_range("2025Q1", periods=3, freq="Q"),
+)
 
 # estación de trabajo
 pocket.pack(panel, "g7.pmz", source="OECD QNA", vintage="2026-08-19")
 
-# iPad, en modo avión
+# iPad, modo avión
 cart = pocket.load("g7.pmz")
-panel = cart.frame()          # verificado por sha256 al leer
+panel = cart.frame()          # verificado por SHA-256 al leer
 cart.provenance.vintage       # '2026-08-19'
+print(cart.summary())
 ```
 
 Llevar un *archivo* a un iPad suele costar más que el propio análisis, así que un cartucho también viaja como texto: `pocket.to_base64("g7.pmz")` en una máquina y `pocket.from_base64(blob, "g7.pmz")` en la otra.
@@ -255,9 +303,17 @@ Llevar un *archivo* a un iPad suele costar más que el propio análisis, así qu
 import numpy as np
 from puremacro import longrun
 
+rng = np.random.default_rng(0)
+Y = rng.standard_normal((120, 2))          # sus datos del VAR
+
+def one_draw(i):
+    """Una replicación bootstrap: devuelve aquello de lo que quiere las bandas."""
+    idx = np.random.default_rng(i).integers(0, len(Y), len(Y))
+    return Y[idx].mean(axis=0)
+
 job = longrun.bootstrap(one_draw, 2000, checkpoint="irf.ckpt")
-job.run(seconds=30)     # 240/2000 · 12% · ~220s of compute left
-job.run(seconds=30)     # ... y de nuevo tras la suspensión de la app
+job.run(seconds=30)     # 240/2000 · 12% · ~220 s de cómputo restantes
+job.run(seconds=30)     # ... y otra vez tras la suspensión de la aplicación
 bands = np.percentile(job.result(), [5, 95], axis=0)
 ```
 
@@ -279,6 +335,7 @@ pip install "puremacro[local-llm]"     # MLX (Apple Silicon) + llama.cpp (cualqu
 Luego utilice un backend local (mismas firmas que los backends de pago):
 
 ```python
+# requiere: un motor LLM local (llama-cpp-python o mlx-lm) y un corpus `records`
 from puremacro.narrative.scoring import score_llm, LocalBackend
 events = score_llm(records, backend=LocalBackend("qwen2.5-3b-instruct", engine="auto"))
 
@@ -355,14 +412,14 @@ Si proviene de Stata, MATLAB/Dynare o statsmodels:
 |---|---|---|---|---|
 | **SVAR de Cholesky** | `var y1 y2, lags(1/4)` + `irf create` | `varm` / VAR Toolbox | `VAR(Y).fit(4).irf(20)` | `var.identify.cholesky_svar(Y, p=4, horizon=20)` |
 | **SVAR de Blanchard–Quah** | `svar y1 y2, lreq(...)` | VAR Toolbox `bq_svar` | `SVAR(..., svar_type='B')` | `var.identify.bq_svar(Y, p=4, horizon=20)` |
-| **Restricciones de signo** | Plugin de usuario | Rubio-Ramírez / VAR Toolbox | — | `var.identify.sign_restrictions(Y, signs, p=4)` |
+| **Restricciones de signo** | Plugin de usuario | Rubio-Ramírez / VAR Toolbox | — | `var.identify.sign_restrictions(Y, restrictions={0: [+1, -1]}, p=4)` |
 | **SVAR con Proxy / IV externo** | `svariv` | Mertens & Ravn SVAR-IV | — | `var.identify.proxy_svar(Y, p=4, instrument_series=z)` |
 | **Proyecciones locales (HAC)** | `jorda` / MCO manual | Código de Jordà (2005) | `OLS(y_h, X).fit(cov_type='HAC')` | `lp.lp_hac(df, y="y", x="shock", horizon=20, lags=4)` |
 | **LP-IV dependiente de estado** | 2SLS con interacción manual | — | — | `lp.lp_state_dep_iv(df, y="y", x="g", z="news", state="u")` |
 | **PL de panel (Driscoll–Kraay)** | `xtscc` | Panel LP toolbox | `PanelOLS(..., cov_type='driscoll-kraay')` | `lp.panel_lp_dk(df, y="y", x="z", unit_col="id", time_col="t")` |
 | **GMM de panel dinámico** | `xtabond2 y L.y, gmm(y) two robust` | Arellano–Bond MATLAB | — | `dynpanel.ab_gmm(y, panel_id, time_id, two_step=True, windmeijer=True)` |
 | **DiD escalonado** | `csdid y, ivar(id) time(t) gvar(g)` | — | — | `did.callaway_santanna(df, unit="id", time="t", outcome="y", treat_time="g")` |
-| **DiD sintético** | `sdid y id t d` | synthdid paquete R | — | `did.synthetic_did(df, unit="id", time="t", outcome="y", treatment="d")` |
+| **DiD sintético** | `sdid y id t d` | synthdid paquete R | — | `did.synthetic_did(df, unit="id", time="t", outcome="y", treat_time="g")` |
 | **VAR aumentado con factores (FAVAR)** | — | BBE (2005) MATLAB | — | `var.favar(panel_df, policy_series, n_factors=3, horizon=20)` |
 | **Iteración de función de valor** | — | VFIToolkit `ValueFnIter_Case1` | — | `vfi.VFIProblem(a_grid, z_grid, P_z, return_fn, beta).solve()` |
 | **DSGE lineal (QZ / BK)** | — | Dynare `stoch_simul` / Klein `solab` | — | `dsge.klein.klein_solve(A, B, C, n_pre=...)` |
@@ -383,6 +440,7 @@ Las replicaciones de extremo a extremo de artículos canónicos se encuentran en
 - **`docs/es/quickstart.md`** — Guía de inicio rápido en 2 minutos cubriendo estimadores principales y exportación para publicaciones.
 - **`docs/es/dsge_build.md`** — Modelos DSGE desde ecuaciones, cargador de archivos `.mod`, poda de 2do orden, CLI `puremacro-dynare`, OccBin ZLB, relajación no lineal y MCMC bayesiano.
 - **`docs/es/models.md`** — Modelos estructurales: HANK en el espacio de secuencias, algoritmo Fake News, transferencias focalizadas y búsqueda y emparejamiento DMP.
+- **`docs/es/narrative_sign_svar.md`**, **`docs/es/honest_did.md`**, **`docs/es/smooth_lp.md`**, **`docs/es/hank_nonlinear.md`**, **`docs/es/gertler_karadi.md`**, **`docs/es/bvar_sv.md`** — las seis guías de las funciones 2.3.
 - **`docs/es/var.md`** — VAR en forma reducida, identificación de SVAR (Cholesky, signos, narrativa, proxy/IV), FAVAR y bandas bootstrap.
 - **`docs/es/lp.md`** — Guía de proyecciones locales (LP-HAC, LP-IV, LP dependiente de estado, LP de panel, `LPResult`).
 - **`docs/es/did.md`** — Diferencias en diferencias modernas (Callaway-Sant'Anna, Sun-Abraham, Borusyak-Jaravel-Spiess, DiD sintético).
@@ -409,7 +467,7 @@ Las replicaciones de extremo a extremo de artículos canónicos se encuentran en
 
 ## Estado
 
-Versión de producción, distribuyendo **2.3.0**. Cubierto por el gate 3 de publicación en `docs/1.0_path.md` § 5 enumera qué subpaquetes están dentro de esa promesa y cuáles son experimentales.
+Versión de producción, distribuyendo **2.3.1**. `docs/1.0_path.md` § 5 enumera qué subpaquetes están dentro de la promesa del gate de publicación y cuáles son experimentales.
 
 La CI está activa y corre en cada push: la suite sobre tres sistemas operativos y tres versiones de Python, el contrato con Pyodide, mypy, la guardia de deriva contra referencias, `mkdocs build --strict`, el despliegue del playground y una publicación en PyPI disparada por etiqueta mediante trusted publishing. Véase `.github/workflows/`. Aun así ejecute `python tools/release_check.py` localmente antes de etiquetar: los gates 5 y 6 son opcionales y la CI no los corre.
 

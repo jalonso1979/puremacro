@@ -18,6 +18,7 @@ from scipy.stats import norm
 
 from ..inference.lewbel_iv import lewbel_iv
 from ._results import LPResult
+from ._common import resolve_lp_kwargs
 
 
 def lp_iv_lewbel(
@@ -47,12 +48,8 @@ def lp_iv_lewbel(
     -------
     LPResult with columns ``[h, beta, se, t, lo, hi, first_stage_F, lewbel_p]``.
     """
-    if lags is not None:
-        n_lags = lags
-    if horizon is not None:
-        horizons = range(0, horizon + 1)
-    if ci is not None:
-        alpha = 1.0 - ci
+    horizons, n_lags, alpha = resolve_lp_kwargs(
+        horizons, n_lags, alpha, lags=lags, horizon=horizon, ci=ci, name="lp_iv_lewbel")
     horizons = list(horizons)
     controls = list(controls)
     z_crit = norm.ppf(1 - alpha / 2)
@@ -124,6 +121,7 @@ def lp_iv_lewbel(
     res.y_name = str(y)
     res.x_name = str(x_endog)
     res.method = "LP-IV-Lewbel"
+    res.ci_level = 1.0 - alpha
     return res
 
 

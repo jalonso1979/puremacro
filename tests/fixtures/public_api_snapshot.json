@@ -75,6 +75,7 @@
     ],
     "puremacro.climate.dice": [
       "DICEResult",
+      "min_climate_sensitivity",
       "simulate_dice_model"
     ],
     "puremacro.climate.mediation": [
@@ -170,6 +171,11 @@
     "puremacro.did.sdid_multi": [
       "sdid_multi_cohort"
     ],
+    "puremacro.did.sensitivity": [
+      "HonestDiDResult",
+      "honest_did",
+      "honest_did_sensitivity"
+    ],
     "puremacro.did.sun_abraham": [
       "sun_abraham"
     ],
@@ -230,6 +236,11 @@
       "solve_occbin",
       "solve_perfect_foresight",
       "solve_steady_state"
+    ],
+    "puremacro.dsge._moments": [
+      "ZeroVarianceWarning",
+      "conditional_fevd",
+      "first_order_moments"
     ],
     "puremacro.dsge._qz": [
       "ordqz_sorted"
@@ -833,6 +844,9 @@
     "puremacro.inference.lewbel_iv": [
       "lewbel_iv"
     ],
+    "puremacro.inference.newey_west": [
+      "newey_west_se"
+    ],
     "puremacro.inference.over_id": [
       "hansen_j",
       "stock_yogo_cv"
@@ -969,6 +983,7 @@
     "puremacro.lp": [
       "LPDiDResult",
       "LPResult",
+      "SmoothLPResult",
       "cce_panel_lp",
       "la_lp",
       "lp_asymmetric",
@@ -987,6 +1002,9 @@
       "panel_lp_dk",
       "panel_lp_iv",
       "smooth_lp"
+    ],
+    "puremacro.lp._common": [
+      "resolve_lp_kwargs"
     ],
     "puremacro.lp._panel_helpers": [
       "_focal_cluster_se",
@@ -1043,6 +1061,7 @@
       "lp_quantile"
     ],
     "puremacro.lp.smooth": [
+      "SmoothLPResult",
       "lp_smooth",
       "smooth_lp"
     ],
@@ -1679,6 +1698,7 @@
       "NarrativeStabilityReport"
     ],
     "puremacro.nowcast": [
+      "KalmanDFMResult",
       "NowcastResult",
       "bates_granger",
       "brier_score",
@@ -1702,6 +1722,7 @@
       "rank_weight"
     ],
     "puremacro.nowcast.dfm": [
+      "KalmanDFMResult",
       "kalman_dfm"
     ],
     "puremacro.nowcast.dfm_nowcast": [
@@ -1807,10 +1828,12 @@
       "irf_to_latex",
       "irf_to_markdown",
       "irf_to_typst",
+      "latex_escape",
       "summary_to_dataframe",
       "summary_to_latex",
       "summary_to_markdown",
-      "summary_to_typst"
+      "summary_to_typst",
+      "typst_escape"
     ],
     "puremacro.runtime": [
       "Budget",
@@ -2021,6 +2044,7 @@
       "scorecard"
     ],
     "puremacro.var": [
+      "BVAR_SVForecast",
       "BVAR_SVResult",
       "FAVARResult",
       "VarEstimateResult",
@@ -2046,6 +2070,7 @@
       "minnesota_posterior"
     ],
     "puremacro.var.bvar_sv": [
+      "BVAR_SVForecast",
       "BVAR_SVResult",
       "BVAR_SV_IRF",
       "bvar_sv"
@@ -2074,7 +2099,9 @@
       "SignRestrictionResult",
       "SignZeroResult",
       "bq",
+      "bq_svar",
       "cholesky",
+      "cholesky_svar",
       "compute_chol_shocks",
       "gk_robust_bands",
       "gk_robust_bands_from_gibbs",
@@ -2402,6 +2429,7 @@
     ],
     "puremacro.climate.dice.DICEResult": [
       "end_century_damages",
+      "parameters",
       "peak_temperature",
       "scc_initial",
       "trajectories"
@@ -2494,13 +2522,19 @@
       "omega",
       "se",
       "tau",
-      "treatment_time"
+      "treatment_time",
+      "y_synthetic",
+      "y_treated"
     ],
     "puremacro.did.sensitivity.HonestDiDResult": [
+      "bound",
       "breakdown_value",
       "ci",
+      "ci_method",
+      "m_search_max",
       "method",
       "pre_trend_max",
+      "pre_trend_max_second_diff",
       "pre_trend_slope",
       "table",
       "target_horizons"
@@ -2612,6 +2646,7 @@
       "solution",
       "states",
       "steady_state",
+      "timing",
       "units",
       "variables"
     ],
@@ -2635,6 +2670,7 @@
     ],
     "puremacro.dsge.gertler_karadi.GertlerKaradiResult": [
       "binding_periods",
+      "converged",
       "irf",
       "model",
       "occbin_result",
@@ -2707,12 +2743,15 @@
       "L",
       "N",
       "control_names",
+      "first_order",
       "ghs2",
       "ghu",
       "ghuu",
       "ghx",
       "ghxu",
       "ghxx",
+      "params",
+      "shock_cov",
       "shock_names",
       "state_names",
       "steady_state",
@@ -3011,7 +3050,8 @@
       "expectation_vectors",
       "fake_news",
       "horizon",
-      "jacobian"
+      "jacobian",
+      "shock_input"
     ],
     "puremacro.models.hank_sequence_space.FiscalTransferResult": [
       "cumulative_multiplier",
@@ -3019,6 +3059,7 @@
       "impact_mpc",
       "irf_consumption",
       "mpc_by_group",
+      "nonlinear",
       "target_group",
       "transfer_amount"
     ],
@@ -3035,19 +3076,23 @@
       "irf_rate_linear",
       "irf_rate_nonlinear",
       "iterations",
+      "jacobian_c_r",
+      "jacobian_c_y",
       "linear_path",
       "nonlinear_path",
       "norm_history",
       "residuals",
       "shock_seq",
       "shock_var",
-      "steady_state_model"
+      "steady_state_model",
+      "tol"
     ],
     "puremacro.models.hank_sequence_space.SequenceSpaceHANKResult": [
       "asset_grid",
       "beta",
       "distribution",
       "gamma",
+      "government_debt",
       "irf_consumption",
       "irf_inflation",
       "irf_output",
@@ -3060,9 +3105,13 @@
       "policy_a",
       "policy_c",
       "r_ss",
+      "ss_converged",
+      "steady_state_consumption",
       "steady_state_mpc",
       "steady_state_wealth_dist",
-      "trans_matrix"
+      "tax_rate",
+      "trans_matrix",
+      "w_ss"
     ],
     "puremacro.models.nested_dmp.dynamics.IRFResult": [
       "fed_type",
@@ -3338,6 +3387,9 @@
       "text_iter_factory"
     ],
     "puremacro.nowcast.dfm_nowcast.NowcastResult": [
+      "bridge_coefficients",
+      "factor_forecast",
+      "factor_var",
       "factors",
       "loadings",
       "model_r2",
@@ -3541,6 +3593,14 @@
       "names",
       "resid"
     ],
+    "puremacro.var.bvar_sv.BVAR_SVForecast": [
+      "ci",
+      "h_paths",
+      "history",
+      "index",
+      "names",
+      "paths"
+    ],
     "puremacro.var.bvar_sv.BVAR_SVResult": [
       "a_draws",
       "beta_draws",
@@ -3553,7 +3613,10 @@
       "log_scores",
       "mu_draws",
       "n_burn",
+      "n_chains",
       "n_draws",
+      "n_stuck_iterations",
+      "n_unstable_rejections",
       "phi_draws",
       "r_hat",
       "sigma_h_draws"
@@ -3618,9 +3681,14 @@
     "puremacro.var.identify._results.NarrativeSignResult": [
       "A_list",
       "B",
+      "Sigma",
+      "accepted_A",
+      "accepted_B",
+      "bayes_draws",
       "ci",
       "ess",
       "fevd_median",
+      "init_y",
       "intercept",
       "irf_lower",
       "irf_median",
@@ -3628,6 +3696,8 @@
       "n_draws",
       "n_narrative_accepted",
       "n_traditional_accepted",
+      "n_unstable_draws",
+      "n_weight_floor",
       "names",
       "residuals",
       "restriction_fail_counts",
@@ -3637,9 +3707,14 @@
     "puremacro.var.identify._results.NarrativeSignSVARResult": [
       "A_list",
       "B",
+      "Sigma",
+      "accepted_A",
+      "accepted_B",
+      "bayes_draws",
       "ci",
       "ess",
       "fevd_median",
+      "init_y",
       "intercept",
       "irf_lower",
       "irf_median",
@@ -3647,6 +3722,8 @@
       "n_draws",
       "n_narrative_accepted",
       "n_traditional_accepted",
+      "n_unstable_draws",
+      "n_weight_floor",
       "names",
       "residuals",
       "restriction_fail_counts",

@@ -47,20 +47,24 @@ class CallawaySantannaResult:
         """Return event-study ATT estimates as a DataFrame."""
         return self.att_event_study.copy()
 
-    def to_markdown(self, **kwargs) -> str:
-        """Export event-study ATTs to Markdown table."""
+    def to_markdown(self, *, index: bool = False, **kwargs) -> str:
+        """Export event-study ATTs to a Markdown table.
+
+        The event-study frame carries a plain positional ``RangeIndex``,
+        so ``index=False`` (the default) keeps it out of the table.
+        """
         from puremacro.reports import _df_to_markdown
-        return _df_to_markdown(self.to_frame(), **kwargs)
+        return _df_to_markdown(self.to_frame(), index=index, **kwargs)
 
-    def to_latex(self, **kwargs) -> str:
-        """Export event-study ATTs to LaTeX table."""
+    def to_latex(self, *, index: bool = False, **kwargs) -> str:
+        """Export event-study ATTs to a LaTeX ``tabular`` (no index column)."""
         from puremacro.reports import _df_to_latex
-        return _df_to_latex(self.to_frame(), **kwargs)
+        return _df_to_latex(self.to_frame(), index=index, **kwargs)
 
-    def to_typst(self, **kwargs) -> str:
-        """Export event-study ATTs to Typst table."""
+    def to_typst(self, *, index: bool = False, **kwargs) -> str:
+        """Export event-study ATTs to a Typst ``#table`` (no index column)."""
         from puremacro.reports import _df_to_typst
-        return _df_to_typst(self.to_frame(), **kwargs)
+        return _df_to_typst(self.to_frame(), index=index, **kwargs)
 
     def plot(self, *, ax=None, title: str = "Callaway-Sant'Anna Event Study", **kwargs):
         """Plot event-study ATT estimates with confidence intervals."""
@@ -108,20 +112,24 @@ class SunAbrahamResult:
         """Return event-study ATT estimates as a DataFrame."""
         return self.att_event_study.copy()
 
-    def to_markdown(self, **kwargs) -> str:
-        """Export event-study ATTs to Markdown table."""
+    def to_markdown(self, *, index: bool = False, **kwargs) -> str:
+        """Export event-study ATTs to a Markdown table.
+
+        The event-study frame carries a plain positional ``RangeIndex``,
+        so ``index=False`` (the default) keeps it out of the table.
+        """
         from puremacro.reports import _df_to_markdown
-        return _df_to_markdown(self.to_frame(), **kwargs)
+        return _df_to_markdown(self.to_frame(), index=index, **kwargs)
 
-    def to_latex(self, **kwargs) -> str:
-        """Export event-study ATTs to LaTeX table."""
+    def to_latex(self, *, index: bool = False, **kwargs) -> str:
+        """Export event-study ATTs to a LaTeX ``tabular`` (no index column)."""
         from puremacro.reports import _df_to_latex
-        return _df_to_latex(self.to_frame(), **kwargs)
+        return _df_to_latex(self.to_frame(), index=index, **kwargs)
 
-    def to_typst(self, **kwargs) -> str:
-        """Export event-study ATTs to Typst table."""
+    def to_typst(self, *, index: bool = False, **kwargs) -> str:
+        """Export event-study ATTs to a Typst ``#table`` (no index column)."""
         from puremacro.reports import _df_to_typst
-        return _df_to_typst(self.to_frame(), **kwargs)
+        return _df_to_typst(self.to_frame(), index=index, **kwargs)
 
     def plot(self, *, ax=None, title: str = "Sun-Abraham Event Study", **kwargs):
         """Plot event-study ATT estimates with confidence intervals."""
@@ -171,20 +179,24 @@ class BorusyakJaravelSpiessResult:
         """Return event-study ATT estimates as a DataFrame."""
         return self.att_event_study.copy()
 
-    def to_markdown(self, **kwargs) -> str:
-        """Export event-study ATTs to Markdown table."""
+    def to_markdown(self, *, index: bool = False, **kwargs) -> str:
+        """Export event-study ATTs to a Markdown table.
+
+        The event-study frame carries a plain positional ``RangeIndex``,
+        so ``index=False`` (the default) keeps it out of the table.
+        """
         from puremacro.reports import _df_to_markdown
-        return _df_to_markdown(self.to_frame(), **kwargs)
+        return _df_to_markdown(self.to_frame(), index=index, **kwargs)
 
-    def to_latex(self, **kwargs) -> str:
-        """Export event-study ATTs to LaTeX table."""
+    def to_latex(self, *, index: bool = False, **kwargs) -> str:
+        """Export event-study ATTs to a LaTeX ``tabular`` (no index column)."""
         from puremacro.reports import _df_to_latex
-        return _df_to_latex(self.to_frame(), **kwargs)
+        return _df_to_latex(self.to_frame(), index=index, **kwargs)
 
-    def to_typst(self, **kwargs) -> str:
-        """Export event-study ATTs to Typst table."""
+    def to_typst(self, *, index: bool = False, **kwargs) -> str:
+        """Export event-study ATTs to a Typst ``#table`` (no index column)."""
         from puremacro.reports import _df_to_typst
-        return _df_to_typst(self.to_frame(), **kwargs)
+        return _df_to_typst(self.to_frame(), index=index, **kwargs)
 
     def plot(self, *, ax=None, title: str = "Borusyak-Jaravel-Spiess Event Study", **kwargs):
         """Plot event-study ATT estimates with confidence intervals."""
@@ -214,6 +226,13 @@ class SyntheticDiDResult:
         Upper bootstrap percentile.
     treatment_time : float
         Common treatment time identified by the estimator.
+    y_treated : pd.Series | None
+        Mean outcome path of the treated units, indexed by period
+        (``None`` when the result was built without trajectories).
+    y_synthetic : pd.Series | None
+        ω-weighted donor outcome path over the same periods; the SDID
+        estimate is the post-period gap between ``y_treated`` and
+        ``y_synthetic`` net of the λ-weighted pre-period gap.
 
     References
     ----------
@@ -229,6 +248,8 @@ class SyntheticDiDResult:
     lo: float
     hi: float
     treatment_time: float
+    y_treated: Optional[pd.Series] = None
+    y_synthetic: Optional[pd.Series] = None
 
     def summary(self) -> str:
         """One-paragraph human-readable summary of the fit."""
@@ -265,6 +286,48 @@ class SyntheticDiDResult:
         """Export summary to Typst table."""
         from puremacro.reports import _df_to_typst
         return _df_to_typst(self.to_frame(), index=False, **kwargs)
+
+    def plot(self, *, ax=None, title: str = "Synthetic DiD"):
+        """Plot the treated-mean and ω-weighted synthetic outcome paths.
+
+        The pre-period time weights ``lambda_w`` are drawn as a bar strip
+        along the bottom of the axis, and the treatment time is marked
+        with a vertical line. Returns the matplotlib ``Figure``.
+        """
+        import matplotlib.pyplot as plt
+
+        if self.y_treated is None or self.y_synthetic is None:
+            raise ValueError(
+                "this SyntheticDiDResult carries no outcome trajectories "
+                "(y_treated / y_synthetic are None); re-run synthetic_did "
+                "to obtain a plottable result"
+            )
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(6.5, 3.8))
+        else:
+            fig = ax.figure
+        x_tr = np.asarray(self.y_treated.index, dtype=float)
+        x_sy = np.asarray(self.y_synthetic.index, dtype=float)
+        ax.plot(x_tr, self.y_treated.values, color="0.0", lw=1.5,
+                label="Treated (mean)")
+        ax.plot(x_sy, self.y_synthetic.values, color="0.4", ls="--", lw=1.5,
+                label="Synthetic (ω-weighted donors)")
+        ax.axvline(self.treatment_time, color="0.5", ls=":", lw=1.0,
+                   label="Treatment")
+        # λ weights as a strip at the bottom of the axis.
+        y0, y1 = ax.get_ylim()
+        strip = 0.12 * (y1 - y0)
+        lam = self.lambda_w
+        if len(lam) and float(lam.max()) > 0:
+            heights = strip * (lam.values / float(lam.max()))
+            ax.bar(np.asarray(lam.index, dtype=float), heights, bottom=y0,
+                   width=0.8, color="0.7", alpha=0.6, label="λ (time weights)")
+            ax.set_ylim(y0, y1)
+        ax.set_title(f"{title}: τ̂ = {self.tau:+.3f} (se {self.se:.3f})")
+        ax.set_xlabel("Period")
+        ax.set_ylabel("Outcome")
+        ax.legend(loc="best", frameon=False, fontsize=8)
+        return fig
 
 
 @dataclass(frozen=True)
@@ -341,6 +404,61 @@ class CdHResult:
             f"{placebo_line}\n"
         )
 
+    def to_frame(self) -> pd.DataFrame:
+        """Estimates as a table: ``DID_M`` then ``DID_M^l`` per horizon.
+
+        Columns ``[estimand, horizon, att, se]``; the instantaneous
+        ``DID_M`` row carries ``horizon = 0``.
+        """
+        rows = [{"estimand": "DID_M", "horizon": 0,
+                 "att": float(self.att_M), "se": float(self.se_M)}]
+        for h, val, se in zip(self.horizons, self.att_M_l, self.se_M_l):
+            rows.append({"estimand": "DID_M^l", "horizon": int(h),
+                         "att": float(val), "se": float(se)})
+        return pd.DataFrame(rows)
+
+    def to_markdown(self, **kwargs) -> str:
+        """Export the DID_M / DID_M^l table to Markdown."""
+        from puremacro.reports import _df_to_markdown
+        return _df_to_markdown(self.to_frame(), index=False, **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        """Export the DID_M / DID_M^l table to a LaTeX ``tabular``."""
+        from puremacro.reports import _df_to_latex
+        return _df_to_latex(self.to_frame(), index=False, **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        """Export the DID_M / DID_M^l table to a Typst ``#table``."""
+        from puremacro.reports import _df_to_typst
+        return _df_to_typst(self.to_frame(), index=False, **kwargs)
+
+    def plot(self, *, ax=None, title: str = "de Chaisemartin-D'Haultfoeuille DID_M"):
+        """Plot ``DID_M`` (horizon 0) and ``DID_M^l`` with ±1.96·se bars.
+
+        Returns the matplotlib ``Figure``.
+        """
+        import matplotlib.pyplot as plt
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(6.5, 3.8))
+        else:
+            fig = ax.figure
+        tab = self.to_frame()
+        ok = np.isfinite(tab["att"].to_numpy(dtype=float))
+        tab = tab[ok]
+        x = tab["horizon"].to_numpy(dtype=float)
+        y = tab["att"].to_numpy(dtype=float)
+        se = tab["se"].to_numpy(dtype=float)
+        yerr = np.where(np.isfinite(se), 1.96 * se, 0.0)
+        ax.errorbar(x, y, yerr=yerr, fmt="o", color="0.0", ecolor="0.4",
+                    elinewidth=1.2, capsize=3, label="DID_M / DID_M^l (95% CI)")
+        ax.axhline(0.0, color="0.3", lw=0.8, ls=":")
+        ax.set_xlabel("Horizon l (0 = instantaneous DID_M)")
+        ax.set_ylabel("Treatment effect")
+        ax.set_title(title)
+        ax.legend(loc="best", frameon=False)
+        return fig
+
 
 @dataclass(frozen=True)
 class SDIDMultiResult:
@@ -412,3 +530,63 @@ class SDIDMultiResult:
             f"  bootstrap reps    : {self.n_boot}\n"
             f"  per-cohort:\n{block}\n"
         )
+
+    def to_frame(self) -> pd.DataFrame:
+        """Per-cohort SDID estimates plus the aggregate as the last row.
+
+        Columns ``[cohort, weight, att, se]``. Only the aggregate carries
+        a bootstrap standard error; per-cohort rows have ``se = NaN``.
+        """
+        rows = [
+            {"cohort": str(c), "weight": float(w), "att": float(a),
+             "se": float("nan")}
+            for c, w, a in zip(self.cohort_times, self.cohort_weights,
+                               self.cohort_atts)
+        ]
+        rows.append({"cohort": "aggregate", "weight": 1.0,
+                     "att": float(self.att), "se": float(self.se)})
+        return pd.DataFrame(rows)
+
+    def to_markdown(self, **kwargs) -> str:
+        """Export the per-cohort / aggregate table to Markdown."""
+        from puremacro.reports import _df_to_markdown
+        return _df_to_markdown(self.to_frame(), index=False, **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        """Export the per-cohort / aggregate table to a LaTeX ``tabular``."""
+        from puremacro.reports import _df_to_latex
+        return _df_to_latex(self.to_frame(), index=False, **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        """Export the per-cohort / aggregate table to a Typst ``#table``."""
+        from puremacro.reports import _df_to_typst
+        return _df_to_typst(self.to_frame(), index=False, **kwargs)
+
+    def plot(self, *, ax=None, title: str = "Multi-cohort Synthetic DiD"):
+        """Plot per-cohort SDID ATTs against cohort time, with the
+        cohort-weighted aggregate (±1.96·se band) as a horizontal line.
+
+        Returns the matplotlib ``Figure``.
+        """
+        import matplotlib.pyplot as plt
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(6.5, 3.8))
+        else:
+            fig = ax.figure
+        x = np.asarray(self.cohort_times, dtype=float)
+        y = np.asarray(self.cohort_atts, dtype=float)
+        w = np.asarray(self.cohort_weights, dtype=float)
+        sizes = 40.0 + 160.0 * (w / w.max() if w.size and w.max() > 0 else w)
+        ax.scatter(x, y, s=sizes, color="0.0", zorder=3,
+                   label="Cohort ATT (marker ∝ weight)")
+        ax.axhline(self.att, color="0.3", lw=1.2, label="Aggregate ATT")
+        if np.isfinite(self.se):
+            ax.axhspan(self.att - 1.96 * self.se, self.att + 1.96 * self.se,
+                       color="0.8", alpha=0.5, label="95% band (bootstrap)")
+        ax.axhline(0.0, color="0.5", lw=0.8, ls=":")
+        ax.set_xlabel("Cohort (first-treatment period)")
+        ax.set_ylabel("ATT")
+        ax.set_title(title)
+        ax.legend(loc="best", frameon=False, fontsize=8)
+        return fig

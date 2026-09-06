@@ -177,11 +177,36 @@ def _build_M_matrix(
     return M
 
 
-def _complete_B(B_col0: np.ndarray) -> np.ndarray:
-    """Complete structural impact matrix B via Gram-Schmidt.
+def _complete_Q(q: np.ndarray) -> np.ndarray:
+    """Orthonormal (n, n) matrix whose first column is the unit vector ``q``.
 
-    Returns full (n, n) matrix whose first column is B_col0 and
-    remaining columns span the orthogonal complement (standard metric).
+    Gram-Schmidt on the canonical basis; used so that the completed impact
+    matrix is ``B = chol(Sigma_u) @ Q`` and therefore ``B B' = Sigma_u``
+    exactly (the previous completion orthogonalised the *impact vectors* in
+    the Euclidean metric, which gave ``B B' != Sigma_u`` and mis-normalised
+    every FEVD share).
+    """
+    n = len(q)
+    Q = np.zeros((n, n))
+    Q[:, 0] = q / np.linalg.norm(q)
+    idx = 1
+    for j in range(n):
+        v = np.eye(n)[:, j].copy()
+        for k in range(idx):
+            v -= (v @ Q[:, k]) * Q[:, k]
+        norm = np.linalg.norm(v)
+        if norm > 1e-10:
+            Q[:, idx] = v / norm
+            idx += 1
+        if idx == n:
+            break
+    return Q
+
+
+def _complete_B(B_col0: np.ndarray) -> np.ndarray:
+    """Backward-compatible wrapper kept for callers that pass an impact column.
+
+    Prefer ``chol @ _complete_Q(q)``; see :func:`_complete_Q`.
     """
     n = len(B_col0)
     B = np.zeros((n, n))
@@ -226,8 +251,7 @@ def _identify_one(
     q = eigenvectors[:, -1]
     q = q / np.linalg.norm(q)
 
-    B_col0 = chol @ q
-    B = _complete_B(B_col0)
+    B = chol @ _complete_Q(q)          # B B' = Sigma_u exactly
 
     Phi = _companion_irfs(A_list, horizon=horizon)
     irfs = np.einsum("hij,jk->hik", Phi, B)    # (H+1, n, n)
@@ -323,6 +347,14 @@ def identify_maxshare(
     # ------------------------------------------------------------------ #
     # 2-4.  Identification, IRFs, FEVD
     # ------------------------------------------------------------------ #
+    if max_fev_at < 1:
+        raise ValueError(f"identify_maxshare: max_fev_at must be >= 1, got {max_fev_at}")
+    if max_fev_at > horizon + 1:
+        raise ValueError(
+            f"identify_maxshare: max_fev_at={max_fev_at} exceeds horizon+1={horizon + 1}; "
+            "the FEV share at the identification horizon is read from the reported "
+            "IRFs, so pass horizon >= max_fev_at - 1"
+        )
     B, q, irfs, fevd, fev_share = _identify_one(
         A_list, Sigma_u, chol, target_idx=target_idx,
         max_fev_at=max_fev_at, horizon=horizon,
@@ -366,10 +398,16 @@ def identify_maxshare(
                 n_fail += 1
                 continue
 
-            _, _, irfs_b, _, _ = _identify_one(
+            _, q_b, irfs_b, _, _ = _identify_one(
                 A_b, Sigma_b, chol_b, target_idx=target_idx,
                 max_fev_at=max_fev_at, horizon=horizon,
             )
+            # The eigenvector is identified only up to sign: align each draw
+            # with the point estimate so the percentile bands are not a
+            # mixture of +q and -q draws straddling zero.
+            if float(q_b @ q) < 0.0:
+                irfs_b = irfs_b.copy()
+                irfs_b[:, :, 0] *= -1.0
             accepted.append(irfs_b)
 
         if not accepted:

@@ -356,8 +356,10 @@ def test_adversarial_honest_did_zero_pretrend_division_guard():
     assert np.all(np.isfinite(res_rm.table["id_hi"]))
     assert np.all(np.isfinite(res_rm.table["ci_lo"]))
     assert np.all(np.isfinite(res_rm.table["ci_hi"]))
-    # Zero-pretrend guard floors pre_trend_max at 1e-6 to prevent division-by-zero
-    assert np.isclose(res_rm.pre_trend_max, 1e-6)
+    # A zero pre-trend gives a zero benchmark: the relative-magnitude set is the
+    # point estimate at every Mbar and nothing divides by it.
+    assert res_rm.pre_trend_max == pytest.approx(0.0, abs=1e-12)
+    assert np.allclose(res_rm.table["id_lo"], res_rm.table["id_hi"])
 
     # Test smoothness with zero pre-trend
     res_sd = honest_did(
@@ -397,9 +399,13 @@ def test_adversarial_honest_did_asymptotic_limits_m_zero_and_infinity():
 
     assert np.isclose(row_0["id_lo"], orig, atol=1e-8)
     assert np.isclose(row_0["id_hi"], orig, atol=1e-8)
-    # Robust CI collapses to standard OLS confidence interval
-    np.testing.assert_allclose(row_0["ci_lo"], orig - z_crit * orig_se, atol=1e-4)
-    np.testing.assert_allclose(row_0["ci_hi"], orig + z_crit * orig_se, atol=1e-4)
+    # At M = 0 the estimator removes the linear extrapolation of the pre-trend
+    # (here beta_{-2} = 0, so the point estimate is unchanged) and the
+    # fixed-length CI carries that extrapolation's sampling uncertainty:
+    # half-width z * sqrt(se_0^2 + se_{-2}^2), wider than the naive z * se_0.
+    half = z_crit * np.sqrt(orig_se ** 2 + se[0] ** 2)
+    np.testing.assert_allclose(row_0["ci_lo"], orig - half, rtol=2e-3)
+    np.testing.assert_allclose(row_0["ci_hi"], orig + half, rtol=2e-3)
 
     # 2. As M -> infinity: Identified set becomes unbounded
     res_inf = honest_did(
@@ -510,7 +516,7 @@ def test_adversarial_smooth_lp_convergence_as_lambda_zero():
     w_tilde, Y_tilde, s_ww, b_ols, u_ols, T_eff = _prepare_lp_data(
         df, "y", "x", horizons, n_lags=1, controls=None
     )
-    B, n_basis = _build_bspline_basis(np.array(horizons, dtype=float), n_knots=len(horizons), degree=3)
+    B, n_basis = _build_bspline_basis(np.array(horizons, dtype=float), n_knots=len(horizons) - 4, degree=3)
 
     # Compute unpenalized least-squares projection of b_ols onto B
     theta_ols = np.linalg.lstsq(B, b_ols, rcond=None)[0]
@@ -525,7 +531,7 @@ def test_adversarial_smooth_lp_convergence_as_lambda_zero():
         n_lags=1,
         lam=1e-12,
         degree=3,
-        n_knots=len(horizons),
+        n_knots=len(horizons) - 4,
     )
 
     # Discrepancy must be machine precision (< 1e-6)
@@ -636,7 +642,10 @@ def test_adversarial_gertler_karadi_klein_determinacy_boundaries():
     """R5: Determinacy and explosiveness boundaries in Klein solver."""
     m = build_gertler_karadi_model(GK2011_PARAMS)
     n_pre = len(m.states)
-    n_fwd = len(m.controls)
+    # The stacked lead/lag system treats every current variable as
+    # non-predetermined (the lagged copies of the states are the predetermined
+    # block), so Blanchard-Kahn counts n_variables forward-looking unknowns.
+    n_fwd = len(m.variables)
 
     # 1. Canonical model satisfies Blanchard-Kahn
     sol = klein_solve(m.A, m.B, n_pre, m.C, strict=True)

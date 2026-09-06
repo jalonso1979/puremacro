@@ -13,7 +13,13 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 
-from ._panel_helpers import _focal_cluster_se, panel_lp_horizon_loop
+from ._panel_helpers import (
+    _focal_cluster_se,
+    _focal_dk_se,
+    as_panel_index,
+    panel_lp_horizon_loop,
+)
+from ._common import resolve_lp_kwargs
 
 
 def panel_lp(
@@ -30,20 +36,52 @@ def panel_lp(
     lags: int | None = None,
     horizon: int | None = None,
     ci: float | None = None,
+    unit_col: str | None = None,
+    time_col: str | None = None,
+    cov_type: str = "cluster",
 ) -> pd.DataFrame:
     """Estimate β_h from
         y^{(c)}_{t+h} - y^{(c)}_{t-1} = μ_c + τ_t + β_h x^{(c)}_t + … + ε
-    via the two-way FE within transformation, with cluster-robust SE
-    by entity.
+    via the two-way FE within transformation.
+
+    Parameters
+    ----------
+    df_wide : pd.DataFrame
+        Panel indexed by a ``(entity, time)`` MultiIndex (level names given
+        by ``entity_level`` / ``time_level``), **or** a long-form frame whose
+        entity and time identifiers are columns named by ``unit_col`` /
+        ``time_col``.
+    y, x : str
+        Outcome and shock column names.
+    horizons, n_lags, controls, alpha
+        As in :func:`lp_hac`; ``horizon`` / ``lags`` / ``ci`` are the 2.0
+        aliases (``ci = 1 - alpha``).
+    entity_level, time_level : str
+        Names of the MultiIndex levels (defaults ``'code'``, ``'date'``).
+    unit_col, time_col : str, optional
+        Column (or level) names identifying entity and time; when given
+        they build the MultiIndex from a long-form frame and override
+        ``entity_level`` / ``time_level``.
+    cov_type : {'cluster', 'driscoll-kraay'}, default 'cluster'
+        ``'cluster'`` = cluster-robust by entity; ``'driscoll-kraay'``
+        (alias ``'dk'``) = Driscoll-Kraay HAC, identical to
+        :func:`panel_lp_dk`.
 
     Returns LPResult (subclass of DataFrame) with columns ``[h, beta, se, t, lo, hi]``.
     """
-    if lags is not None:
-        n_lags = lags
-    if horizon is not None:
-        horizons = range(0, horizon + 1)
-    if ci is not None:
-        alpha = 1.0 - ci
+    horizons, n_lags, alpha = resolve_lp_kwargs(
+        horizons, n_lags, alpha, lags=lags, horizon=horizon, ci=ci, name="panel_lp")
+    cov = cov_type.lower().replace("_", "-")
+    if cov in ("cluster", "clustered", "entity"):
+        se_fn = _focal_cluster_se
+    elif cov in ("driscoll-kraay", "dk", "driscollkraay"):
+        se_fn = _focal_dk_se
+    else:
+        raise ValueError(
+            f"panel_lp: cov_type must be 'cluster' or 'driscoll-kraay'; got {cov_type!r}")
+    df_wide, entity_level, time_level = as_panel_index(
+        df_wide, entity_level=entity_level, time_level=time_level,
+        unit_col=unit_col, time_col=time_col, func="panel_lp")
 
     return panel_lp_horizon_loop(
         df_wide,
@@ -54,7 +92,7 @@ def panel_lp(
         alpha=alpha,
         entity_level=entity_level,
         time_level=time_level,
-        se_fn=_focal_cluster_se,
+        se_fn=se_fn,
     )
 
 

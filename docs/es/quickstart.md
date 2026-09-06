@@ -64,22 +64,36 @@ df_irf = res_svar.to_frame(target_idx=0, shock_idx=0)
 Estime efectos de tratamiento robustos a la heterogeneidad bajo adopción escalonada, evitando los problemas de ponderación negativa del estimador clásico TWFE:
 
 ```python
+import numpy as np
+import pandas as pd
 from puremacro.did import callaway_santanna
 
-# Efectos medios de tratamiento por grupo y tiempo de Callaway y Sant'Anna (2021)
+# Adopción escalonada: 60 condados observados 2000-2011, cohortes tratadas por
+# primera vez en 2005 y 2008 más un grupo nunca tratado (sustitúyalo por su panel)
+rng = np.random.default_rng(0)
+rows = []
+for county in range(60):
+    g = {0: 2005, 1: 2008, 2: np.nan}[county % 3]
+    for year in range(2000, 2012):
+        effect = 3.0 if (not np.isnan(g) and year >= g) else 0.0
+        rows.append({"county_id": county, "year": year, "first_treated_year": g,
+                     "employment": 100 + 0.5 * (year - 2000) + effect + rng.standard_normal()})
+panel_df = pd.DataFrame(rows)
+
+# ATT grupo-tiempo de Callaway y Sant'Anna (2021)
 res_did = callaway_santanna(
     panel_df,
     unit="county_id",
     time="year",
     outcome="employment",
     treat_time="first_treated_year",
-    control_group="never_treated",
-    n_boot=500,
+    control="never_treated",
+    n_boot=200,
     ci=0.95,
 )
 
 print(res_did.summary())
-# Perfil dinámico de estudio de eventos relativo al momento de adopción
+# Perfil dinámico del estudio de eventos relativo al momento de adopción
 print(res_did.att_event_study.head())
 print(res_did.to_markdown())
 ```
@@ -109,13 +123,29 @@ print("Propensión marginal a consumir (PMC) del primer decil:", res_hank.mpc_di
 Monitoree el crecimiento trimestral del PIB en tiempo real a partir de indicadores mensuales con bordes irregulares y retrasos de publicación:
 
 ```python
+import numpy as np
+import pandas as pd
 from puremacro.nowcast import nowcast_gdp
+
+# Diez años de seis indicadores mensuales movidos por un factor común y la
+# historia trimestral del PIB; el último mes del trimestre en curso está
+# publicado solo en parte (borde irregular)
+rng = np.random.default_rng(1)
+months = pd.date_range("2016-01-31", periods=120, freq="ME")
+factor = np.cumsum(rng.standard_normal(120)) * 0.3
+monthly_indicators_df = pd.DataFrame(
+    np.outer(factor, rng.uniform(0.5, 1.5, 6)) + 0.5 * rng.standard_normal((120, 6)),
+    index=months, columns=["ip", "retail", "orders", "hours", "pmi", "exports"],
+)
+monthly_indicators_df.iloc[-1, 3:] = np.nan            # aún no publicado
+quarters = pd.period_range("2016Q1", periods=39, freq="Q")
+historical_gdp_series = pd.Series(
+    factor.reshape(-1, 3).mean(axis=1)[:39] + 0.2 * rng.standard_normal(39), index=quarters, name="gdp",
+)
 
 res_nowcast = nowcast_gdp(monthly_indicators_df, historical_gdp_series, n_factors=2)
 print(res_nowcast.summary())
-
-# Ver la contribución de noticias de la última publicación
-print(res_nowcast.news_decomposition)
+print(res_nowcast.to_frame().tail())
 ```
 
 ---
@@ -125,7 +155,20 @@ print(res_nowcast.news_decomposition)
 Extraiga factores latentes de paneles informacionales de alta dimensión y proyecte las respuestas de política a series macroeconómicas individuales (Bernanke, Boivin y Eliasz 2005):
 
 ```python
+import numpy as np
+import pandas as pd
 from puremacro.var import favar
+
+# Un panel informativo (T x N) y la tasa de política, simulados para el ejemplo
+rng = np.random.default_rng(2)
+T = 240
+f = np.cumsum(rng.standard_normal(T)) * 0.1
+names = ["Industrial_Production", "CPI", "Employment"] + [f"x{i}" for i in range(9)]
+panel_macro_df = pd.DataFrame(
+    np.outer(f, rng.uniform(0.5, 1.5, len(names))) + 0.3 * rng.standard_normal((T, len(names))),
+    columns=names,
+)
+policy_rate_series = pd.Series(0.5 * f + 0.2 * rng.standard_normal(T), name="policy_rate")
 
 favar_res = favar(
     panel_macro_df,
@@ -134,10 +177,11 @@ favar_res = favar(
     p=2,
     horizon=20,
     ci=0.90,
+    n_boot=50,
 )
 print(favar_res.summary())
 
-# Graficar respuestas para variables macroeconómicas específicas
+# Graficar las respuestas de variables macroeconómicas concretas
 favar_res.plot(variables=["Industrial_Production", "CPI", "Employment"])
 ```
 
@@ -148,17 +192,44 @@ favar_res.plot(variables=["Industrial_Production", "CPI", "Employment"])
 Resuelva modelos DSGE no lineales hasta primer o segundo orden con poda (*pruning*) de Kim et al. (2008), derivadas cruzadas y compatibilidad con `oo_.dr` de Dynare:
 
 ```python
-from puremacro.dsge import build_dynare, load_mod
+from puremacro.dsge import load_mod
 
-# 1. Cargar archivo .mod nativo de Dynare con choques y opciones de stoch_simul
-model = load_mod("rbc.mod")
+# 1. Un archivo .mod de Dynare: una ruta o, como aquí, el propio texto
+rbc_mod = """
+var c k a;
+varexo eps;
+parameters alpha beta delta gamma rho;
 
-# 2. Resolver perturbación de segundo orden con poda
+alpha = 0.30;
+beta  = 0.99;
+delta = 0.025;
+gamma = 1.0;
+rho   = 0.80;
+
+model;
+  c^(-gamma) = beta * c(+1)^(-gamma) * (alpha * exp(a(+1)) * k^(alpha - 1.0) + 1.0 - delta);
+  k = exp(a) * k(-1)^alpha - c + (1.0 - delta) * k(-1);
+  a = rho * a(-1) + eps;
+end;
+
+initval;
+  k = 38.0;
+  a = 0.0;
+  c = 2.0;
+end;
+
+shocks;
+  var eps; stderr 0.01;
+end;
+"""
+model = load_mod(rbc_mod)   # LinearModel de primer orden (load_mod(rbc_mod, order=2) va directo al segundo orden)
+
+# 2. Resolver la perturbación de segundo orden con poda
 sol = model.solve(order=2)
 
-# 3. Inspeccionar reglas de política con la misma estructura oo_.dr de Dynare
-print(sol.oo_dr["ghx"])   # derivadas de estado de primer orden
-print(sol.oo_dr["ghxx"])  # derivadas de estado de segundo orden
+# 3. Reglas de decisión al estilo Dynare (oo_.dr)
+print(sol.oo_dr["ghx"])   # transición de estados de primer orden
+print(sol.oo_dr["ghxx"])  # curvatura de segundo orden
 print(sol.oo_dr.summary())
 
 # 4. Momentos teóricos analíticos y descomposición de varianza
@@ -180,20 +251,21 @@ from puremacro.runtime.colab import (
     load_colab_result,
 )
 
-# 1. Generar cuaderno con autenticación y montaje de Google Drive
+# 1. Empaqueta la tarea pesada en un cuaderno autocontenido (con celdas de autenticación
+#    y montaje de Drive). La variable `result` de la tarea se exporta como cartucho .pmz.
 nb = generate_colab_notebook(
-    task_code="""
+    """
 import puremacro as pm
-res = pm.dsge.estimate_sw07(n_draws=10000, n_chains=4)
-pm.runtime.store.save_frame(res.summary(), "sw07_posterior.pmz")
+result = pm.dsge.estimate_sw07(n_draws=10000, n_chains=4)
 """,
     mount_drive=True,
-    export_result_file="sw07_posterior.pmz",
+    save_path="sw07_offload.ipynb",
+    output_filename="sw07_posterior.pmz",
 )
 
-# 2. Abrir en Colab con 1 clic
-show_colab_offload_dialog(nb, filename="sw07_offload.ipynb")
+# 2. Muestra las instrucciones (tarjeta HTML en Juno / Jupyter, texto en la terminal)
+show_colab_offload_dialog("sw07_offload.ipynb")
 
-# 3. Recuperar el resultado en la sesión local mediante el cartucho puro .pmz
-res = load_colab_result("sw07_posterior.pmz")
+# 3. Cuando el cartucho vuelva desde Google Drive, cárgalo en la sesión local:
+#    posterior = load_colab_result("sw07_posterior.pmz")
 ```

@@ -658,3 +658,68 @@ class TestPlaceboExceptionHandling:
         )
         # Main treatment effect and weights must still be valid
         assert abs(result.weights.sum() - 1.0) < 1e-6
+
+
+# ---------------------------------------------------------------------------
+# Audit regressions (v2.3.0): placebo donor pool and presentation contract
+# ---------------------------------------------------------------------------
+
+def _factor_panel(seed=3, T=20, J=12, effect=2.0):
+    """Two-factor donor panel where the treated unit is an exact convex
+    combination (0.5, 0.3, 0.2) of donors d1, d4, d7 plus a post effect."""
+    rng = np.random.default_rng(seed)
+    F = rng.normal(size=(T, 2)).cumsum(axis=0)
+    load = rng.uniform(0, 1, size=(J, 2))
+    Y = pd.DataFrame(F @ load.T + rng.normal(scale=0.05, size=(T, J)),
+                     index=range(2000, 2000 + T),
+                     columns=[f"d{j}" for j in range(J)])
+    w = np.zeros(J); w[[1, 4, 7]] = [0.5, 0.3, 0.2]
+    Y["treated"] = Y.values @ w
+    pre = list(range(2000, 2012)); post = list(range(2012, 2000 + T))
+    Y.loc[post, "treated"] += effect
+    return Y, pre, post
+
+
+class TestPlaceboExcludesTreatedUnit:
+    def test_placebo_gap_equals_manual_run_without_treated_unit(self):
+        """Old code built each placebo synthetic from *all other columns*,
+        including the treated unit whose post outcomes carry the effect:
+        the placebo gap for d1 was -1.92 instead of the 0.10 obtained when
+        the treated unit is excluded from the pool."""
+        Y, pre, post = _factor_panel()
+        sc = synthetic_control(Y, "treated", pre, post, placebo=True)
+        assert sc.placebo_gaps is not None
+        Y_nt = Y.drop(columns=["treated"])
+        for donor in ("d1", "d4", "d7"):
+            manual = synthetic_control(Y_nt, donor, pre, post, placebo=False)
+            np.testing.assert_allclose(
+                sc.placebo_gaps[donor].values,
+                manual.treatment_effect.values, atol=1e-6,
+            )
+            assert abs(sc.placebo_gaps[donor].mean()) < 0.5
+
+    def test_placebo_columns_still_all_donors(self):
+        Y, pre, post = _factor_panel()
+        sc = synthetic_control(Y, "treated", pre, post, placebo=True)
+        assert sorted(sc.placebo_gaps.columns) == sorted(c for c in Y.columns if c != "treated")
+
+
+class TestSyntheticControlResultExports:
+    def test_export_trio_and_frames(self):
+        """Old code: SyntheticControlResult had no to_markdown / to_latex /
+        to_typst (docs promised them on every result object)."""
+        Y, pre, post = _factor_panel()
+        sc = synthetic_control(Y, "treated", pre, post, placebo=False)
+        tab = sc.to_frame()
+        assert list(tab.columns) == ["period", "actual", "synthetic", "gap"]
+        assert len(tab) == len(pre) + len(post)
+        np.testing.assert_allclose(tab["gap"].values[len(pre):],
+                                   sc.treatment_effect.values)
+        md = sc.to_markdown()
+        header = [c.strip() for c in md.splitlines()[0].strip("|").split("|")]
+        assert header[0] == "period" and "index" not in header
+        assert "\\begin{tabular}" in sc.to_latex()
+        assert "#table(" in sc.to_typst()
+        wf = sc.weights_frame()
+        assert list(wf.columns) == ["donor", "weight"]
+        np.testing.assert_allclose(wf["weight"].sum(), 1.0, atol=1e-6)

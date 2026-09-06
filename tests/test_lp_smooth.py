@@ -21,10 +21,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from puremacro.lp import smooth_lp, lp_smooth, LPResult
+from puremacro.lp import smooth_lp, lp_smooth, LPResult, lp_hac
 from puremacro.lp.smooth import (
+    SmoothLPResult,
     _build_bspline_basis,
     _difference_penalty_matrix,
+    _normal_equations,
     _prepare_lp_data,
 )
 
@@ -272,16 +274,26 @@ def test_smooth_lp_with_exogenous_controls():
 
 
 def test_smooth_lp_with_array_inputs():
-    """Verify compatibility when y and x are passed as 1D numpy arrays."""
+    """Verify compatibility when y and x are passed as 1D numpy arrays.
+
+    Both ``smooth_lp(y_arr, x_arr)`` (the lp_hac convention: response first,
+    shock second) and ``smooth_lp(y_arr, x=x_arr)`` must give the DataFrame
+    result.
+    """
     rng = np.random.default_rng(123)
     T = 180
     y = rng.standard_normal(T)
     x = 0.3 * np.roll(y, 1) + rng.standard_normal(T)
+    ref = smooth_lp(pd.DataFrame({"y": y, "x": x}), y="y", x="x", horizons=6, n_lags=1)
 
-    res = smooth_lp(y, y=None, x=x, horizons=6, n_lags=1)
-    assert isinstance(res, LPResult)
-    assert len(res) == 7
-    assert np.all(np.isfinite(res.point))
+    res_kw = smooth_lp(y, y=None, x=x, horizons=6, n_lags=1)
+    res_pos = smooth_lp(y, x, horizons=6, n_lags=1)
+    for res in (res_kw, res_pos):
+        assert isinstance(res, LPResult)
+        assert len(res) == 7
+        assert np.all(np.isfinite(res.point))
+        np.testing.assert_allclose(res.point, ref.point, atol=1e-12)
+        assert res.y_name == "y" and res.x_name == "x"
 
 
 def test_gls_weighting():
@@ -387,18 +399,23 @@ def test_unbiasedness_as_lambda_approaches_zero():
     """
     df, psi = _simulate_ar2(T=250, seed=1234)
     H = 10
-    _, _, _, b_ols, _, _ = _prepare_lp_data(
+    _, _, s_ww, b_ols, _, _ = _prepare_lp_data(
         df=df, y="y", x="x", horizons=list(range(H + 1)), n_lags=2, controls=None
     )
 
-    # 1. Saturated basis exact equivalence to OLS
-    res_sat = smooth_lp(df, y="y", x="x", horizons=H, n_lags=2, n_knots=H + 1, lam=1e-8)
+    # 1. Saturated basis (H - degree interior knots -> H + 1 basis functions)
+    #    reproduces the horizon-by-horizon OLS LP exactly.
+    res_sat = smooth_lp(df, y="y", x="x", horizons=H, n_lags=2, n_knots=H - 3, lam=1e-8)
+    assert res_sat.n_basis == H + 1
     np.testing.assert_allclose(res_sat.point, b_ols, atol=1e-5)
 
-    # 2. General basis matches unpenalized projection B (B'B)^{-1} B' b_ols
+    # 2. General basis matches the unpenalized (sample-size weighted) projection
+    #    B (B'SB)^{-1} B'S b_ols, S = diag(w~_h' w~_h) -- each horizon has its own
+    #    sample, so the horizons enter the least-squares fit with weights s_h.
     res_zero = smooth_lp(df, y="y", x="x", horizons=H, n_lags=2, lam=1e-8)
     B = res_zero.B
-    proj_ols = B @ np.linalg.solve(B.T @ B, B.T @ b_ols)
+    S = np.diag(s_ww)
+    proj_ols = B @ np.linalg.solve(B.T @ S @ B, B.T @ S @ b_ols)
     np.testing.assert_allclose(res_zero.point, proj_ols, atol=1e-5)
 
     # 3. Monte Carlo unbiasedness against true population IRF
@@ -421,10 +438,14 @@ def test_unbiasedness_as_lambda_approaches_zero():
 
 
 def test_shrinkage_to_linearity_as_lambda_approaches_infinity():
-    """As lambda -> inf, the second difference penalty forces the spline coefficients to linearity."""
+    """As lambda -> inf, the second difference penalty forces the spline coefficients to linearity.
+
+    ``lam`` is the lambda of the stacked objective ||Y - X theta||^2 + lam theta'P theta,
+    whose sum of squares is O(T); lam=1e12 is therefore the "infinite" penalty here.
+    """
     df, _ = _simulate_ar2(T=200, seed=5678)
     res_low = smooth_lp(df, y="y", x="x", horizons=10, n_lags=2, lam=0.001)
-    res_inf = smooth_lp(df, y="y", x="x", horizons=10, n_lags=2, lam=1e9)
+    res_inf = smooth_lp(df, y="y", x="x", horizons=10, n_lags=2, lam=1e12)
 
     # Second differences of spline coefficients must be zero
     d2_theta = np.diff(res_inf.theta, n=2)
@@ -460,3 +481,346 @@ def test_invalid_selection_criterion_raises_error():
     df, _ = _simulate_ar2(T=150, seed=99)
     with pytest.raises(ValueError, match="Unknown selection criterion"):
         smooth_lp(df, y="y", x="x", horizons=5, n_lags=1, selection="invalid_crit")
+
+
+# =====================================================================
+# 9. Regression tests for the 2.3.x audit (r3-smooth-lp / review-r3-smooth)
+# =====================================================================
+def _simulate_shock_dgp(T: int = 200, seed: int = 0, with_control: bool = False) -> pd.DataFrame:
+    """y_t = 0.6 y_{t-1} + x_t + 0.7 z_t + e_t with an exogenous shock x."""
+    rng = np.random.default_rng(seed)
+    x = rng.standard_normal(T)
+    z = rng.standard_normal(T)
+    y = np.zeros(T)
+    for t in range(1, T):
+        y[t] = 0.6 * y[t - 1] + x[t] + (0.7 * z[t] if with_control else 0.0) + 0.4 * rng.standard_normal()
+    df = pd.DataFrame({"y": y, "x": x})
+    if with_control:
+        df["z"] = z
+    return df
+
+
+def test_positional_array_call_follows_lp_hac_convention():
+    """smooth_lp(y_arr, x_arr) must treat the first array as the response and the second as the shock.
+
+    Old behaviour (audit C6): with two positional arrays both the response and
+    the shock were taken from the second argument, so the IRF was the shock
+    regressed on itself (~[1, 0, 0, ...]) and x_name/y_name became the array repr.
+    """
+    df = _simulate_shock_dgp(T=200, seed=3)
+    y_arr = df["y"].to_numpy()
+    x_arr = df["x"].to_numpy()
+
+    ref = smooth_lp(df, "y", "x", horizons=6, n_lags=2, lam=1e-8, n_knots=3)
+    pos = smooth_lp(y_arr, x_arr, horizons=6, n_lags=2, lam=1e-8, n_knots=3)
+    np.testing.assert_allclose(pos.point, ref.point, atol=1e-10)
+    assert pos.y_name == "y" and pos.x_name == "x"
+    assert len(pos.x_name) < 10 and len(pos.y_name) < 10
+
+    # ... and coincides with lp_hac on the same (per-horizon) samples: the
+    # shock-on-itself IRF would be ~1 at h=0 and ~0 afterwards.
+    raw = lp_hac(y_arr, x_arr, horizons=range(7), n_lags=2)
+    np.testing.assert_allclose(pos.point, raw["beta"].to_numpy(), atol=1e-8)
+    assert abs(pos.point[1]) > 0.3
+
+    # Series names propagate
+    named = smooth_lp(df["y"].rename("gdp"), df["x"].rename("mp_shock"), horizons=6, n_lags=2)
+    assert named.y_name == "gdp" and named.x_name == "mp_shock"
+
+
+def test_mixed_dataframe_and_array_inputs():
+    """smooth_lp(df, 'y', x_array) and smooth_lp(df, y_array, 'x') must work.
+
+    Old behaviour: ValueError 'could not convert string to float: y'.
+    """
+    df = _simulate_shock_dgp(T=200, seed=4)
+    ref = smooth_lp(df, "y", "x", horizons=6, n_lags=2, lam=0.5)
+    mixed_x = smooth_lp(df, "y", df["x"].to_numpy(), horizons=6, n_lags=2, lam=0.5)
+    mixed_y = smooth_lp(df, df["y"].to_numpy(), "x", horizons=6, n_lags=2, lam=0.5)
+    np.testing.assert_allclose(mixed_x.point, ref.point, atol=1e-12)
+    np.testing.assert_allclose(mixed_y.point, ref.point, atol=1e-12)
+    assert mixed_x.x_name == "x" and mixed_y.y_name == "y"
+
+
+def test_ambiguous_or_missing_array_inputs_raise():
+    """Array input must never silently alias the shock to the response."""
+    df = _simulate_shock_dgp(T=120, seed=5)
+    y_arr = df["y"].to_numpy()
+    x_arr = df["x"].to_numpy()
+    with pytest.raises(ValueError, match="Ambiguous"):
+        smooth_lp(y_arr, x_arr, x=x_arr, horizons=4, n_lags=1)
+    with pytest.raises(ValueError, match="Shock array missing"):
+        smooth_lp(y_arr, horizons=4, n_lags=1)
+    with pytest.raises(ValueError, match="require df to be a DataFrame"):
+        smooth_lp(y_arr, "x", horizons=4, n_lags=1)
+    with pytest.raises(ValueError, match="not found in df columns"):
+        smooth_lp(df, "y", "nope", horizons=4, n_lags=1)
+    with pytest.raises(ValueError, match="required when df is a DataFrame"):
+        smooth_lp(df, "y", horizons=4, n_lags=1)
+    with pytest.raises(ValueError, match="Length mismatch"):
+        smooth_lp(y_arr, x_arr[:-1], horizons=4, n_lags=1)
+
+
+def test_controls_as_ndarray_with_dataframe_input():
+    """controls may be a (T,) or (T, k) array (or DataFrame) alongside a DataFrame.
+
+    Old behaviour (audit M15): ValueError 'The truth value of an array with more
+    than one element is ambiguous' from ``list(controls or [])``.
+    """
+    df = _simulate_shock_dgp(T=200, seed=6, with_control=True)
+    rng = np.random.default_rng(1)
+    df["z2"] = rng.standard_normal(len(df))
+    ref = smooth_lp(df, "y", "x", horizons=6, n_lags=2, lam=1.0, controls=["z", "z2"])
+
+    arr2 = smooth_lp(df, "y", "x", horizons=6, n_lags=2, lam=1.0, controls=df[["z", "z2"]].to_numpy())
+    np.testing.assert_allclose(arr2.point, ref.point, atol=1e-12)
+
+    frame = smooth_lp(df, "y", "x", horizons=6, n_lags=2, lam=1.0, controls=df[["z", "z2"]])
+    np.testing.assert_allclose(frame.point, ref.point, atol=1e-12)
+
+    ref1 = smooth_lp(df, "y", "x", horizons=6, n_lags=2, lam=1.0, controls=["z"])
+    arr1 = smooth_lp(df, "y", "x", horizons=6, n_lags=2, lam=1.0, controls=df["z"].to_numpy())
+    np.testing.assert_allclose(arr1.point, ref1.point, atol=1e-12)
+
+    # array-branch controls agree with the DataFrame branch
+    arr_branch = smooth_lp(
+        df["y"].to_numpy(), df["x"].to_numpy(), horizons=6, n_lags=2, lam=1.0,
+        controls=df[["z", "z2"]].to_numpy(),
+    )
+    np.testing.assert_allclose(arr_branch.point, ref.point, atol=1e-12)
+
+    with pytest.raises(ValueError, match="rows"):
+        smooth_lp(df, "y", "x", horizons=6, n_lags=2, controls=np.ones(10))
+
+
+def test_gls_cv_uses_the_pgls_estimator_inside_the_folds():
+    """With gls=True and selection='cv' the fold estimator must be the same PGLS estimator.
+
+    Old behaviour (audit M12/M113): the inner solve used the GLS left-hand side
+    B'W^{-1}B but the OLS right-hand side B'b_tr, so the CV curve was wrong and
+    lambda was pinned at the grid maximum (1e5) on every seed.
+    """
+    H, nl = 8, 2
+    for seed in (11, 12, 13):
+        df = _simulate_shock_dgp(T=150, seed=seed, with_control=True)
+        res = smooth_lp(df, "y", "x", horizons=H, n_lags=nl, controls=["z"], selection="cv", gls=True)
+        grid = res.lambda_grid
+        assert res.optimal_lambda not in (grid[0], grid[-1]), "lambda pinned at the grid edge"
+
+        # Independent replica of K-fold CV with the consistent PGLS fold estimator
+        W, Y, s, b, U, t_eff = _prepare_lp_data(
+            df, "y", "x", list(range(H + 1)), nl, ["z"], balanced=True
+        )
+        Omega = (U.T @ U) / t_eff.min()
+        Omega = Omega + 1e-4 * np.trace(Omega) / (H + 1) * np.eye(H + 1)
+        W_inv = np.linalg.inv(Omega)
+        B, K = _build_bspline_basis(np.arange(H + 1, dtype=float))
+        P = _difference_penalty_matrix(K, 2)
+        T0 = W.shape[0]
+        folds = np.array_split(np.arange(T0), min(5, max(2, T0 // 10)))
+
+        def cv_score(lam: float) -> float:
+            err = 0.0
+            for fold in folds:
+                tr = np.setdiff1d(np.arange(T0), fold)
+                A, c = _normal_equations(W[tr], Y[tr], W_inv)
+                beta = B @ np.linalg.solve(B.T @ A @ B + lam * P, B.T @ c)
+                err += float(np.sum((Y[fold] - W[fold] * beta[None, :]) ** 2))
+            return err
+
+        lam_rep = grid[int(np.argmin([cv_score(l) for l in grid]))]
+        assert np.isclose(res.optimal_lambda, lam_rep)
+
+
+def test_lambda_is_on_the_documented_stacked_objective_scale():
+    """``lam`` must be the lambda of min ||Y - X theta||^2 + lam theta'P theta with X = B (x) w~.
+
+    Old behaviour (audit M16/M115): the code solved (B'B + lam P) theta = B' b_ols,
+    i.e. the effective penalty was lam * (w~'w~), so the same lam smoothed
+    differently as T changed and did not match the documented objective.
+    """
+    df = _simulate_shock_dgp(T=200, seed=7, with_control=True)
+    H, nl = 8, 2
+    horizons = list(range(H + 1))
+    ctl = ["z"]
+
+    # Explicit stacked design with horizon-specific unpenalised controls on
+    # horizon-specific samples (the documented PLS problem).
+    sub = df.copy()
+    for lag in range(1, nl + 1):
+        for v in ("x", "y", "z"):
+            sub[f"{v}L{lag}"] = sub[v].shift(lag)
+    zcols = [f"{v}L{lag}" for lag in range(1, nl + 1) for v in ("x", "y", "z")] + ctl
+    B, nb = _build_bspline_basis(np.array(horizons, dtype=float))
+    P = _difference_penalty_matrix(nb, 2)
+    n_z = len(zcols) + 1
+    blocks, ys = [], []
+    for h in horizons:
+        s_h = sub.copy()
+        s_h["lead"] = s_h["y"].shift(-h)
+        s_h = s_h.dropna()
+        Zh = np.column_stack([np.ones(len(s_h))] + [s_h[c].to_numpy() for c in zcols])
+        Xh = np.zeros((len(s_h), nb + (H + 1) * n_z))
+        Xh[:, :nb] = np.outer(s_h["x"].to_numpy(), B[h, :])
+        Xh[:, nb + h * n_z: nb + (h + 1) * n_z] = Zh
+        blocks.append(Xh)
+        ys.append(s_h["lead"].to_numpy())
+    X = np.vstack(blocks)
+    Y = np.concatenate(ys)
+    P_big = np.zeros((X.shape[1], X.shape[1]))
+    P_big[:nb, :nb] = P
+
+    for lam in (0.01, 0.5, 10.0, 500.0):
+        res = smooth_lp(df, "y", "x", horizons=H, n_lags=nl, controls=ctl, lam=lam)
+        coef = np.linalg.solve(X.T @ X + lam * P_big, X.T @ Y)
+        np.testing.assert_allclose(res.point, B @ coef[:nb], atol=1e-10)
+        # effective df = trace of the stacked hat matrix minus the control df
+        hat_tr = np.trace(np.linalg.solve(X.T @ X + lam * P_big, X.T @ X))
+        assert np.isclose(res.df_lambda, hat_tr - (H + 1) * n_z, atol=1e-8)
+
+    # The automatic grid is reported on the same scale
+    auto = smooth_lp(df, "y", "x", horizons=H, n_lags=nl, controls=ctl)
+    assert auto.optimal_lambda in auto.lambda_grid
+    assert auto.lambda_grid[0] < auto.optimal_lambda < auto.lambda_grid[-1]
+
+
+def test_per_horizon_samples_match_horizon_by_horizon_lp():
+    """Each horizon uses its own sample t + h <= T (Barnichon-Brownlees), not one balanced sample.
+
+    Old behaviour (audit M119): every horizon was truncated to the h=H sample
+    (T - H - n_lags observations), so h=0 discarded H usable observations and
+    the lambda -> 0 limit did not coincide with lp_hac.
+    """
+    df = _simulate_shock_dgp(T=200, seed=8, with_control=True)
+    H, nl = 8, 2
+    res = smooth_lp(df, "y", "x", horizons=H, n_lags=nl, controls=["z"], lam=0.0, n_knots=H - 3)
+    np.testing.assert_array_equal(res.n_obs, [200 - nl - h for h in range(H + 1)])
+    assert res.sample == "per-horizon"
+
+    raw = lp_hac(df, y="y", x="x", horizons=range(H + 1), n_lags=nl, controls=["z"])
+    np.testing.assert_allclose(res.point, raw["beta"].to_numpy(), atol=1e-10)
+
+    # gls=True needs a balanced residual panel: common sample, documented
+    res_gls = smooth_lp(df, "y", "x", horizons=H, n_lags=nl, controls=["z"], gls=True)
+    assert res_gls.sample == "balanced"
+    np.testing.assert_array_equal(res_gls.n_obs, [200 - nl - H] * (H + 1))
+
+
+def test_invalid_ci_type_raises():
+    """ci_type must be validated.
+
+    Old behaviour: ci_type='block_bootstrap' or 'wild' silently produced the
+    analytic result and res.ci_type echoed the bogus string.
+    """
+    df = _simulate_shock_dgp(T=120, seed=9)
+    with pytest.raises(ValueError, match="Unknown ci_type"):
+        smooth_lp(df, "y", "x", horizons=5, n_lags=1, ci_type="wild")
+    res = smooth_lp(df, "y", "x", horizons=5, n_lags=1, ci_type="boot", n_boot=50, seed=0)
+    assert res.ci_type == "bootstrap"
+    res = smooth_lp(df, "y", "x", horizons=5, n_lags=1, ci_type="Analytic")
+    assert res.ci_type == "analytic"
+
+
+def test_invalid_selection_raises_even_with_fixed_lambda():
+    """An unknown selection criterion must raise even when lam is a number.
+
+    Old behaviour: lam=0.1, selection='not_a_criterion' ran silently and
+    res.selection_criterion recorded the bogus string.
+    """
+    df = _simulate_shock_dgp(T=120, seed=10)
+    with pytest.raises(ValueError, match="Unknown selection criterion"):
+        smooth_lp(df, "y", "x", horizons=5, n_lags=1, lam=0.1, selection="not_a_criterion")
+    res = smooth_lp(df, "y", "x", horizons=5, n_lags=1, lam=0.1, selection="bic")
+    assert res.selection_criterion == "fixed"
+    assert res.optimal_lambda == 0.1
+
+
+def test_lambda_argument_validation():
+    """lam='AUTO' is accepted (case-insensitive); negative, NaN or other strings raise.
+
+    Old behaviour: lam='AUTO' -> 'could not convert string to float'; lam=-5.0
+    was accepted silently.
+    """
+    df = _simulate_shock_dgp(T=150, seed=11)
+    ref = smooth_lp(df, "y", "x", horizons=6, n_lags=1, lam="auto")
+    for lam in ("AUTO", " Auto ", None):
+        res = smooth_lp(df, "y", "x", horizons=6, n_lags=1, lam=lam)
+        assert res.optimal_lambda == ref.optimal_lambda
+        assert res.selection_criterion == "aic"
+    for bad in (-5.0, float("nan"), float("inf"), "gcv"):
+        with pytest.raises(ValueError, match="lam must be"):
+            smooth_lp(df, "y", "x", horizons=6, n_lags=1, lam=bad)
+    res0 = smooth_lp(df, "y", "x", horizons=6, n_lags=1, lam=0.0)
+    assert res0.optimal_lambda == 0.0 and np.all(np.isfinite(res0.point))
+
+
+def test_horizons_validation_gives_clean_messages():
+    """horizons=0 (or any single horizon) must raise a clear ValueError.
+
+    Old behaviour: raw scipy error 'Need at least 4 knots for degree 1'.
+    """
+    df = _simulate_shock_dgp(T=120, seed=12)
+    with pytest.raises(ValueError, match="at least two horizons"):
+        smooth_lp(df, "y", "x", horizons=0, n_lags=1)
+    with pytest.raises(ValueError, match="at least two distinct horizons"):
+        smooth_lp(df, "y", "x", horizons=[3], n_lags=1)
+    with pytest.raises(ValueError, match="non-negative"):
+        smooth_lp(df, "y", "x", horizons=[-1, 0, 1], n_lags=1)
+    res = smooth_lp(df, "y", "x", horizons=1, n_lags=1)
+    assert len(res) == 2 and np.all(np.isfinite(res.point))
+
+
+def test_n_knots_counts_interior_knots_and_clipping_warns():
+    """n_knots is the number of interior knots (basis size n_knots + degree + 1); clipping warns.
+
+    Old behaviour (audit M118): n_knots counted the boundary knots (n_knots=6 gave
+    4 interior knots) and any request above H - degree was silently replaced.
+    """
+    horizons = np.arange(0, 21, dtype=float)
+    B, n_basis = _build_bspline_basis(horizons, n_knots=6, degree=3)
+    assert n_basis == 6 + 3 + 1
+    B1, n_basis1 = _build_bspline_basis(horizons, n_knots=0, degree=3)
+    assert n_basis1 == 4  # a single cubic polynomial
+    with pytest.warns(UserWarning, match="reduced to n_knots=17"):
+        B_clip, n_clip = _build_bspline_basis(horizons, n_knots=30, degree=3)
+    assert n_clip == 21
+
+    df = _simulate_shock_dgp(T=200, seed=13)
+    res = smooth_lp(df, "y", "x", horizons=10, n_lags=1, n_knots=2)
+    assert res.n_knots == 2 and res.n_basis == 6 and res.degree == 3
+    with pytest.warns(UserWarning, match="more than the 11 horizons"):
+        res_clip = smooth_lp(df, "y", "x", horizons=10, n_lags=1, n_knots=11)
+    assert res_clip.n_knots == 7 and res_clip.n_basis == 11
+    with pytest.raises(ValueError, match="non-negative"):
+        smooth_lp(df, "y", "x", horizons=10, n_lags=1, n_knots=-1)
+
+
+def test_summary_reports_lambda_and_metadata_survive_pandas_ops():
+    """summary() must report the selected lambda; estimation metadata must survive pandas ops.
+
+    Old behaviour: summary() was the plain h/beta/se/lo/hi table and
+    optimal_lambda/theta/vcov/B/P were lost after .copy(), .iloc[:3] or column selection.
+    """
+    df = _simulate_shock_dgp(T=200, seed=14)
+    res = smooth_lp(df, "y", "x", horizons=10, n_lags=2, selection="bic")
+    assert isinstance(res, SmoothLPResult) and isinstance(res, LPResult)
+    txt = res.summary()
+    assert "Local Projection Result" in txt
+    assert f"lambda = {res.optimal_lambda:.4g}" in txt
+    assert "selected by BIC" in txt
+    assert "effective degrees of freedom" in txt
+    assert "per-horizon" in txt
+
+    fixed = smooth_lp(df, "y", "x", horizons=10, n_lags=2, lam=2.0)
+    assert "fixed by the user" in fixed.summary()
+
+    for obj in (res.copy(), res.iloc[:3], res[["h", "beta"]]):
+        assert isinstance(obj, SmoothLPResult)
+        assert obj.optimal_lambda == res.optimal_lambda
+        assert obj.df_lambda == res.df_lambda
+        for name in ("theta", "vcov", "vcov_theta", "B", "P", "lambda_grid", "n_obs"):
+            assert getattr(obj, name) is not None
+        assert obj.selection_criterion == "bic" and obj.ci_type == "analytic"
+        assert obj.n_knots == res.n_knots and obj.degree == 3 and obj.penalty_order == 2
+        assert obj.gls is False
+    assert res.metadata["optimal_lambda"] == res.optimal_lambda

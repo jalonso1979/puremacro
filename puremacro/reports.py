@@ -1,4 +1,4 @@
-"""Markdown / LaTeX output formatters for puremacro results.
+"""Markdown / LaTeX / Typst output formatters for puremacro results.
 
 Aimed at iPad researchers writing in Working Copy / Pages / Quarto:
 turn a result dict (from any LP, VAR, GARCH, etc. function) into a
@@ -7,29 +7,135 @@ publication-ready table without leaving the notebook.
 Also exposes light dataclass wrappers for the most common result
 shapes so users get tab-completion in iPad IDEs and a uniform
 ``.to_markdown()`` method.
+
+Every renderer here is what the result classes' ``to_markdown`` /
+``to_latex`` / ``to_typst`` methods call, so the three guarantees below
+hold package-wide:
+
+* LaTeX special characters (``\\ & % $ # _ { } ~ ^``) are escaped in
+  headers and cells, so a column named ``lo_95%`` compiles.
+* Typst markup characters (``* _ # $ @ [ ] < > ~`` and the backslash) are
+  escaped inside content cells, so ``0.452***`` stays literal.
+* Floats are printed with at most six decimals unless ``digits`` is
+  given, so ``0.30000000000000004`` never reaches a manuscript. An
+  unnamed ``RangeIndex`` (pandas' default row numbering) is not
+  rendered as a column; any other index is.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Sequence, Union
+from dataclasses import dataclass
+from typing import Any, Dict, Iterable, List, Sequence, Union
 
 import numpy as np
 import pandas as pd
 from scipy.stats import norm
 
 
-def _df_to_markdown(df: pd.DataFrame, index: bool = True) -> str:
-    """Self-contained markdown renderer (avoids the ``tabulate`` dependency)."""
-    df = df.copy()
-    if index:
-        df = df.reset_index()
-    cols = list(df.columns.astype(str))
-    rows = [[("" if pd.isna(v) else str(v)) for v in df[c]] for c in cols]
-    rows = list(map(list, zip(*rows)))  # transpose to row-major
-    widths = [max(len(c), *(len(r[i]) for r in rows)) for i, c in enumerate(cols)]
-    fmt = lambda vals: "| " + " | ".join(
-        v.rjust(w) for v, w in zip(vals, widths)
-    ) + " |"
+# ---------------------------------------------------------------------------
+# Escaping and cell formatting
+# ---------------------------------------------------------------------------
+_LATEX_SPECIALS = {
+    "\\": r"\textbackslash{}",
+    "&": r"\&",
+    "%": r"\%",
+    "$": r"\$",
+    "#": r"\#",
+    "_": r"\_",
+    "{": r"\{",
+    "}": r"\}",
+    "~": r"\textasciitilde{}",
+    "^": r"\textasciicircum{}",
+}
+
+# Characters that start markup inside a Typst content block ``[...]``.
+_TYPST_SPECIALS = set("\\*_#$@[]<>~`")
+
+
+def latex_escape(text: str) -> str:
+    """Escape every LaTeX special character in ``text``."""
+    return "".join(_LATEX_SPECIALS.get(ch, ch) for ch in str(text))
+
+
+def typst_escape(text: str) -> str:
+    """Escape every character that Typst would read as markup in ``text``."""
+    return "".join(("\\" + ch) if ch in _TYPST_SPECIALS else ch for ch in str(text))
+
+
+def _fmt_cell(v: Any, digits: int | None = None) -> str:
+    """One cell as text: NaN/None -> '', floats to ``digits`` decimals.
+
+    With ``digits=None`` a float is printed positionally with at most six
+    decimals (trailing zeros dropped), and values below 1e-4 in magnitude
+    switch to ``%g`` so they are not rendered as ``0``.
+    """
+    if v is None:
+        return ""
+    if isinstance(v, (bool, np.bool_)):
+        return str(bool(v))
+    if isinstance(v, (float, np.floating)):
+        x = float(v)
+        if np.isnan(x):
+            return ""
+        if not np.isfinite(x):
+            return str(x)
+        if digits is not None:
+            return f"{x:.{digits}f}"
+        if x == 0.0:
+            return "0"
+        if abs(x) < 1e-4:
+            return f"{x:.6g}"
+        return np.format_float_positional(x, precision=6, unique=True, trim="-")
+    if np.ndim(v) == 0:
+        try:
+            if pd.isna(v):
+                return ""
+        except (TypeError, ValueError):
+            pass
+    return str(v)
+
+
+def _prepare(df: pd.DataFrame, index: bool | None) -> pd.DataFrame:
+    """Return ``df`` with the index promoted to a column when it carries information.
+
+    ``index=None`` (the default) keeps the index unless it is an unnamed
+    ``RangeIndex`` — pandas' default row numbering, which would otherwise
+    appear as a meaningless ``index`` column. ``True`` / ``False`` force
+    either behaviour.
+    """
+    if index is None:
+        index = not (isinstance(df.index, pd.RangeIndex) and df.index.name is None)
+    return df.reset_index() if index else df
+
+
+def _cells(df: pd.DataFrame, digits: int | None) -> tuple[list[str], list[list[str]]]:
+    cols = [str(c) for c in df.columns]
+    rows = [[_fmt_cell(v, digits) for v in row]
+            for row in df.itertuples(index=False, name=None)]
+    return cols, rows
+
+
+def _df_to_markdown(df: pd.DataFrame, index: bool | None = None, *,
+                    digits: int | None = None) -> str:
+    """Self-contained markdown renderer (avoids the ``tabulate`` dependency).
+
+    Parameters
+    ----------
+    index : bool, optional
+        Include the index as the first column. Default: yes, unless it is
+        an unnamed ``RangeIndex``.
+    digits : int, optional
+        Fixed number of decimals for float cells; default at most six.
+    """
+    df = _prepare(df, index)
+    cols, rows = _cells(df, digits)
+    cols = [c.replace("|", r"\|") for c in cols]
+    rows = [[c.replace("|", r"\|") for c in r] for r in rows]
+    widths = [max(len(c), *(len(r[i]) for r in rows)) if rows else len(c)
+              for i, c in enumerate(cols)]
+
+    def fmt(vals: Sequence[str]) -> str:
+        return "| " + " | ".join(v.rjust(w) for v, w in zip(vals, widths)) + " |"
+
     sep = "|" + "|".join("-" * (w + 2) for w in widths) + "|"
     out = [fmt(cols), sep]
     for r in rows:
@@ -37,40 +143,43 @@ def _df_to_markdown(df: pd.DataFrame, index: bool = True) -> str:
     return "\n".join(out)
 
 
-def _df_to_latex(df: pd.DataFrame, index: bool = True) -> str:
-    """Self-contained LaTeX tabular renderer."""
-    df = df.copy()
-    if index:
-        df = df.reset_index()
-    cols = list(df.columns.astype(str))
-    align = "l" + "r" * (len(cols) - 1)
-    rows: List[List[str]] = list(map(list, zip(*[
-        [("" if pd.isna(v) else str(v).replace("_", r"\_")) for v in df[c]]
-        for c in cols
-    ])))
-    body = " \\\\\n".join(" & ".join(r) for r in rows) + " \\\\"
+def _df_to_latex(df: pd.DataFrame, index: bool | None = None, *,
+                 digits: int | None = None) -> str:
+    """Self-contained LaTeX ``tabular`` renderer.
+
+    Every header and cell is passed through :func:`latex_escape`, so
+    ``%``, ``&``, ``_`` and the other specials compile as literals.
+    Parameters as for :func:`_df_to_markdown`.
+    """
+    df = _prepare(df, index)
+    cols, rows = _cells(df, digits)
+    align = "l" + "r" * max(len(cols) - 1, 0)
+    header = " & ".join(latex_escape(c) for c in cols) + " \\\\\n"
+    body = "".join(
+        " & ".join(latex_escape(c) for c in r) + " \\\\\n" for r in rows
+    )
     return (
         "\\begin{tabular}{" + align + "}\n"
-        + " & ".join(c.replace("_", r"\_") for c in cols) + " \\\\\n"
+        + header
         + "\\hline\n"
-        + body + "\n"
+        + body
         + "\\end{tabular}"
     )
 
 
-def _df_to_typst(df: pd.DataFrame, index: bool = True) -> str:
-    """Self-contained Typst table renderer."""
-    df = df.copy()
-    if index:
-        df = df.reset_index()
-    cols = list(df.columns.astype(str))
+def _df_to_typst(df: pd.DataFrame, index: bool | None = None, *,
+                 digits: int | None = None) -> str:
+    """Self-contained Typst ``#table`` renderer.
+
+    Cell text is passed through :func:`typst_escape`, so significance
+    stars and underscores are literal rather than emphasis markup.
+    Parameters as for :func:`_df_to_markdown`.
+    """
+    df = _prepare(df, index)
+    cols, rows = _cells(df, digits)
     n_cols = len(cols)
-    header_cells = [f"  [* {c} *]" for c in cols]
-    data_cells = []
-    for _, row in df.iterrows():
-        for v in row:
-            val_str = "" if pd.isna(v) else str(v)
-            data_cells.append(f"  [{val_str}]")
+    header_cells = [f"  [* {typst_escape(c)} *]" for c in cols]
+    data_cells = [f"  [{typst_escape(v)}]" for r in rows for v in r]
     all_cells = ",\n".join(header_cells + data_cells)
     return f"#table(\n  columns: {n_cols},\n{all_cells},\n)"
 
@@ -112,12 +221,20 @@ def coef_table(
     se   : (k,) — standard errors.
     names : optional regressor names; defaults to ``x0, x1, ...``.
     fmt  : ``"markdown"``, ``"latex"``, ``"typst"``, or ``"plain"`` (whitespace).
+    digits : int, default 3
+        Decimals shown for every numeric column.
+    include_t, include_p, include_ci : bool
+        Add the t statistic, the two-sided normal p-value and the
+        ``lo_<level>%`` / ``hi_<level>%`` confidence bounds.
+    alpha : float, default 0.05
+        Size of the confidence interval (``1 - alpha`` coverage).
     stars : bool, default False
         If True, append significance stars (* p<0.10, ** p<0.05, *** p<0.01) to coef.
 
     Returns
     -------
-    String table.
+    String table. In LaTeX and Typst every special character in the
+    names and headers is escaped, so the output compiles as-is.
     """
     beta = np.asarray(beta, dtype=float).ravel()
     se = np.asarray(se, dtype=float).ravel()
@@ -151,11 +268,11 @@ def coef_table(
         num_cols = [c for c in df.columns if c != "coef"]
         df[num_cols] = df[num_cols].round(digits)
     if fmt == "markdown":
-        return _df_to_markdown(df)
+        return _df_to_markdown(df, digits=digits)
     if fmt == "latex":
-        return _df_to_latex(df)
+        return _df_to_latex(df, digits=digits)
     if fmt == "typst":
-        return _df_to_typst(df)
+        return _df_to_typst(df, digits=digits)
     return df.to_string()
 
 
@@ -174,9 +291,9 @@ def irf_to_dataframe(
         # If user passes (H+1, n_resp, n_shock), pick the first shock by default.
         point = point[:, :, 0]
         if lower is not None:
-            lower = lower[:, :, 0]
+            lower = np.asarray(lower, dtype=float)[:, :, 0]
         if upper is not None:
-            upper = upper[:, :, 0]
+            upper = np.asarray(upper, dtype=float)[:, :, 0]
     H_plus, n = point.shape
     if h_axis is None:
         h_axis = range(H_plus)
@@ -264,7 +381,7 @@ def summary_to_dataframe(d: dict) -> pd.DataFrame:
             rows.append({"key": key, "value": f"{type(val).__name__} (len {len(val)})"})
         else:
             rows.append({"key": key, "value": str(val)[:40]})
-    return pd.DataFrame(rows)
+    return pd.DataFrame(rows, columns=["key", "value"])
 
 
 def summary_to_markdown(d: dict, *, title: str = "Result") -> str:
@@ -278,7 +395,11 @@ def summary_to_markdown(d: dict, *, title: str = "Result") -> str:
 
 
 def summary_to_latex(d: dict, *, title: str = "Result") -> str:
-    """Quick LaTeX tabular summary for a flat result dict."""
+    """Quick LaTeX tabular summary for a flat result dict.
+
+    The title is emitted as a ``%`` comment line above the table; keys
+    and values are escaped, so ``share_%`` renders as ``share\\_\\%``.
+    """
     df = summary_to_dataframe(d)
     return f"% {title}\n" + _df_to_latex(df, index=False)
 
@@ -294,7 +415,12 @@ def summary_to_typst(d: dict, *, title: str = "Result") -> str:
 # ---------------------------------------------------------------------------
 @dataclass
 class IRFResult:
-    """Wraps a triple (point, lower, upper) of IRF arrays (H+1, n_resp, n_shock)."""
+    """Wraps a triple (point, lower, upper) of IRF arrays (H+1, n_resp, n_shock).
+
+    ``to_markdown`` / ``to_latex`` / ``to_typst`` all render the same
+    table (one column per response variable, first shock, bands in
+    brackets) and all accept ``digits=`` and ``h_axis=``.
+    """
     point: np.ndarray
     lower: np.ndarray | None = None
     upper: np.ndarray | None = None
@@ -329,10 +455,16 @@ class IRFResult:
         )
 
     def to_latex(self, **kwargs) -> str:
-        return _df_to_latex(self.to_frame(), **kwargs)
+        return irf_to_latex(
+            self.point, self.lower, self.upper,
+            var_names=self.var_names or None, **kwargs
+        )
 
     def to_typst(self, **kwargs) -> str:
-        return _df_to_typst(self.to_frame(), **kwargs)
+        return irf_to_typst(
+            self.point, self.lower, self.upper,
+            var_names=self.var_names or None, **kwargs
+        )
 
     def at(self, h: int):
         """Return a (n_resp, n_shock) slice at horizon h with bands."""
@@ -361,14 +493,14 @@ class LPResult:
     def horizons(self):
         return self.df.index if self.df.index.name == "h" else self.df["h"].values
 
-    def to_markdown(self) -> str:
-        return _df_to_markdown(self.df)
+    def to_markdown(self, **kwargs) -> str:
+        return _df_to_markdown(self.df, **kwargs)
 
-    def to_latex(self) -> str:
-        return _df_to_latex(self.df)
+    def to_latex(self, **kwargs) -> str:
+        return _df_to_latex(self.df, **kwargs)
 
-    def to_typst(self) -> str:
-        return _df_to_typst(self.df)
+    def to_typst(self, **kwargs) -> str:
+        return _df_to_typst(self.df, **kwargs)
 
 
 df_to_markdown = _df_to_markdown
@@ -384,6 +516,8 @@ __all__ = [
     "irf_to_latex",
     "irf_to_markdown",
     "irf_to_typst",
+    "latex_escape",
+    "typst_escape",
     "summary_to_dataframe",
     "summary_to_latex",
     "summary_to_markdown",

@@ -1,8 +1,10 @@
 """State-dependent LP (Granger-Teräsvirta logistic / threshold).
 
 Granger-Teräsvirta (1993) logistic transition:
-    F(z_t) = 1 / (1 + exp(-γ z_t))
-Auerbach-Gorodnichenko (2013) — z_t is a standardized regime indicator.
+    F(s_t) = 1 / (1 + exp(-γ (s_t - c) / σ_s))
+Auerbach-Gorodnichenko (2013) — the state is standardised so that γ is
+in z-score units; the cutoff ``c`` (``threshold``) is on the raw scale
+of the state variable and defaults to its sample mean.
 
 Returns separate β_h^L (low-regime, weighted by 1-F) and β_h^H
 (high-regime, weighted by F) coefficients with their HAC SE.
@@ -16,6 +18,8 @@ import pandas as pd
 from scipy.stats import norm
 
 from ..inference._ols_helpers import ols_hac
+from ._common import resolve_lp_kwargs
+from ._results import LPResult
 
 
 def _logistic(z: np.ndarray, gamma: float) -> np.ndarray:
@@ -27,37 +31,178 @@ def _logistic_threshold(z: np.ndarray, gamma: float, threshold: float) -> np.nda
     return 1.0 / (1.0 + np.exp(-gamma * (z - threshold)))
 
 
+def _state_scale(series: pd.Series, *, func: str, state_name: str) -> tuple[float, float]:
+    """Sample mean and standard deviation of the state, computed **once**
+    over all non-missing observations so that the regime weights are the
+    same at every horizon (the per-horizon estimation samples differ only
+    by the leads/lags dropped at the edges)."""
+    s = pd.to_numeric(series, errors="coerce").to_numpy(dtype=float)
+    s = s[np.isfinite(s)]
+    if s.size == 0:
+        raise ValueError(f"{func}: state {state_name!r} has no non-missing observations")
+    sd = float(s.std(ddof=0))
+    return float(s.mean()), (sd if sd > 0 else 1.0)
+
+
+def _transition_weights(
+    s: np.ndarray,
+    transition: str,
+    gamma: float,
+    c: float,
+    sd: float,
+    *,
+    state_name: str,
+    func: str,
+) -> np.ndarray:
+    """High-regime weight F(s_t) ∈ [0, 1] shared by ``lp_state_dep`` and
+    ``lp_state_dep_iv``.
+
+    ``c`` is the cutoff on the **raw scale** of the state variable (the
+    user's ``threshold``, or the sample mean when ``threshold=None``) and
+    ``sd`` the sample standard deviation of the state, both from
+    :func:`_state_scale`.
+
+    * ``transition='threshold'``: F = 1{s_t > c}.
+    * ``transition='logistic'``:  F = 1 / (1 + exp(-γ (s_t - c) / sd)),
+      so ``gamma`` is a speed in z-score units.
+
+    Raises ``ValueError`` when the cutoff leaves (effectively) every
+    observation in one regime — the F·x_t and (1-F)·x_t regressors would
+    be collinear.
+    """
+    s = np.asarray(s, dtype=float)
+    if transition == "logistic":
+        F = _logistic((s - c) / sd, gamma)
+    elif transition == "threshold":
+        F = (s > c).astype(float)
+    else:
+        raise ValueError(
+            f"{func}: unknown transition {transition!r}; use 'logistic' or 'threshold'")
+    # Both regimes need effective observations, and F must vary: otherwise
+    # the regressors F·x_t and (1-F)·x_t are (numerically) collinear.
+    eff_H = float(F.sum())
+    eff_L = float((1.0 - F).sum())
+    if (not np.isfinite(F).all() or float(np.ptp(F)) < 1e-6
+            or min(eff_H, eff_L) < 1.0):
+        raise ValueError(
+            f"{func}: threshold={c:g} puts (effectively) every observation in a "
+            f"single regime — effective observations high={eff_H:.3g}, "
+            f"low={eff_L:.3g}; state {state_name!r} ranges over "
+            f"[{s.min():g}, {s.max():g}]. threshold is on the raw scale of the "
+            "state variable: pass a cutoff inside that range, or threshold=None "
+            "to split at the sample mean.")
+    return F
+
+
+def _nan_regime_row(h: int, extra: Sequence[str] = ()) -> dict[str, float]:
+    row: dict[str, float] = {"h": h}
+    for lab in ("H", "L"):
+        for base in ("beta", "se", "lo", "hi"):
+            row[f"{base}_{lab}"] = np.nan
+    for c in extra:
+        row[c] = np.nan
+    return row
+
+
 def lp_state_dep(
     df: pd.DataFrame,
     y: str,
     x: str,
-    state: str,
+    state: str | None = None,
     horizons: Iterable[int] = range(0, 21),
     n_lags: int = 2,
     transition: str = "logistic",
     gamma: float = 3.0,
-    threshold: float = 0.0,
+    threshold: float | None = None,
     controls: Sequence[str] | None = None,
     alpha: float = 0.10,
-) -> pd.DataFrame:
-    """Estimate
-        y_{t+h} - y_{t-1} = α_h
-                         + β_h^H F(z_t) x_t
-                         + β_h^L (1-F(z_t)) x_t
-                         + Σ γ_l z_{t-l} + ε_{t,h}
-    where F(·) is logistic in standardized state z_t, or a threshold
-    indicator I{z_t > threshold} when transition="threshold".
+    *,
+    lags: int | None = None,
+    horizon: int | None = None,
+    ci: float | None = None,
+    state_var: str | None = None,
+) -> LPResult:
+    """State-dependent local projections (Auerbach-Gorodnichenko 2012/2013).
 
-    Returns DataFrame with columns
-        h, beta_H, se_H, lo_H, hi_H, beta_L, se_L, lo_L, hi_L.
+    Estimates, for each horizon ``h``::
+
+        y_{t+h} - y_{t-1} = α_h + β_h^H F(s_t) x_t + β_h^L (1 - F(s_t)) x_t
+                            + Σ_l γ_l w_{t-l} + ε_{t,h}
+
+    with Newey-West HAC standard errors (bandwidth ``h + 1``) and
+    ``F(s_t) ∈ [0, 1]`` the high-regime weight:
+
+    * ``transition='threshold'``: ``F(s_t) = 1{s_t > c}`` — a sharp split;
+    * ``transition='logistic'`` (default):
+      ``F(s_t) = 1 / (1 + exp(-γ (s_t - c) / σ_s))`` — a smooth transition
+      whose speed ``gamma`` is measured in standard deviations of the
+      state (``σ_s`` is the sample SD of ``state``).
+
+    The cutoff ``c`` is ``threshold`` **on the raw scale of the state**
+    (``threshold=6.5`` on an unemployment rate means 6.5 %); ``None``
+    (default) splits at the sample mean of the state, which is the
+    standardised-zero convention of Auerbach-Gorodnichenko. The mean and
+    ``σ_s`` are computed once over all non-missing observations of
+    ``state``, so the regime weights are identical across horizons.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Wide dataset with one row per period.
+    y, x : str
+        Outcome and shock / policy variable column names.
+    state : str
+        State variable column name (``state_var`` is accepted as an alias).
+    horizons : iterable of int, default range(0, 21)
+        Horizons to estimate; ``horizon=H`` is the alias for ``range(0, H + 1)``.
+    n_lags : int, default 2
+        Lags of ``x``, ``y`` and each control used as controls (alias ``lags``).
+    transition : {'logistic', 'threshold'}, default 'logistic'
+    gamma : float, default 3.0
+        Transition speed for ``'logistic'`` (z-score units); ignored for
+        ``'threshold'``.
+    threshold : float or None, default None
+        Cutoff ``c`` on the raw scale of ``state``; ``None`` = sample mean.
+    controls : sequence of str, optional
+        Additional control columns (contemporaneous value and ``n_lags`` lags).
+    alpha : float, default 0.10
+        Two-sided level of the bands (alias ``ci = 1 - alpha``).
+
+    Returns
+    -------
+    LPResult
+        Indexed by ``h`` with columns ``h, beta_H, se_H, lo_H, hi_H,
+        beta_L, se_L, lo_L, hi_L``; ``.point`` / ``.se`` / ``.ci_lower`` /
+        ``.ci_upper`` return a DataFrame with columns ``H`` and ``L``,
+        ``.plot()`` draws both regimes with bands.
+
+    Raises
+    ------
+    ValueError
+        If ``threshold`` leaves every observation in one regime, if the
+        transition is unknown, or if ``ci`` / ``alpha`` is not in (0, 1).
     """
-    horizons = list(horizons)
+    if state_var is not None:
+        if state is not None and state != state_var:
+            raise ValueError(
+                f"lp_state_dep: state={state!r} and state_var={state_var!r} "
+                "disagree; pass only one of them")
+        state = state_var
+    if state is None:
+        raise ValueError("lp_state_dep: a state variable is required (state=... or state_var=...)")
+    horizons, n_lags, alpha = resolve_lp_kwargs(
+        horizons, n_lags, alpha, lags=lags, horizon=horizon, ci=ci, name="lp_state_dep")
+    if transition not in ("logistic", "threshold"):
+        raise ValueError(
+            f"lp_state_dep: unknown transition {transition!r}; use 'logistic' or 'threshold'")
     ctl = list(controls or [])
     z_crit = norm.ppf(1 - alpha / 2)
+    s_mean, s_sd = _state_scale(df[state], func="lp_state_dep", state_name=state)
+    cutoff = s_mean if threshold is None else float(threshold)
 
     rows = []
     for h in horizons:
-        sub = df[[y, x, state] + ctl].copy()
+        sub = df[list(dict.fromkeys([y, x, state] + ctl))].copy()
         sub["__dy_h__"] = sub[y].shift(-h) - sub[y].shift(1)
         for lag in range(1, n_lags + 1):
             sub[f"__{x}_L{lag}__"] = sub[x].shift(lag)
@@ -66,20 +211,11 @@ def lp_state_dep(
                 sub[f"__{c}_L{lag}__"] = sub[c].shift(lag)
         sub = sub.dropna()
         if sub.empty:
-            rows.append({"h": h, "beta_H": np.nan, "se_H": np.nan,
-                         "lo_H": np.nan, "hi_H": np.nan,
-                         "beta_L": np.nan, "se_L": np.nan,
-                         "lo_L": np.nan, "hi_L": np.nan})
+            rows.append(_nan_regime_row(h))
             continue
-        # Standardize state
-        s_arr = sub[state].values
-        s_std = (s_arr - s_arr.mean()) / (s_arr.std(ddof=0) if s_arr.std(ddof=0) > 0 else 1.0)
-        if transition == "logistic":
-            F = _logistic(s_std, gamma)
-        elif transition == "threshold":
-            F = (s_std > threshold).astype(float)
-        else:
-            raise ValueError(f"unknown transition {transition!r}")
+        F = _transition_weights(
+            sub[state].to_numpy(), transition, gamma, cutoff, s_sd,
+            state_name=state, func="lp_state_dep")
 
         n = len(sub)
         regressors = [
@@ -105,8 +241,13 @@ def lp_state_dep(
             "beta_L": beta_L, "se_L": se_L,
             "lo_L": beta_L - z_crit * se_L, "hi_L": beta_L + z_crit * se_L,
         })
-    from ._results import LPResult
-    return LPResult(rows)
+    res = LPResult(rows)
+    res.index = res["h"]
+    res.y_name = str(y)
+    res.x_name = str(x)
+    res.method = "LP-state-dep"
+    res.ci_level = 1.0 - alpha
+    return res
 
 
 def lp_smooth_transition_irf(
@@ -136,6 +277,10 @@ def lp_smooth_transition_irf(
     Unlike the hard-threshold ``lp_state_dep``, the smooth-transition
     specification allows every observation to contribute to both regimes with
     weight proportional to the continuous transition function.
+
+    Note: this legacy helper keeps its ``threshold`` on the **standardised**
+    (z-score) scale; the exported :func:`lp_state_dep` and
+    :func:`lp_state_dep_iv` take ``threshold`` on the raw scale of the state.
 
     Parameters
     ----------
@@ -244,7 +389,6 @@ def lp_smooth_transition_irf(
             "hi_low": b_low + z_crit * se_low,
         })
 
-    from ._results import LPResult
     return LPResult(rows)
 
 
@@ -258,14 +402,14 @@ def lp_state_dep_iv(
     n_lags: int = 2,
     transition: str = "threshold",
     gamma: float = 3.0,
-    threshold: float = 0.0,
+    threshold: float | None = None,
     controls: Sequence[str] | None = None,
     alpha: float = 0.10,
     *,
     lags: int | None = None,
     horizon: int | None = None,
     ci: float | None = None,
-):
+) -> LPResult:
     """State-dependent Local Projections with Instrumental Variables (Ramey-Zubairy 2018).
 
     Estimates state-specific impulse responses and cumulative spending multipliers:
@@ -276,6 +420,12 @@ def lp_state_dep_iv(
 
     where endogenous state components [F(z_t) x_t, (1-F(z_t)) x_t] are instrumented
     by state-interacted instruments [F(z_t) z_t, (1-F(z_t)) z_t].
+
+    The transition weight ``F`` follows exactly the convention of
+    :func:`lp_state_dep`: ``threshold`` is the cutoff on the **raw scale**
+    of ``state`` (``None`` = sample mean); ``'threshold'`` gives
+    ``F = 1{state > threshold}`` and ``'logistic'`` gives
+    ``F = 1 / (1 + exp(-gamma (state - threshold) / sd(state)))``.
 
     Parameters
     ----------
@@ -296,9 +446,9 @@ def lp_state_dep_iv(
     transition : str, default 'threshold'
         'threshold' for indicator I{state > threshold}, or 'logistic' for smooth transition.
     gamma : float, default 3.0
-        Transition speed (if transition='logistic').
-    threshold : float, default 0.0
-        Threshold level.
+        Transition speed (if transition='logistic'), in standard deviations of the state.
+    threshold : float or None, default None
+        Cutoff on the raw scale of ``state``; ``None`` splits at its sample mean.
     controls : sequence of str, optional
         Additional control column names.
     alpha : float, default 0.10
@@ -313,26 +463,30 @@ def lp_state_dep_iv(
     Returns
     -------
     LPResult
-        DataFrame subclass containing columns:
+        DataFrame subclass indexed by ``h`` containing columns:
         ``h``, ``beta_H``, ``se_H``, ``lo_H``, ``hi_H``,
         ``beta_L``, ``se_L``, ``lo_L``, ``hi_L``, ``first_stage_f_H``, ``first_stage_f_L``.
+
+    Raises
+    ------
+    ValueError
+        If ``threshold`` leaves every observation in one regime, if the
+        transition is unknown, or if ``ci`` / ``alpha`` is not in (0, 1).
     """
-    from ._results import LPResult
-
-    if lags is not None:
-        n_lags = lags
-    if horizon is not None:
-        horizons = range(0, horizon + 1)
-    if ci is not None:
-        alpha = 1.0 - ci
-
-    horizons = list(horizons)
+    horizons, n_lags, alpha = resolve_lp_kwargs(
+        horizons, n_lags, alpha, lags=lags, horizon=horizon, ci=ci, name="lp_state_dep_iv")
+    if transition not in ("logistic", "threshold"):
+        raise ValueError(
+            f"lp_state_dep_iv: unknown transition {transition!r}; use 'threshold' or 'logistic'")
     ctl = list(controls or [])
     z_crit = norm.ppf(1 - alpha / 2)
+    f_cols = ("first_stage_f_H", "first_stage_f_L")
+    s_mean, s_sd = _state_scale(df[state], func="lp_state_dep_iv", state_name=state)
+    cutoff = s_mean if threshold is None else float(threshold)
 
     rows = []
     for h in horizons:
-        sub = df[[y, x, z, state] + ctl].copy()
+        sub = df[list(dict.fromkeys([y, x, z, state] + ctl))].copy()
         sub["__dy_h__"] = sub[y].shift(-h) - sub[y].shift(1)
         for lag in range(1, n_lags + 1):
             sub[f"__{x}_L{lag}__"] = sub[x].shift(lag)
@@ -341,36 +495,12 @@ def lp_state_dep_iv(
                 sub[f"__{c}_L{lag}__"] = sub[c].shift(lag)
         sub = sub.dropna()
         if sub.empty:
-            rows.append({
-                "h": h,
-                "beta_H": np.nan, "se_H": np.nan, "lo_H": np.nan, "hi_H": np.nan,
-                "beta_L": np.nan, "se_L": np.nan, "lo_L": np.nan, "hi_L": np.nan,
-                "first_stage_f_H": np.nan, "first_stage_f_L": np.nan,
-            })
+            rows.append(_nan_regime_row(h, f_cols))
             continue
 
-        # Compute transition weights F in [0, 1]
-        st = sub[state].values.astype(float)
-        if transition == "threshold":
-            if sub[state].min() < threshold < sub[state].max():
-                F = (st > threshold).astype(float)
-            else:
-                st_std = (st - st.mean()) / (st.std(ddof=0) if st.std(ddof=0) > 0 else 1.0)
-                F = (st_std > threshold).astype(float)
-        elif transition == "logistic":
-            st_std = (st - st.mean()) / (st.std(ddof=0) if st.std(ddof=0) > 0 else 1.0)
-            F = _logistic(st_std - threshold, gamma)
-        else:
-            raise ValueError(f"Unknown transition {transition!r}; use 'threshold' or 'logistic'")
-
-        if F.min() == F.max():
-            rows.append({
-                "h": h,
-                "beta_H": np.nan, "se_H": np.nan, "lo_H": np.nan, "hi_H": np.nan,
-                "beta_L": np.nan, "se_L": np.nan, "lo_L": np.nan, "hi_L": np.nan,
-                "first_stage_f_H": np.nan, "first_stage_f_L": np.nan,
-            })
-            continue
+        F = _transition_weights(
+            sub[state].to_numpy(), transition, gamma, cutoff, s_sd,
+            state_name=state, func="lp_state_dep_iv")
 
         n = len(sub)
         x_H = F * sub[x].values
@@ -424,9 +554,12 @@ def lp_state_dep_iv(
             "first_stage_f_L": f_L,
         })
 
-    res_df = pd.DataFrame(rows)
-    out_result = LPResult(res_df)
-    out_result.method = "state_dep_iv"
+    out_result = LPResult(pd.DataFrame(rows))
+    out_result.index = out_result["h"]
+    out_result.y_name = str(y)
+    out_result.x_name = str(x)
+    out_result.method = "LP-state-dep-IV"
+    out_result.ci_level = 1.0 - alpha
     return out_result
 
 

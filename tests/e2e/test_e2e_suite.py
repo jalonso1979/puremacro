@@ -744,7 +744,17 @@ class TestTier2BoundaryAndCornerCases:
         d = event_study_did_data
         res = _run_r2_did(d["beta"], se=d["se"], event_time=d["event_time"], method="smoothness", m_grid=[0.0])
         tbl = res.to_frame() if hasattr(res, "to_frame") else res.table
-        assert np.isclose(tbl["id_lo"].iloc[0], tbl["id_hi"].iloc[0], atol=1e-5)
+        row = tbl.iloc[0]
+        # Under Delta^SD(0) the plug-in identified set is the linear extrapolation
+        # of the pre-trend (a point) -- or empty, reported as NaN, when the
+        # estimated pre-period second differences already violate the
+        # restriction, as they do for this fixture (|0.15 - 2(-0.20) + 0| > 0).
+        # The fixed-length confidence interval is finite either way.
+        if np.isfinite(row["id_lo"]) or np.isfinite(row["id_hi"]):
+            assert np.isclose(row["id_lo"], row["id_hi"], atol=1e-5)
+        else:
+            assert np.isnan(row["id_lo"]) and np.isnan(row["id_hi"])
+        assert np.isfinite(row["ci_lo"]) and np.isfinite(row["ci_hi"]) and row["ci_lo"] < row["ci_hi"]
 
     @pytest.mark.skipif(not HAS_R2, reason="puremacro.did (R2) not available")
     def test_tier2_r2_extreme_large_m(self, event_study_did_data):
@@ -911,14 +921,16 @@ class TestTier2BoundaryAndCornerCases:
         rng = np.random.default_rng(42)
         df_short = pd.DataFrame(rng.normal(size=(30, 2)), columns=["y1", "y2"])
         res = bvar_sv(df_short, lags=1, n_draws=150, n_burn=50, seed=42)
-        assert res.beta_draws.shape[0] == 150
+        # n_draws is per chain (default n_chains=2); pooled draws are n_total_draws
+        assert res.n_draws == 150
+        assert res.beta_draws.shape[0] == res.n_total_draws == 150 * res.n_chains
 
     @pytest.mark.skipif(not HAS_R6, reason="puremacro.var.bvar_sv (R6) not available")
     def test_tier2_r6_zero_burnin_structure(self, macro_3var_series):
         """R6.B3: Low burn-in still produces correct output shape and metadata."""
         df, _, _ = macro_3var_series
         res = bvar_sv(df.iloc[:50], lags=1, n_draws=100, n_burn=20, seed=42)
-        assert res.beta_draws.shape[0] == 100
+        assert res.beta_draws.shape[0] == res.n_total_draws == 100 * res.n_chains
 
     @pytest.mark.skipif(not HAS_R6, reason="puremacro.var.bvar_sv (R6) not available")
     def test_tier2_r6_single_variable_system(self):
@@ -979,7 +991,11 @@ class TestTier3CrossFeatureCombinations:
         pre_beta = [0.05, -0.08, 0.0]
         post_beta = list(df_irf[spread_col].iloc[:4].values)
         beta_event = pre_beta + post_beta
-        se_event = [0.05] * len(beta_event)
+        # Standard errors scaled to the spread surge so the effect is significant
+        # at M = 0 (with se = 0.05 a quarterly spread of a few basis points is not,
+        # and a breakdown value of exactly 0 is then the correct answer).
+        scale = 0.2 * max(abs(v) for v in post_beta)
+        se_event = [scale] * len(beta_event)
         event_time = [-2, -1, 0, 1, 2, 3, 4]
         
         res_did = _run_r2_did(beta_event, se=se_event, event_time=event_time, method="smoothness")
@@ -1005,7 +1021,7 @@ class TestTier3CrossFeatureCombinations:
         
         res_sv = bvar_sv(df_sim.iloc[:, :2], lags=1, n_draws=150, n_burn=40, seed=42)
         assert res_sv is not None
-        assert res_sv.h_draws.shape[0] == 150
+        assert res_sv.h_draws.shape[0] == res_sv.n_total_draws == 150 * res_sv.n_chains
 
 
 # ===========================================================================

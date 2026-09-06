@@ -544,3 +544,47 @@ class TestPipeline:
         ks_out = pit_uniformity_test(pits)
         # All pits near 0 (true y << forecast mean) -> should strongly reject
         assert ks_out["p_value"] < 0.001
+
+
+# ---------------------------------------------------------------------------
+# combine_forecasts rolling weights: no look-ahead (v2.3.x regression)
+# ---------------------------------------------------------------------------
+
+class TestCombineForecastsRollingNoLookAhead:
+    """The old rolling loop built ``weights[t]`` from
+    ``err[t-rolling+1 : t+1]`` — including the period-t error — so the
+    'out-of-sample' combination used the realisation it was forecasting."""
+
+    def _data(self, T=200, K=3, seed=30):
+        rng = np.random.default_rng(seed)
+        return rng.standard_normal((T, K)), rng.standard_normal((T, K))
+
+    @pytest.mark.parametrize("method", ["inv_mse", "bates_granger"])
+    def test_weights_t_do_not_depend_on_error_t(self, method):
+        f, e = self._data()
+        base = combine_forecasts(f, method=method, errors=e, rolling=20)
+        e2 = e.copy(); e2[50, 0] = 50.0
+        pert = combine_forecasts(f, method=method, errors=e2, rolling=20)
+        np.testing.assert_allclose(pert["weights"][:51], base["weights"][:51])
+        assert not np.allclose(pert["weights"][51], base["weights"][51])
+        # the perturbation leaves the window after `rolling` periods
+        np.testing.assert_allclose(pert["weights"][71:], base["weights"][71:])
+
+    def test_weights_equal_manual_past_window(self):
+        f, e = self._data()
+        out = combine_forecasts(f, method="inv_mse", errors=e, rolling=20)
+        for t in (2, 10, 30, 199):
+            window = e[max(0, t - 20):t]
+            inv = 1.0 / (window ** 2).mean(axis=0)
+            np.testing.assert_allclose(out["weights"][t], inv / inv.sum())
+        # fewer than two past errors -> equal weights
+        np.testing.assert_allclose(out["weights"][0], 1.0 / 3)
+        np.testing.assert_allclose(out["weights"][1], 1.0 / 3)
+        np.testing.assert_allclose(out["combined"], (f * out["weights"]).sum(axis=1))
+
+    def test_bad_rolling_and_error_shape_raise(self):
+        f, e = self._data()
+        with pytest.raises(ValueError, match="rolling"):
+            combine_forecasts(f, method="inv_mse", errors=e, rolling=0)
+        with pytest.raises(ValueError, match="same shape"):
+            combine_forecasts(f, method="inv_mse", errors=e[:20])

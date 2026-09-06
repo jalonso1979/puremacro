@@ -6,7 +6,7 @@ Standalone replication / demo scripts that each showcase one method. Every scrip
 python -m puremacro.examples.<name>
 ```
 
-There are **66 scripts** below (8031 lines of code total).
+There are **83 scripts** in `puremacro/examples/` (66 described below; the remainder are listed at the end).
 
 ## Recommended starter shortlist
 
@@ -168,3 +168,25 @@ python -m puremacro.examples.narrative_indices_demo
 
 Most scripts print summary stats and save a figure to `output_figures/`.
 A few (the narrative-text and panel demos) require `data/processed/panel_Q.parquet`; see `README.md` for how to build it.
+
+## Not yet described
+
+Scripts that ship but have no entry above yet:
+
+- `anderson_rubin_weak_iv_demo`
+- `bandpass_cycles_comparison`
+- `central_bank_narrative_sentiment`
+- `climate_dice_simulation`
+- `climate_sovereign_debt_risk`
+- `dsge_ar1_demo`
+- `dsge_fertility_demo`
+- `dsge_nk_sketchpad`
+- `empirical_benchmark_replications`
+- `garch_midas_macro_volatility`
+- `hank_sequence_space`
+- `narrative_bursts_and_transcripts`
+- `narrative_local_llm`
+- `nowcasting_gdp_news`
+- `penalized_macro_forecasting`
+- `synthetic_did_california_prop99`
+- `vintage_news_noise`

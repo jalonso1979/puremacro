@@ -58,6 +58,10 @@ def test_lp_state_dep_iv_threshold(rz_style_data):
 
 
 def test_lp_state_dep_iv_logistic(rz_style_data):
+    # ``threshold`` is on the raw scale of the state (6.5 % unemployment),
+    # exactly as in the threshold-transition call above. (This test used to
+    # pass threshold=0.0, which only "worked" because the old code silently
+    # compared the cutoff to the standardised state.)
     df = rz_style_data
     res = lp_state_dep_iv(
         df,
@@ -65,7 +69,7 @@ def test_lp_state_dep_iv_logistic(rz_style_data):
         x="g",
         z="news",
         state="unemp",
-        threshold=0.0,
+        threshold=6.5,
         transition="logistic",
         gamma=2.5,
         horizon=2,
@@ -74,6 +78,12 @@ def test_lp_state_dep_iv_logistic(rz_style_data):
 
     assert isinstance(res, LPResult)
     assert len(res) == 3
+    assert np.all(np.isfinite(res["beta_H"].values))
+    assert np.all(np.isfinite(res["beta_L"].values))
+    # The default (threshold=None) splits at the sample mean and runs too.
+    res_mean = lp_state_dep_iv(df, y="y", x="g", z="news", state="unemp",
+                               transition="logistic", gamma=2.5, horizon=2, lags=1)
+    assert len(res_mean) == 3
 
 
 def test_lp_state_dep_iv_export_methods(rz_style_data):

@@ -22,5 +22,5 @@ def test_simulate_dice_model_basic():
     assert 0.0 <= res.end_century_damages <= 0.20
     
     summary_text = res.summary()
-    assert "DICE Climate-Macroeconomic" in summary_text
+    assert "DICE-2016R forward simulation" in summary_text
     assert "Peak Global Surface Warming" in summary_text

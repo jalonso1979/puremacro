@@ -113,8 +113,11 @@ def lp_panel(
     """
     import warnings
     warnings.warn(
-        "puremacro.regress.lp is deprecated and will be removed in 2.0.0; "
-        "use puremacro.lp.panel.panel_lp or puremacro.lp.panel_dk.panel_lp_dk instead.",
+        "puremacro.regress.lp is deprecated; it is kept for backward "
+        "compatibility (retirement deferred, see the module docstring) and "
+        "will be removed in a future major release once a canonical "
+        "equivalent with the same signature ships. Use "
+        "puremacro.lp.panel.panel_lp or puremacro.lp.panel_dk.panel_lp_dk instead.",
         FutureWarning,
         stacklevel=2,
     )

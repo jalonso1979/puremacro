@@ -72,14 +72,25 @@ def har_rv(rv_series: np.ndarray, log_transform: bool = True,
 
     Parameters
     ----------
-    rv_series : (T,) ndarray of daily realized variances.
+    rv_series : (T,) ndarray of daily realized variances (T > 30).
     log_transform : if True, regress log RV on log lags (Corsi default).
-    hac_lags : Newey-West truncation; if None, uses 4 (T/100)^(2/9).
+    hac_lags : Newey-West truncation lag. If None, the Newey-West (1994)
+        rule ``floor(4 * (n / 100) ** (2 / 9))`` is used with ``n = T - 22``,
+        the number of regression observations (the first 22 days are lost
+        to the monthly lag). ``hac_lags=0`` gives White (HC0) SEs.
 
     Returns
     -------
-    dict with beta_0, beta_d, beta_w, beta_m, se_*, R2, fitted, residuals,
-    and the (T-22, 4) regressor matrix used.
+    dict with keys
+        ``intercept``, ``beta_d``, ``beta_w``, ``beta_m`` : float
+            OLS coefficients (β_0 in the docstring formula is ``intercept``).
+        ``se_intercept``, ``se_d``, ``se_w``, ``se_m`` : float
+            Newey-West HAC standard errors.
+        ``R2`` : float
+        ``fitted``, ``residuals`` : (T-22,) ndarrays
+        ``design`` : (T-22, 4) regressor matrix ``[1, x_d, x_w, x_m]``.
+        ``log_transform`` : bool (echo of the argument)
+        ``hac_lags`` : int (the truncation lag actually used)
     """
     rv = np.asarray(rv_series, dtype=float).ravel()
     if log_transform:

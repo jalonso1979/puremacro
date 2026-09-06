@@ -82,7 +82,7 @@ def wild_bootstrap_var(
     *,
     p: int,
     horizon: int,
-    impact_fn: Callable[[list, np.ndarray, np.ndarray], np.ndarray],
+    impact_fn: Callable[..., np.ndarray],
     n_boot: int = 500,
     ci: float = 0.9,
     seed: int = 0,
@@ -106,10 +106,23 @@ def wild_bootstrap_var(
         lags = np.concatenate([Yb_all[:, t - 1 - l, :] for l in range(p)], axis=1)
         Yb_all[:, t, :] = lags @ A_stack.T + c + E_all[:, t - p, :]
 
+    # Mertens-Ravn (2013) wild bootstrap: the SAME Rademacher weight multiplies
+    # the residuals and any external instrument, so the covariance between the
+    # reduced-form innovations and the proxy is preserved draw by draw. Impact
+    # functions that use an instrument accept the weights through ``w=``.
+    import inspect as _inspect
+    try:
+        _accepts_w = "w" in _inspect.signature(impact_fn).parameters
+    except (TypeError, ValueError):
+        _accepts_w = False
+
     def _eval_draw(b_idx: int) -> np.ndarray | None:
         A_b, _, Sigma_b, resid_b, _ = _ols_var(Yb_all[b_idx], p)
         try:
-            B_b = impact_fn(A_b, Sigma_b, resid_b)
+            if _accepts_w:
+                B_b = impact_fn(A_b, Sigma_b, resid_b, w=W[b_idx])
+            else:
+                B_b = impact_fn(A_b, Sigma_b, resid_b)
             return _irf_from_var(A_b, horizon, B_b)
         except np.linalg.LinAlgError:
             return None

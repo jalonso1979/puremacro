@@ -5,10 +5,13 @@ Two flavours:
                   with separate coefficients (Foroni-Marcellino-Schumacher 2015).
                   OLS, easy, but parameter count grows with K.
 - ``beta_midas`` : Beta-polynomial MIDAS (Ghysels-Santa-Clara-Valkanov 2007).
-                  Imposes a two-parameter lag-weighting kernel
-                      w(k) = beta_pdf((k-1)/(K-1); theta1, theta2),
-                  so the low-frequency slope is identified from a single
-                  scalar ``beta`` regardless of K.
+                  Imposes a two-parameter lag-weighting kernel evaluated on
+                  the midpoint grid u_k = (k - 0.5) / K, k = 1..K,
+                      w(k) ∝ u_k^(theta1 - 1) (1 - u_k)^(theta2 - 1),
+                  normalised to sum to one (the Beta density kernel on the
+                  open interval, so the end lags never receive an exact
+                  zero weight), so the low-frequency slope is identified
+                  from a single scalar ``beta`` regardless of K.
 
 Both functions assume the high-frequency series ``x_hf`` has been
 pre-aligned so that ``x_hf[i*K + j]`` is the j-th sub-period of
@@ -26,6 +29,7 @@ Foroni, C., Marcellino, M. and Schumacher, C. (2015). Unrestricted
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -33,6 +37,47 @@ from scipy.optimize import minimize
 from scipy.stats import beta as beta_dist
 
 
+def _bar_figure(labels: list[str], values: np.ndarray, *, ax: Any, title: str, ylabel: str) -> Any:
+    """Bar chart helper shared by the MIDAS result objects; returns the Figure."""
+    import matplotlib.pyplot as plt
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(6.5, 3.4))
+    else:
+        fig = ax.figure
+    ax.bar(range(len(values)), values, color="#1f77b4")
+    ax.set_xticks(range(len(values)))
+    ax.set_xticklabels(labels, fontsize=8)
+    ax.axhline(0.0, color="grey", lw=0.6)
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+    ax.grid(True, axis="y", ls=":", alpha=0.5)
+    return fig
+
+
+def _frame_exports(cls):  # type: ignore[no-untyped-def]
+    """Attach ``to_markdown`` / ``to_latex`` / ``to_typst`` built on ``to_frame``."""
+    def to_markdown(self, **kwargs: Any) -> str:
+        from puremacro.reports import _df_to_markdown
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs: Any) -> str:
+        from puremacro.reports import _df_to_latex
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs: Any) -> str:
+        from puremacro.reports import _df_to_typst
+        return _df_to_typst(self.to_frame(), **kwargs)
+
+    to_markdown.__doc__ = "Export ``to_frame()`` as a Markdown table."
+    to_latex.__doc__ = "Export ``to_frame()`` as a LaTeX ``tabular``."
+    to_typst.__doc__ = "Export ``to_frame()`` as a Typst ``#table``."
+    cls.to_markdown = to_markdown
+    cls.to_latex = to_latex
+    cls.to_typst = to_typst
+    return cls
+
+
+@_frame_exports
 @dataclass(frozen=True)
 class UMidasResult:
     """Result of :func:`u_midas` (unrestricted MIDAS).
@@ -76,7 +121,20 @@ class UMidasResult:
             f"  n_obs             : {self.n_obs}\n"
         )
 
+    def to_frame(self) -> pd.DataFrame:
+        """Per-lag coefficient table (``lag`` 1 = most recent sub-period)."""
+        return pd.DataFrame(
+            {"coef": np.round(self.beta, 4)},
+            index=pd.Index(range(1, len(self.beta) + 1), name="lag"),
+        )
 
+    def plot(self, *, ax: Any = None, title: str = "U-MIDAS lag coefficients") -> Any:
+        """Bar chart of the per-lag coefficients. Returns the Figure."""
+        return _bar_figure([str(i) for i in range(1, len(self.beta) + 1)],
+                           np.asarray(self.beta, dtype=float), ax=ax, title=title, ylabel="coefficient")
+
+
+@_frame_exports
 @dataclass(frozen=True)
 class BetaMidasResult:
     """Result of :func:`beta_midas` (Beta-polynomial MIDAS).
@@ -128,6 +186,21 @@ class BetaMidasResult:
             f"  converged         : {self.converged}\n"
         )
 
+    def to_frame(self) -> pd.DataFrame:
+        """Kernel weights and implied per-lag effect ``beta * w(k)``."""
+        w = np.asarray(self.weights, dtype=float)
+        return pd.DataFrame(
+            {"weight": np.round(w, 4), "beta_x_weight": np.round(self.beta * w, 4)},
+            index=pd.Index(range(1, len(w) + 1), name="lag"),
+        )
+
+    def plot(self, *, ax: Any = None, title: str = "Beta-MIDAS kernel weights") -> Any:
+        """Bar chart of the estimated kernel weights. Returns the Figure."""
+        w = np.asarray(self.weights, dtype=float)
+        return _bar_figure([str(i) for i in range(1, len(w) + 1)], w, ax=ax,
+                           title=f"{title} (theta = {self.theta1:.2f}, {self.theta2:.2f})",
+                           ylabel="weight")
+
 
 def _stack_hf_lags(x_hf: np.ndarray, K: int, n_periods: int,
                     n_low_lags: int = 0) -> np.ndarray | None:
@@ -164,18 +237,36 @@ def u_midas(
     x_hf : (n_low * K,) ndarray of aligned high-frequency observations.
     K : int — sub-periods per low-frequency period (e.g. 3 for QM).
     n_low_lags : int — additional low-frequency lags of x_hf to include.
+        Must be smaller than ``n_low``; the first ``n_low_lags`` low-frequency
+        observations are dropped from the regression.
 
     Returns
     -------
     UMidasResult
         Frozen dataclass with intercept, beta, fitted, residuals, R2, n_obs.
+
+    Raises
+    ------
+    ValueError
+        If ``len(x_hf) != n_low * K``, or ``n_low_lags >= n_low`` (no
+        observations would be left).
     """
     y_lf = np.asarray(y_lf, dtype=float).ravel()
     x_hf = np.asarray(x_hf, dtype=float).ravel()
     n_low = len(y_lf)
+    if K < 1:
+        raise ValueError(f"K must be >= 1; got {K}")
+    if n_low_lags < 0:
+        raise ValueError(f"n_low_lags must be >= 0; got {n_low_lags}")
     if len(x_hf) != n_low * K:
         raise ValueError(f"x_hf length must be n_low*K = {n_low * K}; "
                          f"got {len(x_hf)}")
+    if n_low_lags >= n_low:
+        raise ValueError(
+            f"n_low_lags ({n_low_lags}) must be smaller than the number of "
+            f"low-frequency observations ({n_low}): no rows would be left "
+            "for the regression."
+        )
     X = _stack_hf_lags(x_hf, K, n_low, n_low_lags=n_low_lags)
     if X is None:
         raise ValueError("Not enough high-frequency observations for the "
@@ -279,6 +370,7 @@ def beta_midas(
     )
 
 
+@_frame_exports
 @dataclass(frozen=True)
 class GarchMidasResult:
     """Result of :func:`garch_midas` (Engle, Ghysels & Sohn 2013).
@@ -344,6 +436,35 @@ class GarchMidasResult:
             f"  converged         : {self.converged}\n"
             f"  n_obs (HF)        : {self.n_obs}\n"
         )
+
+    def to_frame(self) -> pd.DataFrame:
+        """Parameter table (one row per estimated parameter)."""
+        rows = [
+            ("mu", self.mu), ("m", self.m), ("theta", self.theta), ("w2", self.w2),
+            ("alpha", self.alpha), ("beta", self.beta),
+            ("persistence", self.alpha + self.beta), ("loglik", self.loglik),
+        ]
+        return pd.DataFrame(
+            {"value": [round(float(v), 4) for _, v in rows]},
+            index=pd.Index([k for k, _ in rows], name="parameter"),
+        )
+
+    def plot(self, *, ax: Any = None, title: str = "GARCH-MIDAS conditional volatility") -> Any:
+        """Total conditional sd ``sigma`` (solid) and long-run ``sqrt(tau)``
+        (dashed). Returns the Figure."""
+        import matplotlib.pyplot as plt
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(7.5, 3.4))
+        else:
+            fig = ax.figure
+        sig = pd.Series(self.sigma) if not isinstance(self.sigma, pd.Series) else self.sigma
+        tau = pd.Series(self.tau) if not isinstance(self.tau, pd.Series) else self.tau
+        ax.plot(sig.index, sig.to_numpy(), lw=1.0, label="sigma (total)")
+        ax.plot(tau.index, np.sqrt(tau.to_numpy()), lw=1.6, ls="--", label="sqrt(tau) (long-run)")
+        ax.set_title(title)
+        ax.legend(loc="best", fontsize=8)
+        ax.grid(True, ls=":", alpha=0.5)
+        return fig
 
 
 def _beta_weights_decay(L: int, w2: float) -> np.ndarray:

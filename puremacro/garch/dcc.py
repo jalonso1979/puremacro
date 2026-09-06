@@ -62,8 +62,10 @@ def dcc_fit(returns: pd.DataFrame, mean: str = "zero") -> DCCResult:
 
     Parameters
     ----------
-    returns : pd.DataFrame
-        T x n panel of (mean-removed) return / shock series.
+    returns : pd.DataFrame or ndarray, shape (T, n)
+        T x n panel of (mean-removed) return / shock series. A DataFrame
+        keeps its index / column labels in ``sigma``; an ndarray gets a
+        RangeIndex and integer column labels.
     mean : {"zero", "constant"}
         Passed through to the per-asset GARCH(1,1) fit.
 
@@ -81,9 +83,24 @@ def dcc_fit(returns: pd.DataFrame, mean: str = "zero") -> DCCResult:
         heteroskedasticity models. JBES 20(3), 339-350.
     """
     arr = np.asarray(returns, dtype=float)
+    if arr.ndim != 2:
+        raise ValueError(
+            f"dcc_fit: returns must be a (T, n) panel, got shape {arr.shape}"
+        )
     T, n = arr.shape
     if mean not in ("zero", "constant"):
         raise ValueError(f"mean must be 'zero' or 'constant', got {mean!r}")
+    if not np.all(np.isfinite(arr)):
+        raise ValueError(
+            "dcc_fit: returns contain NaN/inf; drop or impute them before fitting"
+        )
+    # The docstring asks for a DataFrame, but a plain (T, n) ndarray used to
+    # crash on ``returns.index`` at the very end (after all the fitting):
+    # accept both, defaulting to a RangeIndex and integer column labels.
+    if isinstance(returns, pd.DataFrame):
+        index, columns = returns.index, returns.columns
+    else:
+        index, columns = pd.RangeIndex(T), pd.RangeIndex(n)
     # Step 2 of Engle's two-step needs z_t = eps_t / h_t^{1/2} with the SAME
     # eps_t in the numerator whose conditional variance is in the denominator.
     # `garch11_fit(mean="constant")` demeans internally and `GARCH11Result` has
@@ -122,7 +139,7 @@ def dcc_fit(returns: pd.DataFrame, mean: str = "zero") -> DCCResult:
         a=float(a),
         b=float(b),
         Qbar=Qbar,
-        sigma=pd.DataFrame(sigma, index=returns.index, columns=returns.columns),
+        sigma=pd.DataFrame(sigma, index=index, columns=columns),
         R=R,
         H=H,
         garch_params=garch_params,

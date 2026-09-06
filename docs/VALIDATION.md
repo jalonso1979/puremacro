@@ -103,8 +103,10 @@ tolerances measured, no more.
 
 Where no sound *independent* reference exists, a case is **skipped with a stated
 reason** rather than rubber-stamped with a circular check. Documented examples:
-`inference.kleibergen_paap_f` (the implementation returns a non-standard statistic
-with no matching closed form), the heavy `dsge` estimation routines, an external
+`inference.kleibergen_paap_f` (the rk Wald F has no independent closed form for
+two or more endogenous regressors; the `k = 1` case, where it equals the
+HC0-robust first-stage F, is pinned in `tests/test_inference/test_weak_iv_values.py`
+rather than in the gallery), the heavy `dsge` estimation routines, an external
 Arellano–Bond coefficient cross-check (no offline dataset / Python GMM package),
 and the narrative LLM and live-fetch paths. The gallery validates what can be
 validated independently, and says so when it cannot.

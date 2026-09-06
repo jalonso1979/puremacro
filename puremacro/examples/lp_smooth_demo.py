@@ -43,13 +43,19 @@ def run_smooth_lp(
     T: int = 400,
     seed: int = 0,
     horizons=range(0, 13),
-    n_knots: int = 6,
+    n_knots: int = 4,
+    selection: str = "gcv",
 ) -> dict:
-    """Estimate smoothed LP on the synthetic DGP. Returns a dict."""
+    """Estimate smoothed LP on the synthetic DGP. Returns a dict.
+
+    ``n_knots`` is the number of interior spline knots (the basis has
+    ``n_knots + 4`` cubic B-splines); ``selection`` is the criterion used to
+    pick ``lambda`` (``'gcv'`` by default, as in the module docstring).
+    """
     df = _simulate(T=T, seed=seed)
     irf = lp_smooth(
         df, y="y", x="x", horizons=horizons,
-        n_lags=2, n_knots=n_knots, alpha=0.10,
+        n_lags=2, n_knots=n_knots, alpha=0.10, selection=selection,
     )
     return {"irf_smooth": irf, "data": df}
 
@@ -58,7 +64,8 @@ def main() -> None:
     out = run_smooth_lp()
     irf = out["irf_smooth"]
     print("Barnichon-Brownlees smoothed LP on synthetic hump-DGP")
-    print(f"  GCV-chosen lambda: {float(irf['lambda'].iloc[0]):.4g}")
+    print(f"  {irf.selection_criterion.upper()}-chosen lambda: {irf.optimal_lambda:.4g}"
+          f"  (effective df = {irf.df_lambda:.2f})")
     print(irf.to_string(index=False, float_format=lambda v: f"{v:+.4f}"))
 
 

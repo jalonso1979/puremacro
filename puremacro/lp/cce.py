@@ -17,6 +17,8 @@ import pandas as pd
 from scipy.stats import norm
 
 from ._results import LPResult
+from ._common import resolve_lp_kwargs
+from ._panel_helpers import as_panel_index
 
 
 def _entity_fe_ols(sub: pd.DataFrame, y_col: str, x_cols: Sequence[str],
@@ -62,6 +64,8 @@ def cce_panel_lp(
     lags: int | None = None,
     horizon: int | None = None,
     ci: float | None = None,
+    unit_col: str | None = None,
+    time_col: str | None = None,
 ) -> LPResult:
     """Estimate panel LP β_h with Pesaran-CCE common-factor correction.
 
@@ -76,15 +80,14 @@ def cce_panel_lp(
 
     Returns LPResult with [h, beta, se, lo, hi].
     """
-    if lags is not None:
-        n_lags = lags
-    if horizon is not None:
-        horizons = range(0, horizon + 1)
-    if ci is not None:
-        alpha = 1.0 - ci
+    horizons, n_lags, alpha = resolve_lp_kwargs(
+        horizons, n_lags, alpha, lags=lags, horizon=horizon, ci=ci, name="cce_panel_lp")
     horizons = list(horizons); ctl = list(controls)
     z_crit = norm.ppf(1 - alpha / 2)
 
+    df_wide, entity_level, time_level = as_panel_index(
+        df_wide, entity_level=entity_level, time_level=time_level,
+        unit_col=unit_col, time_col=time_col, func="cce_panel_lp")
     df = df_wide.copy()
     df.index = df.index.set_names([entity_level, time_level])
     df = df.sort_index()
@@ -136,6 +139,7 @@ def cce_panel_lp(
     res.y_name = str(y)
     res.x_name = str(x)
     res.method = "cce_panel_lp"
+    res.ci_level = 1.0 - alpha
     return res
 
 

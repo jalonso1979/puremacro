@@ -58,13 +58,14 @@ Implementa el algoritmo de rotación ortogonal QR de Rubio-Ramírez, Waggoner y 
 ```python
 from puremacro.var.identify import sign_restrictions
 
-# Matriz de restricciones: +1 (positivo), -1 (negativo), np.nan (sin restricción)
-signs = np.array([
-    [ 1.0, -1.0],  # choque de oferta: PIB sube, inflación baja
-    [-1.0, -1.0],  # choque de política monetaria: PIB baja, inflación baja
-])
+# Restricciones de signo por choque: {índice del choque: [signo por variable]},
+# con +1 (positivo), -1 (negativo) y 0 (sin restricción) en el impacto
+restricciones = {
+    0: [+1, -1],   # choque de oferta: PIB sube, inflación baja
+    1: [-1, -1],   # choque de política monetaria: PIB baja, inflación baja
+}
 
-res_signs = sign_restrictions(Y, signs=signs, p=2, horizon=20, max_draws=5000)
+res_signs = sign_restrictions(Y, restrictions=restricciones, p=2, horizon=20, n_draws=5000)
 ```
 
 Para restricciones de signo combinadas con restricciones contemporáneas de cero exacto, utilice `sign_zero_restrictions` (Arias, Rubio-Ramírez y Waggoner 2018). Para inferencia robusta al conjunto identificado, utilice las bandas de Giacomini y Kitagawa (2021).
@@ -76,7 +77,7 @@ Identifica el choque estructural mediante una variable instrumental externa $z_t
 from puremacro.var.identify import proxy_svar
 
 res_proxy = proxy_svar(Y, p=2, instrument_series=z, horizon=20)
-print("Estadístico F de primera etapa:", res_proxy.first_stage_f)
+print("Estadístico F de primera etapa:", res_proxy.first_stage_F)
 ```
 
 ### Máxima participación espectral / News (`max_share_svar`)
@@ -103,13 +104,13 @@ Identifica choques que maximizan la contribución a la varianza del error de pro
 from puremacro.var import favar
 
 res_favar = favar(
-    panel_df=panel_macro,
-    policy_series=tasa_politica,
+    panel_macro,          # DataFrame (T, N) de series informativas
+    tasa_politica,        # Serie (T,) de la variable de política
     n_factors=3,
     p=2,
     horizon=20,
     ci=0.90,
 )
 print(res_favar.summary())
-res_favar.plot(variables=["Produccion_Industrial", "IPC", "Empleo"])
+res_favar.plot()
 ```

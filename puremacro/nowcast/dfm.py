@@ -27,8 +27,87 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from typing import Any, Optional
+
 from ..factor import pca_factors
 from ..state_space import StateSpaceModel, kalman_smoother
+
+
+class KalmanDFMResult(dict):
+    """Return type of :func:`kalman_dfm`: a ``dict`` with the documented
+    keys plus ``summary()``, ``to_frame()``, ``to_markdown()``,
+    ``to_latex()``, ``to_typst()`` and ``plot()``.
+
+    ``out["factors"]``, ``"factors" in out`` and every other dict
+    operation work unchanged; the presentation methods are additive.
+    """
+
+    columns: Optional[list[str]] = None
+
+    def _names(self) -> list[str]:
+        n = self["loadings"].shape[0]
+        return list(self.columns) if self.columns is not None else [f"x{i}" for i in range(n)]
+
+    def summary(self) -> str:
+        F = self["factors"]
+        T, k = F.shape
+        n = self["loadings"].shape[0]
+        A = self["A"]
+        p = A.shape[0] // k
+        eig = np.abs(np.linalg.eigvals(A)).max() if A.size else float("nan")
+        n_filled = int(np.isnan(self["X_filled"]).sum()) if "X_filled" in self else 0
+        lines = [
+            "Two-step DFM with Kalman smoother (Doz-Giannone-Reichlin 2011)",
+            "=" * 66,
+            f"Panel                          : T = {T}, n = {n}",
+            f"Factors / VAR order            : k = {k}, p = {p}",
+            f"Max |eigenvalue| of transition : {eig:.4f}",
+            f"Log-likelihood                 : {self.get('loglik', float('nan')):.3f}",
+            f"Missing entries filled         : {int(self.get('n_missing', 0))}"
+            + (f" (still NaN: {n_filled})" if n_filled else ""),
+            "-" * 66,
+            "Loadings (first factor):",
+        ]
+        for name, lam in zip(self._names(), self["loadings"][:, 0]):
+            lines.append(f"  {name:<24s}: {lam:+8.4f}")
+        return "\n".join(lines)
+
+    def to_frame(self) -> pd.DataFrame:
+        """Loadings table (n series x k factors)."""
+        k = self["loadings"].shape[1]
+        return pd.DataFrame(
+            self["loadings"], index=pd.Index(self._names(), name="series"),
+            columns=[f"F{i + 1}" for i in range(k)],
+        ).round(4)
+
+    def to_markdown(self, **kwargs: Any) -> str:
+        from puremacro.reports import _df_to_markdown
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs: Any) -> str:
+        from puremacro.reports import _df_to_latex
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs: Any) -> str:
+        from puremacro.reports import _df_to_typst
+        return _df_to_typst(self.to_frame(), **kwargs)
+
+    def plot(self, *, ax: Any = None, title: str = "Smoothed factors") -> Any:
+        """Line plot of the smoothed factor paths. Returns the Figure."""
+        import matplotlib.pyplot as plt
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(7.5, 3.6))
+        else:
+            fig = ax.figure
+        F = self["factors_df"] if "factors_df" in self else pd.DataFrame(
+            self["factors"], columns=[f"F{i + 1}" for i in range(self["factors"].shape[1])])
+        for col in F.columns:
+            ax.plot(F.index, F[col], lw=1.6, label=str(col))
+        ax.axhline(0.0, color="grey", lw=0.6)
+        ax.set_title(title)
+        ax.legend(loc="best", fontsize=8)
+        ax.grid(True, ls=":", alpha=0.5)
+        return fig
 
 
 def _var_ols(F: np.ndarray, p: int) -> tuple[np.ndarray, np.ndarray]:
@@ -65,7 +144,7 @@ def kalman_dfm(
     p: int = 1,
     standardize: bool = True,
     diffuse_scale: float = 1e6,
-) -> dict:
+) -> KalmanDFMResult:
     """Two-step DFM with Kalman smoothing.
 
     Parameters
@@ -85,7 +164,8 @@ def kalman_dfm(
 
     Returns
     -------
-    dict with
+    KalmanDFMResult
+        A ``dict`` subclass (all dict operations work) with
         ``factors``      (T, n_factors) — smoothed factor path,
         ``loadings``     (n, n_factors) — Λ,
         ``A``            (k·p, k·p)   — companion-form transition,
@@ -94,7 +174,13 @@ def kalman_dfm(
         ``X_filled``     (T, n)       — observations with the smoothed
                                           model-implied values substituted
                                           for NaN entries (the *nowcast*),
-        ``means``, ``stds`` — used for back-transforming if standardize=True.
+        ``means``, ``stds`` — used for back-transforming if standardize=True,
+        ``loglik``       float        — Gaussian log-likelihood of the panel,
+        ``n_missing``    int          — number of NaN entries that were filled,
+        ``factors_df``, ``X_filled_df`` — DataFrame views, only when ``X``
+                                          was a DataFrame,
+        plus ``summary()``, ``to_frame()`` (loadings), ``to_markdown()``,
+        ``to_latex()``, ``to_typst()`` and ``plot()``.
     """
     if isinstance(X, pd.DataFrame):
         idx = X.index
@@ -149,16 +235,19 @@ def kalman_dfm(
     if standardize:
         X_filled = X_filled * stds + means
 
-    out = {
-        "factors":  factors,
-        "loadings": Lambda,
-        "A":        A,
-        "Q":        Q,
-        "H":        H,
-        "X_filled": X_filled,
-        "means":    means,
-        "stds":     stds,
-    }
+    out = KalmanDFMResult(
+        factors=factors,
+        loadings=Lambda,
+        A=A,
+        Q=Q,
+        H=H,
+        X_filled=X_filled,
+        means=means,
+        stds=stds,
+        loglik=float(sm["loglik"]),
+        n_missing=int(np.isnan(Xs).sum()),
+    )
+    out.columns = [str(c) for c in cols] if cols is not None else None
     if idx is not None:
         out["factors_df"] = pd.DataFrame(
             factors, index=idx,
@@ -168,4 +257,4 @@ def kalman_dfm(
     return out
 
 
-__all__ = ["kalman_dfm"]
+__all__ = ["KalmanDFMResult", "kalman_dfm"]

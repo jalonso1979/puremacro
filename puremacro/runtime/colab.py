@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence
 
 import numpy as np
+import pandas as pd
 
 
 def colab_auth_guide(
@@ -235,14 +236,25 @@ def generate_colab_notebook(
             "\n",
         ]
         for name, obj in data_payloads.items():
-            if hasattr(obj, "to_csv"):
-                csv_bytes = obj.to_csv().encode("utf-8")
-                b64 = base64.b64encode(csv_bytes).decode("ascii")
-                payload_lines.append(f"# Data: {name}\n")
+            if not str(name).isidentifier():
+                raise ValueError(
+                    f"data_payloads key {name!r} must be a valid Python identifier: it becomes "
+                    "the variable name that holds the object inside the notebook"
+                )
+            if isinstance(obj, (pd.DataFrame, pd.Series)):
+                # Parquet round-trips the index (DatetimeIndex, PeriodIndex, MultiIndex)
+                # and dtypes exactly; CSV silently turned the index into a text column.
+                frame = obj.to_frame() if isinstance(obj, pd.Series) else obj
+                bio = io.BytesIO()
+                frame.to_parquet(bio, index=True)
+                b64 = base64.b64encode(bio.getvalue()).decode("ascii")
+                payload_lines.append(f"# Data: {name} (parquet, index preserved)\n")
                 payload_lines.append(f"{name}_b64 = '{b64}'\n")
                 payload_lines.append(
-                    f"{name} = pd.read_csv(io.StringIO(base64.b64decode({name}_b64).decode('utf-8')))\n"
+                    f"{name} = pd.read_parquet(io.BytesIO(base64.b64decode({name}_b64)))\n"
                 )
+                if isinstance(obj, pd.Series):
+                    payload_lines.append(f"{name} = {name}.iloc[:, 0]\n")
             elif isinstance(obj, np.ndarray):
                 bio = io.BytesIO()
                 np.save(bio, obj)
@@ -251,6 +263,11 @@ def generate_colab_notebook(
                 payload_lines.append(f"{name}_b64 = '{b64}'\n")
                 payload_lines.append(
                     f"{name} = np.load(io.BytesIO(base64.b64decode({name}_b64)))\n"
+                )
+            else:
+                raise TypeError(
+                    f"data_payloads[{name!r}] is a {type(obj).__name__}; only pandas "
+                    "DataFrame/Series and numpy arrays can be embedded"
                 )
 
         cells.append({
@@ -276,6 +293,7 @@ def generate_colab_notebook(
         export_code = [
             "# 4. Serialize results and sync back to iPad / Juno / Local Session\n",
             "import os, shutil\n",
+            "import pandas as pd\n",
             "from pathlib import Path\n",
             "from puremacro.runtime.store import save_frame\n",
             "\n",
@@ -391,6 +409,12 @@ def load_colab_result(path_or_bytes: str | Path | bytes) -> Any:
         return load_frame(p)
     except Exception:
         pass
+    # A genuine puremacro.pocket cartridge (pocket.pack): return its frame
+    try:
+        from puremacro import pocket as _pocket
+        return _pocket.load(p).frame()
+    except Exception:
+        pass
 
     # Try parquet if pyarrow is present
     if p.suffix == ".parquet":
@@ -414,6 +438,19 @@ def show_colab_offload_dialog(
     abs_path = p.resolve()
 
     guide_text = colab_auth_guide(drive_folder=drive_folder)
+    in_kernel = False
+    try:
+        from IPython import get_ipython  # type: ignore
+        ip = get_ipython()
+        in_kernel = ip is not None and ip.__class__.__name__ != "TerminalInteractiveShell"
+    except Exception:
+        in_kernel = False
+    if not in_kernel:
+        # Outside a Jupyter/Juno kernel the rich HTML card would only print its
+        # repr, so show (and return) the documented plain-text guide instead.
+        text = f"\n{title}\n{'=' * len(title)}\nNotebook generated at: {abs_path}\n\n{guide_text}"
+        print(text)
+        return text
 
     try:
         from IPython.display import HTML, display

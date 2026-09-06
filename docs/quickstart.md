@@ -64,7 +64,21 @@ df_irf = res_svar.to_frame(target_idx=0, shock_idx=0)
 Estimate heterogeneity-robust treatment effects under staggered adoption without negative weighting issues:
 
 ```python
+import numpy as np
+import pandas as pd
 from puremacro.did import callaway_santanna
+
+# Staggered adoption: 60 counties observed 2000-2011, cohorts first treated in
+# 2005 and 2008 plus a never-treated group (replace with your own panel)
+rng = np.random.default_rng(0)
+rows = []
+for county in range(60):
+    g = {0: 2005, 1: 2008, 2: np.nan}[county % 3]
+    for year in range(2000, 2012):
+        effect = 3.0 if (not np.isnan(g) and year >= g) else 0.0
+        rows.append({"county_id": county, "year": year, "first_treated_year": g,
+                     "employment": 100 + 0.5 * (year - 2000) + effect + rng.standard_normal()})
+panel_df = pd.DataFrame(rows)
 
 # Callaway & Sant'Anna (2021) group-time ATTs
 res_did = callaway_santanna(
@@ -73,8 +87,8 @@ res_did = callaway_santanna(
     time="year",
     outcome="employment",
     treat_time="first_treated_year",
-    control_group="never_treated",
-    n_boot=500,
+    control="never_treated",
+    n_boot=200,
     ci=0.95,
 )
 
@@ -109,13 +123,29 @@ print("Bottom-decile MPC:", res_hank.mpc_distribution["Decile 1"])
 Track quarterly GDP growth in real time from monthly indicators with ragged edges and missing releases:
 
 ```python
+import numpy as np
+import pandas as pd
 from puremacro.nowcast import nowcast_gdp
+
+# Ten years of six monthly indicators driven by one common factor, and the
+# quarterly GDP history; the last month of the current quarter is only
+# partly published (a ragged edge)
+rng = np.random.default_rng(1)
+months = pd.date_range("2016-01-31", periods=120, freq="ME")
+factor = np.cumsum(rng.standard_normal(120)) * 0.3
+monthly_indicators_df = pd.DataFrame(
+    np.outer(factor, rng.uniform(0.5, 1.5, 6)) + 0.5 * rng.standard_normal((120, 6)),
+    index=months, columns=["ip", "retail", "orders", "hours", "pmi", "exports"],
+)
+monthly_indicators_df.iloc[-1, 3:] = np.nan            # not yet released
+quarters = pd.period_range("2016Q1", periods=39, freq="Q")
+historical_gdp_series = pd.Series(
+    factor.reshape(-1, 3).mean(axis=1)[:39] + 0.2 * rng.standard_normal(39), index=quarters, name="gdp",
+)
 
 res_nowcast = nowcast_gdp(monthly_indicators_df, historical_gdp_series, n_factors=2)
 print(res_nowcast.summary())
-
-# View news contribution of the latest release
-print(res_nowcast.news_decomposition)
+print(res_nowcast.to_frame().tail())
 ```
 
 ---
@@ -125,7 +155,20 @@ print(res_nowcast.news_decomposition)
 Extract latent factors from high-dimensional informational panels and project policy responses back to all individual series (Bernanke, Boivin & Eliasz 2005):
 
 ```python
+import numpy as np
+import pandas as pd
 from puremacro.var import favar
+
+# A (T x N) informational panel and the policy rate, simulated for the example
+rng = np.random.default_rng(2)
+T = 240
+f = np.cumsum(rng.standard_normal(T)) * 0.1
+names = ["Industrial_Production", "CPI", "Employment"] + [f"x{i}" for i in range(9)]
+panel_macro_df = pd.DataFrame(
+    np.outer(f, rng.uniform(0.5, 1.5, len(names))) + 0.3 * rng.standard_normal((T, len(names))),
+    columns=names,
+)
+policy_rate_series = pd.Series(0.5 * f + 0.2 * rng.standard_normal(T), name="policy_rate")
 
 favar_res = favar(
     panel_macro_df,
@@ -134,6 +177,7 @@ favar_res = favar(
     p=2,
     horizon=20,
     ci=0.90,
+    n_boot=50,
 )
 print(favar_res.summary())
 
@@ -148,17 +192,44 @@ favar_res.plot(variables=["Industrial_Production", "CPI", "Employment"])
 Solve nonlinear DSGE models to 1st or 2nd order with Kim et al. (2008) pruning, cross-derivatives, and Dynare `oo_.dr` compatibility:
 
 ```python
-from puremacro.dsge import build_dynare, load_mod
+from puremacro.dsge import load_mod
 
-# 1. Load native Dynare .mod file with shocks and stoch_simul options
-model = load_mod("rbc.mod")
+# 1. A Dynare .mod file: a path, or (as here) the source text itself
+rbc_mod = """
+var c k a;
+varexo eps;
+parameters alpha beta delta gamma rho;
 
-# 2. Solve 2nd-order perturbation with pruning
+alpha = 0.30;
+beta  = 0.99;
+delta = 0.025;
+gamma = 1.0;
+rho   = 0.80;
+
+model;
+  c^(-gamma) = beta * c(+1)^(-gamma) * (alpha * exp(a(+1)) * k^(alpha - 1.0) + 1.0 - delta);
+  k = exp(a) * k(-1)^alpha - c + (1.0 - delta) * k(-1);
+  a = rho * a(-1) + eps;
+end;
+
+initval;
+  k = 38.0;
+  a = 0.0;
+  c = 2.0;
+end;
+
+shocks;
+  var eps; stderr 0.01;
+end;
+"""
+model = load_mod(rbc_mod)   # first-order LinearModel (load_mod(rbc_mod, order=2) goes straight to 2nd order)
+
+# 2. Solve the 2nd-order pruned perturbation
 sol = model.solve(order=2)
 
-# 3. Inspect policy rules matching Dynare oo_.dr structure
-print(sol.oo_dr["ghx"])   # first-order state derivatives
-print(sol.oo_dr["ghxx"])  # second-order state derivatives
+# 3. Access Dynare-style decision rules (oo_.dr)
+print(sol.oo_dr["ghx"])   # first-order state transition
+print(sol.oo_dr["ghxx"])  # second-order state curvature
 print(sol.oo_dr.summary())
 
 # 4. Analytical theoretical moments & variance decomposition
@@ -180,20 +251,21 @@ from puremacro.runtime.colab import (
     load_colab_result,
 )
 
-# 1. Generate notebook with auth and Drive mounting
+# 1. Package the heavy task as a self-contained notebook (auth and Drive-mount cells
+#    included). The task's `result` variable is exported as a .pmz cartridge.
 nb = generate_colab_notebook(
-    task_code="""
+    """
 import puremacro as pm
-res = pm.dsge.estimate_sw07(n_draws=10000, n_chains=4)
-pm.runtime.store.save_frame(res.summary(), "sw07_posterior.pmz")
+result = pm.dsge.estimate_sw07(n_draws=10000, n_chains=4)
 """,
     mount_drive=True,
-    export_result_file="sw07_posterior.pmz",
+    save_path="sw07_offload.ipynb",
+    output_filename="sw07_posterior.pmz",
 )
 
-# 2. Launch in Colab with 1 click
-show_colab_offload_dialog(nb, filename="sw07_offload.ipynb")
+# 2. Show the upload instructions (HTML card in Juno / Jupyter, plain text in a terminal)
+show_colab_offload_dialog("sw07_offload.ipynb")
 
-# 3. Retrieve output back in local session via pure .pmz cartridge
-res = load_colab_result("sw07_posterior.pmz")
+# 3. When the cartridge comes back from Google Drive, load it into the local session:
+#    posterior = load_colab_result("sw07_posterior.pmz")
 ```

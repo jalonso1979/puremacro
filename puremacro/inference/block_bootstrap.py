@@ -33,13 +33,16 @@ def block_bootstrap(
     Parameters
     ----------
     residuals:
-        1-D array of length T (zero-mean recommended; re-centered inside).
+        1-D array of length T. Blocks are drawn from the array **as given**
+        (no re-centering happens here): pass mean-zero residuals if the
+        bootstrap DGP should have mean-zero innovations.
     refit_fn:
         Callable(e_boot: ndarray[T]) -> ndarray[n_stats]. Called B times.
     B:
         Number of bootstrap replications.
     block_length:
-        Block length ℓ. Defaults to round(T^{1/3}).
+        Block length ℓ, ``1 <= ℓ <= T``. Defaults to round(T^{1/3}).
+        A value outside that range raises ``ValueError``.
     rng:
         NumPy Generator for reproducibility.
     n_jobs:
@@ -51,9 +54,21 @@ def block_bootstrap(
         Each row is one bootstrap draw of ``refit_fn``.
     """
     residuals = np.asarray(residuals, dtype=float)
+    if residuals.ndim != 1:
+        raise ValueError(
+            f"block_bootstrap: residuals must be 1-D, got shape {residuals.shape}"
+        )
     T = len(residuals)
+    if T == 0:
+        raise ValueError("block_bootstrap: residuals is empty")
     if block_length is None:
         block_length = default_block_length(T)
+    block_length = int(block_length)
+    if block_length < 1 or block_length > T:
+        raise ValueError(
+            f"block_bootstrap: block_length={block_length} must satisfy "
+            f"1 <= block_length <= T={T}"
+        )
     if rng is None:
         rng = np.random.default_rng()
 

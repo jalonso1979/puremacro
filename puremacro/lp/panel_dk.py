@@ -12,7 +12,8 @@ from typing import Iterable, Sequence
 
 import pandas as pd
 
-from ._panel_helpers import _focal_dk_se, panel_lp_horizon_loop
+from ._panel_helpers import _focal_dk_se, as_panel_index, panel_lp_horizon_loop
+from ._common import resolve_lp_kwargs
 
 
 def panel_lp_dk(
@@ -29,17 +30,24 @@ def panel_lp_dk(
     lags: int | None = None,
     horizon: int | None = None,
     ci: float | None = None,
+    unit_col: str | None = None,
+    time_col: str | None = None,
 ) -> pd.DataFrame:
     """Two-way FE panel LP with Driscoll-Kraay HAC SE.
 
+    ``df_wide`` is either indexed by a ``(entity, time)`` MultiIndex (level
+    names ``entity_level`` / ``time_level``) or a long-form frame whose
+    entity and time identifiers are the columns ``unit_col`` / ``time_col``
+    (which then override ``entity_level`` / ``time_level``). Same
+    ``horizon`` / ``lags`` / ``ci`` aliases as :func:`panel_lp`.
+
     Returns LPResult (subclass of DataFrame) with columns ``[h, beta, se, t, lo, hi]``.
     """
-    if lags is not None:
-        n_lags = lags
-    if horizon is not None:
-        horizons = range(0, horizon + 1)
-    if ci is not None:
-        alpha = 1.0 - ci
+    horizons, n_lags, alpha = resolve_lp_kwargs(
+        horizons, n_lags, alpha, lags=lags, horizon=horizon, ci=ci, name="panel_lp_dk")
+    df_wide, entity_level, time_level = as_panel_index(
+        df_wide, entity_level=entity_level, time_level=time_level,
+        unit_col=unit_col, time_col=time_col, func="panel_lp_dk")
 
     return panel_lp_horizon_loop(
         df_wide,

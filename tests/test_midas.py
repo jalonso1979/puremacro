@@ -4,6 +4,7 @@ from __future__ import annotations
 import dataclasses
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from puremacro.midas import (
@@ -107,3 +108,62 @@ def test_beta_midas_converges_and_recovers_decreasing_weights():
     # Most-recent weight should exceed each later one.
     assert res.weights[0] > res.weights[1]
     assert res.weights[1] > res.weights[2]
+
+
+# --------------------------------------------------------------------------
+# Regression tests (v2.3.x audit fixes)
+# --------------------------------------------------------------------------
+def test_u_midas_rejects_n_low_lags_that_leave_no_observations():
+    """Regression: ``u_midas(y[:4], x[:12], K=3, n_low_lags=4)`` returned a
+    result with ``n_obs=0``, ``beta=[0.]`` and RuntimeWarnings instead of
+    the documented ValueError."""
+    y, x, K, _ = _simulate_midas(n_low=4)
+    with pytest.raises(ValueError, match="n_low_lags"):
+        u_midas(y, x, K=K, n_low_lags=4)
+    with pytest.raises(ValueError, match="n_low_lags"):
+        u_midas(y, x, K=K, n_low_lags=7)
+    with pytest.raises(ValueError, match="n_low_lags"):
+        u_midas(y, x, K=K, n_low_lags=-1)
+    res = u_midas(y, x, K=K, n_low_lags=3)          # one observation is still allowed
+    assert res.n_obs == 1
+
+
+def test_beta_kernel_docstring_formula_matches_implementation():
+    """The module docstring now states the midpoint grid
+    ``u_k = (k - 0.5) / K``; the old text claimed ``(k - 1) / (K - 1)``,
+    which puts exact zeros on both end lags."""
+    from puremacro.midas import _beta_weights
+    import puremacro.midas as midas_mod
+    K, t1, t2 = 5, 2.0, 3.0
+    u = (np.arange(1, K + 1) - 0.5) / K
+    w_doc = u ** (t1 - 1) * (1 - u) ** (t2 - 1)
+    np.testing.assert_allclose(_beta_weights(K, t1, t2), w_doc / w_doc.sum())
+    assert "(k - 0.5) / K" in midas_mod.__doc__
+    assert "(k-1)/(K-1)" not in midas_mod.__doc__
+    assert (_beta_weights(K, t1, t2) > 0).all()
+
+
+def test_midas_results_presentation_contract():
+    import matplotlib
+    matplotlib.use("Agg")
+    from matplotlib.figure import Figure
+    import matplotlib.pyplot as plt
+    from puremacro.midas import garch_midas, GarchMidasResult
+
+    y, x, K, _ = _simulate_midas(n_low=120)
+    um = u_midas(y, x, K=K)
+    bm = beta_midas(y, x, K=K)
+    rng = np.random.default_rng(1)
+    r = rng.normal(scale=0.01, size=5 * 30)
+    gm = garch_midas(pd.Series(r, index=pd.bdate_range("2020-01-01", periods=len(r))), K=5, L=3)
+    assert isinstance(gm, GarchMidasResult)
+    for res, n_rows in ((um, K), (bm, K), (gm, 8)):
+        md = res.to_markdown()
+        lines = [l for l in md.splitlines() if "|" in l]
+        assert len(lines) == 2 + n_rows and "---" in lines[1]
+        assert "tabular" in res.to_latex() and "#table(" in res.to_typst()
+        assert len(res.to_frame()) == n_rows
+        assert isinstance(res.plot(), Figure)
+        plt.close("all")
+    np.testing.assert_allclose(bm.to_frame()["weight"].sum(), 1.0, atol=1e-3)
+    assert list(um.to_frame().index) == [1, 2, 3]

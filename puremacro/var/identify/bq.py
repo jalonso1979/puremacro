@@ -72,6 +72,13 @@ def bq_svar(
     lo_q = (1 - ci) / 2
     hi_q = 1 - lo_q
 
+    if n_boot <= 0:
+        nan_bands = np.full_like(point, np.nan)
+        return BQSVARResult(
+            irf_point=point, irf_lower=nan_bands, irf_upper=nan_bands,
+            n_boot=0, n_fail=0, ci=ci,
+        )
+
     for b in range(n_boot):
         idx = rng.integers(0, len(resid), size=len(resid))
         eps_b = resid[idx]

@@ -49,6 +49,9 @@
 7. **Running Anywhere**:
    - Full Pyodide/WebAssembly compatibility for tablets and browser notebooks, with automatic Google Colab offloading (`runtime.colab`), chunked long-run execution (`longrun`), and portable `.pmz` data cartridges (`pocket`).
 
+8. **Frontier methods (2.3)**:
+   - **Narrative sign restrictions** ([guide](narrative_sign_svar.md)), **Honest DiD** ([guide](honest_did.md)), **Smooth local projections** ([guide](smooth_lp.md)), **Non-linear sequence-space HANK** ([guide](hank_nonlinear.md)), **Gertler-Karadi (2011) DSGE** ([guide](gertler_karadi.md)) and **BVAR with stochastic volatility** ([guide](bvar_sv.md)).
+
 ---
 
 ## Installation

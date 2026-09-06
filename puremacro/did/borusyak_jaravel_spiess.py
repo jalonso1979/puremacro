@@ -4,9 +4,10 @@ The BJS estimator works in two steps:
 
   1. **Impute** the untreated potential outcome ``Y_{i,t}(0)`` for
      every (i, t) by fitting a unit + time fixed-effects model on the
-     **never-treated** observations only. The fitted model gives the
-     counterfactual ``Ŷ(0)`` everywhere — including the treated cells
-     we want to evaluate.
+     **untreated** observations only — never-treated units and the
+     pre-treatment observations of ever-treated units. The fitted
+     model gives the counterfactual ``Ŷ(0)`` everywhere — including
+     the treated cells we want to evaluate.
 
   2. **Aggregate**: for each treated cell, the individual treatment
      effect is ``τ̂_{i,t} = Y_{i,t} − Ŷ_{i,t}(0)``. Average these to
@@ -15,21 +16,32 @@ The BJS estimator works in two steps:
 This is the cleanest staggered-DiD estimator conceptually: it imposes
 the "no anticipation" + parallel-trends assumption explicitly via the
 imputation step, and the resulting estimator is efficient under
-homoskedastic errors. The trade-off is that it requires never-treated
-observations (or pre-treatment observations from late-treated cohorts)
-covering enough of the time span.
+homoskedastic errors. The trade-off is that it requires untreated
+observations covering every unit and every period that carries a
+treated cell: a treated cell ``(i, t)`` is **identified only if** unit
+``i`` has at least one untreated observation (so ``α_i`` is estimable)
+and period ``t`` has at least one untreated observation (so ``λ_t`` is
+estimable). In a panel with no never-treated units, every period from
+the last cohort's switch onwards violates the second condition. By
+default such cells raise a ``ValueError``; ``unidentified="drop"``
+warns and excludes them from every aggregate instead.
 
 References
 ----------
-Borusyak, K., Jaravel, X. and Spiess, J. (2022). Revisiting event-
-    study designs: robust and efficient estimation. Working paper.
+Borusyak, K., Jaravel, X. and Spiess, J. (2024). Revisiting event-
+    study designs: robust and efficient estimation. Review of Economic
+    Studies 91(6), 3253-3285.
 """
 from __future__ import annotations
+
+import warnings
 
 import numpy as np
 import pandas as pd
 
 from ._results import BorusyakJaravelSpiessResult
+
+_UNIDENTIFIED_CHOICES = ("raise", "drop")
 
 
 def _impute_two_way_fe(
@@ -37,7 +49,12 @@ def _impute_two_way_fe(
     untreated_mask: pd.Series,
 ) -> pd.Series:
     """Fit Y_{i,t} = α_i + λ_t + ε on the untreated cells, then return
-    fitted values everywhere (treated + untreated)."""
+    fitted values everywhere (treated + untreated).
+
+    Cells whose unit has no untreated observation (``α_i`` not
+    estimable) or whose period has none (``λ_t`` not estimable) get
+    ``NaN`` — never a silent zero.
+    """
     sub = df.loc[untreated_mask, [unit, time, outcome]].copy()
     units = sub[unit].unique()
     times = sub[time].unique()
@@ -70,14 +87,32 @@ def _impute_two_way_fe(
         alpha, lam = new_alpha, new_lam
 
     # Predict for *every* (unit, time) row of the original df. Units or
-    # times absent from the untreated set get α = 0 / λ = 0 (a bias —
-    # the BJS paper recommends only running the estimator when the
-    # untreated panel covers all units and times).
+    # times absent from the untreated set have no estimable fixed effect:
+    # their imputation is NaN and the caller decides whether to raise or
+    # drop those cells.
     full_unit_idx = df[unit].map(lambda u: u_to_i.get(u, -1)).values
     full_time_idx = df[time].map(lambda t: t_to_j.get(t, -1)).values
-    a = np.where(full_unit_idx >= 0, alpha[full_unit_idx], 0.0)
-    l = np.where(full_time_idx >= 0, lam[full_time_idx], 0.0)
+    a = np.where(full_unit_idx >= 0, alpha[np.maximum(full_unit_idx, 0)], np.nan)
+    l = np.where(full_time_idx >= 0, lam[np.maximum(full_time_idx, 0)], np.nan)
     return pd.Series(grand + a + l, index=df.index)
+
+
+def _unidentified_cells(
+    df: pd.DataFrame, *, unit: str, time: str, untreated_mask: np.ndarray,
+    treated_mask: np.ndarray,
+) -> tuple[np.ndarray, list, list]:
+    """Treated cells whose unit or period has no untreated observation.
+
+    Returns ``(mask_over_df, bad_units, bad_times)``.
+    """
+    units_ok = set(df.loc[untreated_mask, unit].unique().tolist())
+    times_ok = set(df.loc[untreated_mask, time].unique().tolist())
+    unit_bad = ~df[unit].isin(units_ok).to_numpy()
+    time_bad = ~df[time].isin(times_ok).to_numpy()
+    bad = treated_mask & (unit_bad | time_bad)
+    bad_units = sorted(df.loc[treated_mask & unit_bad, unit].unique().tolist())
+    bad_times = sorted(df.loc[treated_mask & time_bad, time].unique().tolist())
+    return bad, bad_units, bad_times
 
 
 def borusyak_jaravel_spiess(
@@ -90,6 +125,8 @@ def borusyak_jaravel_spiess(
     n_boot: int = 200,
     alpha: float = 0.10,
     seed: int = 0,
+    unidentified: str = "raise",
+    ci: float | None = None,
 ) -> BorusyakJaravelSpiessResult:
     """BJS imputation event-study.
 
@@ -112,30 +149,84 @@ def borusyak_jaravel_spiess(
         Two-sided coverage = ``1 − α`` (so 0.10 ⇒ 90 % CIs).
     seed : int, default 0
         RNG seed for the bootstrap.
+    unidentified : {"raise", "drop"}, default "raise"
+        What to do with treated cells whose time fixed effect (period
+        with no untreated observation — e.g. every period after the
+        last cohort switches in a panel without never-treated units) or
+        unit fixed effect (unit with no pre-treatment observation) is
+        not estimable from the untreated cells. ``"raise"`` stops with
+        a ``ValueError`` naming the periods / units; ``"drop"`` emits a
+        ``UserWarning`` and excludes those cells from ``tau_it``,
+        ``att_event_study`` and ``att_overall``.
+    ci : float, optional
+        Confidence-interval coverage; when given, ``alpha = 1 − ci``
+        (same convention as :func:`callaway_santanna`).
 
     Returns
     -------
     BorusyakJaravelSpiessResult
         Frozen dataclass with ``tau_it`` (per-treated-cell estimates),
-        ``att_event_study`` (event-time aggregation), and ``att_overall``.
+        ``att_event_study`` (event-time aggregation, ``e >= 0`` only —
+        BJS evaluates τ̂ on treated cells, so there are no pre-trend
+        rows), and ``att_overall`` (cell-weighted mean over ``e >= 0``).
 
     References
     ----------
     Borusyak, K., Jaravel, X. and Spiess, J. (2024). Revisiting event-
-        study designs: robust and efficient estimation. RES (forthcoming).
+        study designs: robust and efficient estimation. Review of
+        Economic Studies 91(6), 3253-3285.
     """
+    if unidentified not in _UNIDENTIFIED_CHOICES:
+        raise ValueError(
+            f"unidentified must be one of {_UNIDENTIFIED_CHOICES}; "
+            f"got {unidentified!r}"
+        )
+    if ci is not None:
+        alpha = 1.0 - ci
     df = df.copy()
     rng = np.random.default_rng(seed)
     treat = df[treat_time].values.astype(float)
     is_treated_cell = (~np.isnan(treat)) & (df[time].values >= treat)
     untreated_mask = pd.Series(~is_treated_cell, index=df.index)
 
+    bad_cells, bad_units, bad_times = _unidentified_cells(
+        df, unit=unit, time=time, untreated_mask=~is_treated_cell,
+        treated_mask=is_treated_cell,
+    )
+    if bad_cells.any():
+        parts = []
+        if bad_times:
+            parts.append(
+                f"period(s) {bad_times} have no untreated observation "
+                "(time fixed effect not estimable)"
+            )
+        if bad_units:
+            parts.append(
+                f"unit(s) {bad_units} have no untreated observation "
+                "(unit fixed effect not estimable)"
+            )
+        msg = (
+            f"{int(bad_cells.sum())} treated cell(s) are not identified by "
+            "the untreated cells: " + "; ".join(parts) + ". "
+        )
+        if unidentified == "raise":
+            raise ValueError(
+                msg + "Add never-treated units, drop those periods / units, "
+                "or pass unidentified='drop' to exclude these cells from "
+                "every aggregate (with a warning)."
+            )
+        warnings.warn(
+            msg + "These cells are dropped from tau_it, att_event_study "
+            "and att_overall.",
+            UserWarning, stacklevel=2,
+        )
+
     yhat0 = _impute_two_way_fe(df, unit=unit, time=time, outcome=outcome,
                                 untreated_mask=untreated_mask)
     df["__yhat0__"] = yhat0
     df["__tau__"] = df[outcome] - df["__yhat0__"]
     df["__event_time__"] = df[time] - df[treat_time]
-    df["__treated_cell__"] = is_treated_cell
+    df["__treated_cell__"] = is_treated_cell & ~bad_cells
 
     treated = df[df["__treated_cell__"]].copy()
 
@@ -160,16 +251,19 @@ def borusyak_jaravel_spiess(
         b_yhat0 = _impute_two_way_fe(boot_df, unit=unit, time=time,
                                        outcome=outcome,
                                        untreated_mask=b_untreated)
+        # A resampled panel can lose every untreated observation of some
+        # period; those cells are NaN and simply drop out of the draw.
         boot_df["__tau__"] = boot_df[outcome] - b_yhat0
         boot_df["__event_time__"] = boot_df[time] - boot_df[treat_time]
-        for e, sub in boot_df[b_treated_cell].groupby("__event_time__"):
+        b_keep = b_treated_cell & np.isfinite(boot_df["__tau__"].to_numpy(dtype=float))
+        for e, sub in boot_df[b_keep].groupby("__event_time__"):
             boot_es.setdefault(int(e), np.full(n_boot, np.nan))[b] = float(sub["__tau__"].mean())
 
     rows = []
     for e, sub in treated.groupby("__event_time__"):
         att = float(sub["__tau__"].mean())
         draws = boot_es.get(int(e), np.array([]))
-        if draws.size:
+        if draws.size and np.isfinite(draws).any():
             se = float(np.nanstd(draws, ddof=0))
             lo = float(np.nanpercentile(draws, 100 * alpha / 2))
             hi = float(np.nanpercentile(draws, 100 * (1 - alpha / 2)))
@@ -178,7 +272,10 @@ def borusyak_jaravel_spiess(
         rows.append({"event_time": int(e), "att": att,
                      "se": se, "lo": lo, "hi": hi,
                      "n_obs": int(len(sub))})
-    es_df = pd.DataFrame(rows).sort_values("event_time").reset_index(drop=True)
+    if rows:
+        es_df = pd.DataFrame(rows).sort_values("event_time").reset_index(drop=True)
+    else:
+        es_df = pd.DataFrame(columns=["event_time", "att", "se", "lo", "hi", "n_obs"])
 
     post = es_df[es_df["event_time"] >= 0]
     att_overall = float((post["att"] * post["n_obs"]).sum() / post["n_obs"].sum()) \

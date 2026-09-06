@@ -77,12 +77,42 @@ def test_solve_dynare_2nd_order_rbc(rbc_setup):
     # Technology 'a' has no volatility drift
     assert abs(sol.H_sigmasigma[1]) < 1e-10
 
-    # Precautionary behavior: risk expands capital and contracts consumption
-    assert sol.H_sigmasigma[0] > 0.0  # precautionary capital accumulation
-    assert sol.G_sigmasigma[0] < 0.0  # precautionary savings / consumption cut
+    # The resource constraint k_t + c_t = f(k_{t-1}, a_t) has no sigma
+    # dependence, so the risk corrections of k and c cancel exactly.
     np.testing.assert_allclose(
         sol.H_sigmasigma[0] + sol.G_sigmasigma[0], 0.0, atol=1e-8
     )
+    assert abs(sol.H_sigmasigma[0]) > 1e-3  # a genuine, nonzero risk correction
+
+    # Before 2.3.1 the sigma-sigma equation used g_xx (h_u ⊗ h_u) in place of
+    # next period's own shock curvature g_uu and reported ghs2[k] > 0 for this
+    # calibration; the corrected solver (pinned to closed forms in
+    # tests/test_dsge_engine_closed_form.py) gives ghs2[k] < 0 here and the
+    # same value whether the model is written in levels or in logs.
+    def rbc_logs(lead, curr, lag, shocks, p):
+        return [
+            np.exp(-p.gamma * curr.c)
+            - p.beta * np.exp(-p.gamma * lead.c)
+            * (p.alpha * np.exp(lead.a) * np.exp((p.alpha - 1.0) * curr.k) + 1.0 - p.delta),
+            np.exp(curr.k)
+            - (np.exp(curr.a) * np.exp(p.alpha * lag.k) - np.exp(curr.c) + (1.0 - p.delta) * np.exp(lag.k)),
+            curr.a - (p.rho * lag.a + shocks.eps),
+        ]
+
+    ss = rbc_setup["steady_state"]
+    sol_logs = build_dynare(
+        rbc_logs,
+        variables=rbc_setup["variables"],
+        shocks=rbc_setup["shocks"],
+        params=rbc_setup["params"],
+        steady_state={"k": np.log(ss["k"]), "a": 0.0, "c": np.log(ss["c"])},
+        order=2,
+    )
+    # d k / d sigma^2 in levels equals k_ss * (d log k / d sigma^2) to second order
+    np.testing.assert_allclose(
+        sol_logs.H_sigmasigma[0] * ss["k"], sol.H_sigmasigma[0], rtol=1e-6
+    )
+    assert sol.H_sigmasigma[0] < 0.0
 
 
 def test_linear_model_solve_second_order(rbc_setup):

@@ -39,12 +39,39 @@ print(res.to_typst())
 ### 2. DSGE Higher-Order Approximation & Dynare Parity
 Solve nonlinear DSGE models up to second order with Kim, Kim, Schaumburg & Sims (2008) pruning, cross-derivatives ($g_{xu}, g_{uu}$), risk corrections ($g_{\sigma\sigma}$), and Dynare `oo_.dr` parity:
 ```python
-from puremacro.dsge import build_dynare, load_mod
+from puremacro.dsge import load_mod
 
-# 1. Define or load a model from .mod file with shocks and stoch_simul options
-model = load_mod("rbc.mod")  # or build_dynare(eqs, states, controls, shocks, order=2)
+# 1. A Dynare .mod file: a path, or (as here) the source text itself
+rbc_mod = """
+var c k a;
+varexo eps;
+parameters alpha beta delta gamma rho;
 
-# 2. Solve 2nd-order pruned perturbation
+alpha = 0.30;
+beta  = 0.99;
+delta = 0.025;
+gamma = 1.0;
+rho   = 0.80;
+
+model;
+  c^(-gamma) = beta * c(+1)^(-gamma) * (alpha * exp(a(+1)) * k^(alpha - 1.0) + 1.0 - delta);
+  k = exp(a) * k(-1)^alpha - c + (1.0 - delta) * k(-1);
+  a = rho * a(-1) + eps;
+end;
+
+initval;
+  k = 38.0;
+  a = 0.0;
+  c = 2.0;
+end;
+
+shocks;
+  var eps; stderr 0.01;
+end;
+"""
+model = load_mod(rbc_mod)   # first-order LinearModel (load_mod(rbc_mod, order=2) goes straight to 2nd order)
+
+# 2. Solve the 2nd-order pruned perturbation
 sol = model.solve(order=2)
 
 # 3. Access Dynare-style decision rules (oo_.dr)
@@ -67,22 +94,23 @@ from puremacro.runtime.colab import (
     load_colab_result,
 )
 
-# Generate a self-contained Google Colab notebook with auth and Drive mounting
+# 1. Package the heavy task as a self-contained notebook (auth and Drive-mount cells
+#    included). The task's `result` variable is exported as a .pmz cartridge.
 nb = generate_colab_notebook(
-    task_code="""
+    """
 import puremacro as pm
-res = pm.dsge.estimate_sw07(n_draws=10000, n_chains=4)
-pm.runtime.store.save_frame(res.summary(), "sw07_posterior.pmz")
+result = pm.dsge.estimate_sw07(n_draws=10000, n_chains=4)
 """,
     mount_drive=True,
-    export_result_file="sw07_posterior.pmz",
+    save_path="sw07_offload.ipynb",
+    output_filename="sw07_posterior.pmz",
 )
 
-# Open Colab with 1 click in Juno or browser
-show_colab_offload_dialog(nb, filename="sw07_offload.ipynb")
+# 2. Show the upload instructions (HTML card in Juno / Jupyter, plain text in a terminal)
+show_colab_offload_dialog("sw07_offload.ipynb")
 
-# Once Colab finishes, load the .pmz result back into your local session
-posterior = load_colab_result("sw07_posterior.pmz")
+# 3. When the cartridge comes back from Google Drive, load it into the local session:
+#    posterior = load_colab_result("sw07_posterior.pmz")
 ```
 
 ---
@@ -117,6 +145,15 @@ posterior = load_colab_result("sw07_posterior.pmz")
   and 2nd-order perturbation with Kim et al. (2008) pruning, cross-terms,
   and Dynare `oo_.dr` parity (`dsge.dynare`).
 
+**Frontier methods (2.3)**
+
+- **Narrative sign restrictions** (`var.identify.identify_narrative_sign`) — Antolín-Díaz & Rubio-Ramírez (2018) shock-sign and historical-contribution restrictions with importance weights; see `docs/narrative_sign_svar.md`.
+- **Honest DiD** (`did.honest_did`) — Rambachan & Roth (2023) smoothness and relative-magnitude sensitivity sets with fixed-length confidence intervals and breakdown values; see `docs/honest_did.md`.
+- **Smooth local projections** (`lp.smooth_lp`) — Barnichon & Brownlees (2019) penalised B-spline LPs with GCV/AIC/BIC/CV smoothing selection; see `docs/smooth_lp.md`.
+- **Non-linear sequence-space HANK** (`models.hank_sequence_space.solve_nonlinear_transition`) — Broyden transitions for large MIT shocks on genuine household Jacobians; see `docs/hank_nonlinear.md`.
+- **Gertler-Karadi (2011)** (`dsge.gertler_karadi`) — banking frictions DSGE under Klein and OccBin; see `docs/gertler_karadi.md`.
+- **BVAR with stochastic volatility** (`var.bvar_sv`) — KSC mixture + FFBS Gibbs sampler, split-R̂, volatility-conditioned IRFs, hold-out log scores and fan charts; see `docs/bvar_sv.md`.
+
 **Modern macro extensions**
 
 - **Staggered DiD** (`did.*`) — Callaway-Sant'Anna, Sun-Abraham,
@@ -142,6 +179,7 @@ posterior = load_colab_result("sw07_posterior.pmz")
   spectrum / coherence (numpy.fft only); MODWT-Haar wavelet variance
   decomposition.
 - **Realized volatility** (`realized_vol`) — realized variance, bipower
+  variation, Corsi HAR-RV.
 - **Heterogeneous-agent / VFI / Sequence-Space HANK** (`vfi.*`, `models.hank_sequence_space`) — value-function iteration with
   EGM, finite-horizon life-cycle, OLG, Krusell-Smith aggregate shocks,
   Hopenhayn firm entry/exit, Epstein-Zin, permanent types, transition
@@ -315,6 +353,7 @@ Upload the `puremacro/` directory to your juno.sh workspace, then in a
 notebook cell:
 
 ```python
+# requires: a Jupyter kernel (IPython magic)
 %pip install ./puremacro
 ```
 
@@ -324,6 +363,7 @@ Pyodide kernel it fails. Install the estimator core without dependency
 resolution instead, and add by hand only what you need:
 
 ```python
+# requires: Pyodide (JupyterLite / juno.sh); `await` is only valid there
 import micropip
 await micropip.install("puremacro", deps=False)
 await micropip.install(["numpy", "scipy", "pandas", "matplotlib", "requests"])
@@ -378,7 +418,15 @@ where they are not. A cartridge is one self-verifying file carrying its
 own provenance:
 
 ```python
+import numpy as np
+import pandas as pd
 from puremacro import pocket
+
+# A frame to ship (in practice: the panel you just fetched on the workstation)
+panel = pd.DataFrame(
+    {"USA": [1.0, 1.2, 1.1], "DEU": [0.8, 0.9, 1.0]},
+    index=pd.period_range("2025Q1", periods=3, freq="Q"),
+)
 
 # workstation
 pocket.pack(panel, "g7.pmz", source="OECD QNA", vintage="2026-08-19")
@@ -387,6 +435,7 @@ pocket.pack(panel, "g7.pmz", source="OECD QNA", vintage="2026-08-19")
 cart = pocket.load("g7.pmz")
 panel = cart.frame()          # sha256-checked on read
 cart.provenance.vintage       # '2026-08-19'
+print(cart.summary())
 ```
 
 Getting a *file* onto an iPad is often more friction than the analysis,
@@ -401,6 +450,14 @@ in a later session:
 ```python
 import numpy as np
 from puremacro import longrun
+
+rng = np.random.default_rng(0)
+Y = rng.standard_normal((120, 2))          # your VAR data
+
+def one_draw(i):
+    """One bootstrap replication: returns whatever you want the bands of."""
+    idx = np.random.default_rng(i).integers(0, len(Y), len(Y))
+    return Y[idx].mean(axis=0)
 
 job = longrun.bootstrap(one_draw, 2000, checkpoint="irf.ckpt")
 job.run(seconds=30)     # 240/2000 · 12% · ~220s of compute left
@@ -430,22 +487,23 @@ from puremacro.runtime.colab import (
     load_colab_result,
 )
 
-# 1. Package computation into a self-contained notebook with Drive sync
+# 1. Package the heavy task as a self-contained notebook (auth and Drive-mount cells
+#    included). The task's `result` variable is exported as a .pmz cartridge.
 nb = generate_colab_notebook(
-    task_code="""
+    """
 import puremacro as pm
-res = pm.dsge.estimate_sw07(n_draws=5000, n_chains=2)
-pm.runtime.store.save_frame(res.summary(), "sw07_result.pmz")
+result = pm.dsge.estimate_sw07(n_draws=5000, n_chains=2)
 """,
     mount_drive=True,
-    export_result_file="sw07_result.pmz",
+    save_path="offload.ipynb",
+    output_filename="sw07_result.pmz",
 )
 
-# 2. Open directly in Colab from Juno / Jupyter
-show_colab_offload_dialog(nb, filename="offload.ipynb")
+# 2. Show the upload instructions (HTML card in Juno / Jupyter, plain text in a terminal)
+show_colab_offload_dialog("offload.ipynb")
 
-# 3. Retrieve output back in iPad/Pyodide session via pure-numpy .pmz format
-res_summary = load_colab_result("sw07_result.pmz")
+# 3. When the cartridge comes back from Google Drive, load it into the local session:
+#    posterior = load_colab_result("sw07_result.pmz")
 ```
 
 ### Run the LLM features for free (local models)
@@ -464,6 +522,7 @@ pip install "puremacro[local-llm]"     # MLX (Apple Silicon) + llama.cpp (any OS
 Then swap in a local backend (same signatures as the paid backends):
 
 ```python
+# requires: a local LLM engine (llama-cpp-python or mlx-lm) and a scored `records` corpus
 from puremacro.narrative.scoring import score_llm, LocalBackend
 events = score_llm(records, backend=LocalBackend("qwen2.5-3b-instruct", engine="auto"))
 
@@ -571,14 +630,14 @@ If you are transitioning from Stata, MATLAB/Dynare, or statsmodels:
 |---|---|---|---|---|
 | **Cholesky SVAR** | `var y1 y2, lags(1/4)` + `irf create` | `varm` / VAR Toolbox | `VAR(Y).fit(4).irf(20)` | `var.identify.cholesky_svar(Y, p=4, horizon=20)` |
 | **Blanchard–Quah SVAR** | `svar y1 y2, lreq(...)` | VAR Toolbox `bq_svar` | `SVAR(..., svar_type='B')` | `var.identify.bq_svar(Y, p=4, horizon=20)` |
-| **Sign Restrictions** | User plugin | Rubio-Ramírez / VAR Toolbox | — | `var.identify.sign_restrictions(Y, signs, p=4)` |
+| **Sign Restrictions** | User plugin | Rubio-Ramírez / VAR Toolbox | — | `var.identify.sign_restrictions(Y, restrictions={0: [+1, -1]}, p=4)` |
 | **Proxy / External IV SVAR** | `svariv` | Mertens & Ravn SVAR-IV | — | `var.identify.proxy_svar(Y, p=4, instrument_series=z)` |
 | **Local Projections (HAC)** | `jorda` / manual OLS | Jordà (2005) code | `OLS(y_h, X).fit(cov_type='HAC')` | `lp.lp_hac(df, y="y", x="shock", horizon=20, lags=4)` |
 | **State-Dep LP-IV (Ramey-Zubairy)** | manual 2SLS interaction | — | — | `lp.lp_state_dep_iv(df, y="y", x="g", z="news", state="u")` |
 | **Panel LP (Driscoll–Kraay)** | `xtscc` | Panel LP toolbox | `PanelOLS(..., cov_type='driscoll-kraay')` | `lp.panel_lp_dk(df, y="y", x="z", unit_col="id", time_col="t")` |
 | **Dynamic Panel GMM** | `xtabond2 y L.y, gmm(y) two robust` | Arellano–Bond MATLAB | — | `dynpanel.ab_gmm(y, panel_id, time_id, two_step=True, windmeijer=True)` |
 | **Staggered DiD** | `csdid y, ivar(id) time(t) gvar(g)` | — | — | `did.callaway_santanna(df, unit="id", time="t", outcome="y", treat_time="g")` |
-| **Synthetic DiD** | `sdid y id t d` | synthdid R package | — | `did.synthetic_did(df, unit="id", time="t", outcome="y", treatment="d")` |
+| **Synthetic DiD** | `sdid y id t d` | synthdid R package | — | `did.synthetic_did(df, unit="id", time="t", outcome="y", treat_time="g")` |
 | **Factor-Augmented VAR (FAVAR)**| — | BBE (2005) MATLAB | — | `var.favar(panel_df, policy_series, n_factors=3, horizon=20)` |
 | **Value Function Iteration** | — | VFIToolkit `ValueFnIter_Case1` | — | `vfi.VFIProblem(a_grid, z_grid, P_z, return_fn, beta).solve()` |
 | **Linear DSGE (QZ / BK)** | — | Dynare `stoch_simul` / Klein `solab` | — | `dsge.klein.klein_solve(A, B, C, n_pre=...)` |
@@ -604,6 +663,7 @@ fully synthetic and need no data or keys; a few read bundled or fetched data.
 - **`docs/quickstart.md`** — 2-minute quickstart covering core estimators and publication workflows.
 - **`docs/dsge_build.md`** — DSGE models from equations, native Dynare `.mod` loader, 2nd-order pruning, `puremacro-dynare` CLI, OccBin ZLB, non-linear relaxation, and Bayesian MCMC.
 - **`docs/models.md`** — Structural models: Sequence-Space HANK, Fake News algorithm, targeted transfers, and DMP search-and-matching.
+- **`docs/narrative_sign_svar.md`**, **`docs/honest_did.md`**, **`docs/smooth_lp.md`**, **`docs/hank_nonlinear.md`**, **`docs/gertler_karadi.md`**, **`docs/bvar_sv.md`** — the six 2.3 feature guides (each with a Spanish twin under `docs/es/`).
 - **`docs/var.md`** — Reduced-form VAR, SVAR identification (Cholesky, signs, narrative, proxy/IV), FAVAR, and bootstrap bands.
 - **`docs/lp.md`** — Local Projections guide (LP-HAC, LP-IV, State-Dependent LP-IV, Panel LP, `LPResult`).
 - **`docs/did.md`** — Modern Difference-in-Differences (Callaway-Sant'Anna, Sun-Abraham, Borusyak-Jaravel-Spiess, Synthetic DiD).
@@ -635,9 +695,9 @@ fully synthetic and need no data or keys; a few read bundled or fetched data.
 
 ## Status
 
-Production release, shipping **2.3.0**. Covered by release gate 3 in
-`docs/1.0_path.md` § 5 lists which subpackages are inside that promise
-and which are research-experimental.
+Production release, shipping **2.3.1**. `docs/1.0_path.md` § 5 lists which
+subpackages are inside the release-gate promise and which are
+research-experimental.
 
 CI is live and runs on every push: the suite across three operating
 systems and three Python versions, the Pyodide contract, mypy, the

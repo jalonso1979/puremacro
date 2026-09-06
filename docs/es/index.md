@@ -49,6 +49,9 @@
 7. **Ejecución en cualquier entorno**:
    - Compatibilidad completa con Pyodide/WebAssembly para tabletas e iPad, con descarga automática a Google Colab (`runtime.colab`), ejecución fragmentada resistente a suspensiones (`longrun`) y cartuchos portátiles `.pmz` (`pocket`).
 
+8. **Métodos de frontera (2.3)**:
+   - **Restricciones narrativas de signo** ([guía](narrative_sign_svar.md)), **DiD honesto** ([guía](honest_did.md)), **Proyecciones locales suavizadas** ([guía](smooth_lp.md)), **HANK no lineal en el espacio de secuencias** ([guía](hank_nonlinear.md)), **DSGE de Gertler-Karadi (2011)** ([guía](gertler_karadi.md)) y **BVAR con volatilidad estocástica** ([guía](bvar_sv.md)).
+
 ---
 
 ## Instalación

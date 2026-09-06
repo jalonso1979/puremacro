@@ -4,9 +4,9 @@
 
 Local Projections (Jordà 2005) estimate impulse response functions by running a sequence of direct predictive regressions for each horizon $h = 0, 1, \dots, H$:
 
-$$y_{t+h} - y_{t-1} = \alpha_h + \beta_h x_t + \sum_{l=1}^p \Gamma_{h,l} w_{t-l} + \varepsilon_{t+h}$$
+$$y_{t+h} - y_{t-1} = \alpha_h + \beta_h x_t + \gamma_h' w_t + \sum_{l=1}^p \Gamma_{h,l} w_{t-l} + \varepsilon_{t+h}$$
 
-where $x_t$ is a structural shock or policy variable, $w_t$ contains control variables (including lags of $y_t$ and $x_t$), and $\beta_h$ traces out the impulse response function at horizon $h$.
+where $x_t$ is a structural shock or policy variable, $w_t$ contains control variables (which enter contemporaneously and with $p$ lags, together with $p$ lags of $y_t$ and $x_t$), and $\beta_h$ traces out the impulse response function at horizon $h$.
 
 In contrast to Structural VARs, which iterate forward a one-step-ahead linear model, Local Projections:
 - **Do not compound specification errors** across horizons.
@@ -14,6 +14,8 @@ In contrast to Structural VARs, which iterate forward a one-step-ahead linear mo
 - **Support flexible inference** via Newey-West HAC or Driscoll-Kraay standard errors without requiring stationary companion matrices.
 
 In `puremacro 2.0`, all local projection estimators return a unified **`LPResult`** object that behaves as a pandas DataFrame while exposing one-call plotting (`.plot()`) and publication-grade export methods (`.to_latex()`, `.to_typst()`, `.to_markdown()`).
+
+The code blocks on this page build on each other: run them in order and the whole page executes verbatim.
 
 ---
 
@@ -36,7 +38,7 @@ df = pd.DataFrame({"gdp": output, "shock": shock})
 # Estimate LP up to horizon 12 with 4 lags of controls and 90% CI
 res = lp_hac(df, y="gdp", x="shock", horizon=12, lags=4, ci=0.90)
 
-# 1. Print structured summary
+# 1. Print structured summary (with significance flags)
 print(res.summary())
 
 # 2. Inspect point estimates and standard errors
@@ -53,15 +55,19 @@ The returned `res` is an `LPResult` (subclassing `pd.DataFrame`). You can treat 
 | Property / Method | Description |
 |---|---|
 | `res.point` | Point estimates $\hat{\beta}_h$ as a NumPy array of shape `(H+1,)` |
-| `res.se` | HAC standard errors $\hat{\text{se}}(\hat{\beta}_h)$ of shape `(H+1,)` |
+| `res.se` | HAC standard errors $\hat{\text{se}}(\hat{\beta}_h)$ of shape `(H+1,)` (all-NaN for band-only estimators such as `lp_quantile`) |
 | `res.ci_lower` | Lower confidence bound $\hat{\beta}_h - z_{\alpha/2} \cdot \hat{\text{se}}$ |
 | `res.ci_upper` | Upper confidence bound $\hat{\beta}_h + z_{\alpha/2} \cdot \hat{\text{se}}$ |
+| `res.t_stat` | $\hat{\beta}_h / \hat{\text{se}}$ (NaN where no SE is available) |
 | `res.horizons` | Array of horizons evaluated `[0, 1, ..., H]` |
-| `res.plot()` | Renders an impulse response plot with shaded confidence bands |
-| `res.summary()` | Formatted tabular summary string with significance flags |
+| `res.labels` | `[]` for single-coefficient results; `['H', 'L']` / `['pos', 'neg']` for regime or sign results |
+| `res.plot()` | Renders an impulse response plot with shaded confidence bands (one line and band per regime for regime results, one line per quantile for `lp_quantile`) |
+| `res.summary()` | Formatted tabular summary string with significance flags: `***` p<0.01, `**` p<0.05, `*` p<0.10 (two-sided normal z-test); for band-only estimators a single `*` marks bands that exclude zero |
 | `res.to_markdown()` | Renders table formatted for Quarto, GitHub, or Obsidian |
 | `res.to_latex()` | Generates a clean `\begin{tabular}` for LaTeX / Overleaf |
 | `res.to_typst()` | Generates a `#table(...)` block for modern Typst documents |
+
+For regime or sign results (`lp_state_dep`, `lp_state_dep_iv`, `lp_asymmetric`, `lp_garch_state`) the table carries one coefficient per label (`beta_H`/`beta_L`, `beta_pos`/`beta_neg`) and `res.point`, `res.se`, `res.ci_lower`, `res.ci_upper` and `res.t_stat` return a DataFrame indexed by `h` with one column per label.
 
 ---
 
@@ -74,8 +80,19 @@ When the policy intervention $x_t$ is endogenous (for example, policy interest r
 $$\text{Stage 1: } x_t = \pi_{0,h} + \pi_{1,h} z_t + \text{controls} + v_{t,h}$$
 $$\text{Stage 2: } y_{t+h} - y_{t-1} = \alpha_h + \beta_h \hat{x}_t + \text{controls} + \varepsilon_{t+h}$$
 
+The block below first extends the synthetic dataset with the illustrative columns used in the rest of this page (an endogenous policy rate driven by a high-frequency surprise, two controls, government spending driven by a military-news instrument, and an unemployment rate in percent):
+
 ```python
 from puremacro.lp import lp_iv
+
+# Illustrative columns for the remaining examples (synthetic, seeded above)
+df["hf_monetary_surprise"] = rng.standard_normal(T)
+df["fedfunds"] = 0.7 * df["hf_monetary_surprise"] + 0.5 * rng.standard_normal(T)
+df["inflation"] = rng.standard_normal(T)
+df["commodity_prices"] = rng.standard_normal(T)
+df["military_news"] = rng.standard_normal(T)
+df["gov_spending"] = 0.6 * df["military_news"] + 0.5 * rng.standard_normal(T)
+df["unemployment_rate"] = 6.0 + 1.5 * rng.standard_normal(T)   # percent
 
 res_iv = lp_iv(
     df,
@@ -101,30 +118,36 @@ Macroeconomic transmission often differs across economic regimes (e.g. recession
 
 $$y_{t+h} - y_{t-1} = \alpha_h + F(s_t) \beta_h^H x_t + (1 - F(s_t)) \beta_h^L x_t + \text{controls} + \varepsilon_{t+h}$$
 
-where $F(s_t) \in [0, 1]$ is a transition function.
+where $F(s_t) \in [0, 1]$ is the high-regime weight.
 
 ### Smooth Logistic vs. Sharp Threshold
 
-- **Sharp Threshold (`transition="threshold"`)**: $F(s_t) = \mathbb{I}\{s_t > \bar{s}\}$. Observations are discretely partitioned into high and low regimes.
-- **Smooth Transition (`transition="logistic"`)**: $F(s_t) = \frac{1}{1 + \exp(-\gamma (s_t - \bar{s}))}$, where $\gamma > 0$ controls the speed of transition between regimes (Auerbach & Gorodnichenko 2012).
+- **Sharp Threshold (`transition="threshold"`)**: $F(s_t) = \mathbb{I}\{s_t > c\}$. Observations are discretely partitioned into high and low regimes.
+- **Smooth Transition (`transition="logistic"`, default)**: $F(s_t) = \frac{1}{1 + \exp(-\gamma (s_t - c) / \sigma_s)}$, where $\sigma_s$ is the sample standard deviation of the state, so $\gamma > 0$ is the speed of transition in standard deviations of $s_t$ (Auerbach & Gorodnichenko 2012 use $\gamma = 1.5$ on a standardized state).
+
+The cutoff $c$ is the `threshold` argument **on the raw scale of the state variable**: `threshold=6.5` on an unemployment rate in percent means 6.5 %. The default `threshold=None` splits at the sample mean of the state (the standardized-zero convention of Auerbach-Gorodnichenko). A cutoff that leaves every observation in one regime raises a `ValueError` naming the state's range instead of a singular regression.
 
 ```python
 from puremacro.lp import lp_state_dep
 
-# Smooth transition conditional on standardized unemployment rate
+# Smooth transition around 6.5 % unemployment (state_var= is an alias of state=)
 res_state = lp_state_dep(
     df,
     y="gdp",
     x="gov_spending",
-    state_var="unemployment_rate",
+    state="unemployment_rate",
     transition="logistic",
     gamma=3.0,
-    threshold=0.0,
+    threshold=6.5,
     horizon=12,
     lags=2,
+    ci=0.90,
 )
 
-print(res_state[["h", "beta_high", "se_high", "beta_low", "se_low"]].head())
+print(res_state[["h", "beta_H", "se_H", "beta_L", "se_L"]].head())
+print(res_state.summary())              # one row per horizon and regime, with flags
+print(res_state.point.head())           # DataFrame with columns H and L
+res_state.plot(title="Spending multiplier: high vs low unemployment")
 ```
 
 ---
@@ -136,7 +159,7 @@ Following Ramey & Zubairy (2018, *JPE*), evaluating state-dependent government s
 $$\text{Endogenous: } [F(s_t) x_t, \; (1 - F(s_t)) x_t]$$
 $$\text{Instruments: } [F(s_t) z_t, \; (1 - F(s_t)) z_t]$$
 
-`lp_state_dep_iv` estimates both first-stage regressions, checks regime-specific instrument relevance via first-stage F statistics, and computes second-stage multipliers with HAC inference:
+`lp_state_dep_iv` estimates both first-stage regressions, checks regime-specific instrument relevance via first-stage F statistics, and computes second-stage multipliers with HAC inference. `threshold` and `gamma` follow exactly the `lp_state_dep` conventions above:
 
 ```python
 from puremacro.lp import lp_state_dep_iv
@@ -147,7 +170,7 @@ res_rz = lp_state_dep_iv(
     x="gov_spending",
     z="military_news",
     state="unemployment_rate",
-    threshold=6.5,          # e.g., 6.5% unemployment threshold
+    threshold=6.5,          # 6.5 % unemployment, raw scale of the state
     transition="threshold", # Or 'logistic'
     horizon=16,
     lags=4,
@@ -165,12 +188,23 @@ latex_table = res_rz.to_latex()
 
 ## Panel Local Projections (`panel_lp` & `panel_lp_dk`)
 
-For cross-country or regional panel datasets, `puremacro` provides fixed-effects panel local projections with cluster-robust or Driscoll-Kraay (1998) non-parametric standard errors robust to cross-sectional spatial correlation and arbitrary serial correlation:
+For cross-country or regional panel datasets, `puremacro` provides two-way fixed-effects panel local projections with cluster-robust (`panel_lp`) or Driscoll-Kraay (1998) standard errors (`panel_lp_dk`, or `panel_lp(..., cov_type="driscoll-kraay")`) robust to cross-sectional spatial correlation and arbitrary serial correlation.
+
+The panel can be a **long-form** frame whose entity and time identifiers are columns (`unit_col=` / `time_col=`), or a frame already indexed by an `(entity, time)` `MultiIndex` whose level names are given by `entity_level=` / `time_level=`:
 
 ```python
-from puremacro.lp import panel_lp_dk
+from puremacro.lp import panel_lp, panel_lp_dk
 
-# Panel dataset with 'country' and 'year_quarter'
+# Long-form panel: one row per (country, date)
+countries = [f"C{i}" for i in range(8)]
+dates = list(pd.period_range("2000Q1", periods=60, freq="Q"))
+panel_df = pd.DataFrame({
+    "country": np.repeat(countries, len(dates)),
+    "date": dates * len(countries),
+})
+panel_df["credit_shock"] = rng.standard_normal(len(panel_df))
+panel_df["real_gdp"] = 0.5 * panel_df["credit_shock"] + rng.standard_normal(len(panel_df))
+
 res_panel = panel_lp_dk(
     panel_df,
     y="real_gdp",
@@ -180,8 +214,24 @@ res_panel = panel_lp_dk(
     horizon=12,
     lags=2,
 )
-
 res_panel.plot(title="Panel LP: Credit Shock Response (Driscoll-Kraay SEs)")
+
+# Same estimates from a frame already indexed by (country, date)
+res_indexed = panel_lp_dk(
+    panel_df.set_index(["country", "date"]),
+    y="real_gdp", x="credit_shock",
+    entity_level="country", time_level="date",
+    horizon=12, lags=2,
+)
+assert np.allclose(res_panel.point, res_indexed.point)
+
+# Cluster-robust SEs by entity, or Driscoll-Kraay through cov_type
+res_cluster = panel_lp(panel_df, y="real_gdp", x="credit_shock",
+                       unit_col="country", time_col="date", horizon=12, lags=2)
+res_dk = panel_lp(panel_df, y="real_gdp", x="credit_shock",
+                  unit_col="country", time_col="date", horizon=12, lags=2,
+                  cov_type="driscoll-kraay")
+assert np.allclose(res_dk.se, res_panel.se)
 ```
 
 ### Automatic Row-Order Invariance
@@ -192,13 +242,15 @@ In puremacro, all panel LP estimators sort the panel index `(unit, time)` before
 
 ## Standardized Signatures & Parameter Aliases
 
-All `puremacro.lp` estimators support standardized modern macro terminology:
+Every estimator exported by `puremacro.lp` (including `lp_state_dep` and `lp_did`) accepts the modern keyword-only arguments below in addition to the legacy names:
 
 | Modern Parameter | Accepted Legacy Alias | Default | Description |
 |---|---|---|---|
-| `lags` | `n_lags` | `2` | Number of lag controls included in the projection |
-| `horizon` | `horizons` | `20` | Max projection horizon (computes $h = 0 \dots H$) |
-| `ci` | `alpha` | `0.90` | Confidence interval coverage (e.g. `ci=0.95` $\leftrightarrow$ `alpha=0.05`) |
+| `lags` | `n_lags` | `2` — except `la_lp` and `smooth_lp` (`4`) and `lp_did` (`0`) | Number of lag controls included in the projection (for `lp_did`: lagged outcome changes $\Delta y_{i,t-k}$ added as controls) |
+| `horizon` | `horizons` | `20`, i.e. $h = 0 \dots 20$ — except `lp_iv_lewbel` and `lp_did` (`12`) | Max projection horizon (computes $h = 0 \dots H$) |
+| `ci` | `alpha` | `0.90` — except `smooth_lp` (`0.95`) | Confidence interval coverage (e.g. `ci=0.95` $\leftrightarrow$ `alpha=0.05`) |
+
+`ci` and `alpha` must be probabilities in $(0, 1)$: passing a percentage by mistake (`ci=90`) or `alpha=1.5` raises a `ValueError` instead of silently producing NaN bands. `lp_state_dep` additionally accepts `state_var=` as an alias of `state=`.
 
 ---
 

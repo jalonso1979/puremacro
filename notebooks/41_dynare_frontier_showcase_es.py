@@ -52,7 +52,10 @@ from puremacro.dsge import (
 # `puremacro.dsge.load_mod` procesa todas las ecuaciones, variables predeterminadas, estados estacionarios y bloques de shocks, identificando automáticamente los 15 estados y 25 variables de salto.
 
 # %%
-mod_path = Path("puremacro/dsge/_references/sw07_pfeifer.mod")
+import puremacro.dsge
+# Resolve the reference .mod from the installed package so the notebook runs
+# from any working directory (tools/build_notebooks.py uses notebooks/ as cwd).
+mod_path = Path(puremacro.dsge.__file__).parent / "_references" / "sw07_pfeifer.mod"
 m = load_mod(mod_path, order=1)
 
 print(f"Variables endógenas  : {len(m.variables)}")

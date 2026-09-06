@@ -51,6 +51,18 @@ from .types import PanelDiD
 _CONTROL_CHOICES = ("never_treated", "not_yet_treated")
 
 
+def _resolve_control(control: str, control_group: str | None) -> str:
+    """Merge the ``control`` keyword with its ``control_group`` alias."""
+    if control_group is None:
+        return control
+    if control != "never_treated" and control != control_group:
+        raise ValueError(
+            f"control={control!r} and control_group={control_group!r} "
+            "disagree; pass only one of them"
+        )
+    return control_group
+
+
 def _maybe_int(x):
     """Return ``int(x)`` when ``x`` is an integral float, else ``x``."""
     try:
@@ -350,6 +362,7 @@ def callaway_santanna(
     alpha: float = 0.10,
     seed: int = 0,
     ci: float | None = None,
+    control_group: str | None = None,
 ):
     """Callaway-Sant'Anna (2021) group-time average treatment effects.
 
@@ -371,6 +384,11 @@ def callaway_santanna(
         Two-sided coverage = ``1 − α`` (so 0.10 ⇒ 90 % bands).
     seed : int, default 0
         RNG seed for the bootstrap.
+    ci : float, optional
+        Confidence-interval coverage; when given, ``alpha = 1 − ci``.
+    control_group : str, optional
+        Alias for ``control`` (the ``csdid`` / R ``did`` spelling).
+        Passing both with different non-default values is an error.
 
     Returns
     -------
@@ -395,6 +413,7 @@ def callaway_santanna(
     """
     if ci is not None:
         alpha = 1.0 - ci
+    control = _resolve_control(control, control_group)
 
     if isinstance(df, pd.DataFrame):
         if group_g is not None or period_t is not None or unit_id is not None:

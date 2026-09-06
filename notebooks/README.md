@@ -24,9 +24,9 @@ not the `.ipynb`** — the `.ipynb` is a build artifact, regenerated with output
 | `14_tax_multiplier_three_ways` | The US tax multiplier three ways on one frozen dataset — Blanchard-Perotti SVAR (−1), Romer-Romer narrative LP (−3), Mertens-Ravn narrative-as-instrument (between, with the effective first-stage F) — plus a spec curve showing identification, not estimation, drives the answer |
 | `15_lp_did` | DiD meets local projections — why naive TWFE event studies break under staggered heterogeneous adoption, and LP-DiD (Dube-Girardi-Jordà-Taylor) as the fix; side-by-side with Callaway-Sant'Anna and Sun-Abraham agreeing on one panel |
 | `16_regime_girf` | State-dependent transmission done right — Koop-Pesaran-Potter generalized IRFs for TVAR/MS-VAR with endogenous regime switching; the frozen-regime IRF overstates stress-state losses by ~33% |
-| `17_sign_restricted_svar` | Uhlig (2005) / Rubio-Ramírez et al. (2010) sign-restricted VAR identification |
-| `18_epstein_zin_asset_pricing` | Epstein-Zin recursive preferences & asset pricing equity premium puzzle |
-| `19_krusell_smith_approx_agg` | Krusell-Smith (1998) general equilibrium with aggregate uncertainty |
+| `17_identification_spec_curve` | Identification specification curve: how the identifying assumption, not the estimator, drives the answer |
+| `18_beveridge_curve` | Beveridge curve: vacancies, unemployment and matching efficiency shifts |
+| `19_model_confidence_set` | Hansen-Lunde-Nason model confidence set for competing forecasts |
 | `20_unit_roots_with_power` | Elliott-Rothenberg-Stock DF-GLS unit root test with superior local power |
 | `21_dynare_vfi_dsl` | Declarative Dynare-like Automated VFI specification with Howard acceleration & panel inequality simulation |
 | `22_continuous_time_hjb` | Achdou et al. (2022) Continuous-Time HJB finite difference upwind scheme for consumption-saving models |
@@ -48,6 +48,8 @@ not the `.ipynb`** — the `.ipynb` is a build artifact, regenerated with output
 | `38_real_time_vintages_and_revisions` | Real-time QNA vintages across 45+ countries, revision triangles $(T \times V)$, & Mankiw-Shapiro (1986) news vs. noise test |
 | `39_multilingual_narrative_harvesting` | Multi-source narrative harvesting (50+ connectors), 8-language macro scoring, realization lags, & structured policy classification |
 | `40_quarterly_national_accounts` | Three approaches to GDP in one panel: one price reference year (`qna_rebase`), the expenditure/output/income identities scored inside their own flows (`qna_identity`), growth decomposed with previous-period nominal weights (`qna_contributions`) |
+| `41_dynare_frontier_showcase` | Smets-Wouters (2007) from Pfeifer's `.mod`: solve, FEVD, historical shock decomposition, OccBin ZLB, perfect-foresight Ramsey transition, Bayesian MCMC |
+| `00_whats_new_in_puremacro_2_0` | Tour of the 2.0 unified API (`lags`/`horizon`/`ci`, result objects, exporters) |
 
 The deepened showcases (`01`, `06`, `11`, `14`, `15`, `16`) follow the structure in
 [`_TEMPLATE.md`](./_TEMPLATE.md): motivating question → the method in math → intuition →

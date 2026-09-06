@@ -33,6 +33,7 @@ La detección se realiza por heurística del sistema operativo, el entorno de ai
 Bajo WebAssembly / Pyodide no existe una pila de red TCP tradicional, por lo que las librerías `requests` y `urllib` fallan. El navegador, no obstante, sí puede realizar peticiones HTTP mediante la API nativa de JavaScript `fetch`. Una única llamada encamina toda la infraestructura de descarga a través del navegador:
 
 ```python
+# requiere: un kernel Pyodide / navegador con acceso a red
 from puremacro import runtime
 from puremacro.fetch import fetch_xrate_monthly
 
@@ -49,15 +50,24 @@ Para revertir al modo tradicional, ejecute `runtime.disable_browser_network()`.
 Dado que `pyarrow` no dispone de binarios compilados para WebAssembly, `puremacro.pocket` empaqueta los datos en cartuchos portátiles `.pmz` autoverificables con firma SHA-256 que llevan consigo su propia procedencia histórica:
 
 ```python
+import numpy as np
+import pandas as pd
 from puremacro import pocket
 
+# Un DataFrame para transportar (en la práctica: el panel recién descargado en la estación de trabajo)
+panel = pd.DataFrame(
+    {"USA": [1.0, 1.2, 1.1], "DEU": [0.8, 0.9, 1.0]},
+    index=pd.period_range("2025Q1", periods=3, freq="Q"),
+)
+
 # En la estación de trabajo:
-pocket.pack(panel_macro, "panel_g7.pmz", source="OECD QNA", vintage="2026-09-01")
+pocket.pack(panel, "panel_g7.pmz", source="OECD QNA", vintage="2026-09-01")
 
 # En el iPad (incluso en modo avión):
 cart = pocket.load("panel_g7.pmz")
 panel = cart.frame()              # Comprobación de integridad por SHA-256 al leer
 print(cart.provenance.vintage)    # '2026-09-01'
+print(cart.summary())
 ```
 
 ---
@@ -70,7 +80,15 @@ Cuando el usuario conmuta entre aplicaciones en iPadOS, el sistema suspende los 
 import numpy as np
 from puremacro import longrun
 
-job = longrun.bootstrap(iteracion_svar, n_draws=2000, checkpoint="svar_irf.ckpt")
+rng = np.random.default_rng(0)
+Y = rng.standard_normal((120, 2))          # sus datos del VAR
+
+def iteracion_svar(i):
+    """Una replicación bootstrap: devuelve aquello de lo que quiere las bandas."""
+    idx = np.random.default_rng(i).integers(0, len(Y), len(Y))
+    return Y[idx].mean(axis=0)
+
+job = longrun.bootstrap(iteracion_svar, 2000, checkpoint="svar_irf.ckpt")
 job.run(seconds=30)  # Computa 30 segundos y guarda el avance en disco
 # ... tras responder un mensaje o reabrir la aplicación:
 job.run(seconds=30)
@@ -92,16 +110,21 @@ from puremacro.runtime.colab import (
     load_colab_result,
 )
 
+# 1. Genera un cuaderno autocontenido: el código se pasa como primer argumento;
+#    output_filename es el cartucho que el cuaderno guardará al terminar.
 nb = generate_colab_notebook(
-    task_code="""
+    """
 import puremacro as pm
-res = pm.dsge.estimate_sw07(n_draws=10000, n_chains=4)
-pm.runtime.store.save_frame(res.summary(), "sw07_posterior.pmz")
+result = pm.dsge.estimate_sw07(n_draws=10000, n_chains=4)
 """,
     mount_drive=True,
-    export_result_file="sw07_posterior.pmz",
+    save_path="sw07_colab.ipynb",
+    output_filename="sw07_posterior.pmz",
 )
 
-show_colab_offload_dialog(nb, filename="sw07_colab.ipynb")
-posterior = load_colab_result("sw07_posterior.pmz")
+# 2. Muestra las instrucciones (tarjeta HTML en Juno/Jupyter, texto en la terminal)
+show_colab_offload_dialog("sw07_colab.ipynb")
+
+# 3. Al volver el cartucho desde Google Drive:
+# posterior = load_colab_result("sw07_posterior.pmz")
 ```

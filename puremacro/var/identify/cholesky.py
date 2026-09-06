@@ -102,6 +102,11 @@ def _residual_bootstrap_var(Y, p, horizon, n_boot=500, ci=0.9, seed=0, ordering=
     P = safe_cholesky(Sigma, name="cholesky_svar (point estimate)")
     point = compute_irf(A_list, P, horizon)  # (H+1, n, n)
     if n_boot <= 0:
+        # Un-permute here too: the documented contract is that irf_point is
+        # always in the caller's original variable order, bands or no bands.
+        if ordering is not None:
+            inv = np.argsort(np.array(ordering))
+            point = point[np.ix_(np.arange(horizon + 1), inv, inv)]
         nan_bands = np.full_like(point, np.nan)
         return point, nan_bands, nan_bands, 0
 

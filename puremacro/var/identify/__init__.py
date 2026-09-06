@@ -1,6 +1,6 @@
 """SVAR identification methods."""
-from .cholesky import cholesky_svar as cholesky, compute_chol_shocks
-from .bq import bq_svar as bq
+from .cholesky import cholesky_svar as cholesky, cholesky_svar, compute_chol_shocks
+from .bq import bq_svar as bq, bq_svar
 from .sign import sign_restriction_svar as sign_restrictions
 from .narrative_sign import identify_narrative_sign, narrative_sign_svar, NarrativeRestriction
 from .proxy import proxy_svar as proxy, proxy_svar
@@ -27,6 +27,7 @@ from ._results import (
 )
 
 __all__ = [
+    "cholesky_svar", "bq_svar",
     "cholesky", "compute_chol_shocks", "bq", "sign_restrictions", "proxy", "hetero",
     "identify_narrative_sign", "narrative_sign_svar", "NarrativeRestriction",
     "NarrativeSignResult", "NarrativeSignSVARResult",

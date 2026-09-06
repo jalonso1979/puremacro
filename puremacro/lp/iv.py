@@ -17,6 +17,7 @@ import pandas as pd
 from scipy.stats import norm
 
 from ..inference._ols_helpers import ols_hac
+from ._common import resolve_lp_kwargs
 
 
 def _compute_anderson_rubin_ci(
@@ -136,12 +137,8 @@ def lp_iv(
         DataFrame subclass with columns ``[h, beta, se, t, lo, hi, first_stage_f]``
         (plus ``[ar_lo, ar_hi, ar_set_type]`` when ``anderson_rubin=True``).
     """
-    if lags is not None:
-        n_lags = lags
-    if horizon is not None:
-        horizons = range(0, horizon + 1)
-    if ci is not None:
-        alpha = 1.0 - ci
+    horizons, n_lags, alpha = resolve_lp_kwargs(
+        horizons, n_lags, alpha, lags=lags, horizon=horizon, ci=ci, name="lp_iv")
 
     horizons = list(horizons)
     ctl = list(controls or [])
@@ -224,6 +221,7 @@ def lp_iv(
     res.y_name = str(y)
     res.x_name = str(x)
     res.method = "LP-IV"
+    res.ci_level = 1.0 - alpha
     return res
 
 

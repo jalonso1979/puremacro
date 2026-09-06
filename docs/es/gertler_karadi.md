@@ -99,7 +99,7 @@ from puremacro.dsge.gertler_karadi import (
 # 1. Inspección del estado estacionario determinista
 ee = solve_steady_state()
 print(f"Apalancamiento bancario phi en EE : {ee['phi']:.2f}x")
-print(f"Diferencial de crédito anualizado : {ee['spread_ann'] * 10000:.1f} pbs")
+print(f"Diferencial de crédito anualizado : {ee['spread_ann']:.1f} pbs")
 
 # 2. Simulación de perturbación a la calidad del capital (-5%) con el solucionador lineal de Klein
 res_klein = solve_gertler_karadi(
@@ -123,8 +123,8 @@ res_occbin = solve_gertler_karadi(
 df_klein = res_klein.to_frame()
 df_occbin = res_occbin.to_frame()
 
-print("Caída máxima del patrimonio bancario (Klein) :", df_klein["n"].min())
-print("Caída máxima del patrimonio bancario (OccBin):", df_occbin["n"].min())
+print("Caída máxima del patrimonio bancario (Klein) :", df_klein["N"].min())
+print("Caída máxima del patrimonio bancario (OccBin):", df_occbin["N"].min())
 print("Pico del diferencial de crédito (Klein, pbs) :", df_klein["prem"].max() * 40000)
 print("Pico del diferencial de crédito (OccBin, pbs):", df_occbin["prem"].max() * 40000)
 
@@ -139,7 +139,7 @@ fig = res_occbin.plot()
 
 ### `solve_gertler_karadi`
 
-```python
+```text
 solve_gertler_karadi(
     params: Mapping[str, float] | None = None,
     shock_type: str = "capital_quality",
@@ -172,7 +172,7 @@ La clase `GertlerKaradiResult` almacena las trayectorias dinámicas y ofrece her
   - `irf`: Diccionario con las trayectorias temporales $(T,)$ de todas las variables endógenas.
   - `variables`: Lista de identificadores de variables (`['y', 'c', 'i', 'q', 'k', 'n', 'phi', 'prem', ...]`).
   - `steady_state`: Diccionario con los valores del estado estacionario determinista.
-  - `regime_history`: Vector booleano que registra los períodos en los cuales la restricción de OccBin estuvo activa.
+  - `regimes`: para OccBin, el indicador de régimen por trimestre (`0` = referencia, `1` = restringido); `binding_periods` cuenta los trimestres restringidos.
   - `converged`: Estado de convergencia del solucionador numérico.
 - **Métodos disponibles**:
   - `to_frame()`: Devuelve un `DataFrame` de pandas indexado por trimestres de simulación $t = 0, \dots, T-1$.

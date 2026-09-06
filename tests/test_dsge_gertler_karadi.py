@@ -341,10 +341,15 @@ def test_gk_linear_model_properties():
 
     # Check that generalized eigenvalues correctly satisfy Blanchard-Kahn condition:
     # number of generalized eigenvalues with modulus > 1 equals number of forward-looking controls
+    # The engine solves the stacked lead/lag system (lagged copies of the
+    # states are the predetermined block, every current variable is
+    # non-predetermined), so there are n_states + n_variables generalised
+    # eigenvalues and Blanchard-Kahn requires exactly n_variables unstable ones.
     eigs = model.eigenvalues
-    assert len(eigs) == len(model.variables)
+    assert len(eigs) == model.n_states + len(model.variables)
     n_unstable = np.sum(np.abs(eigs) > 1.0 + 1e-6)
-    assert n_unstable == model.n_controls
+    assert n_unstable == len(model.variables)
+    assert model.is_determinate
     assert model.solution.G.shape == (model.n_states, model.n_states)
     assert model.solution.F.shape == (model.n_controls, model.n_states)
 

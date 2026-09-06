@@ -119,8 +119,12 @@ def combine_forecasts(
           Sigma is the sample covariance of the forecast errors.
     errors : (T, K) array of forecast errors, required for inv_mse and
         bates_granger.
-    rolling : if int, compute rolling weights over the last ``rolling``
-        observations. Else, weights are constant.
+    rolling : if int, compute rolling weights: the weights applied to
+        ``forecasts[t]`` are built from ``errors[max(0, t - rolling):t]`` —
+        the last ``rolling`` errors *strictly before* ``t`` — so the
+        combination is out-of-sample at every ``t``. Rows with fewer than
+        two past errors (``t < 2``) use equal weights. Else, weights are
+        constant and computed on all of ``errors`` (in-sample).
 
     Returns
     -------
@@ -133,6 +137,8 @@ def combine_forecasts(
     if forecasts.ndim != 2:
         raise ValueError("forecasts must be (T, K)")
     T, K = forecasts.shape
+    if rolling is not None and int(rolling) < 1:
+        raise ValueError(f"rolling must be a positive int; got {rolling!r}")
 
     if method == "equal":
         w = np.full(K, 1.0 / K)
@@ -141,6 +147,8 @@ def combine_forecasts(
     if errors is None:
         raise ValueError(f"method={method!r} requires `errors`")
     err = np.asarray(errors, dtype=float)
+    if err.shape != (T, K):
+        raise ValueError(f"errors must have the same shape as forecasts {(T, K)}; got {err.shape}")
 
     def _weights(e: np.ndarray) -> np.ndarray:
         if method == "inv_mse":
@@ -163,9 +171,10 @@ def combine_forecasts(
         return {"weights": w, "combined": forecasts @ w, "method": method}
 
     weights = np.empty((T, K))
+    win = int(rolling)
     for t in range(T):
-        s = max(0, t - rolling + 1)
-        weights[t] = _weights(err[s:t + 1]) if t >= 1 else np.full(K, 1.0 / K)
+        past = err[max(0, t - win):t]            # errors strictly before t
+        weights[t] = _weights(past) if past.shape[0] >= 2 else np.full(K, 1.0 / K)
     combined = (forecasts * weights).sum(axis=1)
     return {"weights": weights, "combined": combined, "method": method}
 

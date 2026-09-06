@@ -20,6 +20,7 @@ import pandas as pd
 from scipy.optimize import linprog
 
 from ._results import LPResult
+from ._common import resolve_lp_kwargs
 
 
 def _qreg(y: np.ndarray, X: np.ndarray, tau: float) -> np.ndarray:
@@ -67,12 +68,8 @@ def lp_quantile(
     -------
     LPResult with columns [h, tau, beta, lo, hi].
     """
-    if lags is not None:
-        n_lags = lags
-    if horizon is not None:
-        horizons = range(0, horizon + 1)
-    if ci is not None:
-        alpha = 1.0 - ci
+    horizons, n_lags, alpha = resolve_lp_kwargs(
+        horizons, n_lags, alpha, lags=lags, horizon=horizon, ci=ci, name="lp_quantile")
     horizons = list(horizons)
     ctl = list(controls or [])
     rng = np.random.default_rng(seed)
@@ -121,6 +118,7 @@ def lp_quantile(
     res.y_name = str(y)
     res.x_name = str(x)
     res.method = "LP-quantile"
+    res.ci_level = 1.0 - alpha
     return res
 
 

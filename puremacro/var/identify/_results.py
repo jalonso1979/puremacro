@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
 
@@ -13,28 +13,104 @@ class _IRFPlotMixin:
     def plot(
         self,
         *,
-        target_idx: int = 0,
-        shock_idx: int = 0,
+        target_idx: int | None = 0,
+        shock_idx: int | None = 0,
         title: str = "",
         ylabel: str = "Response",
         scale: float = 1.0,
         ax=None,
     ):
-        """Plot impulse response with error bands.
+        """Plot impulse response(s) with error bands.
 
-        Lazily delegates to puremacro.plot.plot_irf_single.
+        With integer ``target_idx`` and ``shock_idx`` (the defaults) this
+        draws one panel for that (response, shock) pair, lazily
+        delegating to :func:`puremacro.plot.plot_irf_single`. Passing
+        ``target_idx=None`` draws one panel per response variable (for
+        the given shock); ``shock_idx=None`` draws one panel per shock
+        (for the given response); both ``None`` draws the full n x n
+        grid. Panels are titled with ``self.names`` when available.
+        ``ax`` is only accepted for the single-panel form. Returns the
+        matplotlib Figure.
         """
         from ...plot import plot_irf_single
 
-        return plot_irf_single(
-            self,
-            target_idx=target_idx,
-            shock_idx=shock_idx,
-            title=title,
-            ylabel=ylabel,
-            scale=scale,
-            ax=ax,
+        if target_idx is not None and shock_idx is not None:
+            return plot_irf_single(
+                self,
+                target_idx=target_idx,
+                shock_idx=shock_idx,
+                title=title,
+                ylabel=ylabel,
+                scale=scale,
+                ax=ax,
+            )
+        if ax is not None:
+            raise ValueError(
+                "plot: ax= can only be combined with a single (target_idx, shock_idx) "
+                "panel; pass integer indices or drop ax="
+            )
+        import matplotlib.pyplot as plt
+
+        point, _, _ = self._irf_arrays()
+        if point.ndim != 3:
+            raise ValueError(
+                "plot: multi-panel plotting needs (H+1, n, n) impulse responses; "
+                f"got ndim {point.ndim}"
+            )
+        n_resp, n_shock = point.shape[1], point.shape[2]
+        targets = list(range(n_resp)) if target_idx is None else [int(target_idx)]
+        shocks = list(range(n_shock)) if shock_idx is None else [int(shock_idx)]
+        raw_names = getattr(self, "names", ())
+        names = (list(raw_names) if len(raw_names) == n_resp
+                 else [f"y_{i}" for i in range(n_resp)])
+        fig, axes = plt.subplots(
+            len(targets), len(shocks),
+            figsize=(3.8 * len(shocks), 2.6 * len(targets)),
+            squeeze=False, sharex=True,
         )
+        for r, i in enumerate(targets):
+            for c, j in enumerate(shocks):
+                plot_irf_single(
+                    self,
+                    target_idx=i,
+                    shock_idx=j,
+                    title=f"{names[i]} <- shock {j}",
+                    ylabel=ylabel if c == 0 else "",
+                    scale=scale,
+                    ax=axes[r, c],
+                )
+        if title:
+            fig.suptitle(title)
+        fig.tight_layout()
+        return fig
+
+    def _irf_arrays(self):
+        """(point, lower, upper) as (H+1, n_resp, n_shock) arrays, whatever the
+        result class calls them (irf_point / irf_median / irfs / irf_mean / point;
+        irf_lower/irf_upper or lower/upper). Two-dimensional (H+1, n) arrays --
+        single identified shock, e.g. Giacomini-Kitagawa bands -- are promoted
+        to one shock column."""
+        point = None
+        for name in ("irf_point", "irf_median", "irfs", "irf_mean", "point"):
+            point = getattr(self, name, None)
+            if point is not None:
+                break
+        if point is None:
+            raise ValueError("Result object does not contain impulse response matrices.")
+        lower = getattr(self, "irf_lower", getattr(self, "lower", None))
+        upper = getattr(self, "irf_upper", getattr(self, "upper", None))
+
+        def _as3(a):
+            if a is None:
+                return None
+            a = np.asarray(a, dtype=float)
+            if a.ndim == 2:
+                a = a[:, :, None]
+            if a.ndim != 3:
+                raise ValueError(f"impulse responses must be (H+1, n) or (H+1, n, n); got shape {a.shape}")
+            return a
+
+        return _as3(point), _as3(lower), _as3(upper)
 
     def to_frame(
         self,
@@ -45,12 +121,7 @@ class _IRFPlotMixin:
         """Return a tidy pandas DataFrame of IRF estimates and bands."""
         import pandas as pd
 
-        point = getattr(self, "irf_point", getattr(self, "irf_median", None))
-        lower = getattr(self, "irf_lower", None)
-        upper = getattr(self, "irf_upper", None)
-        if point is None:
-            raise ValueError("Result object does not contain impulse response matrices.")
-
+        point, lower, upper = self._irf_arrays()
         H_plus, n_resp, n_shock = point.shape
         rows = []
         for h in range(H_plus):
@@ -326,8 +397,10 @@ class NarrativeSignResult(_IRFPlotMixin):
         Type I shock-sign restrictions on distinct (date, shock) pairs).
     ess : float
         Kish effective sample size of the importance weights,
-        ``(sum w)^2 / sum(w^2)``; ``ess << n_narrative_accepted`` warns
-        that a few draws dominate the weighted bands.
+        ``(sum w)^2 / sum(w^2)``. The estimator emits a ``RuntimeWarning``
+        when ``ess`` falls below 10% of ``n_narrative_accepted`` (a few
+        draws dominate the weighted bands), when too few draws survive to
+        resolve the requested bands, or when the omega floor binds.
     ci : float
         Pointwise band coverage level.
     restriction_labels : tuple of str
@@ -336,17 +409,45 @@ class NarrativeSignResult(_IRFPlotMixin):
         Per-restriction count of traditionally-accepted draws on which
         the restriction failed — the binding-ness diagnostic.
     A_list : tuple of ndarray or list of ndarray, optional
-        VAR autoregressive coefficient matrices A_1, ..., A_p.
+        VAR autoregressive coefficient matrices A_1, ..., A_p of the
+        representative (median-target) draw: the OLS estimate in OLS
+        mode, that draw's own posterior draw in Bayesian mode.
     B : ndarray, shape (n, n), optional
-        Representative structural impact matrix (median-target draw).
+        Representative structural impact matrix (median-target draw);
+        ``B @ B.T == Sigma``.
     residuals : ndarray, shape (T_eff, n), optional
-        Reduced-form VAR residuals.
+        Reduced-form VAR residuals consistent with ``A_list`` and
+        ``intercept`` (recomputed for the representative posterior draw
+        in Bayesian mode).
     intercept : ndarray, shape (n,), optional
-        VAR intercept vector c.
+        VAR intercept vector c of the representative draw.
     fevd_median : ndarray, shape (H+1, n, n), optional
-        Forecast error variance decomposition.
+        Weighted-median forecast error variance decomposition across the
+        accepted draws (rows renormalised to sum to 1).
     names : tuple of str, optional
         Variable names.
+    Sigma : ndarray, shape (n, n), optional
+        Reduced-form covariance of the representative draw (``B B'``).
+    init_y : ndarray, shape (p, n), optional
+        The first ``p`` observations of ``Y``, used as the default
+        pre-sample initial condition of :meth:`historical_decomposition`
+        so that ``y_t = deterministic_t + sum_j shocks_t[:, j]`` holds.
+    accepted_B : ndarray, shape (m, n, n), optional
+        Impact matrices of the ``m = n_narrative_accepted`` surviving
+        draws (row order matches ``weights``). Used to extend
+        :meth:`irf` / :meth:`fevd` beyond the estimated horizon as
+        weighted medians of the extended draws.
+    accepted_A : ndarray, shape (m, p, n, n), optional
+        Per-draw autoregressive matrices in Bayesian mode; ``None`` in
+        OLS mode (all draws share ``A_list``).
+    bayes_draws : bool
+        Whether the reduced form was integrated over the NIW posterior.
+    n_unstable_draws : int
+        Bayesian mode only: posterior draws skipped because no stable
+        VAR was found in 50 attempts.
+    n_weight_floor : int
+        Accepted draws whose Monte Carlo ``omega_hat`` was 0 and was
+        floored at ``1 / n_weight_sims`` (their weights are capped).
 
     References
     ----------
@@ -371,6 +472,13 @@ class NarrativeSignResult(_IRFPlotMixin):
     intercept: np.ndarray | None = None
     fevd_median: np.ndarray | None = None
     names: tuple[str, ...] = ()
+    Sigma: np.ndarray | None = None
+    init_y: np.ndarray | None = None
+    accepted_B: np.ndarray | None = None
+    accepted_A: np.ndarray | None = None
+    bayes_draws: bool = False
+    n_unstable_draws: int = 0
+    n_weight_floor: int = 0
 
     @property
     def acceptance_rate(self) -> float:
@@ -392,14 +500,33 @@ class NarrativeSignResult(_IRFPlotMixin):
         """Kish effective sample size (ESS) of accepted narrative draws."""
         return float(self.ess)
 
+    def _extended_draw_irfs(self, horizon: int) -> np.ndarray:
+        """IRFs of every accepted draw up to ``horizon``: (m, horizon+1, n, n)."""
+        if self.accepted_B is None or self.A_list is None:
+            H = self.irf_median.shape[0] - 1
+            raise ValueError(
+                f"horizon {horizon} exceeds the estimated horizon H={H} and the "
+                "per-draw impact matrices needed to extend the weighted median "
+                "are not stored on this result; re-run identify_narrative_sign "
+                f"with horizon >= {horizon}"
+            )
+        from .narrative_sign import _draw_irfs
+
+        return _draw_irfs(self.accepted_B, self.accepted_A, self.A_list, horizon)
+
     def irf(self, horizon: int | None = None) -> np.ndarray:
-        """Return median impulse responses up to horizon.
+        """Weighted-median impulse responses up to ``horizon``.
 
         Parameters
         ----------
         horizon : int, optional
             Horizon up to which IRFs are returned. If None, returns all
-            computed horizons (shape (H+1, n, n)).
+            computed horizons (shape (H+1, n, n)). For ``horizon <= H``
+            this is a slice of ``irf_median``. For ``horizon > H`` the
+            IRF of every accepted draw is extended to ``horizon`` and the
+            pointwise weighted median is taken with the same importance
+            weights, so the first ``H + 1`` rows coincide with
+            ``irf_median`` (the extension is never a single draw).
 
         Returns
         -------
@@ -408,24 +535,28 @@ class NarrativeSignResult(_IRFPlotMixin):
         """
         if horizon is None:
             return self.irf_median
+        horizon = int(horizon)
         if horizon < 0:
             raise ValueError(f"horizon must be >= 0; got {horizon}")
         H = self.irf_median.shape[0] - 1
         if horizon <= H:
             return self.irf_median[: horizon + 1]
-        if self.A_list is not None and self.B is not None:
-            from ..irf import irf as compute_irf
-            return compute_irf(self.A_list, self.B, horizon)
-        return self.irf_median
+        from .narrative_sign import _weighted_quantile
+
+        draws = self._extended_draw_irfs(horizon)
+        return _weighted_quantile(draws, 0.5, np.asarray(self.weights, dtype=float))
 
     def fevd(self, horizon: int | None = None) -> np.ndarray:
-        """Forecast error variance decomposition.
+        """Weighted-median forecast error variance decomposition.
 
         Parameters
         ----------
         horizon : int, optional
-            Horizon up to which FEVD shares are returned. If None, returns all
-            computed horizons.
+            Horizon up to which FEVD shares are returned. If None, returns
+            all computed horizons. For ``horizon > H`` the FEVD of every
+            accepted draw is computed from its extended IRF and the
+            pointwise weighted median is taken (rows renormalised to sum
+            to 1), so the first ``H + 1`` rows coincide with ``fevd_median``.
 
         Returns
         -------
@@ -433,17 +564,23 @@ class NarrativeSignResult(_IRFPlotMixin):
             Array of shape (horizon + 1, n, n) where [h, i, j] is the share of
             variable i's forecast error variance explained by shock j at horizon h.
         """
-        if self.fevd_median is not None:
-            if horizon is None:
-                return self.fevd_median
-            if horizon + 1 <= self.fevd_median.shape[0]:
-                return self.fevd_median[: horizon + 1]
+        H = self.irf_median.shape[0] - 1
+        if horizon is None:
+            horizon = H
+        horizon = int(horizon)
+        if horizon < 0:
+            raise ValueError(f"horizon must be >= 0; got {horizon}")
+        if self.fevd_median is not None and horizon + 1 <= self.fevd_median.shape[0]:
+            return self.fevd_median[: horizon + 1]
+        from .narrative_sign import _fevd_from_irf, _weighted_median_fevd
 
-        irf_mat = self.irf(horizon)
-        cum_sq = np.cumsum(irf_mat ** 2, axis=0)
-        total = cum_sq.sum(axis=2, keepdims=True)
-        total = np.where(total == 0, 1.0, total)
-        return cum_sq / total
+        if self.accepted_B is not None and self.A_list is not None:
+            draws = self._extended_draw_irfs(horizon)
+            fevd_stack = np.stack([_fevd_from_irf(d) for d in draws], axis=0)
+            return _weighted_median_fevd(fevd_stack, np.asarray(self.weights, dtype=float))
+        # No per-draw objects stored (hand-built result): FEVD of the
+        # median IRF for horizons that do not need an extension.
+        return _fevd_from_irf(self.irf(horizon))
 
     def historical_decomposition(
         self,
@@ -463,7 +600,12 @@ class NarrativeSignResult(_IRFPlotMixin):
             Shock index or name to extract. If specified (with variable=None),
             returns a DataFrame of contributions across all variables for this shock.
         init_y : ndarray, shape (p, n), optional
-            Pre-sample initial condition.
+            Pre-sample initial condition. Defaults to ``self.init_y`` —
+            the first ``p`` observations of the data stored at estimation
+            time — so that the identity
+            ``y_t = deterministic_t + sum_j shocks_t[:, j]`` holds exactly
+            for ``t >= p``. Pass zeros to obtain the pure intercept
+            counterfactual instead.
 
         Returns
         -------
@@ -471,6 +613,15 @@ class NarrativeSignResult(_IRFPlotMixin):
             If both variable and shock are None, returns dict with keys
             'shocks' (shape (T_eff, n, n)) and 'deterministic' (shape (T_eff, n)).
             Otherwise returns a tidy pandas DataFrame.
+
+        Notes
+        -----
+        The decomposition uses the representative (median-target) draw's
+        ``B`` together with the reduced-form objects of that same draw —
+        the OLS estimate in OLS mode, the draw's own posterior
+        ``(A, c)`` and residuals in Bayesian mode — so the implied
+        structural shocks ``residuals @ inv(B).T`` are coherent with it.
+        It is not weighted across draws.
         """
         import pandas as pd
         from ..irf import historical_decomp
@@ -480,6 +631,8 @@ class NarrativeSignResult(_IRFPlotMixin):
                 "Historical decomposition requires VAR coefficients (A_list), "
                 "structural impact matrix (B), and residuals."
             )
+        if init_y is None:
+            init_y = self.init_y
 
         hd = historical_decomp(
             self.A_list, self.B, self.residuals, init_y=init_y, intercept=self.intercept
@@ -529,15 +682,26 @@ class NarrativeSignResult(_IRFPlotMixin):
         n = self.irf_median.shape[1]
         trad_rate = self.traditional_acceptance_rate
         narr_rate = self.narrative_acceptance_rate
+        if self.bayes_draws:
+            rf = "Normal-Inverse-Wishart posterior draws"
+            if self.n_unstable_draws:
+                rf += f" ({self.n_unstable_draws} unstable draws skipped)"
+        else:
+            rf = "OLS point estimate"
+        ess_line = f"  weight ESS        : {self.ess:.1f} / {self.n_narrative_accepted}"
+        if self.n_weight_floor:
+            ess_line += (f"  [omega floor bound for {self.n_weight_floor} draws; "
+                         "increase n_weight_sims]")
         lines = [
             "Narrative-sign SVAR result (AD-RR 2018)",
             f"  variables (n)     : {n}",
             f"  horizon (H)       : {H}",
             f"  CI level          : {self.ci:.2f}",
+            f"  reduced form      : {rf}",
             f"  Q draws           : {self.n_draws}",
             f"  traditional accept: {self.n_traditional_accepted} ({trad_rate:.1%})",
             f"  narrative accept  : {self.n_narrative_accepted} ({narr_rate:.1%} of traditional)",
-            f"  weight ESS        : {self.ess:.1f} / {self.n_narrative_accepted}",
+            ess_line,
         ]
         for lab, fails in zip(self.restriction_labels, self.restriction_fail_counts):
             lines.append(f"    - {lab}: failed {fails}/{self.n_traditional_accepted}")
@@ -652,7 +816,19 @@ class NonGaussianSVARResult(_IRFPlotMixin):
         return "\n".join(lines) + "\n"
 
 
+def _b0_frame(res) -> Any:
+    import pandas as pd
+    if res.B0 is None:
+        return pd.DataFrame()
+    n = res.B0.shape[0]
+    names = [f"y_{i}" for i in range(n)]
+    return pd.DataFrame(res.B0, index=names, columns=[f"shock_{j}" for j in range(n)])
+
+
+
 @dataclass(frozen=True)
+
+
 class SignZeroResult:
     """Result of :func:`puremacro.var.identify.sign_zero.sign_zero`.
 
@@ -699,8 +875,26 @@ class SignZeroResult:
             f"  draws used        : {self.n_draws_used}\n"
         )
 
+    def to_frame(self):
+        """Identified impact matrix ``B0`` as a DataFrame (empty when ``success`` is False)."""
+        return _b0_frame(self)
+
+    def to_markdown(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_markdown
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_latex
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_typst
+        return _df_to_typst(self.to_frame(), **kwargs)
 
 @dataclass(frozen=True)
+
+
+
 class PanelSVARResult(_IRFPlotMixin):
     """Result of :func:`puremacro.var.identify.panel.mean_group_svar`.
 

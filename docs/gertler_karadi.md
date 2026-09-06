@@ -99,7 +99,7 @@ from puremacro.dsge.gertler_karadi import (
 # 1. Inspect Deterministic Steady State
 ss = solve_steady_state()
 print(f"Steady-state bank leverage phi : {ss['phi']:.2f}x")
-print(f"Annualized credit spread (bps) : {ss['spread_ann'] * 10000:.1f}")
+print(f"Annualized credit spread (bps) : {ss['spread_ann']:.1f}")
 
 # 2. Simulate Capital Quality Shock (-5% shock to xi) under Klein linear solver
 res_klein = solve_gertler_karadi(
@@ -123,8 +123,8 @@ res_occbin = solve_gertler_karadi(
 df_klein = res_klein.to_frame()
 df_occbin = res_occbin.to_frame()
 
-print("Peak Net Worth Contraction (Klein) :", df_klein["n"].min())
-print("Peak Net Worth Contraction (OccBin):", df_occbin["n"].min())
+print("Peak Net Worth Contraction (Klein) :", df_klein["N"].min())
+print("Peak Net Worth Contraction (OccBin):", df_occbin["N"].min())
 print("Peak Spread Surge (Klein, bps)     :", df_klein["prem"].max() * 40000)
 print("Peak Spread Surge (OccBin, bps)    :", df_occbin["prem"].max() * 40000)
 
@@ -139,7 +139,7 @@ fig = res_occbin.plot()
 
 ### `solve_gertler_karadi`
 
-```python
+```text
 solve_gertler_karadi(
     params: Mapping[str, float] | None = None,
     shock_type: str = "capital_quality",
@@ -172,8 +172,8 @@ solve_gertler_karadi(
   - `irf`: Dictionary mapping variable names to their $(T,)$ time paths.
   - `variables`: List of model variable identifiers (`['y', 'c', 'i', 'q', 'k', 'n', 'phi', 'prem', ...]`).
   - `steady_state`: Dictionary of calculated steady-state values.
-  - `regime_history`: For OccBin, boolean indicator sequence identifying binding regime periods.
-  - `converged`: Solver convergence status.
+  - `regimes`: for OccBin, the regime indicator per quarter (`0` = reference, `1` = constrained); `binding_periods` counts the constrained quarters.
+  - `converged`: `False` when the OccBin regime iteration hit `max_iter` (a `RuntimeWarning` is emitted and `summary()` flags it).
 - **Methods**:
   - `to_frame()`: Returns a `pandas.DataFrame` indexed by simulation quarters $t = 0, \dots, T-1$.
   - `.plot()`: Matplotlib multi-panel figure displaying trajectories for GDP, Investment, Bank Net Worth, Asset Price $Q$, Leverage $\phi$, and Credit Spread.

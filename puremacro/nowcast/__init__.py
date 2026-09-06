@@ -20,7 +20,7 @@ from puremacro.nowcast.scoring import (
     brier_score,
     pit_histogram,
 )
-from puremacro.nowcast.dfm import kalman_dfm
+from puremacro.nowcast.dfm import KalmanDFMResult, kalman_dfm
 from puremacro.nowcast.mfvar import mf_var
 from puremacro.nowcast.dfm_nowcast import NowcastResult, nowcast_gdp
 
@@ -35,6 +35,7 @@ __all__ = [
     "log_score_gaussian",
     "brier_score",
     "pit_histogram",
+    "KalmanDFMResult",
     "kalman_dfm",
     "mf_var",
     "NowcastResult",

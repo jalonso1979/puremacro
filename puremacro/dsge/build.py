@@ -76,6 +76,7 @@ import scipy.optimize
 
 from puremacro.dsge.klein import KleinSolution, klein_solve
 from puremacro.dsge._results import DynareDR, TheoreticalMomentsResult, StochSimulResult
+from puremacro.dsge._moments import conditional_fevd, first_order_moments
 
 __all__ = [
     "ModelError",
@@ -171,6 +172,9 @@ class LinearModel:
         deviations are log deviations (interpretable as fractions of
         steady state) or level deviations. Variables with a non-positive
         steady state cannot be log-linearised and fall back to levels.
+        Models built from Dynare lead-lag equations (``build_dynare``,
+        ``load_mod``) are approximated in levels, so every entry is
+        ``"level"`` there.
     solution : KleinSolution
         The underlying QZ solution: ``G`` (state transition), ``F``
         (policy), ``N`` / ``L`` (shock loadings).
@@ -182,6 +186,15 @@ class LinearModel:
     residual_norm : float
         ``max |f(ss, ss, 0)|``; how exactly the steady state solves the
         model.
+    timing : {"klein", "dynare"}
+        How the Klein state vector relates to the reported variables.
+        ``"klein"`` (``build``): the state vector *is* the reported state
+        at ``t`` and moves at ``t+1``, so states are zero in the ``h=0``
+        row of an IRF. ``"dynare"`` (``build_dynare`` / ``load_mod``): the
+        Klein state is the *lagged* state ``s_{t-1}`` and the reported
+        state ``s_t = G s_{t-1} + N u_t`` responds on impact, exactly as
+        in Dynare. In both cases ``y_t = F x_t + L u_t`` with ``x_t`` the
+        predetermined vector at the start of ``t``.
     """
 
     variables: tuple
@@ -203,6 +216,13 @@ class LinearModel:
     _A_minus: np.ndarray | None = None
     _B_u: np.ndarray | None = None
     _shock_cov: np.ndarray | None = None
+    timing: str = "klein"
+
+    def __post_init__(self):
+        if self.timing not in ("klein", "dynare"):
+            raise ValueError(
+                f"timing must be 'klein' or 'dynare', got {self.timing!r}"
+            )
 
     # -- inspection ----------------------------------------------------
 
@@ -219,13 +239,34 @@ class LinearModel:
         """Generalised eigenvalues, sorted by modulus (Blanchard-Kahn check)."""
         return self.solution.eigenvalues
 
+    @property
+    def is_determinate(self) -> bool:
+        """True when the QZ solve found a unique stable solution (``eu == (1, 1)``)."""
+        return tuple(self.solution.eu) == (1, 1)
+
+    def _require_solution(self, what: str) -> None:
+        """Refuse to report decision rules for a model without a unique
+        stable solution — zero matrices are not an answer."""
+        if not self.is_determinate:
+            eu = tuple(self.solution.eu)
+            verdict = (
+                "no stable solution (Blanchard-Kahn violated)" if eu[0] == 0
+                else "indeterminacy (multiple stable solutions)"
+            )
+            raise ModelError(
+                f"{what} needs a unique stable solution, but the Blanchard-Kahn "
+                f"check found {verdict}; eu={eu}. Re-solve with strict=True to see "
+                "the eigenvalue diagnostics, or fix the model."
+            )
+
     def policy(self) -> pd.DataFrame:
         """The decision rules as a labelled table.
 
         Rows are variables, columns are states: entry ``(i, j)`` is the
         response of variable ``i`` to a one-unit deviation of state
         ``j``. States map to themselves through ``G``, controls through
-        ``F``.
+        ``F``. Under Dynare timing the column state is the *lagged*
+        state ``s_{t-1}`` (this is then the ``ghx`` table).
         """
         block = np.vstack([self.solution.G, self.solution.F])
         frame = pd.DataFrame(
@@ -234,21 +275,77 @@ class LinearModel:
         )
         return frame.loc[list(self.variables)]
 
+    # -- shock covariance helpers --------------------------------------
+
+    def _shock_sd(self, sigma, *, missing: float = 1.0) -> np.ndarray:
+        """Innovation standard deviations implied by a ``sigma`` argument.
+
+        ``None`` means the declared shock covariance (``shocks`` block of a
+        .mod file, or ``shock_cov=``) when there is one, else 1.0 per shock.
+        """
+        n_e = len(self.shocks)
+        if sigma is None:
+            if self._shock_cov is not None:
+                return np.sqrt(np.clip(np.diag(np.asarray(self._shock_cov, dtype=float)), 0.0, None))
+            return np.ones(n_e)
+        if isinstance(sigma, Mapping):
+            return np.array([float(sigma.get(s, missing)) for s in self.shocks])
+        return np.full(n_e, float(sigma))
+
+    def _shock_covariance(self, sigma) -> np.ndarray:
+        """Innovation covariance matrix implied by ``sigma`` (full declared
+        matrix, correlations included, when ``sigma`` is None)."""
+        if sigma is None and self._shock_cov is not None:
+            cov = np.asarray(self._shock_cov, dtype=float)
+            return 0.5 * (cov + cov.T)
+        sd = self._shock_sd(sigma)
+        return np.diag(sd ** 2)
+
+    def _reported_loadings(self) -> tuple[np.ndarray, np.ndarray]:
+        """``(M_x, M_u)`` such that the reported vector ``[states; controls]``
+        at ``t`` is ``M_x x_t + M_u u_t`` with ``x_t`` the Klein state."""
+        G, F, N, L = (self.solution.G, self.solution.F,
+                      self.solution.N, self.solution.L)
+        if self.timing == "dynare":
+            return np.vstack([G, F]), np.vstack([N, L])
+        n_s, n_e = self.n_states, len(self.shocks)
+        return np.vstack([np.eye(n_s), F]), np.vstack([np.zeros((n_s, n_e)), L])
+
+    def _dynare_companion(self) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """``(A, B, C, D)`` with ``s_t = A s_{t-1} + B u_t`` and
+        ``v_t = C s_{t-1} + D u_t`` for the variables in declaration order
+        (Dynare's ``ghx`` / ``ghu`` timing)."""
+        G, F, N, L = (self.solution.G, self.solution.F,
+                      self.solution.N, self.solution.L)
+        order_vars = list(self.states) + list(self.controls)
+        idx = [order_vars.index(v) for v in self.variables]
+        C = np.vstack([G, F])[idx]
+        D = np.vstack([N, L])[idx]
+        return G, N, C, D
+
     def decision_rules(self) -> DynareDR:
         """Decision rule representation matching Dynare's oo_.dr structure.
 
-        First-order approximation around steady state:
+        First-order approximation around steady state, in Dynare's timing:
             y_t = ys + ghx * (x_{t-1} - xs) + ghu * u_t
+
+        where ``x_{t-1}`` are the lagged states. The state rows are
+        ``(G, N)`` and the control rows ``(F, L)`` of the Klein solution,
+        since ``s_t = G s_{t-1} + N u_t`` and ``c_t = F s_{t-1} + L u_t``.
+        For a model built with :func:`build` (Klein timing) the state rows
+        describe the end-of-period value ``x_{t+1} = G x_t + N u_t``, which
+        is what Dynare calls the time-``t`` state.
 
         Returns
         -------
         DynareDR
             Container holding ghx, ghu, steady states, and variable labels.
         """
+        self._require_solution("decision_rules()")
         G, F, N, L = (self.solution.G, self.solution.F,
                       self.solution.N, self.solution.L)
-        ghx_block = np.vstack([G, F @ G])
-        ghu_block = np.vstack([N, F @ N + L])
+        ghx_block = np.vstack([G, F])
+        ghu_block = np.vstack([N, L])
 
         order_vars = list(self.states) + list(self.controls)
         df_ghx = pd.DataFrame(
@@ -288,11 +385,16 @@ class LinearModel:
 
         Solves the discrete Lyapunov equation for unconditional stationary moments,
         cross-correlations, autocorrelations, and forecast error variance decomposition.
+        The moments are those of the variables as reported by :meth:`irf` and
+        :meth:`simulate` (Dynare timing for ``build_dynare`` / ``load_mod``
+        models), so a long :meth:`simulate` run reproduces them.
 
         Parameters
         ----------
         sigma : float | Mapping[str, float], optional
-            Shock standard deviations. Default 1.0 for each shock.
+            Shock standard deviations. Default: the covariance declared in the
+            .mod ``shocks`` block (or ``shock_cov=``) when present, else 1.0 for
+            each shock.
         lags : int, default 5
             Number of autocorrelation lags to evaluate.
         fevd_horizons : Sequence[int | None], default (1, 4, 8, 16, 32, None)
@@ -304,6 +406,7 @@ class LinearModel:
         TheoreticalMomentsResult
             Container with moments, covariance, correlation, autocorrelation, and FEVD.
         """
+        self._require_solution("theoretical_moments()")
         g_eigs = np.abs(scipy.linalg.eigvals(self.solution.G))
         if np.any(g_eigs >= 1.0 - 1e-7):
             bad = g_eigs[g_eigs >= 1.0 - 1e-7]
@@ -312,47 +415,14 @@ class LinearModel:
                 "unconditional stationary moments do not exist."
             )
 
-        n_s = self.n_states
-        n_c = self.n_controls
-        n_e = len(self.shocks)
-
-        if sigma is None:
-            sd = np.ones(n_e)
-        elif isinstance(sigma, Mapping):
-            sd = np.array([float(sigma.get(s, 1.0)) for s in self.shocks])
-        else:
-            sd = np.full(n_e, float(sigma))
-
-        sigma_u = np.diag(sd**2)
-
-        G, F, N, L = (self.solution.G, self.solution.F,
-                      self.solution.N, self.solution.L)
-
-        # Discrete Lyapunov equation for states covariance:
-        # Sigma_x = G @ Sigma_x @ G.T + N @ sigma_u @ N.T
-        q_mat = N @ sigma_u @ N.T
-        sigma_x = scipy.linalg.solve_discrete_lyapunov(G, q_mat)
-
-        # Cross terms and controls covariance:
-        # x_t = G x_{t-1} + N u_t => E[x_t u_t'] = N @ sigma_u
-        cov_xu = N @ sigma_u
-        sigma_xy = sigma_x @ F.T + cov_xu @ L.T
-        sigma_yx = sigma_xy.T
-        sigma_y = (
-            F @ sigma_x @ F.T
-            + L @ sigma_u @ L.T
-            + F @ cov_xu @ L.T
-            + L @ cov_xu.T @ F.T
-        )
+        sigma_u = self._shock_covariance(sigma)
+        G, N = self.solution.G, self.solution.N
+        M_x, M_u = self._reported_loadings()
+        _, gamma_0, gammas = first_order_moments(G, N, M_x, M_u, sigma_u, lags)
 
         order_vars = list(self.states) + list(self.controls)
-        full_cov = np.block([
-            [sigma_x, sigma_xy],
-            [sigma_yx, sigma_y],
-        ])
-
         cov_df = pd.DataFrame(
-            full_cov, index=order_vars, columns=order_vars
+            gamma_0, index=order_vars, columns=order_vars
         ).loc[list(self.variables), list(self.variables)]
 
         variances = np.diag(cov_df.to_numpy())
@@ -372,27 +442,15 @@ class LinearModel:
             corr_mat, index=list(self.variables), columns=list(self.variables)
         )
 
-        # Autocorrelations
+        # Autocorrelations: diag(Gamma_k) / diag(Gamma_0)
         autocorr_cols = [f"Lag {k}" for k in range(1, lags + 1)]
         df_autocorr = pd.DataFrame(
             index=list(self.variables), columns=autocorr_cols, dtype=float
         )
-
-        for k in range(1, lags + 1):
-            g_pow = np.linalg.matrix_power(G, k)
-            gamma_x = g_pow @ sigma_x
-            gamma_xy = g_pow @ sigma_xy
-            gamma_yx = F @ gamma_x
-            gamma_yy = F @ gamma_xy
-
-            block_k = np.block([
-                [gamma_x, gamma_xy],
-                [gamma_yx, gamma_yy],
-            ])
+        for k, gamma_k in enumerate(gammas, start=1):
             df_gamma_k = pd.DataFrame(
-                block_k, index=order_vars, columns=order_vars
+                gamma_k, index=order_vars, columns=order_vars
             ).loc[list(self.variables), list(self.variables)]
-
             diag_gamma = np.diag(df_gamma_k.to_numpy())
             with np.errstate(divide="ignore", invalid="ignore"):
                 rho_k = np.where(variances > 1e-14, diag_gamma / variances, np.nan)
@@ -416,94 +474,33 @@ class LinearModel:
     ) -> pd.DataFrame:
         """Forecast error variance decomposition (FEVD) shares (in percent).
 
+        Dynare's conditional variance decomposition: the ``h``-step-ahead
+        forecast error ``sum_{j=0}^{h-1} Psi_j u_{t+h-j}`` built from the
+        ``ghx`` / ``ghu`` decision rules (states in Dynare's end-of-period
+        timing). Identical, up to the factor 100, to
+        :func:`puremacro.dsge.compute_fevd`.
+
         Parameters
         ----------
         horizons : Sequence[int | None], default (1, 4, 8, 16, 32, None)
             Evaluation horizons. None represents asymptotic infinity.
         sigma : float | Mapping[str, float], optional
-            Shock standard deviations.
+            Shock standard deviations (default: declared shock covariance,
+            else 1.0).
 
         Returns
         -------
         pd.DataFrame
-            MultiIndex DataFrame [Variable, Horizon] with percentage shares for each shock.
+            MultiIndex DataFrame [Variable, Horizon] with percentage shares for
+            each shock. Rows with zero forecast-error variance are NaN.
         """
-        n_s = self.n_states
-        n_e = len(self.shocks)
-
-        if sigma is None:
-            sd = np.ones(n_e)
-        elif isinstance(sigma, Mapping):
-            sd = np.array([float(sigma.get(s, 1.0)) for s in self.shocks])
-        else:
-            sd = np.full(n_e, float(sigma))
-
-        G, F, N, L = (self.solution.G, self.solution.F,
-                      self.solution.N, self.solution.L)
-        order_vars = list(self.states) + list(self.controls)
-
-        rows = []
-        for h in horizons:
-            h_label = "Infinity" if h is None else int(h)
-            if h is None:
-                # Asymptotic variance shares via Lyapunov
-                v_shocks = np.zeros((len(self.variables), n_e))
-                for j in range(n_e):
-                    n_j = N[:, [j]]
-                    l_j = L[:, [j]]
-                    var_u_j = sd[j] ** 2
-                    q_j = n_j @ (n_j.T * var_u_j)
-                    sig_x_j = scipy.linalg.solve_discrete_lyapunov(G, q_j)
-                    cov_xu_j = n_j * var_u_j
-                    sig_xy_j = sig_x_j @ F.T + cov_xu_j @ l_j.T
-                    sig_y_j = (
-                        F @ sig_x_j @ F.T
-                        + l_j @ (l_j.T * var_u_j)
-                        + F @ cov_xu_j @ l_j.T
-                        + l_j @ cov_xu_j.T @ F.T
-                    )
-                    full_j = np.block([
-                        [sig_x_j, sig_xy_j],
-                        [sig_xy_j.T, sig_y_j],
-                    ])
-                    cov_j = pd.DataFrame(
-                        full_j, index=order_vars, columns=order_vars
-                    ).loc[list(self.variables), list(self.variables)]
-                    v_shocks[:, j] = np.diag(cov_j.to_numpy())
-
-                tot_v = v_shocks.sum(axis=1, keepdims=True)
-                with np.errstate(divide="ignore", invalid="ignore"):
-                    shares = np.where(tot_v > 1e-14, (v_shocks / tot_v) * 100.0, 0.0)
-
-                for i, var in enumerate(self.variables):
-                    row_dict = {"Variable": var, "Horizon": h_label}
-                    for j, s in enumerate(self.shocks):
-                        row_dict[s] = shares[i, j]
-                    rows.append(row_dict)
-            else:
-                # Finite horizon h using MA responses
-                v_shocks = np.zeros((len(self.variables), n_e))
-                for j in range(n_e):
-                    e_vec = np.zeros(n_e)
-                    e_vec[j] = sd[j]
-                    paths = self._paths(int(h), e_vec)
-                    df_paths = pd.DataFrame(
-                        paths, columns=order_vars
-                    )[list(self.variables)].to_numpy()
-                    v_shocks[:, j] = np.sum(df_paths[: int(h) + 1] ** 2, axis=0)
-
-                tot_v = v_shocks.sum(axis=1, keepdims=True)
-                with np.errstate(divide="ignore", invalid="ignore"):
-                    shares = np.where(tot_v > 1e-14, (v_shocks / tot_v) * 100.0, 0.0)
-
-                for i, var in enumerate(self.variables):
-                    row_dict = {"Variable": var, "Horizon": h_label}
-                    for j, s in enumerate(self.shocks):
-                        row_dict[s] = shares[i, j]
-                    rows.append(row_dict)
-
-        df_res = pd.DataFrame(rows).set_index(["Variable", "Horizon"])
-        return df_res
+        self._require_solution("fevd()")
+        sd = self._shock_sd(sigma)
+        A, B, C, D = self._dynare_companion()
+        table = conditional_fevd(
+            A, B, C, D, sd, list(horizons), list(self.variables), list(self.shocks)
+        )
+        return table * 100.0
 
     def fevd_result(
         self,
@@ -527,17 +524,22 @@ class LinearModel:
     # -- simulation ----------------------------------------------------
 
     def _paths(self, horizon: int, impulse: np.ndarray) -> np.ndarray:
-        """MA response of [states; controls] to ``impulse`` at t=0."""
-        G, F, N, L = (self.solution.G, self.solution.F,
-                      self.solution.N, self.solution.L)
-        n_s, n_c = self.n_states, self.n_controls
-        xs = np.zeros((horizon + 1, n_s))
-        ys = np.zeros((horizon + 1, n_c))
-        ys[0] = L @ impulse
+        """MA response of the reported ``[states; controls]`` vector to
+        ``impulse`` at t=0, one row per date ``0..horizon``.
+
+        Under Klein timing the state rows are zero at ``h=0`` (the
+        innovation moves the state into ``t+1``); under Dynare timing the
+        states respond on impact and every row is dated the same period.
+        """
+        G, N = self.solution.G, self.solution.N
+        M_x, M_u = self._reported_loadings()
+        out = np.zeros((horizon + 1, self.n_states + self.n_controls))
+        out[0] = M_u @ impulse
+        x = N @ impulse
         for h in range(1, horizon + 1):
-            xs[h] = G @ xs[h - 1] + (N @ impulse if h == 1 else 0.0)
-            ys[h] = F @ xs[h]
-        return np.hstack([xs, ys])
+            out[h] = M_x @ x
+            x = G @ x
+        return out
 
     def irf(self, shock: str, horizon: int = 20, size: float = 1.0) -> pd.DataFrame:
         """Impulse responses to a one-time ``size`` innovation in ``shock``.
@@ -557,10 +559,12 @@ class LinearModel:
             Indexed by horizon ``0..horizon``, one column per variable in
             declaration order. Values are log deviations for variables
             with ``units[name] == "log"`` (multiply by 100 for percent)
-            and level deviations otherwise. See the module docstring on
-            the timing convention: states are zero in the ``h=0`` row for
-            a standard AR(1) driving process, while forward-looking
-            controls generally are not.
+            and level deviations otherwise. Row ``h`` holds every
+            variable at date ``h``: under Klein timing (:func:`build`) the
+            states are zero in the ``h=0`` row for a standard AR(1)
+            driving process, while under Dynare timing
+            (:func:`build_dynare`, :func:`load_mod`) states and controls
+            both respond on impact, as in Dynare's ``oo_.irfs``.
         """
         if shock not in self.shocks:
             raise ModelError(
@@ -568,6 +572,7 @@ class LinearModel:
             )
         if horizon < 0:
             raise ValueError(f"horizon must be non-negative, got {horizon}")
+        self._require_solution("irf()")
         impulse = np.zeros(len(self.shocks))
         impulse[self.shocks.index(shock)] = size
         paths = self._paths(horizon, impulse)
@@ -616,7 +621,6 @@ class LinearModel:
         return fig
 
     def simulate(self, periods: int = 200, *, sigma=None, seed: int = 0,
-
                  burn: int = 100) -> pd.DataFrame:
         """Simulate the model with i.i.d. Gaussian innovations.
 
@@ -627,7 +631,9 @@ class LinearModel:
         sigma : float | Mapping[str, float], optional
             Innovation standard deviations. A scalar applies to every
             shock; a mapping sets them by name (missing shocks get 0).
-            Default 1.0 for every shock.
+            Default: the declared shock covariance (``shocks`` block /
+            ``shock_cov=``, correlations included) when there is one,
+            else 1.0 for every shock.
         seed : int, default 0
             Seed for ``numpy.random.default_rng``.
         burn : int, default 100
@@ -637,28 +643,29 @@ class LinearModel:
         -------
         pandas.DataFrame
             ``periods`` rows, one column per variable, in the same
-            deviation units as :meth:`irf`.
+            deviation units and timing as :meth:`irf`: row ``t`` holds
+            every variable at date ``t``.
         """
-        if sigma is None:
-            sd = np.ones(len(self.shocks))
-        elif isinstance(sigma, Mapping):
-            sd = np.array([float(sigma.get(s, 0.0)) for s in self.shocks])
-        else:
-            sd = np.full(len(self.shocks), float(sigma))
-
+        self._require_solution("simulate()")
+        n_e = len(self.shocks)
         rng = np.random.default_rng(seed)
         total = periods + burn
-        shocks = rng.standard_normal((total, len(self.shocks))) * sd
+        if sigma is None and self._shock_cov is not None:
+            cov = self._shock_covariance(None)
+            shocks = rng.multivariate_normal(np.zeros(n_e), cov, size=total, method="cholesky") \
+                if n_e else np.zeros((total, 0))
+        else:
+            sd = self._shock_sd(sigma, missing=0.0)
+            shocks = rng.standard_normal((total, n_e)) * sd
 
-        G, F, N, L = (self.solution.G, self.solution.F,
-                      self.solution.N, self.solution.L)
-        xs = np.zeros((total + 1, self.n_states))
-        ys = np.zeros((total, self.n_controls))
+        G, N = self.solution.G, self.solution.N
+        M_x, M_u = self._reported_loadings()
+        out = np.zeros((total, self.n_states + self.n_controls))
+        x = np.zeros(self.n_states)
         for t in range(total):
-            ys[t] = F @ xs[t] + L @ shocks[t]
-            xs[t + 1] = G @ xs[t] + N @ shocks[t]
-        block = np.hstack([xs[:total], ys])
-        frame = pd.DataFrame(block, columns=list(self.states) + list(self.controls))
+            out[t] = M_x @ x + M_u @ shocks[t]
+            x = G @ x + N @ shocks[t]
+        frame = pd.DataFrame(out, columns=list(self.states) + list(self.controls))
         return frame.iloc[burn:].reset_index(drop=True)[list(self.variables)]
 
     def stoch_simul(
@@ -677,19 +684,23 @@ class LinearModel:
         Computes:
         1. Decision rules (oo_.dr)
         2. Analytical theoretical moments (moments, covariance, correlation, autocorrelations, FEVD)
-        3. Impulse response functions for all structural shocks
+        3. Impulse response functions to a one-standard-deviation innovation in each shock
         4. Simulated sample moments (if periods > 0)
 
         Parameters
         ----------
         order : int, default 1
-            Approximation order. If order=2, delegates to solve_second_order().stoch_simul(...).
+            Approximation order. If order=2, the second-order solution is
+            computed with the requested shock covariance and the call is
+            delegated to :meth:`PrunedDSGESolution.stoch_simul`.
         irf : int, default 40
             Horizon for impulse response functions. Set to 0 to skip IRFs.
         periods : int, default 0
             Number of simulation periods. If > 0, generates simulated moments.
         sigma : float | Mapping[str, float], optional
-            Shock standard deviations. Default 1.0 for each shock.
+            Shock standard deviations. Default: the covariance declared in the
+            .mod ``shocks`` block (or ``shock_cov=``) when present, else 1.0
+            for each shock — the Dynare convention.
         seed : int, default 0
             RNG seed for simulation when periods > 0.
         burn : int, default 100
@@ -703,13 +714,12 @@ class LinearModel:
             Container holding dr, theoretical_moments, simulated_moments, irfs, and export methods.
         """
         if order == 2:
-            sol2 = self.solve_second_order()
-            s_val = 1.0 if sigma is None else (float(sigma) if isinstance(sigma, (int, float)) else 1.0)
+            sol2 = self.solve_second_order(shock_cov=self._shock_covariance(sigma))
             return sol2.stoch_simul(
                 order=2,
                 irf=irf,
                 periods=periods,
-                sigma=s_val,
+                sigma=1.0,
                 seed=seed,
                 burn=burn,
                 lags=lags,
@@ -717,20 +727,23 @@ class LinearModel:
         elif order != 1:
             raise ValueError(f"unsupported perturbation order {order}; must be 1 or 2")
 
+        self._require_solution("stoch_simul()")
+        sd = self._shock_sd(sigma)
+        sigma_full = sigma if sigma is None else dict(zip(self.shocks, sd))
+
         dr = self.decision_rules()
-        theo = self.theoretical_moments(sigma=sigma, lags=lags)
+        theo = self.theoretical_moments(sigma=sigma_full, lags=lags)
 
         irfs: dict[str, pd.Series] = {}
         if irf > 0:
-            for sh in self.shocks:
-                sh_size = 1.0 if sigma is None else (sigma.get(sh, 1.0) if isinstance(sigma, Mapping) else float(sigma))
-                df_irf = self.irf(shock=sh, horizon=irf, size=sh_size)
+            for j, sh in enumerate(self.shocks):
+                df_irf = self.irf(shock=sh, horizon=irf, size=float(sd[j]))
                 for v in self.variables:
                     irfs[f"{v}_{sh}"] = df_irf[v]
 
         sim_moments = None
         if periods > 0:
-            sim_df = self.simulate(periods=periods, sigma=sigma, seed=seed, burn=burn)
+            sim_df = self.simulate(periods=periods, sigma=sigma_full, seed=seed, burn=burn)
             sim_moments = pd.DataFrame(
                 {
                     "Mean": sim_df.mean(axis=0),
@@ -760,11 +773,17 @@ class LinearModel:
             (1, 0): "indeterminate (multiple stable solutions)",
             (0, 0): "no stable solution (Blanchard-Kahn violated)",
         }.get(tuple(eu), f"eu={tuple(eu)}")
+        timing = (
+            "Dynare (states dated end-of-period, respond on impact)"
+            if self.timing == "dynare" else
+            "Klein (states predetermined at t, move at t+1)"
+        )
         lines = [
             f"LinearModel · {len(self.variables)} variables "
             f"({self.n_states} states, {self.n_controls} controls), "
             f"{len(self.shocks)} shock(s)",
             f"  jacobians    : {self.method}-step",
+            f"  timing       : {timing}",
             f"  steady state : residual {self.residual_norm:.2e}",
             f"  Blanchard-Kahn: {verdict}",
             "  steady state values:",
@@ -776,6 +795,29 @@ class LinearModel:
             )
         return "\n".join(lines)
 
+    def solve(self, order: int = 1, *, shock_cov: np.ndarray | None = None):
+        """Return the solution at the requested perturbation order.
+
+        Parameters
+        ----------
+        order : {1, 2}, default 1
+            ``1`` returns this (already solved) first-order model itself;
+            ``2`` returns the pruned second-order solution from
+            :meth:`solve_second_order`.
+        shock_cov : np.ndarray, optional
+            Innovation covariance used for the second-order risk correction.
+            Defaults to the declared shock covariance, else the identity.
+
+        Returns
+        -------
+        LinearModel | PrunedDSGESolution
+        """
+        if order == 1:
+            return self
+        if order == 2:
+            return self.solve_second_order(shock_cov=shock_cov)
+        raise ValueError(f"unsupported perturbation order {order}; must be 1 or 2")
+
     def solve_second_order(
         self,
         shock_cov: np.ndarray | None = None,
@@ -785,7 +827,9 @@ class LinearModel:
         Parameters
         ----------
         shock_cov : np.ndarray, optional
-            Covariance matrix of innovations Σ_u. Defaults to identity matrix I.
+            Covariance matrix of innovations Σ_u. Defaults to the covariance
+            declared with the model (``shocks`` block / ``shock_cov=``), else
+            the identity matrix.
 
         Returns
         -------
@@ -800,6 +844,7 @@ class LinearModel:
             )
         from puremacro.dsge.dynare import solve_dynare_2nd_order
 
+        cov = shock_cov if shock_cov is not None else self._shock_cov
         return solve_dynare_2nd_order(
             self._dynare_equations,
             variables=self.variables,
@@ -807,7 +852,8 @@ class LinearModel:
             params=self._params,
             steady_state=self.steady_state.to_dict(),
             states=self.states,
-            shock_cov=shock_cov,
+            shock_cov=cov,
+            method=self.method,
         )
 
 

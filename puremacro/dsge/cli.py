@@ -86,6 +86,21 @@ def create_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _bk_status_line(model) -> str:
+    """Blanchard-Kahn verdict read off the solved model, never assumed."""
+    first = getattr(model, "first_order", None)
+    src = first if first is not None else model
+    solution = getattr(src, "solution", None)
+    eu = tuple(getattr(solution, "eu", ())) if solution is not None else ()
+    if eu == (1, 1):
+        return "Blanchard-Kahn condition verified: unique stable rational expectations path."
+    if eu == (1, 0):
+        return "Blanchard-Kahn condition FAILED: indeterminacy (multiple stable solutions)."
+    if eu == (0, 0):
+        return "Blanchard-Kahn condition FAILED: no stable solution."
+    return "Blanchard-Kahn status: not reported by this solution object."
+
+
 def run_cli(argv: Sequence[str] | None = None) -> int:
     parser = create_parser()
     args = parser.parse_args(argv)
@@ -96,6 +111,7 @@ def run_cli(argv: Sequence[str] | None = None) -> int:
         return 1
 
     from puremacro.dsge.dynare import load_mod
+    from puremacro.dsge.klein import BlanchardKahnError
 
     if not args.quiet:
         sys.stdout.write("=" * 72 + "\n")
@@ -104,6 +120,13 @@ def run_cli(argv: Sequence[str] | None = None) -> int:
 
     try:
         model = load_mod(mod_path, order=args.order)
+    except BlanchardKahnError as exc:
+        sys.stderr.write(f"Error solving model: {exc}\n")
+        sys.stderr.write(
+            "The Blanchard-Kahn condition fails, so there is no unique stable "
+            "rational-expectations solution to report.\n"
+        )
+        return 3
     except Exception as exc:
         sys.stderr.write(f"Error parsing model: {exc}\n")
         return 2
@@ -112,7 +135,12 @@ def run_cli(argv: Sequence[str] | None = None) -> int:
     if not args.quiet:
         vars_list = list(getattr(model, "variables", []))
         shocks_list = list(getattr(model, "shocks", []))
-        params_dict = getattr(model, "parameters", getattr(model, "_params", {})) or {}
+        params_dict = (
+            getattr(model, "parameters", None)
+            or getattr(model, "params", None)
+            or getattr(model, "_params", None)
+            or {}
+        )
         n_eqs = len(getattr(model, "equations", vars_list))
         sys.stdout.write("Model Summary:\n")
         sys.stdout.write(f"  Equations   : {n_eqs}\n")
@@ -151,8 +179,8 @@ def run_cli(argv: Sequence[str] | None = None) -> int:
         return 3
 
     if not args.quiet:
-        sys.stdout.write("Blanchard-Kahn condition verified: Unique stable rational expectations path.\n")
-        sys.stdout.write(f"Decision rules computed successfully.\n\n")
+        sys.stdout.write(f"{_bk_status_line(model)}\n")
+        sys.stdout.write("Decision rules computed successfully.\n\n")
 
     # Export formats helper
     def write_exports(base_name: str, md_text: str, tex_text: str, typ_text: str):

@@ -107,8 +107,9 @@ from puremacro.models import simulate_targeted_transfer
 
 # Stimulus targeted to bottom 30% wealth constrained households
 transfer_res = simulate_targeted_transfer(
-    transfer_amount=500.0,
-    target_deciles=[1, 2, 3],
+    ss_model=ss_res,          # solved steady state (distribution, policies, grid)
+    target=[1, 2, 3],         # wealth deciles 1-3 (poorest 30%)
+    amount=1.0,               # total outlay, in units of mean quarterly labour income
     T=30,
 )
 

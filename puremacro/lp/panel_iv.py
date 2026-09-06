@@ -7,7 +7,8 @@ import numpy as np
 import pandas as pd
 
 from .panel import panel_lp
-from ._panel_helpers import two_way_fe_within
+from ._panel_helpers import two_way_fe_within, as_panel_index
+from ._common import resolve_lp_kwargs
 
 
 def panel_lp_iv(
@@ -25,16 +26,17 @@ def panel_lp_iv(
     lags: int | None = None,
     horizon: int | None = None,
     ci: float | None = None,
+    unit_col: str | None = None,
+    time_col: str | None = None,
 ) -> pd.DataFrame:
     """First stage: x_t ~ z_t + entity FE + time FE (within transform).
     Second stage: panel LP with the fitted x̂ in place of x.
     Returns LPResult with [h, beta, se, lo, hi, first_stage_f]."""
-    if lags is not None:
-        n_lags = lags
-    if horizon is not None:
-        horizons = range(0, horizon + 1)
-    if ci is not None:
-        alpha = 1.0 - ci
+    horizons, n_lags, alpha = resolve_lp_kwargs(
+        horizons, n_lags, alpha, lags=lags, horizon=horizon, ci=ci, name="panel_lp_iv")
+    df_wide, entity_level, time_level = as_panel_index(
+        df_wide, entity_level=entity_level, time_level=time_level,
+        unit_col=unit_col, time_col=time_col, func="panel_lp_iv")
     df = df_wide.copy()
     df.index = df.index.set_names([entity_level, time_level])
     df = df.sort_index()

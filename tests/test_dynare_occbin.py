@@ -56,6 +56,8 @@ def nk_model_setup():
         steady_state=steady_state,
     )
 
+    # The constrained regime (a pegged nominal rate) is indeterminate on its
+    # own; OccBin only needs its Jacobians, so it is built with strict=False.
     cons_model = build_dynare(
         nk_cons,
         variables=variables,
@@ -63,6 +65,7 @@ def nk_model_setup():
         params=params,
         steady_state=steady_state,
         check_steady_state=False,
+        strict=False,
     )
 
     constraint = OccBinConstraint(
@@ -134,10 +137,17 @@ def test_occbin_small_shock_matches_linear(nk_model_setup):
 
 
 def test_occbin_large_negative_demand_shock_hitting_zlb(nk_model_setup):
-    """Test 2: Large negative demand shock hitting ZLB for 4 periods.
+    """Test 2: Large negative demand shock hitting ZLB for 5 periods.
+
+    The reference regime's linear rule is y_t = a g_t, pi_t = b g_t with
+    a = 1/((1-rho) + phi_y/sigma + (phi_pi-rho) kappa/((1-beta rho) sigma)),
+    so the impact response to eps_g is a*eps_g (Dynare ghu). Before 2.3.1 the
+    control rows of ghx/ghu were F@G and F@N+L (impact a*(1+rho)*eps_g), which
+    fed a wrong reference path into the OccBin recursion and produced a
+    4-period spell; the corrected rules give 5 periods.
 
     Asserts:
-    - Constraint holds and binds for exactly 4 periods.
+    - Constraint holds and binds for exactly 5 periods.
     - Regime transitions smoothly from constrained (1) to reference (0).
     - Nominal rate never drops below the floor (-r_ss).
     """
@@ -152,28 +162,35 @@ def test_occbin_large_negative_demand_shock_hitting_zlb(nk_model_setup):
     res = solve_occbin(ref, cons, constraint, shock_sequence=shock_seq, horizon=horizon)
 
     assert res.converged is True
-    assert res.binding_periods == 4
-    assert res.regimes[:4] == [1, 1, 1, 1]
-    assert res.regimes[4:] == [0] * (horizon - 4)
+    n_bind = 5
+    assert res.binding_periods == n_bind
+    assert res.regimes[:n_bind] == [1] * n_bind
+    assert res.regimes[n_bind:] == [0] * (horizon - n_bind)
+
+    # 0. The reference regime's impact response is the closed-form a*eps_g
+    p = params
+    a = 1.0 / ((1 - p["rho_g"]) + p["phi_y"] / p["sigma"]
+               + (p["phi_pi"] - p["rho_g"]) * p["kappa"] / ((1 - p["beta"] * p["rho_g"]) * p["sigma"]))
+    np.testing.assert_allclose(ref.decision_rules().ghu.loc["y", "eps_g"], a, rtol=1e-10)
 
     # 1. Rate never drops below floor
     r_path = res.simulated_path["r"]
     assert np.all(r_path.values >= -params["r_ss"] - 1e-12), "r dropped below ZLB floor"
 
-    # 2. Rate is clamped at floor for exactly 4 periods
-    np.testing.assert_allclose(r_path.iloc[:4].values, -params["r_ss"], atol=1e-10)
+    # 2. Rate is clamped at floor for exactly n_bind periods
+    np.testing.assert_allclose(r_path.iloc[:n_bind].values, -params["r_ss"], atol=1e-10)
 
-    # 3. Rate smoothly lifts off above floor at t=5 (index 4)
-    assert r_path.iloc[4] > -params["r_ss"] + 1e-5
-    assert r_path.iloc[5] > r_path.iloc[4]  # returning toward steady state
+    # 3. Rate smoothly lifts off above floor at the first unconstrained period
+    assert r_path.iloc[n_bind] > -params["r_ss"] + 1e-5
+    assert r_path.iloc[n_bind + 1] > r_path.iloc[n_bind]  # returning toward steady state
 
     # 4. Shadow rate verification
     assert res.shadow_path is not None
     shadow_r = res.shadow_path["r_shadow"]
     # Shadow rate is below floor during binding spell
-    assert np.all(shadow_r.iloc[:4] < -params["r_ss"])
+    assert np.all(shadow_r.iloc[:n_bind] < -params["r_ss"])
     # Shadow rate lifts above floor at lift-off
-    assert shadow_r.iloc[4] >= -params["r_ss"]
+    assert shadow_r.iloc[n_bind] >= -params["r_ss"]
 
 
 def test_occbin_monotonicity_adversarial(nk_model_setup):
@@ -214,8 +231,9 @@ def test_occbin_callable_constrained_model(nk_model_setup):
     res = solve_occbin(ref, cons_fn, constraint, shock_sequence=shock_seq, horizon=40)
 
     assert res.converged is True
-    assert res.binding_periods == 4
-    np.testing.assert_allclose(res.simulated_path["r"].iloc[:4].values, -params["r_ss"], atol=1e-10)
+    # 5 periods with the corrected reference rule (see test 2 above)
+    assert res.binding_periods == 5
+    np.testing.assert_allclose(res.simulated_path["r"].iloc[:5].values, -params["r_ss"], atol=1e-10)
 
 
 def test_occbin_reports_and_plotting(nk_model_setup):
@@ -255,7 +273,7 @@ def test_occbin_reports_and_plotting(nk_model_setup):
     summary_str = res.summary()
     assert isinstance(summary_str, str)
     assert "OCCASIONALLY BINDING CONSTRAINTS REPORT" in summary_str
-    assert "Binding duration   : 4 period(s)" in summary_str
+    assert "Binding duration   : 5 period(s)" in summary_str
     assert "Algorithm status   : Converged" in summary_str
 
     # 6. plot publication style

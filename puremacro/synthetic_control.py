@@ -12,7 +12,10 @@ Donor weights w solve
 where ``V`` is a diagonal weighting of predictors. The default V is the
 identity (Abadie 2010 unweighted version). Inference is via in-space
 placebo distribution: re-run the SCM treating each donor as the
-"placebo treated" unit and rank the post-treatment treatment effects.
+"placebo treated" unit — with the actually-treated unit **excluded**
+from every placebo's donor pool, so its post-treatment outcomes never
+leak into a placebo synthetic — and rank the post-treatment treatment
+effects.
 
 References
 ----------
@@ -48,8 +51,9 @@ class SyntheticControlResult:
     treatment_effect : pd.Series
         Treated minus synthetic over the post-treatment period.
     placebo_gaps : pd.DataFrame | None
-        Per-donor placebo treatment-effect paths (one column per donor),
-        or ``None`` when ``placebo=False``.
+        Per-donor placebo treatment-effect paths (one column per donor;
+        each placebo is built from the *other donors only*, never from
+        the treated unit), or ``None`` when ``placebo=False``.
     """
 
     weights: pd.Series
@@ -71,6 +75,42 @@ class SyntheticControlResult:
             f"  placebo distribution      : "
             f"{'present (%d donors)' % len(self.placebo_gaps.columns) if self.placebo_gaps is not None else 'not computed'}\n"
         )
+
+    def to_frame(self) -> pd.DataFrame:
+        """Actual, synthetic and gap paths as a table indexed by period.
+
+        Columns ``[period, actual, synthetic, gap]``; ``gap`` is
+        ``actual − synthetic`` for every period — over the pre-period it
+        is the match error (not a treatment effect), over the post-period
+        it equals ``treatment_effect``.
+        """
+        gap = self.actual.values - self.synthetic.values
+        return pd.DataFrame({
+            "period": list(self.actual.index),
+            "actual": self.actual.values,
+            "synthetic": self.synthetic.values,
+            "gap": gap,
+        })
+
+    def weights_frame(self) -> pd.DataFrame:
+        """Donor weights as a two-column table ``[donor, weight]``."""
+        return pd.DataFrame({"donor": list(self.weights.index),
+                             "weight": self.weights.values})
+
+    def to_markdown(self, **kwargs) -> str:
+        """Export the actual / synthetic / gap table to Markdown."""
+        from puremacro.reports import _df_to_markdown
+        return _df_to_markdown(self.to_frame(), index=False, **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        """Export the actual / synthetic / gap table to a LaTeX ``tabular``."""
+        from puremacro.reports import _df_to_latex
+        return _df_to_latex(self.to_frame(), index=False, **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        """Export the actual / synthetic / gap table to a Typst ``#table``."""
+        from puremacro.reports import _df_to_typst
+        return _df_to_typst(self.to_frame(), index=False, **kwargs)
 
     def plot(self, *, title: str = "", ax=None):
         """Plot actual vs synthetic outcome trajectories.
@@ -145,7 +185,9 @@ def synthetic_control(
         pre-treatment covariates to match on (concatenated to the
         outcome match; one row per predictor, columns matching Y).
     placebo : if True, run the same SCM treating each donor as a
-        placebo treated unit.
+        placebo treated unit. The treated unit is excluded from every
+        placebo's donor pool (its post-treatment outcomes carry the
+        effect under test and must not enter a placebo synthetic).
 
     Returns
     -------
@@ -189,7 +231,12 @@ def synthetic_control(
     if placebo:
         gaps = {}
         for placebo_unit in donors:
-            pl_donors = [c for c in Y.columns if c != placebo_unit]
+            # Placebo pool = the other donors. The treated unit is never a
+            # donor for a placebo: its post-period outcomes embed the
+            # treatment effect and would contaminate the placebo gap.
+            pl_donors = [c for c in donors if c != placebo_unit]
+            if not pl_donors:
+                continue
             Y_pre_p = Y_pre[placebo_unit].values.astype(float)
             X_p = Y_pre[pl_donors].values.astype(float)
             if predictors is not None:

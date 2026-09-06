@@ -15,6 +15,57 @@ from scipy.stats import norm
 from .._linalg import inv_xtx
 
 
+def as_panel_index(
+    df_wide: pd.DataFrame,
+    *,
+    entity_level: str,
+    time_level: str,
+    unit_col: str | None = None,
+    time_col: str | None = None,
+    func: str = "panel_lp",
+) -> tuple[pd.DataFrame, str, str]:
+    """Normalise panel input to a ``(entity, time)`` MultiIndex frame.
+
+    Accepts either a frame already indexed by ``(entity, time)`` (the
+    level *names* are taken from ``entity_level`` / ``time_level``) or,
+    when ``unit_col`` / ``time_col`` are given, a **long-form** frame whose
+    entity and time identifiers are ordinary columns: those columns become
+    the index and their names replace ``entity_level`` / ``time_level``.
+    If ``unit_col`` / ``time_col`` already name levels of a MultiIndex they
+    are used as such (re-ordered to entity-first if needed).
+
+    Returns ``(frame, entity_level, time_level)``.
+    """
+    df = df_wide
+    if unit_col is not None or time_col is not None:
+        if unit_col is None or time_col is None:
+            raise ValueError(f"{func}: pass both unit_col and time_col (got one of them)")
+        names = list(df.index.names) if isinstance(df.index, pd.MultiIndex) else []
+        if unit_col in df.columns and time_col in df.columns:
+            df = df.set_index([unit_col, time_col])
+        elif unit_col in names and time_col in names:
+            if names[:2] != [unit_col, time_col]:
+                df = df.reorder_levels([unit_col, time_col])
+        else:
+            raise ValueError(
+                f"{func}: unit_col={unit_col!r} and time_col={time_col!r} must both be "
+                f"columns of the frame (long form) or levels of its MultiIndex; "
+                f"columns are {list(df.columns)}, index levels are {names}")
+        entity_level, time_level = unit_col, time_col
+    elif isinstance(df.index, pd.MultiIndex) and df.index.nlevels == 2:
+        names = list(df.index.names)
+        if names == [time_level, entity_level] and entity_level != time_level:
+            df = df.reorder_levels([entity_level, time_level])
+    elif entity_level in df.columns and time_level in df.columns:
+        # Long-form frame whose identifier columns carry the level names.
+        df = df.set_index([entity_level, time_level])
+    if not isinstance(df.index, pd.MultiIndex) or df.index.nlevels < 2:
+        raise ValueError(
+            f"{func}: the panel needs a two-level (entity, time) MultiIndex; for a "
+            "long-form frame pass unit_col=<entity column>, time_col=<time column>")
+    return df, entity_level, time_level
+
+
 def two_way_fe_within(
     df_wide: pd.DataFrame,
     *,
@@ -229,6 +280,7 @@ def panel_lp_horizon_loop(
     res.y_name = str(y)
     res.x_name = str(x)
     res.method = "panel_lp"
+    res.ci_level = 1.0 - alpha
     return res
 
 

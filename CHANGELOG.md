@@ -2,6 +2,110 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## 2.3.1 (2026-09-05)
+
+Correctness release following a full audit of 2.3.0: every subsystem was exercised against its documentation and known-answer checks, and the defects below were fixed. No new runtime dependencies. Public signatures changed only where the old behaviour was wrong (listed under "Changed").
+
+### Fixed — DSGE engine (`dsge.build_dynare`, `dsge.load_mod`, `puremacro-dynare`)
+- Leads of state variables (`z(+1)` in an RBC Euler equation, `E_t C_{t+1}` in Gertler-Karadi, most of Smets-Wouters) were silently dropped from the Klein system. The engine now solves the stacked lead/lag system, so the first-order rules match closed forms (Brock-Mirman, exact to 1e-13) and are identical whether `E_t z_{t+1}` is written with a lead or substituted analytically.
+- Control rows of `oo_dr` / `decision_rules()` were shifted one period (`F G` instead of `F`); `theoretical_moments()`, `irf()` and `stoch_simul()` now agree with the model's own long simulation and with a Lyapunov equation in Dynare timing.
+- Second-order solutions are correct: every curvature and risk term vanishes for an exactly log-linear model and matches the closed form in levels.
+- A Blanchard-Kahn violation now raises `BlanchardKahnError` (or, with `strict=False`, returns a flagged model whose reporting methods raise) instead of returning zero decision rules; `compute_fevd` no longer pads zero-variance rows with `1/n`; the CLI prints the true BK status. Pfeifer's `sw07_pfeifer.mod` ships as package data, solves as a determinate model with genuine IRFs, and notebook 41 resolves it from the package.
+- The `.mod` `shocks; ... stderr` block is honoured by `stoch_simul`, `theoretical_moments`, `irf` and `simulate`; `stoch_simul(order=2, sigma=<Mapping>)` no longer replaces the mapping with `1.0`; `parse_mod` keeps `stoch_simul(order=2) y c k;` options; `verify_derivatives` is used.
+- Added `LinearModel.solve(order=1|2)`; `docs/dsge_build.md` (EN/ES) OccBin, perfect-foresight, Bayesian and shock-decomposition examples now use the real signatures and run.
+
+### Fixed — Gertler-Karadi (2011) (`dsge.gertler_karadi`)
+- With the corrected engine the Klein solution satisfies the model's full lead/lag Jacobians (residual ~1e-14): the -5% capital-quality shock now produces the documented persistent slump (output below steady state for the whole horizon, investment trough about -15%) instead of a spurious boom, and a TFP shock raises output on impact. OccBin with identical regimes reproduces the Klein path (4e-10) and the regime path satisfies the regime equations every period.
+- The OccBin alternative regime is built with `strict=False` (it need not be determinate on its own); non-convergence sets `converged=False`, warns and is flagged in `summary()`; `beta >= 1`, invalid `theta_b` and `horizon <= 0` raise `ValueError`; `plot()` with no matching variable raises instead of `ZeroDivisionError`; the docs' usage block runs (uppercase column names, spread already in bps).
+
+### Fixed — Narrative sign restrictions (`var.identify.identify_narrative_sign`)
+- Integer restriction dates are always row indices into `Y` (they were re-interpreted as `pd.Timestamp(int)` and silently remapped to 1970 when `dates=` was given); Timestamp/ISO dates map to the same row; a DataFrame `DatetimeIndex`/`PeriodIndex` is used as `dates` automatically; the non-exact fallback follows the index frequency instead of quarter-remapping on a monthly index.
+- `irf(h)` / `fevd(h)` beyond the estimated horizon are weighted medians across the accepted draws (`accepted_B`, `accepted_A` stored), not a single draw; `historical_decomposition()` defaults `init_y` to the first `p` observations so the identity holds; with `bayes_draws=True` the result carries the representative draw's own `A_list`/`residuals`/`Sigma`, unstable posterior draws are skipped and counted (`n_unstable_draws`) and an all-unstable posterior raises.
+- Removed the `**kwargs` sink (unknown keywords raise `TypeError`), added the `lags` alias, `ValueError` on conflicting `horizon`/`horizons`, `ci` validated in (0, 1), `sign_matrix=None` equals omitting it, `shock_bound` restrictions are unsigned by default, and `RuntimeWarning`s when few draws survive, the Kish ESS is below 10% or the omega floor binds. `_IRFPlotMixin.plot(target_idx=None)` draws multi-panel figures.
+- Correction to the 2.3.0 notes: the AD-RR "Volcker 1979Q4" test pins a regression snapshot of `puremacro.examples.narrative_sign_adrr.run_demo()` on synthetic data; it does not compare against published values.
+
+### Fixed — Honest DiD (`did.honest_did`)
+- The restriction sets are now exactly Rambachan & Roth's: `Delta^SD(M)` constrains every consecutive second difference including the triples through the reference period and the pre-treatment ones (the old code anchored post periods on an OLS pre-trend slope), and the default relative-magnitude set is in first differences (`Delta^RM(Mbar)`; the level bound is available as `bound="levels"`).
+- Confidence sets are fixed-length confidence intervals (Armstrong-Kolesar / RR) built from the full covariance matrix, so sampling uncertainty in the pre-period coefficients is accounted for: Monte Carlo coverage is 95% at nominal 95% on every audited design (it was 76-91%). RR's conditional/hybrid procedures are not implemented and the docs say so.
+- Integer `pre_periods` no longer drops the last pre-treatment coefficient; `breakdown_value` searches both confidence-interval ends (it returned `inf` while the table flipped); `honest_did_sensitivity` honours `alpha`; unknown keywords, invalid `bound=`, a wrong-shape `sigma` and a call without event times raise instead of guessing; an infeasible restriction is reported rather than replaced by the point estimate.
+
+### Fixed — Smooth local projections (`lp.smooth_lp`)
+- Fixed (lp.smooth_lp): array input now follows the lp_hac convention -- `smooth_lp(y_array, x_array)` treats the first array as the response and the second as the shock (previously the shock was regressed on itself); mixed inputs `smooth_lp(df, 'y', x_array)` and array/DataFrame `controls` with a DataFrame now work; ambiguous or missing arrays raise a clear ValueError; `y_name`/`x_name` are short names (Series names when available).
+- Fixed (lp.smooth_lp): `gls=True` with `selection='cv'` now evaluates the same penalized GLS estimator inside the folds (the old inner solve mixed the GLS left-hand side with the OLS right-hand side and pinned lambda at the grid maximum).
+- Changed (lp.smooth_lp): `lam` / `res.optimal_lambda` are now the lambda of the documented stacked objective ||Y - X theta||^2 + lambda theta'P theta (previously the effective penalty was lambda times the sum of squared residualized shocks); the automatic grid is `logspace(-5, 5, 50) * mean_h(x~_h'x~_h)` and is exposed as `res.lambda_grid`. A fixed `lam` from earlier versions must be multiplied by roughly T*var(x~) to reproduce the same smoothing.
+- Changed (lp.smooth_lp): each horizon now uses its own sample t + h <= T (Barnichon-Brownlees), so short horizons no longer discard the last H observations; `lam=0` with a saturated basis reproduces `lp_hac` exactly. `gls=True` keeps the common balanced sample (needed to estimate Omega); `res.n_obs` and `res.sample` report the samples used.
+- Changed (lp.smooth_lp): `n_knots` is the number of *interior* knots (basis size `n_knots + degree + 1`); requests above the cap (basis size <= number of horizons) are reduced with a UserWarning and `res.n_knots` holds the effective value.
+- Added (lp.smooth_lp): `SmoothLPResult` (subclass of `LPResult`) whose `summary()` reports the selected lambda, effective degrees of freedom, basis, inference method and samples; all estimation metadata (`optimal_lambda`, `df_lambda`, `theta`, `vcov`, `vcov_theta`, `B`, `P`, `lambda_grid`, `n_knots`, `n_basis`, `degree`, `penalty_order`, `gls`, `n_obs`) survive `.copy()`, slicing and column selection; `res.selection_criterion` is `'fixed'` when `lam` is a number.
+- Fixed (lp.smooth_lp): input validation -- unknown `ci_type` or `selection` (also with a fixed `lam`) raise ValueError, `lam='AUTO'` is accepted case-insensitively, negative/NaN `lam` and `horizons=0` raise clean errors.
+- Docs (smooth_lp, EN/ES): quickstart reads `res.optimal_lambda`; the Result Interface lists the real columns/attributes; the API block is a text signature; new section on calling conventions; `lp_smooth_demo` now uses GCV as its docstring states.
+
+### Fixed — Non-linear sequence-space HANK (`models.hank_sequence_space`)
+- `fake_news_algorithm` no longer fabricates its inputs: the household block is back-iterated for one-period shocks to build the policy and distribution responses, so the Jacobians are the genuine Auclert-Bardóczy-Rognlie-Straub ones; `linear_path`, `jacobian_c_r`/`jacobian_c_y` and the Broyden starting Jacobian are built from them, and the non-linear path converges to the linear one as the shock shrinks.
+- With the documented defaults (`horizon=300`, `max_iter=100`, `tol=1e-6`) shocks of ±500 bp converge in a handful of iterations (they failed at 200 bp and returned a -200%-of-GDP path silently); the steady state is an exact fixed point (a zero shock takes zero iterations); backtracking enforces norm contraction; parameter overrides re-solve the steady state.
+- `simulate_targeted_transfer` takes `ss_model=` (or the four household arrays), `target=` as a group name or a list of wealth deciles defined by cumulative mass, and derives the dynamic path and multiplier from the household block (the unused `beta` argument was removed); the docs' 2.2.0 examples use the real signatures.
+
+### Fixed — BVAR with stochastic volatility (`var.bvar_sv`)
+- Fixed: the phi Metropolis-Hastings acceptance ratio had the h_1 stationary-density term with the wrong sign, biasing volatility persistence downward.
+- Changed: `n_draws` is retained per chain (pooled draws = `n_chains * n_draws`, exposed as `n_total_draws`); arguments are validated (`n_draws >= 2`, `thin >= 1`, `n_chains >= 1`, finite data, `T - lags > 1 + n*lags`); stability rejections are counted (`n_stuck_iterations`, `n_unstable_rejections`) and warned about; `rhat`, `max_rhat`, `log_score()` aliases added; `BVAR_SV_IRF.to_frame` filters on a single index; `intercept_prior_std` honoured with `minnesota_prior=False`.
+- Correction to the 2.3.0 notes: the VAR coefficients are drawn from the exact joint (nk × nk) GLS conditional, not the Carriero-Clark-Marcellino triangular sampler; fan charts are provided by the new `forecast()` / `BVAR_SVForecast.plot()`.
+
+### Fixed — VAR / SVAR
+- `proxy()`: the wild bootstrap now re-signs the instrument with the same Rademacher weights as the residuals (Mertens-Ravn), so bands bracket the point estimate instead of being centred on zero.
+- `cholesky(ordering=..., n_boot=0)` returns IRFs in the caller's variable order; `VarEstimateResult.plot()` returns a figure; `bq(n_boot=0)` returns the point estimate; `identify_maxshare` completes the impact matrix as `chol(Sigma) Q` (so `B B' = Sigma` and FEVD shares are correctly normalised), aligns bootstrap draws in sign with the point estimate, and validates `max_fev_at`.
+- `cholesky_svar` and `bq_svar` are exported from `puremacro.var.identify` (the names the docs use); `to_frame`/`to_markdown`/`to_latex`/`to_typst` work on `MaxShareResult`, `NonGaussianSVARResult`, `PanelSVARResult`, `GKRobustBandsResult`, `HeteroResult` and `SignZeroResult`.
+
+### Fixed — Local projections
+- lp: `lp_state_dep` accepts the 2.0 keyword aliases `lags`/`horizon`/`ci` and `state_var=` (alias of `state=`); `lp_did` accepts `lags` (lagged outcome changes Δy_{i,t-k} as controls, DGJT's dylags), `horizon` and `ci`. Every `puremacro.lp` estimator now validates `ci`/`alpha` in (0, 1) and `horizon`/`lags` as non-negative integers (`ci=90` or `alpha=1.5` raise `ValueError` instead of returning NaN bands).
+- lp: **behaviour change** — `threshold` in `lp_state_dep`, `lp_state_dep_iv` and `lp_garch_state` is the cutoff on the raw scale of the state variable (`threshold=6.5` on an unemployment rate means 6.5 %) for both transitions; the default is now `None` = sample mean of the state (the previous standardised-zero behaviour). Under `transition='logistic'` the cutoff was previously ignored, and under `'threshold'` it was compared to the standardised state; `lp_state_dep_iv` dropped its in-range/standardised heuristic. `gamma` is the logistic speed in standard deviations of the state. A cutoff that leaves every observation in one regime raises a clear `ValueError` (was `LinAlgError: X'X is singular`). Both estimators now return an `LPResult` indexed by `h` with `y_name`/`x_name`/`method`.
+- lp: `LPResult` presentation works for regime/sign results (`beta_H`/`beta_L`, `beta_pos`/`beta_neg`): `.plot()` draws one line and band per regime (one line per quantile for `lp_quantile`), `.point`/`.se`/`.ci_lower`/`.ci_upper`/`.t_stat` return a DataFrame with one column per label (new `.labels`), `summary()` renders the columns actually present with significance flags (`***`/`**`/`*`; `*` = band excludes 0 for band-only estimators) and the band level; `lp_quantile` `.se`/`.t_stat` return NaN arrays instead of an empty array / `ValueError`.
+- lp: panel estimators (`panel_lp`, `panel_lp_dk`, `panel_lp_iv`, `mean_group_panel_lp`, `cce_panel_lp`) accept long-form frames via `unit_col=`/`time_col=` (or `entity_level`/`time_level` naming columns); reversed `(time, entity)` level order is reordered. `panel_lp` gained `cov_type='driscoll-kraay'` (identical to `panel_lp_dk`).
+- docs: `docs/lp.md` and `docs/es/lp.md` run verbatim top-to-bottom (illustrative columns defined, `lp_state_dep` example uses `state=`/`beta_H` and a raw-scale threshold, panel example builds a long-form `panel_df`); the alias table states the exact per-estimator defaults.
+
+### Fixed — Difference-in-differences
+- Fixed: `sdid_multi_cohort` used not-yet-treated donors after their own adoption date, biasing cohort ATTs (e.g. -1.56 vs truth 1.0 on a two-cohort panel). Each cohort's donor pool is now untreated throughout its SDID window; new `control="auto"|"never_treated"|"not_yet_treated"` selects never-treated donors over the full panel or not-yet-treated donors with the window truncated at their earliest switch.
+- Fixed: `borusyak_jaravel_spiess` silently imputed `lambda_t = 0` / `alpha_i = 0` for periods or units without untreated observations (all-treated panels). It now raises a `ValueError` naming them; `unidentified="drop"` warns and excludes those cells from every aggregate. Also accepts `ci=`.
+- Fixed: `synthetic_did` omitted the intercepts of Arkhangelsky et al. (2021) in the omega/lambda problems and was not invariant to additive unit/time level shifts; it now profiles out the intercepts, uses the paper's ridge (`zeta_omega = (N_tr T_post)^{1/4} sigma`, `zeta_lambda = 1e-6 sigma`, period-demeaned first differences), raises on unbalanced panels (naming the missing cells) and duplicate cells, accepts `ci=`, and stores `y_treated` / `y_synthetic` for `.plot()`.
+- Fixed: `synthetic_control` in-space placebos now exclude the treated unit from every placebo's donor pool (its post-treatment outcomes leaked into placebo synthetics).
+- Added: `to_frame` / `to_markdown` / `to_latex` / `to_typst` / `plot` on `CdHResult`, `SDIDMultiResult` and `SyntheticControlResult`, `plot` on `SyntheticDiDResult`; CS / SA / BJS exporters no longer emit a positional index column (`index=True` opts back in).
+- Added: `callaway_santanna` and `sun_abraham` accept `control_group=` as an alias of `control=`.
+- Docs: `docs/did.md` / `docs/es/did.md` rewritten with self-contained runnable blocks, the real APIs (`control=`, `treat_time=`, four-array `sdid_multi_cohort` / `cdh_did`), a CdH section and accurate `att_overall` descriptions.
+
+### Fixed — Nowcasting and forecasting
+- nowcast_gdp: EM imputation now uses the rank-k reconstruction U_k S_k V_k' (loadings scaled V_k S_k/sqrt(T)); ragged-edge factors are no longer shrunk toward the mean (last-row factor slope 0.99 vs 0.27; nowcast RMSE 0.20 vs 0.49 with 2/10 series published).
+- nowcast_gdp: p_factor_lags now fits a factor VAR(p) that fills all-NaN months and completes the target quarter to three months; NowcastResult gains factor_forecast, bridge_coefficients and factor_var; appending all-NaN rows is equivalent to truncating the frame.
+- nowcast_gdp: quarterly_gdp is aligned by quarter label for PeriodIndex, DatetimeIndex and string indexes (PeriodIndex no longer crashes); fewer than four matching labels raises ValueError instead of a silent positional fallback; news weight is beta'(Lambda'Lambda)^-1 Lambda_i/(3 sigma_i); summary() no longer claims annualisation; zero-variance GDP reports model_r2 = 0.0.
+- mf_var: quarter_end_offset is implemented (0 = first month, 1 = middle, 2 = last; other values raise) so the aggregation constraint binds the months of the quarter the value belongs to.
+- kalman_dfm returns KalmanDFMResult, a dict subclass with summary(), to_frame(), to_markdown(), to_latex(), to_typst(), plot() and new keys loglik and n_missing.
+- combine_forecasts(rolling=n): weights for period t are built from the n errors strictly before t (no look-ahead); rolling < 1 and mismatched errors shapes raise ValueError.
+- forecast_penalized: alpha is validated in [0, 1]; alpha=0 is a genuine ridge (closed-form SVD path, eigenvalue-anchored lambda grid, hat-matrix trace as BIC df); X/y length mismatch raises a clear ValueError; PenalizedForecastResult gains to_frame/to_markdown/to_latex/to_typst/plot.
+- midas: u_midas raises ValueError when n_low_lags >= n_low; the module docstring states the midpoint Beta kernel grid (k-0.5)/K that is implemented; UMidasResult, BetaMidasResult and GarchMidasResult gain to_frame/to_markdown/to_latex/to_typst/plot.
+- state_space: the module docstring no longer claims 3-D time-varying system matrices; StateSpaceModel validates 2-D shapes and raises a clear ValueError.
+- docs: nowcast.md, forecast.md and their Spanish twins rewritten to the implemented behaviour with self-contained, verbatim-runnable code blocks.
+
+### Fixed — GARCH and inference
+- Fixed: `garch.garch11_fit` now standardises the series internally (unit variance) and polishes the L-BFGS-B point with Nelder-Mead, so the fit is the maximum of its own likelihood whatever the units of the input (decimal daily returns previously stopped up to 31 log-lik units short with `converged=True`, one seed in twenty returned the starting values); estimates are scale-equivariant and unit-scale results move by < 1e-5. The recursion runs through `scipy.signal.lfilter` (~5x faster fits).
+- Fixed: `garch.garch11_fit` raises `ValueError` on NaN/inf input and on `mean` values other than 'zero'/'constant' (both were silently accepted); `garch.dcc_fit` accepts a `(T, n)` ndarray and rejects NaN input.
+- Fixed: `inference.cragg_donald_f` is now the Stock-Yogo (2005) statistic `min eig(Sigma_VV^{-1/2} X'P_Z X Sigma_VV^{-1/2}) / l` with the first-stage residual covariance matrix and division by the number of instruments; over-identified designs previously returned exactly `l` times the first-stage F. New optional `W=` for included exogenous regressors.
+- Changed: `inference.hansen_j` computes the heteroskedasticity-robust Hansen J (two-step GMM with the HC0 weight matrix, as `ivreg2 gmm2s robust` / `linearmodels.IVGMM`); the previous homoskedastic Sargan `T*R^2` is available as `hansen_j(..., robust=False)`.
+- Fixed: `inference.lewbel_iv` builds Lewbel (2012) instruments `(Z - Zbar) * nu_hat` with `Z` centred rather than residualised on `X_exog`, so the textbook case where the heteroskedasticity source is a subset of (or equal to) `X_exog` works; constant columns are dropped instead of crashing the first stage.
+- Fixed: `inference.block_bootstrap` raises a named `ValueError` when `block_length` is outside `[1, T]`; docstring no longer claims residuals are re-centred.
+- Added: `to_frame`/`to_markdown`/`to_latex`/`to_typst`/`plot` on `GARCH11Result`, `DCCResult` (plus `correlations()`), `ARTestResult`, `SupTBandResult` and `LewbelIVResult`.
+- Docs: `realized_vol.har_rv` docstring now lists the returned keys (`intercept`, not `beta_0`) and the actual bandwidth rule `floor(4 ((T-22)/100)^(2/9))`; `regress.lp_panel` deprecation notice no longer says 'removed in 2.0.0'; VALIDATION.md Kleibergen-Paap note corrected; `inference.newey_west` is a re-export of `inference.hac`.
+
+### Fixed — Climate (`climate.simulate_dice_model`)
+- The temperature recursion used `c1 * dt` (5× DICE-2016R's per-step coefficient) and went negative or exploded for low climate sensitivity or 10-year steps; the DICE constants are now used per step and other step lengths sample the 5-year operators via a matrix fractional power. The carbon cycle conserves mass (it destroyed 17 GtC per step); capital accumulation is on one time basis.
+- `social_cost_of_carbon` is a genuine marginal-damage SCC (perturbed emissions path, Ramsey discounting with `discount_rate` and `elasticity_marginal_utility`), no longer the input tax marked up; `DICEResult` implements `to_frame`/`to_markdown`/`to_latex`/`to_typst`/`plot`; inputs are validated; `docs/climate.md` (EN/ES) rewritten around the corrected model.
+
+### Fixed — Reporting and runtime
+- LaTeX exporters escape every special character (a `lo_95%` header no longer comments out the row terminator); Typst exporters escape markup characters; floats are printed to at most six decimals and an unnamed `RangeIndex` is not rendered as a column; `IRFResult.to_latex`/`to_typst` accept `digits`.
+- `runtime.colab`: the export cell imports pandas; `data_payloads` embed DataFrames losslessly (parquet, index preserved) and reject unsupported values; `load_colab_result` reads genuine `pocket` cartridges; `show_colab_offload_dialog` prints the text guide outside a Jupyter kernel. `pocket.load` raises `CartridgeError` on a corrupted frame; `longrun.bootstrap` checkpoints are fingerprinted with the draw function's code, so a different bootstrap cannot resume another job's checkpoint.
+
+### Docs
+- README, quickstarts and the six 2.3 feature pages (EN/ES) run verbatim and are now covered by `tests/test_docs_code_blocks.py`; `docs/var.md`, `docs/lp.md`, `docs/did.md`, `docs/reporting.md`, `docs/tablet.md`, `docs/nowcast.md`, `docs/forecast.md`, `docs/dsge_build.md` and their Spanish twins were corrected to the real signatures; README and `docs/index.md` list the six 2.3 features; `notebooks/README.md` and the examples catalog list the files that exist.
+
+### Internal
+- mypy is clean again across the package (18 annotation errors in the 2.3.0 modules); the public API snapshot was regenerated for the new members and validated signatures.
+
 ## 2.3.0 (2026-09-05)
 
 ### Frontier Macroeconometrics & Quantitative Macro
@@ -10,7 +114,7 @@ This release introduces six major empirical econometrics and quantitative macroe
 - **Narrative Sign Restrictions in SVAR (`puremacro.var.identify.identify_narrative_sign`)**:
   - Implements Antolín-Díaz & Rubio-Ramírez (AER 2018) conditional rotation filtering.
   - Supports historical date shock signs $\text{sign}(\varepsilon_{i, t^*}) = s$ and shock contribution dominance $|\varepsilon_{i, t^*} \cdot H_{j, i}| > \sum_{k \neq i} |\varepsilon_{k, t^*} \cdot H_{j, k}|$.
-  - Replicates canonical 1979Q4 Volcker monetary shock within 5% tolerance against published benchmarks.
+  - Ships a synthetic-data Volcker 1979Q4 demo (`puremacro.examples.narrative_sign_adrr`); `tests/test_replication_adrr2018.py` pins a regression snapshot of that demo, not published values. [corrected in 2.3.1]
   - Returns `NarrativeSignResult` with acceptance diagnostics, IRFs, FEVD, historical shock decomposition, and publication plotting.
 - **Honest DiD Sensitivity Bounds (`puremacro.did.honest_did`)**:
   - Implements Rambachan & Roth (REStud 2023) post-treatment sensitivity bounds $\Delta^{SD}(M)$ and $\Delta^{RM}(\bar{M})$ for staggered Difference-in-Differences.
@@ -25,16 +129,16 @@ This release introduces six major empirical econometrics and quantitative macroe
   - Implements Auclert, Bardóczy, Rognlie, and Straub (Econometrica 2021) sequence-space general equilibrium simulation for large MIT shocks.
   - Solves the sequence of market-clearing conditions $\mathbf{H}(\mathbf{U}, \mathbf{Z}) = 0$ over horizon $T$ via Broyden's method with Sherman-Morrison rank-1 updates.
   - Machine-precision convergence ($\|H\|_\infty < 10^{-6}$) in $< 3$ seconds in pure Python.
-  - Returns `NonlinearTransitionResult` with comparative non-linear vs linearized transition paths.
+  - Returns `NonlinearHANKResult` with comparative non-linear vs linearized transition paths. [name corrected in 2.3.1]
 - **Gertler-Karadi (2011) DSGE with Banking Frictions (`puremacro.dsge.gertler_karadi`)**:
   - Implements the canonical macro-banking model of Gertler & Karadi (JME 2011) with bank moral hazard and endogenous leverage constraints.
   - Solvable via Klein (2000) linear perturbation and piecewise-linear OccBin for occasionally binding leverage constraints and credit spread spikes.
   - Returns `GertlerKaradiResult` with steady-state checks, decision rules, and simulation paths.
 - **Bayesian VAR with Stochastic Volatility (`puremacro.var.bvar_sv`)**:
   - Implements BVAR with time-varying residual covariance via pure NumPy/SciPy MCMC.
-  - Gibbs sampler combining Minnesota prior shrinkage with the 7-component Gaussian mixture sampler (Kim, Shephard & Chib 1998) and fast triangular sampling (Carriero, Clark & Marcellino 2016/2019).
+  - Gibbs sampler combining Minnesota prior shrinkage with the 7-component Gaussian mixture sampler (Kim, Shephard & Chib 1998), Carter-Kohn FFBS and an exact joint GLS draw of the VAR coefficients. [corrected in 2.3.1: the CCM triangular sampler is not used]
   - Evaluates split-$\hat{R}$ convergence diagnostics, volatility-conditioned IRFs, and predictive log-scores.
-  - Returns `BVAR_SVResult` with fan charts and posterior volatility paths.
+  - Returns `BVAR_SVResult` with posterior volatility paths and volatility-conditioned IRFs. [corrected in 2.3.1: fan charts arrived with `forecast()` in 2.3.1]
 - **Testing, Verification & Bilingual Documentation**:
   - 4-Tier E2E test suite (`tests/e2e/test_e2e_suite.py`) with 76 tests; full test suite (6,988 passed, 0 failed).
   - 12 new parallel user guides in English (`docs/*.md`) and Spanish (`docs/es/*.md`).
@@ -55,7 +159,7 @@ This release introduces the dedicated `puremacro-dynare` command-line tool, the 
   - `FiscalTransferResult`: Container with dynamic consumption IRFs, impact MPC, decile incidence tables, and dual-panel publication visualizations.
 - **Frontier Dynare Showcase Notebooks**:
   - `notebooks/41_dynare_frontier_showcase.py` / `.ipynb` (English) and `41_dynare_frontier_showcase_es.py` / `.ipynb` (Spanish) covering Smets-Wouters (2007) solve, FEVD, historical shock decomposition, OccBin ZLB, Ramsey non-linear perfect foresight, and Bayesian MCMC estimation.
-  - Synchronized with `playground/content/` for the JupyterLite browser playground.
+  - Lives under `notebooks/` (not `puremacro/examples/`); the tracked playground bundle does not include it. [corrected in 2.3.1]
 - **Engine Refinements**:
   - Added `.plot()` method to `StochSimulResult` for publication-ready multi-shock IRF grids.
   - Re-exported `load_dynare_mod` alias in `puremacro.dsge`.
@@ -79,7 +183,7 @@ This release introduces 4 major structural macroeconomic modeling capabilities w
   - `BayesianEstimationResult`: Full Bayesian MCMC estimation (mode-finding via L-BFGS-B / Nelder-Mead $\rightarrow$ Laplace approximation Hessian covariance $\rightarrow$ adaptive Random-Walk Metropolis-Hastings).
   - Split-$\hat{R}$ and Geweke convergence diagnostics; prior-posterior density plots (`.plot_priors_posteriors()`).
 - **Publication Formatter Extensions**:
-  - All new result objects support `.to_latex()`, `.to_typst()`, `.to_markdown()`, and `.plot(style="publication")`.
+  - The FEVD, shock-decomposition, OccBin and perfect-foresight results support `.to_latex()`, `.to_typst()`, `.to_markdown()` and `.plot()`; `BayesianEstimationResult` exposes `plot_posteriors()` / `plot_priors_posteriors()` instead of `.plot()`. [corrected in 2.3.1]
 
 ## 2.0.1 (2026-09-04)
 

@@ -47,6 +47,7 @@ perfectly. The browser can still make requests; it just does them in
 JavaScript. One call reroutes the whole existing fetch layer over that:
 
 ```python
+# requires: a Pyodide / browser kernel with network access
 from puremacro import runtime
 from puremacro.fetch import fetch_xrate_monthly
 
@@ -90,7 +91,15 @@ Above it sits **`puremacro.pocket`**: pack data where the network and pyarrow
 are, open it where they are not.
 
 ```python
+import numpy as np
+import pandas as pd
 from puremacro import pocket
+
+# A frame to ship (in practice: the panel you just fetched on the workstation)
+panel = pd.DataFrame(
+    {"USA": [1.0, 1.2, 1.1], "DEU": [0.8, 0.9, 1.0]},
+    index=pd.period_range("2025Q1", periods=3, freq="Q"),
+)
 
 # workstation, online
 pocket.pack(panel, "g7.pmz", source="OECD QNA", vintage="2026-08-19")
@@ -127,6 +136,14 @@ ordinary estimator call is one opaque block that either finishes or is lost.
 import numpy as np
 from puremacro import longrun
 
+rng = np.random.default_rng(0)
+Y = rng.standard_normal((120, 2))          # your VAR data
+
+def one_draw(i):
+    """One bootstrap replication: returns whatever you want the bands of."""
+    idx = np.random.default_rng(i).integers(0, len(Y), len(Y))
+    return Y[idx].mean(axis=0)
+
 job = longrun.bootstrap(one_draw, 2000, checkpoint="irf.ckpt")
 job.run(seconds=30)     # 240/2000 · 12% · ~220s of compute left
 job.run(seconds=30)     # ... and again, in a later session
@@ -147,6 +164,9 @@ the iPad can be finished on the workstation.
 ## 4. Compute is smaller
 
 ```python
+from puremacro import runtime
+from puremacro.var.identify import cholesky_svar
+
 runtime.fit(n_boot=2000)              # -> {'n_boot': 400} on a tablet
 svar = runtime.budgeted(cholesky_svar)  # clamps cost arguments of a call
 ```
@@ -162,10 +182,16 @@ being estimated, so it is deliberately left alone.
 When a simulation, bootstrap, or MCMC chain exceeds the memory or thermal envelope of an iPad, `puremacro.runtime` provides a bridge to export self-contained jobs to **Google Colab**:
 
 ```python
+import numpy as np
+import pandas as pd
 from puremacro.runtime import generate_colab_notebook, colab_auth_guide
 
 # Print step-by-step authentication instructions for mobile Safari / iPad
 print(colab_auth_guide())
+
+# The data the cloud run needs, embedded losslessly (index and dtypes preserved)
+panel_data = pd.DataFrame(np.random.default_rng(0).standard_normal((200, 6)),
+                          columns=[f"x{i}" for i in range(5)] + ["policy_rate"])
 
 # Heavy computation script
 heavy_code = """
@@ -173,13 +199,13 @@ import numpy as np
 from puremacro.var import favar
 
 # Runs 2,000 bootstrap draws on cloud CPUs
-res = favar(my_df, my_df["policy_rate"], n_factors=4, p=2, horizon=24, n_boot=2000)
-print(res.summary())
+result = favar(my_df, my_df["policy_rate"], n_factors=4, p=2, horizon=24, n_boot=2000)
+print(result.summary())
 """
 
 # Export a 1-click self-contained Colab notebook with embedded data
 generate_colab_notebook(
-    code=heavy_code,
+    heavy_code,
     data_payloads={"my_df": panel_data},
     title="FAVAR Heavy Bootstrap Run",
     save_path="favar_colab_run.ipynb",
@@ -198,6 +224,7 @@ generate_colab_notebook(
 the core without resolution and add what you need:
 
 ```python
+# requires: Pyodide (JupyterLite / juno.sh); `await` is only valid there
 import micropip
 await micropip.install("puremacro", deps=False)
 await micropip.install(["numpy", "scipy", "pandas", "matplotlib", "requests"])

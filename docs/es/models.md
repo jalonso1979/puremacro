@@ -83,8 +83,9 @@ from puremacro.models import simulate_targeted_transfer
 
 # Estímulo dirigido al 30% de hogares con menores tenencias de activos
 transfer_res = simulate_targeted_transfer(
-    transfer_amount=500.0,
-    target_deciles=[1, 2, 3],
+    ss_model=ss_res,          # solved steady state (distribution, policies, grid)
+    target=[1, 2, 3],         # wealth deciles 1-3 (poorest 30%)
+    amount=1.0,               # total outlay, in units of mean quarterly labour income
     T=30,
 )
 

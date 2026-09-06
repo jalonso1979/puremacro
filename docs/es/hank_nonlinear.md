@@ -141,7 +141,7 @@ print(f"Multiplicador de impacto (No lineal): {mult_nolineal:.3f}")
 
 ### `solve_nonlinear_transition`
 
-```python
+```text
 solve_nonlinear_transition(
     ss_model: SequenceSpaceHANKResult | Mapping[str, Any] | None = None,
     shock_seq: Sequence[float] | np.ndarray | None = None,

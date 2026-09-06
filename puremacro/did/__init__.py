@@ -17,9 +17,15 @@ The headline estimators in the post-2020 literature, all in one place:
 The CS / SA / BJS / SDID estimators take a long-format DataFrame with
 columns ``(unit, time, outcome, treat_time)`` where ``treat_time`` is
 the first-treatment period for a unit (NaN for never-treated controls).
+CS and SA select the comparison group with ``control=`` (``"never_treated"``
+or ``"not_yet_treated"``; ``control_group=`` is accepted as an alias).
 
 The CdH and multi-cohort SDID estimators take **four 1-D arrays**
 ``(y, treatment, panel_id, time_id)`` instead — see their docstrings.
+
+Every result dataclass exposes the same presentation contract:
+``summary()``, ``to_frame()``, ``to_markdown()``, ``to_latex()``,
+``to_typst()`` and ``plot()``.
 """
 
 from .types import PanelDiD

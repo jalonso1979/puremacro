@@ -6,15 +6,20 @@ create spurious unstable manifolds outside a narrow neighborhood of the steady
 state.
 
 The pruning algorithm of Kim, Kim, Schaumburg, and Sims (2008) decomposes the
-state vector into first-order and second-order components:
-    x_t = x_t^{(1)} + x_t^{(2)}
-    y_t = y_t^{(1)} + y_t^{(2)}
+state vector into first-order and second-order components. In Dynare's timing
+(``x_t`` is the state at the end of period ``t`` and responds to ``u_t``):
 
-where:
-    x_t^{(1)} = G x_{t-1}^{(1)} + N eps_t
-    x_t^{(2)} = G x_{t-1}^{(2)} + 0.5 * H_xx (x_{t-1}^{(1)} ⊗ x_{t-1}^{(1)}) + 0.5 * H_σσ σ^2
-    y_t^{(1)} = F x_t^{(1)} + L eps_t
-    y_t^{(2)} = F x_t^{(2)} + 0.5 * G_xx (x_t^{(1)} ⊗ x_t^{(1)}) + 0.5 * G_σσ σ^2
+    x_t^{(1)} = G x_{t-1}^{(1)} + N u_t
+    x_t^{(2)} = G x_{t-1}^{(2)} + 0.5 H_xx (x_{t-1}^{(1)} ⊗ x_{t-1}^{(1)})
+                + H_xu (x_{t-1}^{(1)} ⊗ u_t) + 0.5 H_uu (u_t ⊗ u_t) + 0.5 H_σσ σ²
+    y_t^{(1)} = F x_{t-1}^{(1)} + L u_t
+    y_t^{(2)} = F x_{t-1}^{(2)} + 0.5 G_xx (x_{t-1}^{(1)} ⊗ x_{t-1}^{(1)})
+                + G_xu (x_{t-1}^{(1)} ⊗ u_t) + 0.5 G_uu (u_t ⊗ u_t) + 0.5 G_σσ σ²
+
+i.e. states and controls are both rows of Dynare's rule
+``y_t = ys + 0.5 ghs2 + ghx x_{t-1} + ghu u_t + 0.5 ghxx (x⊗x) + ghxu (x⊗u)
++ 0.5 ghuu (u⊗u)``, with the quadratic terms evaluated on the first-order
+component only.
 
 Because the quadratic forcing term is evaluated strictly on the stationary
 first-order state x_t^{(1)}, the pruned simulation is unconditionally stable
@@ -35,13 +40,14 @@ Schmitt-Grohé, S. and Uribe, M. (2004). Solving dynamic general equilibrium
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Sequence
+from typing import Any, Mapping, Sequence
 
 import numpy as np
 import pandas as pd
 import scipy.linalg
 
 from ._results import TheoreticalMomentsResult
+from ._moments import conditional_fevd, first_order_moments
 
 
 @dataclass(frozen=True)
@@ -98,22 +104,24 @@ class PrunedSimulationResult:
 
 @dataclass(frozen=True)
 class PrunedDSGESolution:
-    """Second-order pruned DSGE state-space solution.
+    """Second-order pruned DSGE state-space solution (Dynare timing).
 
     Attributes
     ----------
     G : np.ndarray
-        (n_x, n_x) first-order state transition matrix.
+        (n_x, n_x) first-order state transition matrix: ``x_t = G x_{t-1} + N u_t``.
     N : np.ndarray
         (n_x, n_e) first-order state innovation loading.
     F : np.ndarray
-        (n_y, n_x) first-order control policy matrix.
+        (n_y, n_x) first-order control policy on the *lagged* state:
+        ``y_t = F x_{t-1} + L u_t`` (Dynare's ``ghx`` control rows).
     L : np.ndarray
         (n_y, n_e) first-order control innovation loading.
     H_xx : np.ndarray
-        (n_x, n_x^2) second-order Hessian matrix for states.
+        (n_x, n_x^2) second-order Hessian matrix for states (Dynare's ``ghxx``
+        state rows; the rule applies ``0.5 * H_xx``).
     H_sigmasigma : np.ndarray
-        (n_x,) second-order volatility drift vector for states.
+        (n_x,) second-order volatility drift vector for states (``ghs2``).
     G_xx : np.ndarray
         (n_y, n_x^2) second-order Hessian matrix for controls.
     G_sigmasigma : np.ndarray
@@ -124,6 +132,14 @@ class PrunedDSGESolution:
         Names of forward-looking control variables.
     shock_names : tuple[str, ...]
         Names of exogenous innovations.
+    shock_cov : np.ndarray, optional
+        Innovation covariance Σ_u the risk correction was computed with; the
+        default covariance for simulations, IRF sizes and moments. Identity
+        when not given.
+    params : dict, optional
+        Parameter values the model was solved with.
+    first_order : LinearModel, optional
+        The underlying first-order model (``build_dynare`` / ``load_mod``).
     """
 
     G: np.ndarray
@@ -149,6 +165,9 @@ class PrunedDSGESolution:
     ghxu: np.ndarray | None = None
     ghuu: np.ndarray | None = None
     ghs2: np.ndarray | None = None
+    shock_cov: np.ndarray | None = None
+    params: dict | None = None
+    first_order: Any | None = None
 
     def __post_init__(self):
         n_x, n_y, n_e = self.n_states, self.n_controls, self.n_shocks
@@ -165,9 +184,9 @@ class PrunedDSGESolution:
         if self.steady_state is None:
             object.__setattr__(self, "steady_state", pd.Series(0.0, index=self.variable_names))
         if self.ghx is None:
-            object.__setattr__(self, "ghx", np.vstack([self.G, self.F @ self.G]))
+            object.__setattr__(self, "ghx", np.vstack([self.G, self.F]))
         if self.ghu is None:
-            object.__setattr__(self, "ghu", np.vstack([self.N, self.F @ self.N + self.L]))
+            object.__setattr__(self, "ghu", np.vstack([self.N, self.L]))
         if self.ghxx is None:
             object.__setattr__(self, "ghxx", np.vstack([self.H_xx, self.G_xx]))
         if self.ghxu is None:
@@ -176,6 +195,15 @@ class PrunedDSGESolution:
             object.__setattr__(self, "ghuu", np.vstack([self.H_uu, self.G_uu]))
         if self.ghs2 is None:
             object.__setattr__(self, "ghs2", np.concatenate([self.H_sigmasigma, self.G_sigmasigma]))
+        if self.shock_cov is None:
+            object.__setattr__(self, "shock_cov", np.eye(n_e))
+        else:
+            cov = np.asarray(self.shock_cov, dtype=float)
+            if cov.shape != (n_e, n_e):
+                raise ValueError(f"shock_cov must be ({n_e}, {n_e}), got {cov.shape}")
+            object.__setattr__(self, "shock_cov", cov)
+
+    # -- sizes and names ---------------------------------------------------
 
     @property
     def n_states(self) -> int:
@@ -190,6 +218,26 @@ class PrunedDSGESolution:
         return len(self.shock_names)
 
     @property
+    def variables(self) -> tuple[str, ...]:
+        """All endogenous variable names in model order (alias of ``variable_names``)."""
+        return tuple(self.variable_names or ())
+
+    @property
+    def states(self) -> tuple[str, ...]:
+        """Predetermined state names (alias of ``state_names``)."""
+        return tuple(self.state_names)
+
+    @property
+    def controls(self) -> tuple[str, ...]:
+        """Control names (alias of ``control_names``)."""
+        return tuple(self.control_names)
+
+    @property
+    def shocks(self) -> tuple[str, ...]:
+        """Innovation names (alias of ``shock_names``)."""
+        return tuple(self.shock_names)
+
+    @property
     def eigenvalues(self) -> np.ndarray:
         """Eigenvalues of the first-order state transition matrix G."""
         return scipy.linalg.eigvals(self.G)
@@ -198,6 +246,34 @@ class PrunedDSGESolution:
     def is_stable(self) -> bool:
         """Check whether the first-order transition G is strictly stable (|λ| < 1)."""
         return bool(np.all(np.abs(self.eigenvalues) < 1.0 - 1e-7))
+
+    # -- shock helpers -----------------------------------------------------
+
+    def _sigma_u(self, sigma: float, shock_cov: np.ndarray | None) -> np.ndarray:
+        """Innovation covariance ``σ² Σ_u`` for a perturbation scale ``sigma``."""
+        if isinstance(sigma, Mapping):
+            raise TypeError(
+                "PrunedDSGESolution takes a scalar perturbation scale `sigma`; a "
+                "per-shock mapping changes the risk correction and needs the "
+                "equations: use LinearModel.stoch_simul(order=2, sigma=...) or "
+                "LinearModel.solve(order=2, shock_cov=...)."
+            )
+        cov = self._cov() if shock_cov is None else np.asarray(shock_cov, dtype=float)
+        return float(sigma) ** 2 * cov
+
+    def _cov(self) -> np.ndarray:
+        """Shock covariance, defaulting to the identity when none was declared."""
+        if self.shock_cov is None:
+            return np.eye(self.n_shocks)
+        return np.asarray(self.shock_cov, dtype=float)
+
+    def _shock_sd(self, sigma: float = 1.0) -> np.ndarray:
+        return float(sigma) * np.sqrt(np.clip(np.diag(self._cov()), 0.0, None))
+
+    def _var_order(self) -> list[int]:
+        """Row indices of ``[states; controls]`` in ``variable_names`` order."""
+        ord_names = list(self.state_names) + list(self.control_names)
+        return [ord_names.index(v) for v in (self.variable_names or ())]
 
     def decision_rules(self):
         """Decision rule representation matching Dynare's oo_.dr structure at 2nd order.
@@ -255,6 +331,67 @@ class PrunedDSGESolution:
         """Dynare oo_.dr alias for direct MATLAB/Dynare parity."""
         return self.decision_rules()
 
+    # -- pruned recursion --------------------------------------------------
+
+    def _pruned_path(
+        self,
+        eps: np.ndarray,
+        sigma: float,
+        x0: np.ndarray | None = None,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """Run the pruned recursion for a given innovation path (Dynare timing).
+
+        ``eps`` has one row per period ``t = 0..T-1``; ``x0`` is the
+        first-order state ``x_{-1}`` before the first innovation (steady
+        state when None). Returns ``(x1, x2, y1, y2)`` with one row per period.
+        """
+        eps = np.asarray(eps, dtype=float)
+        total_t = eps.shape[0]
+        n_x, n_y = self.n_states, self.n_controls
+        x1 = np.zeros((total_t, n_x))
+        x2 = np.zeros((total_t, n_x))
+        y1 = np.zeros((total_t, n_y))
+        y2 = np.zeros((total_t, n_y))
+
+        sig2 = float(sigma) ** 2
+        half_h_ss = 0.5 * self.H_sigmasigma * sig2
+        half_g_ss = 0.5 * self.G_sigmasigma * sig2
+
+        x1_prev = np.zeros(n_x) if x0 is None else np.asarray(x0, dtype=float)
+        x2_prev = np.zeros(n_x)
+        for t in range(total_t):
+            e_t = eps[t]
+            kron_xx = np.kron(x1_prev, x1_prev)
+            kron_xe = np.kron(x1_prev, e_t)
+            kron_ee = np.kron(e_t, e_t)
+
+            x1[t] = self.G @ x1_prev + self.N @ e_t
+            x2[t] = (
+                self.G @ x2_prev
+                + 0.5 * (self.H_xx @ kron_xx)
+                + self.H_xu @ kron_xe
+                + 0.5 * (self.H_uu @ kron_ee)
+                + half_h_ss
+            )
+            y1[t] = self.F @ x1_prev + self.L @ e_t
+            y2[t] = (
+                self.F @ x2_prev
+                + 0.5 * (self.G_xx @ kron_xx)
+                + self.G_xu @ kron_xe
+                + 0.5 * (self.G_uu @ kron_ee)
+                + half_g_ss
+            )
+            x1_prev, x2_prev = x1[t], x2[t]
+        return x1, x2, y1, y2
+
+    def _draw_shocks(self, total_t: int, sigma: float, seed: int) -> np.ndarray:
+        rng = np.random.default_rng(seed)
+        n_e = self.n_shocks
+        if n_e == 0:
+            return np.zeros((total_t, 0))
+        cov = self._sigma_u(sigma, None)
+        return rng.multivariate_normal(np.zeros(n_e), cov, size=total_t, method="cholesky")
+
     def simulate(
         self,
         periods: int = 200,
@@ -270,10 +407,12 @@ class PrunedDSGESolution:
         periods : int, default 200
             Number of periods to return after burn-in.
         shocks : np.ndarray, optional
-            Pre-specified innovation array of shape (total_periods, n_shocks).
-            If None, drawn as i.i.d. standard Gaussian N(0, I).
+            Pre-specified innovation array of shape (total_periods, n_shocks),
+            used as the innovations ``u_t`` directly. If None, drawn as
+            i.i.d. Gaussian ``N(0, sigma² Σ_u)`` with ``Σ_u = shock_cov``.
         sigma : float, default 1.0
-            Perturbation parameter scale σ.
+            Perturbation scale σ: scales the innovations' standard deviation
+            and the risk-correction terms ``0.5 ghs2 σ²`` consistently.
         seed : int, default 0
             Random seed when shocks is None.
         burn : int, default 100
@@ -291,60 +430,19 @@ class PrunedDSGESolution:
             )
 
         total_t = periods + burn
-        n_x, n_y, n_e = self.n_states, self.n_controls, self.n_shocks
+        n_e = self.n_shocks
 
         if shocks is None:
-            rng = np.random.default_rng(seed)
-            eps = rng.standard_normal((total_t, n_e))
+            eps = self._draw_shocks(total_t, sigma, seed)
         else:
             eps_arr = np.asarray(shocks, dtype=float)
-            if eps_arr.shape[0] < total_t or eps_arr.shape[1] != n_e:
+            if eps_arr.ndim != 2 or eps_arr.shape[0] < total_t or eps_arr.shape[1] != n_e:
                 raise ValueError(
                     f"shocks shape {eps_arr.shape} incompatible with total_t={total_t}, n_shocks={n_e}"
                 )
             eps = eps_arr[:total_t]
 
-        x1 = np.zeros((total_t, n_x))
-        x2 = np.zeros((total_t, n_x))
-        y1 = np.zeros((total_t, n_y))
-        y2 = np.zeros((total_t, n_y))
-
-        sig2 = sigma**2
-        half_h_ss = 0.5 * self.H_sigmasigma * sig2
-        half_g_ss = 0.5 * self.G_sigmasigma * sig2
-
-        # Initial conditions at steady state: x1[0] = 0, x2[0] = 0
-        y1[0] = self.L @ eps[0]
-        kron_ee0 = np.kron(eps[0], eps[0])
-        y2[0] = 0.5 * (self.G_uu @ kron_ee0) + half_g_ss
-
-        for t in range(1, total_t):
-            e_t = eps[t]
-            # 1st-order state update
-            x1[t] = self.G @ x1[t - 1] + self.N @ e_t
-
-            # Quadratic state term: kron(x1, x1)
-            kron_x1_prev = np.kron(x1[t - 1], x1[t - 1])
-            quad_x = 0.5 * (self.H_xx @ kron_x1_prev)
-            # Cross state-shock term: kron(x1, e)
-            kron_xe_prev = np.kron(x1[t - 1], e_t)
-            cross_x = self.H_xu @ kron_xe_prev
-            # Quadratic shock term: kron(e, e)
-            kron_ee = np.kron(e_t, e_t)
-            quad_e = 0.5 * (self.H_uu @ kron_ee)
-
-            # 2nd-order state update
-            x2[t] = self.G @ x2[t - 1] + quad_x + cross_x + quad_e + half_h_ss
-
-            # Controls update
-            kron_x1_curr = np.kron(x1[t], x1[t])
-            quad_y = 0.5 * (self.G_xx @ kron_x1_curr)
-            kron_xe_curr = np.kron(x1[t], e_t)
-            cross_y = self.G_xu @ kron_xe_curr
-            quad_ye = 0.5 * (self.G_uu @ kron_ee)
-
-            y1[t] = self.F @ x1[t] + self.L @ e_t
-            y2[t] = self.F @ x2[t] + quad_y + cross_y + quad_ye + half_g_ss
+        x1, x2, y1, y2 = self._pruned_path(eps, sigma)
 
         # Slice after burn-in
         x_tot = x1[burn:] + x2[burn:]
@@ -386,45 +484,42 @@ class PrunedDSGESolution:
         n_x, n_y, n_e = self.n_states, self.n_controls, self.n_shocks
 
         if shocks is None:
-            rng = np.random.default_rng(seed)
-            eps = rng.standard_normal((total_t, n_e))
+            eps = self._draw_shocks(total_t, sigma, seed)
         else:
             eps = np.asarray(shocks, dtype=float)[:total_t]
 
         x = np.zeros((total_t, n_x))
         y = np.zeros((total_t, n_y))
 
-        sig2 = sigma**2
+        sig2 = float(sigma) ** 2
         half_h_ss = 0.5 * self.H_sigmasigma * sig2
         half_g_ss = 0.5 * self.G_sigmasigma * sig2
 
-        y[0] = self.L @ eps[0] + 0.5 * (self.G_uu @ np.kron(eps[0], eps[0])) + half_g_ss
-
-        for t in range(1, total_t):
+        x_prev = np.zeros(n_x)
+        for t in range(total_t):
             e_t = eps[t]
-            # Raw unpruned quadratic feedback: evaluated on raw x[t-1]
+            # Raw unpruned quadratic feedback: evaluated on the raw lagged state.
             # Clip if already overflowed to avoid numerical crash
-            if np.any(np.abs(x[t - 1]) > 1e8):
+            if np.any(np.abs(x_prev) > 1e8):
                 x[t:] = np.nan
                 y[t:] = np.nan
                 break
 
-            kron_x = np.kron(x[t - 1], x[t - 1])
-            quad_x = 0.5 * (self.H_xx @ kron_x)
-            kron_xe = np.kron(x[t - 1], e_t)
-            cross_x = self.H_xu @ kron_xe
+            kron_xx = np.kron(x_prev, x_prev)
+            kron_xe = np.kron(x_prev, e_t)
             kron_ee = np.kron(e_t, e_t)
-            quad_e = 0.5 * (self.H_uu @ kron_ee)
 
-            x[t] = self.G @ x[t - 1] + self.N @ e_t + quad_x + cross_x + quad_e + half_h_ss
-
-            kron_x_curr = np.kron(x[t], x[t])
-            quad_y = 0.5 * (self.G_xx @ kron_x_curr)
-            kron_xe_curr = np.kron(x[t], e_t)
-            cross_y = self.G_xu @ kron_xe_curr
-            quad_ye = 0.5 * (self.G_uu @ kron_ee)
-
-            y[t] = self.F @ x[t] + self.L @ e_t + quad_y + cross_y + quad_ye + half_g_ss
+            x[t] = (
+                self.G @ x_prev + self.N @ e_t
+                + 0.5 * (self.H_xx @ kron_xx) + self.H_xu @ kron_xe
+                + 0.5 * (self.H_uu @ kron_ee) + half_h_ss
+            )
+            y[t] = (
+                self.F @ x_prev + self.L @ e_t
+                + 0.5 * (self.G_xx @ kron_xx) + self.G_xu @ kron_xe
+                + 0.5 * (self.G_uu @ kron_ee) + half_g_ss
+            )
+            x_prev = x[t]
 
         return x[burn:], y[burn:]
 
@@ -440,20 +535,24 @@ class PrunedDSGESolution:
 
         In non-linear models, responses depend on the sign and scale of the shock
         as well as the initial state. The GIRF computes:
-            GIRF_t = E[ z_t | eps_1 = size, x_0 ] - E[ z_t | eps_1 = 0, x_0 ]
+            GIRF_h = E[ z_h | u_0 = size, x_{-1} ] - E[ z_h | u_0 = 0, x_{-1} ]
+
+        with the innovation hitting at ``h = 0`` so that, as in Dynare's
+        ``oo_.irfs``, row ``0`` is the impact period for states and controls
+        alike.
 
         Parameters
         ----------
         shock : int or str, default 0
             Index or name of the innovation to shock.
         size : float, default 1.0
-            Magnitude of the innovation at t=1.
+            Magnitude of the innovation at h=0 (in the units of ``u_t``).
         horizon : int, default 20
             Number of periods after impact.
         sigma : float, default 1.0
-            Perturbation parameter scale σ.
+            Perturbation parameter scale σ for the risk-correction terms.
         x0 : np.ndarray, optional
-            Initial state vector (defaults to steady state = 0).
+            First-order state before impact, ``x_{-1}`` (defaults to steady state = 0).
 
         Returns
         -------
@@ -469,63 +568,21 @@ class PrunedDSGESolution:
         else:
             s_idx = int(shock)
 
-        n_x, n_y, n_e = self.n_states, self.n_controls, self.n_shocks
+        n_e = self.n_shocks
         t_steps = horizon + 1
 
-        # Baseline shock path (0 everywhere)
         eps_base = np.zeros((t_steps, n_e))
-        # Shocked path (innovation of size at t=1)
         eps_shock = np.zeros((t_steps, n_e))
-        eps_shock[1 if horizon >= 1 else 0, s_idx] = size
+        eps_shock[0, s_idx] = size
 
         def run_path(e_mat: np.ndarray) -> np.ndarray:
-            x1 = np.zeros((t_steps, n_x))
-            x2 = np.zeros((t_steps, n_x))
-            y1 = np.zeros((t_steps, n_y))
-            y2 = np.zeros((t_steps, n_y))
+            x1, x2, y1, y2 = self._pruned_path(e_mat, sigma, x0=x0)
+            return np.hstack([x1 + x2, y1 + y2])
 
-            if x0 is not None:
-                x1[0] = np.asarray(x0, dtype=float)
-
-            sig2 = sigma**2
-            half_h_ss = 0.5 * self.H_sigmasigma * sig2
-            half_g_ss = 0.5 * self.G_sigmasigma * sig2
-
-            y1[0] = self.F @ x1[0] + self.L @ e_mat[0]
-            kron_ee0 = np.kron(e_mat[0], e_mat[0])
-            y2[0] = (
-                self.F @ x2[0]
-                + 0.5 * (self.G_xx @ np.kron(x1[0], x1[0]))
-                + (self.G_xu @ np.kron(x1[0], e_mat[0]))
-                + 0.5 * (self.G_uu @ kron_ee0)
-                + half_g_ss
-            )
-
-            for t in range(1, t_steps):
-                e_t = e_mat[t]
-                x1[t] = self.G @ x1[t - 1] + self.N @ e_t
-                quad_x = 0.5 * (self.H_xx @ np.kron(x1[t - 1], x1[t - 1]))
-                cross_x = self.H_xu @ np.kron(x1[t - 1], e_t)
-                kron_ee = np.kron(e_t, e_t)
-                quad_e = 0.5 * (self.H_uu @ kron_ee)
-                x2[t] = self.G @ x2[t - 1] + quad_x + cross_x + quad_e + half_h_ss
-
-                y1[t] = self.F @ x1[t] + self.L @ e_t
-                quad_y = 0.5 * (self.G_xx @ np.kron(x1[t], x1[t]))
-                cross_y = self.G_xu @ np.kron(x1[t], e_t)
-                quad_ye = 0.5 * (self.G_uu @ kron_ee)
-                y2[t] = self.F @ x2[t] + quad_y + cross_y + quad_ye + half_g_ss
-
-            z_tot = np.hstack([x1 + x2, y1 + y2])
-            return z_tot
-
-        z_shock = run_path(eps_shock)
-        z_base = run_path(eps_base)
-        diff = z_shock - z_base
+        diff = run_path(eps_shock) - run_path(eps_base)
 
         cols = list(self.state_names) + list(self.control_names)
-        df_girf = pd.DataFrame(diff, index=pd.RangeIndex(t_steps, name="h"), columns=cols)
-        return df_girf
+        return pd.DataFrame(diff, index=pd.RangeIndex(t_steps, name="h"), columns=cols)
 
     def irf(
         self,
@@ -606,48 +663,41 @@ class PrunedDSGESolution:
         sigma : float, default 1.0
             Perturbation parameter scale σ.
         shock_cov : np.ndarray, optional
-            Covariance matrix of innovations Σ_eps (defaults to identity I).
+            Covariance matrix of innovations Σ_u (defaults to ``self.shock_cov``).
 
         Returns
         -------
         dict[str, pd.Series]
-            Ergodic means for states and controls.
+            Ergodic mean deviations from the deterministic steady state for
+            states and controls.
         """
-        n_x, n_y, n_e = self.n_states, self.n_controls, self.n_shocks
-        if shock_cov is None:
-            sigma_e = np.eye(n_e)
-        else:
-            sigma_e = np.asarray(shock_cov, dtype=float)
+        n_x = self.n_states
+        sigma_e = self._sigma_u(sigma, shock_cov)
 
         # Solve discrete Lyapunov equation for 1st-order state variance:
         # Omega = G @ Omega @ G.T + N @ sigma_e @ N.T
         q_mat = self.N @ sigma_e @ self.N.T
         omega = scipy.linalg.solve_discrete_lyapunov(self.G, q_mat)
 
-        # E[x_t^{(1)} ⊗ x_t^{(1)}] = vec(omega)
-        vec_omega = omega.reshape(-1, order="F")
-        sig2 = sigma**2
-        # E[x_t^{(2)}] = (I - G)^(-1) [ 0.5 * H_xx @ vec(omega) + 0.5 * H_uu @ vec(sigma_e) + 0.5 * H_sigmasigma * sig2 ]
+        # E[x_{t-1}^{(1)} ⊗ x_{t-1}^{(1)}] = vec(omega), E[u ⊗ u] = vec(sigma_e);
+        # the cross term E[x_{t-1} ⊗ u_t] vanishes (Dynare timing).
+        vec_omega = omega.flatten()
+        vec_se = sigma_e.flatten()
+        sig2 = float(sigma) ** 2
+        # E[x_t^{(2)}] = (I - G)^(-1) [ 0.5 H_xx vec(omega) + 0.5 H_uu vec(sigma_e) + 0.5 H_ss σ² ]
         i_minus_g = np.eye(n_x) - self.G
-        vec_se = sigma_e.reshape(-1, order="F")
-        H_uu = self.H_uu if self.H_uu is not None else np.zeros((n_x, n_e * n_e))
-        G_xu = self.G_xu if self.G_xu is not None else np.zeros((n_y, n_x * n_e))
-        G_uu = self.G_uu if self.G_uu is not None else np.zeros((n_y, n_e * n_e))
         rhs_x = (
             0.5 * (self.H_xx @ vec_omega)
-            + 0.5 * (H_uu @ vec_se)
+            + 0.5 * (self.H_uu @ vec_se)
             + 0.5 * self.H_sigmasigma * sig2
         )
         mu_x2 = scipy.linalg.solve(i_minus_g, rhs_x)
 
-        # Controls ergodic mean:
-        # E[y_t] = F @ mu_x2 + 0.5 * G_xx @ vec(omega) + G_xu @ vec(N @ sigma_e) + 0.5 * G_uu @ vec(sigma_e) + 0.5 * G_sigmasigma * sig2
-        vec_n_se = (self.N @ sigma_e).reshape(-1, order="F")
+        # E[y_t] = F E[x2] + 0.5 G_xx vec(omega) + 0.5 G_uu vec(sigma_e) + 0.5 G_ss σ²
         mu_y = (
             self.F @ mu_x2
             + 0.5 * (self.G_xx @ vec_omega)
-            + (G_xu @ vec_n_se)
-            + 0.5 * (G_uu @ vec_se)
+            + 0.5 * (self.G_uu @ vec_se)
             + 0.5 * self.G_sigmasigma * sig2
         )
 
@@ -661,74 +711,62 @@ class PrunedDSGESolution:
         sigma: float = 1.0,
         shock_cov: np.ndarray | None = None,
         lags: int = 4,
+        fevd_horizons: Sequence[int | None] = (1, 4, 8, 16, 32, None),
     ) -> TheoreticalMomentsResult:
         """Compute analytical theoretical moments matching Dynare's stoch_simul.
 
-        Under the pruned second-order approximation, the first-order covariance
-        matrix is the unconditional covariance (since cross-order expectations
-        between 1st and 2nd order components vanish or enter at 4th order).
+        Under the pruned second-order approximation the second moments are
+        those of the first-order component (cross-order expectations vanish
+        or enter at fourth order), so covariances, correlations,
+        autocorrelations and the variance decomposition coincide with
+        :meth:`LinearModel.theoretical_moments` for the same first-order
+        rules and shock covariance. The means carry the second-order
+        risk adjustment from :meth:`stochastic_steady_state`.
 
         Parameters
         ----------
         sigma : float, default 1.0
-            Scale parameter for perturbation.
+            Perturbation scale σ (scales the innovation standard deviations).
         shock_cov : np.ndarray, optional
-            Covariance matrix of innovations (n_e x n_e). Default is identity.
+            Covariance matrix of innovations (n_e x n_e). Default ``self.shock_cov``.
         lags : int, default 4
             Number of autocorrelation lags to report.
+        fevd_horizons : Sequence[int | None], default (1, 4, 8, 16, 32, None)
+            Horizons for the conditional variance decomposition (None = asymptotic).
 
         Returns
         -------
         TheoreticalMomentsResult
             Analytical moments [Mean, Std.Dev., Variance], correlation matrix,
-            autocorrelation matrix, and variance decomposition.
+            autocorrelation matrix, and variance decomposition (percent).
         """
-        n_x, n_y, n_e = self.n_states, self.n_controls, self.n_shocks
-        if shock_cov is None:
-            sigma_e = np.eye(n_e)
-        else:
-            sigma_e = np.asarray(shock_cov, dtype=float)
+        sigma_e = self._sigma_u(sigma, shock_cov)
+        M_x = np.vstack([self.G, self.F])
+        M_u = np.vstack([self.N, self.L])
+        _, gamma_0, gammas = first_order_moments(self.G, self.N, M_x, M_u, sigma_e, lags)
 
-        q_mat = self.N @ sigma_e @ self.N.T
-        omega_x = scipy.linalg.solve_discrete_lyapunov(self.G, q_mat)
-        omega_y = self.F @ omega_x @ self.F.T + self.L @ sigma_e @ self.L.T
+        order = self._var_order()
+        all_names = list(self.variable_names or ())
+        cov_mat = gamma_0[np.ix_(order, order)]
 
         sss = self.stochastic_steady_state(sigma=sigma, shock_cov=shock_cov)
-
-        vars_tuple = self.variable_names if self.variable_names is not None else (self.state_names + self.control_names)
-        all_names = list(vars_tuple)
-        n_all = len(all_names)
-
-        cov_xy = self.F @ omega_x
-        full_cov_1st = np.block([
-            [omega_x, cov_xy.T],
-            [cov_xy, omega_y],
-        ])
-        ord_names = list(self.state_names) + list(self.control_names)
-        name_to_ord = {name: ord_names.index(name) for name in all_names if name in ord_names}
-        cov_mat = np.zeros((n_all, n_all))
-        for i, vi in enumerate(all_names):
-            for j, vj in enumerate(all_names):
-                if vi in name_to_ord and vj in name_to_ord:
-                    cov_mat[i, j] = full_cov_1st[name_to_ord[vi], name_to_ord[vj]]
-
-        mean_vec = np.zeros(n_all)
         ss_base = (
             self.steady_state
             if isinstance(self.steady_state, pd.Series)
             else pd.Series(0.0, index=all_names)
         )
+        mean_vec = np.zeros(len(all_names))
         for i, v in enumerate(all_names):
-            base_val = ss_base.get(v, 0.0)
+            base_val = float(ss_base.get(v, 0.0))
             if v in self.state_names:
-                mean_vec[i] = base_val + sss["states"][v]
+                mean_vec[i] = base_val + float(sss["states"][v])
             elif v in self.control_names:
-                mean_vec[i] = base_val + sss["controls"][v]
+                mean_vec[i] = base_val + float(sss["controls"][v])
             else:
                 mean_vec[i] = base_val
 
-        stds = np.sqrt(np.maximum(1e-16, np.diag(cov_mat)))
         variances = np.diag(cov_mat)
+        stds = np.sqrt(np.maximum(variances, 0.0))
 
         df_moments = pd.DataFrame(
             {"Mean": mean_vec, "Std.Dev.": stds, "Variance": variances},
@@ -736,39 +774,26 @@ class PrunedDSGESolution:
         )
 
         std_outer = np.outer(stds, stds)
-        std_outer[std_outer == 0] = 1.0
+        std_outer[std_outer == 0.0] = np.nan
         corr_mat = cov_mat / std_outer
         np.fill_diagonal(corr_mat, 1.0)
-        corr_mat = np.clip(corr_mat, -1.0, 1.0)
 
         df_cov = pd.DataFrame(cov_mat, index=all_names, columns=all_names)
         df_corr = pd.DataFrame(corr_mat, index=all_names, columns=all_names)
 
         autocorr_cols = [f"Lag {k}" for k in range(1, lags + 1)]
         df_autocorr = pd.DataFrame(index=all_names, columns=autocorr_cols, dtype=float)
-        g_power = np.eye(n_x)
-        for k in range(1, lags + 1):
-            g_power = g_power @ self.G
-            gamma_x_k = g_power @ omega_x
-            gamma_y_k = self.F @ gamma_x_k @ self.F.T
-            for i, v in enumerate(all_names):
-                var_i = df_moments.loc[v, "Variance"]
-                if var_i > 1e-14:
-                    if v in self.state_names:
-                        si = self.state_names.index(v)
-                        df_autocorr.loc[v, f"Lag {k}"] = float(gamma_x_k[si, si] / var_i)
-                    elif v in self.control_names:
-                        ci = self.control_names.index(v)
-                        df_autocorr.loc[v, f"Lag {k}"] = float(gamma_y_k[ci, ci] / var_i)
-                    else:
-                        df_autocorr.loc[v, f"Lag {k}"] = 0.0
-                else:
-                    df_autocorr.loc[v, f"Lag {k}"] = 0.0
+        for k, gamma_k in enumerate(gammas, start=1):
+            diag_k = np.diag(gamma_k[np.ix_(order, order)])
+            with np.errstate(divide="ignore", invalid="ignore"):
+                df_autocorr[f"Lag {k}"] = np.where(variances > 1e-14, diag_k / variances, np.nan)
 
-        fevd_horizons = [1, 4, 8, 16, 32]
-        df_fevd = pd.DataFrame(
-            index=all_names, columns=[f"H{h}" for h in fevd_horizons], dtype=float
-        ).fillna(0.0)
+        sd = np.sqrt(np.clip(np.diag(sigma_e), 0.0, None))
+        C = np.asarray(self.ghx, dtype=float)
+        D = np.asarray(self.ghu, dtype=float)
+        df_fevd = conditional_fevd(
+            self.G, self.N, C, D, sd, list(fevd_horizons), all_names, list(self.shock_names)
+        ) * 100.0
 
         return TheoreticalMomentsResult(
             moments=df_moments,
@@ -794,7 +819,7 @@ class PrunedDSGESolution:
         Computes:
         1. Second-order decision rules (oo_.dr)
         2. Theoretical unconditional moments under pruning (with volatility risk correction)
-        3. Impulse response functions for all structural shocks
+        3. Impulse response functions to a one-standard-deviation innovation in each shock
         4. Simulated sample moments (if periods > 0)
 
         Parameters
@@ -806,7 +831,11 @@ class PrunedDSGESolution:
         periods : int, default 0
             Number of simulation periods. If > 0, generates simulated moments.
         sigma : float, default 1.0
-            Shock standard deviation / perturbation scale parameter.
+            Perturbation scale σ applied to the declared shock covariance
+            ``shock_cov`` (innovations ``N(0, σ² Σ_u)``, IRFs of size
+            ``σ sqrt(Σ_u[j, j])``). A per-shock mapping is rejected: it
+            changes the risk correction, so re-solve through
+            ``LinearModel.stoch_simul(order=2, sigma=...)`` instead.
         seed : int, default 0
             RNG seed for simulation when periods > 0.
         burn : int, default 100
@@ -823,15 +852,18 @@ class PrunedDSGESolution:
 
         if order != 2:
             raise ValueError(f"PrunedDSGESolution only supports order=2, got order={order}")
+        if isinstance(sigma, Mapping):
+            self._sigma_u(sigma, None)  # raises the explanatory TypeError
 
         dr = self.decision_rules()
         theo = self.theoretical_moments(sigma=sigma, lags=lags)
 
         vars_tuple = self.variable_names if self.variable_names is not None else (self.state_names + self.control_names)
+        sd = self._shock_sd(sigma)
         irfs: dict[str, pd.Series] = {}
         if irf > 0:
-            for sh in self.shock_names:
-                df_irf = self.irf(shock=sh, horizon=irf, size=sigma, sigma=0.0)
+            for j, sh in enumerate(self.shock_names):
+                df_irf = self.irf(shock=sh, horizon=irf, size=float(sd[j]), sigma=0.0)
                 for v in vars_tuple:
                     irfs[f"{v}_{sh}"] = df_irf[v]
 
@@ -869,113 +901,49 @@ def canonical_growth_2nd_order(
     rho: float = 0.95,
     sigma_eps: float = 0.01,
 ) -> PrunedDSGESolution:
-    """Construct canonical 2nd-order Neoclassical/RBC benchmark model (Kim et al. 2008).
+    """Solve the canonical one-sector growth model to second order with pruning.
 
-    Solves the standard one-sector growth model with technology shocks:
+    The benchmark of Kim, Kim, Schaumburg & Sims (2008):
+
       max E_0 sum beta^t (c_t^{1-sigma_pref} - 1) / (1 - sigma_pref)
-      s.t. c_t + k_{t+1} - (1 - delta) k_t = z_t k_t^alpha
-           ln z_t = rho ln z_{t-1} + eps_t
+      s.t. c_t + k_t - (1 - delta) k_{t-1} = z_t k_{t-1}^alpha
+           ln z_t = rho ln z_{t-1} + sigma_eps * eps_t,   eps_t ~ N(0, 1)
 
-    Returns the exact pruned 2nd-order solution matrices ready for simulation,
-    GIRF analysis, and comparison of explosive unpruned vs stable pruned dynamics.
+    written in log deviations (``k = ln K``, ``c = ln C``, ``z = ln Z``) so
+    that every decision-rule coefficient reads as an elasticity. The model
+    is solved with :func:`puremacro.dsge.solve_dynare_2nd_order`, i.e. the
+    matrices are the genuine second-order perturbation, not a calibration.
+
+    Returns
+    -------
+    PrunedDSGESolution
+        States ``("k", "z")``, control ``("c",)``, shock ``("eps",)``, with
+        ``shock_cov = [[1.0]]`` (the shock scale ``sigma_eps`` sits inside
+        the technology equation).
     """
-    # Steady-state values
+    from puremacro.dsge.dynare import solve_dynare_2nd_order
+
     r_ss = 1.0 / beta - (1.0 - delta)
     k_ss = (r_ss / alpha) ** (1.0 / (alpha - 1.0))
-    y_ss = k_ss**alpha
-    i_ss = delta * k_ss
-    c_ss = y_ss - i_ss
+    c_ss = k_ss**alpha - delta * k_ss
 
-    # Log-deviations: x = [k_hat, z_hat], y = [c_hat]
-    # First-order solution via analytical RBC policy coefficients
-    # Hansen / Campbell log-linear parameters
-    ky = k_ss / y_ss
-    cy = c_ss / y_ss
-    iy = 1.0 - cy
+    def growth(lead, curr, lag, shocks, p):
+        return [
+            np.exp(-p.sigma_pref * curr.c)
+            - p.beta * np.exp(-p.sigma_pref * lead.c)
+            * (p.alpha * np.exp(lead.z) * np.exp((p.alpha - 1.0) * curr.k) + 1.0 - p.delta),
+            np.exp(curr.c) + np.exp(curr.k)
+            - np.exp(curr.z) * np.exp(p.alpha * lag.k) - (1.0 - p.delta) * np.exp(lag.k),
+            curr.z - p.rho * lag.z - p.sigma_eps * shocks.eps,
+        ]
 
-    # Capital transition:
-    # k_{t+1} = lambda_k * k_t + lambda_z * z_t
-    # Euler condition gives the saddle path root
-    a = 1.0 / beta
-    b = -(1.0 / beta + 1.0 + (1.0 - beta * (1.0 - delta)) * (1.0 - alpha) / (sigma_pref * ky))
-    c = 1.0
-    # Solve quadratic for stable eigenvalue inside unit circle
-    discr = b**2 - 4 * a * c
-    lam_k = (-b - np.sqrt(discr)) / (2 * a)
-
-    # Control consumption policy c_hat = eta_ck * k_hat + eta_cz * z_hat
-    eta_ck = (1.0 / (cy * sigma_pref)) * (
-        (1.0 - beta * (1.0 - delta)) * (alpha - 1.0) * lam_k
-        + sigma_pref * (1.0 - lam_k)
-    )
-    eta_cz = (1.0 / cy) * (
-        1.0 - (lam_k - (1.0 - delta)) / (delta / iy)
-    )
-    lam_z = (delta / iy) * (1.0 - cy * eta_cz)
-
-    # First-order matrices
-    # States: x = [k, z], n_x = 2
-    # Controls: y = [c], n_y = 1
-    # Shocks: eps, n_e = 1
-    G = np.array([
-        [lam_k, lam_z],
-        [0.0, rho],
-    ])
-    N = np.array([
-        [0.0],
-        [sigma_eps],
-    ])
-    F = np.array([
-        [eta_ck, eta_cz]
-    ])
-    L = np.array([
-        [0.0]
-    ])
-
-    # Second-order Hessian matrices (Kim et al. 2008 calibration)
-    # Quadratic curvature in production and utility produces non-zero H_xx and G_xx
-    # Second-order coefficients:
-    # H_xx has shape (2, 4) for states [k, z] x [k^2, kz, zk, z^2]
-    # G_xx has shape (1, 4) for control [c]
-    # Capital accumulation curvature:
-    h_kk = -0.082 * (alpha * (alpha - 1.0))
-    h_kz = 0.045 * alpha
-    h_zz = -0.015
-    H_xx = np.array([
-        [h_kk, h_kz, h_kz, h_zz],
-        [0.0, 0.0, 0.0, 0.0],  # exogenous AR(1) has zero 2nd derivative
-    ])
-
-    # Consumption policy function second derivatives:
-    # Precautionary savings induces negative curvature on consumption with respect to variance
-    g_kk = -0.065
-    g_kz = 0.038
-    g_zz = -0.042
-    G_xx = np.array([
-        [g_kk, g_kz, g_kz, g_zz]
-    ])
-
-    # Volatility drift terms (risk corrections):
-    # H_sigmasigma reflects precautionary capital accumulation:
-    H_sigmasigma = np.array([
-        0.0012,
-        0.0,
-    ])
-    # G_sigmasigma reflects precautionary reduction in current consumption:
-    G_sigmasigma = np.array([
-        -0.0008,
-    ])
-
-    return PrunedDSGESolution(
-        G=G,
-        N=N,
-        F=F,
-        L=L,
-        H_xx=H_xx,
-        H_sigmasigma=H_sigmasigma,
-        G_xx=G_xx,
-        G_sigmasigma=G_sigmasigma,
-        state_names=("k", "z"),
-        control_names=("c",),
-        shock_names=("eps",),
+    return solve_dynare_2nd_order(
+        growth,
+        variables=["k", "z", "c"],
+        shocks=["eps"],
+        params=dict(alpha=alpha, beta=beta, delta=delta, sigma_pref=sigma_pref,
+                    rho=rho, sigma_eps=sigma_eps),
+        steady_state=dict(k=float(np.log(k_ss)), z=0.0, c=float(np.log(c_ss))),
+        states=["k", "z"],
+        shock_cov=np.eye(1),
     )
