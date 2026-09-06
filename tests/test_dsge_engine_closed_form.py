@@ -655,7 +655,7 @@ def test_parse_mod_evaluates_steady_state_model_temporaries():
 
 
 def test_load_mod_raises_file_not_found_for_missing_paths():
-    with pytest.raises(FileNotFoundError, match="does/not/exist.mod"):
+    with pytest.raises(FileNotFoundError, match=r"exist\.mod"):  # separator-agnostic: Windows renders the path with backslashes
         load_mod(Path("does/not/exist.mod"))
     with pytest.raises(FileNotFoundError):
         load_mod("puremacro/dsge/_references/no_such_model.mod")

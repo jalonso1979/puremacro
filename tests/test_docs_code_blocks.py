@@ -14,6 +14,7 @@ not valid Python is a failure -- API listings belong in ```text fences.
 """
 from __future__ import annotations
 
+import contextlib
 import os
 import re
 import signal
@@ -61,6 +62,22 @@ def _alarm(signum, frame):  # pragma: no cover - only fires on a hang
     raise _Timeout("code block exceeded the per-block time budget")
 
 
+@contextlib.contextmanager
+def _block_timeout(seconds: int):
+    """SIGALRM watchdog where the platform has one; Windows has no SIGALRM, so
+    there the block simply runs without a budget (CI's job timeout still applies)."""
+    if not hasattr(signal, "SIGALRM"):
+        yield
+        return
+    old = signal.signal(signal.SIGALRM, _alarm)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, old)
+
+
 @pytest.mark.parametrize("page", PAGES)
 def test_page_code_blocks_run_verbatim(page, tmp_path, monkeypatch):
     blocks = _blocks(page)
@@ -77,16 +94,13 @@ def test_page_code_blocks_run_verbatim(page, tmp_path, monkeypatch):
         except SyntaxError as exc:  # API listings must live in ```text fences
             failures.append(f"block {i}: not valid Python ({exc.msg} at line {exc.lineno})")
             continue
-        old = signal.signal(signal.SIGALRM, _alarm)
-        signal.alarm(_PER_BLOCK_SECONDS)
         try:
-            exec(code, namespace)
+            with _block_timeout(_PER_BLOCK_SECONDS):
+                exec(code, namespace)
         except _Timeout as exc:
             failures.append(f"block {i}: {exc}")
         except Exception as exc:  # noqa: BLE001 - report every failure, keep going
             failures.append(f"block {i}: {type(exc).__name__}: {exc}")
         finally:
-            signal.alarm(0)
-            signal.signal(signal.SIGALRM, old)
             matplotlib.pyplot.close("all")
     assert not failures, f"{page}:\n  " + "\n  ".join(failures)
