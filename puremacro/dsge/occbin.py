@@ -10,6 +10,7 @@ under perfect foresight via backward recursion over piecewise-linear regimes.
 """
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Sequence
 
@@ -542,47 +543,37 @@ def solve_occbin(
 
     # 3. Backward recursion engine for a conjectured duration T*
     def compute_decision_rules(T_star: int):
-        if T_star == 0:
-            return (
-                [P_0] * horizon,
-                [np.zeros(n_vars)] * horizon,
-                [Q_0] + [np.zeros((n_vars, n_shocks))] * (horizon - 1),
-            )
+        # Inside the spell (t = 1 .. T*) the rule is time-varying and solved backwards from
+        # the first unconstrained period; outside it the reference rule applies unchanged.
+        # All three objects -- transition, drift AND shock loading -- are regime-specific,
+        # so each is indexed by date and rebuilt at every date of the spell. Loading the
+        # shock with the reference matrix Q_0 at 1 < t <= T* would let an innovation the
+        # constrained system does not contain (a policy shock while the rate is pegged)
+        # move the constrained variable off its own bound.
+        P_seq: list[np.ndarray] = [np.zeros((n_vars, n_vars)) for _ in range(T_star + 2)]
+        D_seq: list[np.ndarray] = [np.zeros(n_vars) for _ in range(T_star + 2)]
+        Q_seq: list[np.ndarray] = [np.zeros((n_vars, n_shocks)) for _ in range(T_star + 2)]
 
-        P_seq: list[np.ndarray] = [np.zeros((n_vars, n_vars)) for _ in range(T_star + 1)]
-        D_seq: list[np.ndarray] = [np.zeros(n_vars) for _ in range(T_star + 1)]
+        if T_star > 0:
+            # Continuation from t = T* + 1, the first period back in the reference regime
+            P_seq[T_star + 1] = P_0
+            D_seq[T_star + 1] = np.zeros(n_vars)
 
-        # Terminal period of binding spell: t = T*
-        M_T = A_0_1 + A_p_1 @ P_0
-        P_seq[T_star] = _safe_solve(M_T, -A_m_1)
-        D_seq[T_star] = _safe_solve(M_T, -c_1)
+            for t in range(T_star, 0, -1):
+                M_t = A_0_1 + A_p_1 @ P_seq[t + 1]
+                P_seq[t] = _safe_solve(M_t, -A_m_1)
+                D_seq[t] = _safe_solve(M_t, -(A_p_1 @ D_seq[t + 1] + c_1))
+                Q_seq[t] = _safe_solve(M_t, -B_u_1)
 
-        # Iterate backward from T* - 1 down to 1
-        for t in range(T_star - 1, 0, -1):
-            M_t = A_0_1 + A_p_1 @ P_seq[t + 1]
-            P_seq[t] = _safe_solve(M_t, -A_m_1)
-            D_seq[t] = _safe_solve(M_t, -(A_p_1 @ D_seq[t + 1] + c_1))
-
-        # Contemporaneous shock loading at t = 1
-        M_1 = A_0_1 + A_p_1 @ (P_seq[2] if T_star > 1 else P_0)
-        Q_1 = _safe_solve(M_1, -B_u_1)
-
-        # Assemble full horizon sequences
+        # Assemble full horizon sequences. Defaults are the reference-regime rules, which
+        # are already correct for every t > T* -- including the whole horizon when T* = 0.
         full_P: list[np.ndarray] = [P_0] * horizon
         full_D: list[np.ndarray] = [np.zeros(n_vars)] * horizon
         full_Q: list[np.ndarray] = [Q_0] * horizon
-        for t in range(1, horizon + 1):
-            if t <= T_star:
-                full_P[t - 1] = P_seq[t]
-                full_D[t - 1] = D_seq[t]
-            else:
-                full_P[t - 1] = P_0
-                full_D[t - 1] = np.zeros(n_vars)
-
-            if t == 1:
-                full_Q[t - 1] = Q_1
-            else:
-                full_Q[t - 1] = Q_0
+        for t in range(1, min(T_star, horizon) + 1):
+            full_P[t - 1] = P_seq[t]
+            full_D[t - 1] = D_seq[t]
+            full_Q[t - 1] = Q_seq[t]
 
         return full_P, full_D, full_Q
 
@@ -667,6 +658,31 @@ def solve_occbin(
 
     if not converged:
         final_X, final_shadow = simulate_path(T_star)
+
+    # The duration loop counts only the periods that bind consecutively from t=1, so the
+    # solver represents a single contiguous spell. A shock arriving after the spell has
+    # ended can push the economy back against the bound, and that second spell is invisible
+    # to T*: the returned path then violates the constraint. Detect it rather than hand back
+    # a violating path silently -- multi-spell support is a larger change than this check.
+    if final_X is not None:
+        # Same test the solver applies to unconstrained periods, with a slack so rounding
+        # at the bound cannot raise a false alarm.
+        bound_tol = 1e-9 * max(1.0, abs(constraint.threshold))
+        if constraint.operator in ("<", "<="):
+            breach = constraint.threshold - final_X[T_star:horizon, idx_var]
+        else:
+            breach = final_X[T_star:horizon, idx_var] - constraint.threshold
+        beyond = [T_star + int(k) for k in np.flatnonzero(breach > bound_tol)]
+        if beyond:
+            warnings.warn(
+                f"constraint on {constraint.variable!r} binds again at period(s) "
+                f"{beyond[:8]}{'...' if len(beyond) > 8 else ''} after the spell of "
+                f"{T_star} period(s) ends; solve_occbin tracks a single contiguous spell "
+                f"starting at t=1, so {constraint.variable!r} violates its bound there. "
+                "Shorten the horizon to the first spell, or split the shock sequence.",
+                UserWarning,
+                stacklevel=2,
+            )
 
     # 6. Construct OccBinResult
     sim_df = pd.DataFrame(final_X, columns=variables)

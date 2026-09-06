@@ -1,4 +1,6 @@
 """Tests for OccBin (Guerrieri & Iacoviello 2015) piecewise-linear solver."""
+import warnings
+
 import matplotlib
 matplotlib.use("Agg")
 
@@ -285,3 +287,132 @@ def test_occbin_reports_and_plotting(nk_model_setup):
     fig_sub = res.plot(variables=["y", "r"], style="default")
     assert fig_sub is not None
     assert len(fig_sub.axes) == 2
+
+
+def test_occbin_late_shock_unconstrained_matches_linear(nk_model_setup):
+    """A shock arriving after t=1 with no binding spell must still propagate.
+
+    Regression: the ``T_star == 0`` branch used to hand back a zero shock loading for
+    every period after the first, so any innovation dated t > 1 was silently discarded
+    and the solver returned an identically zero path with ``converged=True``.
+    """
+    ref = nk_model_setup["ref_model"]
+    cons = nk_model_setup["cons_model"]
+    constraint = nk_model_setup["constraint"]
+    horizon = 20
+    n_shocks = len(nk_model_setup["shocks"])
+
+    # Same small demand shock, once at t=1 and once at t=4. Too small to reach the ZLB,
+    # so both runs are pure linear model and the second is the first shifted by 3.
+    early = np.zeros((horizon, n_shocks))
+    early[0, 1] = -0.002
+    late = np.zeros((horizon, n_shocks))
+    late[3, 1] = -0.002
+
+    res_early = solve_occbin(ref, cons, constraint, shock_sequence=early, horizon=horizon)
+    res_late = solve_occbin(ref, cons, constraint, shock_sequence=late, horizon=horizon)
+
+    assert res_early.binding_periods == 0
+    assert res_late.binding_periods == 0
+
+    # The late shock must do something at all ...
+    assert np.abs(res_late["y"].values).max() > 1e-8, "shock dated t > 1 was discarded"
+
+    # ... and specifically the same thing, three periods later.
+    for var in nk_model_setup["variables"]:
+        np.testing.assert_allclose(
+            res_late[var].values[3:], res_early[var].values[: horizon - 3], atol=1e-12
+        )
+        np.testing.assert_allclose(res_late[var].values[:3], 0.0, atol=1e-12)
+
+
+def test_occbin_shock_inside_spell_respects_the_bound(nk_model_setup):
+    """A shock landing inside a binding spell must not push the variable off its bound.
+
+    Regression: the shock loading was assigned by date rather than by regime, so for
+    1 < t <= T* an innovation was transmitted through the reference-regime matrix. In
+    the ZLB model that let a policy shock -- absent from the pegged-rate equation -- move
+    the nominal rate straight through its own floor while the solver still reported the
+    spell as binding and converged.
+    """
+    ref = nk_model_setup["ref_model"]
+    cons = nk_model_setup["cons_model"]
+    constraint = nk_model_setup["constraint"]
+    r_ss = nk_model_setup["params"]["r_ss"]
+    horizon = 20
+    n_shocks = len(nk_model_setup["shocks"])
+
+    base = np.zeros((horizon, n_shocks))
+    base[0, 1] = -0.025
+    res_base = solve_occbin(ref, cons, constraint, shock_sequence=base, horizon=horizon)
+    assert res_base.binding_periods >= 4, "fixture must produce a multi-period spell"
+
+    # Policy shock strictly inside the spell, where the rate is pegged at -r_ss
+    inside = base.copy()
+    inside[2, 0] = -0.005
+    assert 2 < res_base.binding_periods
+    res = solve_occbin(ref, cons, constraint, shock_sequence=inside, horizon=horizon)
+
+    # The bound holds over the whole spell ...
+    assert np.all(res["r"].values[: res.binding_periods] >= -r_ss - 1e-10)
+    # ... and, since the constrained regime does not contain eps_r, the pegged stretch is
+    # bit-for-bit what it was without the shock.
+    np.testing.assert_allclose(
+        res["r"].values[: res.binding_periods],
+        res_base["r"].values[: res_base.binding_periods][: res.binding_periods],
+        atol=1e-12,
+    )
+
+
+def test_occbin_bound_holds_for_shocks_arriving_within_the_spell(nk_model_setup):
+    """Sweep the arrival date of a second demand shock inside the spell; the floor holds.
+
+    Arrivals 0-5 land while the constraint is still binding, so they only lengthen the
+    single spell the solver tracks. The floor must hold in every one of those runs, with
+    no warning.
+    """
+    ref = nk_model_setup["ref_model"]
+    cons = nk_model_setup["cons_model"]
+    constraint = nk_model_setup["constraint"]
+    r_ss = nk_model_setup["params"]["r_ss"]
+    horizon = 24
+    n_shocks = len(nk_model_setup["shocks"])
+
+    for arrival in range(0, 6):
+        seq = np.zeros((horizon, n_shocks))
+        seq[0, 1] = -0.020
+        seq[arrival, 1] += -0.010
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")          # any re-binding warning fails the test
+            res = solve_occbin(ref, cons, constraint, shock_sequence=seq, horizon=horizon)
+        assert res.converged is True, f"failed to converge for arrival {arrival}"
+        assert np.all(res["r"].values >= -r_ss - 1e-10), (
+            f"ZLB floor violated when the shock arrives at index {arrival}: "
+            f"min r = {res['r'].values.min()}"
+        )
+
+
+def test_occbin_warns_when_the_constraint_binds_again_after_the_spell(nk_model_setup):
+    """A second, disjoint spell is outside the single-spell design -- say so, don't hide it.
+
+    The duration loop counts only periods that bind consecutively from t=1. A shock landing
+    after the spell has ended can push the economy back against the bound; that second spell
+    cannot be represented, and the returned path violates the constraint there. The solver
+    must flag it instead of returning the violating path silently.
+    """
+    ref = nk_model_setup["ref_model"]
+    cons = nk_model_setup["cons_model"]
+    constraint = nk_model_setup["constraint"]
+    r_ss = nk_model_setup["params"]["r_ss"]
+    horizon = 24
+    n_shocks = len(nk_model_setup["shocks"])
+
+    seq = np.zeros((horizon, n_shocks))
+    seq[0, 1] = -0.020
+    seq[6, 1] = -0.010          # arrives after the first spell has ended
+
+    with pytest.warns(UserWarning, match="binds again at period"):
+        res = solve_occbin(ref, cons, constraint, shock_sequence=seq, horizon=horizon)
+
+    # The warning is a guard, not a fix: the path really does breach the bound there.
+    assert np.any(res["r"].values[res.binding_periods :] < -r_ss - 1e-10)
