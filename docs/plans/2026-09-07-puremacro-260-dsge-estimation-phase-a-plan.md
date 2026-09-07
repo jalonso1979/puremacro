@@ -194,13 +194,13 @@ git commit -m "fix(dsge): raise on Dynare macro directives instead of silently i
 
 ---
 
-## Task 2: Extend `priors.py` for the full `estimated_params` shape set
+## Task 2: Extend `priors.py` for the full `estimated_params` shape set — DONE
 
 **Files:** Modify `puremacro/dsge/priors.py`. Modify `tests/test_dsge/test_priors.py`.
 
 Dynare's `PRIOR_P3` / `PRIOR_P4` shift and scale the beta and gamma families; `weibull_pdf` and `inv_gamma2_pdf` have no class today. Without these, 36-line real blocks cannot round-trip.
 
-- [ ] **Step 1: Write failing tests** (append to `tests/test_dsge/test_priors.py`)
+- [x] **Step 1: Write failing tests** (append to `tests/test_dsge/test_priors.py`)
 
 ```python
 def test_generalised_beta_matches_scipy_on_a_shifted_support():
@@ -259,7 +259,7 @@ def test_ensure_prior_round_trips_the_new_specs(spec, cls):
     assert P.ensure_prior(spec).to_dict()["dist"] == spec["dist"]
 ```
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 - `BetaPrior(mean, std, lb=1e-4, ub=0.9999, *, shift=0.0, scale=1.0)`; `GammaPrior(..., *, shift=0.0)`. Both store the extra fields and include them in `to_dict()` / `__repr__`. `logpdf` maps `x → (x - shift) / scale` and subtracts `log(scale)` (Jacobian) for beta; gamma shifts only. `lb`/`ub` default to `shift` / `shift + scale` when `scale != 1`.
 - `WeibullPrior(shape, scale, lb=0.0, ub=inf)` — parameterised by shape/scale (Dynare's P1/P2 for this family), with `mean`/`std` derived so the base-class interface stays coherent.
@@ -269,7 +269,7 @@ def test_ensure_prior_round_trips_the_new_specs(spec, cls):
 
 **Back-compat requirement:** every existing call site constructs these classes positionally with `(mean, std, lb, ub)`. All new arguments are keyword-only with defaults that reproduce today's behaviour exactly.
 
-- [ ] **Step 3: Run**
+- [x] **Step 3: Run**
 
 ```bash
 PYTHONPATH=. python3 -m pytest tests/test_dsge/test_priors.py tests/test_dsge/test_sw07_priors.py -q
@@ -277,7 +277,7 @@ PYTHONPATH=. python3 -m pytest tests/test_dsge/test_priors.py tests/test_dsge/te
 
 Expected: all pass, including the 9 pre-existing prior tests unchanged.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add puremacro/dsge/priors.py tests/test_dsge/test_priors.py

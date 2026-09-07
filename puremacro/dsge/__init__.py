@@ -52,6 +52,7 @@ from .priors import (
     NormalPrior,
     GammaPrior,
     UniformPrior,
+    WeibullPrior,
 )
 from .decomposition import (
     FEVDResult,
@@ -76,6 +77,7 @@ __all__ = [
     "PrunedDSGESolution", "PrunedSimulationResult", "canonical_growth_2nd_order",
     "FEVDResult", "ShockDecompResult", "compute_fevd", "compute_shock_decomposition",
     "Prior", "BetaPrior", "InvGammaPrior", "NormalPrior", "GammaPrior", "UniformPrior",
+    "WeibullPrior",
     "priors", "fertility_adj_costs",
 ]
 from . import smets_wouters  # re-export for back-compat with 0.50.0 callers

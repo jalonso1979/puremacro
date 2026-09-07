@@ -238,6 +238,7 @@
       "StochSimulResult",
       "TheoreticalMomentsResult",
       "UniformPrior",
+      "WeibullPrior",
       "build",
       "build_dynare",
       "build_gertler_karadi_model",
