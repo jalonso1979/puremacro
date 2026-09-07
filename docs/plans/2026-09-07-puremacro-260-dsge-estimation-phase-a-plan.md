@@ -447,7 +447,7 @@ git commit -m "feat(dsge): parse the estimated_params block and attach it to the
 
 ---
 
-## Task 4: `observation.py` — `varobs` to a state space
+## Task 4: `observation.py` — `varobs` to a state space — DONE
 
 **Files:** Create `puremacro/dsge/observation.py`, `tests/test_dsge/test_observation.py`.
 
@@ -463,7 +463,7 @@ Check: `T alpha_{t-1} + R u_t = [A x_{t-1} + B u_{t-1}; 0] + [0; u_t] = [x_t; u_
 
 Two consequences to write into the docstring: growth-rate observables need no special casing (`dy = y - y(-1)` is a declared variable, so it is just a row of `(C, D)`), and **the smoothed structural shocks are the last `n_e` rows of `a_smooth`** — no separate disturbance smoother is needed. Task 5 depends on that.
 
-- [ ] **Step 1: Signature**
+- [x] **Step 1: Signature**
 
 ```python
 def make_state_space_from_varobs(
@@ -474,7 +474,7 @@ def make_state_space_from_varobs(
 
 `measurement_error` is `{obs_name: std}`; `H = diag(std**2)` and defaults to **zero** (Dynare's default), not the `1e-8` ridge `sw07_observation.py` uses. `ridge` adds `ridge * I` on top when a caller wants conditioning. `prefilter=True` sets `d = 0`. An observable not among `model.variables` raises naming it and listing the nearest matches.
 
-- [ ] **Step 2: Write the decisive tests**
+- [x] **Step 2: Write the decisive tests**
 
 ```python
 """make_state_space_from_varobs — the varobs -> Kalman connector."""
@@ -618,13 +618,13 @@ def test_sw07_cross_check_against_the_hand_built_observation_equation():
 
 `TheoreticalMomentsResult` has **no** `.variance` attribute — checked. It carries `.moments` (columns `Mean`, `Std.Dev.`, `Variance`), `.covariance`, `.correlation`, `.autocorr`, `.fevd`. The test uses `.covariance` because it is unambiguous about timing; `load_mod` models are Dynare-timed, so `covariance` and the state space agree row for row.
 
-- [ ] **Step 3: Run**
+- [x] **Step 3: Run**
 
 ```bash
 PYTHONPATH=. python3 -m pytest tests/test_dsge/test_observation.py -q -m "not slow"
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add puremacro/dsge/observation.py tests/test_dsge/test_observation.py

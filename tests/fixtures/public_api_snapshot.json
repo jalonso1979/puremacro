@@ -342,6 +342,9 @@
       "KleinSolution",
       "klein_solve"
     ],
+    "puremacro.dsge.observation": [
+      "make_state_space_from_varobs"
+    ],
     "puremacro.dsge.occbin": [
       "OccBinConstraint",
       "OccBinResult",
