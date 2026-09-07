@@ -12,9 +12,9 @@ FIXTURE = Path(__file__).parent.parent / "fixtures" / "sw07_parity_seed0_200draw
 
 @pytest.mark.slow
 def test_sw07_parity_short_chain():
-    """estimate_sw07(seed=0, n_chains=1, n_draws=200, burn_in=50) against the
-    frozen pre-0.53.0 reference: posterior-function parity deterministically,
-    structural parity exactly, sampler invariants on a fresh short chain.
+    """estimate_sw07(seed=0, n_chains=1, n_draws=200, burn_in=500) against the
+    frozen reference: posterior-function parity deterministically, structural
+    parity exactly, sampler invariants on a fresh short chain.
 
     The original bit-for-bit check (atol=1e-10 on every draw) only holds on
     the software stack that generated the fixture: last-bit float
@@ -33,6 +33,35 @@ def test_sw07_parity_short_chain():
     bundled-data loading, observation equation, priors, and fixed
     calibrated params. Any real regression in those moves the
     log-posterior by orders of magnitude more than the 0.05 tolerance.
+
+    ``log_posterior_trace`` was regenerated in 2.6.0 at the *same* frozen
+    draws. Two deliberate 2.5.0 fixes had moved the SW07 log-posterior at
+    every parameter vector and the fixture was never refreshed, so this
+    assertion had been failing since the 2.5.0 release with nothing running
+    it (slow-marked tests are excluded from both the default suite and
+    ``release_check`` gate 1). The gap decomposes exactly, with nothing
+    unexplained beyond 5e-4 log points:
+
+    * the Kalman recursion moving from the diffuse ``P0 = 1e6*I`` to the
+      unconditional Lyapunov covariance -- +108.5 to +111.8 depending on the
+      draw, against the +113.99 the CHANGELOG records at the shipped starting
+      values; and
+    * the inverse-gamma prior becoming Dynare's ``inverse_gamma_specification``
+      + ``lpdfig1`` -- -0.24 to +2.11, matching an independent reconstruction
+      of the pre-2.4.1 density to ~1e-4 at every probe draw.
+
+    The draws themselves are still the original frozen ones: they are probe
+    points, and freezing them keeps this check independent of today's sampler.
+
+    ``burn_in`` is 500, not the 50 the fixture was generated with, because
+    ``random_walk_metropolis`` adapts its scalar proposal scale only on
+    ``(it + 1) % 100 == 0``. At ``burn_in=50`` adaptation never fires once,
+    the proposal keeps the oversized ``diag(prior_stds**2)`` fallback scale,
+    and the chain rejects all 200 draws (measured: acceptance 0.000, one
+    distinct draw; at 200 it is 0.110). That is a real robustness gap in the
+    sampler -- adaptation is a silent no-op for any ``burn_in < 100`` -- but
+    fixing it changes every existing posterior, so it is tracked separately
+    rather than smuggled in here.
     """
     from puremacro.dsge.estimate import _make_neg_log_posterior
     from puremacro.dsge.sw07_estimate import (
@@ -67,7 +96,7 @@ def test_sw07_parity_short_chain():
     )
 
     # --- Fresh short chain: structure + sampler invariants --------------
-    res = estimate_sw07(seed=0, n_chains=1, n_draws=200, burn_in=50)
+    res = estimate_sw07(seed=0, n_chains=1, n_draws=200, burn_in=500)
 
     assert tuple(res.param_names) == tuple(str(n) for n in ref["param_names"])
     assert res.param_names == names

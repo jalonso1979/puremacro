@@ -1024,6 +1024,35 @@ Expected: `all 6 gates PASS`. Diagnose any failure at its cause — no `--no-ver
 
 ---
 
+## Deferred findings (surfaced while executing this plan, not fixed here)
+
+**F1 — `random_walk_metropolis` adaptation is a silent no-op for `burn_in < 100`.**
+`puremacro/mcmc.py` adapts the scalar proposal scale only when `(it + 1) % adapt_window == 0` with
+`adapt_window = 100`, so any `adapt_burnin` below 100 never adapts once. The proposal keeps its
+initial scale — on SW07 the oversized `diag(prior_stds**2)` Hessian fallback — and the chain rejects
+everything, with no warning. Measured on `main` at 2.5.0, `estimate_sw07(seed=0, n_chains=1,
+n_draws=200, burn_in=B)`:
+
+| `B` | adaptation windows | acceptance | distinct draws |
+|---|---|---|---|
+| 50 | 0 | **0.000** | 1 / 200 |
+| 200 | 2 | 0.110 | 12 / 100 |
+
+Not fixed here: every candidate fix (scale the window with `adapt_burnin`, adapt on a fractional
+schedule, warn when `adapt_burnin < adapt_window`) changes the draws of every existing posterior, and
+`estimate_dsge`'s sampler is Task 6's territory. `tests/test_dsge/test_sw07_wrapper.py` now runs at
+`burn_in=500` so its sampler invariants are testable at all. Candidate home: 2.6.0 Task 6, or 2.8.0
+alongside the SMC/slice samplers.
+
+**F2 — slow-marked tests run in neither the default suite nor `release_check` gate 1.**
+`pyproject.toml` `addopts` carries `-m "not slow and not network and not reference and not
+replication"`, and `run_pytest_collect_failures` independently passes `-m "not network and not
+slow"`. That is how F1 and the stale `sw07_parity_seed0_200draws.npz` both survived a release with
+`known_failures.json` empty. Not fixed here (it is a CI-policy decision, not a Phase A change), but
+every task in this plan that leans on a slow test must run it explicitly.
+
+---
+
 ## Self-review checklist (run AFTER all 12 tasks)
 
 1. **Spec coverage** — every Phase A component in `docs/specs/2026-09-07-puremacro-dsge-tier1-design.md` maps to a task: A1 grammar → Tasks 2+3; A2 observation equation → Task 4; A3 `estimate`/`smoother`/`forecast` → Tasks 5+8; A4 mode search → Task 6; A5 marginal likelihood → Task 7; the `@#` guard → Task 1; exports/docs/release → Tasks 9-12.
