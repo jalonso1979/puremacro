@@ -712,6 +712,13 @@ def estimate_dsge(
 
     mode_dict = _vec_to_dict(mode_vec, names, fixed)
 
+    # The log posterior at the reported mode, for the Laplace marginal
+    # likelihood. Taken from the +inf target, not the penalised one the
+    # optimiser saw: a finite penalty is a device for the search, not a value.
+    lp_mode = -float(neg_log_post(mode_vec))
+    if not np.isfinite(lp_mode):
+        lp_mode = None
+
     return DSGEPosteriorResult(
         draws=chains_arr,
         param_names=names,
@@ -723,6 +730,7 @@ def estimate_dsge(
         data_n_obs=len(data),
         seed=seed,
         model_name=model_name,
+        log_post_mode=lp_mode,
     )
 
 

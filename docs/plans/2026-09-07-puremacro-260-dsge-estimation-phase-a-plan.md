@@ -780,15 +780,15 @@ The `test_sw07_wrapper.py` parity test is in that run deliberately: it is the gu
 
 ---
 
-## Task 7: `marginal.py` — marginal likelihood and model comparison
+## Task 7: `marginal.py` — marginal likelihood and model comparison — DONE
 
 **Files:** Create `puremacro/dsge/marginal.py`, `tests/test_dsge/test_marginal_likelihood.py`. Modify `puremacro/dsge/estimate.py`, `puremacro/dsge/_results.py`.
 
-- [ ] **Step 1: Record the missing input**
+- [x] **Step 1: Record the missing input**
 
 `DSGEPosteriorResult` has no log posterior *at the mode*. Add `log_post_mode: float | None = None` and have `estimate_dsge` fill it. Optional with a `None` default, so existing pickles and callers are unaffected.
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 ```python
 def laplace_mdd(log_post_mode: float, hessian_inv: np.ndarray) -> float:
@@ -805,7 +805,7 @@ def model_comparison(results, *, model_priors=None, method="laplace") -> pd.Data
 
 `model_comparison` refuses to mix estimators across models — a Laplace value and a harmonic-mean value are not comparable, and silently mixing them is how a Bayes factor becomes fiction. The module docstring records that marginal likelihoods computed before 2.5.0 are not comparable at all, because the Kalman recursion then started from a diffuse `P0` rather than the unconditional covariance.
 
-- [ ] **Step 3: The analytic test**
+- [x] **Step 3: The analytic test**
 
 ```python
 def test_laplace_is_exact_for_a_gaussian_posterior():
@@ -832,16 +832,18 @@ def test_harmonic_mean_recovers_the_same_number_on_the_same_model():
     """Same conjugate model, 200k draws from the exact posterior."""
     ...  # tolerance 0.05 log points; assert .converged is True
 
-def test_harmonic_mean_reports_a_wide_spread_when_it_has_not_converged():
-    """40 draws: the estimate must report itself unreliable, not quietly return."""
-    ...  # assert res.converged is False and res.spread > 1.0
+def test_harmonic_mean_flags_itself_when_the_draws_are_few_for_the_dimension(seed):
+    """MEASURED, not assumed: the planned "40 draws in 1-D" case converges
+    cleanly (spread 0.34 at M=200), and so does a bimodal posterior. The
+    estimator only swings past a log point when the covariance it fits is
+    itself noisy — 30 draws in 5 dimensions gives spread 1.1-1.5."""
 
 def test_model_comparison_refuses_to_mix_methods(): ...
 def test_model_comparison_posterior_odds_sum_to_one(): ...
 def test_log_mdd_accessor_on_the_result_object(): ...
 ```
 
-- [ ] **Step 4: Run and commit**
+- [x] **Step 4: Run and commit**
 
 ```bash
 PYTHONPATH=. python3 -m pytest tests/test_dsge/test_marginal_likelihood.py -q

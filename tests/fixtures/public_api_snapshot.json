@@ -342,6 +342,12 @@
       "KleinSolution",
       "klein_solve"
     ],
+    "puremacro.dsge.marginal": [
+      "HarmonicMeanResult",
+      "harmonic_mean_mdd",
+      "laplace_mdd",
+      "model_comparison"
+    ],
     "puremacro.dsge.mode": [
       "METHODS",
       "cmaes",
@@ -2817,6 +2823,7 @@
       "accept_rates",
       "data_n_obs",
       "draws",
+      "log_post_mode",
       "log_posterior_trace",
       "mode",
       "mode_hessian_inv",
@@ -2866,6 +2873,7 @@
       "accept_rates",
       "data_n_obs",
       "draws",
+      "log_post_mode",
       "log_posterior_trace",
       "mode",
       "mode_hessian_inv",
@@ -2988,6 +2996,13 @@
       "ir",
       "shock_names",
       "var_names"
+    ],
+    "puremacro.dsge.marginal.HarmonicMeanResult": [
+      "by_truncation",
+      "converged",
+      "estimate",
+      "n_draws",
+      "spread"
     ],
     "puremacro.dsge.occbin.OccBinConstraint": [
       "operator",

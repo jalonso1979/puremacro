@@ -50,6 +50,35 @@ class DSGEPosteriorResult:
     data_n_obs: int
     seed: int
     model_name: str = "unknown"
+    #: ``log p(y | th*) + log p(th*)`` at the reported mode. ``None`` on
+    #: results produced before 2.6.0, which is why :meth:`log_mdd` says so
+    #: rather than guessing. New in 2.6.0.
+    log_post_mode: float | None = None
+
+    def log_mdd(self, method: str = "laplace") -> float:
+        """Log marginal likelihood ``log p(y)``.
+
+        ``method="laplace"`` needs :attr:`log_post_mode` and a
+        positive-definite :attr:`mode_hessian_inv`; ``method="harmonic"`` uses
+        Geweke's modified harmonic mean over the draws and warns when its
+        estimate is not stable across truncation levels. See
+        :mod:`puremacro.dsge.marginal`.
+        """
+        from .marginal import harmonic_mean_mdd, laplace_mdd
+
+        if method == "laplace":
+            if self.log_post_mode is None:
+                raise ValueError(
+                    "log_mdd(method='laplace') needs log_post_mode, which this "
+                    "result does not carry (it predates puremacro 2.6.0). "
+                    "Re-run the estimation, or use method='harmonic'."
+                )
+            return laplace_mdd(self.log_post_mode, self.mode_hessian_inv)
+        if method == "harmonic":
+            return harmonic_mean_mdd(self.draws, self.log_posterior_trace).estimate
+        raise ValueError(
+            f"unknown method {method!r}; expected 'laplace' or 'harmonic'"
+        )
 
     def summary(self) -> pd.DataFrame:
         """Per-parameter mean, std, 5%/50%/95% quantiles across all chains."""
