@@ -963,10 +963,10 @@ git commit -m "feat(dsge): LinearModel.estimate — Bayesian estimation straight
    draw. The cache pays during the mode search, and would pay far more under a blocked or
    single-site sampler. The docstring states this rather than the "~19 minutes of solving" framing.
 
-## Task 9: Exports and the public surface
+## Task 9: Exports and the public surface — DONE
 
-- [ ] **Step 1** — add to `puremacro/dsge/__init__.py` and `__all__`: `DynareFeatureError`, `EstimatedParamSpec`, `EstimatedParams`, `parse_estimated_params`, `make_state_space_from_varobs`, `find_mode`, `mode_check`, `csminwel`, `cmaes`, `laplace_mdd`, `harmonic_mean_mdd`, `model_comparison`, `SmootherResult`, `DSGEForecastResult`, `WeibullPrior`, and the `marginal`, `mode`, `observation` modules.
-- [ ] **Step 2** — confirm every new result class implements `.summary()`, `.plot()`, `.to_markdown()`, `.to_latex()`, `.to_typst()`.
+- [x] **Step 1** — add to `puremacro/dsge/__init__.py` and `__all__`: `DynareFeatureError`, `EstimatedParamSpec`, `EstimatedParams`, `parse_estimated_params`, `make_state_space_from_varobs`, `find_mode`, `mode_check`, `csminwel`, `cmaes`, `laplace_mdd`, `harmonic_mean_mdd`, `model_comparison`, `SmootherResult`, `DSGEForecastResult`, `WeibullPrior`, and the `marginal`, `mode`, `observation` modules.
+- [x] **Step 2** — confirm every new result class implements `.summary()`, `.plot()`, `.to_markdown()`, `.to_latex()`, `.to_typst()`.
 
 ```bash
 PYTHONPATH=. python3 -m pytest tests/test_reports_export.py tests/test_public_api.py -q
@@ -977,7 +977,7 @@ enforced per module; `tests/test_public_api.py::collect_current_api` records `re
 their fields, so a new result class shows up in the snapshot diff (gate 3) whether or not it has a
 dedicated test. Add the five-method assertions to the new per-module test files.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ---
 

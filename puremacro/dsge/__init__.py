@@ -22,6 +22,7 @@ from ._results import (
     FertilitySolution,
     DynareDR, Dynare2ndDR, TheoreticalMomentsResult,
     StochSimulResult,
+    SmootherResult, DSGEForecastResult, ModeCheckResult,
 )
 from .estimate import estimate_dsge
 from .bayesian import BayesianEstimationResult, estimate_dsge_bayesian
@@ -60,7 +61,24 @@ from .decomposition import (
     compute_fevd,
     compute_shock_decomposition,
 )
+from ._estimated_params import (
+    EstimatedParams,
+    EstimatedParamSpec,
+    parse_estimated_params,
+    parse_estimated_params_bounds,
+    parse_estimated_params_init,
+)
+from .observation import make_state_space_from_varobs
+from .smoother import forecast_model, smooth_model
+from .mode import cmaes, csminwel, find_mode, mode_check
+from .marginal import (
+    HarmonicMeanResult,
+    harmonic_mean_mdd,
+    laplace_mdd,
+    model_comparison,
+)
 from . import priors, fertility_adj_costs
+from . import marginal, mode, observation, smoother
 
 __all__ = [
     "klein_solve", "KleinSolution", "BlanchardKahnError",
@@ -78,6 +96,14 @@ __all__ = [
     "FEVDResult", "ShockDecompResult", "compute_fevd", "compute_shock_decomposition",
     "Prior", "BetaPrior", "InvGammaPrior", "NormalPrior", "GammaPrior", "UniformPrior",
     "WeibullPrior",
+    # --- 2.6.0: .mod file to posterior -----------------------------------
+    "EstimatedParams", "EstimatedParamSpec", "parse_estimated_params",
+    "parse_estimated_params_init", "parse_estimated_params_bounds",
+    "make_state_space_from_varobs",
+    "SmootherResult", "DSGEForecastResult", "smooth_model", "forecast_model",
+    "find_mode", "mode_check", "csminwel", "cmaes", "ModeCheckResult",
+    "laplace_mdd", "harmonic_mean_mdd", "model_comparison", "HarmonicMeanResult",
+    "marginal", "mode", "observation", "smoother",
     "priors", "fertility_adj_costs",
 ]
 from . import smets_wouters  # re-export for back-compat with 0.50.0 callers
