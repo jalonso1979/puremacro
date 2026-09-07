@@ -1,15 +1,20 @@
 """Unit tests for DSGE Dynare decision rules, theoretical moments, and analytical FEVD."""
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import pandas as pd
 import pytest
 
 from puremacro.dsge import (
     build,
+    compute_fevd,
     DynareDR,
+    load_mod,
     TheoreticalMomentsResult,
 )
+from puremacro.dsge._moments import ZeroVarianceWarning
 
 
 @pytest.fixture
@@ -157,3 +162,130 @@ def test_non_stationary_model_error():
             steady_state=dict(k=0.0, c=0.0),
         )
         m_bad.theoretical_moments()
+
+
+# ===========================================================================
+# conditional_fevd kernel: input validation, stationarity, per-row zero test
+# ===========================================================================
+
+@pytest.fixture
+def two_state_model():
+    """AR(1) states of very different scale feeding a huge and a tiny control."""
+    return load_mod(
+        """
+        var z1 z2 big small; varexo e1 e2;
+        model;
+          z1 = 0.5*z1(-1) + e1;
+          z2 = 0.5*z2(-1) + e2;
+          big   = 1e8*z1 + 1e8*z2;
+          small = 1e-1*z1 + 1e-1*z2;
+        end;
+        shocks; var e1; stderr 1.0; var e2; stderr 1.0; end;
+        """
+    )
+
+
+def test_zero_variance_test_is_per_row_not_matrix_wide(two_state_model):
+    """A well-scaled row is not erased because another variable is 1e9 larger.
+
+    The zero test used to compare every row's total against the largest entry
+    of the whole matrix, so ``small`` (loadings 1e-1) and both unit-variance
+    states came back NaN with a 'variance is zero' warning purely because
+    ``big`` (loadings 1e8) shares the table.
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ZeroVarianceWarning)
+        table = compute_fevd(two_state_model, horizons=[1, 4, None]).table
+
+    assert not table.isna().to_numpy().any()
+    np.testing.assert_allclose(table.sum(axis=1).to_numpy(), 1.0, atol=1e-12)
+    # 'big' and 'small' are the same linear combination up to a scale factor,
+    # so their shares must be identical.
+    np.testing.assert_allclose(
+        table.xs("big", level="Variable").to_numpy(),
+        table.xs("small", level="Variable").to_numpy(),
+        atol=1e-12,
+    )
+    # z1 and z2 are each driven by exactly one shock.
+    np.testing.assert_allclose(table.loc[("z1", 1)].to_numpy(), [1.0, 0.0], atol=1e-12)
+    np.testing.assert_allclose(table.loc[("z2", 1)].to_numpy(), [0.0, 1.0], atol=1e-12)
+
+
+def test_asymptotic_fevd_refuses_a_non_stationary_transition():
+    """A unit root has an infinite unconditional variance: say so, do not invent shares.
+
+    ``solve_discrete_lyapunov`` returns a large finite number for a singular
+    pencil, which used to be reported as a perfectly ordinary 100% / 0% split.
+    """
+    m = load_mod(
+        """
+        var z b x; varexo e eb;
+        model;
+          z = 1.0*z(-1) + e;
+          b = 0.5*b(-1) + eb;
+          x = 0.5*z + 0.5*b;
+        end;
+        shocks; var e; stderr 0.01; var eb; stderr 0.02; end;
+        """
+    )
+    with pytest.raises(ValueError, match="non-stationary eigenvalues"):
+        compute_fevd(m, horizons=[1, 4, None])
+    with pytest.raises(ValueError, match="non-stationary eigenvalues"):
+        m.fevd(horizons=[None])
+
+    # Finite horizons remain meaningful and are still computed.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ZeroVarianceWarning)
+        table = compute_fevd(m, horizons=[1, 4]).table
+    np.testing.assert_allclose(table.sum(axis=1).to_numpy(), 1.0, atol=1e-12)
+    np.testing.assert_allclose(table.loc[("x", 1)].to_numpy(), [0.2, 0.8], atol=1e-12)
+
+
+def test_correlated_shocks_are_refused_rather_than_silently_diagonalised():
+    """The FEVD must not decompose a total that differs from the model's variance.
+
+    ``theoretical_moments`` uses the full declared covariance; the FEVD used to
+    take only ``sqrt(diag(...))``, so with ``corr e1, e2 = 0.8`` the shares
+    described a different total than the Variance column beside them.
+    """
+    m = load_mod(
+        """
+        var z1 z2 x; varexo e1 e2;
+        model;
+          z1 = 0.5*z1(-1) + e1;
+          z2 = 0.8*z2(-1) + e2;
+          x = z1 + z2;
+        end;
+        shocks; var e1; stderr 0.01; var e2; stderr 0.005; corr e1, e2 = 0.8; end;
+        """
+    )
+    np.testing.assert_allclose(m._shock_cov, [[1e-4, 4e-5], [4e-5, 2.5e-5]])
+    with pytest.raises(ValueError, match=r"not \s*diagonal|not diagonal"):
+        compute_fevd(m, horizons=[1, 4, None])
+
+    # Deliberately decomposing the diagonal part stays available via sigma=.
+    table = compute_fevd(m, horizons=[1], sigma={"e1": 0.01, "e2": 0.005}).table
+    np.testing.assert_allclose(table.loc[("x", 1)].to_numpy(), [0.8, 0.2], atol=1e-12)
+
+
+def test_fevd_horizons_are_validated(rbc_model):
+    """h <= 0, fractional h and repeated infinities are user errors, not NaN rows."""
+    with pytest.raises(ValueError, match="horizon must be >= 1"):
+        rbc_model.fevd(horizons=[0])
+    with pytest.raises(ValueError, match="horizon must be >= 1"):
+        rbc_model.fevd(horizons=[-3])
+    with pytest.raises(ValueError, match="not an integer number of periods"):
+        rbc_model.fevd(horizons=[4.7])
+    with pytest.raises(TypeError, match="horizon must be an int"):
+        rbc_model.fevd(horizons=["four"])
+
+    # An integral float is accepted and means exactly that horizon.
+    np.testing.assert_allclose(
+        rbc_model.fevd(horizons=[4.0]).to_numpy(),
+        rbc_model.fevd(horizons=[4]).to_numpy(),
+    )
+
+    # Repeated asymptotic entries collapse to one row: the index stays unique.
+    table = rbc_model.fevd(horizons=[None, np.inf, "Infinity", 4, 4])
+    assert table.index.is_unique
+    assert list(table.index.get_level_values("Horizon").unique()) == ["Infinity", 4]

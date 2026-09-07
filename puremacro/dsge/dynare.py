@@ -23,6 +23,7 @@ Schmitt-Grohé, S. and Uribe, M. (2004). Solving dynamic general equilibrium
 from __future__ import annotations
 
 import re
+import warnings
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
@@ -440,6 +441,58 @@ def build_dynare(
     )
 
 
+def _first_order_pieces(
+    m: "LinearModel", vars_list: list[str], shocks_list: list[str]
+) -> tuple:
+    """Unpack the first-order rules a second-order solve needs from ``m``.
+
+    Returns ``(states, controls, n_x, n_y, g_x, g_u, P_s, P_c, h_x, h_u)``
+    where ``g_x``/``g_u`` are Dynare's ``ghx``/``ghu`` over all variables and
+    ``P_s``/``P_c`` select the state and control rows.
+    """
+    states_list = list(m.states)
+    controls_list = list(m.controls)
+    n_x, n_y, n_v = len(states_list), len(controls_list), len(vars_list)
+
+    dr = m.decision_rules()
+    g_x = dr.ghx.loc[vars_list, states_list].to_numpy()
+    g_u = dr.ghu.loc[vars_list, shocks_list].to_numpy()
+
+    P_s = np.zeros((n_x, n_v))
+    for j, name in enumerate(states_list):
+        P_s[j, vars_list.index(name)] = 1.0
+
+    P_c = np.zeros((n_y, n_v))
+    for j, name in enumerate(controls_list):
+        P_c[j, vars_list.index(name)] = 1.0
+
+    return (states_list, controls_list, n_x, n_y,
+            g_x, g_u, P_s, P_c, P_s @ g_x, P_s @ g_u)
+
+
+def _lag_curvature_states(
+    H_f: np.ndarray, vars_list: list[str], states_list: list[str], n_v: int
+) -> list[str]:
+    """Variables whose lag enters f only through a second-order term.
+
+    ``build_dynare`` classifies a variable as a state from the column norm of
+    ``df/d(lag)``, which is exactly zero for a variable whose lag appears only
+    inside a quadratic (``y = v(-1)^2``, ``y = a(-1)*b(-1)``).  Such a variable
+    is missing from the state vector, so its whole curvature block of ``ghxx``
+    is silently zero.  The lag block of the Hessian sees it: if ``f`` does not
+    depend on ``lag_j`` at all, row and column ``2N + j`` of ``H_f`` are
+    identically zero (the perturbed coordinate never reaches the residual), so
+    a non-negligible entry there is a genuine second-order lag dependence.
+    """
+    lag_block = np.abs(H_f[:, 2 * n_v:3 * n_v, :]).max(axis=(0, 2))
+    scale = max(1.0, float(np.abs(H_f).max()))
+    known = set(states_list)
+    return [
+        v for j, v in enumerate(vars_list)
+        if v not in known and float(lag_block[j]) > 1e-8 * scale
+    ]
+
+
 def solve_dynare_2nd_order(
     equations: Callable,
     *,
@@ -483,11 +536,19 @@ def solve_dynare_2nd_order(
     guess : Mapping[str, float] | Sequence[float], optional
         Initial guess for numerical steady-state solver.
     states : Sequence[str], optional
-        Predetermined states. If None, auto-detected from columns of df/d(lag).
+        Predetermined states. If None, auto-detected from the columns of
+        ``df/d(lag)`` and then widened, Dynare-style, with any variable whose
+        lag reaches the model only through a second-order term (``y = v(-1)^2``,
+        ``y = a(-1)*b(-1)``) — such a variable has an all-zero column in
+        ``df/d(lag)`` but a non-zero lag block in the Hessian, and leaving it
+        out would zero its whole contribution to ``ghxx``. An explicit list is
+        used as given; if it omits such a variable a ``UserWarning`` says so.
     shock_cov : np.ndarray, optional
         Covariance matrix of innovations Σ_u used for the risk correction
         ``ghs2`` and as the default shock covariance of the returned
-        solution. Defaults to the identity matrix.
+        solution. Defaults to the identity matrix. (When the model comes from
+        a .mod file, :func:`load_mod` passes the ``shocks;`` block instead,
+        in which a shock the block does not mention has variance 0.)
     tol : float, default 1e-8
         Tolerance for steady-state residual check.
     method : {'complex', 'central'}, default 'complex'
@@ -532,31 +593,13 @@ def solve_dynare_2nd_order(
     assert m.steady_state is not None, "Order 2 perturbation requires steady state series"
 
     vars_list = list(m.variables)
-    states_list = list(m.states)
-    controls_list = list(m.controls)
     shocks_list = list(m.shocks)
 
     N = len(vars_list)
-    n_x = len(states_list)
-    n_y = len(controls_list)
     n_e = len(shocks_list)
 
-    # First-order rules in Dynare timing: y_t = g_x s_{t-1} + g_u u_t
-    dr = m.decision_rules()
-    g_x = dr.ghx.loc[vars_list, states_list].to_numpy()
-    g_u = dr.ghu.loc[vars_list, shocks_list].to_numpy()
-
-    # Selectors for states and controls
-    P_s = np.zeros((n_x, N))
-    for j, s in enumerate(states_list):
-        P_s[j, vars_list.index(s)] = 1.0
-
-    P_c = np.zeros((n_y, N))
-    for j, c in enumerate(controls_list):
-        P_c[j, vars_list.index(c)] = 1.0
-
-    h_x = P_s @ g_x
-    h_u = P_s @ g_u
+    (states_list, controls_list, n_x, n_y,
+     g_x, g_u, P_s, P_c, h_x, h_u) = _first_order_pieces(m, vars_list, shocks_list)
 
     # 2. First and second derivatives of f at the steady state, stacked
     #    over (lead, curr, lag, shocks)
@@ -619,6 +662,60 @@ def solve_dynare_2nd_order(
 
     for i in range(N):
         H_f[i] = 0.5 * (H_f[i] + H_f[i].T)
+
+    # 2b. A variable whose lag enters only through a second-order term has an
+    #     all-zero column in df/d(lag), so the first-order state detection in
+    #     build_dynare misses it and its entire curvature block of ghxx would
+    #     come out zero.  The Hessian does not depend on the state split, so we
+    #     can screen it here and re-solve the first-order model with the state
+    #     set Dynare would have used (every variable that appears lagged).
+    missed_states = _lag_curvature_states(H_f, vars_list, states_list, N)
+    if missed_states and states is None:
+        enlarged = [v for v in vars_list if v in set(states_list) | set(missed_states)]
+        try:
+            m = build_dynare(
+                equations,
+                variables=variables,
+                shocks=shocks,
+                params=params,
+                steady_state=steady_state,
+                guess=guess,
+                states=enlarged,
+                order=1,
+                tol=tol,
+                method=method,
+                verify_derivatives=verify_derivatives,
+                check_steady_state=check_steady_state,
+                strict=True,
+            )
+            assert isinstance(m, LinearModel)
+            (states_list, controls_list, n_x, n_y,
+             g_x, g_u, P_s, P_c, h_x, h_u) = _first_order_pieces(m, vars_list, shocks_list)
+            A_plus = np.asarray(m._A_plus, dtype=float)
+            A_0 = np.asarray(m._A_0, dtype=float)
+        except Exception as exc:
+            warnings.warn(
+                f"solve_dynare_2nd_order: the lag of {missed_states} enters the "
+                "model only through a second-order term, so df/d(lag) does not "
+                "see it and it is not in the auto-detected state vector "
+                f"{tuple(states_list)}. Re-solving with it as a state failed "
+                f"({type(exc).__name__}: {exc}), so the second-order rules ghxx "
+                "and the risk correction ghs2 DROP that variable's curvature "
+                "and are wrong. Pass an explicit states=[...] to control the "
+                "state vector.",
+                UserWarning,
+                stacklevel=2,
+            )
+    elif missed_states:
+        warnings.warn(
+            f"solve_dynare_2nd_order: the lag of {missed_states} enters the "
+            "model through a second-order term but these names are not in the "
+            f"states={list(states)!r} you passed. Their curvature contribution "
+            "to ghxx, ghxu and the risk correction ghs2 is dropped, so those "
+            "coefficients and the ergodic mean are wrong. Add them to states=.",
+            UserWarning,
+            stacklevel=2,
+        )
 
     # 3. Second-order systems for g_xx, g_xu, g_uu.  With
     #    y_{t+1} = g(h(x, u), u', σ), y_t = g(x, u), y_{t-1} -> x (states only):
@@ -961,12 +1058,18 @@ def parse_mod(mod_text: str) -> dict:
             if v in ss_scope:
                 eval_scope[v] = ss_scope[v]
 
-    # 9. Parse shocks block
+    # 9. Parse shocks block.
+    #    Dynare initialises M_.Sigma_e to zeros: an exogenous variable that the
+    #    shocks; block never mentions has variance 0 and is inert.  Only when
+    #    the .mod file has no shocks; block at all do we fall back to the unit
+    #    covariance (and then `shock_cov` is not returned anyway).
     shock_cov = np.eye(len(shocks))
     shocks_match = re.search(r"\bshocks\s*;\s*(.*?)\bend\s*;", clean_text, re.DOTALL)
     has_shocks_block = False
+    variance_declared: set[str] = set()
     if shocks_match:
         has_shocks_block = True
+        shock_cov = np.zeros((len(shocks), len(shocks)))
         current_shock = None
         for stmt in shocks_match.group(1).split(";"):
             stmt = stmt.strip()
@@ -1010,6 +1113,7 @@ def parse_mod(mod_text: str) -> dict:
                         s_val = float(eval(val_str, eval_scope, params))
                         s_idx = shocks.index(sname)
                         shock_cov[s_idx, s_idx] = s_val
+                        variance_declared.add(sname)
                     except Exception:
                         pass
                 continue
@@ -1024,6 +1128,7 @@ def parse_mod(mod_text: str) -> dict:
                         s_val = float(eval(val_str, eval_scope, params))
                         s_idx = shocks.index(sname)
                         shock_cov[s_idx, s_idx] = s_val**2
+                        variance_declared.add(sname)
                     except Exception:
                         pass
                 continue
@@ -1043,10 +1148,24 @@ def parse_mod(mod_text: str) -> dict:
                         s_val = float(eval(val_str, eval_scope, params))
                         s_idx = shocks.index(current_shock)
                         shock_cov[s_idx, s_idx] = s_val**2
+                        variance_declared.add(current_shock)
                     except Exception:
                         pass
                 current_shock = None
                 continue
+
+        undeclared = [sh for sh in shocks if sh not in variance_declared]
+        if undeclared:
+            warnings.warn(
+                f"parse_mod: the shocks; block declares no variance for "
+                f"{undeclared} — following Dynare (M_.Sigma_e starts at zero), "
+                "their innovation variance is 0, so they are inert in the "
+                "moments, the IRFs and the second-order risk correction ghs2. "
+                "Add 'var <name>; stderr <value>;' to the shocks; block if that "
+                "is not what you meant.",
+                UserWarning,
+                stacklevel=2,
+            )
 
     # 10. Parse stoch_simul options
     options: dict[str, Any] = {}
@@ -1167,7 +1286,11 @@ def load_mod(
              (returns PrunedDSGESolution).
         If None, uses order specified in stoch_simul block if present, else 1.
     shock_cov : np.ndarray, optional
-        Covariance matrix of innovations (defaults to declared shocks block or identity I).
+        Covariance matrix of innovations. Defaults to the ``shocks;`` block
+        when the file has one, and to the identity matrix when it has none.
+        Inside a ``shocks;`` block the Dynare convention applies: a ``varexo``
+        the block never gives a ``stderr``/``var`` gets variance **0**, not 1,
+        and :func:`parse_mod` warns naming it.
     tol : float, default 1e-8
         Steady-state solver and verification tolerance.
     method : {'complex', 'central'}, default 'complex'

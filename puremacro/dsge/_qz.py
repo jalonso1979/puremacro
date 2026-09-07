@@ -31,6 +31,10 @@ from numpy.linalg import LinAlgError
 
 __all__ = ["ordqz_sorted"]
 
+# ``SingularPencilError`` and ``_check_regular`` below are the success-path
+# counterpart of ``_diagnosis``: the same "both sides vanish" test, but run on
+# every solve rather than only after LAPACK has already refused to reorder.
+
 _REORDER_FAILURE = "Reordering of (A, B) failed"
 
 
@@ -74,6 +78,105 @@ def ordqz_sorted(A, B, sort_ab, *, output: str = "real"):
         if _REORDER_FAILURE not in str(exc):
             raise
         raise LinAlgError(_diagnosis(A, B)) from complex_failure
+
+
+class SingularPencilError(LinAlgError):
+    """The pencil ``(A, B)`` is singular: ``det(A - lambda B) == 0`` for every
+    ``lambda``.
+
+    A generalised eigenvalue whose diagonal block vanishes in *both* Schur
+    factors ("coincident zeros", in Sims's phrase) means the pencil has no
+    well-defined spectrum, so no stable/unstable split exists and no QZ-based
+    solver can answer. In a DSGE model it almost always means a variable
+    appears in no equation, or two equations are linearly dependent.
+
+    Carries ``n_singular`` (how many eigenvalues vanish) and ``n_total``.
+    """
+
+    def __init__(self, message: str, n_singular: int, n_total: int):
+        self.n_singular = n_singular
+        self.n_total = n_total
+        super().__init__(message)
+
+
+def _check_regular(S, T, *, where: str, tol: float = 1e-12) -> None:
+    """Raise if the pencil behind the generalised Schur factors is singular.
+
+    A generalised eigenvalue is the ratio of a diagonal block of ``S`` to the
+    matching block of ``T``. A block that vanishes in *both* factors is not
+    "eigenvalue zero" and not "eigenvalue infinity" — it is the signature of a
+    *singular* pencil, where ``det(A - lambda B)`` vanishes identically and
+    every lambda is an eigenvalue. Neither Klein nor gensys can classify such
+    a direction as stable or unstable, and both would otherwise hand back a
+    plausible-looking matrix (typically a zero row) for a variable that the
+    model does not restrict at all.
+
+    The test reads the Schur factors rather than ``ordqz``'s ``alpha`` /
+    ``beta``, because LAPACK scales each ``(alpha_i, beta_i)`` pair by an
+    arbitrary common factor: on SW07 one pair comes back as
+    ``alpha = -0.50+1.21j, beta = 1.0e17`` while every entry of the model's
+    own matrices is below 7. Magnitudes of ``alpha`` and ``beta`` are
+    therefore not comparable across pairs, whereas ``S`` and ``T`` are
+    unitarily equivalent to ``A`` and ``B`` and so carry their scale.
+
+    Thresholds are relative to ``max|S|`` and ``max|T|`` so the verdict
+    survives multiplying the whole system by a constant; an absolute
+    threshold would fire on any model written in small enough units.
+
+    With ``output="real"`` the factors are quasi-triangular, so the walk below
+    keeps a 2x2 conjugate-pair block whole: its diagonal entries can each be
+    negligible while the block itself is perfectly nonsingular.
+
+    Parameters
+    ----------
+    S, T : (n, n) ndarrays
+        Generalised Schur factors, as returned by ``ordqz``.
+    where : str
+        Name of the calling solver, quoted in the error message.
+    tol : float
+        Relative vanishing threshold.
+
+    Raises
+    ------
+    SingularPencilError
+        (a subclass of ``numpy.linalg.LinAlgError``) when at least one block
+        vanishes in both factors.
+    """
+    S = np.asarray(S)
+    T = np.asarray(T)
+    n = S.shape[0]
+    if n == 0:
+        return
+    s_scale = float(np.abs(S).max()) or 1.0
+    t_scale = float(np.abs(T).max()) or 1.0
+    if n > 1:
+        coupled = (np.abs(np.diag(S, -1)) + np.abs(np.diag(T, -1))) > 0.0
+    else:
+        coupled = np.zeros(0, dtype=bool)
+
+    n_bad = 0
+    i = 0
+    while i < n:
+        j = i + 2 if (i + 1 < n and coupled[i]) else i + 1
+        blk_s = float(np.abs(S[i:j, i:j]).max())
+        blk_t = float(np.abs(T[i:j, i:j]).max())
+        if blk_s <= tol * s_scale and blk_t <= tol * t_scale:
+            n_bad += j - i
+        i = j
+    if n_bad == 0:
+        return
+    raise SingularPencilError(
+        f"{where}: the matrix pencil (A, B) is singular — {n_bad} of {n} "
+        f"generalised eigenvalues have a vanishing diagonal block in BOTH "
+        f"Schur factors (|S block| <= {tol:g}*max|S| and |T block| <= "
+        f"{tol:g}*max|T|), so det(A - lambda B) == 0 for every lambda. The "
+        f"stable/unstable split is undefined, and the affected directions are "
+        f"unrestricted by the model: every value satisfies the equations "
+        f"equally well, so there is no solution to report. This normally means "
+        f"a variable appears in no equation, or two equations are linearly "
+        f"dependent.",
+        n_bad, int(n),
+    )
 
 
 def _diagnosis(A, B) -> str:

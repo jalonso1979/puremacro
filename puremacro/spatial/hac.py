@@ -30,6 +30,41 @@ from .weights import _coerce_coords, pairwise_distances
 __all__ = ["conley_cov", "conley_se", "spatial_hac_panel_cov", "spatial_hac_panel_meat", "kernel_matrix"]
 
 
+# --------------------------------------------------------------------------
+# Shared covariance-token vocabulary
+# --------------------------------------------------------------------------
+# The accepted spellings of a covariance type, shared by every estimator in
+# :mod:`puremacro.spatial` so that ``'driscoll-kraay'`` means the same thing
+# to :func:`puremacro.spatial.panel.spatial_panel` (whose keyword is ``vcov=``)
+# as it does to :func:`puremacro.spatial.lp.spatial_lp` and
+# :func:`puremacro.lp.panel_lp` (whose keyword is ``cov_type=``).  Only the
+# token vocabulary is shared; the ``vcov=`` / ``cov_type=`` split between
+# likelihood-based and projection estimators is a documented convention (see
+# :mod:`puremacro.spatial.models`) and is deliberately left alone.
+_CLUSTER_ALIASES = ("cluster", "clustered", "entity")
+_DK_ALIASES = ("driscoll-kraay", "dk", "driscollkraay")
+_CONLEY_ALIASES = ("conley", "spatial", "spatial-hac")
+
+
+def _canonical_cov_token(value: Any) -> str | None:
+    """Canonical covariance name for ``value``, or ``None`` if unrecognised.
+
+    Returns one of ``'cluster'``, ``'driscoll-kraay'``, ``'conley'``.  Matching
+    is case-insensitive and ``_`` is folded to ``-``; callers map the canonical
+    name onto whatever token their own enumeration uses (``spatial_panel``
+    spells Driscoll-Kraay ``'dk'``, the projection estimators spell it
+    ``'driscoll-kraay'``).
+    """
+    tok = str(value).lower().replace("_", "-")
+    if tok in _CLUSTER_ALIASES:
+        return "cluster"
+    if tok in _DK_ALIASES:
+        return "driscoll-kraay"
+    if tok in _CONLEY_ALIASES:
+        return "conley"
+    return None
+
+
 def kernel_matrix(D: np.ndarray, cutoff: float, kernel: str = "bartlett") -> np.ndarray:
     """Spatial kernel weights ``K(d_ij)`` for a distance matrix ``D``."""
     k = kernel.lower()

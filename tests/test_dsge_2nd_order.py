@@ -376,3 +376,152 @@ def test_load_mod_shocks_and_stoch_simul(tmp_path):
     # Check that shock_cov was parsed from stderr 0.015
     sss = sol.stochastic_steady_state()
     assert sss["states"]["k"] > 0.0
+
+
+# ---------------------------------------------------------------------------
+# Regression: a lag that reaches the model only through a second-order term
+# ---------------------------------------------------------------------------
+
+def _second_order_only_lag_model(lead, curr, lag, shocks, p):
+    """w is an ordinary AR(1) state; v is i.i.d. and its lag appears only in v(-1)^2.
+
+    Substituting v_t = e_t gives y_t = e_{t-1}^2 + w_{t-1}, so with Var(e) = 0.09
+    the closed form is E[y] = 0.09 exactly and d2y/dv(-1)^2 = 2 exactly.
+    """
+    return [
+        curr.w - 0.5 * lag.w - shocks.e,
+        curr.v - shocks.e,
+        curr.y - lag.v**2 - lag.w,
+    ]
+
+
+_SECOND_ORDER_ONLY_KW = dict(
+    variables=["w", "v", "y"],
+    shocks=["e"],
+    steady_state={"w": 0.0, "v": 0.0, "y": 0.0},
+    shock_cov=np.array([[0.09]]),
+)
+
+
+def test_second_order_only_lag_variable_is_added_to_states():
+    """A variable whose lag enters only quadratically must still be a state.
+
+    ``df/d(lag)`` has an all-zero column for ``v``, so the first-order state
+    detection misses it; before the fix ``ghxx['y']['v_v']`` came out 0.0 and
+    the ergodic mean of ``y`` was 0.0 instead of 0.09.
+    """
+    sol = solve_dynare_2nd_order(_second_order_only_lag_model, **_SECOND_ORDER_ONLY_KW)
+
+    assert sol.state_names == ("w", "v")
+    ghxx_y = sol.decision_rules().ghxx.loc["y"]
+    np.testing.assert_allclose(ghxx_y["v_v"], 2.0, atol=1e-6)
+    np.testing.assert_allclose(ghxx_y["w_w"], 0.0, atol=1e-8)
+
+    # 0.5 * ghxx['v_v'] * Var(e) = 0.5 * 2 * 0.09
+    sss = sol.stochastic_steady_state()
+    np.testing.assert_allclose(sss["controls"]["y"], 0.09, atol=1e-6)
+
+
+def test_second_order_only_lag_matches_explicit_states():
+    """Auto-detection must reproduce what states=['w', 'v'] gives by hand."""
+    auto = solve_dynare_2nd_order(_second_order_only_lag_model, **_SECOND_ORDER_ONLY_KW)
+    explicit = solve_dynare_2nd_order(
+        _second_order_only_lag_model, states=["w", "v"], **_SECOND_ORDER_ONLY_KW
+    )
+    assert auto.state_names == explicit.state_names
+    np.testing.assert_allclose(auto.ghxx, explicit.ghxx, atol=1e-10)
+    np.testing.assert_allclose(auto.ghs2, explicit.ghs2, atol=1e-10)
+
+
+def test_bilinear_lag_cross_term_is_recovered():
+    """y = a(-1) * b(-1): b's lag is invisible to df/d(lag) but not to the Hessian."""
+    def model(lead, curr, lag, shocks, p):
+        return [
+            curr.a - 0.5 * lag.a - shocks.e1,
+            curr.b - shocks.e2,
+            curr.y - lag.a * lag.b,
+        ]
+
+    sol = solve_dynare_2nd_order(
+        model,
+        variables=["a", "b", "y"],
+        shocks=["e1", "e2"],
+        steady_state={"a": 0.0, "b": 0.0, "y": 0.0},
+        shock_cov=np.diag([0.04, 0.09]),
+    )
+    assert sol.state_names == ("a", "b")
+    ghxx_y = sol.decision_rules().ghxx.loc["y"]
+    np.testing.assert_allclose(ghxx_y["a_b"], 1.0, atol=1e-6)
+    np.testing.assert_allclose(ghxx_y["b_a"], 1.0, atol=1e-6)
+
+
+def test_explicit_states_omitting_second_order_lag_warns():
+    """An explicit states= list is honoured, but the dropped curvature is loud."""
+    with pytest.warns(UserWarning, match="through a second-order term"):
+        sol = solve_dynare_2nd_order(
+            _second_order_only_lag_model, states=["w"], **_SECOND_ORDER_ONLY_KW
+        )
+    assert sol.state_names == ("w",)
+
+
+def test_ordinary_model_state_detection_is_untouched(rbc_setup):
+    """The Hessian screen must not enlarge the state set of a standard model."""
+    sol = solve_dynare_2nd_order(
+        rbc_model,
+        variables=rbc_setup["variables"],
+        shocks=rbc_setup["shocks"],
+        params=rbc_setup["params"],
+        steady_state=rbc_setup["steady_state"],
+    )
+    assert sol.state_names == ("k", "a")
+    assert sol.control_names == ("c",)
+
+
+# ---------------------------------------------------------------------------
+# Regression: a varexo absent from the shocks; block has variance 0, not 1
+# ---------------------------------------------------------------------------
+
+_TWO_SHOCK_MOD = """
+var c k a b;
+varexo eps eps2;
+parameters alpha beta delta gamma rho rho2;
+alpha = 0.30; beta = 0.99; delta = 0.025; gamma = 1.0; rho = 0.80; rho2 = 0.5;
+model;
+  c^(-gamma) = beta * c(+1)^(-gamma) * (alpha * exp(a(+1)) * k^(alpha - 1.0) + 1.0 - delta);
+  k = exp(a) * k(-1)^alpha - c + (1.0 - delta) * k(-1);
+  a = rho * a(-1) + eps + 0.1 * b;
+  b = rho2 * b(-1) + eps2;
+end;
+initval; k = 21.436; a = 0.0; c = 1.972; b = 0.0; end;
+shocks;
+  var eps; stderr 0.01;
+%s
+end;
+"""
+
+
+def test_undeclared_shock_variance_is_zero_and_warns():
+    """Dynare starts Sigma_e at zero: a varexo the shocks; block skips is inert."""
+    from puremacro.dsge.dynare import parse_mod
+
+    with pytest.warns(UserWarning, match="declares no variance"):
+        parsed = parse_mod(_TWO_SHOCK_MOD % "")
+
+    cov = parsed["shock_cov"]
+    np.testing.assert_allclose(cov[0, 0], 1e-4, rtol=1e-12)
+    # Before the fix this diagonal entry was 1.0 -- 10 000x the declared shock.
+    np.testing.assert_allclose(cov[1, 1], 0.0, atol=0.0)
+
+
+def test_undeclared_shock_does_not_inflate_ghs2():
+    """The spurious unit variance used to inflate ghs2 and the ergodic mean."""
+    with pytest.warns(UserWarning, match="declares no variance"):
+        partial = load_mod(_TWO_SHOCK_MOD % "", order=2)
+    full = load_mod(_TWO_SHOCK_MOD % "  var eps2; stderr 0.01;", order=2)
+
+    # eps2 is inert, so dropping its (zero-variance) contribution can only move
+    # ghs2 by the small amount the genuinely declared eps2 variance adds.
+    np.testing.assert_allclose(partial.ghs2, full.ghs2, rtol=0.05)
+    k_partial = partial.stochastic_steady_state()["states"]["k"]
+    k_full = full.stochastic_steady_state()["states"]["k"]
+    np.testing.assert_allclose(k_partial, k_full, rtol=0.05)

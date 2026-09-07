@@ -21,8 +21,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Sequence
-
 import numpy as np
+
+from .coherence import WaveletCoherenceResult, wavelet_coherence
 
 
 @dataclass(frozen=True)
@@ -57,31 +58,6 @@ class WaveletVarianceResult:
         )
 
 
-@dataclass(frozen=True)
-class WaveletCoherenceResult:
-    """Result of :func:`wavelet_coherence`.
-
-    Attributes
-    ----------
-    coherence_per_scale : ndarray, shape (level,)
-        Per-scale correlation of the MODWT detail coefficients of *x*
-        and *y* (j=1 first).
-    period_bands : list[tuple[int, int]]
-        Period ranges in observations, ordered j=1 first.
-    """
-
-    coherence_per_scale: np.ndarray
-    period_bands: list
-
-    def summary(self) -> str:
-        return (
-            f"Wavelet coherence\n"
-            f"  scales        : {len(self.coherence_per_scale)}\n"
-            f"  max coherence : {float(self.coherence_per_scale.max()):+.3f} "
-            f"at band {self.period_bands[int(np.argmax(self.coherence_per_scale))]}\n"
-        )
-
-
 # Haar wavelet filters.
 _HAAR_LOW = np.array([1.0, 1.0]) / np.sqrt(2.0)
 _HAAR_HIGH = np.array([1.0, -1.0]) / np.sqrt(2.0)
@@ -91,10 +67,8 @@ def _convolve_circular(x: np.ndarray, h: np.ndarray) -> np.ndarray:
     """Circular convolution of x with h, length-preserving."""
     n = len(x)
     L = len(h)
-    # Implement as FFT for speed (even though small).
     x_pad = x
     if L > n:
-        # Pad x to length L via wraparound.
         x_pad = np.concatenate([x] * (int(np.ceil(L / n)) + 1))[:max(n, L)]
         n_eff = len(x_pad)
     else:
@@ -161,8 +135,6 @@ def modwt_haar(x: np.ndarray, level: int) -> list[np.ndarray]:
     coeffs = []
     cA = x.copy()
     for j in range(1, level + 1):
-        # MODWT filter coefficients at level j: insert 2^{j-1}-1 zeros
-        # between the original Haar taps and rescale by 1/2^{j/2}.
         gap = 2 ** (j - 1)
         h = np.zeros((len(_HAAR_HIGH) - 1) * gap + 1)
         h[::gap] = _HAAR_HIGH / 2 ** (1 / 2)
@@ -188,17 +160,13 @@ def wavelet_variance(
     """
     x = np.asarray(x, dtype=float).ravel()
     x_dem = x - x.mean()
-    coeffs = modwt_haar(x_dem, level=level)  # [cA_J, cD_J, ..., cD_1]
-    # The detail coefficients at each scale j contribute variance
-    # E[cD_j^2] up to a normalisation. For the MODWT-Haar with the
-    # 2^{-j/2} rescaling above, the wavelet variance estimator is the
-    # mean of the squared detail coefficients.
+    coeffs = modwt_haar(x_dem, level=level)
     var_per_scale_list: list[float] = []
     bands: list[tuple[int, int]] = []
     for j, cD in zip(range(level, 0, -1), coeffs[1:]):
         var_per_scale_list.append(float((cD ** 2).mean()))
         bands.append((2 ** j, 2 ** (j + 1)))
-    var_per_scale: np.ndarray = np.array(var_per_scale_list[::-1])  # j=1 first
+    var_per_scale: np.ndarray = np.array(var_per_scale_list[::-1])
     bands = bands[::-1]
     total = float((x_dem ** 2).mean())
     share: np.ndarray = var_per_scale / total if total > 0 else np.zeros_like(var_per_scale)
@@ -207,40 +175,6 @@ def wavelet_variance(
         period_bands=bands,
         total=total,
         share=share,
-    )
-
-
-def wavelet_coherence(
-    x: np.ndarray,
-    y: np.ndarray,
-    level: int,
-) -> WaveletCoherenceResult:
-    """Pairwise wavelet coherence per scale.
-
-    Computes scale-by-scale correlations of the MODWT detail
-    coefficients of x and y. Useful for asking "at the 2-4 year
-    business-cycle scale, do x and y co-move?"
-
-    Returns
-    -------
-    WaveletCoherenceResult with ``coherence_per_scale`` and ``period_bands``.
-    """
-    x = np.asarray(x, dtype=float).ravel()
-    y = np.asarray(y, dtype=float).ravel()
-    if len(x) != len(y):
-        raise ValueError("x and y must have the same length.")
-    cx = modwt_haar(x - x.mean(), level=level)
-    cy = modwt_haar(y - y.mean(), level=level)
-    coh = []
-    bands = []
-    for j, dx, dy in zip(range(level, 0, -1), cx[1:], cy[1:]):
-        sx = float((dx ** 2).mean()); sy = float((dy ** 2).mean())
-        sxy = float((dx * dy).mean())
-        coh.append(sxy / np.sqrt(sx * sy) if sx > 0 and sy > 0 else 0.0)
-        bands.append((2 ** j, 2 ** (j + 1)))
-    return WaveletCoherenceResult(
-        coherence_per_scale=np.array(coh[::-1]),
-        period_bands=bands[::-1],
     )
 
 

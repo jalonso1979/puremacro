@@ -47,6 +47,7 @@ __all__ = [
     "budgeted",
     "override",
     "BudgetWarning",
+    "clamp_bootstrap",
 ]
 
 
@@ -267,3 +268,26 @@ def budgeted(func=None, *, tier: str | None = None):
     if func is None:
         return decorate
     return decorate(func)
+
+
+def clamp_bootstrap(n_boot: int, default_constrained: int = 200) -> int:
+    """Clamps bootstrap reps if running in constrained environments."""
+    from puremacro.runtime._capabilities import is_mobile_or_constrained, get_runtime_environment
+    n_boot = max(1, int(n_boot))
+    if is_mobile_or_constrained():
+        b = current()
+        tier_cap = b.n_boot
+        limit = min(default_constrained, tier_cap) if tier_cap < 100_000 else default_constrained
+        if n_boot > limit:
+            tier_name = getattr(b.tier, "value", b.tier)
+            if tier_name == "workstation":
+                env = get_runtime_environment()
+                tier_name = env if env != "workstation" else "constrained"
+            warnings.warn(
+                f"Bootstrap iterations {n_boot} clamped to {limit} under {tier_name} tier.",
+                BudgetWarning,
+                stacklevel=2,
+            )
+            return limit
+    return n_boot
+

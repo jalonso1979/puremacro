@@ -153,10 +153,24 @@ def test_bayesian_priors_classes():
 
     ig = InvGammaPrior(mean=0.2, std=2.0, lb=0.01, ub=5.0)
     assert ig.dist == "invgamma"
-    assert ig.s == 0.2
-    assert ig.nu == 2.0
+    # mean/std are Dynare's PRIOR_P1/PRIOR_P2 -- the mean and sd of the
+    # prior itself. `.s` / `.nu` are Dynare's INTERNAL pair, obtained from
+    # inverse_gamma_specification. Before 2.4.1 the constructor stored
+    # (mean, std) verbatim as (s, nu), so `ig.s` was 0.2 and `ig.nu` 2.0.
+    assert ig.mean == 0.2
+    assert ig.std == 2.0
+    assert ig.s == pytest.approx(0.0256894, rel=1e-5)
+    assert ig.nu == pytest.approx(2.0063588, rel=1e-6)
     assert ig.logpdf(0.2) > -np.inf
     assert ig.logpdf(-0.1) == -np.inf
+
+    # The explicit (s, nu) form round-trips back to the same prior.
+    ig2 = InvGammaPrior(s=ig.s, nu=ig.nu, lb=0.01, ub=5.0)
+    assert ig2.mean == pytest.approx(0.2, rel=1e-9)
+    assert ig2.std == pytest.approx(2.0, rel=1e-9)
+    assert ig2.logpdf(0.35) == pytest.approx(ig.logpdf(0.35), rel=1e-12)
+    with pytest.raises(ValueError, match="not both"):
+        InvGammaPrior(mean=0.2, std=2.0, s=0.1, nu=3.0)
 
     norm = NormalPrior(mean=0.0, std=1.0)
     assert norm.dist == "normal"
@@ -187,3 +201,84 @@ def test_bayesian_estimation_result_frozen():
     )
     with pytest.raises(Exception):
         res.acceptance_rate = 0.5
+
+
+# ---------------------------------------------------------------------------
+# 2.4.1 regression tests (DSGE estimation audit)
+# ---------------------------------------------------------------------------
+
+def test_a_broken_log_likelihood_raises_instead_of_returning_a_result():
+    """`except Exception: return -inf` around the user's log_likelihood_fn
+    turned an outright bug into a 'result': mode [0.], acceptance 0.0, a
+    constant chain and a posterior std of 0, with no warning at all."""
+    calls = {"n": 0}
+
+    def broken_log_likelihood(params):
+        calls["n"] += 1
+        # A plain bug, not an infeasible draw.
+        return params.this_attribute_does_not_exist
+
+    priors = {"theta": NormalPrior(mean=0.0, std=10.0, lb=0.0, ub=5.0)}
+    with pytest.raises(AttributeError):
+        estimate_dsge_bayesian(
+            log_likelihood_fn=broken_log_likelihood,
+            priors=priors,
+            n_draws=20, n_burn=5, n_chains=1, seed=0,
+        )
+    assert calls["n"] <= 3, (
+        f"the broken likelihood was called {calls['n']} times before the "
+        "error surfaced; it should fail on the first evaluation"
+    )
+
+
+def test_persistently_infeasible_likelihood_raises_rather_than_flatlining():
+    def always_infeasible(theta):
+        raise np.linalg.LinAlgError("filter F is singular")
+
+    priors = {"theta": NormalPrior(mean=0.0, std=1.0, lb=-2.0, ub=2.0)}
+    with pytest.raises(RuntimeError, match="consecutive draws"):
+        estimate_dsge_bayesian(
+            log_likelihood_fn=always_infeasible,
+            priors=priors,
+            n_draws=2000, n_burn=100, n_chains=1, seed=0,
+        )
+
+
+def test_boundary_mode_reports_nan_se_and_a_moving_chain():
+    """A monotone likelihood pushes the mode onto the lower prior bound.
+
+    There the Hessian stencil measures the 1e20 penalty cliff, not
+    curvature: mode_se floored at 1e-6 and -- because the same matrix built
+    the proposal -- the chain froze, reporting a posterior std of ~4e-12
+    for a posterior whose true sd is ~0.1.
+    """
+    def monotone_ll(theta):
+        return -10.0 * float(theta[0])
+
+    priors = {"theta": NormalPrior(mean=0.0, std=10.0, lb=0.0, ub=5.0)}
+    with pytest.warns(UserWarning, match="Laplace approximation is undefined"):
+        res = estimate_dsge_bayesian(
+            log_likelihood_fn=monotone_ll,
+            priors=priors,
+            n_draws=2000, n_burn=500, n_chains=2, seed=0,
+        )
+    assert res.mode[0] == pytest.approx(0.0, abs=1e-6)
+    assert np.isnan(res.mode_se[0]), (
+        f"mode_se={res.mode_se} pretends to be a Laplace SE at a boundary mode"
+    )
+    # The true posterior is ~Exp(10) truncated to [0, 5]: sd ~ 0.1.
+    post_sd = float(res.summary().loc["theta", "std"])
+    assert 0.03 < post_sd < 0.4, f"posterior std {post_sd!r} is degenerate"
+
+
+def test_infeasible_beta_prior_is_rejected_by_name():
+    def ll(theta):
+        return 0.0
+
+    priors = {"p": {"dist": "beta", "mean": 0.5, "std": 0.6,
+                    "lb": 0.0, "ub": 1.0}}
+    with pytest.raises(ValueError, match=r"estimate_dsge_bayesian: prior 'p'"):
+        estimate_dsge_bayesian(
+            log_likelihood_fn=ll, priors=priors,
+            n_draws=10, n_burn=5, n_chains=1, seed=0,
+        )

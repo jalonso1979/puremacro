@@ -37,6 +37,8 @@ PAGES = [
     "docs/hank_nonlinear.md",
     "docs/gertler_karadi.md",
     "docs/bvar_sv.md",
+    "docs/gvar.md",
+    "docs/did.md",
     "docs/es/narrative_sign_svar.md",
     "docs/es/honest_did.md",
     "docs/es/spatial.md",
@@ -44,6 +46,8 @@ PAGES = [
     "docs/es/hank_nonlinear.md",
     "docs/es/gertler_karadi.md",
     "docs/es/bvar_sv.md",
+    "docs/es/gvar.md",
+    "docs/es/did.md",
 ]
 
 _FENCE = re.compile(r"```python\n(.*?)```", re.S)

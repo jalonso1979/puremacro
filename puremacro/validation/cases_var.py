@@ -238,3 +238,362 @@ CASES: list[ValidationCase] = [
     ),
 ]
 
+
+
+# ---------------------------------------------------------------------------
+# GVAR (puremacro.var.gvar)
+#
+# Six cases, all sound and independent of the estimator under test:
+#
+# * INTERNAL   with an empty star block everywhere the GVAR degenerates to N
+#              unlinked country VARs, so each country's Phi_il and a_i0 must
+#              equal ``puremacro.var.estimate_var`` on that country's own data
+#              (a different code path: plain OLS, no link step).
+# * INTERNAL   the solved global system reproduces the country equations:
+#              ``G x_t - a_0 - sum_l H_l x_{t-l}`` rebuilds the stacked
+#              country-OLS residuals, which is the whole content of the link
+#              identity.
+# * ANALYTICAL ``pp(b)[0] = 1`` for every ``b`` by construction (the profile is
+#              normalised by its own impact variance).
+# * ANALYTICAL ``gfevd(normalize=True)`` rows sum to 1 at every horizon. The
+#              UNNORMALISED rows are deliberately not asserted: the Pesaran-Shin
+#              ">= 1" bound needs ``Psi_0 = I`` and a GVAR has ``R_0 = G^-1``,
+#              so it fails even at h = 0 (see the module docstring).
+# * INTERNAL   a one-country GVAR has ``G = I``, so its GIRF is the ordinary
+#              generalised IRF and must equal ``puremacro.var.irf.irf`` driven
+#              by ``B0 = Sigma diag(sigma_jj)^-1/2``; its GFEVD must equal
+#              ``puremacro.var.irf.gfevd`` on the same coefficients.
+#
+# DGP: one stable VAR(1) on 4 series (2 countries x 2 variables), T = 80 after
+# a 50-period burn-in. Whole block measured at ~0.05 s.
+# ---------------------------------------------------------------------------
+
+GVAR_SEED = 20260906
+GVAR_T = 80
+GVAR_BURN = 50
+
+
+def gvar_demo_data() -> dict:
+    """Seeded 2-country x 2-variable panel (T = 80) plus its trade weights.
+
+    The DGP is a single stable VAR(1) on the stacked 4-vector with genuine
+    cross-country blocks, so the fitted GVAR is not degenerate. Three weight
+    matrices are returned: the two-country row-standardised one, the all-zero
+    one used by the decoupling case, and the 1x1 zero matrix used by the
+    one-country cases.
+    """
+    rng = np.random.default_rng(GVAR_SEED)
+    A = np.array(
+        [
+            [0.50, 0.10, 0.15, 0.00],
+            [0.05, 0.40, 0.00, 0.10],
+            [0.10, 0.00, 0.45, 0.20],
+            [0.00, 0.05, 0.05, 0.35],
+        ]
+    )
+    n_all = GVAR_T + GVAR_BURN
+    X = np.zeros((n_all, 4))
+    for t in range(1, n_all):
+        X[t] = A @ X[t - 1] + rng.standard_normal(4)
+    X = X[GVAR_BURN:]
+
+    import pandas as pd
+
+    dates = pd.RangeIndex(GVAR_T, name="date")
+    frames = {
+        "A": pd.DataFrame(X[:, :2], columns=["y", "r"], index=dates),
+        "B": pd.DataFrame(X[:, 2:], columns=["y", "r"], index=dates),
+    }
+    ids = ["A", "B"]
+    return {
+        "frames": frames,
+        "weights": pd.DataFrame([[0.0, 1.0], [1.0, 0.0]], index=ids, columns=ids),
+        "weights_zero": pd.DataFrame(np.zeros((2, 2)), index=ids, columns=ids),
+        "weights_solo": pd.DataFrame(np.zeros((1, 1)), index=["A"], columns=["A"]),
+        "p": 2,
+    }
+
+
+def _fit_gvar_linked():
+    """The linked two-country GVAR(p=2, q=1) used by the identity cases."""
+    from puremacro.var import gvar
+
+    d = gvar_demo_data()
+    return d, gvar(d["frames"], d["weights"], p=d["p"], q=1, weak_exogeneity=False)
+
+
+def _fit_gvar_solo():
+    """A one-country GVAR: no star block anywhere, hence ``G = I``."""
+    from puremacro.var import gvar
+
+    d = gvar_demo_data()
+    res = gvar(
+        {"A": d["frames"]["A"]},
+        d["weights_solo"],
+        p=d["p"],
+        q=0,
+        star_vars={"A": ()},
+        weak_exogeneity=False,
+    )
+    return d, res
+
+
+def _gvar_zero_weights_country_blocks() -> dict:
+    """Country VARX* blocks when every star block is empty (weights all zero)."""
+    from puremacro.var import gvar
+
+    d = gvar_demo_data()
+    res = gvar(
+        d["frames"],
+        d["weights_zero"],
+        p=d["p"],
+        q=0,
+        star_vars={"A": (), "B": ()},
+        weak_exogeneity=False,
+    )
+    out = {}
+    for c in ("A", "B"):
+        m = res.country_models[c]
+        out[f"Phi_{c}"] = np.concatenate([np.asarray(P, dtype=float).ravel() for P in m.Phi])
+        out[f"a0_{c}"] = np.asarray(m.a0, dtype=float).ravel()
+    return out
+
+
+def _gvar_zero_weights_country_blocks_ref() -> dict:
+    """The same blocks from plain OLS VARs — a different estimator entirely."""
+    from puremacro.var.estimate import estimate_var
+
+    d = gvar_demo_data()
+    out = {}
+    for c in ("A", "B"):
+        vr = estimate_var(d["frames"][c], p=d["p"])
+        out[f"Phi_{c}"] = np.concatenate(
+            [np.asarray(A, dtype=float).ravel() for A in vr.A_list]
+        )
+        out[f"a0_{c}"] = np.asarray(vr.c, dtype=float).ravel()
+    return out
+
+
+def _gvar_link_identity() -> dict:
+    """Rebuild eps_t from the solved global system: G x_t - a_0 - sum_l H_l x_{t-l}."""
+    _, res = _fit_gvar_linked()
+    X = res.panel.reindex(columns=list(res.names)).to_numpy(dtype=float)
+    pos = {dt: i for i, dt in enumerate(res.panel.index)}
+    a0 = res.G @ res.intercept  # `intercept` is the SOLVED G^-1 a_0
+    rows = []
+    for dt in res.dates:
+        t = pos[dt]
+        e = res.G @ X[t] - a0
+        for l in range(res.s):
+            e = e - res.H[l] @ X[t - l - 1]
+        rows.append(e)
+    return {"eps": np.asarray(rows, dtype=float).ravel()}
+
+
+def _gvar_link_identity_ref() -> dict:
+    """The stacked country-OLS residuals, produced without the link matrices."""
+    _, res = _fit_gvar_linked()
+    return {"eps": res.resid.to_numpy(dtype=float).ravel()}
+
+
+def _gvar_persistence_profile_impact() -> dict:
+    """PP(b, 0) for three combinations b: a single variable, a spread, the sum."""
+    _, res = _fit_gvar_linked()
+    k = res.n_variables
+    spread = np.zeros(k)
+    spread[0], spread[2] = 1.0, -1.0
+    profiles = [
+        res.pp({("A", "y"): 1.0}, horizon=12),
+        res.pp(spread, horizon=12),
+        res.pp(np.ones(k), horizon=12),
+    ]
+    return {"pp_at_impact": np.array([float(p[0]) for p in profiles])}
+
+
+def _gvar_gfevd_row_sums() -> dict:
+    """Normalised generalised FEVD row sums at every horizon 0..12."""
+    _, res = _fit_gvar_linked()
+    fe = np.asarray(res.gfevd(horizon=12, normalize=True), dtype=float)
+    return {"row_sums": fe.sum(axis=-1).ravel()}
+
+
+def _gvar_solo_girf() -> dict:
+    """GIRFs of a one-country GVAR (G = I) to each of its own innovations."""
+    _, res = _fit_gvar_solo()
+    paths = [
+        np.asarray(res.girf("A", v, horizon=10).irf, dtype=float)
+        for v in ("y", "r")
+    ]
+    return {"girf": np.stack(paths, axis=-1).ravel()}
+
+
+def _gvar_solo_girf_ref() -> dict:
+    """The same object from ``puremacro.var.irf.irf`` with B0 = Sigma D^-1/2.
+
+    Column ``j`` of ``Psi_h B0`` with ``B0 = Sigma diag(sigma_jj)^-1/2`` is
+    ``Psi_h Sigma e_j / sqrt(sigma_jj)`` — the Pesaran-Shin generalised
+    impulse response, computed by the ordinary VAR MA recursion.
+    """
+    from puremacro.var.irf import irf
+
+    _, res = _fit_gvar_solo()
+    Sigma = np.asarray(res.Sigma_eps, dtype=float)
+    B0 = Sigma / np.sqrt(np.diag(Sigma))[None, :]
+    A_list = [np.asarray(res.F[l], dtype=float) for l in range(res.s)]
+    return {"girf": np.asarray(irf(A_list, B0, 10), dtype=float).ravel()}
+
+
+def _gvar_solo_gfevd() -> dict:
+    _, res = _fit_gvar_solo()
+    return {"gfevd": np.asarray(res.gfevd(horizon=10, normalize=True), dtype=float).ravel()}
+
+
+def _gvar_solo_gfevd_ref() -> dict:
+    from puremacro.var.irf import gfevd
+
+    _, res = _fit_gvar_solo()
+    A_list = [np.asarray(res.F[l], dtype=float) for l in range(res.s)]
+    out = gfevd(A_list, np.asarray(res.Sigma_eps, dtype=float), 10, normalize=True)
+    return {"gfevd": np.asarray(out, dtype=float).ravel()}
+
+
+CASES += [
+    ValidationCase(
+        id="var.gvar_empty_star_block_decouples",
+        subsystem="var",
+        title="GVAR with no star block reduces to independent country VARs",
+        title_es="El GVAR sin bloque estrella se reduce a VAR nacionales independientes",
+        mechanism=Mechanism.INTERNAL,
+        compute=_gvar_zero_weights_country_blocks,
+        reference=_gvar_zero_weights_country_blocks_ref,
+        tol=Tol.TIGHT,
+        citation=(
+            "Pesaran, Schuermann and Weiner (2004, JBES 22(2):129-162): the "
+            "country VARX*(p, q) collapses to a VAR(p) when Lambda_i0 = ... = "
+            "Lambda_iq = 0, so OLS on the country's own data must reproduce it."
+        ),
+        notes=(
+            "Trade weights are all zero and every star block is empty (q = 0), "
+            "so the link matrix is G = I and each country's Phi_i1, Phi_i2 and "
+            "a_i0 come out of a design matrix that contains only its own lags "
+            "and a constant. The reference is puremacro.var.estimate_var, a "
+            "different code path with no link step. The GVAR fixes the common "
+            "effective sample at t0 = max_i p_i, which coincides with "
+            "estimate_var's here, so the two OLS problems are literally the same."
+        ),
+    ),
+    ValidationCase(
+        id="var.gvar_global_link_identity",
+        subsystem="var",
+        title="Solved global system reproduces the country equations exactly",
+        title_es="El sistema global resuelto reproduce exactamente las ecuaciones por país",
+        mechanism=Mechanism.INTERNAL,
+        compute=_gvar_link_identity,
+        reference=_gvar_link_identity_ref,
+        tol=Tol.TIGHT,
+        citation=(
+            "Dees, di Mauro, Pesaran and Smith (2007, JAE 22(1):1-38), eqs. "
+            "(9)-(11): stacking A_i0 W_i x_t = a_i0 + sum_l A_il W_i x_{t-l} + "
+            "u_it over i gives G x_t = a_0 + sum_l H_l x_{t-l} + eps_t."
+        ),
+        notes=(
+            "Pushes the estimated global panel back through the link matrices G "
+            "and H_l and checks that what comes out is the stacked country-OLS "
+            "residual vector, date by date. G/H are built by the link step and "
+            "the residuals by the per-country regressions, so the two sides are "
+            "independent code paths. Note that GVARResult.intercept is the "
+            "SOLVED G^-1 a_0, hence the a_0 = G @ intercept step. Measured "
+            "agreement 4.4e-16 on residuals of order 1."
+        ),
+    ),
+    ValidationCase(
+        id="var.gvar_persistence_profile_unit_at_impact",
+        subsystem="var",
+        title="GVAR persistence profile equals 1 at horizon 0",
+        title_es="El perfil de persistencia del GVAR vale 1 en el horizonte 0",
+        mechanism=Mechanism.ANALYTICAL,
+        compute=_gvar_persistence_profile_impact,
+        reference=lambda: {"pp_at_impact": np.ones(3)},
+        tol=Tol.EXACT,
+        citation=(
+            "Pesaran and Shin (1996, Journal of Econometrics 71(1-2):117-143): "
+            "PP(b, h) = b' R_h Sigma R_h' b / (b' R_0 Sigma R_0' b), so PP(b, 0) "
+            "= 1 for every non-degenerate b."
+        ),
+        notes=(
+            "Checked for three combinations b — a single country-variable, a "
+            "cross-country spread and the equally weighted sum — to confirm the "
+            "normalisation is by b's own impact variance and not by a fixed "
+            "scale. Only horizon 0 is analytic; the rest of the profile is a "
+            "free number and is deliberately not asserted."
+        ),
+    ),
+    ValidationCase(
+        id="var.gvar_gfevd_rows_sum_to_one",
+        subsystem="var",
+        title="Normalised GVAR generalised FEVD rows sum to 1 at every horizon",
+        title_es="Las filas de la FEVD generalizada normalizada del GVAR suman 1 en todo horizonte",
+        mechanism=Mechanism.ANALYTICAL,
+        compute=_gvar_gfevd_row_sums,
+        reference=lambda: {"row_sums": np.ones(13 * 4)},
+        tol=Tol.EXACT,
+        citation=(
+            "Pesaran and Shin (1998, Economics Letters 58(1):17-29) generalised "
+            "FEVD under the Diebold-Yilmaz (2009, Economic Journal 119:158-171) "
+            "row normalisation."
+        ),
+        notes=(
+            "Only the NORMALISED rows are asserted. The Pesaran-Shin '>= 1' "
+            "bound on the unnormalised row sum does not hold for a GVAR at any "
+            "horizon, h = 0 included: their proof needs Psi_0 = I and a GVAR has "
+            "R_0 = G^-1, which makes the impact row sum a Rayleigh quotient "
+            "bounded only by the eigenvalues of corr(Sigma_eps). On this DGP the "
+            "impact row sums are 0.98, 0.96, 0.99, 0.92 — all below one."
+        ),
+    ),
+    ValidationCase(
+        id="var.gvar_single_country_girf_vs_var_irf",
+        subsystem="var",
+        title="One-country GVAR GIRF equals the generalised IRF of that VAR",
+        title_es="La FIR generalizada del GVAR de un solo país coincide con la del VAR",
+        mechanism=Mechanism.INTERNAL,
+        compute=_gvar_solo_girf,
+        reference=_gvar_solo_girf_ref,
+        tol=Tol.TIGHT,
+        citation=(
+            "Pesaran and Shin (1998, Economics Letters 58(1):17-29): "
+            "GIRF_h(j) = Psi_h Sigma e_j / sqrt(sigma_jj), which is column j of "
+            "Psi_h B0 with B0 = Sigma diag(sigma_jj)^-1/2."
+        ),
+        notes=(
+            "With a single country and an empty star block G = I, so R_h = Psi_h "
+            "and the GVAR's generalised responses must coincide with the "
+            "ordinary VAR MA recursion in puremacro.var.irf.irf fed the "
+            "generalised impact matrix. Both innovations are shocked. This "
+            "pins the R_h = Psi_h G^-1 plumbing and the sqrt(sigma_jj) "
+            "normalisation against an implementation that knows nothing about "
+            "the GVAR."
+        ),
+    ),
+    ValidationCase(
+        id="var.gvar_single_country_gfevd_vs_var_gfevd",
+        subsystem="var",
+        title="One-country GVAR generalised FEVD equals puremacro.var.gfevd",
+        title_es="La FEVD generalizada del GVAR de un solo país coincide con puremacro.var.gfevd",
+        mechanism=Mechanism.INTERNAL,
+        compute=_gvar_solo_gfevd,
+        reference=_gvar_solo_gfevd_ref,
+        tol=Tol.TIGHT,
+        citation=(
+            "Pesaran and Shin (1998, Economics Letters 58(1):17-29) generalised "
+            "FEVD; the GVAR substitutes R_l for Psi_l, and R_l = Psi_l when "
+            "G = I."
+        ),
+        notes=(
+            "gvar._gfevd_from_ma takes MA coefficients so it can be handed "
+            "R_h = Psi_h G^-1; var.irf.gfevd builds them itself from A_list. "
+            "With one country G = I and the two must agree exactly. Guards the "
+            "cumulative numerator/denominator recursion in the GVAR copy."
+        ),
+    ),
+]

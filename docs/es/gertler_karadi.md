@@ -62,7 +62,9 @@ El paquete `puremacro.dsge.gertler_karadi` incorpora dos metodologías de resolu
    Resuelve modelos dinámicos con cambios de régimen que se activan ocasionalmente conforme a Guerrieri e Iacoviello (2015):
    - **Política de crédito no convencional (`constraint_type='credit_policy'`)**: El banco central intermedia crédito directamente adquiriendo activos privados cuando el diferencial de crédito supera un umbral crítico (por ejemplo, 100 puntos básicos):
      $$\psi_t = \nu_g \cdot \max \left( 0, \, \text{Spread}_t - \text{umbral} \right)$$
-   - **Límites macroprudenciales de apalancamiento (`constraint_type='leverage_cap'`)**: Impone un techo regulatorio estricto sobre el apalancamiento bancario $\phi_t \le \phi_{max}$.
+   - **Límites macroprudenciales de apalancamiento (`constraint_type='leverage_cap'`)**: Impone un techo regulatorio sobre el apalancamiento bancario, $\phi_t \le \phi_{max}$, **con respaldo público**. Mientras el límite se activa, el régimen restringido fija $\phi_t = \phi_{max}$ y libera la cuota de crédito público, de modo que el balance $(1 - \psi_t) Q_t K_t = \phi_t N_t$ determina cuánta intermediación absorbe el sector público, bajo holgura complementaria:
+     $$\phi_t \le \phi_{max}, \qquad \psi_t \ge 0, \qquad \psi_t = 0 \ \text{donde el límite no se activa}.$$
+     La restricción de incentivos por riesgo moral se *mantiene*, así que un límite activo comprime las rentas de intermediación en lugar de racionar el crédito privado. Imponer el límite eliminando la restricción de incentivos —la formulación anterior a 2.5.0— hace que el régimen restringido viole Blanchard-Kahn y admite un continuo de soluciones espurias; véase la documentación de `solve_gertler_karadi`.
 
 ---
 
@@ -159,7 +161,7 @@ solve_gertler_karadi(
 - `horizon`: Longitud de la simulación en trimestres (por defecto `40`).
 - `method`: Motor de resolución: `'occbin'` (lineal por tramos) o `'klein'` (perturbación lineal QZ).
 - `constraint_type`: Restricción activa en OccBin: `'credit_policy'` o `'leverage_cap'`.
-- `threshold`: Umbral numérico de activación del régimen (por defecto `0.0025` para 100 pbs de spread).
+- `threshold`: Umbral de activación del régimen, como desviación respecto al estado estacionario. Por defecto `0.0025` (100 pbs de spread) para `credit_policy`; `0.20 * phi_ss` (= `0.8197` en esta calibración) para `leverage_cap`. Un límite de apalancamiento más estricto se activa durante más tiempo y exige un `horizon` mayor (10% por encima de $\phi_{ss}$ requiere `horizon >= 80`; 5%, `>= 200`); el solver informa `converged=False` en lugar de adivinar.
 - `max_iter`: Número máximo de iteraciones retrógradas para el algoritmo de OccBin.
 
 ---

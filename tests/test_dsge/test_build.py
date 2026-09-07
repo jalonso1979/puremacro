@@ -93,12 +93,17 @@ def test_complex_and_central_differentiation_agree(model):
 def test_non_analytic_residual_is_diagnosed():
     def kinked(xp, x, e, p):
         # abs() destroys the imaginary part complex-step relies on.
-        return [abs(x.c) - 1.0, abs(x.k) - 1.0, xp.z - x.z]
+        # eps is referenced so that this is caught by the cross-check on
+        # the t block, not by the all-zero test on the shock block.
+        return [abs(x.c) - 1.0, abs(x.k) - 1.0, xp.z - x.z - e.eps]
 
-    with pytest.raises(dsge.ModelError, match="not analytic|all-zero Jacobian"):
+    with pytest.raises(dsge.ModelError, match="not analytic") as raised:
         dsge.build(kinked, variables=["c", "k", "z"], states=["k", "z"],
                    shocks=["eps"], params={},
                    steady_state=dict(c=1.0, k=1.0, z=0.0))
+    message = str(raised.value)
+    assert "for the t block" in message
+    assert "'c'" in message or "'k'" in message      # names the argument
 
 
 def test_indeterminate_model_raises_under_strict():
@@ -304,3 +309,179 @@ def test_contemporaneous_shock_is_gone_next_period():
 def test_violating_the_taylor_principle_fails_blanchard_kahn():
     with pytest.raises(BlanchardKahnError):
         build_nk(phi_pi=0.9)
+
+
+# --- the model-acceptance gates ----------------------------------------
+# Everything below is a case where build() used to accept a model it had
+# no business accepting, or blamed the user for the checker's own limits.
+
+KSS = (ALPHA * BETA) ** (1 / (1 - ALPHA))
+CSS = (1 - ALPHA * BETA) * KSS ** ALPHA
+TRUE_G = np.array([[ALPHA, 1.0], [0.0, RHO]])
+
+
+def test_a_nan_steady_state_residual_is_rejected():
+    """`nan > tol` is False, so a NaN used to walk straight through.
+
+    k < 0 makes k**(alpha-1) nan in real arithmetic while the complex
+    evaluation takes the principal branch and stays finite — so the
+    Jacobians came out finite garbage and the model was reported as
+    determinate, with IRFs of order 1e39.
+    """
+    with pytest.raises(dsge.SteadyStateError, match="finite residual"):
+        build_growth(steady_state=dict(c=0.4, k=-0.2, z=1.0), guess=None)
+
+
+def test_a_non_finite_jacobian_is_named_rather_than_handed_to_lapack():
+    def overflowing(xp, x, e, p):
+        return [xp.s - 0.5 * x.s - e.u, x.g - 1e308 * x.s * 10.0]
+
+    with pytest.raises(dsge.ModelError, match="not finite"):
+        dsge.build(overflowing, variables=["s", "g"], states=["s"],
+                   shocks=["u"], params={}, steady_state=dict(s=0.0, g=0.0))
+
+
+def _scaled_growth(scale=1.0, nominal=False, typo=True):
+    """Growth model, optionally with an abs() typo and a mis-scaled block."""
+    def eqs(xp, x, e, p):
+        euler = 1 / x.c - p.beta * (p.alpha * xp.z * xp.k ** (p.alpha - 1)) / xp.c
+        if typo:
+            euler = euler - 0.5 * (abs(x.z) - 1.0)
+        out = [scale * euler,
+               x.c + xp.k - x.z * x.k ** p.alpha,
+               xp.z - x.z ** p.rho * np.exp(e.eps)]
+        if nominal:
+            out.append(x.ngdp - 2.1e13 * x.z)
+        return out
+
+    variables = ["c", "k", "z"] + (["ngdp"] if nominal else [])
+    ss = dict(c=CSS, k=KSS, z=1.0)
+    if nominal:
+        ss["ngdp"] = 2.1e13
+    return dsge.build(eqs, variables=variables, states=["k", "z"],
+                      shocks=["eps"], params=PARAMS, steady_state=ss)
+
+
+@pytest.mark.parametrize("scale,nominal", [(1.0, False), (1e-4, False),
+                                           (1.0, True), (1e-4, True)])
+def test_a_small_non_analytic_term_is_caught_whatever_the_block_scale(scale, nominal):
+    """The cross-check is per equation and relative, not block-wide.
+
+    With one block-wide tolerance floored at 1.0, a variable in dollars
+    or an equation written 1e-4 times smaller than its neighbours lifted
+    the threshold above every other equation's derivative, and the
+    abs() typo was accepted.
+    """
+    with pytest.raises(dsge.ModelError, match="not analytic"):
+        _scaled_growth(scale=scale, nominal=nominal)
+
+
+@pytest.mark.parametrize("scale,nominal", [(1e-4, False), (1.0, True)])
+def test_the_same_model_without_the_typo_still_builds(scale, nominal):
+    model = _scaled_growth(scale=scale, nominal=nominal, typo=False)
+    np.testing.assert_allclose(model.solution.G[:2, :2], TRUE_G, atol=1e-9)
+
+
+@pytest.mark.parametrize("bad", [10, 52])
+def test_the_probe_direction_has_no_blind_spot(bad):
+    """Column 52 used to be a deterministic blind spot.
+
+    ``default_rng(0).standard_normal(n)[52]`` is -4.45e-3 for every
+    n >= 53 — 200x smaller than its neighbours and identical for every
+    model, because the seed was fixed. The same defect was caught in
+    column 10 and missed in column 52.
+    """
+    n = 60
+
+    def eqs(xp, x, e, p):
+        out = [xp[i] - 0.5 * x[i] - 0.5 - (e.eps if i == 0 else 0.0)
+               for i in range(n)]
+        out[0] = out[0] - 0.01 * (abs(x[bad]) - 1.0)
+        return out
+
+    names = [f"v{i}" for i in range(n)]
+    with pytest.raises(dsge.ModelError, match="not analytic"):
+        dsge.build(eqs, variables=names, states=names, shocks=["eps"],
+                   params={}, steady_state={v: 1.0 for v in names})
+
+
+def test_a_non_finite_probe_does_not_silently_disable_the_check():
+    """A NaN in the finite difference made `gap > tol` False — i.e. "agrees".
+
+    The trailing term is identically zero but nan in real arithmetic once
+    the probe drives k below its steady state, which used to switch the
+    analyticity check off for the whole block without a word.
+    """
+    def eqs(xp, x, e, p):
+        return [1 / x.c - p.beta * (p.alpha * xp.z * xp.k ** (p.alpha - 1)) / xp.c
+                - 0.5 * (abs(x.z) - 1.0),
+                x.c + xp.k - x.z * x.k ** p.alpha,
+                xp.z - x.z ** p.rho * np.exp(e.eps) + 0.0 * (x.k - KSS) ** 1.5]
+
+    with pytest.warns(UserWarning, match="could not cross-check"):
+        dsge.build(eqs, variables=["c", "k", "z"], states=["k", "z"],
+                   shocks=["eps"], params=PARAMS,
+                   steady_state=dict(c=CSS, k=KSS, z=1.0))
+
+
+@pytest.mark.parametrize("big", [1e8, 4e9])
+def test_subtractive_cancellation_is_inconclusive_not_the_users_fault(big):
+    """The finite difference is not an infallible oracle.
+
+    ``(c + k' + BIG) - BIG - y`` is algebraically identical to the
+    resource constraint and perfectly analytic — the complex step gets it
+    exactly right and the finite difference cannot get it right at all.
+    Blaming the user for that (and recommending method='central', which
+    is the scheme that is actually wrong here) is a bad error.
+    """
+    def eqs(xp, x, e, p):
+        return [1 / x.c - p.beta * (p.alpha * xp.z * xp.k ** (p.alpha - 1)) / xp.c,
+                (x.c + xp.k + big) - big - x.z * x.k ** p.alpha,
+                xp.z - x.z ** p.rho * np.exp(e.eps)]
+
+    with pytest.warns(UserWarning, match="inconclusive"):
+        model = dsge.build(eqs, variables=["c", "k", "z"], states=["k", "z"],
+                           shocks=["eps"], params=PARAMS, tol=1e-6,
+                           steady_state=dict(c=CSS, k=KSS, z=1.0))
+    np.testing.assert_allclose(model.solution.G, TRUE_G, atol=1e-12)
+
+
+def test_tol_is_the_acceptance_tolerance_not_the_solver_tolerance():
+    # Tightening tol below 1e-6 used to be a no-op: the gate was
+    # max(tol, 1e-6), so this steady state was accepted.
+    with pytest.raises(dsge.SteadyStateError, match=r"> tol"):
+        build_growth(steady_state=dict(c=CSS + 2e-7, k=KSS, z=1.0),
+                     guess=None, tol=1e-12)
+    # ... and loosening it used to buy a sloppy steady state, because the
+    # same number was handed to the root finder.
+    loose = build_growth(tol=1e-1)
+    assert loose.residual_norm < 1e-9
+    np.testing.assert_allclose(loose.solution.G, TRUE_G, atol=1e-9)
+
+
+def test_wrong_equation_count_is_diagnosed_on_the_guess_path_too():
+    def two_equations(xp, x, e, p):
+        return [x.c - 1.0, xp.k - x.k]
+
+    with pytest.raises(dsge.ModelError, match="one equation per variable"):
+        dsge.build(two_equations, variables=["c", "k", "z"], states=["k", "z"],
+                   shocks=["eps"], params={}, guess=dict(c=1.0, k=1.0, z=1.0))
+
+
+def test_a_declared_but_unused_shock_is_named_as_such():
+    def no_shock(xp, x, e, p):
+        return [1 / x.c - p.beta * (p.alpha * xp.z * xp.k ** (p.alpha - 1)) / xp.c,
+                x.c + xp.k - x.z * x.k ** p.alpha,
+                xp.z - x.z ** p.rho]
+
+    with pytest.raises(dsge.ModelError, match="none of the declared shocks"):
+        dsge.build(no_shock, variables=["c", "k", "z"], states=["k", "z"],
+                   shocks=["eps"], params=PARAMS,
+                   steady_state=dict(c=CSS, k=KSS, z=1.0))
+
+    with pytest.warns(UserWarning, match="enter no equation"):
+        model = dsge.build(growth_equations, variables=["c", "k", "z"],
+                           states=["k", "z"], shocks=["eps", "sunspot"],
+                           params=PARAMS, steady_state=dict(c=CSS, k=KSS, z=1.0))
+    np.testing.assert_allclose(model.irf("sunspot", horizon=3).to_numpy(), 0.0,
+                               atol=1e-15)

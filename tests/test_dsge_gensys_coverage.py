@@ -240,16 +240,31 @@ class TestOutputContracts:
 
 
 class TestBlancharKahnFailure:
-    """When BK order condition fails, eu=(0,0) and G, Impact are zero."""
+    """When the model has no unique stable solution, G and Impact are zero —
+    and ``eu`` says WHICH failure it is.
 
-    def test_too_many_expectation_errors_eu_zero(self):
-        """n_eta > n_unstable: all eigenvalues stable but Pi has 1 column -> BK fails."""
+    Before 2.5.0 every mismatch between ``n_eta`` and ``n_unstable`` collapsed
+    to ``eu = (0, 0)``, i.e. "no stable solution". That is the wrong diagnosis
+    for the commonest failure in applied work: too many expectation errors for
+    the unstable roots is *indeterminacy* — stable solutions exist, there are
+    just infinitely many of them — and the user's response ("impose the Taylor
+    principle") is the opposite of the response to non-existence. Sims's own
+    tests separate the two, and so do these.
+    """
+
+    def test_too_many_expectation_errors_is_indeterminacy(self):
+        """n_eta > n_unstable: all eigenvalues stable but Pi has 1 column.
+
+        A stable solution exists (every path is stable), it is simply not
+        unique: the single expectation error is a free sunspot. The verdict is
+        indeterminacy, eu = (1, 0) — not non-existence.
+        """
         G0 = np.eye(2)
         G1 = np.diag([0.5, 0.7])   # both eigenvalues < 1 (stable)
         Psi = np.eye(2)
         Pi = np.ones((2, 1))        # 1 expectation error, 0 unstable eigs
         sol = gensys(G0, G1, Psi, Pi)
-        assert sol.eu == (0, 0)
+        assert sol.eu == (1, 0)
 
     def test_too_few_expectation_errors_eu_zero(self):
         """n_eta < n_unstable: one unstable eigenvalue but Pi has 0 columns -> BK fails."""
@@ -279,22 +294,28 @@ class TestBlancharKahnFailure:
         np.testing.assert_array_equal(sol.Impact, np.zeros((2, 2)))
 
     def test_three_var_n_eta_2_all_stable(self):
-        """3-variable system, n_eta=2, all stable eigenvalues -> BK fails."""
+        """3-variable system, n_eta=2, all stable eigenvalues -> indeterminacy."""
         G0 = np.eye(3)
         G1 = np.diag([0.3, 0.5, 0.7])
         Psi = np.eye(3)
         Pi = np.ones((3, 2))
         sol = gensys(G0, G1, Psi, Pi)
-        assert sol.eu == (0, 0)
+        assert sol.eu == (1, 0)
 
-    def test_exist_flag_only_eu_zero(self):
-        """eu[0] = 0 when BK order condition fails."""
-        G0 = np.eye(2)
-        G1 = np.diag([0.5, 0.6])
+    def test_exist_flag_separates_indeterminacy_from_non_existence(self):
+        """eu[0] distinguishes the two failures instead of merging them.
+
+        Same shape of model, two different diseases:
+          * no unstable roots + one expectation error -> a stable solution
+            exists but is not unique      -> eu = (1, 0)
+          * one unstable root + no expectation error -> nothing can absorb the
+            shock that excites it         -> eu = (0, 0)
+        """
         Psi = np.eye(2)
-        Pi = np.ones((2, 1))
-        sol = gensys(G0, G1, Psi, Pi)
-        assert sol.eu[0] == 0
+        indeterminate = gensys(np.eye(2), np.diag([0.5, 0.6]), Psi, np.ones((2, 1)))
+        assert indeterminate.eu == (1, 0)
+        no_solution = gensys(np.eye(2), np.diag([2.0, 0.6]), Psi, np.zeros((2, 0)))
+        assert no_solution.eu == (0, 0)
 
 
 # ---------------------------------------------------------------------------
@@ -694,11 +715,16 @@ class TestDivParameter:
 
     def test_large_div_reclassifies_unstable_as_stable(self, model_2var):
         """With div >> 1/beta, the unstable eigenvalue is classified stable,
-        n_unstable = 0 != n_eta = 1, and BK fails -> eu=(0,0)."""
+        n_unstable = 0 != n_eta = 1, and the expectation error is left free.
+
+        With no unstable root to pin it down, the model is indeterminate, not
+        insoluble: eu = (1, 0).
+        """
         G0, G1, Psi, Pi, p = model_2var
         # 1/beta ≈ 1.25; with div=2.0 all eigenvalues (0.7, 1.25) are 'stable'
         sol = gensys(G0, G1, Psi, Pi, div=2.0)
-        assert sol.eu == (0, 0)
+        assert sol.eu == (1, 0)
+        np.testing.assert_array_equal(sol.G, np.zeros((2, 2)))
 
     def test_div_changes_eigenvalue_count(self, model_2var):
         """Changing div shifts how many eigenvalues are counted as stable."""

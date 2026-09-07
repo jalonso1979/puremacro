@@ -50,6 +50,8 @@ __all__ = [
     "report",
     "is_pyodide",
     "is_tablet",
+    "get_runtime_environment",
+    "is_mobile_or_constrained",
 ]
 
 # Host families. "pyodide" is the browser/WASM kernel (juno.sh, JupyterLite);
@@ -362,6 +364,36 @@ def is_pyodide() -> bool:
 def is_tablet() -> bool:
     """True when the device class is a tablet (iPad, Juno, phone)."""
     return capabilities().device == "tablet"
+
+
+def get_runtime_environment() -> str:
+    """Returns 'workstation', 'juno_ios', or 'pyodide_wasm'."""
+    env = os.environ.get("PUREMACRO_RUNTIME_ENV", "").strip().lower()
+    if env in ("workstation", "juno_ios", "pyodide_wasm"):
+        return env
+    caps = capabilities()
+    if is_pyodide() or caps.host == "pyodide":
+        return "pyodide_wasm"
+    if caps.device == "tablet" or _looks_like_ios():
+        return "juno_ios"
+    return "workstation"
+
+
+def is_mobile_or_constrained() -> bool:
+    """Returns True if running under Pyodide/WASM or iPad Juno, or in a constrained tier."""
+    env = get_runtime_environment()
+    if env in ("juno_ios", "pyodide_wasm"):
+        return True
+    c = capabilities()
+    if c.device in ("tablet", "browser"):
+        return True
+    try:
+        from puremacro.runtime.budget import current as _cur_budget
+        if _cur_budget().tier in ("tablet", "minimal"):
+            return True
+    except (ImportError, AttributeError):
+        pass
+    return False
 
 
 def report() -> str:

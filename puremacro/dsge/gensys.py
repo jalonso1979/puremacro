@@ -10,8 +10,8 @@ determined by the solution).
 
 This formulation is model-agnostic: variables need not be pre-classified
 into predetermined / forward-looking. The QZ decomposition identifies
-the stable and unstable modes automatically, and the Blanchard-Kahn (1980)
-order condition is verified from the eigenvalue count.
+the stable and unstable modes automatically, and existence/uniqueness
+are decided by Sims's two singular-value tests on the rotated Π.
 
 Solution form:
     z_t = G * z_{t-1} + Impact * ε_t
@@ -26,9 +26,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
-import scipy.linalg
 
-from ._qz import ordqz_sorted
+from ._qz import ordqz_sorted, _check_regular
 
 
 @dataclass(frozen=True)
@@ -38,14 +37,37 @@ class GensysSolution:
     Attributes
     ----------
     G      : (n, n) state-transition matrix — z_t = G z_{t-1} + ...
+             Sims's ``G1``: the full decision rule, valid for *any*
+             z_{t-1}, not only for one already on the stable manifold.
+             Zeros when ``eu != (1, 1)``.
     Impact : (n, n_eps) shock-impact matrix  — z_t = ... + Impact ε_t
     eu     : tuple (exist, unique) — both 1 iff unique stable solution.
+             (1, 0) is indeterminacy (a stable solution exists but is not
+             unique); (0, 0) is non-existence. These are different
+             diagnoses and are reported separately.
     eigenvalues : sorted |generalised eigenvalues| of (Γ_0, Γ_1).
     """
     G: np.ndarray
     Impact: np.ndarray
     eu: tuple
     eigenvalues: np.ndarray
+
+
+def _truncated_svd(M: np.ndarray, tol: float):
+    """SVD of ``M`` truncated at ``tol`` *relative* to its largest singular
+    value, returned as ``(U_k, s_k, V_k)`` with ``M ≈ U_k diag(s_k) V_k^H``.
+
+    Sims's ``gensys.m`` truncates at an absolute ``1e-6``, which makes the
+    existence/uniqueness verdict depend on the units the model is written in.
+    Scaling by ``s.max()`` makes the same test scale-invariant.
+    """
+    if M.size == 0:
+        return (np.zeros((M.shape[0], 0), dtype=complex),
+                np.zeros(0),
+                np.zeros((M.shape[1], 0), dtype=complex))
+    U, s, Vh = np.linalg.svd(M)
+    k = int(np.sum(s > tol * s.max())) if s.max() > 0 else 0
+    return U[:, :k], s[:k], Vh.conj().T[:, :k]
 
 
 def gensys(
@@ -55,6 +77,7 @@ def gensys(
     Pi: np.ndarray,
     *,
     div: float = 1.0 + 1e-8,
+    tol: float = 1e-6,
 ) -> GensysSolution:
     """Sims (2002) gensys — QZ solution for Γ_0 z = Γ_1 z_{-1} + Ψ ε + Π η.
 
@@ -66,10 +89,41 @@ def gensys(
     Pi     : (n, n_eta) expectation-error coefficient matrix.
     div    : stability threshold (generalised |eigenvalue| < div is stable).
              Default 1 + ε to exclude unit roots from stable set.
+    tol    : relative truncation tolerance for the rank decisions inside the
+             existence and uniqueness tests (Sims's ``realsmall``, here
+             applied relative to the largest singular value rather than
+             absolutely, so the verdict does not depend on the model's units).
 
     Returns
     -------
     GensysSolution
+
+    Notes
+    -----
+    ``eu`` follows Sims's two singular-value tests, *not* the
+    Blanchard-Kahn root count:
+
+    * ``eu[0] = 1`` (existence) iff ``Q2 Ψ`` lies in the column space of
+      ``Q2 Π`` — i.e. the expectation errors are able to absorb every shock
+      that would otherwise excite an unstable mode.
+    * ``eu[1] = 1`` (uniqueness) iff every direction of ``Π`` that shows up in
+      the *stable* block is already pinned down by the unstable block; a
+      "loose" direction is a sunspot.
+
+    The root count ``n_eta == n_unstable`` is necessary but not sufficient
+    for either, and its failure does not say which one failed. Before 2.5.0
+    this function collapsed every count mismatch to ``eu = (0, 0)``, which
+    reported indeterminacy — a model that *has* stable solutions, just too
+    many — as non-existence.
+
+    ``G`` and ``Impact`` are returned as zeros unless ``eu == (1, 1)``.
+
+    Raises
+    ------
+    numpy.linalg.LinAlgError
+        If the pencil ``(Γ_0, Γ_1)`` is singular (see
+        ``_qz.SingularPencilError``) or if the QZ reordering could not be
+        made consistent with the stability count.
     """
     Gamma0 = np.asarray(Gamma0, dtype=float)
     Gamma1 = np.asarray(Gamma1, dtype=float)
@@ -89,122 +143,139 @@ def gensys(
         output="complex",
     )
 
-    # Generalised eigenvalues |β/α|
+    # A diagonal block that vanishes in both S and T makes the whole spectrum
+    # meaningless; refuse rather than hand back a zero row for a variable that
+    # no equation restricts.
+    _check_regular(S, T, where="gensys")
+
+    # Generalised eigenvalues |β/α|, for reporting only. The alpha guard is
+    # relative: an absolute floor would call every eigenvalue infinite once
+    # the system is written in small enough units.
+    a_abs = np.abs(alpha)
+    a_scale = float(a_abs.max()) or 1.0
     with np.errstate(divide="ignore", invalid="ignore"):
-        eigvals = np.where(np.abs(alpha) > 1e-12,
+        eigvals = np.where(a_abs > np.finfo(float).eps * a_scale,
                            np.abs(beta / alpha), np.inf)
     eigvals_sorted = np.sort(eigvals)
 
-    n_stable = int(np.sum(eigvals < div))
+    # Count stability with the SAME predicate that ordered the pencil. Using a
+    # different rule here (the pre-2.5.0 code compared the reported |beta/alpha|
+    # against div after an absolute 1e-12 guard on |alpha|) lets the count
+    # disagree with the ordering, and then the Z1/Z2 slice below is taken in
+    # the wrong place.
+    stable = np.abs(beta) < div * np.abs(alpha)
+    n_stable = int(np.sum(stable))
     n_unstable = n - n_stable
-
-    eu = [0, 0]
-    if n_eta != n_unstable:
-        # Blanchard-Kahn order condition fails
-        G      = np.zeros((n, n))
-        Impact = np.zeros((n, n_eps))
-        return GensysSolution(
-            G=G, Impact=Impact, eu=tuple(eu), eigenvalues=eigvals_sorted
+    if not bool(np.all(stable[:n_stable])):
+        raise np.linalg.LinAlgError(
+            "gensys: the QZ reordering did not put the stable generalised "
+            f"eigenvalues first — {n_stable} are stable under |beta| < "
+            f"{div!r}*|alpha| but they are not the leading diagonal entries. "
+            "Slicing Z into stable/unstable blocks would silently take the "
+            "wrong columns, so the solve is refused."
         )
-    eu[0] = 1
 
-    # Partition Z and T,S into stable (1..n_stable) and unstable (n_stable+1..n)
-    # Z = [Z1 | Z2] with Z1 corresponding to stable eigenvalues
-    Z1 = Z[:, :n_stable]   # (n, n_stable)
-    Z2 = Z[:, n_stable:]   # (n, n_unstable) — corresponds to n_eta = n_unstable cols
+    # Rotated expectation errors and shocks.
+    QH = Q.conj().T
+    QH_Pi = QH @ Pi              # (n, n_eta)
+    QH_Psi = QH @ Psi            # (n, n_eps)
+    Q1_Pi,  Q2_Pi  = QH_Pi[:n_stable, :],  QH_Pi[n_stable:, :]
+    Q1_Psi, Q2_Psi = QH_Psi[:n_stable, :], QH_Psi[n_stable:, :]
 
-    # Rotated expectations: Q^H Π
-    QH_Pi = Q.conj().T @ Pi   # (n, n_eta)
-
-    # The unstable block of Q^H Π must be zero (Blanchard-Kahn rank condition).
-    QH_Pi_unstable = QH_Pi[n_stable:, :]   # (n_unstable, n_eta)
-
-    # Existence and uniqueness both live on Q2 Pi, not on Z2.
+    # --- Existence and uniqueness (Sims 2002, section 4) --------------------
     #
-    # Premultiplying the system by Q^H and writing w_t = Z^H z_t gives
-    # S w_t = T w_{t-1} + Q^H Psi eps + Q^H Pi eta. Stability requires the
-    # unstable block w2 to be identically zero, and setting it to zero in its
-    # own equation leaves
-    #       0 = Q2 Psi eps + Q2 Pi eta,
-    # so the expectation errors are pinned down by the shocks through
-    # Q2 Pi. A solution exists iff Q2 Psi lies in the column space of Q2 Pi,
-    # and it is unique iff Q2 Pi has full column rank. The order condition
-    # above has already forced Q2 Pi to be square (n_eta == n_unstable), so
-    # here both conditions reduce to its nonsingularity.
+    # Premultiplying by Q^H and writing w_t = Z^H z_t gives
+    #     S w_t = T w_{t-1} + Q^H Psi eps + Q^H Pi eta.
+    # Stability requires the unstable block w2 to be identically zero, and
+    # setting it to zero in its own equation leaves
+    #     0 = Q2 Psi eps + Q2 Pi eta.
+    # A solution EXISTS iff Q2 Psi lies in col(Q2 Pi), so that the expectation
+    # errors can absorb every shock. It is UNIQUE iff no direction of Pi that
+    # appears in the stable block is left free once the unstable block has
+    # been satisfied — Sims's "loose endogenous errors" test.
     #
-    # The previous test took singular values of `Z2`, a column slice of the
-    # unitary Z returned by the QZ. Those are all exactly 1 by construction,
-    # so `np.all(sv_Z2 > tol)` was true for every model ever passed in and
-    # eu[1] could not be 0: the indeterminacy branch below was unreachable.
+    # Both are rank statements, and neither reduces to the Blanchard-Kahn
+    # count n_eta == n_unstable: that count can hold while existence fails
+    # (a rank-deficient Q2 Pi), and it can fail while a perfectly good — if
+    # non-unique — stable solution exists (indeterminacy).
+    U_eta, s_eta, V_eta = _truncated_svd(Q2_Pi, tol)
+    _, _, V_eta1 = _truncated_svd(Q1_Pi, tol)
+
+    if Q2_Psi.size == 0:
+        exists = True
+    else:
+        unabsorbed = Q2_Psi - U_eta @ (U_eta.conj().T @ Q2_Psi)
+        norm_q2psi = float(np.linalg.norm(Q2_Psi))
+        exists = bool(np.linalg.norm(unabsorbed) <= tol * max(norm_q2psi, 1e-300))
+
+    if V_eta1.shape[1] == 0:
+        unique = True
+    else:
+        loose = V_eta1 - V_eta @ (V_eta.conj().T @ V_eta1)
+        # V_eta1's columns are orthonormal, so this norm is already unitless.
+        unique = bool(np.linalg.norm(loose) <= tol * np.sqrt(V_eta1.shape[1]))
+
+    eu = (int(exists), int(exists and unique))
+
+    if eu != (1, 1):
+        return GensysSolution(
+            G=np.zeros((n, n)),
+            Impact=np.zeros((n, n_eps)),
+            eu=eu,
+            eigenvalues=eigvals_sorted,
+        )
+
+    # --- Decision rule ------------------------------------------------------
+    #
+    # Sims's tmat maps the full rotated state onto the stable block after
+    # substituting out the expectation errors:
+    #
+    #     tmat = [ I_ns  |  -(Q1 Pi) pinv(Q2 Pi) ]
+    #
+    # and the transition in Schur coordinates is
+    #
+    #     [ tmat S ] w_t = [ tmat T ] w_{t-1} + [ tmat Q^H Psi ] eps
+    #     [ 0   I  ]       [   0    ]           [       0      ]
+    #
+    # whose top-left block of the left-hand side is exactly S11 (S is upper
+    # triangular, so tmat S has S11 in its leading n_stable columns) and whose
+    # bottom row forces w2_t = 0. Rotating back with Z:
+    #
+    #     G      = Z1 inv(S11) (tmat T) Z^H
+    #     Impact = Z1 inv(S11) (tmat Q^H Psi)
+    #
+    # Before 2.5.0 the first line read `G = Z1 inv(S11) T11 Z1^H`, which keeps
+    # only the [tmat T][:, :n_stable] = T11 block and drops [tmat T][:, n_stable:]
+    # — i.e. it is the correct rule composed with the orthogonal projector onto
+    # span(Z1). The two agree on any z_{t-1} that already lies on the stable
+    # manifold (so IRFs seeded from Impact, the Lyapunov variance and every
+    # autocovariance were unaffected), and they have the same spectrum, but
+    # they differ on an arbitrary z_{t-1}: the projected form does not satisfy
+    # the model's own equations off the manifold.
+    S11 = S[:n_stable, :n_stable]
+    Z1 = Z[:, :n_stable]
+
     if n_unstable == 0:
-        # No unstable modes to zero, so no expectation errors to solve for.
-        # (The order condition has already established n_eta == 0.)
-        eu[1] = 1
-        Q2_Pi_sv = np.array([1.0])
+        tmat = np.eye(n_stable, dtype=complex)
     else:
-        Q2_Pi_sv = np.linalg.svd(QH_Pi_unstable, compute_uv=False)
-        tol_Pi = (max(QH_Pi_unstable.shape) * Q2_Pi_sv.max()
-                  * np.finfo(float).eps * 10)
-        if Q2_Pi_sv.min() > tol_Pi:
-            eu[1] = 1
+        # Truncated pseudo-inverse of Q2 Pi. Uniqueness above has already
+        # established that it has full row rank, so this is the genuine
+        # inverse whenever Q2 Pi is square and nonsingular.
+        if s_eta.size:
+            pinv_Q2_Pi = V_eta @ ((1.0 / s_eta)[:, None] * U_eta.conj().T)
+        else:
+            pinv_Q2_Pi = np.zeros((n_eta, n_unstable), dtype=complex)
+        tmat = np.hstack([np.eye(n_stable, dtype=complex),
+                          -(Q1_Pi @ pinv_Q2_Pi)])
 
-    if eu[1] == 0:
-        G      = np.zeros((n, n))
-        Impact = np.zeros((n, n_eps))
-        return GensysSolution(
-            G=G, Impact=Impact, eu=tuple(eu), eigenvalues=eigvals_sorted
-        )
-
-    # Extract stable block
-    S11 = S[:n_stable, :n_stable]   # (n_stable, n_stable)
-    T11 = T[:n_stable, :n_stable]   # (n_stable, n_stable)
-
-    # State transition (stable block in Schur coordinates):
-    # z_stable_t = S11^{-1} T11 z_stable_{t-1} + ...
-    # In original coordinates: G = Z1 S11^{-1} T11 Z1^H
-    S11_inv = np.linalg.solve(S11.T, np.eye(n_stable)).T  # = inv(S11)
-    G_core = Z1 @ S11_inv @ T11 @ Z1.conj().T
-    G = G_core.real
-
-    # Shock impact:  z_t = G z_{t-1} + Impact eps_t
-    #
-    # Matching the eps terms in Gamma0 z_t = Gamma1 z_{t-1} + Psi eps + Pi eta
-    # gives Gamma0 * Impact = Psi + Pi * N, where N is the loading of the
-    # expectation errors on the shocks. This used to read
-    # `Impact = (Gamma0 - G Gamma1)^{-1} Psi`, which drops the `Pi N` term
-    # entirely -- i.e. it solves the system as if the expectation errors did
-    # not respond to the shocks, when responding to them is the whole content
-    # of the rational-expectations solution.
-    #
-    # N is what zeroes the unstable modes: 0 = Q2 Psi eps + Q2 Pi eta forces
-    # eta = N eps with N = -(Q2 Pi)^-1 Q2 Psi. Substituting into the stable
-    # block, w1_t = S11^-1 T11 w1_{t-1} + S11^-1 (Q1 Psi + Q1 Pi N) eps, and
-    # z_t = Z1 w1_t.
-    #
-    # On y_t = a E_t y_{t+1} + eps_t, whose unique stable solution is
-    # y_t = eps_t, the old expression returned an impact of [0, -2] at
-    # a = 0.5: the variable did not respond to its own shock at all, and the
-    # sign was wrong on the other element. The error is zero only when
-    # Pi N = 0, i.e. when the expectation errors do not load on the shocks --
-    # which is to say, for models with no forward-looking behaviour left in
-    # them.
-    QH_Psi = Q.conj().T @ Psi
-    Q1_Psi = QH_Psi[:n_stable, :]
-    Q1_Pi = QH_Pi[:n_stable, :]
-    if n_unstable > 0:
-        Q2_Psi = QH_Psi[n_stable:, :]
-        # Square and nonsingular: the order condition and the uniqueness
-        # check above have both been passed by the time we get here.
-        N = -np.linalg.solve(QH_Pi_unstable, Q2_Psi)   # (n_eta, n_eps)
-        forcing = Q1_Psi + Q1_Pi @ N
-    else:
-        forcing = Q1_Psi
-    Impact = (Z1 @ S11_inv @ forcing).real
+    # inv(S11) applied on the left, via a solve rather than an explicit inverse.
+    G = (Z1 @ np.linalg.solve(S11, tmat @ T) @ Z.conj().T).real
+    Impact = (Z1 @ np.linalg.solve(S11, tmat @ QH_Psi)).real
 
     return GensysSolution(
         G=G,
         Impact=Impact,
-        eu=tuple(eu),
+        eu=eu,
         eigenvalues=eigvals_sorted,
     )
 

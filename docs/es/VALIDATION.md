@@ -48,24 +48,26 @@ Niveles de tolerancia: `EXACT` (rtol 1e-10) · `TIGHT` (1e-6) · `NUMERIC` (1e-2
 
 ## Cobertura
 
-**73 casos en 13 subsistemas — todos pasan.** Por mecanismo: internal 34,
-analytical 21, package 11, scipy 6, published 1.
+**107 casos en 15 subsistemas — todos pasan.** Por mecanismo: internal 59,
+analytical 29, package 13, scipy 5, published 1.
 
 | Subsistema | Casos | Referencia(s) |
 |---|---|---|
-| `var` | 3 | FIR de Cholesky vs `orth_irfs` de statsmodels; FEVD-suma-1 y estabilidad ⇔ radio espectral del companion < 1 (identidades) |
-| `lp` | 5 | Coeficientes/EE-HAC de la PL de Jordà vs OLS-HAC de statsmodels; PL-IV vs `IV2SLS` de linearmodels; EF a dos vías vs `PanelOLS`; identidad IV-se-reduce-a-OLS |
+| `var` | 15 | FIR de Cholesky vs `orth_irfs` de statsmodels; FEVD-suma-1 y estabilidad ⇔ radio espectral del companion < 1 (identidades); restricciones narrativas de signo; posterior analítica del BVAR Minnesota; identidades del GVAR — con pesos comerciales nulos los bloques por país se desacoplan, el sistema global resuelto los reproduce, el perfil de persistencia vale 1 en el impacto, las filas normalizadas del GFEVD suman 1, y las FIRG de un GVAR de un solo país igualan las FIR generalizadas de `var` |
+| `lp` | 6 | Coeficientes/EE-HAC de la PL de Jordà vs OLS-HAC de statsmodels; PL-IV vs `IV2SLS` de linearmodels; EF a dos vías vs `PanelOLS`; identidad IV-se-reduce-a-OLS |
 | `garch` | 7 | Parámetros/volatilidades GARCH(1,1) vs `arch`; simular-y-recuperar; descomposición de varianza de GARCH-MIDAS |
 | `inference` | 8 | EE de Newey–West / OLS-HAC vs HAC de statsmodels; tabla de valores críticos de Stock–Yogo (publicada); valor crítico plug-in sup-t vs su forma cerrada i.i.d.; monotonía de sup-t sobre valores críticos puntuales |
 | `state_space` | 6 | Estados del filtro/suavizador de Kalman + log-verosimilitud vs el espacio de estados de statsmodels; identidades de varianza del suavizador |
 | `dynpanel` | 7 | El GMM de Arellano–Bond / Blundell–Bond recupera un ρ conocido; identificación exacta J = 0; inflación de varianza de muestras finitas de Windmeijer |
-| `did` | 4 | Callaway–Sant'Anna recupera DiD 2x2 analíticamente; Sun–Abraham iguala Callaway–Sant'Anna en 2x2; imputación de Borusyak–Jaravel–Spiess recupera 2x2; Diferencia en Diferencias Sintética recupera efecto de tratamiento |
+| `did` | 9 | Callaway–Sant'Anna recupera DiD 2x2 analíticamente; Sun–Abraham iguala Callaway–Sant'Anna en 2x2; imputación de Borusyak–Jaravel–Spiess recupera 2x2; Diferencia en Diferencias Sintética recupera efecto de tratamiento; el DiD espacial con todas las unidades más allá del anillo exterior se reduce exactamente a EF a dos vías, y el ajuste por anillos supera a la estimación ingenua contaminada en un DGP con desbordamiento plantado |
 | `unit_root` | 3 | Desentendencia GLS de ERS recupera tendencia y constante analíticamente; identidad de prueba M de Ng–Perron MZt = MZa · MSB |
 | `spectral` | 6 | DEP de Welch / espectro cruzado / coherencia vs `scipy.signal`; partición de la unidad de la potencia por banda; coherencia ∈ [0,1] |
 | `forecast` | 6 | Forma cerrada del CRPS gaussiano (Gneiting–Raftery); convergencia del estimador insesgado de conjunto; calibración PIT; signo/empate de Diebold–Mariano; retención MCS |
 | `vfi` | 5 | Tauchen/Rouwenhorst reproducen los momentos del AR(1); política en forma cerrada de Brock–Mirman; estacionaria de Markov vs autovector izquierdo de scipy; MGE = VFI |
 | `dsge` | 6 | Klein = gensys en un modelo conocido; solución en forma cerrada con expectativas a futuro; log-verosimilitud de Kalman vs la verosimilitud analítica del AR(1) |
 | `narrative` | 7 | Puntuación léxica de valor conocido sobre texto construido; identidades de monotonía / estandarización del índice |
+| `cointegration` | 4 | FM-OLS y DOLS recuperan una β de cointegración plantada; ambos coinciden; DOLS mitiga el sesgo de endogeneidad |
+| `spatial` | 12 | I de Moran / C de Geary con sus momentos de Cliff-Ord vs `esda` (PySAL); HAC de Conley con radio 0 = HC0 y = un doble bucle de Bartlett explícito; HAC espacio-temporal de núcleo plano = Driscoll-Kraay; la log-verosimilitud concentrada SAR/SEM en ρ=0 = la log-verosimilitud gaussiana MCO; SDM = SAR sobre el diseño aumentado y SLX = MCO sobre él; los impactos de LeSage-Pace = un `(I−ρW)⁻¹(Iβ+Wθ)` denso por fuerza bruta; el panel espacial en ρ=0 = EF a dos vías; la corrección de Lee-Yu reescala σ² exactamente por T/(T−1); `spatial_lp` sin desbordamiento = `panel_lp` |
 
 Cada caso lleva su cita completa en el código (`ValidationCase.citation`),
 mostrada en la columna `citation` de `scorecard()`. Las referencias clave incluyen

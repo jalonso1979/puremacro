@@ -46,24 +46,26 @@ Tolerance tiers: `EXACT` (rtol 1e-10) · `TIGHT` (1e-6) · `NUMERIC` (1e-2) ·
 
 ## Coverage
 
-**73 cases across 13 subsystems — all passing.** By mechanism: internal 34,
-analytical 21, package 11, scipy 6, published 1.
+**107 cases across 15 subsystems — all passing.** By mechanism: internal 59,
+analytical 29, package 13, scipy 5, published 1.
 
 | Subsystem | Cases | Reference(s) |
 |---|---|---|
-| `var` | 3 | Cholesky IRF vs statsmodels `orth_irfs`; FEVD-sums-to-1 and stability ⇔ companion spectral radius < 1 (identities) |
-| `lp` | 5 | Jordà LP coefficients/HAC SE vs statsmodels OLS-HAC; LP-IV vs linearmodels `IV2SLS`; two-way FE vs `PanelOLS`; IV-reduces-to-OLS identity |
+| `var` | 15 | Cholesky IRF vs statsmodels `orth_irfs`; FEVD-sums-to-1 and stability ⇔ companion spectral radius < 1 (identities); narrative sign restrictions; Minnesota BVAR analytical posterior; GVAR identities — zero trade weights decouple the country blocks, the solved global system reproduces them, the persistence profile is 1 at impact, normalised GFEVD rows sum to 1, and a one-country GVAR's GIRFs equal the `var` generalised IRFs |
+| `lp` | 6 | Jordà LP coefficients/HAC SE vs statsmodels OLS-HAC; LP-IV vs linearmodels `IV2SLS`; two-way FE vs `PanelOLS`; IV-reduces-to-OLS identity |
 | `garch` | 7 | GARCH(1,1) params/vols vs `arch`; simulate-then-recover; GARCH-MIDAS variance decomposition identity |
 | `inference` | 8 | Newey–West / OLS-HAC SE vs statsmodels HAC; Stock–Yogo critical-value table (published); sup-t plug-in critical value vs its i.i.d. closed form; sup-t monotonicity over pointwise critical values |
 | `state_space` | 6 | Kalman filter/smoother states + log-likelihood vs statsmodels state space; smoother-variance identities |
 | `dynpanel` | 7 | Arellano–Bond / Blundell–Bond GMM recover known ρ; exact-identification J = 0; Windmeijer finite-sample variance inflation |
-| `did` | 4 | Callaway–Sant'Anna recovers 2x2 DiD analytically; Sun–Abraham equals Callaway–Sant'Anna on 2x2; Borusyak–Jaravel–Spiess imputation recovers 2x2; Synthetic DiD recovers treatment effect |
+| `did` | 9 | Callaway–Sant'Anna recovers 2x2 DiD analytically; Sun–Abraham equals Callaway–Sant'Anna on 2x2; Borusyak–Jaravel–Spiess imputation recovers 2x2; Synthetic DiD recovers treatment effect; spatial DiD with every unit beyond the outermost ring reduces exactly to two-way FE, and the ring adjustment beats the contaminated naive estimate on a planted-spillover DGP |
 | `unit_root` | 3 | ERS GLS detrending recovers deterministic trend & constant mean analytically; Ng–Perron MZt = MZa · MSB cross-statistic identity |
 | `spectral` | 6 | Welch PSD / cross-spectrum / coherence vs `scipy.signal`; band-power partition-of-unity; coherence ∈ [0,1] |
 | `forecast` | 6 | Gaussian CRPS closed form (Gneiting–Raftery); fair-ensemble convergence; PIT calibration; Diebold–Mariano sign/tie; MCS retention |
 | `vfi` | 5 | Tauchen/Rouwenhorst reproduce AR(1) moments; Brock–Mirman closed-form policy; Markov stationary vs scipy left eigenvector; EGM = VFI |
 | `dsge` | 6 | Klein = gensys on a known model; closed-form forward-looking solution; Kalman log-likelihood vs the AR(1) analytical likelihood |
 | `narrative` | 7 | Known-value lexicon scoring on crafted text; index monotonicity / standardization identities |
+| `cointegration` | 4 | FM-OLS and DOLS recover a planted cointegrating β; the two agree; DOLS mitigates endogeneity bias |
+| `spatial` | 12 | Moran's I / Geary's C with their Cliff-Ord moments vs `esda` (PySAL); Conley HAC at cutoff 0 = HC0 and = an explicit Bartlett double loop; flat-kernel space-time HAC = Driscoll-Kraay; the SAR/SEM concentrated log-likelihood at ρ=0 = the OLS Gaussian log-likelihood; SDM = SAR on the augmented design and SLX = OLS on it; LeSage-Pace impacts = a brute-force dense `(I−ρW)⁻¹(Iβ+Wθ)`; the spatial panel at ρ=0 = two-way FE; the Lee-Yu correction rescales σ² by exactly T/(T−1); `spatial_lp` without a spillover = `panel_lp` |
 
 Each case carries its full citation in the code (`ValidationCase.citation`), shown
 in the `citation` column of `scorecard()`. Key references include Lütkepohl (2005),

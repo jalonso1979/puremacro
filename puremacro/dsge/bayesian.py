@@ -12,6 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import math
 from typing import Any, Callable, Sequence
+import warnings
 
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
@@ -20,8 +21,28 @@ import pandas as pd
 from scipy import stats
 from scipy.optimize import minimize
 
-from puremacro.dsge.priors import ensure_prior, Prior
+from puremacro.dsge.priors import ensure_prior, Prior, _validate_priors
 from puremacro.mcmc import gelman_rubin, geweke_z
+
+
+# Value neg_log_posterior returns for an infeasible draw. Any Hessian
+# stencil point that hits it makes the resulting curvature meaningless.
+_NEG_LOG_POST_PENALTY = 1e20
+
+# Exceptions a log-likelihood is *allowed* to raise to mean "this draw is
+# infeasible". Anything else is a bug in the caller's function and must
+# not be swallowed into a silently degenerate result.
+_INFEASIBLE_DRAW_ERRORS = (
+    np.linalg.LinAlgError,
+    ValueError,
+    FloatingPointError,
+    ZeroDivisionError,
+    OverflowError,
+    ArithmeticError,
+)
+
+# Consecutive infeasible likelihood evaluations tolerated before giving up.
+_MAX_CONSECUTIVE_FAILURES = 500
 
 
 @dataclass(frozen=True)
@@ -33,7 +54,12 @@ class BayesianEstimationResult:
     mode : np.ndarray, shape (n_params,)
         Posterior mode parameter estimates.
     mode_se : np.ndarray, shape (n_params,)
-        Standard errors at the mode from Laplace approximation sqrt(diag(inv(-H))).
+        Standard errors at the mode from Laplace approximation
+        sqrt(diag(inv(-H))). **NaN** for every parameter when the mode sits
+        on a prior bound (or the Hessian stencil otherwise leaves the
+        support): the Laplace approximation is undefined there, and a
+        finite-looking number would be a measurement of the penalty cliff
+        rather than of posterior curvature.
     param_names : list[str]
         List of parameter names in estimation order.
     log_posterior_mode : float
@@ -359,6 +385,7 @@ def estimate_dsge_bayesian(
     -------
     BayesianEstimationResult
     """
+    _validate_priors(priors, caller="estimate_dsge_bayesian")
     param_names = list(priors.keys())
     d = len(param_names)
     prior_objs = {name: ensure_prior(spec) for name, spec in priors.items()}
@@ -394,29 +421,75 @@ def estimate_dsge_bayesian(
             total_lp += float(lp)
         return total_lp
 
-    # Likelihood evaluation
+    # Likelihood evaluation.
+    #
+    # The calling convention (array vs dict) is probed ONCE and then bound.
+    # The previous code wrapped every call in `except Exception: return
+    # -inf`, so a plain bug in the user's log_likelihood_fn -- an
+    # AttributeError, a typo in a key -- turned into a chain that never
+    # moved and a "result" reporting a degenerate posterior, with no
+    # warning. Only the errors in _INFEASIBLE_DRAW_ERRORS are treated as
+    # "this draw is infeasible"; everything else propagates.
+    call_style: list[str | None] = [None]
+    consecutive_failures = [0]
+
+    def _call_log_likelihood(theta: np.ndarray):
+        if call_style[0] is None:
+            try:
+                out = log_likelihood_fn(theta)
+                call_style[0] = "array"
+                return out
+            except (TypeError, KeyError, IndexError) as exc_array:
+                try:
+                    out = log_likelihood_fn({
+                        name: float(theta[i])
+                        for i, name in enumerate(param_names)
+                    })
+                except (TypeError, KeyError, IndexError) as exc_dict:
+                    raise TypeError(
+                        "estimate_dsge_bayesian: log_likelihood_fn accepts "
+                        "neither a 1-D parameter array nor a "
+                        "{name: value} dict. Array call raised "
+                        f"{type(exc_array).__name__}: {exc_array}; dict call "
+                        f"raised {type(exc_dict).__name__}: {exc_dict}."
+                    ) from exc_dict
+                call_style[0] = "dict"
+                return out
+        if call_style[0] == "array":
+            return log_likelihood_fn(theta)
+        return log_likelihood_fn(
+            {name: float(theta[i]) for i, name in enumerate(param_names)}
+        )
+
     def log_likelihood_eval(theta: np.ndarray) -> float:
         for i, p in enumerate(prior_objs.values()):
             if not (p.lb <= theta[i] <= p.ub):
                 return -math.inf
         try:
-            val = log_likelihood_fn(theta)
-            if isinstance(val, (int, float, np.floating)) and np.isfinite(val):
-                return float(val)
+            val = _call_log_likelihood(theta)
+        except _INFEASIBLE_DRAW_ERRORS as exc:
+            consecutive_failures[0] += 1
+            if consecutive_failures[0] >= _MAX_CONSECUTIVE_FAILURES:
+                raise RuntimeError(
+                    "estimate_dsge_bayesian: log_likelihood_fn failed on "
+                    f"{consecutive_failures[0]} consecutive draws inside the "
+                    "prior support; the posterior is not evaluable, so no "
+                    "chain would be meaningful. Last failure: "
+                    f"{type(exc).__name__}: {exc}"
+                ) from exc
             return -math.inf
-        except (TypeError, KeyError, IndexError):
-            try:
-                param_dict = {
-                    name: float(theta[i]) for i, name in enumerate(param_names)
-                }
-                val = log_likelihood_fn(param_dict)
-                if isinstance(val, (int, float, np.floating)) and np.isfinite(val):
-                    return float(val)
-                return -math.inf
-            except Exception:
-                return -math.inf
-        except Exception:
-            return -math.inf
+        if isinstance(val, (int, float, np.floating)) and np.isfinite(val):
+            consecutive_failures[0] = 0
+            return float(val)
+        consecutive_failures[0] += 1
+        if consecutive_failures[0] >= _MAX_CONSECUTIVE_FAILURES:
+            raise RuntimeError(
+                "estimate_dsge_bayesian: log_likelihood_fn returned a "
+                f"non-finite value on {consecutive_failures[0]} consecutive "
+                f"draws inside the prior support (last value: {val!r}); the "
+                "posterior is not evaluable."
+            )
+        return -math.inf
 
     # Posterior evaluation
     def log_posterior_eval(theta: np.ndarray) -> float:
@@ -430,7 +503,7 @@ def estimate_dsge_bayesian(
 
     def neg_log_posterior(theta: np.ndarray) -> float:
         lp = log_posterior_eval(theta)
-        return -lp if np.isfinite(lp) else 1e20
+        return -lp if np.isfinite(lp) else _NEG_LOG_POST_PENALTY
 
     # Ensure finite start for optimization
     if not np.isfinite(log_posterior_eval(init_vec)):
@@ -496,23 +569,89 @@ def estimate_dsge_bayesian(
     # =========================================================================
     # Step 2: Laplace Approximation
     # =========================================================================
-    H_neg = _compute_numerical_hessian(neg_log_posterior, mode, h_scale=1e-4)
+    # A mode ON a prior bound (or anywhere the finite-difference stencil
+    # steps into the infeasible region) makes the numerical Hessian a
+    # measurement of the 1e20 penalty cliff, not of posterior curvature:
+    # the implied variances collapse to ~1e-27, mode_se floors at 1e-6 and
+    # -- because the same matrix drives the proposal -- the chain never
+    # moves and the reported posterior sd is off by many orders of
+    # magnitude. Count the stencil points that hit the penalty and refuse
+    # to use such a Hessian for anything.
+    penalty_hits = [0]
+
+    def _neg_log_posterior_probed(theta: np.ndarray) -> float:
+        val = neg_log_posterior(theta)
+        if val >= _NEG_LOG_POST_PENALTY:
+            penalty_hits[0] += 1
+        return val
+
+    H_neg = _compute_numerical_hessian(
+        _neg_log_posterior_probed, mode, h_scale=1e-4
+    )
     H_neg_sym = (H_neg + H_neg.T) / 2.0
 
-    try:
-        eigvals, eigvecs = np.linalg.eigh(H_neg_sym)
-        if np.all(eigvals > 1e-6):
-            inv_H = eigvecs @ np.diag(1.0 / eigvals) @ eigvecs.T
-            sigma_hat = (inv_H + inv_H.T) / 2.0
-        else:
-            clipped_eigvals = np.maximum(eigvals, 1e-4)
-            inv_H = eigvecs @ np.diag(1.0 / clipped_eigvals) @ eigvecs.T
-            sigma_hat = (inv_H + inv_H.T) / 2.0
-    except (np.linalg.LinAlgError, ValueError):
-        prior_vars = np.array([p.std ** 2 for p in prior_objs.values()])
-        sigma_hat = np.diag(prior_vars)
+    prior_vars = np.array([p.std ** 2 for p in prior_objs.values()], dtype=float)
+    prior_vars = np.where(np.isfinite(prior_vars) & (prior_vars > 0.0),
+                          prior_vars, 1.0)
 
-    # Ensure strictly positive definite proposal covariance
+    at_bound = [
+        name for i, (name, p) in enumerate(zip(param_names, prior_objs.values()))
+        if min(abs(mode[i] - p.lb), abs(p.ub - mode[i]))
+        <= 1e-4 * max(abs(mode[i]), 1.0)
+    ]
+    hessian_usable = penalty_hits[0] == 0 and np.all(np.isfinite(H_neg_sym))
+
+    if not hessian_usable:
+        warnings.warn(
+            "estimate_dsge_bayesian: the numerical Hessian at the reported "
+            f"mode is not a curvature measurement ({penalty_hits[0]} of the "
+            "finite-difference stencil points fall outside the prior "
+            "support or gave a non-finite log-posterior"
+            + (f"; parameters on a bound: {at_bound}" if at_bound else "")
+            + "). The Laplace approximation is undefined there, so mode_se "
+            "is returned as NaN and the proposal covariance falls back to "
+            "diag(prior_std**2). A mode on a prior bound usually means the "
+            "data want a value the prior forbids -- widen the bound rather "
+            "than reading these standard errors.",
+            UserWarning,
+            stacklevel=2,
+        )
+        sigma_hat = np.diag(prior_vars)
+        mode_se = np.full(d, np.nan)
+    else:
+        try:
+            eigvals, eigvecs = np.linalg.eigh(H_neg_sym)
+            if np.all(eigvals > 1e-6):
+                inv_H = eigvecs @ np.diag(1.0 / eigvals) @ eigvecs.T
+                sigma_hat = (inv_H + inv_H.T) / 2.0
+            else:
+                warnings.warn(
+                    "estimate_dsge_bayesian: the numerical Hessian at the "
+                    f"reported mode has {int(np.sum(eigvals <= 1e-6))} of "
+                    f"{d} eigenvalues <= 1e-6 (min {eigvals.min():.3e}); "
+                    "that point is not a well-identified local maximum. "
+                    "Eigenvalues are floored at 1e-4 to build a usable "
+                    "proposal, so mode_se understates the true uncertainty "
+                    "in the flat directions.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                clipped_eigvals = np.maximum(eigvals, 1e-4)
+                inv_H = eigvecs @ np.diag(1.0 / clipped_eigvals) @ eigvecs.T
+                sigma_hat = (inv_H + inv_H.T) / 2.0
+        except (np.linalg.LinAlgError, ValueError):
+            sigma_hat = np.diag(prior_vars)
+
+        # Ensure strictly positive definite proposal covariance
+        sigma_hat = (sigma_hat + sigma_hat.T) / 2.0
+        try:
+            np.linalg.cholesky(sigma_hat)
+        except np.linalg.LinAlgError:
+            min_eig = np.min(np.linalg.eigvalsh(sigma_hat))
+            ridge = max(1e-6, -min_eig + 1e-4)
+            sigma_hat = sigma_hat + ridge * np.eye(d)
+        mode_se = np.sqrt(np.maximum(np.diag(sigma_hat), 1e-12))
+
     sigma_hat = (sigma_hat + sigma_hat.T) / 2.0
     try:
         L_prop = np.linalg.cholesky(sigma_hat)
@@ -521,8 +660,6 @@ def estimate_dsge_bayesian(
         ridge = max(1e-6, -min_eig + 1e-4)
         sigma_hat = sigma_hat + ridge * np.eye(d)
         L_prop = np.linalg.cholesky(sigma_hat)
-
-    mode_se = np.sqrt(np.maximum(np.diag(sigma_hat), 1e-12))
 
     # =========================================================================
     # Step 3: Random Walk Metropolis-Hastings (RWMH)
@@ -590,15 +727,40 @@ def estimate_dsge_bayesian(
         chain_accept_rates.append(chain_accepts / max(n_draws, 1))
 
     acceptance_rate = float(np.mean(chain_accept_rates))
+    if not (0.05 <= acceptance_rate <= 0.60):
+        warnings.warn(
+            f"estimate_dsge_bayesian: mean acceptance rate "
+            f"{acceptance_rate:.3f} is outside [0.05, 0.60]; the chains are "
+            "either stuck (too low) or taking steps far smaller than the "
+            "posterior scale (too high). The posterior summary below is not "
+            "trustworthy.",
+            UserWarning,
+            stacklevel=2,
+        )
 
     # =========================================================================
     # Step 4: Posterior Summary
     # =========================================================================
     flat_draws = chains.reshape(-1, d)
+    draw_sd = flat_draws.std(axis=0, ddof=1) if len(flat_draws) > 1 else np.zeros(d)
+    degenerate = [
+        name for i, name in enumerate(param_names)
+        if draw_sd[i] <= 1e-10 * max(abs(float(mode[i])), 1.0)
+    ]
+    if degenerate:
+        warnings.warn(
+            "estimate_dsge_bayesian: the chains did not move for "
+            f"{degenerate}; their posterior standard deviation is "
+            "numerically zero. This is a failed sampler run, not a sharp "
+            "posterior -- do not report these draws as a posterior "
+            "distribution.",
+            UserWarning,
+            stacklevel=2,
+        )
     summary_df = pd.DataFrame(
         {
             "mean": flat_draws.mean(axis=0),
-            "std": flat_draws.std(axis=0, ddof=1) if len(flat_draws) > 1 else np.zeros(d),
+            "std": draw_sd,
             "16%": np.percentile(flat_draws, 16, axis=0),
             "50%": np.percentile(flat_draws, 50, axis=0),
             "84%": np.percentile(flat_draws, 84, axis=0),

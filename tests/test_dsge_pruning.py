@@ -156,3 +156,90 @@ def test_pruning_validation_errors():
     assert bad_sol.is_stable is False
     with pytest.raises(ValueError, match="eigenvalues outside the unit circle"):
         bad_sol.simulate(periods=50)
+
+
+def test_simulate_rejects_sigma_with_explicit_shocks():
+    """sigma scales the risk correction but never a supplied innovation array.
+
+    Silently accepting both shifted the reported mean by
+    (sigma^2 - 1) (I - G)^-1 0.5 H_sigmasigma while leaving the paths' shock
+    content untouched, so the combination is refused.
+    """
+    sol = canonical_growth_2nd_order()
+    eps = np.zeros((60, 1))
+    eps[1] = 0.01
+
+    with pytest.raises(ValueError, match="cannot be combined with an explicit"):
+        sol.simulate(periods=50, shocks=eps, burn=0, sigma=3.0)
+    with pytest.raises(ValueError, match="cannot be combined with an explicit"):
+        sol.simulate_raw(periods=50, shocks=eps, burn=0, sigma=3.0)
+
+    # sigma = 1.0 (the default) is still accepted with an explicit path.
+    sim = sol.simulate(periods=50, shocks=eps, burn=0)
+    assert len(sim.states) == 50
+
+
+def test_stoch_simul_simulated_and_theoretical_means_share_a_scale():
+    """Both Mean columns of one report must be levels (Dynare's convention).
+
+    Before the fix the simulated Mean was a deviation from the deterministic
+    steady state while the theoretical Mean was a level, so the same row of the
+    same report showed e.g. k = -0.015 next to k = 21.44.
+    """
+    sol = canonical_growth_2nd_order()
+    res = sol.stoch_simul(order=2, irf=0, periods=40_000, seed=7, burn=200)
+
+    theo = res.theoretical_moments.moments["Mean"]
+    sim = res.simulated_moments["Mean"]
+    ss = sol.steady_state
+
+    for v in res.variable_names:
+        # Monte-Carlo tolerance: 6 i.i.d. standard errors widened by a factor
+        # sqrt(40) for the serial correlation of these very persistent series.
+        # On the old (deviation) scale the gap was a whole steady state.
+        se = 40.0 * float(res.simulated_moments["Std.Dev."][v]) / np.sqrt(40_000) + 1e-9
+        assert abs(float(sim[v]) - float(theo[v])) < se, v
+
+    # k and c have non-trivial steady states, so the shift is not a no-op:
+    # before the fix these simulated means were ~0 rather than ~ss.
+    for v in ("k", "c"):
+        assert abs(float(ss[v])) > 0.5
+        assert abs(float(sim[v]) - float(ss[v])) < 0.1 * abs(float(ss[v]))
+
+
+def test_stoch_simul_higher_moments_are_shift_invariant():
+    """Only the Mean column moved: the dispersion moments are unchanged."""
+    sol = canonical_growth_2nd_order()
+    res = sol.stoch_simul(order=2, irf=0, periods=2_000, seed=3, burn=100)
+    sim_dev = sol.simulate(periods=2_000, seed=3, burn=100)
+    dev = pd.concat([sim_dev.states, sim_dev.controls], axis=1)[list(res.variable_names)]
+
+    for col, expected in (
+        ("Std.Dev.", dev.std(axis=0)),
+        ("Variance", dev.var(axis=0)),
+        ("Skewness", dev.skew(axis=0)),
+        ("Kurtosis", dev.kurtosis(axis=0)),
+    ):
+        np.testing.assert_allclose(
+            res.simulated_moments[col].to_numpy(),
+            expected.reindex(list(res.variable_names)).to_numpy(),
+            rtol=0.0, atol=0.0, err_msg=col,
+        )
+
+
+def test_girf_is_independent_of_sigma():
+    """The risk correction cancels between the shocked and baseline paths.
+
+    Pins the documented behaviour of the ``sigma`` keyword of girf/irf: it is
+    a signature-parity no-op, not a risk-adjustment knob.
+    """
+    sol = canonical_growth_2nd_order()
+    # 0.5 * ghs2 * 1000**2 would be O(50) on k if it did not cancel.
+    assert np.abs(sol.H_sigmasigma).max() > 0.0
+    base = sol.girf("eps", size=0.01, horizon=6, sigma=0.0)
+    for s in (1.0, 10.0, 1000.0):
+        np.testing.assert_allclose(
+            sol.girf("eps", size=0.01, horizon=6, sigma=s).to_numpy(),
+            base.to_numpy(),
+            rtol=1e-7, atol=1e-12,
+        )

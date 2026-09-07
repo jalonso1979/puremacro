@@ -261,9 +261,15 @@ class LPResult(pd.DataFrame):
         id_cols = [c for c in ("tau", "regime") if c in self.columns]
         f_col = "first_stage_f"
         has_f = any(_col(f_col, lab) in self.columns for lab in labs)
+        # The label column is as wide as the widest label, not a hardcoded 6:
+        # the regime/sign estimators use short labels (``H``/``pos``), but
+        # ``spatial_lp`` reports ``direct``/``indirect``/``indirect_all``, which
+        # overflowed the field and shifted that row's numbers out from under
+        # their headers.
+        lab_w = max(6, *(len(str(l)) for l in labs)) if labs else 6
         header = f"{'h':>4}"
         if multi:
-            header += f"  {'label':>6}"
+            header += f"  {'label':>{lab_w}}"
         for c in id_cols:
             header += f"  {c:>8}"
         header += f"  {'beta':>10}  {'se':>10}  {'lo':>10}  {'hi':>10}"
@@ -292,7 +298,7 @@ class LPResult(pd.DataFrame):
                 hi = float(row.get(_col("hi", lab), np.nan))
                 line = h_txt
                 if multi:
-                    line += f"  {lab:>6}"
+                    line += f"  {lab:>{lab_w}}"
                 for c in id_cols:
                     v = row.get(c, "")
                     numeric = isinstance(v, (float, int, np.floating, np.integer)) and not isinstance(v, bool)

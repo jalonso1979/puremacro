@@ -172,6 +172,7 @@ Los conectores bloqueados por WAF / protección anti-bot (EUR-Lex, Parlamento Eu
 - **Constructores de panel** (`build_panel`, `build_subnational_panel`) — puntos de entrada únicos que materializan paneles trimestrales y mensuales de países y estados de EE. UU. a partir de los captadores, con etiquetado de regímenes, ajuste estacional (X-13 / STL como alternativa) y una pipeline de σ-GARCH derivada.
 - **Instrumentos** (`instruments.*`) — registro de instrumentos, composición y cargadores externos (ruta de clave API de FRED); columna vertebral de la maquinaria LP-IV.
 - **Bartik / shift-share** (`bartik.*`) — participaciones, sensibilidades, pesos de Rotemberg, exposición EPU a nivel de condado.
+- **Econometría espacial** (`spatial.*`) — matrices de pesos espaciales (contigüidad, k-NN, decaimiento por distancia, flujos económicos), I de Moran / C de Geary, HAC espacial de Conley y el HAC espacio-temporal de Hsiang detrás de `panel_lp(cov_type="conley")`, los modelos de corte transversal (`sar`, `sem`, `sdm`, `slx`) con la batería de especificación `lm_spatial_tests` y los impactos directo / indirecto / total de LeSage-Pace (`spatial_effects`), paneles espaciales (`spatial_panel`) y proyecciones locales espaciales (`spatial_lp`); además del DiD robusto a desbordamientos por anillos de distancia (`did.spatial_did`) y el VAR Global de Pesaran (`var.gvar`). Véanse `docs/es/spatial.md` y `docs/es/gvar.md`.
 - **Utilidades de datos misceláneas** — cargador EU-KLEMS 2023 (`klems`), agregador NEER del BIS (`bis_neer`), empalme homogéneo de vintage G9 (`long_panel`), participación laboral de Gollin (`labor_share`), series en tiempo real por vintage (`vintages`), ajuste estacional (`sa`).
 - **Flujos laborales** — transiciones E/U/N de tres estados a partir de los agregados CPS del BLS (`labor_flows`) y transiciones F/I/U/N de cuatro estados a partir de los microdatos ENOE para México (`labor_flows_enoe`).
 
@@ -443,6 +444,8 @@ Las replicaciones de extremo a extremo de artículos canónicos se encuentran en
 - **`docs/es/narrative_sign_svar.md`**, **`docs/es/honest_did.md`**, **`docs/es/smooth_lp.md`**, **`docs/es/hank_nonlinear.md`**, **`docs/es/gertler_karadi.md`**, **`docs/es/bvar_sv.md`** — las seis guías de las funciones 2.3.
 - **`docs/es/var.md`** — VAR en forma reducida, identificación de SVAR (Cholesky, signos, narrativa, proxy/IV), FAVAR y bandas bootstrap.
 - **`docs/es/lp.md`** — Guía de proyecciones locales (LP-HAC, LP-IV, LP dependiente de estado, LP de panel, `LPResult`).
+- **`docs/es/spatial.md`** — Matrices de pesos espaciales, I de Moran / C de Geary, HAC espacial de Conley (corte transversal y proyecciones locales de panel), los modelos `sar` / `sem` / `sdm` / `slx`, la batería `lm_spatial_tests`, los impactos de LeSage-Pace (`spatial_effects`), paneles espaciales (`spatial_panel`), proyecciones locales espaciales (`spatial_lp`), DiD robusto a desbordamientos (`did.spatial_did`) y VI shift-share con errores de Adão-Kolesár-Morales.
+- **`docs/es/gvar.md`** — VAR Global (Pesaran-Schuermann-Weiner): bloques VARX* por país, variables estrella ponderadas por comercio, solución apilada y GIRF (`var.gvar`).
 - **`docs/es/did.md`** — Diferencias en diferencias modernas (Callaway-Sant'Anna, Sun-Abraham, Borusyak-Jaravel-Spiess, DiD sintético).
 - **`docs/es/nowcast.md`** — Nowcasting del PIB (modelos de factores dinámicos de frecuencias mixtas, bordes irregulares, descomposición de noticias).
 - **`docs/es/climate.md`** — Macroeconomía del clima: simulador hacia adelante del modelo DICE de Nordhaus y contabilidad del coste social del carbono.
@@ -467,7 +470,7 @@ Las replicaciones de extremo a extremo de artículos canónicos se encuentran en
 
 ## Estado
 
-Versión de producción, distribuyendo **2.3.1**. `docs/1.0_path.md` § 5 enumera qué subpaquetes están dentro de la promesa del gate de publicación y cuáles son experimentales.
+Versión de producción, distribuyendo **2.5.0**. `docs/1.0_path.md` § 5 enumera qué subpaquetes están dentro de la promesa del gate de publicación y cuáles son experimentales.
 
 La CI está activa y corre en cada push: la suite sobre tres sistemas operativos y tres versiones de Python, el contrato con Pyodide, mypy, la guardia de deriva contra referencias, `mkdocs build --strict`, el despliegue del playground y una publicación en PyPI disparada por etiqueta mediante trusted publishing. Véase `.github/workflows/`. Aun así ejecute `python tools/release_check.py` localmente antes de etiquetar: los gates 5 y 6 son opcionales y la CI no los corre.
 

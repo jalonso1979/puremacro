@@ -582,3 +582,113 @@ def test_coherent_AR1_pair_has_high_coherence_at_long_scales():
         f"Long-scale coherence ({long_scale_coh:.3f}) should exceed "
         f"fine-scale coherence ({fine_scale_noise_coh:.3f})"
     )
+
+
+# ---------------------------------------------------------------------------
+# boundary_safe — the coefficient truncation `wavelet_coherence` applies by
+# default. The MODWT here uses circular convolution, so at scale j the first
+# 2^j - 1 detail coefficients are computed partly from the END of the series
+# wrapped onto its start. Keeping them is what the pre-package implementation
+# did, and on a series with a level discontinuity across the wrap it produces
+# a near-perfect coherence between independent signals.
+# ---------------------------------------------------------------------------
+
+def test_boundary_safe_discards_exactly_the_wrapped_coefficients():
+    """The documented semantics: at scale j, drop the first 2^j - 1
+    coefficients and correlate the rest."""
+    from puremacro.wavelet import modwt_haar, wavelet_coherence
+
+    rng = np.random.default_rng(1)
+    T, level = 256, 5
+    x = np.cumsum(rng.standard_normal(T))
+    y = 0.5 * x + rng.standard_normal(T)
+
+    cx = modwt_haar(x - x.mean(), level)
+    cy = modwt_haar(y - y.mean(), level)
+    manual = []
+    for j, dx, dy in zip(range(level, 0, -1), cx[1:], cy[1:]):
+        keep = slice(2 ** j - 1, None)
+        a = dx[keep] - dx[keep].mean()
+        b = dy[keep] - dy[keep].mean()
+        manual.append(float((a * b).mean() / np.sqrt((a ** 2).mean() * (b ** 2).mean())))
+    manual = np.array(manual[::-1])
+
+    got = wavelet_coherence(x, y, level, boundary_safe=True).coherence_per_scale
+    np.testing.assert_allclose(got, manual, rtol=1e-12, atol=1e-12)
+
+
+def test_boundary_safe_false_keeps_every_coefficient():
+    """The opt-out path correlates the full coefficient vectors — the
+    behaviour `wavelet_coherence` had before the boundary handling landed."""
+    from puremacro.wavelet import modwt_haar, wavelet_coherence
+
+    rng = np.random.default_rng(2)
+    T, level = 256, 4
+    x = np.cumsum(rng.standard_normal(T))
+    y = 0.5 * x + rng.standard_normal(T)
+
+    cx = modwt_haar(x - x.mean(), level)
+    cy = modwt_haar(y - y.mean(), level)
+    manual = []
+    for dx, dy in zip(cx[1:], cy[1:]):
+        a, b = dx - dx.mean(), dy - dy.mean()
+        manual.append(float((a * b).mean() / np.sqrt((a ** 2).mean() * (b ** 2).mean())))
+    manual = np.array(manual[::-1])
+
+    got = wavelet_coherence(x, y, level, boundary_safe=False).coherence_per_scale
+    np.testing.assert_allclose(got, manual, rtol=1e-12, atol=1e-12)
+
+
+def test_boundary_safe_suppresses_spurious_coherence_from_the_circular_wrap():
+    """Why the default is True.
+
+    Two series share a deterministic ramp — so both have the same large jump
+    where the circular convolution wraps the end onto the start — but their
+    innovations are independent. Keeping the wrapped coefficients reports a
+    near-perfect coherence at the coarse scales that is purely an artefact.
+    """
+    from puremacro.wavelet import wavelet_coherence
+
+    T, level = 256, 5
+    safe, unsafe = [], []
+    for seed in range(60):
+        rng = np.random.default_rng(seed)
+        ramp = np.linspace(0.0, 10.0, T)
+        x = ramp + rng.standard_normal(T)
+        y = ramp + rng.standard_normal(T)  # independent innovations
+        safe.append(wavelet_coherence(x, y, level, boundary_safe=True).coherence_per_scale)
+        unsafe.append(wavelet_coherence(x, y, level, boundary_safe=False).coherence_per_scale)
+    safe = np.abs(np.array(safe)).mean(axis=0)
+    unsafe = np.abs(np.array(unsafe)).mean(axis=0)
+
+    # The artefact grows with scale, because 2^j - 1 grows with scale.
+    assert unsafe[-1] > 0.8, unsafe
+    assert safe[-1] < 0.4, safe
+    assert np.all(safe <= unsafe + 1e-12), (safe, unsafe)
+
+
+def test_boundary_safe_returns_zero_when_no_coefficient_survives():
+    """At a scale where 2^j - 1 exceeds the sample there is nothing left to
+    correlate; the coherence is reported as 0 rather than as a NaN."""
+    from puremacro.wavelet import wavelet_coherence
+
+    rng = np.random.default_rng(3)
+    T = 16  # level 5 needs 31 boundary coefficients, more than the sample
+    res = wavelet_coherence(rng.standard_normal(T), rng.standard_normal(T),
+                            level=5, boundary_safe=True)
+    assert res.coherence_per_scale.shape == (5,)
+    assert np.all(np.isfinite(res.coherence_per_scale))
+    assert res.coherence_per_scale[-1] == 0.0
+
+
+def test_boundary_safe_coherence_stays_in_range_and_defaults_to_true():
+    from puremacro.wavelet import wavelet_coherence
+
+    rng = np.random.default_rng(4)
+    T = 256
+    x = np.cumsum(rng.standard_normal(T))
+    y = 0.7 * x + rng.standard_normal(T)
+    default = wavelet_coherence(x, y, 5)
+    explicit = wavelet_coherence(x, y, 5, boundary_safe=True)
+    np.testing.assert_array_equal(default.coherence_per_scale, explicit.coherence_per_scale)
+    assert np.all(np.abs(default.coherence_per_scale) <= 1.0 + 1e-12)

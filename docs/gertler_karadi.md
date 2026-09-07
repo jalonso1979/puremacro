@@ -62,7 +62,9 @@ The effective capital stock evolves according to $K_{t+1} = \xi_{t+1} [(1 - \del
    Solves dynamic models with occasionally binding regime switches per Guerrieri and Iacoviello (2015):
    - **Unconventional Credit Policy (`constraint_type='credit_policy'`)**: The central bank directly intermediates credit when private credit spreads spike above a target threshold (e.g., 100 bps):
      $$\psi_t = \nu_g \cdot \max \left( 0, \, \text{Spread}_t - \text{threshold} \right)$$
-   - **Macroprudential Leverage Caps (`constraint_type='leverage_cap'`)**: Enforces an explicit regulatory ceiling on bank leverage ratio $\phi_t \le \phi_{max}$.
+   - **Macroprudential Leverage Caps (`constraint_type='leverage_cap'`)**: Imposes a regulatory ceiling on bank leverage, $\phi_t \le \phi_{max}$, **with a public backstop**. While the cap binds, the constrained regime pegs $\phi_t = \phi_{max}$ and frees the public credit share, so the balance sheet $(1 - \psi_t) Q_t K_t = \phi_t N_t$ determines how much intermediation the public sector absorbs, under complementary slackness:
+     $$\phi_t \le \phi_{max}, \qquad \psi_t \ge 0, \qquad \psi_t = 0 \ \text{where the cap is slack}.$$
+     The moral-hazard incentive constraint is *kept*, so a binding cap compresses intermediation rents rather than rationing private credit. Enforcing the cap by deleting the incentive constraint instead — the pre-2.5.0 formulation — makes the constrained regime violate Blanchard-Kahn and admits a continuum of spurious solutions; see the `solve_gertler_karadi` docstring.
 
 ---
 
@@ -159,7 +161,7 @@ solve_gertler_karadi(
 - `horizon`: Simulation horizon in quarters (default `40`).
 - `method`: Solution engine: `'occbin'` (piecewise-linear) or `'klein'` (linear QZ).
 - `constraint_type`: For OccBin: `'credit_policy'` or `'leverage_cap'`.
-- `threshold`: Activation threshold for regime switch (default `0.0025` for 100 bps spread).
+- `threshold`: Activation threshold for the regime switch, as a deviation from steady state. Default `0.0025` (100 bps spread) for `credit_policy`; `0.20 * phi_ss` (= `0.8197` at this calibration) for `leverage_cap`. A tighter leverage cap binds for longer and needs a longer `horizon` (10% above $\phi_{ss}$ needs `horizon >= 80`, 5% needs `>= 200`); the solver reports `converged=False` rather than guessing.
 - `max_iter`: Maximum backward iterations for OccBin convergence.
 
 ---

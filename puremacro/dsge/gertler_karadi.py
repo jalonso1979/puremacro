@@ -84,6 +84,13 @@ GK2011_PARAMS: dict[str, float] = {
 
     # Unconventional credit policy
     "nu_g": 10.0,         # Central bank credit policy intervention intensity
+    "prem_trigger": 0.0,  # Spread deviation above which credit policy activates.
+                          # The constrained-regime rule responds to the spread in
+                          # EXCESS of this trigger, so psi -> 0 as the spread
+                          # approaches it from above and the rule is continuous at
+                          # the switch point. 0.0 recovers the pre-2.5.0 algebra
+                          # (a discontinuous jump to nu_g * trigger at the switch).
+                          # solve_gertler_karadi sets it to the OccBin threshold.
 }
 
 
@@ -341,16 +348,47 @@ def _gk_equations_ref(lead, curr, lag, shocks_v, p):
 def _gk_equations_cons_credit_policy(lead, curr, lag, shocks_v, p):
     """Equilibrium conditions in constrained regime under credit policy intervention."""
     eqs = _gk_equations_ref(lead, curr, lag, shocks_v, p)
-    # Replace equation 26 (index 25) with active credit policy rule
-    eqs[25] = curr.psi - p.nu_g * (curr.prem - p.prem_ss)
+    # Replace equation 26 (index 25) with the active credit policy rule. Policy
+    # responds to the spread in EXCESS of the trigger, so psi -> 0 as prem falls
+    # back to prem_ss + prem_trigger and the rule agrees with the reference
+    # regime's psi = 0 exactly at the switch point. Without the trigger term the
+    # rule jumps discretely to nu_g * prem_trigger the instant the constraint
+    # binds, and the regime iteration has no fixed point.
+    eqs[25] = curr.psi - p.nu_g * (curr.prem - p.prem_ss - p.prem_trigger)
     return eqs
 
 
 def _gk_equations_cons_leverage_cap(lead, curr, lag, shocks_v, p):
-    """Equilibrium conditions in constrained regime under hard leverage cap."""
+    """Equilibrium conditions in the constrained regime under a leverage cap.
+
+    The cap holds *private* bank leverage at ``phi_max`` and replaces equation
+    26 (index 25), which pins the public credit share ``psi`` to zero in the
+    reference regime. ``psi`` is then free and equation 17,
+    ``(1 - psi) Q K = phi N``, determines how much of intermediation the public
+    balance sheet has to absorb for private leverage to sit at the cap. The
+    moral-hazard incentive constraint (equation 16) is **kept**.
+
+    The obvious alternative -- replace equation 16 with ``phi = phi_max``, so
+    the cap rations private credit and the incentive constraint goes slack --
+    is what this module shipped before 2.5.0, and it is ill-posed. Equation 16
+    is what anchors the banker's value block ``(nu, eta, Omega)``: dropping it
+    leaves a constrained regime that violates Blanchard-Kahn with *no* stable
+    solution (``is_determinate=False``; the reference's largest stable root
+    0.95420 is gone and the smallest unstable root of the capped regime is
+    1.01845, which is ``1 / (theta_b * (1 + prem_ss * phi_ss)) = 1.01835``, the
+    banker net-worth accumulation root). Every binding spell then excites that
+    explosive direction, notional leverage *rises* through the spell instead of
+    falling back to the cap, and the exit condition becomes self-fulfilling: at
+    a cap 5% above steady state every leading spell of length ``k >= 16`` is a
+    fixed point at every horizon (16..40 at H = 40, 16..80 at H = 80, and
+    likewise at H = 120 and H = 200). See the ``Warnings`` section of
+    :func:`solve_gertler_karadi`.
+    """
     eqs = _gk_equations_ref(lead, curr, lag, shocks_v, p)
-    # Replace equation 16 (index 15) with hard leverage cap
-    eqs[15] = curr.phi - p.phi_max
+    # Replace equation 26 (index 25, "psi = 0") with the leverage cap. Private
+    # leverage is pegged at phi_max and the public credit share psi becomes the
+    # instrument that delivers it; the incentive constraint (index 15) stays.
+    eqs[25] = curr.phi - p.phi_max
     return eqs
 
 
@@ -683,11 +721,15 @@ def solve_gertler_karadi(
         Regime switch specification for OccBin:
         - 'credit_policy': Central bank credit intervention when credit spread
           exceeds threshold (default 100 bps = 0.0025 above steady state).
-        - 'leverage_cap': Macroprudential ceiling on bank leverage.
+        - 'leverage_cap': Macroprudential ceiling on *private* bank leverage
+          ``phi``, enforced through the public credit share ``psi``.
     threshold : float, optional
-        Numerical threshold for OccBin constraint. If None:
+        Numerical threshold for the OccBin constraint, as a **deviation from
+        the steady state** of the constrained variable. If None:
         - for 'credit_policy': defaults to 0.0025 (100 bps annualized).
-        - for 'leverage_cap': defaults to 0.0 (capped at steady-state leverage).
+        - for 'leverage_cap': defaults to ``0.20 * phi_ss``, a cap 20% above
+          steady-state leverage (0.8197 at the shipped calibration, i.e.
+          ``phi_max = 4.918`` against ``phi_ss = 4.098``).
     max_iter : int, default 50
         Maximum backward recursion iterations for OccBin.
 
@@ -696,6 +738,115 @@ def solve_gertler_karadi(
     GertlerKaradiResult
         Result container with impulse responses, steady-state dictionary,
         solver diagnostics, and visualization methods.
+
+    Warnings
+    --------
+    ``method="occbin"`` returns ``occbin_result.converged=False`` with a
+    ``RuntimeWarning`` whenever the regime iteration could not be verified; the
+    returned path is then a diagnostic, not a solution. Check
+    ``result.occbin_result.converged`` before using it.
+
+    * ``constraint_type="credit_policy"`` **converges** at the shipped defaults
+      (``nu_g = 10``, ``threshold = 0.0025``, ``horizon = 40``): the constraint
+      binds for 14 periods and the regime sequence is a genuine fixed point.
+      Before 2.5.0 the constrained-regime rule was
+      ``psi = nu_g * (prem - prem_ss)``, which is **discontinuous at the
+      trigger**: the reference regime sets ``psi = 0``, so at the switch point
+      the constrained regime jumped straight to ``nu_g * threshold = 0.025``.
+      Policy switching on compresses the very spread that triggered it, the
+      binding indicator flipped, and no regime sequence was a fixed point —
+      forcing a contiguous spell of length ``k`` gave ``k=0 -> 1..11``,
+      ``k=1 -> 2..11``, ``k=9 -> [1..5, 10..14]``, ``k=11 -> [1..6, 12..16]``,
+      with no ``k`` mapping to itself for any ``nu_g`` in ``[0.1, 10]`` crossed
+      with any threshold in ``[0.0025, 0.012]``. The rule now responds to the
+      spread **in excess of** the trigger,
+      ``psi = nu_g * (prem - prem_ss - prem_trigger)``, so ``psi -> 0`` as the
+      spread returns to the trigger from above and the two regimes agree
+      exactly where they meet — the same construction that makes a ZLB
+      well-posed. ``solve_gertler_karadi`` sets ``prem_trigger`` to the OccBin
+      ``threshold``; the spell then lengthens with more aggressive policy and
+      shortens with a higher trigger (``nu_g = 0.5/1/3/10/25`` at
+      ``threshold=0.0025`` give ``k = 11/12/13/14/15``; ``threshold = 0.005``
+      gives ``k = 8`` and ``threshold = 0.010`` gives ``k = 4`` throughout).
+      ``prem_trigger`` defaults to ``0.0`` in ``GK2011_PARAMS``, which recovers
+      the old, ill-posed algebra for a caller who builds the constrained model
+      by hand.
+    * ``constraint_type="leverage_cap"`` **converges** at the shipped defaults
+      (``threshold = 0.20 * phi_ss = 0.8197``, i.e. ``phi_max = 4.918`` against
+      ``phi_ss = 4.098``, ``horizon = 40``): the cap binds in periods 1-13 and
+      that regime sequence is the *unique* fixed point — unique among all 861
+      ``(start, end)`` contiguous windows at ``horizon = 40``, reached from
+      every initial guess
+      tried (all-slack, all-binding, leading spells of 10/20/30, alternating),
+      and identical at ``horizon`` = 40, 60, 80, 120 and 200. The spell
+      lengthens monotonically as the cap tightens (a cap 15/20/25/30/35/40/45
+      percent above ``phi_ss`` binds for 32/13/7/4/3/2/1 periods, every cell
+      verified), and a cap above the unconstrained peak of leverage
+      (``threshold > 1.877``, i.e. more than 45.8% above ``phi_ss``) never
+      binds at all and returns the linear path exactly.
+
+      The cap is enforced through the **public credit share** ``psi``: the
+      constrained regime replaces equation 26 (``psi = 0``) with
+      ``phi = phi_max`` and lets equation 17, ``(1 - psi) Q K = phi N``,
+      determine how much of intermediation the public balance sheet absorbs.
+      The moral-hazard incentive constraint (equation 16) is **kept**, and the
+      complementary-slackness pair is ``phi <= phi_max``, ``psi >= 0``, with
+      ``psi = 0`` wherever the cap is slack. ``psi`` therefore decays to zero
+      *at* the exit (0.0798 on impact, 0.0039 in the last binding period, 0.0
+      from the first slack period on) and the two regimes agree exactly where
+      they meet — the same construction that makes the credit-policy rule above
+      well-posed.
+
+      Before 2.5.0 the constrained regime replaced equation **16** instead, so
+      that the cap rationed private credit and the incentive constraint went
+      slack. That formulation is ill-posed and no threshold repairs it.
+      Equation 16 is what anchors the banker's value block
+      ``(nu, eta, Omega)``; without it the constrained regime violates
+      Blanchard-Kahn with *no* stable solution (``is_determinate=False``). The
+      reference's largest stable root 0.95420 disappears and the capped
+      regime's smallest unstable root is 1.01845 — numerically
+      ``1 / (theta_b * (1 + prem_ss * phi_ss)) = 1.01835``, the banker
+      net-worth accumulation root pushed outside the unit circle. Every binding
+      spell then excites that explosive direction, notional leverage *rises*
+      through the spell instead of falling back to the cap, and the exit test
+      becomes self-fulfilling: at a cap 5% above ``phi_ss`` **every** leading
+      spell of length ``k >= 16`` is a fixed point, at every horizon (16..40 at
+      H = 40, 16..80 at H = 80, and likewise at H = 120 and H = 200), so the
+      equilibrium set was a function of the arbitrary truncation. Which member
+      the solver returned was an artefact of the all-slack initial guess, and
+      the path it returned was nonsense in levels: at a 5% cap and
+      ``horizon=40`` the solver's own answer (a 33-quarter spell) put bank
+      leverage at -28.4 against ``phi_ss = 4.098``, bank net worth at -2.54
+      against ``N_ss = +1.38`` (negative equity), and output at 0.274 against
+      ``Y_ss = 0.849``, a 68% collapse.
+
+    * ``constraint_type="leverage_cap"`` with ``threshold=0.0`` puts the cap
+      exactly at ``phi_ss``. Leverage jumps to ``+1.877`` after a -5%
+      capital-quality shock and decays without ever returning below zero, so the
+      cap binds in **every** simulated period at ``horizon`` = 40, 60, 80, 120
+      and 200 alike; the reference regime never resumes, the terminal condition
+      is assumed rather than verified, and the honest flag is
+      ``converged=False`` with a ``RuntimeWarning``. That is a degenerate
+      calibration, not a solver failure, and it is deliberately left
+      non-convergent rather than papered over. The same reading applies to a
+      spell that simply does not fit: a -10% capital-quality shock keeps the
+      default cap binding for 63 quarters, so ``horizon=40`` returns
+      ``converged=False`` and asks for a longer horizon, while ``horizon`` =
+      80, 200 and 400 all return the same verified 63-quarter spell.
+
+    Uniqueness is checked, not assumed — but it is checked *for the shipped
+    defaults*, by enumerating contiguous windows and by multi-start iteration
+    (see ``tests/test_dsge_gertler_karadi.py``). Neither :func:`solve_occbin`
+    nor this function certifies uniqueness for an arbitrary ``threshold``,
+    horizon or shock: a piecewise-linear model can admit several
+    self-consistent regime sequences, and ``converged=True`` means "this path
+    is verified", never "this path is the only one".
+
+
+    Before 2.5.0 both configurations reported ``converged=True`` without being
+    checked: the credit-policy path violated its own constraint in periods 1-7
+    and from period 12 (``prem`` reaching 0.0310 against a 0.0025 threshold),
+    and the leverage-cap path was never verified at all.
     """
     if int(horizon) != horizon or horizon < 1:
         raise ValueError(f"horizon must be a positive integer number of quarters, got {horizon!r}")
@@ -759,18 +910,52 @@ def solve_gertler_karadi(
         # Piecewise-linear simulation via OccBin
         if constraint_type == "credit_policy":
             thresh = 0.0025 if threshold is None else float(threshold)
+            p_cons = dict(p_dict)
+            # Align the policy rule's trigger with the OccBin switch point, so
+            # psi is continuous where the regimes meet (mirrors the phi_max
+            # branch below). The constrained regime is deliberately linearised
+            # around the REFERENCE steady state (check_steady_state=False); the
+            # resulting non-zero constant is the OccBin wedge.
+            if "prem_trigger" in (params or {}) and float(params["prem_trigger"]) != thresh:
+                warnings.warn(
+                    f"solve_gertler_karadi: params['prem_trigger']="
+                    f"{float(params['prem_trigger'])!r} is ignored and overridden with "
+                    f"threshold={thresh!r}. The policy rule's trigger must equal the OccBin "
+                    "switch point, or psi jumps discontinuously where the regimes meet and "
+                    "the regime iteration has no fixed point. Pass `threshold=` to move both.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+            p_cons["prem_trigger"] = thresh
             constraint = OccBinConstraint(variable="prem", threshold=thresh, operator=">")
             cons_model = build_gertler_karadi_model(
-                p_dict,
+                p_cons,
                 regime="constrained",
                 constraint_type="credit_policy",
                 check_steady_state=False,
             )
         elif constraint_type == "leverage_cap":
-            thresh = 0.0 if threshold is None else float(threshold)
+            # Default: a cap 20% above steady-state leverage (phi_max = 4.918
+            # against phi_ss = 4.098). A cap AT the steady state (threshold=0.0)
+            # binds at every horizon and is deliberately left non-convergent.
+            thresh = 0.20 * ss["phi_ss"] if threshold is None else float(threshold)
             p_cons = dict(p_dict)
             p_cons["phi_max"] = ss["phi_ss"] + thresh
-            constraint = OccBinConstraint(variable="phi", threshold=thresh, operator=">")
+            # The cap is enforced through the public credit share psi (see
+            # `_gk_equations_cons_leverage_cap`), so the spell ends exactly when
+            # the required intervention would turn negative. That is the
+            # complementary-slackness pair -- phi <= phi_max, psi >= 0, and
+            # psi = 0 wherever phi < phi_max -- and it makes both regimes agree
+            # at the switch point instead of the relax test comparing the pegged
+            # phi against the very threshold it is pegged to.
+            constraint = OccBinConstraint(
+                variable="phi",
+                threshold=thresh,
+                operator=">",
+                relax_variable="psi",
+                relax_threshold=0.0,
+                relax_operator="<",
+            )
             cons_model = build_gertler_karadi_model(
                 p_cons,
                 regime="constrained",
@@ -792,9 +977,13 @@ def solve_gertler_karadi(
         occ_converged = bool(getattr(res_occ, "converged", True))
         if not occ_converged:
             warnings.warn(
-                f"solve_gertler_karadi: the OccBin regime iteration did not converge "
-                f"within max_iter={max_iter}; the returned path is unreliable. "
-                "Increase max_iter or shorten the horizon.",
+                "solve_gertler_karadi: the OccBin solution did not converge to a verified "
+                "fixed point; solve_occbin has already warned with the reason (a regime "
+                "sequence that is not a fixed point, a path that violates its own "
+                "constraint, or a constraint still binding in the last simulated period so "
+                "that the terminal condition is assumed rather than tested). The returned "
+                f"path is a diagnostic, not a solution. Try a looser threshold, a longer "
+                f"horizon, or a larger max_iter (currently {max_iter}).",
                 RuntimeWarning,
                 stacklevel=2,
             )

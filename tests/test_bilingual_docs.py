@@ -41,6 +41,7 @@ _USER_DOCS = [
     "hank_nonlinear.md",
     "gertler_karadi.md",
     "bvar_sv.md",
+    "gvar.md",
 ]
 
 

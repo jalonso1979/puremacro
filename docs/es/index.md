@@ -51,7 +51,8 @@
 
 8. **Métodos de frontera (2.3)**:
    - **Restricciones narrativas de signo** ([guía](narrative_sign_svar.md)), **DiD honesto** ([guía](honest_did.md)), **Proyecciones locales suavizadas** ([guía](smooth_lp.md)), **HANK no lineal en el espacio de secuencias** ([guía](hank_nonlinear.md)), **DSGE de Gertler-Karadi (2011)** ([guía](gertler_karadi.md)) y **BVAR con volatilidad estocástica** ([guía](bvar_sv.md)).
-   - **Econometría espacial** ([guía](spatial.md)): matrices de pesos espaciales, I de Moran / C de Geary, HAC espacial de Conley en cortes transversales y proyecciones locales de panel, y VI shift-share con errores de Adão-Kolesár-Morales.
+   - **Econometría espacial** ([guía](spatial.md)): matrices de pesos espaciales, I de Moran / C de Geary, HAC espacial de Conley en cortes transversales y proyecciones locales de panel, los modelos de corte transversal `sar` / `sem` / `sdm` / `slx` con la batería de especificación `lm_spatial_tests` e impactos de LeSage-Pace, paneles espaciales (`spatial_panel`), proyecciones locales espaciales (`spatial_lp`), DiD robusto a desbordamientos (`did.spatial_did`) y VI shift-share con errores de Adão-Kolesár-Morales.
+   - **VAR global** ([guía](gvar.md)) (Pesaran, Schuermann y Weiner 2004): bloques VARX\* por país con variables estrella ponderadas por comercio, solución apilada exacta, IRF generalizadas y FEVD, y contrastes de exogeneidad débil (`var.gvar`).
 
 ---
 

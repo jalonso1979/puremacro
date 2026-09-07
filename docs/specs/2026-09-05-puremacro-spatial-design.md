@@ -1,7 +1,7 @@
 # `puremacro.spatial` — spatial econometrics for regional macro
 
 **Status:** Drafted 2026-09-05. Architectural spec for a spatial layer that sits between the existing regional-panel estimators (`lp.panel_lp`, `lp.panel_lp_dk`, `lp.cce_panel_lp`, `var.panel.mean_group_svar`, `bartik.*`, `connectedness.*`) and the data builders (`build_subnational_panel`, `fetch.state_industry_panel`, `bartik.county_epu`). Implementation in four phases; phase 1 ships with 2.4.0.
-**Target releases:** 2.4.0 (phase 1 — weights, diagnostics, spatial HAC, AKM), 2.5.0 (phase 2 — spatial LP spillovers, GVAR), 2.6.0 (phase 3 — SAR/SEM/SDM, spatial panels), 2.7.0 (phase 4 — spatial DiD, county examples).
+**Target releases:** 2.4.0 (phase 1 — weights, diagnostics, spatial HAC, AKM); 2.5.0 (phases 2, 3 and 4 together — spatial LP spillovers, GVAR, SAR/SEM/SDM, spatial panels, spatial DiD, shipped county/state geography). Phases 2-4 were originally planned as 2.5.0/2.6.0/2.7.0 and landed in one release; the rollout list at the foot of this file records what each phase actually shipped.
 **Driving lenses:** regional fiscal-multiplier and exposure designs need inference that respects distance; everything must stay inside the four-package Pyodide core; every estimator ships with a reference golden.
 
 ## Motivation
@@ -108,6 +108,6 @@ Adversarial DGPs: an island unit, a fully disconnected graph, duplicate coordina
 ## Rollout
 
 1. Phase 1 (this spec's implementation): weights, diagnostics, spatial HAC, `panel_lp(cov_type="conley")`, `shift_share_iv`, docs (EN/ES), tests, goldens, CHANGELOG. No behaviour change for existing calls.
-2. Phase 2: `spatial_lp`, `gvar`; the `connectedness` page cross-links the structural counterpart.
-3. Phase 3: cross-section and panel spatial models with `spreg` goldens.
-4. Phase 4: spatial DiD and county-level worked examples using `bartik.county_epu` and the shipped crosswalks.
+2. Phase 2 (shipped 2.5.0): `spatial.spatial_lp` — direct/indirect/total panel local projections — and `var.gvar` — country VARX* models linked by trade weights, solved into a global system, with generalised IRFs, a generalised FEVD, persistence profiles and an approximate weak-exogeneity test. Two things the spec assumed turned out not to hold and are documented rather than implemented: the "total" spatial-LP response is *not* the response to a uniform shock (a two-way-FE time effect absorbs exactly that variation), and the cross-horizon joint spillover Wald test is badly over-sized (0.31 at a nominal 0.10) and does not ship.
+3. Phase 3 (shipped 2.5.0): `spatial.models` (`sar`, `sem`, `sdm`, `slx`, `spatial_effects`, `ols_spatial`, `lm_spatial_tests`) and `spatial.panel` (`spatial_panel` with the Lee-Yu correction). Log-determinants are exact — dense eigenvalues, sparse LU, or an opt-in Chebyshev approximation; the Monte-Carlo Jacobian the spec floated was dropped because an unseeded randomised determinant makes `rho` irreproducible. `spreg` goldens remain a dev-extra follow-up; the shipped validation cases are analytical identities and reductions to estimators already in the package.
+4. Phase 4 (shipped 2.5.0): `did.spatial_did` with `exposure_rings` / `contiguity_rings`, and the geography the worked examples needed, which did not previously exist anywhere in the repo: `datasets.load_us_state_centroids` and `datasets.load_us_county_centroids` (US Census 2023 Gazetteer internal points), keyed to the same county FIPS `bartik.build_county_epu` expects.

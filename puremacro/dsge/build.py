@@ -34,14 +34,44 @@ Complex-step: the restriction
 -----------------------------
 The derivative comes from ``Im f(x + ih) / h`` with ``h = 1e-20``, which
 is exact to machine precision *provided the residual function is
-analytic*. In practice that rules out four things: ``abs``, ``min`` /
-``max``, comparisons that branch on the perturbed value, and any
-``float()`` / ``np.real`` cast that discards the imaginary part. Models
-with occasionally-binding constraints violate this by construction —
-pass ``method="central"`` for those and accept ~1e-8 accuracy instead of
-~1e-15. :func:`build` checks for the failure mode (an all-zero Jacobian
-column where one is not expected) and says so rather than silently
-returning a wrong solution.
+analytic*. What actually breaks that, measured rather than assumed:
+
+* **Silently wrong** — ``abs`` / ``np.abs`` (returns the modulus, whose
+  imaginary part is zero), ``np.linalg.norm``, ``np.real`` / ``.real``
+  and ``float()`` casts, and a fractional power of a base that goes
+  negative (``(-2 + 1e-20j)**0.33`` is finite and meaningless where the
+  real evaluation is ``nan``). These give a derivative with no error
+  anywhere, which is what the cross-check below exists for.
+* **Loud** — the builtin ``min`` / ``max`` and any explicit comparison,
+  which raise ``TypeError: '>' not supported between instances of
+  'float' and 'complex'``.
+* **Safe** — ``np.maximum`` / ``np.minimum``, which order complex numbers
+  lexicographically on the real part and so pick the same branch the
+  real evaluation would, away from an exact tie. (At a tie they are as
+  wrong as everything else at a kink.)
+
+:func:`build` guards this two ways: a Jacobian block that comes out
+identically zero is rejected outright, and every block is cross-checked
+against a finite difference along two probe directions, per equation and
+relative to that equation's own derivative. A confirmed disagreement is
+a :class:`ModelError`; a check the finite difference is too
+ill-conditioned to referee is a ``UserWarning`` saying so.
+
+``method="central"`` is the escape hatch where the residual is genuinely
+smooth at the steady state and only the *complex arithmetic* is broken —
+``abs(x)`` evaluated far from ``x = 0``, say — and costs ~1e-8 accuracy
+instead of ~1e-15. It is **not** a fix for a kink: at ``abs(x - x_ss)``
+the central difference returns the average of the two one-sided slopes,
+which is a different wrong answer rather than a right one. Models with
+occasionally-binding constraints belong in
+:mod:`puremacro.dsge.occbin`.
+
+Terms outside ``t`` and ``t+1``
+-------------------------------
+The residual sees exactly two time slices. A ``t-1`` term or a ``t+2``
+term is written with an auxiliary variable and an identity, as in a .mod
+file: add ``k_lag`` to ``variables`` and to ``states``, add the equation
+``xp.k_lag - x.k``, and use ``x.k_lag`` wherever ``k_{t-1}`` appears.
 
 Timing convention
 -----------------
@@ -66,6 +96,7 @@ in a Taylor rule) move that equation's variables at ``h=0`` too.
 """
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 from typing import Callable, Mapping, Sequence
 
@@ -885,16 +916,96 @@ def _jacobian(f: Callable, x0: np.ndarray, n_out: int, method: str) -> np.ndarra
 
 
 _NOT_ANALYTIC = (
-    "The usual cause is a residual function that is not analytic — abs(), "
-    "min()/max(), a comparison that branches on a perturbed value, or a "
-    "float()/np.real() cast that throws the imaginary part away. Rewrite "
-    "those, or pass method='central' to use finite differences instead "
-    "(~1e-8 accuracy rather than ~1e-15)."
+    "The usual cause is a residual function that is not analytic — abs() / "
+    "np.abs(), np.linalg.norm(), a np.real()/float() cast that throws the "
+    "imaginary part away, or a fractional power of a quantity that goes "
+    "negative under perturbation. Rewrite the offending term. Where the "
+    "residual is genuinely smooth at the steady state and only the complex "
+    "arithmetic is broken (abs(x) evaluated far from x = 0), method='central' "
+    "gives the right derivative to ~1e-8 instead of ~1e-15; at an actual kink "
+    "neither scheme is right — an occasionally-binding constraint belongs in "
+    "puremacro.dsge.occbin."
 )
+
+# Cross-check settings.
+#
+# _VERIFY_SEED seeds the probe directions. It is fixed so that build() is
+# bit-for-bit reproducible across runs and machines; nothing about the
+# result depends on the particular value, only on the directions having no
+# systematically small component (see _probe_directions).
+_VERIFY_SEED = 8675309
+_VERIFY_PROBES = 2
+# Relative tolerance on one entry of the directional derivative.
+_VERIFY_RTOL = 1e-4
+# How much rounding noise a finite difference is allowed, in multiples of
+# eps * |f|: the quotient (f(x+d) - f(x-d))/2 cannot be more accurate than
+# the representation error of the two residual values it subtracts.
+_FD_NOISE = 64.0
+_EPS = float(np.finfo(float).eps)
+
+
+def _probe_directions(n: int) -> list:
+    """Deterministic probe directions with no systematically small entry.
+
+    Drawn from ``np.random.default_rng(_VERIFY_SEED)`` so that two builds
+    of the same model agree bit for bit — the package's determinism
+    contract — but with the magnitudes forced into ``[0.5, 1.5]`` and only
+    the signs left to the draw.
+
+    A plain standard-normal direction (what this used to be) is unusable
+    here: whichever component happens to come out near zero is a *permanent*
+    blind spot shared by every model, because the seed is fixed. With
+    ``default_rng(0)`` that was component 52 at 4.45e-3, 200x smaller than
+    its neighbours, so an error in column 52 of any model with 53 or more
+    columns entered the comparison at 1/200 weight.
+    """
+    rng = np.random.default_rng(_VERIFY_SEED)
+    return [np.where(rng.standard_normal(n) < 0.0, -1.0, 1.0)
+            * (0.5 + rng.random(n)) for _ in range(_VERIFY_PROBES)]
+
+
+def _fd_directional(f: Callable, x0: np.ndarray, d: np.ndarray):
+    """Central difference of ``f`` along the displacement ``d``.
+
+    Returns ``(fd, noise)`` where ``fd ≈ J @ d`` — deliberately *not*
+    divided by the step, so that it is compared against ``jac @ d`` on the
+    scale the residual values themselves were computed on — and ``noise``
+    is the rounding error of that estimate, one entry per equation.
+    ``(None, None)`` if either evaluation is not finite: a NaN must never
+    be allowed to read as "agrees".
+    """
+    up = np.asarray(f(x0 + d), dtype=float)
+    dn = np.asarray(f(x0 - d), dtype=float)
+    if not (np.all(np.isfinite(up)) and np.all(np.isfinite(dn))):
+        return None, None
+    return 0.5 * (up - dn), _FD_NOISE * _EPS * np.maximum(np.abs(up), np.abs(dn))
+
+
+def _worst_column(f: Callable, x0: np.ndarray, jac: np.ndarray, row: int) -> int:
+    """Which argument the flagged equation's derivative is wrong in.
+
+    Only ever called on the way to raising, so its cost (one central
+    difference per column, of one equation) does not matter.
+    """
+    worst, worst_gap = -1, -1.0
+    for j in range(jac.shape[1]):
+        h = np.zeros_like(x0)
+        h[j] = _FDSTEP * max(1.0, abs(float(x0[j])))
+        try:
+            up = float(np.asarray(f(x0 + h), dtype=float)[row])
+            dn = float(np.asarray(f(x0 - h), dtype=float)[row])
+        except Exception:                                  # pragma: no cover
+            continue
+        if not (np.isfinite(up) and np.isfinite(dn)):
+            continue
+        gap = abs(jac[row, j] * h[j] - 0.5 * (up - dn))
+        if gap > worst_gap:
+            worst, worst_gap = j, gap
+    return worst
 
 
 def _verify_jacobian(label: str, f: Callable, x0: np.ndarray,
-                     jac: np.ndarray) -> None:
+                     jac: np.ndarray, names: Sequence[str] | None = None) -> None:
     """Cross-check one complex-step Jacobian against finite differences.
 
     Complex-step is exact *if* the residual function is analytic, and
@@ -903,45 +1014,161 @@ def _verify_jacobian(label: str, f: Callable, x0: np.ndarray,
     error anywhere. Finite differences have no such blind spot, and
     disagreeing with them is the signature of the failure.
 
-    One random direction is enough to catch it: a discrepancy in any
-    column shows up in the directional derivative almost surely. Costs
-    two extra evaluations per block.
+    The comparison is made **per equation and relative to that equation's
+    own derivative**, with a floor at the finite difference's own rounding
+    noise. A single block-wide absolute tolerance (what this used to be)
+    checks nothing in a model that mixes scales: one variable in dollars,
+    or one equation written 1e-4 times smaller than its neighbours, lifts
+    the threshold above every other equation's derivative.
+
+    The finite difference is not treated as an infallible oracle either:
+    see :func:`_adjudicate_gap`, which re-probes a flagged equation at
+    eight times and an eighth of the step and only believes the
+    disagreement if the finite difference reproduces itself better than
+    it reproduces the complex step.
+
+    Costs four extra evaluations per block (two probe directions), plus a
+    handful more on the way to a diagnosis.
     """
     if jac.size == 0:
         return
-    # A fixed direction keeps build() deterministic.
-    v = np.random.default_rng(0).standard_normal(len(x0))
-    step = _FDSTEP * max(1.0, float(np.max(np.abs(x0))))
-    fd = (np.asarray(f(x0 + step * v), dtype=float)
-          - np.asarray(f(x0 - step * v), dtype=float)) / (2.0 * step)
-    cs = jac @ v
-    scale = max(1.0, float(np.max(np.abs(fd))), float(np.max(np.abs(cs))))
-    gap = float(np.max(np.abs(cs - fd)))
-    if gap > 1e-4 * scale:
-        rows = np.flatnonzero(np.abs(cs - fd) > 1e-4 * scale)
-        raise ModelError(
-            f"complex-step and finite-difference derivatives disagree for the "
-            f"{label} block (relative gap {gap / scale:.2e}, worst equation "
-            f"index {int(rows[0])}). {_NOT_ANALYTIC}"
+    x0 = np.asarray(x0, dtype=float)
+    col_scale = np.maximum(1.0, np.abs(x0))
+    for v in _probe_directions(jac.shape[1]):
+        d = _FDSTEP * col_scale * v
+        fd, noise = _fd_directional(f, x0, d)
+        shrink = 1.0
+        while fd is None and shrink > 1e-8:
+            # A model defined only on part of the real line (a fractional
+            # power, a log of a quantity whose steady state is 0) can be
+            # impossible to probe at the default step. Try closer in
+            # before giving up — but never fall through the comparison.
+            shrink *= 1e-3
+            fd, noise = _fd_directional(f, x0, d * shrink)
+        if fd is None:
+            warnings.warn(
+                f"build: could not cross-check the complex-step Jacobian of "
+                f"the {label} block — equations() is not finite at any "
+                f"finite-difference probe around the steady state, so a "
+                f"non-analytic term in this block would go undetected. "
+                f"Check that block by hand, or pass method='central'.",
+                UserWarning, stacklevel=3,
+            )
+            return
+        d = d * shrink
+        cs = jac @ d
+        gap = np.abs(cs - fd)
+        tol = np.maximum(_VERIFY_RTOL * np.maximum(np.abs(cs), np.abs(fd)), noise)
+        flagged = np.flatnonzero(gap > tol)
+        if flagged.size:
+            _adjudicate_gap(label, f, x0, jac, d, cs, fd, gap, tol, flagged, names)
+
+
+def _adjudicate_gap(label, f, x0, jac, d, cs, fd, gap, tol, flagged, names) -> None:
+    """Decide whether a flagged disagreement is the model's fault or the FD's.
+
+    The finite difference is not an infallible oracle. Its rounding error
+    is fixed in absolute terms, so relative to the derivative it grows as
+    the step shrinks; its truncation error falls off as the step squared;
+    and a residual with heavy subtractive cancellation
+    (``(c + k + 1e9) - 1e9 - y``: analytic, exactly the case complex-step
+    exists for, but impossible to difference) can be pure quantisation
+    noise at every step. In all three the finite difference disagrees
+    with *itself*.
+
+    So the probe is repeated at ``8 d`` and ``d / 8``, the three
+    estimates of ``J @ d`` are put on the same scale, and the complex
+    step is called wrong only when it sits further from them than they
+    sit from each other. Otherwise the check reports itself inconclusive
+    and the complex-step Jacobian — the accurate one in exactly these
+    cases — is kept.
+    """
+    big, _ = _fd_directional(f, x0, 8.0 * d)
+    fine, _ = _fd_directional(f, x0, d / 8.0)
+    confirmed: list = []
+    spread = None
+    if big is not None and fine is not None:
+        estimates = np.stack([big / 8.0, fd, 8.0 * fine])
+        spread = estimates.max(axis=0) - estimates.min(axis=0)
+        confirmed = [int(i) for i in flagged if gap[i] > 4.0 * spread[i]]
+    if not confirmed:
+        worst = int(flagged[np.argmax(gap[flagged] / np.maximum(
+            np.maximum(np.abs(cs[flagged]), np.abs(fd[flagged])),
+            np.finfo(float).tiny))])
+        why = ("the residual is not finite at a second step size"
+               if spread is None else
+               f"the finite difference disagrees with itself by "
+               f"{spread[worst]:.2e} across step sizes, against a "
+               f"disagreement of {gap[worst]:.2e} with the complex step, so "
+               f"it is the finite difference that is ill-conditioned here")
+        warnings.warn(
+            f"build: the complex-step/finite-difference cross-check on the "
+            f"{label} block is inconclusive for equation(s) "
+            f"{[int(i) for i in flagged]} — {why}. The complex-step Jacobian "
+            f"was accepted unchecked for those equations. A large additive "
+            f"constant in the residual is the usual reason; subtracting it "
+            f"restores the check.",
+            UserWarning, stacklevel=4,
         )
+        return
+    row = int(max(confirmed, key=lambda i: gap[i] / max(tol[i], np.finfo(float).tiny)))
+    col = _worst_column(f, x0, jac, row)
+    where = ""
+    if col >= 0:
+        col_name = (repr(names[col]) if names is not None and col < len(names)
+                    else f"index {col}")
+        where = (f" The derivative with respect to {col_name} is the largest "
+                 f"single contributor.")
+    raise ModelError(
+        f"complex-step and finite-difference derivatives disagree for the "
+        f"{label} block: equation {row} gives {cs[row]:.6e} by complex step "
+        f"against {fd[row]:.6e} by finite difference (gap {gap[row]:.2e}, "
+        f"tolerance {tol[row]:.2e}), while the finite difference reproduces "
+        f"itself to {spread[row]:.2e} across three step sizes."
+        f"{where} {_NOT_ANALYTIC}"
+    )
 
 
 def _check_analytic(blocks: dict, method: str) -> None:
     """Validate complex-step Jacobians before they become a solved model.
 
-    ``blocks`` maps a label to ``(jacobian, function, base_point)``.
+    ``blocks`` maps a label to ``(jacobian, function, base_point)``, with
+    an optional fourth element naming the columns.
     """
     if method != "complex":
         return
-    dead = [label for label, (J, _, _) in blocks.items()
-            if J.size and not np.any(J)]
-    if dead:
-        raise ModelError(
-            f"complex-step differentiation produced an all-zero Jacobian for "
-            f"the {', '.join(dead)} block. {_NOT_ANALYTIC}"
-        )
-    for label, (J, f, x0) in blocks.items():
-        _verify_jacobian(label, f, x0, J)
+    for label, spec in blocks.items():
+        J, names = spec[0], (spec[3] if len(spec) > 3 else None)
+        if J.size == 0:
+            continue
+        if not np.any(J):
+            if label == "shock" and names is not None:
+                raise ModelError(
+                    f"none of the declared shocks {list(names)} enters any "
+                    f"equation: the Jacobian of the shock block is identically "
+                    f"zero, so every IRF and every variance decomposition "
+                    f"would be zero. Reference the innovation in an equation "
+                    f"(e.g. `xp.z - p.rho * x.z - e.{names[0]}`), or drop it "
+                    f"from shocks=. If it is referenced, then the derivative "
+                    f"is being lost instead: {_NOT_ANALYTIC}"
+                )
+            raise ModelError(
+                f"complex-step differentiation produced an all-zero Jacobian "
+                f"for the {label} block. {_NOT_ANALYTIC}"
+            )
+        if label == "shock" and names is not None:
+            dead = [names[j] for j in np.flatnonzero(~np.any(J, axis=0))]
+            if dead:
+                warnings.warn(
+                    f"build: shock(s) {dead} enter no equation — their IRFs "
+                    f"and their share of every variance decomposition are "
+                    f"identically zero. Drop them from shocks=, or check for "
+                    f"a typo in the equation that should use them.",
+                    UserWarning, stacklevel=3,
+                )
+    for label, spec in blocks.items():
+        J, f, x0 = spec[0], spec[1], spec[2]
+        _verify_jacobian(label, f, x0, J, spec[3] if len(spec) > 3 else None)
 
 
 # ---------------------------------------------------------------------
@@ -972,6 +1199,24 @@ def _validate_names(variables, states, shocks) -> tuple:
     return variables, states, controls, shocks
 
 
+# The root finder's own tolerance, deliberately independent of the caller's
+# `tol`. `tol` is the *acceptance* tolerance on max|f(ss, ss, 0)|; handing
+# it to hybr as well meant a loose tol bought a sloppy steady state that
+# then passed its own widened gate, and every downstream derivative
+# inherited the error.
+_SS_XTOL = 1e-12
+
+
+def _check_equation_count(resid: np.ndarray, n: int) -> None:
+    """One residual per variable, or a message naming what came back."""
+    if resid.shape != (n,):
+        raise ModelError(
+            f"equations() returned {resid.shape[0] if resid.ndim else 1} "
+            f"residual(s) for {n} variables — a square system needs one "
+            f"equation per variable"
+        )
+
+
 def _solve_steady_state(f, variables, shocks, params, guess, tol) -> np.ndarray:
     n = len(variables)
     zeros = np.zeros(len(shocks))
@@ -983,7 +1228,15 @@ def _solve_steady_state(f, variables, shocks, params, guess, tol) -> np.ndarray:
         )
 
     x0 = np.array([float(guess[name]) for name in variables])
-    out = scipy.optimize.root(residual, x0, method="hybr", tol=tol)
+    out = scipy.optimize.root(residual, x0, method="hybr", tol=_SS_XTOL)
+    if not out.success:
+        # hybr can stall short of machine precision on a badly scaled
+        # model; fall back to the caller's tolerance rather than refusing
+        # a steady state that the acceptance gate below would have taken.
+        relaxed = scipy.optimize.root(
+            residual, x0, method="hybr", tol=max(float(tol), _SS_XTOL))
+        if relaxed.success:
+            out = relaxed
     if not out.success:
         raise SteadyStateError(
             f"steady state did not converge from the supplied guess "
@@ -1025,10 +1278,12 @@ def build(equations: Callable, *, variables: Sequence[str],
         Parameter values, exposed to ``equations`` as ``p``.
     steady_state : mapping, optional
         A known steady state. Verified against the equations
-        (``max|f| <= tol``) rather than trusted.
+        (``max|f| <= tol``, and every residual finite) rather than
+        trusted.
     guess : mapping, optional
         Starting values for solving the steady state numerically.
-        Required unless ``steady_state`` is given.
+        Required unless ``steady_state`` is given. A model with several
+        steady states returns whichever root the guess leads to.
     linearize : {"log", "level"}, default "log"
         ``"log"`` gives log deviations — the usual choice, and the one
         that makes IRFs read as percentages. Variables whose steady
@@ -1041,13 +1296,22 @@ def build(equations: Callable, *, variables: Sequence[str],
         Cross-check the complex-step Jacobians against finite differences
         and raise if they disagree — the only way to catch a residual
         function that is not analytic, since complex-step fails silently
-        on those. Costs six extra function evaluations.
+        on those. The comparison is per equation and relative to that
+        equation's own derivative, with a floor at the finite difference's
+        rounding noise; a disagreement is confirmed at a second step size
+        before it is raised, so an ill-conditioned residual is reported as
+        an inconclusive check (``UserWarning``) rather than as the model's
+        fault. Costs twelve extra function evaluations.
     strict : bool, default True
         Raise :class:`~puremacro.dsge.klein.BlanchardKahnError` when the
         model has no unique stable solution, rather than returning zero
         matrices.
     tol : float, default 1e-9
-        Steady-state residual tolerance.
+        Acceptance tolerance on the steady state: ``build`` raises unless
+        ``max|f(ss, ss, 0)| <= tol``, whether ``ss`` was supplied or
+        solved for. It is *not* passed to the root finder, which always
+        works to ~1e-12 — a loose ``tol`` widens what is accepted, it does
+        not buy a sloppier solve.
 
     Returns
     -------
@@ -1081,6 +1345,15 @@ def build(equations: Callable, *, variables: Sequence[str],
         missing = [v for v in variables if v not in guess]
         if missing:
             raise ModelError(f"guess is missing values for {missing}")
+        # Check the equation count at the guess before handing the
+        # function to the root finder: scipy reports a wrong count as a
+        # TypeError about the shape of '_wrapped_fun', which names
+        # nothing the caller wrote.
+        guess_vec = _Vec(variables, np.array([float(guess[v]) for v in variables]))
+        _check_equation_count(
+            np.asarray(equations(guess_vec, guess_vec,
+                                 _Vec(shocks, np.zeros(n_e), "shock"), par),
+                       dtype=float), n)
         ss = _solve_steady_state(equations, variables, shocks, par, guess, tol)
     else:
         missing = [v for v in variables if v not in steady_state]
@@ -1094,18 +1367,29 @@ def build(equations: Callable, *, variables: Sequence[str],
     resid0 = np.asarray(
         equations(ss_vec, ss_vec, _Vec(shocks, zeros_e, "shock"), par), dtype=float,
     )
-    if resid0.shape != (n,):
-        raise ModelError(
-            f"equations() returned {resid0.shape[0] if resid0.ndim else 1} "
-            f"residual(s) for {n} variables — a square system needs one "
-            f"equation per variable"
+    _check_equation_count(resid0, n)
+    # Finiteness first: `nan > tol` is False, so a NaN residual would
+    # otherwise walk straight through the gate below and be reported as a
+    # solved, determinate model. (Complex-step keeps going where real
+    # arithmetic gives up — k**(alpha-1) at k < 0 is nan in float but
+    # takes the principal branch in complex — so the Jacobians come out
+    # finite and meaningless.)
+    if not np.all(np.isfinite(resid0)):
+        bad = int(np.argmax(~np.isfinite(resid0)))
+        raise SteadyStateError(
+            f"equations() does not return a finite residual at the steady "
+            f"state: equation index {bad} evaluates to {resid0[bad]}. Steady "
+            f"state: {({v: float(x) for v, x in zip(variables, ss)})}. A "
+            f"non-finite residual cannot "
+            f"be verified, so the model is rejected rather than linearised "
+            f"around a point that is not a steady state."
         )
     residual_norm = float(np.max(np.abs(resid0)))
-    if residual_norm > max(tol, 1e-6):
+    if residual_norm > tol:
         raise SteadyStateError(
             f"the supplied steady state does not solve the model: "
-            f"max|f(ss, ss, 0)| = {residual_norm:.3e}. Worst equation: index "
-            f"{int(np.argmax(np.abs(resid0)))}."
+            f"max|f(ss, ss, 0)| = {residual_norm:.3e} > tol = {tol:.3e}. "
+            f"Worst equation: index {int(np.argmax(np.abs(resid0)))}."
         )
 
     # Per-variable substitution: x = ss*exp(xhat) where that is defined,
@@ -1149,11 +1433,24 @@ def build(equations: Callable, *, variables: Sequence[str],
     Fp = _jacobian(f_of_next, zeros_n, n, method)
     Fc = _jacobian(f_of_now, zeros_n, n, method)
     Fu = _jacobian(f_of_shock, zeros_e, n, method) if n_e else np.zeros((n, 0))
+    for label, J, cols in (("t+1", Fp, variables), ("t", Fc, variables),
+                           ("shock", Fu, shocks)):
+        if J.size and not np.all(np.isfinite(J)):
+            i, j = np.unravel_index(
+                int(np.argmax(~np.isfinite(J))), J.shape)
+            raise ModelError(
+                f"the {label} Jacobian of equations() is not finite: the "
+                f"derivative of equation {int(i)} with respect to "
+                f"{cols[int(j)]!r} came out {J[i, j]}. Differentiating at a "
+                f"point where the residual is not differentiable (a negative "
+                f"base under a fractional power, a log of a non-positive "
+                f"quantity, a division by zero) gives no usable model."
+            )
     if verify_derivatives:
         _check_analytic({
-            "t+1": (Fp, f_of_next, zeros_n),
-            "t": (Fc, f_of_now, zeros_n),
-            "shock": (Fu, f_of_shock, zeros_e),
+            "t+1": (Fp, f_of_next, zeros_n, variables),
+            "t": (Fc, f_of_now, zeros_n, variables),
+            "shock": (Fu, f_of_shock, zeros_e, shocks),
         }, method)
 
     # f = 0 linearised is  Fp z' + Fc z + Fu u = 0, i.e. Klein's

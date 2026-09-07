@@ -25,6 +25,13 @@ import pandas as pd
 import scipy.sparse as sp
 import scipy.sparse.linalg as spla
 
+# Relative tolerance on the Newton STEP.  Unlike the residual, the Newton step
+# dY = -J^{-1} f is invariant to rescaling all equations by a common factor, so
+# it is the scale-free half of the convergence test.
+_STEP_TOL = 1e-10
+# Armijo sufficient-decrease constant for the backtracking line search.
+_ARMIJO_C = 1e-4
+
 
 @dataclass(frozen=True)
 class PerfectForesightResult:
@@ -35,9 +42,14 @@ class PerfectForesightResult:
     path : pd.DataFrame, shape (T, n_vars)
         Simulated trajectory of endogenous variables from t=1 to t=T.
     converged : bool
-        Whether the stacked Newton-Raphson solver converged within tolerance.
+        Whether the stacked Newton-Raphson solver converged. Convergence
+        requires BOTH a small residual and a negligible Newton step: an
+        absolute residual test alone is not scale-aware, and would declare
+        success on the untouched initial guess of a model whose equations are
+        written in small units.
     iterations : int
-        Number of Newton-Raphson iterations performed.
+        Number of Newton systems solved (the last one is the step whose
+        negligible size certified convergence).
     residual_norm : float
         Maximum absolute equation residual across all periods and equations
         (infinity norm: max_{t, i} |f_{i, t}|).
@@ -46,6 +58,11 @@ class PerfectForesightResult:
         (infinity norm: max_i |y_{T, i} - y_{ss, i}|).
     variable_names : tuple[str, ...]
         Names of endogenous variables.
+    initial_residual_norm : float
+        Residual infinity norm of the *initial guess*, before any Newton step.
+        Compare it against ``residual_norm``: if the two are equal the solver
+        made no progress, which on a badly scaled model is the signature of an
+        absolute residual tolerance that is uninformative for this model.
     """
 
     path: pd.DataFrame
@@ -54,6 +71,7 @@ class PerfectForesightResult:
     residual_norm: float
     terminal_error: float
     variable_names: tuple[str, ...] = ()
+    initial_residual_norm: float = float("nan")
 
     def to_frame(self) -> pd.DataFrame:
         """Return the simulated trajectory as a DataFrame."""
@@ -87,7 +105,12 @@ class PerfectForesightResult:
             "=" * 72,
             f"Convergence status  : {'CONVERGED' if self.converged else 'FAILED'}",
             f"Iterations          : {self.iterations}",
-            f"Residual norm       : {self.residual_norm:.4e}",
+            f"Residual norm       : {self.residual_norm:.4e}"
+            + (
+                f"  (initial guess: {self.initial_residual_norm:.4e})"
+                if np.isfinite(self.initial_residual_norm)
+                else ""
+            ),
             f"Terminal error      : {self.terminal_error:.4e}",
             f"Simulation horizon  : {len(self.path)} periods",
             f"Endogenous variables: {', '.join(map(str, self.path.columns))}",
@@ -273,11 +296,15 @@ def solve_perfect_foresight(
     n_periods : int, default 100
         Simulation horizon T.
     tol : float, default 1e-8
-        Convergence tolerance on residual infinity norm (max_{t, i} |f_{i, t}| < tol).
+        Convergence tolerance on the residual infinity norm, scaled by the
+        largest absolute Jacobian entry: ``max_{t,i} |f_{i,t}| < tol *
+        max(1, max|J|)``. The Jacobian scaling makes the test invariant to
+        writing the same model's equations in different units. Must be > 0.
     max_iter : int, default 50
-        Maximum number of Newton-Raphson iterations.
+        Maximum number of Newton-Raphson iterations. Must be >= 1.
     dampening : float, default 1.0
-        Newton step dampening parameter in (0, 1].
+        Newton step dampening parameter in (0, 1]; the initial step length
+        offered to the backtracking line search.
     variable_names : Sequence[str], optional
         Names of the endogenous variables. Defaults to ("y_0", "y_1", ...).
     initial_path : np.ndarray, optional, shape (T, n_vars)
@@ -292,7 +319,23 @@ def solve_perfect_foresight(
     -------
     PerfectForesightResult
         Frozen dataclass with fields `path`, `converged`, `iterations`,
-        `residual_norm`, `terminal_error`.
+        `residual_norm`, `terminal_error`, `initial_residual_norm`.
+
+    Notes
+    -----
+    Convergence requires BOTH criteria:
+
+    * a small residual, ``max|f| < tol * max(1, max|J|)``, and
+    * a negligible Newton step, ``max|s*dY| <= 1e-10 * max(1, max|Y|)``.
+
+    The residual alone is not a scale-aware test: multiplying every equation of
+    a model by 1e-9 shrinks every residual by 1e-9, and a solver that stopped on
+    the residual alone would return the untouched initial guess as if it were
+    the solution. The Newton step ``dY = -J^{-1} f`` is invariant to that
+    rescaling, so at least one Newton system is always solved and its step must
+    be negligible before ``converged=True`` is returned. The line search
+    likewise requires an Armijo sufficient decrease, not merely a finite
+    residual, so a Newton cycle is escaped rather than run to ``max_iter``.
     """
     y_init_arr = np.asarray(y_init, dtype=float).ravel()
     y_ss_arr = np.asarray(y_ss, dtype=float).ravel()
@@ -304,6 +347,28 @@ def solve_perfect_foresight(
         )
     if n_periods < 1:
         raise ValueError(f"n_periods must be at least 1, got {n_periods}")
+    if not isinstance(max_iter, (int, np.integer)) or int(max_iter) < 1:
+        raise ValueError(
+            f"solve_perfect_foresight: max_iter must be an integer >= 1, got {max_iter!r}"
+        )
+    max_iter = int(max_iter)
+    tol = float(tol)
+    if not np.isfinite(tol) or tol <= 0.0:
+        raise ValueError(
+            f"solve_perfect_foresight: tol must be a finite positive number, got {tol!r}"
+        )
+    dampening = float(dampening)
+    if not np.isfinite(dampening) or not (0.0 < dampening <= 1.0):
+        raise ValueError(
+            f"solve_perfect_foresight: dampening must lie in (0, 1], got {dampening!r}; "
+            "it is the initial Newton step length, so a zero or negative value makes no "
+            "progress and a value above 1 overshoots the Newton step."
+        )
+    if method not in ("auto", "central", "complex"):
+        raise ValueError(
+            f"solve_perfect_foresight: unknown method {method!r}; "
+            "expected one of 'auto', 'central', 'complex'"
+        )
 
     # Handle exogenous path
     exo_arr = np.asarray(exogenous_path, dtype=float)
@@ -414,28 +479,25 @@ def solve_perfect_foresight(
     # Evaluate initial residuals
     R = _eval_stacked_residuals(Y)
     res_norm = float(np.max(np.abs(R)))
+    initial_res_norm = res_norm
 
     if verbose:
         print(f"Iter 0: initial max residual = {res_norm:.4e}")
 
-    if res_norm < tol:
-        term_err = float(np.max(np.abs(Y[-1] - y_ss_arr)))
-        path_df = pd.DataFrame(
-            Y,
-            index=pd.RangeIndex(1, n_periods + 1, name="t"),
-            columns=list(v_names),
-        )
-        return PerfectForesightResult(
-            path=path_df,
-            converged=True,
-            iterations=0,
-            residual_norm=res_norm,
-            terminal_error=term_err,
-            variable_names=v_names,
-        )
-
+    # NOTE: there is deliberately no "residual already below tol -> return the
+    # initial guess with iterations=0" shortcut here.  An unscaled absolute
+    # residual test is not a statement about the accuracy of the path: on a
+    # model whose equations are written in small units every residual is small,
+    # and that shortcut returned the raw linear-interpolation guess flagged
+    # converged=True.  At least one Newton system is always solved, and its
+    # step has to be negligible before convergence is claimed.
     converged = False
     iterations = 0
+    res_ok = False
+    step_ok = False
+    step_norm = float("inf")
+    jac_scale = 1.0
+    stalled = False
 
     for it in range(max_iter):
         iterations = it + 1
@@ -537,6 +599,10 @@ def solve_perfect_foresight(
             shape=(n_vars * n_periods, n_vars * n_periods),
         )
 
+        # Scale of the equations, used to make the residual test invariant to
+        # writing the same model in different units.
+        jac_scale = max(1.0, float(np.max(np.abs(data))))
+
         try:
             dY_flat = spla.spsolve(J, -R)
         except Exception as exc:
@@ -545,41 +611,93 @@ def solve_perfect_foresight(
 
         dY = dY_flat.reshape(n_periods, n_vars)
 
-        # Apply update with dampening and backtracking safeguard
+        # Convergence test, evaluated BEFORE the step is taken: the residual is
+        # small in the model's own units AND the Newton step this iterate calls
+        # for is negligible relative to the path itself.
+        y_scale = max(1.0, float(np.max(np.abs(Y))))
+        step_norm = float(np.max(np.abs(dampening * dY))) if np.all(np.isfinite(dY)) else float("inf")
+        res_ok = res_norm < tol * jac_scale
+        step_ok = step_norm <= _STEP_TOL * y_scale
+        if res_ok and step_ok:
+            converged = True
+            break
+
+        # Apply update with dampening and Armijo backtracking line search.
+        # Acceptance requires a sufficient DECREASE of the residual norm, not
+        # merely a finite one -- otherwise the "line search" is only a NaN
+        # guard and Newton can oscillate between two points forever.
         step_scale = float(dampening)
         accepted = False
+        saw_finite_trial = False
         for _ in range(10):
             Y_trial = Y + step_scale * dY
             try:
                 R_trial = _eval_stacked_residuals(Y_trial)
                 trial_norm = float(np.max(np.abs(R_trial)))
                 if np.isfinite(trial_norm) and trial_norm < 1e12:
-                    Y = Y_trial
-                    R = R_trial
-                    res_norm = trial_norm
-                    accepted = True
-                    break
+                    saw_finite_trial = True
+                    if trial_norm <= (1.0 - _ARMIJO_C * step_scale) * res_norm:
+                        Y = Y_trial
+                        R = R_trial
+                        res_norm = trial_norm
+                        accepted = True
+                        break
             except Exception:
                 pass
             step_scale *= 0.5
 
         if not accepted:
-            # Could not find a valid step; terminate
+            if saw_finite_trial:
+                # Every trial step was finite but none reduced the residual:
+                # the merit function has stalled (typically a local minimum of
+                # |f| that is not a root, or a Newton cycle).  Keep the current
+                # iterate -- the lowest-residual one seen -- rather than moving
+                # to a point the line search just rejected.
+                stalled = True
+                warnings.warn(
+                    f"solve_perfect_foresight: the Newton line search found no step that "
+                    f"reduces the residual at iteration {it+1}; the iteration has stalled at "
+                    f"residual norm {res_norm:.4e} (scaled tolerance {tol * jac_scale:.4e}), "
+                    f"which is a stationary point of |f| but not a solution. Returning the "
+                    f"last accepted iterate with converged=False. Try a different "
+                    f"initial_path, a smaller dampening, or a shorter n_periods.",
+                    stacklevel=2,
+                )
+                break
+            # Could not find a valid step at all (non-finite residuals)
             warnings.warn(f"Newton-Raphson line search failed at iteration {it+1}")
             break
 
+        step_norm = float(np.max(np.abs(step_scale * dY)))
+
         if verbose:
-            print(f"Iter {iterations}: max residual = {res_norm:.4e}")
+            print(f"Iter {iterations}: max residual = {res_norm:.4e}, step = {step_norm:.4e}")
 
-        if res_norm < tol:
-            converged = True
-            break
-
-    if not converged:
-        warnings.warn(
-            f"solve_perfect_foresight did not converge in {max_iter} iterations "
-            f"(residual norm {res_norm:.4e} > {tol})"
-        )
+    if not converged and not stalled:
+        y_scale = max(1.0, float(np.max(np.abs(Y))))
+        if res_ok and not step_ok:
+            warnings.warn(
+                f"solve_perfect_foresight did not converge in {max_iter} iterations: the "
+                f"residual norm {res_norm:.4e} is below the scaled tolerance "
+                f"{tol * jac_scale:.4e}, but the Newton step {step_norm:.4e} is still large "
+                f"relative to the path (scale {y_scale:.4e}), so the residual test is not "
+                f"informative for this model -- its equations are probably written in units "
+                f"that make every residual small. The returned path is NOT a solution; "
+                f"rescale the equations or raise max_iter."
+            )
+        elif step_ok and not res_ok:
+            warnings.warn(
+                f"solve_perfect_foresight did not converge in {max_iter} iterations: the "
+                f"Newton step {step_norm:.4e} has stalled while the residual norm "
+                f"{res_norm:.4e} is still above the scaled tolerance {tol * jac_scale:.4e}. "
+                f"The Jacobian is probably ill-conditioned at the returned path."
+            )
+        else:
+            warnings.warn(
+                f"solve_perfect_foresight did not converge in {max_iter} iterations "
+                f"(residual norm {res_norm:.4e} > {tol * jac_scale:.4e}, "
+                f"Newton step {step_norm:.4e})"
+            )
 
     term_err = float(np.max(np.abs(Y[-1] - y_ss_arr)))
     path_df = pd.DataFrame(
@@ -595,6 +713,7 @@ def solve_perfect_foresight(
         residual_norm=res_norm,
         terminal_error=term_err,
         variable_names=v_names,
+        initial_residual_norm=initial_res_norm,
     )
 
 

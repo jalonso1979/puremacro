@@ -409,3 +409,59 @@ def test_lp_result_slice_without_beta_keeps_none_ci():
     assert sub.ci_lower is None and sub.ci_upper is None
     with pytest.raises(KeyError):
         _ = sub.point
+
+
+def test_summary_label_column_widens_for_long_labels():
+    """The label column used to be a hardcoded width 6.
+
+    The regime/sign estimators label their coefficients ``H``/``L`` or
+    ``pos``/``neg``, so nobody noticed; ``spatial_lp`` labels them
+    ``direct`` / ``indirect`` / ``indirect_all``, and anything past six
+    characters overflowed the field and pushed that row's numbers out from
+    under their headers. Every data row must start its ``beta`` at the same
+    column as the header's.
+    """
+    import numpy as np
+    import pandas as pd
+
+    from puremacro.lp._results import LPResult
+
+    rows = []
+    for h in range(3):
+        rows.append({
+            "h": h,
+            "beta_direct": 0.5, "se_direct": 0.1, "lo_direct": 0.3, "hi_direct": 0.7,
+            "beta_indirect": 0.2, "se_indirect": 0.1, "lo_indirect": 0.0, "hi_indirect": 0.4,
+            "beta_indirect_all": 0.25, "se_indirect_all": 0.1,
+            "lo_indirect_all": 0.05, "hi_indirect_all": 0.45,
+        })
+    res = LPResult(pd.DataFrame(rows))
+    res.index = res["h"]
+    assert set(res.labels) == {"direct", "indirect", "indirect_all"}
+
+    table = [ln for ln in res.summary().splitlines() if ln.strip().startswith(("h ", "0", "1", "2"))]
+    header = next(ln for ln in res.summary().splitlines() if ln.lstrip().startswith("h") and "beta" in ln)
+    beta_col = header.index("beta") + len("beta")
+    for line in (ln for ln in res.summary().splitlines()
+                 if ln.strip() and ln.split()[0].isdigit()):
+        # every row's first number must end exactly where the beta header ends
+        assert line[:beta_col].rstrip().endswith(("0.5000", "0.2000", "0.2500")), (
+            f"row misaligned against the 'beta' header:\n{header}\n{line}")
+    assert table  # guard against the parsing above silently matching nothing
+
+
+def test_summary_label_column_unchanged_for_short_labels():
+    """Widening must not move the column for the existing short-label
+    estimators — their rendering is byte-identical to before the fix."""
+    import pandas as pd
+
+    from puremacro.lp._results import LPResult
+
+    res = LPResult(pd.DataFrame([{
+        "h": 0,
+        "beta_H": 0.5, "se_H": 0.1, "lo_H": 0.3, "hi_H": 0.7,
+        "beta_L": 0.4, "se_L": 0.1, "lo_L": 0.2, "hi_L": 0.6,
+    }]))
+    res.index = res["h"]
+    header = next(ln for ln in res.summary().splitlines() if ln.lstrip().startswith("h") and "beta" in ln)
+    assert header.startswith("   h   label"), header

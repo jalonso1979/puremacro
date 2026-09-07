@@ -51,7 +51,8 @@
 
 8. **Frontier methods (2.3)**:
    - **Narrative sign restrictions** ([guide](narrative_sign_svar.md)), **Honest DiD** ([guide](honest_did.md)), **Smooth local projections** ([guide](smooth_lp.md)), **Non-linear sequence-space HANK** ([guide](hank_nonlinear.md)), **Gertler-Karadi (2011) DSGE** ([guide](gertler_karadi.md)) and **BVAR with stochastic volatility** ([guide](bvar_sv.md)).
-   - **Spatial econometrics** ([guide](spatial.md)): spatial weights, Moran's I / Geary's C, Conley spatial HAC on cross-sections and panel local projections, and shift-share IV with Adão-Kolesár-Morales errors.
+   - **Spatial econometrics** ([guide](spatial.md)): spatial weights, Moran's I / Geary's C, Conley spatial HAC on cross-sections and panel local projections, the cross-section models `sar` / `sem` / `sdm` / `slx` with the `lm_spatial_tests` specification battery and LeSage-Pace impacts, spatial panels (`spatial_panel`), spatial local projections (`spatial_lp`), spillover-robust DiD (`did.spatial_did`), and shift-share IV with Adão-Kolesár-Morales errors.
+   - **Global VAR** ([guide](gvar.md)) (Pesaran, Schuermann & Weiner 2004): country VARX\* blocks with trade-weighted star variables, the exact stacked solve, generalised IRFs and FEVDs, and weak-exogeneity tests (`var.gvar`).
 
 ---
 

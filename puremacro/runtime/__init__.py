@@ -33,6 +33,8 @@ that name stays importable as ``puremacro.runtime._capabilities``.
 from puremacro.runtime._capabilities import (
     Capabilities,
     capabilities,
+    get_runtime_environment,
+    is_mobile_or_constrained,
     is_pyodide,
     is_tablet,
     refresh,
@@ -42,6 +44,7 @@ from puremacro.runtime.budget import (
     Budget,
     BudgetWarning,
     budgeted,
+    clamp_bootstrap,
     fit,
     override,
 )
@@ -60,8 +63,10 @@ __all__ = [
     # capabilities
     "Capabilities", "capabilities", "refresh", "report",
     "is_pyodide", "is_tablet",
+    "get_runtime_environment", "is_mobile_or_constrained",
     # budget
     "Budget", "BudgetWarning", "current_budget", "fit", "budgeted", "override",
+    "clamp_bootstrap",
     # transport
     "TransportError", "transport_available",
     "enable_browser_network", "disable_browser_network",

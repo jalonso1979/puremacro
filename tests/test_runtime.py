@@ -373,3 +373,121 @@ def test_save_and_load_frame_via_path(tmp_path):
     path = tmp_path / "panel.npz"
     store.save_frame(df, path)
     pd.testing.assert_frame_equal(store.load_frame(path), df)
+
+
+# --- runtime environment classification + bootstrap clamping ------------
+# `get_runtime_environment`, `is_mobile_or_constrained` and `clamp_bootstrap`
+# are the three names an estimator calls to decide how much work it may do.
+# They shipped without tests; these drive them through explicit overrides
+# rather than waiting for an iPad to run CI, as the rest of this file does.
+
+def test_runtime_environment_is_one_of_three_labels():
+    from puremacro.runtime import get_runtime_environment
+
+    assert get_runtime_environment() in {"workstation", "juno_ios", "pyodide_wasm"}
+
+
+@pytest.mark.parametrize("env", ["workstation", "juno_ios", "pyodide_wasm"])
+def test_runtime_environment_env_var_wins(monkeypatch, env):
+    from puremacro.runtime import get_runtime_environment
+
+    monkeypatch.setenv("PUREMACRO_RUNTIME_ENV", env.upper() + "  ")  # case/space tolerant
+    caps_mod.refresh()
+    try:
+        assert get_runtime_environment() == env
+    finally:
+        monkeypatch.undo()
+        caps_mod.refresh()
+
+
+def test_an_unknown_env_var_falls_back_to_detection(monkeypatch):
+    """A typo must not invent a fourth environment — it is ignored and the
+    capability probe decides, as it would with no variable set at all."""
+    from puremacro.runtime import get_runtime_environment
+
+    monkeypatch.setenv("PUREMACRO_RUNTIME_ENV", "toaster")
+    caps_mod.refresh()
+    try:
+        assert get_runtime_environment() in {"workstation", "juno_ios", "pyodide_wasm"}
+    finally:
+        monkeypatch.undo()
+        caps_mod.refresh()
+
+
+def test_pyodide_host_classifies_as_wasm(monkeypatch):
+    from puremacro.runtime import get_runtime_environment, is_mobile_or_constrained
+
+    monkeypatch.delenv("PUREMACRO_RUNTIME_ENV", raising=False)
+    monkeypatch.setattr(caps_mod, "_detect_host", lambda: "pyodide")
+    caps_mod.refresh()
+    try:
+        assert get_runtime_environment() == "pyodide_wasm"
+        assert is_mobile_or_constrained() is True
+    finally:
+        monkeypatch.undo()
+        caps_mod.refresh()
+
+
+def test_ios_classifies_as_juno(monkeypatch):
+    from puremacro.runtime import get_runtime_environment, is_mobile_or_constrained
+
+    monkeypatch.delenv("PUREMACRO_RUNTIME_ENV", raising=False)
+    monkeypatch.setattr(caps_mod, "_detect_host", lambda: "cpython")
+    monkeypatch.setattr(caps_mod, "_looks_like_ios", lambda: True)
+    caps_mod.refresh()
+    try:
+        assert get_runtime_environment() == "juno_ios"
+        assert is_mobile_or_constrained() is True
+    finally:
+        monkeypatch.undo()
+        caps_mod.refresh()
+
+
+def test_a_tablet_budget_alone_makes_the_session_constrained():
+    """Even on a workstation host, an explicitly requested tablet budget is a
+    constrained session — that is the whole point of `runtime.override`."""
+    from puremacro.runtime import is_mobile_or_constrained
+
+    with runtime.override("tablet"):
+        assert is_mobile_or_constrained() is True
+
+
+def test_clamp_bootstrap_is_a_no_op_on_a_workstation():
+    from puremacro.runtime import clamp_bootstrap
+
+    with runtime.override("workstation"):
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")  # no warning may be emitted
+            assert clamp_bootstrap(5000) == 5000
+
+
+def test_clamp_bootstrap_caps_and_warns_under_a_constrained_tier():
+    from puremacro.runtime import clamp_bootstrap
+    from puremacro.runtime.budget import BudgetWarning
+
+    with runtime.override("tablet"):
+        with pytest.warns(BudgetWarning, match="clamped"):
+            got = clamp_bootstrap(10_000)
+        assert got < 10_000
+        # a request already under the cap passes through untouched and silently
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            assert clamp_bootstrap(10) == 10
+
+
+def test_clamp_bootstrap_honours_the_default_constrained_argument():
+    from puremacro.runtime import clamp_bootstrap
+    from puremacro.runtime.budget import BudgetWarning
+
+    with runtime.override("tablet"):
+        with pytest.warns(BudgetWarning):
+            tight = clamp_bootstrap(10_000, default_constrained=25)
+        assert tight == 25
+
+
+def test_clamp_bootstrap_floors_at_one():
+    from puremacro.runtime import clamp_bootstrap
+
+    with runtime.override("workstation"):
+        assert clamp_bootstrap(0) == 1
+        assert clamp_bootstrap(-5) == 1

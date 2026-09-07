@@ -13,6 +13,13 @@ The headline estimators in the post-2020 literature, all in one place:
                                   DID_M / DID_M^l (switchers estimator).
   ``sdid_multi_cohort``        — Multi-cohort SDID aggregation
                                   (wraps ``synthetic_did``).
+  ``spatial_did``              — Difference-in-differences when the
+                                  treatment spills over onto nearby
+                                  untreated units: distance rings around
+                                  the treated locations, a separate effect
+                                  per ring, and Conley spatial standard
+                                  errors. Reports the contaminated naive
+                                  estimate next to the ring-adjusted one.
 
 The CS / SA / BJS / SDID estimators take a long-format DataFrame with
 columns ``(unit, time, outcome, treat_time)`` where ``treat_time`` is
@@ -36,6 +43,13 @@ from .synthetic_did import synthetic_did
 from .cdh import cdh_did
 from .sdid_multi import sdid_multi_cohort
 from .sensitivity import honest_did, honest_did_sensitivity, HonestDiDResult
+from .spatial_did import (
+    spatial_did,
+    exposure_rings,
+    contiguity_rings,
+    SpatialDiDResult,
+    RingAssignment,
+)
 from ._results import (
     CallawaySantannaResult,
     SunAbrahamResult,
@@ -55,6 +69,9 @@ __all__ = [
     "sdid_multi_cohort",
     "honest_did",
     "honest_did_sensitivity",
+    "spatial_did",
+    "exposure_rings",
+    "contiguity_rings",
     # Result dataclasses
     "CallawaySantannaResult",
     "SunAbrahamResult",
@@ -63,4 +80,6 @@ __all__ = [
     "CdHResult",
     "SDIDMultiResult",
     "HonestDiDResult",
+    "SpatialDiDResult",
+    "RingAssignment",
 ]

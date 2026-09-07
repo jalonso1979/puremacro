@@ -355,6 +355,24 @@ class TheoreticalMomentsResult:
         Theoretical autocorrelation coefficients for lags 1 to n_lags.
     fevd : pd.DataFrame
         Forecast error variance decomposition percentage shares across horizons.
+
+    Notes
+    -----
+    ``moments`` / ``covariance`` / ``correlation`` / ``autocorr`` are stated in
+    the timing the model reports its variables in -- the same timing as
+    ``irf()`` and ``simulate()``. ``fevd`` as filled in by
+    :meth:`~puremacro.dsge.LinearModel.theoretical_moments` is built from the
+    Dynare-timed ``ghx`` / ``ghu`` decision rules, so for a **Klein-timed**
+    model (one built with :func:`~puremacro.dsge.build`) the state rows of
+    ``fevd`` are dated one period later than the same rows of ``covariance``:
+    ``fevd`` reports the state at the *end* of the period, the moments report
+    it at the start. Control rows agree in both.
+
+    :func:`~puremacro.dsge.compute_fevd` (also reachable as
+    ``LinearModel.fevd_result()``) does not have this offset -- it decomposes
+    the variables in the timing they are reported in, so a predetermined state
+    correctly has no one-step forecast error. Prefer it when the decomposition
+    has to line up with the covariance block above.
     """
 
     moments: pd.DataFrame

@@ -6,6 +6,8 @@ Provides built-in, offline loaders for empirical macroeconomic benchmark data:
 - US Macroeconomic Quarterly Panel (GDP, Investment, Inflation, Fed Funds).
 - US Macroeconomic Monthly Panel (CPI, Core CPI, Unemployment, FFR, NFCI).
 - DICE-2016 Climate-Macro Parameters (Nordhaus 2018).
+- US state and county geography (Census 2023 Gazetteer internal points) for
+  the spatial weights builders in `puremacro.spatial`.
 """
 from puremacro.datasets.loaders import (
     load_gali1999,
@@ -14,6 +16,8 @@ from puremacro.datasets.loaders import (
     load_macro_monthly,
     load_banxico_stance,
     load_dice_parameters,
+    load_us_state_centroids,
+    load_us_county_centroids,
     list_datasets,
 )
 
@@ -24,5 +28,7 @@ __all__ = [
     "load_macro_monthly",
     "load_banxico_stance",
     "load_dice_parameters",
+    "load_us_state_centroids",
+    "load_us_county_centroids",
     "list_datasets",
 ]

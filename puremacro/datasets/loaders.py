@@ -244,6 +244,134 @@ def load_banxico_stance() -> pd.DataFrame:
     return df
 
 
+def load_us_state_centroids() -> pd.DataFrame:
+    """US state geography: internal points, land area and land-border neighbours.
+
+    The building block for the ``puremacro.spatial`` weights builders on a US
+    state panel: pass the ``lat``/``lon`` columns to
+    :func:`~puremacro.spatial.distance_weights` or
+    :func:`~puremacro.spatial.knn_weights`, or the ``neighbors`` column to
+    :func:`~puremacro.spatial.contiguity_weights`.
+
+    Columns
+    -------
+    state_fips : str
+        Two-digit state FIPS code, zero-padded.
+    state : str
+        Two-letter USPS postal abbreviation (the frame is indexed by this).
+    state_name : str
+    lat, lon : float
+        Internal point in decimal degrees, computed as the land-area-weighted
+        mean of the state's county internal points (see the note below).
+    land_sqmi : float
+        Total county land area, square miles.
+    n_counties : int
+    neighbors : str
+        Space-separated postal codes of the states sharing a land border.
+        Empty for Alaska, Hawaii and Puerto Rico, which are islands in this
+        graph and are a useful test of island handling in ``SpatialWeights``.
+
+    Notes
+    -----
+    Coordinates and land areas come from the US Census Bureau 2023 national
+    county Gazetteer file (``INTPTLAT`` / ``INTPTLONG``, the published county
+    internal points). The Census does not publish a state Gazetteer at the same
+    location, so the state points here are **derived**: the land-area-weighted
+    mean of the constituent county internal points, taken on the sphere (the
+    counties are averaged as unit vectors, then converted back to degrees).
+    They are representative interior points suitable for distance weights, not
+    official Census state internal points, and they are not centroids of the
+    state polygon.
+
+    The spherical mean matters for exactly one row. Alaska's Aleutians West
+    Census Area sits at longitude ``+179.62``, east of the antimeridian;
+    averaging the raw longitude column instead would place Alaska's point
+    132 km away. Every other state moves less than 7 km (median 1.2 km).
+
+    Regenerate both this file and the county file with
+    ``python tools/gen_us_geography.py``.
+
+    The land-border adjacency in ``neighbors`` is standard US political
+    geography, symmetrised (Missouri and Tennessee have the maximum, eight
+    neighbours each; Maine has one).
+
+    Returns
+    -------
+    pd.DataFrame
+        52 rows (50 states, DC and Puerto Rico), indexed by postal code.
+
+    Examples
+    --------
+    >>> from puremacro.datasets import load_us_state_centroids
+    >>> geo = load_us_state_centroids()
+    >>> int(geo.loc["TX", "n_counties"])
+    254
+    """
+    path = _resolve("us_state_centroids.csv")
+    df = pd.read_csv(path, dtype={"state_fips": str})
+    df["neighbors"] = df["neighbors"].fillna("")
+    return df.set_index("state")
+
+
+def load_us_county_centroids() -> pd.DataFrame:
+    """US county internal points and land area (Census 2023 Gazetteer).
+
+    The county-level geography behind the spatial worked examples: distances
+    between these points feed :func:`~puremacro.spatial.distance_weights`,
+    :func:`~puremacro.spatial.conley_cov` and the exposure rings of
+    :func:`~puremacro.did.spatial_did`. ``county_fips`` matches the crosswalk
+    key that :func:`puremacro.bartik.build_county_epu` expects.
+
+    Columns
+    -------
+    county_fips : str
+        Five-digit county FIPS, zero-padded (the frame is indexed by it).
+    state_fips : str
+        Two-digit state FIPS.
+    state : str
+        Two-letter USPS postal abbreviation.
+    county_name : str
+    lat, lon : float
+        Published county internal point, decimal degrees (``INTPTLAT`` /
+        ``INTPTLONG``). An internal point is a point guaranteed to lie inside
+        the county, which for a concave county is not its centroid.
+    land_sqmi : float
+
+    Returns
+    -------
+    pd.DataFrame
+        3,222 rows (50 states, DC and Puerto Rico), indexed by county FIPS.
+
+    Notes
+    -----
+    Source: US Census Bureau, 2023 Gazetteer Files, national counties
+    (``2023_Gaz_counties_national.zip``). Public domain. Regenerate with
+    ``python tools/gen_us_geography.py``.
+
+    Two vintage details worth knowing before you merge on ``county_fips``:
+
+    * **Connecticut is the 2023 vintage.** CT appears as the nine planning
+      regions ``09110``-``09190``, which replaced the eight legacy counties
+      ``09001``-``09015``; a merge against a pre-2024 county panel will not
+      match those rows.
+    * **Longitudes are not all negative.** Aleutians West (``02016``) sits at
+      ``+179.62``, east of the antimeridian. :func:`~puremacro.spatial.haversine_km`
+      takes the longitude difference inside a sine and wraps correctly;
+      ``metric="euclidean"`` on these columns would place that county roughly
+      360 degrees from its neighbours.
+
+    Examples
+    --------
+    >>> from puremacro.datasets import load_us_county_centroids
+    >>> counties = load_us_county_centroids()
+    >>> len(counties)
+    3222
+    """
+    path = _resolve("us_county_centroids.csv")
+    df = pd.read_csv(path, dtype={"county_fips": str, "state_fips": str})
+    return df.set_index("county_fips")
+
+
 def list_datasets() -> pd.DataFrame:
     """List all available empirical benchmark datasets in puremacro.
 
@@ -282,6 +410,20 @@ def list_datasets() -> pd.DataFrame:
             "Description": "Monthly panel of Headline CPI, Core CPI, Unemployment, Fed Funds, and NFCI.",
         },
         {
+            "Dataset Name": "load_us_state_centroids()",
+            "Frequency": "Cross-section",
+            "Periods": "2023 vintage",
+            "Citation": "US Census Bureau 2023 Gazetteer",
+            "Description": "US state internal points, land area and land-border neighbours for spatial weights.",
+        },
+        {
+            "Dataset Name": "load_us_county_centroids()",
+            "Frequency": "Cross-section",
+            "Periods": "2023 vintage",
+            "Citation": "US Census Bureau 2023 Gazetteer",
+            "Description": "3,222 county internal points and land areas, keyed by county FIPS.",
+        },
+        {
             "Dataset Name": "load_dice_parameters()",
             "Frequency": "5-Year Calibrated",
             "Periods": "2020 - 2170",
@@ -297,6 +439,9 @@ __all__ = [
     "load_narrative_tax_shocks",
     "load_macro_quarterly",
     "load_macro_monthly",
+    "load_banxico_stance",
     "load_dice_parameters",
+    "load_us_state_centroids",
+    "load_us_county_centroids",
     "list_datasets",
 ]

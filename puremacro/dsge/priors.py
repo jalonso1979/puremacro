@@ -3,8 +3,28 @@
 A `priors` dict has the shape:
     {param_name: {"dist": str, "mean": float, "std": float, "lb": float, "ub": float}}
 
-Supported distributions: ``"beta"``, ``"gamma"``, ``"normal"``, ``"invgamma"``
-(Dynare ``inv_gamma_pdf(P1=s, P2=nu)`` convention).
+Supported distributions: ``"beta"``, ``"gamma"``, ``"normal"``, ``"invgamma"``,
+``"uniform"``.
+
+Parameterisation
+----------------
+Every spec is read the way Dynare's ``estimated_params`` block reads
+``PRIOR_P1, PRIOR_P2``: **``"mean"`` and ``"std"`` are the mean and the
+standard deviation of the prior itself**, not internal shape parameters.
+That holds for ``invgamma`` too — the entry
+``{"dist": "invgamma", "mean": 0.1, "std": 2.0}`` is Dynare's
+``INV_GAMMA_PDF, 0.1, 2`` and denotes the type-1 inverse gamma whose mean
+is 0.1 and whose standard deviation is 2.  The internal Dynare pair
+``(s, nu)`` is recovered by :func:`_invgamma_s_nu` (Dynare's
+``inverse_gamma_specification``); an ``invgamma`` spec may also carry an
+explicit ``{"s": ..., "nu": ...}``, which then takes precedence.
+
+The inverse-gamma *family* is Dynare's ``lpdfig1``: if ``x`` has this
+prior then ``x**2 ~ InvGamma(shape=nu/2, scale=s/2)``.  It is the prior a
+DSGE puts on a shock **standard deviation**.  Before 2.4.1 this module
+evaluated ``scipy.stats.invgamma(a=nu/2, scale=s**2*nu/2)`` on ``x``
+directly and read ``("mean", "std")`` as ``(s, nu)``; both were wrong and
+both are fixed here (see CHANGELOG).
 
 This module is the engine-side complement to model-specific prior dicts
 like ``puremacro.dsge.sw07_priors.PRIORS``.
@@ -12,20 +32,63 @@ like ``puremacro.dsge.sw07_priors.PRIORS``.
 from __future__ import annotations
 
 import math
+import warnings
+from functools import lru_cache
 
 import numpy as np
 from scipy import stats
+from scipy.optimize import brentq
+from scipy.special import gammaln
+
+
+def _beta_ab(mean: float, std: float) -> tuple[float, float]:
+    """(a, b) of the Beta whose mean/std are ``mean``/``std``.
+
+    Raises ``ValueError`` when no such Beta exists — the feasibility
+    condition is ``0 < mean < 1`` and ``std**2 < mean * (1 - mean)``.
+    Without this check scipy silently returns NaN for a negative shape,
+    and the NaN then propagates into the log-posterior as a bogus -inf.
+    """
+    if not (math.isfinite(mean) and math.isfinite(std)):
+        raise ValueError(
+            f"beta prior: mean={mean!r} and std={std!r} must both be finite"
+        )
+    if not (0.0 < mean < 1.0):
+        raise ValueError(
+            f"beta prior: mean must lie strictly inside (0, 1), got {mean!r}"
+        )
+    if std <= 0.0:
+        raise ValueError(f"beta prior: std must be > 0, got {std!r}")
+    var_max = mean * (1.0 - mean)
+    if std ** 2 >= var_max:
+        raise ValueError(
+            f"beta prior with mean={mean!r} admits no std >= "
+            f"sqrt(mean*(1-mean)) = {math.sqrt(var_max):.6g}; got std={std!r}. "
+            "No Beta distribution has that mean and standard deviation "
+            "(the implied shape parameter a would be <= 0)."
+        )
+    a = mean * (var_max / std ** 2 - 1.0)
+    b = a * (1.0 - mean) / mean
+    return a, b
 
 
 def _logpdf_beta(x: float, mean: float, std: float) -> float:
     """log-pdf of Beta(a, b) parameterised by mean/std (Pfeifer convention)."""
-    a = mean * (mean * (1 - mean) / std**2 - 1)
-    b = a * (1 - mean) / mean
+    a, b = _beta_ab(mean, std)
     return float(stats.beta.logpdf(x, a, b))
 
 
 def _logpdf_gamma(x: float, mean: float, std: float) -> float:
     """log-pdf of Gamma(k, theta) parameterised by mean/std."""
+    if not (math.isfinite(mean) and math.isfinite(std)):
+        raise ValueError(
+            f"gamma prior: mean={mean!r} and std={std!r} must both be finite"
+        )
+    if mean <= 0.0 or std <= 0.0:
+        raise ValueError(
+            f"gamma prior requires mean > 0 and std > 0, got "
+            f"mean={mean!r}, std={std!r}"
+        )
     if x <= 0.0:
         return -math.inf
     k = (mean / std) ** 2
@@ -35,20 +98,104 @@ def _logpdf_gamma(x: float, mean: float, std: float) -> float:
 
 def _logpdf_normal(x: float, mean: float, std: float) -> float:
     """log-pdf of Normal(mean, std)."""
+    if not (math.isfinite(mean) and math.isfinite(std)) or std <= 0.0:
+        raise ValueError(
+            f"normal prior requires a finite mean and a finite std > 0, got "
+            f"mean={mean!r}, std={std!r}"
+        )
     return float(stats.norm.logpdf(x, loc=mean, scale=std))
 
 
-def _logpdf_invgamma(x: float, s: float, nu: float) -> float:
-    """log-pdf of Inverse-Gamma under Dynare's inv_gamma_pdf parameterisation.
+@lru_cache(maxsize=512)
+def _invgamma_s_nu(mean: float, std: float) -> tuple[float, float]:
+    """Dynare's ``inverse_gamma_specification`` for the type-1 inverse gamma.
 
-    Dynare's inv_gamma_pdf(P1=s, P2=nu) corresponds to:
-        IG(shape=nu/2, scale=s^2 * nu/2)
+    Returns the ``(s, nu)`` for which ``x**2 ~ InvGamma(nu/2, s/2)`` has
+    ``E[x] = mean`` and ``sd(x) = std``.  The two moment conditions are
+
+        E[x]   = sqrt(s/2) * Gamma((nu-1)/2) / Gamma(nu/2) = mean
+        E[x^2] = s / (nu - 2)                              = mean^2 + std^2
+
+    so ``s = (nu - 2) * (mean^2 + std^2)`` and ``nu`` solves a single
+    monotone scalar equation on ``(2, inf)``, done here with ``brentq``.
     """
+    if not (math.isfinite(mean) and math.isfinite(std)):
+        raise ValueError(
+            f"invgamma prior: mean={mean!r} and std={std!r} must both be finite"
+        )
+    if mean <= 0.0 or std <= 0.0:
+        raise ValueError(
+            f"invgamma prior requires mean > 0 and std > 0, got "
+            f"mean={mean!r}, std={std!r}"
+        )
+    second_moment = mean * mean + std * std
+
+    def _gap(nu: float) -> float:
+        s = (nu - 2.0) * second_moment
+        return (
+            math.sqrt(s / 2.0)
+            * math.exp(gammaln((nu - 1.0) / 2.0) - gammaln(nu / 2.0))
+            - mean
+        )
+
+    lo, hi = 2.0 + 1e-12, 4.0
+    for _ in range(200):
+        if _gap(hi) > 0.0:
+            break
+        hi *= 2.0
+    else:  # pragma: no cover - unreachable for finite mean/std
+        raise ValueError(
+            f"invgamma prior: could not bracket nu for mean={mean!r}, std={std!r}"
+        )
+    nu = brentq(_gap, lo, hi, xtol=1e-14, rtol=1e-15, maxiter=200)
+    return (nu - 2.0) * second_moment, nu
+
+
+def _logpdf_invgamma_s_nu(x: float, s: float, nu: float) -> float:
+    """Dynare ``lpdfig1(x, s, nu)`` — the type-1 inverse gamma log-density.
+
+    ``x`` has this density iff ``x**2 ~ InvGamma(shape=nu/2, scale=s/2)``.
+    """
+    if not (s > 0.0 and nu > 0.0):
+        raise ValueError(
+            f"invgamma prior requires s > 0 and nu > 0, got s={s!r}, nu={nu!r}"
+        )
     if x <= 0.0:
         return -math.inf
-    a = nu / 2.0
-    scale = s ** 2 * nu / 2.0
-    return float(stats.invgamma.logpdf(x, a=a, scale=scale))
+    return float(
+        math.log(2.0)
+        - gammaln(nu / 2.0)
+        + (nu / 2.0) * math.log(s / 2.0)
+        - (nu + 1.0) * math.log(x)
+        - s / (2.0 * x * x)
+    )
+
+
+def _logpdf_invgamma(x: float, mean: float, std: float) -> float:
+    """log-pdf of the type-1 inverse gamma with mean ``mean`` and std ``std``.
+
+    This is Dynare's ``INV_GAMMA_PDF`` in full: ``(mean, std)`` are the
+    ``PRIOR_P1, PRIOR_P2`` an ``estimated_params`` line carries, they are
+    mapped to Dynare's internal ``(s, nu)`` by :func:`_invgamma_s_nu`, and
+    the density evaluated is Dynare's ``lpdfig1`` — i.e. ``x**2`` is
+    inverse-gamma, so ``x`` is a standard deviation, not a variance.
+    """
+    s, nu = _invgamma_s_nu(float(mean), float(std))
+    return _logpdf_invgamma_s_nu(x, s, nu)
+
+
+def _invgamma_mean_std(s: float, nu: float) -> tuple[float, float]:
+    """Inverse of :func:`_invgamma_s_nu`: mean and std implied by ``(s, nu)``."""
+    if not (s > 0.0 and nu > 2.0):
+        raise ValueError(
+            "invgamma prior given as (s, nu) needs s > 0 and nu > 2 for the "
+            f"standard deviation to exist; got s={s!r}, nu={nu!r}"
+        )
+    mean = math.sqrt(s / 2.0) * math.exp(
+        gammaln((nu - 1.0) / 2.0) - gammaln(nu / 2.0)
+    )
+    var = s / (nu - 2.0) - mean * mean
+    return mean, math.sqrt(max(var, 0.0))
 
 
 def _logpdf_uniform(x: float, mean: float, std: float) -> float:
@@ -75,6 +222,11 @@ def _logpdf_for_spec(spec: dict | Prior, x: float) -> float:
     dist = spec["dist"]
     if dist == "uniform":
         return -math.log(max(ub - lb, 1e-12))
+    if dist == "invgamma":
+        s = spec.get("s")
+        nu = spec.get("nu")
+        if s is not None and nu is not None:
+            return _logpdf_invgamma_s_nu(x, float(s), float(nu))
     try:
         fn = _DIST_LOGPDF[dist]
     except KeyError as exc:
@@ -163,7 +315,24 @@ class BetaPrior(Prior):
 
 
 class InvGammaPrior(Prior):
-    """Inverse-Gamma prior under Dynare inv_gamma_pdf convention (P1=s, P2=nu)."""
+    """Type-1 inverse-gamma prior, Dynare's ``INV_GAMMA_PDF``.
+
+    ``mean`` and ``std`` are the **mean and standard deviation of the prior
+    itself** (Dynare's ``PRIOR_P1, PRIOR_P2``), matching every other prior
+    class here.  The distribution is the one a DSGE puts on a shock
+    standard deviation: if ``x`` has this prior then
+    ``x**2 ~ InvGamma(shape=nu/2, scale=s/2)``, and the internal Dynare
+    pair ``(s, nu)`` is exposed on the ``.s`` / ``.nu`` attributes.
+
+    Passing ``s=`` and ``nu=`` instead gives that internal pair directly;
+    ``nu > 2`` is then required for the standard deviation to exist.
+
+    .. versionchanged:: 2.4.1
+       ``mean``/``std`` used to be stored verbatim as ``(s, nu)`` and the
+       density evaluated was ``invgamma(a=nu/2, scale=s**2*nu/2)`` applied
+       to ``x`` rather than ``x**2``.  Neither matched Dynare; both are
+       fixed, so log-densities from this class have changed.
+    """
 
     def __init__(
         self,
@@ -175,17 +344,52 @@ class InvGammaPrior(Prior):
         s: float | None = None,
         nu: float | None = None,
     ) -> None:
-        val_s = s if s is not None else (mean if mean is not None else 0.1)
-        val_nu = nu if nu is not None else (std if std is not None else 2.0)
-        super().__init__("invgamma", val_s, val_nu, lb, ub)
+        if s is not None or nu is not None:
+            if s is None or nu is None:
+                raise ValueError(
+                    "InvGammaPrior: pass s and nu together, or neither "
+                    "(use mean= and std= for Dynare's PRIOR_P1/PRIOR_P2)."
+                )
+            if mean is not None or std is not None:
+                raise ValueError(
+                    "InvGammaPrior: give either (mean, std) or (s, nu), "
+                    "not both."
+                )
+            val_mean, val_std = _invgamma_mean_std(float(s), float(nu))
+            val_s, val_nu = float(s), float(nu)
+        else:
+            val_mean = 0.1 if mean is None else float(mean)
+            val_std = 2.0 if std is None else float(std)
+            val_s, val_nu = _invgamma_s_nu(val_mean, val_std)
+        super().__init__("invgamma", val_mean, val_std, lb, ub)
+        self._s = float(val_s)
+        self._nu = float(val_nu)
 
     @property
     def s(self) -> float:
-        return self.mean
+        """Dynare's internal scale parameter ``s``."""
+        return self._s
 
     @property
     def nu(self) -> float:
-        return self.std
+        """Dynare's internal degrees-of-freedom parameter ``nu``."""
+        return self._nu
+
+    def __getitem__(self, key: str):
+        if key == "s":
+            return self._s
+        if key == "nu":
+            return self._nu
+        return super().__getitem__(key)
+
+    def __contains__(self, key: str) -> bool:
+        return key in ("s", "nu") or super().__contains__(key)
+
+    def to_dict(self) -> dict:
+        out = super().to_dict()
+        out["s"] = self._s
+        out["nu"] = self._nu
+        return out
 
 
 class NormalPrior(Prior):
@@ -235,6 +439,10 @@ def ensure_prior(spec: dict | Prior) -> Prior:
     if dist == "beta":
         return BetaPrior(mean=mean, std=std, lb=lb, ub=ub)
     elif dist in ("invgamma", "inv_gamma"):
+        s_val = spec.get("s")
+        nu_val = spec.get("nu")
+        if s_val is not None and nu_val is not None:
+            return InvGammaPrior(lb=lb, ub=ub, s=s_val, nu=nu_val)
         return InvGammaPrior(mean=mean, std=std, lb=lb, ub=ub)
     elif dist == "normal":
         return NormalPrior(mean=mean, std=std, lb=lb, ub=ub)
@@ -243,6 +451,73 @@ def ensure_prior(spec: dict | Prior) -> Prior:
     elif dist == "uniform":
         return UniformPrior(lb=lb, ub=ub)
     return Prior(dist, mean, std, lb, ub)
+
+
+def _validate_priors(priors: dict, *, caller: str = "estimate_dsge") -> None:
+    """Fail fast on a prior spec that no distribution can satisfy.
+
+    Catches, per parameter: an unknown ``dist``; ``lb >= ub``; a
+    ``mean``/``std`` pair outside the family's feasible set (a Beta with
+    ``std**2 >= mean*(1-mean)``, a Gamma/InvGamma with a non-positive mean
+    or std, a Normal with a non-positive std).  Without it these surface
+    as a NaN log-prior that the driver turns into ``-inf``, and the user
+    is told to "pick a better starting point" for a prior that is simply
+    impossible.
+
+    Raises ``ValueError`` naming ``caller`` and the offending parameter.
+    Emits a ``UserWarning`` (not an error) when the prior mean falls
+    outside the declared ``[lb, ub]`` truncation, which is legal but is
+    almost always a transcription slip.
+    """
+    if not priors:
+        raise ValueError(f"{caller}: priors is empty; nothing to estimate")
+    for name, spec in priors.items():
+        try:
+            dist = spec["dist"]
+            lb = float(spec["lb"])
+            ub = float(spec["ub"])
+            mean = float(spec["mean"])
+            std = float(spec["std"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(
+                f"{caller}: prior spec for {name!r} is malformed "
+                f"({type(exc).__name__}: {exc}); it needs "
+                "'dist', 'mean', 'std', 'lb' and 'ub'."
+            ) from exc
+        if dist not in _DIST_LOGPDF:
+            raise ValueError(
+                f"{caller}: unknown distribution {dist!r} for prior "
+                f"{name!r}; supported: {sorted(_DIST_LOGPDF)}"
+            )
+        if not (lb < ub):
+            raise ValueError(
+                f"{caller}: prior {name!r} has lb={lb!r} >= ub={ub!r}; "
+                "the support is empty."
+            )
+        try:
+            if dist == "beta":
+                _beta_ab(mean, std)
+            elif dist == "gamma":
+                _logpdf_gamma(max(mean, 1e-12), mean, std)
+            elif dist == "invgamma":
+                if spec.get("s") is not None and spec.get("nu") is not None:
+                    _logpdf_invgamma_s_nu(
+                        max(mean, 1e-12), float(spec["s"]), float(spec["nu"])
+                    )
+                else:
+                    _invgamma_s_nu(mean, std)
+            elif dist == "normal":
+                _logpdf_normal(mean, mean, std)
+        except ValueError as exc:
+            raise ValueError(f"{caller}: prior {name!r}: {exc}") from exc
+        if dist != "uniform" and not (lb <= mean <= ub):
+            warnings.warn(
+                f"{caller}: prior {name!r} has mean={mean!r} outside its "
+                f"declared support [{lb!r}, {ub!r}]; the truncated prior "
+                "will have a very different mean from the one you wrote.",
+                UserWarning,
+                stacklevel=2,
+            )
 
 
 def log_prior(params: dict, priors: dict) -> float:

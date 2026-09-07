@@ -202,3 +202,60 @@ def test_var_golden_has_cholesky_irf_and_provenance():
         resources.files("puremacro.validation.goldens").joinpath("var.json").read_text(encoding="utf-8")
     )
     assert "statsmodels" in raw["_meta"]["reference"]
+
+
+# --- The VALIDATION pages must not drift from the gallery they describe ---
+
+
+def _validation_page(name):
+    from pathlib import Path
+
+    return (Path(__file__).resolve().parents[2] / "docs" / name).read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("page", ["VALIDATION.md", "es/VALIDATION.md"])
+def test_validation_page_headline_matches_the_gallery(page):
+    """`docs/VALIDATION.md` (and its Spanish twin) quote a case count, a
+    subsystem count and per-mechanism totals. Nothing regenerates them, so they
+    drifted silently for two releases before 2.5.0 — this pins them."""
+    import re
+    from collections import Counter
+
+    from puremacro.validation import scorecard
+
+    text = _validation_page(page)
+    df = scorecard()
+    n_cases, n_subsystems = len(df), df["subsystem"].nunique()
+
+    headline = re.search(r"\*\*(\d+) (?:cases across|casos en) (\d+) (?:subsystems|subsistemas)", text)
+    assert headline, f"{page}: no '**N cases across M subsystems**' headline found"
+    assert (int(headline.group(1)), int(headline.group(2))) == (n_cases, n_subsystems), (
+        f"{page} says {headline.group(1)} cases / {headline.group(2)} subsystems; "
+        f"scorecard() has {n_cases} / {n_subsystems}")
+
+    counts = Counter(df["mechanism"])
+    for mechanism, n in counts.items():
+        assert re.search(rf"\b{mechanism} {n}\b", text), (
+            f"{page}: mechanism total '{mechanism} {n}' not found (scorecard has {dict(counts)})")
+
+
+@pytest.mark.parametrize("page", ["VALIDATION.md", "es/VALIDATION.md"])
+def test_validation_page_subsystem_table_matches_the_gallery(page):
+    """Every row of the per-subsystem table, and the fact that the table lists
+    every subsystem the gallery actually has."""
+    import re
+
+    from puremacro.validation import scorecard
+
+    text = _validation_page(page)
+    header = "| Subsystem | Cases |" if page == "VALIDATION.md" else "| Subsistema | Casos |"
+    assert header in text, f"{page}: subsystem table header not found"
+    table = text[text.index(header):].split("\n\n")[0]
+    rows = dict(re.findall(r"^\| `([^`]+)` \| (\d+) \|", table, re.M))
+
+    expected = scorecard().groupby("subsystem").size().to_dict()
+    assert set(rows) == set(expected), (
+        f"{page}: table lists {sorted(set(rows) ^ set(expected))} differently from the gallery")
+    for subsystem, n in expected.items():
+        assert int(rows[subsystem]) == n, (
+            f"{page}: table says {subsystem} has {rows[subsystem]} cases; the gallery has {n}")

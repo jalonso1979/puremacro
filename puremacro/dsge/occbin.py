@@ -7,9 +7,67 @@ Journal of Monetary Economics 70, 22-38.
 Solves models with occasionally binding constraints (such as the Zero Lower
 Bound on nominal interest rates, borrowing limits, or irreversible investment)
 under perfect foresight via backward recursion over piecewise-linear regimes.
+
+Scope and honest limitations
+----------------------------
+* **Two regimes only.** A reference (unconstrained) regime and one alternative
+  (constrained) regime. Models with several simultaneously occasionally
+  binding constraints are out of scope.
+* **Perfect foresight.** Every row of ``shock_sequence`` is *anticipated at
+  t = 1*: agents in period 1 know the whole shock path. The backward
+  recursion folds the shocks into the period-by-period drift
+  ``D_t = M_t^{-1}(-(A_+^{r_t} D_{t+1} + c^{r_t} + B_u^{r_t} u_t))``, so a
+  shock dated t > 1 moves the path from period 1 onwards. To simulate an
+  *unanticipated* shock at date s, run the solver from date s with the state
+  reached at s - 1 as the initial condition.
+* **Arbitrary regime sequences.** The regime is a full boolean vector over
+  the horizon, not a leading spell, so spells that start after t = 1, and
+  several disjoint spells, are represented exactly.
+* **Terminal condition.** The recursion is seeded with the reference-regime
+  decision rule at t = horizon + 1. If the constraint still binds in the last
+  simulated period that assumption is *not* verified: the solver then returns
+  ``converged=False`` and warns rather than pretending to have a solution.
+* **``converged=True`` means verified.** It is set only when the regime
+  iteration reached a fixed point *and* the returned path satisfies the
+  constraint where that is meaningful for the constraint's style (see below)
+  *and* the terminal condition was tested. Every
+  other outcome returns ``converged=False`` together with a warning naming
+  the reason.
+* **Two constraint styles.** If the alternative regime replaces the equation
+  that determines the constrained variable (a ZLB-style peg), the test for
+  whether a spell keeps binding uses the variable's notional value, solved
+  out of the *reference* equation that the alternative regime replaced. If no
+  switching equation contains the constrained variable (a trigger-style
+  constraint, e.g. "credit policy activates once the spread exceeds x"), the
+  variable stays endogenous in both regimes and its simulated value is used
+  directly. ``OccBinConstraint.relax_variable`` overrides both.
+  What ``converged=True`` verifies differs by style, necessarily. A **peg**
+  pins the variable AT the bound while binding, so the whole path must respect
+  the bound and every period is checked. A **trigger** fires *because* the
+  variable has passed the threshold, so while the constraint is active the
+  variable is supposed to sit beyond it — checking those periods against the
+  bound would reject every correct solution. For trigger-style constraints the
+  verified property is therefore that no period declared *slack* has tripped
+  the trigger; that the binding periods did trip it is already guaranteed by
+  the regime sequence being a fixed point, which is checked separately and is
+  the stronger condition.
+
+  There is a third shape that is neither, and it is refused rather than
+  guessed at: the alternative regime pegs the constrained variable to a
+  constant in a row that does *not* determine it in the reference model (for
+  instance a leverage cap written into the public-credit rule rather than into
+  the bank's incentive constraint). There is then no reference equation to
+  solve a notional value out of, and the default relax test would compare the
+  pegged value against the very bound it is pegged to -- vacuously "relaxed"
+  in every binding period. Such a constraint must supply
+  ``relax_variable``: the multiplier, or the instrument that enforces the peg,
+  tested against zero. Complementary slackness then reads "the constraint
+  binds while the instrument still has to push in the direction that enforces
+  it", which is testable.
 """
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Sequence
 
@@ -37,6 +95,10 @@ class OccBinConstraint:
         Auxiliary variable name tracking the shadow/notional rate or multiplier
         to test when the constraint relaxes (e.g. 'rnot'). If None, the shadow
         value is automatically deduced from the reference regime equation.
+        It must name a model variable, and it is **required** when the
+        alternative regime pegs ``variable`` to a constant in an equation that
+        does not determine ``variable`` in the reference regime --
+        :func:`solve_occbin` raises rather than run a vacuous relax test.
     relax_threshold : float, optional
         Threshold for the relax condition. Defaults to ``threshold``.
     relax_operator : {'>', '>=', '<', '<='}, optional
@@ -99,13 +161,25 @@ class OccBinResult:
     Attributes
     ----------
     simulated_path : pd.DataFrame
-        Simulated trajectory of all endogenous variables over the horizon.
+        Simulated trajectory of all endogenous variables over the horizon,
+        indexed by period ``t = 1 .. horizon`` (matching :meth:`plot` and
+        :meth:`summary`).
     regimes : list[int]
-        Regime indicator for each period (0 = reference regime, 1 = constrained regime).
+        Regime indicator for each period (0 = reference regime, 1 = constrained
+        regime). This is the regime sequence the returned path was actually
+        solved under, whether or not it is a verified fixed point.
     binding_periods : int
-        Number of periods during which the constraint is binding.
+        Total number of periods in which the constraint binds, i.e.
+        ``sum(regimes)``. Spells need not start at t = 1 and need not be
+        contiguous, so this is a count, not a spell length.
     converged : bool
-        Whether the Guerrieri & Iacoviello backward-recursion algorithm converged.
+        ``True`` only if the regime iteration reached a fixed point, the
+        returned path passes the style-appropriate bound check (peg-style:
+        every period; trigger-style: every period declared slack has not
+        tripped the trigger), and the
+        constraint is slack in the final period so that the terminal condition
+        is verified. Otherwise ``False``, and a warning naming the reason was
+        emitted by :func:`solve_occbin`.
     iterations : int
         Number of iterations executed until convergence or termination.
     reference_model : Any
@@ -478,19 +552,49 @@ def solve_occbin(
     constraint : OccBinConstraint
         Constraint definition specifying variable, threshold, and direction.
     shock_sequence : np.ndarray
-        Array of unforeseen structural shocks. Can be 1D (shape ``(n_shocks,)``)
-        for a one-shot shock at t=1, or 2D (shape ``(n_periods, n_shocks)``).
+        Structural shocks, **all anticipated at t = 1** (perfect foresight).
+        Either 1D (shape ``(n_shocks,)``) for a one-shot shock at t=1, or 2D
+        (shape ``(n_periods, n_shocks)``) for a whole announced path. A shock
+        dated t > 1 therefore already moves the period-1 response; to simulate
+        an unanticipated shock at date s, re-run the solver from date s.
     max_iter : int, default 50
-        Maximum number of iterations for guessing the binding duration T*.
+        Maximum number of regime-guess iterations.
     horizon : int, default 40
-        Simulation horizon (number of periods to simulate).
+        Simulation horizon (number of periods to simulate), must be >= 1.
 
     Returns
     -------
     OccBinResult
         Container holding simulated path, regime timeline, binding periods,
         convergence diagnostics, and visualization/export methods.
+
+    Notes
+    -----
+    ``result.converged`` is ``True`` only for a *verified* solution: the regime
+    iteration reached a fixed point, the returned path satisfies the constraint
+    where that is meaningful for the constraint's style, and the constraint is
+    slack in the final period
+    so that the terminal condition (the reference regime resumes after the
+    horizon) is actually tested. When any of those fails the function returns
+    ``converged=False`` and emits a ``UserWarning`` naming the reason; the
+    returned path is then the one solved under the regime sequence reported in
+    ``result.regimes``, kept only as a diagnostic.
+
+    Raises
+    ------
+    ValueError
+        If ``horizon`` or ``max_iter`` is not a positive integer, if the
+        constrained variable is not a model variable, or if it appears in no
+        equation of the reference model (so neither its notional value nor the
+        binding test is defined).
     """
+    if not isinstance(horizon, (int, np.integer)) or int(horizon) < 1:
+        raise ValueError(f"solve_occbin: horizon must be an integer >= 1, got {horizon!r}")
+    if not isinstance(max_iter, (int, np.integer)) or int(max_iter) < 1:
+        raise ValueError(f"solve_occbin: max_iter must be an integer >= 1, got {max_iter!r}")
+    horizon = int(horizon)
+    max_iter = int(max_iter)
+
     # 1. Extract system matrices for both regimes
     A_p_0, A_0_0, A_m_0, B_u_0, c_0, ss_0, variables, shocks = _extract_model_matrices(reference_model)
     A_p_1, A_0_1, A_m_1, B_u_1, c_1, ss_1, _, _ = _extract_model_matrices(
@@ -516,90 +620,163 @@ def solve_occbin(
     else:
         raise ValueError("shock_sequence must be 1D or 2D array")
 
-    # 2. Extract reference linear decision rules: X_t = P_0 X_{t-1} + Q_0 u_t
+    # 2. Reference-regime decision rule X_t = P_0 X_{t-1}, used to seed the
+    #    backward recursion at t = horizon + 1.
     dr = reference_model.decision_rules()
     P_0 = np.zeros((n_vars, n_vars))
     for s in reference_model.states:
         idx_s = variables.index(s)
         P_0[:, idx_s] = dr.ghx[s].values
-    Q_0 = dr.ghu.values
 
     # Find the row index of the constrained variable
     if constraint.variable not in variables:
         raise ValueError(f"constraint variable {constraint.variable!r} not found in model variables: {variables}")
     idx_var = variables.index(constraint.variable)
 
-    # Identify the equation row that determines the constrained variable in the reference regime
+    # Resolve the relax (shadow / multiplier) variable up front: a name that is
+    # not a model variable used to be dropped silently, which turns an explicit
+    # relax rule into the default one without telling anybody.
+    relax_idx = None
+    if constraint.relax_variable is not None:
+        if constraint.relax_variable not in variables:
+            raise ValueError(
+                f"solve_occbin: relax_variable {constraint.relax_variable!r} is not a model "
+                f"variable; expected one of {variables}"
+            )
+        relax_idx = variables.index(constraint.relax_variable)
+
+    # Identify the equation row that determines the constrained variable in the
+    # reference regime.  It must (a) differ between the two regimes -- that is
+    # what makes it the switching equation -- and (b) actually contain the
+    # constrained variable, otherwise the shadow (notional) value solved out of
+    # it below is meaningless.  Scanning only A_0/c/B_u, or taking the first
+    # differing row without checking (b), makes the answer depend on the order
+    # in which the model's equations happen to be written.
     diff_rows = np.where(
         (np.linalg.norm(A_0_0 - A_0_1, axis=1) > 1e-8)
-        | (np.abs(c_0 - c_1) > 1e-8)
+        | (np.linalg.norm(A_p_0 - A_p_1, axis=1) > 1e-8)
+        | (np.linalg.norm(A_m_0 - A_m_1, axis=1) > 1e-8)
         | (np.linalg.norm(B_u_0 - B_u_1, axis=1) > 1e-8)
+        | (np.abs(c_0 - c_1) > 1e-8)
     )[0]
-    if len(diff_rows) > 0:
-        eq_row = diff_rows[0]
+    has_var = np.abs(A_0_0[:, idx_var]) > 1e-12
+    switching_rows = [int(r) for r in diff_rows if has_var[r]]
+    if switching_rows:
+        # The constrained regime replaces the equation that determines the
+        # constrained variable (a ZLB-style peg): its notional value has to be
+        # recovered from the reference-regime equation.
+        eq_row = switching_rows[0]
+    elif np.any(has_var):
+        # No switching equation pins the constrained variable, i.e. the
+        # constrained regime leaves that variable endogenously determined by
+        # the same equation (a trigger-style constraint such as "public credit
+        # policy kicks in once the spread exceeds x"). Its simulated value is
+        # then already its notional value, and no shadow needs solving out.
+        eq_row = None
     else:
-        eq_row = idx_var
+        raise ValueError(
+            f"solve_occbin: the constrained variable {constraint.variable!r} does not appear "
+            f"contemporaneously in any equation of the reference model (every entry of column "
+            f"{idx_var} of its contemporaneous Jacobian is negligible), so neither its notional "
+            f"value nor the binding test is defined. Check the reference model, or constrain a "
+            f"variable the model actually determines."
+        )
 
-    # 3. Backward recursion engine for a conjectured duration T*
-    def compute_decision_rules(T_star: int):
-        if T_star == 0:
-            return (
-                [P_0] * horizon,
-                [np.zeros(n_vars)] * horizon,
-                [Q_0] + [np.zeros((n_vars, n_shocks))] * (horizon - 1),
+    # A trap that the eq_row rule above cannot see. If the alternative regime
+    # pegs the constrained variable to a constant in a row that does NOT
+    # determine it in the reference regime, then eq_row is None (nothing to
+    # solve the notional value out of) and the default relax test compares the
+    # simulated value -- pinned AT the bound by that very peg -- against the
+    # bound. That test is vacuous: it answers "the constraint has just
+    # relaxed" in every binding period, whatever the economics, so the spell
+    # can never be longer than the iteration's own transient. Such a
+    # constraint needs an explicit `relax_variable` (the multiplier, or the
+    # instrument that enforces the peg, tested against zero); refuse to guess.
+    if eq_row is None and relax_idx is None:
+        pegged = []
+        for r in diff_rows:
+            if has_var[r]:
+                continue
+            a_r = float(A_0_1[r, idx_var])
+            if abs(a_r) <= 1e-12:
+                continue
+            others = A_0_1[r].copy()
+            others[idx_var] = 0.0
+            scale = 1e-10 * max(1.0, abs(a_r))
+            if (
+                np.max(np.abs(others)) <= scale
+                and np.max(np.abs(A_p_1[r])) <= scale
+                and np.max(np.abs(A_m_1[r])) <= scale
+                and np.max(np.abs(B_u_1[r])) <= scale
+            ):
+                pegged.append(int(r))
+        if pegged:
+            raise ValueError(
+                f"solve_occbin: the alternative regime pegs {constraint.variable!r} to a "
+                f"constant in equation row(s) {pegged}, but that row does not determine "
+                f"{constraint.variable!r} in the reference model, so there is no reference "
+                f"equation to solve its notional value out of. The relax test would then "
+                f"compare the pegged value against the very bound it is pegged to and "
+                f"relax in every period. Set OccBinConstraint.relax_variable to the "
+                f"multiplier or the instrument that enforces the peg (with "
+                f"relax_threshold=0.0 and the sign that means 'the constraint would have "
+                f"to push the wrong way'), so the exit condition is testable."
             )
 
-        P_seq: list[np.ndarray] = [np.zeros((n_vars, n_vars)) for _ in range(T_star + 1)]
-        D_seq: list[np.ndarray] = [np.zeros(n_vars) for _ in range(T_star + 1)]
+    # 3. Backward recursion engine for an arbitrary regime sequence.
+    #
+    #    For a regime vector r = (r_1, ..., r_H) the perfect-foresight path
+    #    obeys X_t = P_t X_{t-1} + D_t with
+    #        M_t = A_0^{r_t} + A_+^{r_t} P_{t+1}
+    #        P_t = M_t^{-1} (-A_-^{r_t})
+    #        D_t = M_t^{-1} (-(A_+^{r_t} D_{t+1} + c^{r_t} + B_u^{r_t} u_t))
+    #    seeded at t = H + 1 with the reference decision rule (P_0, 0).  The
+    #    anticipated shocks live in the drift D_t, so every u_t is loaded with
+    #    the matrices of the regime actually in force at t, and a shock dated
+    #    t > 1 propagates backwards to period 1 as perfect foresight requires.
+    regime_matrices = (
+        (A_p_0, A_0_0, A_m_0, B_u_0, c_0),
+        (A_p_1, A_0_1, A_m_1, B_u_1, c_1),
+    )
 
-        # Terminal period of binding spell: t = T*
-        M_T = A_0_1 + A_p_1 @ P_0
-        P_seq[T_star] = _safe_solve(M_T, -A_m_1)
-        D_seq[T_star] = _safe_solve(M_T, -c_1)
+    def compute_decision_rules(regime: np.ndarray):
+        P_seq: list[np.ndarray | None] = [None] * (horizon + 1)
+        D_seq: list[np.ndarray | None] = [None] * (horizon + 1)
+        P_next = P_0
+        D_next = np.zeros(n_vars)
+        for t in range(horizon, 0, -1):
+            A_p_r, A_0_r, A_m_r, B_u_r, c_r = regime_matrices[int(regime[t - 1])]
+            M_t = A_0_r + A_p_r @ P_next
+            P_t = _safe_solve(M_t, -A_m_r)
+            D_t = _safe_solve(M_t, -(A_p_r @ D_next + c_r + B_u_r @ shocks_mat[t - 1]))
+            P_seq[t] = P_t
+            D_seq[t] = D_t
+            P_next, D_next = P_t, D_t
+        return P_seq, D_seq
 
-        # Iterate backward from T* - 1 down to 1
-        for t in range(T_star - 1, 0, -1):
-            M_t = A_0_1 + A_p_1 @ P_seq[t + 1]
-            P_seq[t] = _safe_solve(M_t, -A_m_1)
-            D_seq[t] = _safe_solve(M_t, -(A_p_1 @ D_seq[t + 1] + c_1))
+    # Reference-regime row used to solve out the shadow (notional) value of the
+    # constrained variable; `a_var` is guaranteed non-negligible by the eq_row
+    # selection above, so there is no silent unit fallback here.
+    if eq_row is not None:
+        a_var = float(A_0_0[eq_row, idx_var])
+        row_others = A_0_0[eq_row].copy()
+        row_others[idx_var] = 0.0
 
-        # Contemporaneous shock loading at t = 1
-        M_1 = A_0_1 + A_p_1 @ (P_seq[2] if T_star > 1 else P_0)
-        Q_1 = _safe_solve(M_1, -B_u_1)
-
-        # Assemble full horizon sequences
-        full_P: list[np.ndarray] = [P_0] * horizon
-        full_D: list[np.ndarray] = [np.zeros(n_vars)] * horizon
-        full_Q: list[np.ndarray] = [Q_0] * horizon
-        for t in range(1, horizon + 1):
-            if t <= T_star:
-                full_P[t - 1] = P_seq[t]
-                full_D[t - 1] = D_seq[t]
-            else:
-                full_P[t - 1] = P_0
-                full_D[t - 1] = np.zeros(n_vars)
-
-            if t == 1:
-                full_Q[t - 1] = Q_1
-            else:
-                full_Q[t - 1] = Q_0
-
-        return full_P, full_D, full_Q
-
-    # 4. Forward simulation under conjectured rules
-    def simulate_path(T_star: int) -> tuple[np.ndarray, np.ndarray]:
-        full_P, full_D, full_Q = compute_decision_rules(T_star)
+    # 4. Forward simulation under a conjectured regime sequence
+    def simulate_path(regime: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        P_seq, D_seq = compute_decision_rules(regime)
         X = np.zeros((horizon + 1, n_vars))
         for t in range(1, horizon + 1):
-            u_t = shocks_mat[t - 1]
-            X[t] = full_P[t - 1] @ X[t - 1] + full_D[t - 1] + full_Q[t - 1] @ u_t
+            X[t] = P_seq[t] @ X[t - 1] + D_seq[t]
 
         sim_X = X[1:]
 
-        # Compute shadow / notional value of the constrained variable
-        shadow_vals = np.zeros(horizon)
-        a_var = A_0_0[eq_row, idx_var] if abs(A_0_0[eq_row, idx_var]) > 1e-12 else 1.0
+        if eq_row is None:
+            # No switching equation pins the constrained variable, so it is
+            # its own notional value.
+            return sim_X, sim_X[:, idx_var].copy()
 
+        shadow_vals = np.zeros(horizon)
         for t in range(horizon):
             x_prev = X[t]
             x_curr = sim_X[t]
@@ -607,7 +784,7 @@ def solve_occbin(
             u_t = shocks_mat[t]
 
             # Shadow value from reference equation row:
-            other_curr = np.sum([A_0_0[eq_row, j] * x_curr[j] for j in range(n_vars) if j != idx_var])
+            other_curr = row_others @ x_curr
             term_next = A_p_0[eq_row, :] @ x_next
             term_prev = A_m_0[eq_row, :] @ x_prev
             term_shock = B_u_0[eq_row, :] @ u_t
@@ -615,70 +792,133 @@ def solve_occbin(
 
         return sim_X, shadow_vals
 
-    # 5. Backward recursion iteration loop over duration T*
-    T_star = 0
-    converged = False
-    history: list[int] = []
-    final_X = None
-    final_shadow = None
-
-    for iteration in range(1, max_iter + 1):
-        history.append(T_star)
-        sim_X, shadow_vals = simulate_path(T_star)
-
-        # Evaluate binding condition for each period
-        bind_vec = []
+    def next_regime(regime: np.ndarray, sim_X: np.ndarray, shadow_vals: np.ndarray) -> np.ndarray:
+        """Guerrieri-Iacoviello regime update, period by period."""
+        upd = np.zeros(horizon, dtype=int)
         for t in range(horizon):
-            is_constrained_regime = t < T_star
-            if is_constrained_regime:
-                if constraint.relax_variable is not None and constraint.relax_variable in variables:
-                    r_idx = variables.index(constraint.relax_variable)
-                    val = sim_X[t, r_idx]
-                else:
-                    val = shadow_vals[t]
-                binds = constraint.evaluate(val)
+            if regime[t] == 1:
+                # Inside a conjectured spell: does the constraint still bind?
+                val = sim_X[t, relax_idx] if relax_idx is not None else shadow_vals[t]
+                binds = not bool(constraint.evaluate_relax(val))
             else:
-                val = sim_X[t, idx_var]
-                binds = constraint.evaluate(val)
+                # Outside: would the unconstrained path violate the bound?
+                binds = bool(constraint.evaluate(sim_X[t, idx_var]))
+            upd[t] = 1 if binds else 0
+        return upd
 
-            bind_vec.append(bool(binds))
+    # 5. Regime-guess iteration over the whole horizon
+    regime = np.zeros(horizon, dtype=int)
+    history: set[tuple[int, ...]] = {tuple(regime.tolist())}
+    fixed_point = False
+    cycled_to: np.ndarray | None = None
+    iteration = 0
 
-        # Number of consecutive periods constraint binds from t=0
-        T_new = 0
-        while T_new < horizon and bind_vec[T_new]:
-            T_new += 1
+    for iteration in range(1, max_iter + 1):  # max_iter >= 1 is validated above
+        sim_X, shadow_vals = simulate_path(regime)
+        upd = next_regime(regime, sim_X, shadow_vals)
 
-        # Check convergence
-        if T_new == T_star:
-            converged = True
-            final_X = sim_X
-            final_shadow = shadow_vals
+        if np.array_equal(upd, regime):
+            fixed_point = True
             break
 
-        # Cycle detection
-        if T_new in history:
-            candidate_T = max(T_star, T_new)
-            final_X, final_shadow = simulate_path(candidate_T)
-            T_star = candidate_T
-            converged = True
+        key = tuple(upd.tolist())
+        if key in history:
+            # The guess cycles.  The path in hand was solved under `regime`,
+            # which the solver's own binding test has just rejected, so this is
+            # NOT a solution -- report it as such instead of picking a winner.
+            cycled_to = upd
             break
 
-        T_star = T_new
+        history.add(key)
+        regime = upd
+    else:
+        # max_iter exhausted; `regime` holds the last update, re-simulate it so
+        # that the returned path and the reported regime sequence agree.
+        sim_X, shadow_vals = simulate_path(regime)
 
-    if not converged:
-        final_X, final_shadow = simulate_path(T_star)
+    converged = fixed_point
+    reasons: list[str] = []
 
-    # 6. Construct OccBinResult
-    sim_df = pd.DataFrame(final_X, columns=variables)
+    if cycled_to is not None:
+        solved_for = [int(t) + 1 for t in np.flatnonzero(regime)]
+        rejected_to = [int(t) + 1 for t in np.flatnonzero(cycled_to)]
+        reasons.append(
+            f"the regime iteration cycled at iteration {iteration}: the path was solved with "
+            f"the constraint binding in period(s) {solved_for[:12]}"
+            f"{' ...' if len(solved_for) > 12 else ''}, but the solver's own binding test on "
+            f"that very path returns {rejected_to[:12]}"
+            f"{' ...' if len(rejected_to) > 12 else ''}, a guess already visited, so no regime "
+            f"sequence is a fixed point"
+        )
+    elif not fixed_point:
+        reasons.append(
+            f"the regime iteration did not reach a fixed point within max_iter={max_iter}"
+        )
+
+    # 6. Post-hoc verification of the returned path against the constraint.
+    #    `converged=True` must mean "this path satisfies the constraint and the
+    #    regime sequence it was solved under", so the bound is tested here even
+    #    when the regime iteration reported a fixed point.
+    #
+    #    What "satisfies the bound" means depends on the constraint style. For a
+    #    ZLB-style peg (``eq_row is not None``) the alternative regime pins the
+    #    constrained variable AT the bound, so no period of the returned path may
+    #    lie beyond it. For a trigger-style constraint (``eq_row is None``, e.g.
+    #    "credit policy activates once the spread exceeds x") the variable stays
+    #    endogenous in both regimes and is *meant* to sit beyond the threshold
+    #    while the alternative regime is in force -- that is what tripping the
+    #    trigger means, not a violation. There the testable property is that no
+    #    period declared slack has in fact tripped the trigger. Testing the whole
+    #    path in that case would make every trigger-style constraint that ever
+    #    binds report ``converged=False``, however clean its fixed point.
+    bound_tol = 1e-8 * max(1.0, abs(float(constraint.threshold)))
+    thresh = float(constraint.threshold)
+    checked = np.arange(horizon) if eq_row is not None else np.flatnonzero(regime == 0)
+    col = sim_X[checked, idx_var]
+    if constraint.operator in ("<", "<="):
+        violated = checked[col < thresh - bound_tol]
+    else:
+        violated = checked[col > thresh + bound_tol]
+    if violated.size:
+        vals = sim_X[violated, idx_var]
+        worst = float(vals.min() if constraint.operator in ("<", "<=") else vals.max())
+        reasons.append(
+            f"the returned path violates {constraint!r} in period(s) "
+            f"{[int(t) + 1 for t in violated[:12]]}"
+            f"{' ...' if violated.size > 12 else ''} "
+            f"(worst {constraint.variable}={worst:.6g} against threshold {thresh:.6g})"
+        )
+
+    if regime[-1] == 1:
+        reasons.append(
+            f"the constraint still binds in the last simulated period (t={horizon}), so the "
+            f"terminal condition -- that the reference regime resumes after the horizon -- is "
+            f"assumed rather than verified; increase horizon"
+        )
+
+    if reasons:
+        converged = False
+        warnings.warn(
+            "solve_occbin did not produce a verified solution (converged=False): "
+            + "; ".join(reasons)
+            + ". The returned path is the one solved under `result.regimes` and is a "
+            "diagnostic, not a solution.",
+            UserWarning,
+            stacklevel=2,
+        )
+
+    # 7. Construct OccBinResult
+    period_index = pd.RangeIndex(1, horizon + 1, name="t")
+    sim_df = pd.DataFrame(sim_X, columns=variables, index=period_index)
     shadow_df = sim_df.copy()
-    shadow_df[f"{constraint.variable}_shadow"] = final_shadow
+    shadow_df[f"{constraint.variable}_shadow"] = shadow_vals
 
-    regimes = [1 if t < T_star else 0 for t in range(horizon)]
+    regimes = [int(v) for v in regime]
 
     return OccBinResult(
         simulated_path=sim_df,
         regimes=regimes,
-        binding_periods=T_star,
+        binding_periods=int(regime.sum()),
         converged=converged,
         iterations=iteration,
         reference_model=reference_model,

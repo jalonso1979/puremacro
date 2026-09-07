@@ -2,6 +2,378 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## 2.5.0 (2026-09-06)
+
+Feature release: phases 2, 3 and 4 of the spatial econometrics spec
+(`docs/specs/2026-09-05-puremacro-spatial-design.md`), shipped together rather than as the planned
+2.5.0/2.6.0/2.7.0 sequence, plus the wavelet package split, `simex_ols` and the runtime helpers that
+were in flight alongside it. No new runtime dependencies — the library still imports numpy, scipy,
+pandas and matplotlib and nothing else.
+
+**One behaviour change to read before upgrading:** `wavelet_coherence` now discards
+boundary-contaminated coefficients by default and therefore returns different numbers; see
+"Changed — `puremacro.wavelet`" below. Everything else is additive: no existing signature changed.
+
+Every estimator below documents what it deliberately does **not** do, and several disclose the
+measured size of their own test statistics rather than quoting a favourable one. Those paragraphs are
+part of the deliverable: read them before reporting a p-value.
+
+### Added — `puremacro.spatial.models` (cross-section spatial models, phase 3)
+- `sar` (spatial lag), `sem` (spatial error), `sdm` (spatial Durbin) and `slx` (lagged regressors
+  only), by Gaussian maximum likelihood through the Ord (1975) / Anselin (1988) concentrated
+  log-likelihood: `beta` and `sigma^2` are profiled out, leaving a smooth one-dimensional problem in
+  the spatial parameter that is maximised by bounded scalar optimisation and cross-checked against the
+  root of the analytic score.
+- Exact log-determinants only: dense eigenvalues for `n <= 1000`, a sparse LU factorisation
+  (Pace & Barry 1997) above, and an opt-in Chebyshev approximation (Pace & LeSage 2004) that requires a
+  verifiably symmetrisable `W` and reports its own error bound. There is no Monte-Carlo Jacobian:
+  a randomised log-determinant buys a jumpy optimiser and an irreproducible `rho`.
+- `method='gmm'`: Kelejian-Prucha (1998) spatial two-stage least squares for the lag models, and the
+  Kelejian-Prucha (1999) three-moment estimator with spatially-filtered GLS for the error model.
+- `spatial_effects` and `SpatialModelResult.effects()`: the LeSage-Pace (2009) direct / indirect /
+  total impact decomposition with simulated standard errors, because a spatial-lag coefficient is not
+  a marginal effect. Point estimates work with no covariance supplied (`n_sim=0`).
+- `ols_spatial` and `lm_spatial_tests`: the specification battery that picks between the models —
+  LM-lag, LM-error, their robust versions (Anselin, Bera, Florax & Yoon 1996) and the Cliff-Ord (1972)
+  Moran's I of the OLS residuals, with a `recommendation` string.
+- Inference from the analytic asymptotic information matrix, with a numerical-Hessian fallback.
+  `vcov` defaults per method (`analytic` for ML, `classical` for GMM) and rejects the combinations
+  that are undefined instead of guessing.
+- Not implemented, and said so in the module docstring: SARAR/SAC, heteroskedasticity-robust GMM,
+  a standard error for the GMM error parameter, and panel data.
+
+### Added — `puremacro.spatial.panel` (spatial panels, phase 3)
+- `spatial_panel`: SAR and SEM panels with `effects` in `none / individual / time / two-way`, an
+  optional Durbin block, by quasi-maximum likelihood, with the Lee & Yu (2010) bias correction for the
+  incidental-parameter bias the within transformation induces. Both concentrated objectives are
+  written out in the docstring; `method='transformation'` and `method='direct'` carry their own
+  Jacobian factor and `sigma^2` divisor, which is the single easiest thing to get wrong here.
+- The corrected variance is pinned by an exact identity: under individual effects the Lee-Yu bias
+  vector is `(0, 0, -sigma^2/(T-1))`, so `sigma2_corrected = sigma2_hat * T/(T-1)`.
+- LeSage-Pace impacts for the panel, pinned against `spatial_effects` on the point estimates.
+- `vcov` is `oim` (default), `dk` or `conley`, the last two for the `beta` block only. `qml` and
+  `cluster` are **not** offered for the `rho` block, and the docstring says why: the `rho` score is
+  correlated across units through `(I - rho W)^-1`, so an outer-product meat captures roughly half its
+  variance and understates the standard error by about a quarter. Under heteroskedastic errors the SAR
+  QMLE point estimate is itself inconsistent (Lin & Lee 2010) — no sandwich repairs that.
+- Balanced panels only; an unbalanced panel raises and names `inference.balanced_panel.balanced_subpanel`.
+
+### Added — `puremacro.spatial.lp` (spatial local projections, phase 2)
+- `spatial_lp`: two-way FE panel local projections augmented with the spatially lagged shock, giving
+  the own (`direct`), neighbour (`indirect`) and combined (`total`) response at every horizon, with
+  `cov_type` in `cluster / driscoll-kraay / conley`, higher-order neighbour lags and cumulative
+  responses. `SpatialLPResult` subclasses `LPResult`, so the existing suffixed multi-coefficient
+  layout, slicing and plotting all work.
+- The standard error of the combined response uses the off-diagonal covariance, not the sum of two
+  standard errors.
+- `higher_order_weights` builds Anselin (1988) higher-order contiguity (order `p` excludes everything
+  reachable in fewer steps); `spatial_lag_panel` computes `W x` period by period on a long panel.
+- Honest about identification: the `total` is **not** the response to a uniform shock. A two-way-FE
+  time effect absorbs exactly that variation, so `beta_h` and `gamma_h` are responses relative to the
+  period mean and `total` is a cross-sectional contrast. The docstring shows the demonstration.
+- The cross-horizon joint spillover Wald test does not ship: on `N = 20`, `T = 50`, `H = 6` with a true
+  zero spillover it rejected at 0.313 against a nominal 0.10. The per-horizon z-test that does ship is
+  not exact either, and its measured size (0.08-0.11 at a nominal 0.05, drifting up with the horizon)
+  is tabulated in the docstring by `cov_type`.
+
+### Added — `puremacro.var.gvar` (Global VAR, phase 2)
+- `gvar`: the Pesaran, Schuermann & Weiner (2004) / Dees, di Mauro, Pesaran & Smith (2007) Global VAR.
+  Country VARX*(p, q) models with foreign "star" variables built from a trade/flow weight matrix,
+  estimated country by country, then linked and solved into one global system (`solve_gvar`,
+  `star_variables`), with a stability check on the solved companion.
+- Generalised impulse responses (`girf`, `girf_combination`) with bootstrap bands, the generalised
+  FEVD (`gfevd`), persistence profiles (`pp`), `forecast` and `coef_frame`.
+- Per-country lag selection with a feasibility guard that refuses a candidate whose residual covariance
+  would be singular — without it a rank-deficient `Sigma` produces a spurious log-likelihood that wins
+  the grid every time.
+- Documented: unnormalised generalised FEVD rows are **not** bounded below by one away from impact
+  (on the module's own test DGP, 50 of 59 fits have an impact row sum below one). Only
+  `normalize=True` rows sum to one, and they do so at every horizon.
+- The weak-exogeneity test is an approximate reduced-form F test, not the Dees et al. error-correction
+  test, and no generated-regressor correction is applied. Its measured size is disclosed in the
+  docstring (0.109 at a nominal 0.05 on I(1) levels, stable in `T`), so it ships as a diagnostic
+  ordering of p-values with a Holm-adjusted column, not as a calibrated decision rule.
+- Not implemented, and said so: VECX*/cointegration, structural identification of the global system,
+  time-varying weights, and per-country variable definitions (an all-NaN country-variable cell raises
+  unless `allow_missing_variables=True`).
+
+### Added — `puremacro.did.spatial_did` (spatial difference-in-differences, phase 4)
+- `spatial_did`: DiD when the treatment spills over onto nearby untreated units, which contaminates the
+  control group. Untreated units are partitioned into distance rings around the treated ones, each ring
+  gets its own effect, and units beyond the outermost ring are the clean control group.
+- The result reports the contaminated `naive_att` next to the ring-adjusted `direct_effect` and the
+  `contamination` term between them, so the size of the correction is visible.
+- `exposure_rings` and `contiguity_rings` build a `RingAssignment` from coordinates or a neighbour
+  graph; inspect and defend the cut points (`RingAssignment.plot`) before estimating anything.
+- Conley spatial standard errors by default, since rings induce spatial correlation by construction.
+  A negative sandwich diagonal yields NaN rather than a fabricated number, and is counted and warned.
+- Per-ring event study, per-ring placebo / pre-trend tests, and the outermost-ring test — which bounds
+  a **difference** between the outer ring and the beyond-ring controls, not the level of the spillover.
+- The all-rings joint pre-trend Wald does not ship: on seeded nulls it rejected at 0.515 (90 units) to
+  0.087 (400 units) against a nominal 0.10. The per-ring rows carry the same information three
+  restrictions at a time; Holm-adjust across them for the joint statement.
+- The headline never follows `event_study_estimator`: `static_estimator` is fixed at `'twfe'` and
+  `summary()` says so, with the Goodman-Bacon negative-weight caveat whenever there is more than one
+  cohort.
+
+### Added — shipped US geography (`puremacro.datasets`)
+- `load_us_state_centroids()` — 52 rows (50 states, DC, Puerto Rico) with internal points, land area,
+  county counts and the land-border neighbour list, so `contiguity_weights`, `knn_weights` and
+  `distance_weights` have a real `W` to build. Coordinates and areas come from the US Census Bureau
+  2023 county Gazetteer; the state points are derived, not official Census state internal points —
+  the land-area-weighted mean of the county internal points taken **on the sphere** (counties averaged
+  as unit vectors). That matters for exactly one row: Alaska's Aleutians West sits at longitude
+  +179.62, so a planar longitude mean would place Alaska 132 km away. Every other state moves under
+  7 km (median 1.2 km). AK, HI and PR are islands in the neighbour graph, which makes them a useful
+  island test for `SpatialWeights`.
+- `load_us_county_centroids()` — the 3,222 published county internal points and land areas, keyed by
+  the five-digit county FIPS that `bartik.build_county_epu` already expects. Two vintage details are
+  documented on the loader: Connecticut appears as the nine 2023 planning regions (09110-09190), not
+  the eight legacy counties, so a merge against a pre-2024 county panel will miss those rows; and
+  longitudes are not all negative, so use the default haversine metric, which wraps the antimeridian
+  correctly, rather than `metric="euclidean"`.
+- `tools/gen_us_geography.py` rebuilds both CSVs from the Gazetteer archive and asserts the
+  invariants before writing: mutual adjacency, Missouri and Tennessee tied at the maximum eight land
+  borders, Maine at one, AK/HI/PR at zero, and the county-to-state rollup. The queen-contiguity
+  convention at the Four Corners is recorded there, since it is not recoverable from the data.
+- `load_banxico_stance` was exported from `puremacro.datasets` but missing from `datasets.loaders`
+  `__all__`; it is now in both.
+
+### Fixed — DSGE engine audit (`puremacro.dsge`)
+A five-part audit of the DSGE layer, each part re-verified by an independent skeptic who reproduced
+every finding from scratch, turned up **55 confirmed defects, 27 of them silently wrong** — a wrong
+number returned with no complaint. 51 are fixed here. Much of the engine came through clean and was
+left alone: the Klein QZ solver (worst equilibrium residual 2.1e-15 over 292 random determinate
+models), the stacked-Newton perfect-foresight solver (analytic Brock-Mirman transition to 5.6e-17),
+the KKSS second-order/pruning recursion (checked against a 400,000-period *exact nonlinear* path), the
+Kalman recursion and smoother (exact against a brute-force stacked multivariate normal), and the
+complex-step Jacobians (closed forms to 1.1e-16).
+
+**Estimation — the likelihood level was not comparable across models.**
+- `estimate_dsge` started the Kalman recursion at the diffuse `P0 = 1e6·I` instead of the
+  unconditional (Lyapunov) covariance. A solved linear DSGE is stationary by construction, so this
+  added an arbitrary, scale-dependent constant to every log-likelihood. On a closed-form AR(1) plus
+  measurement error at T=200 the stationary start is exact (error `+0.0000`) while the shipped default
+  was off by `-6.35` and *moved with the constant* (`-4.05` at 1e4, `-8.65` at 1e8). On SW07 the
+  log-likelihood at the shipped starting values moves from **-3485.3934 to -3371.4026**. Marginal
+  likelihoods and Bayes factors computed before this release are not comparable.
+- The posterior-mode search returned `initial_params` **bit-identically** with `converged_mle=True`:
+  L-BFGS-B cannot finite-difference across `+inf`, so any trial step into the infeasible region
+  stopped it at iteration 1. The optimiser now sees a large finite penalty (Dynare's
+  `objective_function_penalty_base` pattern) while the MCMC target keeps `+inf`; a run that stops
+  without moving, or before converging, now says so.
+- `_nearest_pd` returned matrices with a negative minimum eigenvalue (LAPACK's Cholesky succeeds at
+  `O(-1e-9)`), so the advertised Hessian proposal silently degraded to a diagonal fallback. It is now
+  an eigenvalue floor that verifies its own output.
+- The inverse-gamma prior was neither Dynare's parameter reading nor Dynare's density family: it read
+  `(mean, std)` as Dynare's internal `(s, nu)` and evaluated the wrong density. It is now Dynare's
+  `inverse_gamma_specification` + `lpdfig1`, pinned by quadrature (the density integrates to 1 and
+  reproduces the requested moments). SW07's inverse-gamma log-prior moves from -20.2896 to -17.4660.
+- Out-of-support entries in `initial_params` were snapped to `lb + 1e-3` in silence; an infeasible
+  prior spec now raises up front.
+
+**Moments and decomposition — an invariant that could not fail.**
+- `compute_shock_decomposition` overwrote the `actual` column with the model's own reconstruction, so
+  the advertised adding-up check was vacuous (the reconstruction reached 35243.6 against data topping
+  out at 52.2 on SW07). `actual` is now the caller's data, with the gap in a new `residual` column.
+- The Kalman smoother was discarded for a minimum-norm `lstsq` split whenever the observation matrix
+  lacked full column rank — which always "fits", so the override always fired.
+- The asymptotic FEVD had no stationarity guard and returned fabricated shares from a garbage Lyapunov
+  solve on a unit-root model; it now raises. A declared **correlated** shock covariance had its
+  off-diagonal dropped, so the FEVD decomposed a total 13.2% away from the `Variance` column of the
+  same result object; that now raises rather than mislead.
+- For Klein-timed `build()` models the FEVD state rows were dated one period later than the rest of
+  the same result object.
+
+**Solvers.**
+- `gensys().G` was `Z1 inv(S11) T11 Z1ᴴ`, which drops Sims's `Z1 X Z2ᴴ` block — not `gensys.m`'s `G1`.
+  It differed in 300/300 random determinate models. Nothing caught it because it agrees on the stable
+  deflating subspace, so `Impact`-seeded IRFs and every moment were right to 5e-15. It is now Sims's
+  `G1`.
+- `eu` collapsed every root-count mismatch to `(0,0)`, reporting **indeterminacy as non-existence**;
+  the two are now distinguished. `gensys` is also now scale-invariant (a uniform ×1e-13 rescale used
+  to turn a solvable model into `eu=(0,0)`).
+- `klein_solve` never checked `G` at all and scaled `F`'s residual by the largest entry of the whole
+  system. It now verifies the full equilibrium condition row-wise and raises `KleinResidualError`
+  rather than returning a matrix that does not solve the model. It gained a `div` /
+  `qz_criterium`-style tolerance, so unit-root models solve instead of being refused, with a warning
+  that unconditional moments do not exist. A singular pencil now raises instead of answering.
+
+**OccBin and perfect foresight — `converged=True` on unverified paths.**
+- The scalar spell length `T*` is replaced by a full regime vector over the horizon, so late-starting
+  and multi-spell regimes are representable and anticipated shocks propagate. Previously a shock
+  announced for `t=5` was dropped entirely (the returned path was identically zero) and reported
+  converged.
+- `converged=True` now means *verified*: the path satisfies the constraint in every period and the
+  regime sequence is a fixed point. Cycling, a spell that fills the horizon, and an unverified guess
+  are all `converged=False` with a warning naming why.
+- `eq_row` was chosen without checking the constrained variable appears in it, so **reordering the
+  model's equations changed the answer**.
+- `solve_perfect_foresight` used an unscaled absolute residual test: on a model whose equations were
+  scaled by 1e-9 it returned the raw initial guess with `converged=True, iterations=0`, 32% away from
+  the true capital path. The test is now scale-aware and the step acceptance requires Armijo decrease.
+
+**Higher order.** A `varexo` absent from the `shocks;` block got variance **1.0** instead of 0,
+inflating `ghs2` and the ergodic mean of every variable; the auto-detected state set dropped a
+variable whose lag reached the model only through a second-order term, zeroing its whole curvature
+contribution; `simulate(shocks=..., sigma=s)` scaled the risk correction but not the supplied
+innovations; and `stoch_simul` printed simulated means in deviations beside theoretical means in
+levels in the same table.
+
+**Model building.** The steady-state gate compared `nan > 1e-6`, which is `False`, so a NaN residual
+was accepted and `build` returned a "determinate" model with IRFs of order 1e39. The analyticity
+guard that is supposed to catch `abs`/`max`/comparisons in a user's residual (complex-step is exact
+only for analytic functions) was defeated four separate ways: a block-wide absolute tolerance floor,
+a NaN in the probe silently disabling the check, a fixed probe direction with a deterministic blind
+spot at column 52, and treating the finite difference as an infallible oracle.
+
+**Gertler-Karadi: the credit-policy rule was discontinuous at its own trigger.**
+The constrained regime set `psi = nu_g * (prem - prem_ss)`, so the instant the spread crossed the
+activation threshold the credit injection jumped from 0 to `nu_g * threshold` — 0.025 at the shipped
+calibration. Policy switching on compressed the very spread that triggered it, the binding indicator
+flipped, and the regime iteration had **no fixed point at all**: forcing a contiguous spell of length
+`k` and reading off the implied binding set, no `k` mapped to itself for any `nu_g` in [0.1, 10]
+crossed with any threshold in [0.0025, 0.012] (at `nu_g = 0.1` a clean two-cycle). The old code
+nonetheless reported `converged=True`, on a path violating its own constraint in periods 1-7 and from
+period 12 (`prem` 0.0310 against a 0.0025 threshold).
+
+The rule is now `psi = nu_g * (prem - prem_ss - prem_trigger)` — policy responds to the spread *in
+excess of* the trigger, so `psi -> 0` where the regimes meet. This is the standard kinked-policy
+formulation, it is exactly how a ZLB is written, and it is what `docs/gertler_karadi.md` already
+specified (`psi_t = nu_g * max(0, Spread_t - threshold)`): the code had drifted from its own
+documentation. `solve_gertler_karadi` sets `prem_trigger` to the OccBin threshold automatically, and
+warns if a caller passes a conflicting value in `params`. `GK2011_PARAMS["prem_trigger"]` defaults to
+`0.0`, which reproduces the old algebra for anyone building the constrained model by hand.
+- `constraint_type="credit_policy"` now **converges**: a single contiguous spell of 14 periods at the
+  shipped defaults, `converged=True`, no warning, and the regime sequence is a genuine fixed point
+  (re-deriving the binding test from the returned path reproduces it exactly). All 40 cells of a
+  `nu_g` x threshold sweep converge, the spell length is invariant to the horizon from 20 to 200
+  periods, and the comparative statics run the right way (longer spell with more aggressive policy,
+  shorter with a higher trigger). Credit policy is not toothless: `psi > 0` in every binding period
+  (peak 0.0389) and exactly 0 when off, the peak spread falls 58% against pure Klein (0.0151 ->
+  0.0064) and the output trough is 22% shallower (-0.0308 -> -0.0239).
+- `solve_occbin`'s post-hoc bound check was peg-shaped and rejected every correct **trigger-style**
+  solution: it flagged periods where the variable sat beyond the threshold, which for a trigger is
+  precisely what being active means. It now checks the whole path for peg-style constraints
+  (unchanged, bit-identical) and, for trigger-style ones, that no period declared *slack* has tripped
+  the trigger — the binding periods are already covered by the fixed-point condition, which is
+  stronger. A trigger-style constraint with genuinely no fixed point still reports `converged=False`
+  with a warning naming the cycle.
+- `constraint_type="leverage_cap"` was ill-posed in a deeper way and has been **reformulated**. The
+  constrained regime replaced equation 16 — the moral-hazard incentive constraint
+  `phi (lambda_b - nu) = eta` — with `phi = phi_max`. That equation is the anchor of the banker value
+  block, so deleting it made the constrained regime **violate Blanchard-Kahn**: the reference model's
+  largest stable root 0.95420 became an unstable 1.01845 (= `1/(theta_b (1 + prem_ss phi_ss))`, the
+  net-worth accumulation root), and the capped path grew at `1/theta_b` = 2.88% per quarter. The
+  consequences were not subtle: notional leverage rose monotonically through the spell instead of
+  falling back to the cap, so the exit condition was never met endogenously and the spell ended
+  wherever it was put. The fixed-point set was `[16, H]` — *the truncation horizon* — at every cap from
+  1% to 15% above steady state and every `H` from 40 to 200, and a cap 400% above steady state, which
+  the unconstrained path never approaches, still admitted a spurious 10-quarter spell. The path the old
+  code returned as converged had bank net worth at -1.157 against a steady state of +1.381 (negative
+  equity), franchise value `eta` at -8.95 against +1.546, and output 68% below steady state.
+  Independently: the problem's Holden (2016) matrix is not a P-matrix (leading principal minors turn
+  negative from k = 16, and it has a negative real eigenvalue), so no unique piecewise-linear solution
+  exists — while the same construction on the repo's own NK ZLB model passes the test.
+
+  The cap is now imposed **while keeping the incentive constraint**: the constrained regime replaces
+  equation 26 (`psi = 0`) with `phi = phi_max`, freeing the public credit share `psi`, and equation 17
+  `(1 - psi) Q K = phi N` determines how much intermediation the public balance sheet absorbs. The
+  complementarity is `phi <= phi_max`, `psi >= 0`, `psi = 0` where the cap is slack, enforced by
+  passing `relax_variable="psi"`, so the two regimes agree at the switch — the same continuity that
+  makes the credit-policy constraint well-posed. **Read this as a leverage cap with a public
+  backstop**, not as hard credit rationing: a binding cap compresses intermediation rents rather than
+  destroying the intermediation.
+
+  The constrained regime is now determinate, and the default threshold moves from the degenerate `0.0`
+  (a cap exactly at steady-state leverage, which binds in every period at every horizon because
+  leverage decays to it from above without ever crossing) to `0.20 * phi_ss` = 0.8197. At the shipped
+  defaults it converges with a verified 13-quarter spell, zero warnings, `phi` pegged to the cap to
+  4.4e-16, `psi >= 0` throughout the spell and exactly 0 outside it, and the answer is invariant across
+  horizons 40, 60, 80, 120 and 200. Tighter caps bind longer and need a longer horizon (10% above
+  steady state needs `horizon >= 80`, 5% needs `>= 200`); the solver says so rather than guessing.
+  `threshold=0.0` still reports `converged=False` with a warning, so the honesty guarantee is intact.
+- `solve_occbin` gained two guards from this work: a constraint whose alternative regime *pegs* the
+  constrained variable in a row that no reference equation determines now raises, naming the row and
+  telling the caller to supply `relax_variable` — precisely the trap that made this constraint look
+  unfixable; and a `relax_variable` naming a variable the model does not have now raises instead of
+  being silently downgraded to the default rule.
+
+### Changed — `puremacro.wavelet` is now a package, and `wavelet_coherence` drops boundary coefficients
+- `puremacro/wavelet.py` became `puremacro/wavelet/`, with the pairwise coherence moved to
+  `puremacro.wavelet.coherence`. Every public name is re-exported, so `from puremacro.wavelet import
+  wavelet_coherence, WaveletCoherenceResult, ...` is unchanged; only the defining module moved, which
+  shows up in the public-API snapshot.
+- **`wavelet_coherence` gained `boundary_safe=True` and it changes the numbers.** The MODWT here uses
+  circular convolution, so at scale `j` the first `2^j - 1` detail coefficients are computed partly
+  from the *end* of the series wrapped onto its start. Those are now discarded by default. This is a
+  correctness fix, not a cosmetic option: on 60 seeded pairs sharing a deterministic ramp — so both
+  series carry the same jump across the wrap — but with independent innovations, the old behaviour
+  reported a mean |coherence| of **0.97** at the coarsest scale, essentially pure artefact, where the
+  boundary-safe result is **0.16**. The artefact grows with scale, because `2^j - 1` does.
+  Pass `boundary_safe=False` to reproduce the pre-2.5.0 numbers exactly.
+- `wavelet_coherence`'s `level` now defaults to 5. `dwt_haar`, `idwt_haar`, `modwt_haar` and
+  `wavelet_variance` are numerically unchanged.
+
+### Added — `puremacro.inference.simex_ols` (errors-in-variables correction)
+- SIMEX (Cook & Stefanski 1994) for classical measurement error in a single-regressor OLS slope:
+  the simulation-extrapolation estimate, the naive slope, the method-of-moments correction
+  `beta_naive / reliability`, the reliability ratio and the simulation curve, on a `SIMEXResult`.
+  On a planted design with `beta = 1.5` and `sigma_u = 0.8`, the naive slope attenuates to 0.914
+  (theory: 0.915), the reliability ratio comes out at 0.611 (theory: 0.610), the moment correction
+  recovers 1.495, and the quadratic-extrapolant SIMEX estimate beat the naive one in 40 of 40 seeds.
+
+### Added — runtime environment helpers
+- `runtime.get_runtime_environment()` classifies the session as `workstation`, `juno_ios` or
+  `pyodide_wasm` (overridable with `PUREMACRO_RUNTIME_ENV`), `runtime.is_mobile_or_constrained()`
+  folds in the budget tier, and `runtime.clamp_bootstrap(n_boot)` caps bootstrap replications with a
+  `BudgetWarning` when the session is constrained.
+
+### Fixed — issues found by the release review
+These were found by an adversarial review of the release itself and fixed before shipping.
+- `sar` / `sem` / `sdm` / `slx` / `ols_spatial` now reject a degenerate outcome instead of fitting one.
+  A constant outcome previously made `sem` report `lambda = 0.82` with `p = 0.0000`, `converged=True`
+  and no warning — a significant spatial error correlation for an outcome that was the number 3.0
+  everywhere; `sar`/`sdm` pinned `rho` to the boundary and `ols_spatial` raised `ZeroDivisionError`.
+- `spatial_did` raises on a non-finite outcome instead of silently dropping NaN rows (while reporting
+  `n_obs_dropped = 0`) or letting an `inf` reach the HAC and die inside LAPACK with no function name.
+- The covariance-token vocabulary is shared across `puremacro.spatial`: `'driscoll-kraay'`,
+  `'dk'`, `'spatial'`, `'conley'` and the cluster spellings now mean the same thing to
+  `spatial_panel`'s `vcov=` as to `spatial_lp`'s and `panel_lp`'s `cov_type=`. The `vcov=` /
+  `cov_type=` keyword split itself is unchanged — it is the documented convention separating
+  likelihood-based from projection estimators.
+- `spatial_lag_panel` and `higher_order_weights` name themselves when given a missing column or a
+  non-numeric order, instead of surfacing a bare `KeyError` / coercion error.
+- `spatial_effects` accepts `n_draws=` as an alias for `n_sim=` (the spelling `spatial_panel` uses).
+- Documentation corrections, in the code and in both languages: the degrees-of-freedom correction does
+  **not** rescale all five LM statistics by `(n-k)/n` (it is `(n-k)/n` for RLM-lag, `((n-k)/n)²` for
+  LM-error, and no constant at all for LM-lag, RLM-error and LM-SARMA, because `nJ` is affine in
+  `1/σ²`); and the indirect impact is the **sum** of the `n(n-1)` off-diagonal cross-partials divided
+  by `n`, not their mean — the old wording was wrong by a factor of `n-1`. The `1/(1-ρ)` bullet in
+  §7 now demonstrates a case where the shortcut actually fails (a binary `W`, where it is off by a
+  factor of 3.5) rather than printing two identical numbers.
+- `docs/1.0_path.md`: `var.gvar` is excluded from the 1.0 stability promise until it has more users,
+  alongside `var/regime/*`. Both README version strings now read 2.5.0.
+- `LPResult.summary()` sized its label column to a hardcoded 6 characters. The regime and sign
+  estimators label coefficients `H`/`L` or `pos`/`neg`, so it never showed; `spatial_lp` labels them
+  `direct` / `indirect` / `indirect_all`, and anything longer overflowed the field and pushed that
+  row's numbers out from under their headers. The column is now as wide as the widest label, and
+  short-label output is byte-identical to before.
+- `simex_ols` and the three runtime helpers above shipped without any tests; both now have them
+  (11 and 10 cases), as does `wavelet_coherence`'s boundary handling (5 cases).
+- `tests/validation/test_framework.py` pins the case counts, subsystem counts, mechanism totals and
+  the per-subsystem table in `docs/VALIDATION.md` (EN/ES) to `scorecard()`, so those numbers cannot
+  drift again — they had been stale for two releases and never listed the `spatial` subsystem at all.
+
+### Docs
+- `docs/spatial.md` / `docs/es/spatial.md` extended with the specification battery, the cross-section
+  models, the impacts decomposition, spatial panels and spatial local projections.
+- `docs/gvar.md` / `docs/es/gvar.md`: new Global VAR page.
+- `docs/did.md` / `docs/es/did.md`: new spillover-robust DiD section. Both pages join the runnable
+  code-block test, so every example on them executes verbatim in CI.
+- Validation gallery extended with the new estimators' identities; `docs/VALIDATION.md` (EN/ES)
+  updated with the `spatial` subsystem, which the 2.4.0 release added to the gallery but never listed.
+
 ## 2.4.0 (2026-09-05)
 
 Feature release: the first phase of the spatial econometrics extension. Additive only; no existing signature changes and no new runtime dependencies.

@@ -392,3 +392,121 @@ def test_dampening_and_convergence_options(ramsey_model):
     )
     assert res_slice.converged is True
     assert len(res_slice.path) == 20
+
+
+# ---------------------------------------------------------------------------
+# Regression tests for the scale-awareness of the convergence test (2.4.x audit)
+# ---------------------------------------------------------------------------
+
+
+def _scaled_ramsey(ramsey_model, s):
+    """The same Ramsey model with every equation multiplied by ``s``.
+
+    Multiplying the residuals by a constant leaves the solution untouched, so
+    any honest solver must return the same path for every ``s``.
+    """
+    base = ramsey_model["equations_fn"]
+
+    def eqs(y_plus, y_curr, y_lag, eps):
+        return [s * r for r in base(y_plus, y_curr, y_lag, eps)]
+
+    return eqs
+
+
+@pytest.mark.parametrize("scale", [1e-12, 1e-9, 1e-4, 1.0, 1e4, 1e8])
+def test_perfect_foresight_is_invariant_to_equation_scaling(ramsey_model, scale):
+    """Rescaling every equation must not change the answer.
+
+    With the old unscaled absolute residual test, ``s = 1e-9`` made the residual
+    of the raw linear-interpolation initial guess 1.6e-10 < tol, so the solver
+    returned that guess untouched with converged=True and iterations=0 -- a
+    capital path wrong by ~30%. The mirror case ``s = 1e8`` reported
+    converged=False on a path correct to 2e-15.
+    """
+    y_ss = ramsey_model["y_ss"]
+    c_ss, k_ss = ramsey_model["c_ss"], ramsey_model["k_ss"]
+    y_init = np.array([c_ss, 0.5 * k_ss])
+    T = 60
+    exo = np.ones(T)
+
+    truth = solve_perfect_foresight(
+        ramsey_model["equations_fn"], y_init=y_init, y_ss=y_ss,
+        exogenous_path=exo, n_periods=T, tol=1e-8, variable_names=["c", "k"],
+    )
+    assert truth.converged is True
+
+    res = solve_perfect_foresight(
+        _scaled_ramsey(ramsey_model, scale), y_init=y_init, y_ss=y_ss,
+        exogenous_path=exo, n_periods=T, tol=1e-8, variable_names=["c", "k"],
+    )
+    assert res.converged is True
+    assert res.iterations >= 1
+    np.testing.assert_allclose(res.path.values, truth.path.values, atol=1e-10)
+
+
+def test_perfect_foresight_never_returns_the_untouched_initial_guess(ramsey_model):
+    """converged=True with iterations=0 on the raw initial guess is impossible now."""
+    y_ss = ramsey_model["y_ss"]
+    c_ss, k_ss = ramsey_model["c_ss"], ramsey_model["k_ss"]
+    y_init = np.array([c_ss, 0.5 * k_ss])
+    T = 60
+
+    res = solve_perfect_foresight(
+        _scaled_ramsey(ramsey_model, 1e-9), y_init=y_init, y_ss=y_ss,
+        exogenous_path=np.ones(T), n_periods=T, tol=1e-8, variable_names=["c", "k"],
+    )
+
+    # The initial residual is below the raw absolute tolerance ...
+    assert res.initial_residual_norm < 1e-8
+    # ... yet the solver did work and moved away from the linear interpolation.
+    assert res.iterations >= 1
+    guess = np.array([
+        (1.0 - (t + 1.0) / (T + 1.0)) * y_init + ((t + 1.0) / (T + 1.0)) * y_ss
+        for t in range(T)
+    ])
+    assert np.max(np.abs(res.path.values - guess)) > 0.1
+
+
+def test_perfect_foresight_line_search_requires_descent():
+    """The step-acceptance loop must require a decrease, not merely finiteness.
+
+    Stacking the classic Newton two-cycle f(y) = y^3 - 2y + 2 from y = 0 used to
+    oscillate 0 -> 1 -> 0 for the whole iteration budget and return the starting
+    point with residual 2.0. With an Armijo sufficient-decrease test the
+    iteration makes progress and stops as soon as it stalls.
+    """
+    def eqs(y_plus, y_curr, y_lag, eps):
+        y = y_curr[0]
+        return [y ** 3 - 2.0 * y + 2.0]
+
+    with pytest.warns(UserWarning):
+        res = solve_perfect_foresight(
+            eqs, y_init=np.array([0.0]), y_ss=np.array([0.0]),
+            exogenous_path=np.zeros(1), n_periods=1, tol=1e-10, max_iter=200,
+            initial_path=np.array([[0.0]]), variable_names=["y"],
+        )
+
+    assert res.converged is False
+    # Old behaviour: 200 iterations, residual back at the initial 2.0.
+    assert res.iterations <= 20
+    assert res.residual_norm < res.initial_residual_norm
+    assert res.residual_norm < 1.0
+
+
+def test_perfect_foresight_validates_solver_options(ramsey_model):
+    """dampening / tol / max_iter / method are checked up front."""
+    eqs = ramsey_model["equations_fn"]
+    y_ss = ramsey_model["y_ss"]
+    kw = dict(y_init=y_ss, y_ss=y_ss, exogenous_path=np.ones(10), n_periods=10)
+
+    for bad in (0.0, -1.0, 1.5, float("nan")):
+        with pytest.raises(ValueError, match="dampening must lie in"):
+            solve_perfect_foresight(eqs, dampening=bad, **kw)
+    for bad in (0.0, -1.0):
+        with pytest.raises(ValueError, match="tol must be a finite positive number"):
+            solve_perfect_foresight(eqs, tol=bad, **kw)
+    for bad in (0, -1):
+        with pytest.raises(ValueError, match="max_iter must be an integer >= 1"):
+            solve_perfect_foresight(eqs, max_iter=bad, **kw)
+    with pytest.raises(ValueError, match="unknown method"):
+        solve_perfect_foresight(eqs, method="bogus", **kw)

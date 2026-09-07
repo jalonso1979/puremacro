@@ -110,7 +110,8 @@ puremacro/
 ├── midas.py               ← unrestricted + beta-poly MIDAS
 ├── spectral.py            ← Welch PSD, cross-spectrum, coherence (numpy.fft)
 ├── synthetic_control.py   ← Abadie-Diamond-Hainmueller + placebo inference
-├── wavelet.py             ← DWT / MODWT Haar variance decomposition
+├── wavelet/               ← DWT / MODWT Haar variance decomposition
+│   └── coherence.py       ← boundary-safe pairwise wavelet coherence
 ├── realized_vol.py        ← realized variance, bipower, Corsi HAR-RV
 ├── labor_share.py         ← Gollin (2002) self-employed-adjusted share
 ├── scale.py               ← IRF scaling / peak finder utilities
