@@ -262,6 +262,13 @@
       "solve_perfect_foresight",
       "solve_steady_state"
     ],
+    "puremacro.dsge._estimated_params": [
+      "EstimatedParamSpec",
+      "EstimatedParams",
+      "parse_estimated_params",
+      "parse_estimated_params_bounds",
+      "parse_estimated_params_init"
+    ],
     "puremacro.dsge._moments": [
       "ZeroVarianceWarning",
       "conditional_fevd",
@@ -2772,6 +2779,19 @@
       "treat_time",
       "unit"
     ],
+    "puremacro.dsge._estimated_params.EstimatedParamSpec": [
+      "init",
+      "jscale",
+      "kind",
+      "lb",
+      "name",
+      "prior",
+      "target",
+      "ub"
+    ],
+    "puremacro.dsge._estimated_params.EstimatedParams": [
+      "specs"
+    ],
     "puremacro.dsge._results.DSGEPosteriorResult": [
       "accept_rates",
       "data_n_obs",
@@ -2863,8 +2883,11 @@
       "_A_plus",
       "_B_u",
       "_dynare_equations",
+      "_estimated_params",
+      "_mod_options",
       "_params",
       "_shock_cov",
+      "_varobs",
       "controls",
       "method",
       "residual_norm",

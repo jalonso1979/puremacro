@@ -98,7 +98,7 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass
-from typing import Callable, Mapping, Sequence
+from typing import Any, Callable, Mapping, Sequence
 
 import numpy as np
 import pandas as pd
@@ -248,6 +248,12 @@ class LinearModel:
     _B_u: np.ndarray | None = None
     _shock_cov: np.ndarray | None = None
     timing: str = "klein"
+    # Declarations carried over from a .mod file, when the model came from one.
+    # ``None`` on every model built through ``build()``. The dataclass is
+    # frozen, so ``load_mod`` attaches these with ``dataclasses.replace``.
+    _varobs: tuple | None = None
+    _estimated_params: Any | None = None
+    _mod_options: dict | None = None
 
     def __post_init__(self):
         if self.timing not in ("klein", "dynare"):

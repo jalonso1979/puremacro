@@ -22,6 +22,7 @@ Schmitt-Grohé, S. and Uribe, M. (2004). Solving dynamic general equilibrium
 """
 from __future__ import annotations
 
+import dataclasses
 import re
 import warnings
 from pathlib import Path
@@ -40,6 +41,11 @@ from puremacro.dsge.build import (
     _FDSTEP,
     _jacobian,
     _verify_jacobian,
+)
+from puremacro.dsge._estimated_params import (
+    parse_estimated_params,
+    parse_estimated_params_bounds,
+    parse_estimated_params_init,
 )
 from puremacro.dsge.klein import KleinSolution, klein_solve
 from puremacro.dsge.pruning import PrunedDSGESolution
@@ -970,6 +976,13 @@ def parse_mod(mod_text: str) -> dict:
         - ``shock_cov``: covariance matrix of structural innovations if declared
         - ``options``: dict of parsed stoch_simul options (e.g. order, pruning, irf)
         - ``varobs``: list of observable variables (if declared)
+        - ``estimated_params``: :class:`~puremacro.dsge._estimated_params.EstimatedParams`
+          parsed from the ``estimated_params;`` block, or ``None`` when the
+          file has none
+        - ``estimated_params_init``: ``{name: value}`` from
+          ``estimated_params_init;``, or ``None``
+        - ``estimated_params_bounds``: ``{name: (lb, ub)}`` from
+          ``estimated_params_bounds;``, or ``None``
 
     Raises
     ------
@@ -1237,6 +1250,25 @@ def parse_mod(mod_text: str) -> dict:
         if per_m:
             options["periods"] = int(per_m.group(1))
 
+    # 10b. Parse estimated_params / _init / _bounds.
+    #
+    # The blocks are stripped from `non_block_text` above so they cannot
+    # pollute the top-level parameter scan; they are read here from
+    # `clean_text` instead. `\b...\b` keeps `estimated_params` from matching
+    # `estimated_params_init`.
+    _has = lambda blk: re.search(  # noqa: E731
+        rf"\b{blk}\s*(?:\([^)]*\))?\s*;", clean_text) is not None
+    estimated_params = parse_estimated_params(
+        clean_text, shocks=shocks, varobs=varobs,
+        params=sorted(declared_params), variables=variables,
+    ) if _has("estimated_params") else None
+    estimated_params_init = parse_estimated_params_init(
+        clean_text, shocks=shocks, varobs=varobs,
+    ) if _has("estimated_params_init") else None
+    estimated_params_bounds = parse_estimated_params_bounds(
+        clean_text, shocks=shocks, varobs=varobs,
+    ) if _has("estimated_params_bounds") else None
+
     # 11. Multi-period lead and lag expansion
     clean_eqs, variables, steady_state, guess = _expand_multiperiod_leads_lags(
         clean_eqs, variables, steady_state=steady_state, guess=guess_init if guess_init else None
@@ -1295,6 +1327,9 @@ def parse_mod(mod_text: str) -> dict:
         "shock_cov": shock_cov if has_shocks_block else None,
         "options": options,
         "varobs": varobs if varobs else None,
+        "estimated_params": estimated_params,
+        "estimated_params_init": estimated_params_init,
+        "estimated_params_bounds": estimated_params_bounds,
     }
 
 
@@ -1410,7 +1445,7 @@ def load_mod(
     # Determine effective shock_cov
     eff_shock_cov = shock_cov if shock_cov is not None else parsed.get("shock_cov")
 
-    return build_dynare(
+    model = build_dynare(
         parsed["equations"],
         variables=parsed["variables"],
         shocks=parsed["shocks"],
@@ -1425,6 +1460,20 @@ def load_mod(
         verify_derivatives=verify_derivatives,
         strict=strict,
     )
+
+    # Carry the file's own declarations onto the solved model so
+    # ``model.estimate(data)`` needs no second copy of them. LinearModel is a
+    # frozen dataclass, so this is ``replace``, never assignment; a
+    # second-order solve returns a PrunedDSGESolution instead and is left
+    # alone.
+    if isinstance(model, LinearModel):
+        model = dataclasses.replace(
+            model,
+            _varobs=tuple(parsed["varobs"]) if parsed["varobs"] else None,
+            _estimated_params=parsed["estimated_params"],
+            _mod_options=dict(parsed["options"]) if parsed["options"] else None,
+        )
+    return model
 
 
 # Backwards compatibility alias

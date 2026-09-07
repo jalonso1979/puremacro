@@ -286,11 +286,11 @@ git commit -m "feat(dsge): generalised beta/gamma, Weibull and inverse-gamma typ
 
 ---
 
-## Task 3: `_estimated_params.py` — the grammar
+## Task 3: `_estimated_params.py` — the grammar — DONE
 
 **Files:** Create `puremacro/dsge/_estimated_params.py`, `tests/test_dsge/test_estimated_params.py`. Modify `puremacro/dsge/dynare.py`, `puremacro/dsge/build.py`.
 
-- [ ] **Step 1: Write the module skeleton**
+- [x] **Step 1: Write the module skeleton**
 
 ```python
 @dataclass(frozen=True)
@@ -330,7 +330,7 @@ def parse_estimated_params_bounds(block_text) -> dict[str, tuple[float, float]]:
 5. Any other length is a `ValueError` quoting the statement verbatim.
 6. `kind` is decided by the target: a `varexo` under `stderr` → `stderr_shock`; a `varobs` under `stderr` → `stderr_obs`; `corr` → `corr_shock`; otherwise `param`, and a name that is neither a declared parameter nor a variable is a `ValueError`.
 
-- [ ] **Step 2: Write the tests**
+- [x] **Step 2: Write the tests**
 
 ```python
 _SYNTHETIC = """
@@ -405,7 +405,7 @@ def test_estimated_params_init_and_bounds_override():
     ...
 ```
 
-- [ ] **Step 3: Wire into `parse_mod`**
+- [x] **Step 3: Wire into `parse_mod`**
 
 `parse_mod` currently strips `estimated_params` in `block_pattern` (`dynare.py:936`). Keep the strip (the block must not pollute the top-level parameter scan), and **additionally** capture it:
 
@@ -420,7 +420,7 @@ def test_estimated_params_init_and_bounds_override():
 
 New keys in the returned dict: `estimated_params`, `estimated_params_init`, `estimated_params_bounds`, `observation_trends`, `estimation_options`. Existing keys are untouched — the addition is purely additive, and `tests/test_dsge_dynare_parser.py` must pass unchanged.
 
-- [ ] **Step 4: Attach to the model**
+- [x] **Step 4: Attach to the model**
 
 `LinearModel` is `@dataclass(frozen=True)`: add three fields with `None` defaults —
 
@@ -432,13 +432,13 @@ New keys in the returned dict: `estimated_params`, `estimated_params_init`, `est
 
 and in `load_mod`, after the model is built, attach with `dataclasses.replace(model, _varobs=..., _estimated_params=...)`. **Never** by assignment — the dataclass is frozen.
 
-- [ ] **Step 5: Run**
+- [x] **Step 5: Run**
 
 ```bash
 PYTHONPATH=. python3 -m pytest tests/test_dsge/test_estimated_params.py tests/test_dsge_dynare_parser.py -q
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add puremacro/dsge/_estimated_params.py puremacro/dsge/dynare.py puremacro/dsge/build.py tests/test_dsge/test_estimated_params.py
