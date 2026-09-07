@@ -215,6 +215,7 @@
       "DSGEPosteriorResult",
       "Dynare2ndDR",
       "DynareDR",
+      "DynareFeatureError",
       "FEVDResult",
       "FertilitySolution",
       "GK2011_PARAMS",

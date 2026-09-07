@@ -67,13 +67,13 @@ Read from the tree on 2026-09-07; every line below was checked, not assumed.
 
 ---
 
-## Task 1: Close the silent macro-directive hole
+## Task 1: Close the silent macro-directive hole — DONE (e6d83ad)
 
 **Files:** Modify `puremacro/dsge/dynare.py`, `puremacro/dsge/__init__.py`. Create `tests/test_dsge/test_macro_directive_guard.py`.
 
 Today `@#define N = 2` is ignored, the file loads clean, and a **different model is solved**. Every other unsupported construct fails loudly; this one does not. It is fixed first because it is four lines and because everything downstream would otherwise estimate the wrong model without saying so.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 """Dynare macro directives are not implemented — they must not be ignored."""
@@ -135,7 +135,7 @@ def test_guard_is_not_a_valueerror():
             pytest.fail("DynareFeatureError was caught as a ValueError")
 ```
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 In `dynare.py`, above `parse_mod`:
 
@@ -169,7 +169,7 @@ In `parse_mod`, immediately after `clean_text = _remove_comments(mod_text)` (so 
 
 Export `DynareFeatureError` from `puremacro/dsge/__init__.py`.
 
-- [ ] **Step 3: Run**
+- [x] **Step 3: Run**
 
 ```bash
 PYTHONPATH=. python3 -m pytest tests/test_dsge/test_macro_directive_guard.py -q
@@ -177,7 +177,7 @@ PYTHONPATH=. python3 -m pytest tests/test_dsge/test_macro_directive_guard.py -q
 
 Expected: 7 passed.
 
-- [ ] **Step 4: Confirm no existing .mod fixture regresses**
+- [x] **Step 4: Confirm no existing .mod fixture regresses**
 
 ```bash
 PYTHONPATH=. python3 -m pytest tests/test_dsge_dynare_parser.py tests/test_dynare_advanced.py tests/test_dsge_dynare_moments.py -q
@@ -185,7 +185,7 @@ PYTHONPATH=. python3 -m pytest tests/test_dsge_dynare_parser.py tests/test_dynar
 
 Expected: all pass (`sw07_pfeifer.mod` contains no `@#`; verified).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add puremacro/dsge/dynare.py puremacro/dsge/__init__.py tests/test_dsge/test_macro_directive_guard.py

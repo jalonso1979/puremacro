@@ -32,7 +32,10 @@ from .pruning import (
     PrunedSimulationResult,
     canonical_growth_2nd_order,
 )
-from .dynare import build_dynare, parse_mod, load_mod, load_dynare_mod, solve_dynare_2nd_order
+from .dynare import (
+    DynareFeatureError,
+    build_dynare, parse_mod, load_mod, load_dynare_mod, solve_dynare_2nd_order,
+)
 from .perfect_foresight import PerfectForesightResult, solve_perfect_foresight
 from .occbin import OccBinConstraint, OccBinResult, solve_occbin
 from .gertler_karadi import (
@@ -64,6 +67,7 @@ __all__ = [
     "DSGEPosteriorResult", "SW07PosteriorResult", "BayesianEstimationResult", "FertilitySolution",
     "DynareDR", "Dynare2ndDR", "TheoreticalMomentsResult", "StochSimulResult",
     "build_dynare", "parse_mod", "load_mod", "load_dynare_mod", "solve_dynare_2nd_order",
+    "DynareFeatureError",
     "PerfectForesightResult", "solve_perfect_foresight",
     "OccBinConstraint", "OccBinResult", "solve_occbin",
     "solve_gertler_karadi", "GertlerKaradiResult", "GK2011_PARAMS", "solve_steady_state", "build_gertler_karadi_model",

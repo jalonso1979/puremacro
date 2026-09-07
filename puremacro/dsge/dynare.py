@@ -54,6 +54,47 @@ def _remove_comments(text: str) -> str:
     return text
 
 
+class DynareFeatureError(NotImplementedError):
+    """A .mod construct puremacro recognises but does not implement yet.
+
+    Deliberately **not** a ``ValueError``: callers wrap parse failures in
+    ``except ValueError`` and this must not be swallowed by them. Every other
+    unsupported construct fails loudly on its own (a model-local ``#``
+    variable over an endogenous variable, ``STEADY_STATE()`` and ``normcdf``
+    all raise ``NameError`` when the compiled equations run); the macro
+    processor did not, and silently solving a different model from the one the
+    file describes is the failure this class exists to prevent.
+    """
+
+
+# Dynare macro-processor syntax. Directives are line-oriented (``@#define``,
+# ``@#for``, ``@#if``, ``@#include``, ...); ``@{expr}`` is inline interpolation.
+# Both are matched on comment-stripped text, so ``% @#define N = 2`` stays a
+# comment.
+_MACRO_DIRECTIVE = re.compile(r"^[^\S\n]*@#\s*\w+", re.M)
+_MACRO_INTERPOLATION = re.compile(r"@\{")
+
+
+def _check_no_macro_directives(clean_text: str) -> None:
+    """Refuse a .mod file that needs the macro processor.
+
+    Called on comment-stripped source, before any declaration is read: the
+    macro processor rewrites the file, so every downstream answer would be
+    about a model the file does not describe.
+    """
+    found = _MACRO_DIRECTIVE.search(clean_text) or _MACRO_INTERPOLATION.search(clean_text)
+    if found is None:
+        return
+    raise DynareFeatureError(
+        f"this .mod file uses the Dynare macro processor ({found.group(0).strip()!r} "
+        f"at character {found.start()}); puremacro does not implement it yet "
+        "(planned for 2.7.0). Parsing on would silently solve a *different* model "
+        "from the one this file describes, so it stops here instead. Workaround: "
+        "expand the macros once with Dynare (`dynare model.mod savemacro`) and pass "
+        "the expanded file."
+    )
+
+
 def _lead_lag_jacobians(
     equations: Callable,
     variables: Sequence[str],
@@ -929,8 +970,18 @@ def parse_mod(mod_text: str) -> dict:
         - ``shock_cov``: covariance matrix of structural innovations if declared
         - ``options``: dict of parsed stoch_simul options (e.g. order, pruning, irf)
         - ``varobs``: list of observable variables (if declared)
+
+    Raises
+    ------
+    DynareFeatureError
+        The file uses the Dynare macro processor (``@#define``, ``@#for``,
+        ``@#if``, ``@#include``, ``@{...}``), which is not implemented. Parsing
+        on would silently solve a different model.
+    ValueError
+        The file has no ``var``/``varexo`` declaration or no ``model;`` block.
     """
     clean_text = _remove_comments(mod_text)
+    _check_no_macro_directives(clean_text)
 
     # Remove known blocks to isolate top-level declarations and parameters
     block_pattern = r"\b(model|initval|steady_state_model|shocks|estimated_params)\b(?:\([^)]*\))?\s*;.*?\bend\s*;"
