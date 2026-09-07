@@ -633,13 +633,13 @@ git commit -m "feat(dsge): build the Kalman measurement equation from varobs"
 
 ---
 
-## Task 5: `LinearModel.smoother()` and `.forecast()` — Dynare's `calib_smoother`
+## Task 5: `LinearModel.smoother()` and `.forecast()` — Dynare's `calib_smoother` — DONE
 
 **Files:** Create `puremacro/dsge/smoother.py`, `tests/test_dsge/test_smoother.py`. Modify `puremacro/dsge/build.py`, `puremacro/dsge/_results.py`.
 
 Because the state is `[x_t; u_t]`, `kalman_smoother`'s `a_smooth` already contains the smoothed structural shocks in its last `n_e` columns. That is the whole implementation.
 
-- [ ] **Step 1: Result objects** in `_results.py`
+- [x] **Step 1: Result objects** in `_results.py`
 
 ```python
 @dataclass(frozen=True)
@@ -663,7 +663,7 @@ class DSGEForecastResult:
     # + the five presentation methods
 ```
 
-- [ ] **Step 2: Methods on `LinearModel`**
+- [x] **Step 2: Methods on `LinearModel`**
 
 ```python
 def smoother(self, data, *, varobs=None, params=None, measurement_error=None,
@@ -673,7 +673,7 @@ def forecast(self, horizon=8, *, data=None, ci=0.90, **kw) -> DSGEForecastResult
 
 `varobs` defaults to `self._varobs`. `observation_trends` subtracts `a_i + b_i * t` from column `i` before filtering and adds it back to `smoothed_obs` and to the forecast — `StateSpaceModel` is time-invariant, so the trend cannot live inside the filter.
 
-- [ ] **Step 3: The decisive test**
+- [x] **Step 3: The decisive test**
 
 ```python
 def test_smoother_recovers_the_simulated_shocks_exactly(rbc):
@@ -712,7 +712,7 @@ def test_shock_decomposition_components_sum_to_the_series(rbc): ...
 def test_observation_trends_round_trip(rbc): ...
 ```
 
-- [ ] **Step 4: Run and commit**
+- [x] **Step 4: Run and commit**
 
 ```bash
 PYTHONPATH=. python3 -m pytest tests/test_dsge/test_smoother.py -q

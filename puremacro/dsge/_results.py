@@ -610,3 +610,187 @@ __all__ = [
     "StochSimulResult",
     "PerfectForesightResult",
 ]
+
+
+@dataclass(frozen=True)
+class SmootherResult:
+    """Kalman-smoother output at calibrated parameters (Dynare ``calib_smoother``).
+
+    Attributes
+    ----------
+    states : pandas.DataFrame
+        Smoothed model states, ``(T, n_states)``, in deviation units.
+    shocks : pandas.DataFrame
+        Smoothed structural innovations ``E[u_t | y_{1:T}]``, ``(T, n_shocks)``.
+        These are read straight off the smoothed state: the filter carries
+        ``alpha_t = [x_t; u_t]``, so the innovations are its last ``n_e`` rows
+        and no separate disturbance smoother is involved.
+    smoothed_obs : pandas.DataFrame
+        Fitted observables, ``d + Z a_smooth``, with any declared observation
+        trend added back. Equal to the data to machine precision when there is
+        no measurement error.
+    filtered_states : pandas.DataFrame
+        One-sided ``E[x_t | y_{1:t}]``, ``(T, n_states)``.
+    loglik : float
+        Log-likelihood of the data under the calibrated parameters.
+    varobs : tuple of str
+        Observables, in data-column order.
+    """
+
+    states: pd.DataFrame
+    shocks: pd.DataFrame
+    smoothed_obs: pd.DataFrame
+    filtered_states: pd.DataFrame
+    loglik: float
+    varobs: Tuple[str, ...]
+    _model: Any = None
+    _data: Any = None
+
+    def shock_decomposition(self, **kwargs):
+        """Historical shock decomposition for the same model and data.
+
+        Delegates to :func:`~puremacro.dsge.compute_shock_decomposition`, which
+        runs its own smoother. The two routes are pinned against each other in
+        ``tests/test_dsge/test_smoother.py`` rather than assumed to agree.
+        """
+        if self._model is None or self._data is None:
+            raise ValueError(
+                "SmootherResult.shock_decomposition() needs the model and data "
+                "this result was built from; it was constructed without them."
+            )
+        from .decomposition import compute_shock_decomposition
+
+        return compute_shock_decomposition(self._model, self._data, **kwargs)
+
+    def to_frame(self) -> pd.DataFrame:
+        """Per-shock summary of the smoothed innovations."""
+        s = self.shocks
+        return pd.DataFrame(
+            {
+                "mean": s.mean(),
+                "std": s.std(ddof=0),
+                "min": s.min(),
+                "max": s.max(),
+            },
+            index=list(s.columns),
+        )
+
+    def summary(self) -> str:
+        lines = [
+            "KALMAN SMOOTHER (calibrated parameters)",
+            "=" * 60,
+            f"observables : {', '.join(self.varobs)}",
+            f"periods     : {len(self.smoothed_obs)}",
+            f"log-likelihood: {self.loglik:.6f}",
+            "",
+            "SMOOTHED STRUCTURAL SHOCKS",
+            "-" * 60,
+            self.to_frame().round(6).to_string(),
+        ]
+        return "\n".join(lines)
+
+    def plot(self, ax=None, **kwargs):
+        """Smoothed structural shocks, one panel per shock."""
+        import matplotlib.pyplot as plt
+
+        cols = list(self.shocks.columns)
+        if ax is None:
+            _, ax = plt.subplots(len(cols), 1, sharex=True,
+                                 figsize=(8, 2.0 * len(cols)), squeeze=False)
+            ax = ax.ravel()
+        ax = np.atleast_1d(ax)
+        for a, c in zip(ax, cols):
+            a.plot(self.shocks.index, self.shocks[c], **kwargs)
+            a.axhline(0.0, color="0.6", lw=0.8)
+            a.set_ylabel(c)
+        ax[-1].set_xlabel("period")
+        return ax
+
+    def to_markdown(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_markdown
+
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_latex
+
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_typst
+
+        return _df_to_typst(self.to_frame(), **kwargs)
+
+
+@dataclass(frozen=True)
+class DSGEForecastResult:
+    """Unconditional forecast from a solved model.
+
+    Attributes
+    ----------
+    mean, lower, upper : pandas.DataFrame
+        ``(horizon, n_vars)``, indexed by horizon ``1..horizon``. The band is
+        ``mean +/- z_{(1+ci)/2} * sd``, with ``sd`` from the forecast-error
+        covariance ``Z P_h Z' + H`` — parameter uncertainty is **not** in it.
+    ci : float
+        Nominal coverage of the band.
+    horizon : int
+        Number of periods forecast.
+    """
+
+    mean: pd.DataFrame
+    lower: pd.DataFrame
+    upper: pd.DataFrame
+    ci: float
+    horizon: int
+
+    def to_frame(self) -> pd.DataFrame:
+        out = {}
+        for c in self.mean.columns:
+            out[c] = self.mean[c]
+            out[f"{c}_lower"] = self.lower[c]
+            out[f"{c}_upper"] = self.upper[c]
+        return pd.DataFrame(out, index=self.mean.index)
+
+    def summary(self) -> str:
+        pct = int(round(100 * self.ci))
+        lines = [
+            f"DSGE FORECAST ({self.horizon} periods, {pct}% band)",
+            "=" * 60,
+            "The band reflects shock uncertainty only: parameters are held "
+            "fixed at the values the model was solved with.",
+            "",
+            self.to_frame().round(6).to_string(),
+        ]
+        return "\n".join(lines)
+
+    def plot(self, ax=None, **kwargs):
+        import matplotlib.pyplot as plt
+
+        cols = list(self.mean.columns)
+        if ax is None:
+            _, ax = plt.subplots(len(cols), 1, sharex=True,
+                                 figsize=(8, 2.4 * len(cols)), squeeze=False)
+            ax = ax.ravel()
+        ax = np.atleast_1d(ax)
+        for a, c in zip(ax, cols):
+            a.plot(self.mean.index, self.mean[c], **kwargs)
+            a.fill_between(self.mean.index, self.lower[c], self.upper[c], alpha=0.25)
+            a.set_ylabel(c)
+        ax[-1].set_xlabel("horizon")
+        return ax
+
+    def to_markdown(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_markdown
+
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_latex
+
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_typst
+
+        return _df_to_typst(self.to_frame(), **kwargs)

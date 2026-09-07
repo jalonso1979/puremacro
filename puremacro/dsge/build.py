@@ -558,6 +558,31 @@ class LinearModel:
         from .decomposition import compute_shock_decomposition
         return compute_shock_decomposition(self, data, initial_state=initial_state, sigma=sigma)
 
+    # -- filtering and forecasting -------------------------------------
+
+    def smoother(self, data, **kwargs):
+        """Kalman-smooth ``data`` at this model's calibrated parameters.
+
+        Dynare's ``calib_smoother``. ``varobs`` defaults to the ``varobs``
+        declaration of the .mod file the model came from. Returns a
+        :class:`~puremacro.dsge._results.SmootherResult` carrying the smoothed
+        states, the smoothed structural innovations and the fitted observables.
+        """
+        from .smoother import smooth_model
+
+        return smooth_model(self, data, **kwargs)
+
+    def forecast(self, horizon: int = 8, **kwargs):
+        """Forecast the observables ``horizon`` periods ahead.
+
+        With ``data=``, the forecast starts from the terminal filtered state;
+        without it, from the steady state. The band reflects shock uncertainty
+        only — the parameters are held fixed.
+        """
+        from .smoother import forecast_model
+
+        return forecast_model(self, horizon, **kwargs)
+
     # -- simulation ----------------------------------------------------
 
     def _paths(self, horizon: int, impulse: np.ndarray) -> np.ndarray:

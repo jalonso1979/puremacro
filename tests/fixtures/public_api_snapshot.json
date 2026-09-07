@@ -368,6 +368,10 @@
       "prior_means",
       "prior_stds"
     ],
+    "puremacro.dsge.smoother": [
+      "forecast_model",
+      "smooth_model"
+    ],
     "puremacro.dsge.sw07_estimate": [
       "estimate_sw07"
     ],
@@ -2795,6 +2799,13 @@
     "puremacro.dsge._estimated_params.EstimatedParams": [
       "specs"
     ],
+    "puremacro.dsge._results.DSGEForecastResult": [
+      "ci",
+      "horizon",
+      "lower",
+      "mean",
+      "upper"
+    ],
     "puremacro.dsge._results.DSGEPosteriorResult": [
       "accept_rates",
       "data_n_obs",
@@ -2849,6 +2860,16 @@
       "n_burn_in",
       "param_names",
       "seed"
+    ],
+    "puremacro.dsge._results.SmootherResult": [
+      "_data",
+      "_model",
+      "filtered_states",
+      "loglik",
+      "shocks",
+      "smoothed_obs",
+      "states",
+      "varobs"
     ],
     "puremacro.dsge._results.StochSimulResult": [
       "dr",
