@@ -1006,11 +1006,11 @@ where the name appears there, and a name that is neither that nor a declared mod
 refused. Three regression tests, plus an OLS cross-check of the whole connector, were added to
 `tests/test_dsge/test_estimate_from_mod.py`.
 
-## Task 11: Version, changelog, API snapshot
+## Task 11: Version, changelog, API snapshot — DONE
 
-- [ ] **Step 1** — bump to `2.6.0` in **all four**: `pyproject.toml`, `puremacro/__init__.py`, the top `## 2.6.0 (2026-XX-XX)` heading in `CHANGELOG.md`, `version:` in `CITATION.cff`.
-- [ ] **Step 2** — write the CHANGELOG section in house style: what each new estimator does, and **what it deliberately does not do** (no AST, so `@#`/`STEADY_STATE()`/`#`-locals over endogenous variables still fail; no order 3; no particle filter; `observation_trends` handled by detrending, not inside the filter; `mode_compute` default still `"lbfgs"` this release). Lead with the one behaviour change: `@#` now raises.
-- [ ] **Step 3** — regenerate the API snapshot **from a clean checkout**, not the live tree:
+- [x] **Step 1** — bump to `2.6.0` in **all four**: `pyproject.toml`, `puremacro/__init__.py`, the top `## 2.6.0 (2026-XX-XX)` heading in `CHANGELOG.md`, `version:` in `CITATION.cff`.
+- [x] **Step 2** — write the CHANGELOG section in house style: what each new estimator does, and **what it deliberately does not do** (no AST, so `@#`/`STEADY_STATE()`/`#`-locals over endogenous variables still fail; no order 3; no particle filter; `observation_trends` handled by detrending, not inside the filter; `mode_compute` default still `"lbfgs"` this release). Lead with the one behaviour change: `@#` now raises.
+- [x] **Step 3** — regenerate the API snapshot **from a clean checkout**, not the live tree:
 
 ```bash
 git worktree add /tmp/pm-clean HEAD
@@ -1025,7 +1025,7 @@ git worktree remove /tmp/pm-clean
 
 Regenerating in the working tree risks baking a file-sync artifact into the release fixture.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ---
 

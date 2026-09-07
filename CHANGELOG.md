@@ -2,6 +2,140 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## 2.6.0 (2026-09-07)
+
+Feature release: phase A of the DSGE Tier 1 roadmap
+(`docs/plans/2026-09-07-puremacro-dsge-dynare-parity-roadmap.md`, design in
+`docs/specs/2026-09-07-puremacro-dsge-tier1-design.md`). **A Dynare `.mod` file can now be
+estimated.** Before this release puremacro could solve one and not estimate one: every piece was
+present — priors that read Dynare's `estimated_params` conventions, a Kalman filter and smoother with
+exact diffuse initialisation, an audited Metropolis driver — and nothing turned a `varobs`
+declaration into a measurement equation. `sw07_pfeifer.mod` now goes from file to posterior, 36
+estimated parameters and seven observables, with no hand-written observation equation.
+
+No new runtime dependencies: numpy, scipy, pandas and matplotlib, as before.
+
+**One behaviour change to read before upgrading.** Dynare macro directives (`@#define`, `@#for`,
+`@#if`, `@#include`, `@{...}`) now raise `DynareFeatureError`. They used to be ignored, which meant a
+file using them loaded clean and **a different model from the one it describes was solved**, with no
+warning. That was the only silent failure mode left in the parser. Expand the macros with
+`dynare model.mod savemacro` and pass the expanded file; the macro processor itself is planned for
+2.7.0.
+
+### Added — `.mod` file to posterior
+- `LinearModel.estimate(data)`: Bayesian estimation straight from a solved `.mod` file. `priors` and
+  `varobs` default to the file's own `estimated_params` and `varobs` blocks, so nothing is declared
+  twice. `estimate_dsge`'s contract is unchanged — this builds the `observation_eq` callable it has
+  always required.
+- `puremacro.dsge._estimated_params`: the `estimated_params` / `_init` / `_bounds` grammar. It is
+  positionally ambiguous (`NAME, 0.35, beta_pdf, …` and `NAME, beta_pdf, …` differ by one leading
+  field) and `corr a, b` carries a comma inside its target; both are resolved by consuming any
+  `stderr`/`corr` keyword first and then locating the first `*_pdf` field, reading what precedes it
+  by length and what follows by position. Any other field count is an error quoting the statement
+  verbatim rather than a guess. Shapes are matched **case-insensitively**: the real
+  `sw07_pfeifer.mod` writes `INV_GAMMA_PDF` while the manual writes `inv_gamma_pdf`, and a
+  case-sensitive match would have silently reclassified all 36 of its statements as "estimated
+  without a prior".
+- `make_state_space_from_varobs`: the connector. A solved model reports `v_t = ys + C x_t + D u_t`,
+  so an observable loads the contemporaneous innovation while a standard state space assumes
+  measurement noise independent of the state shock. The innovation is therefore carried in the state,
+  `alpha_t = [x_t; u_t]`. Two things fall out: growth-rate observables need no special casing
+  (`dy = y - y(-1) + ctrend` is a declared variable, hence a row of `(C, D)`), and the smoothed
+  structural shocks are the last rows of the smoothed state, so no disturbance smoother is involved.
+  Pinned three independent ways — against the model's own companion recursion (1e-12), against a
+  stacked multivariate-normal density, and against `theoretical_moments().covariance`.
+- Measurement error is **zero** by default, as in Dynare, not the `1e-8` ridge `sw07_observation.py`
+  carries; `ridge=` is opt-in. A second-order `PrunedDSGESolution` is **refused** rather than
+  silently linearised — it exposes `decision_rules()`, so the companion extractor would otherwise
+  have used its first-order block and dropped `ghxx`, `ghxu`, `ghuu` and `ghs2`.
+- Only parameters of kind `"param"` re-solve the model; shock standard deviations, shock correlations
+  and measurement-error standard deviations write straight into `Q` and `H`, and each re-solve
+  warm-starts its steady-state search from the previous one. Measured rather than claimed: on SW07 a
+  finite-difference sweep over the 36 parameters costs 37 evaluations and 30 solves, 19% avoided —
+  and **for the random-walk chain itself the saving is zero**, since a joint proposal changes the
+  structural block every draw.
+
+### Added — `LinearModel.smoother` and `.forecast`
+- Dynare's `calib_smoother` and `forecast`. `SmootherResult` carries smoothed states, smoothed
+  structural innovations, fitted observables and filtered states, plus `shock_decomposition()`. The
+  decisive test exploits bijectivity — one observable, one shock, no measurement error, known `x_0`
+  — and recovers the simulated shocks to 1e-6 over 200 periods.
+- The Kalman recursion starts from the unconditional (Lyapunov) distribution, the same choice
+  `estimate_dsge` makes since 2.5.0 and for the same reason.
+- `observation_trends` is applied by detrending the data and adding the trend back, as Dynare does:
+  `StateSpaceModel` is time-invariant by construction, so a time-varying intercept cannot live inside
+  the filter.
+
+### Added — `puremacro.dsge.mode`, the `mode_compute` menu
+- `find_mode` with `lbfgs`, `simplex` (Nelder-Mead with restarts), `csminwel`, `cmaes` and `none`.
+  The csminwel docstring says plainly that it is **not** a line-by-line port of `csminwel.m` — the
+  line-search constants and termination test are this implementation's own — and the result reports
+  how many perturbed-Hessian retries a run needed. CMA-ES earns its place by test: on 2-D Rastrigin
+  from `(2.5, 2.5)` the gradient route stops in a side well while CMA-ES reaches the global optimum.
+- `mode_check` traces one-parameter slices through a candidate mode and records whether each actually
+  bottoms out there. The summary is explicit that passing is necessary and not sufficient.
+- `estimate_dsge` gains `mode_compute`, **defaulting to `"lbfgs"`** and pinned there by test:
+  changing it changes every posterior the function has ever returned. The `lbfgs` route is
+  bit-identical to calling scipy directly, which is what keeps the frozen SW07 parity fixture valid.
+
+### Added — `puremacro.dsge.marginal`
+- `laplace_mdd` and Geweke's `harmonic_mean_mdd`, plus `model_comparison` and
+  `DSGEPosteriorResult.log_mdd()`. `estimate_dsge`'s docstring previously said "There is no
+  marginal-likelihood estimator, so no model comparison."
+- Laplace is pinned where it is not an approximation at all: on a conjugate Gaussian model it
+  reproduces the closed-form `log p(y)` to **1.4e-14**. It refuses a non-positive-definite inverse
+  Hessian, since that means the point is not a maximum.
+- The modified harmonic mean is evaluated at every truncation level and **returns the spread across
+  them rather than hiding it**: the estimator is supposed to be invariant to the truncation, so a
+  swing past one log point means it has not converged, and it warns and reports `converged=False`.
+  Both thresholds were measured, and the obvious guess was wrong — 200 draws in one dimension
+  converge cleanly (spread 0.34), as does a bimodal posterior; what fails is a noisy covariance
+  estimate, 30 draws in 5 dimensions swinging 1.1 to 1.5.
+- `model_comparison` scores every model by the **same** estimator and raises when one cannot supply
+  it. A Laplace value and a harmonic-mean value are not on the same footing.
+- Marginal likelihoods computed before 2.5.0 are not comparable to these or to each other: the
+  Kalman recursion then started from a diffuse `P0`, worth about 114 log points on Smets-Wouters.
+
+### Added — priors
+- Generalised beta (`shift`/`scale`, with the Jacobian), shifted gamma, `WeibullPrior`, and
+  inverse-gamma type 2, so a real `estimated_params` block round-trips. In every family `P1`/`P2` are
+  the mean and standard deviation of the **actual** variable, shift and scale included — Dynare's
+  `*_specification` convention, and reversing it silently re-specifies a whole block. Two of the new
+  densities are checked by quadrature rather than by restating the same call.
+- `_validate_priors` now rejects a non-positive beta scale, a gamma shift at or above the prior mean,
+  and an unknown inverse-gamma kind, and warns when a prior's standard deviation is not finite.
+
+### Fixed
+- `tests/test_dsge/test_sw07_wrapper.py::test_sw07_parity_short_chain` had been **failing since the
+  2.5.0 release** and nothing noticed: slow-marked tests run in neither the default suite
+  (`pyproject.toml` `addopts`) nor `release_check` gate 1, and `known_failures.json` was empty. Two
+  deliberate 2.5.0 fixes had moved the SW07 log posterior while the frozen fixture kept the pre-fix
+  values. The gap decomposes completely, with nothing unexplained beyond 5e-4 log points: the Kalman
+  initialisation accounts for +108.5 to +111.8 and the inverse-gamma prior fix for -0.24 to +2.11,
+  the latter confirmed by reconstructing the pre-2.4.1 density and differencing it. Only
+  `log_posterior_trace` was regenerated, at the same frozen draws.
+- `LinearModel.estimate(priors={...})` with a plain dict labelled every entry as a structural
+  parameter, so `SE_eps` became a parameter the equations never read: `Q` stayed at its declared
+  value and the posterior was **flat** in it, with four optimisers agreeing on the log posterior at
+  `SE_eps` from 0.96 to 1.36. Kinds are now taken from the model's own `estimated_params` block, and
+  a name that is neither that nor a declared model parameter is refused. Found by an OLS cross-check
+  of the whole connector, which is now a test.
+
+### Known limitations
+- **No macro processor and no expression parser.** `@#` directives raise; `STEADY_STATE()`,
+  `EXPECTATION()`, `normcdf` and a model-local `#` variable defined over an endogenous variable all
+  fail. Both are 2.7.0.
+- **First order only** for filtering. A particle filter for second-order solutions is a later
+  release.
+- **The sampler adapts a scalar, not a covariance**, and its adaptation fires only every 100
+  iterations, so `burn_in < 100` never adapts once and can leave a chain at 0% acceptance. Measured
+  on SW07: `burn_in=50` gives acceptance 0.000 and one distinct draw in 200; `burn_in=200` gives
+  0.110. Recorded as deferred finding F1 in the phase A plan and not fixed here, because every
+  candidate fix changes the draws of every existing posterior.
+- **A `steady_state_model` block is used for the initial solve only.** Re-solving at a new draw goes
+  through the numerical steady-state solver warm-started from the previous draw; the block's analytic
+  formulas are evaluated once at parse time and not re-evaluated per draw.
+
 ## 2.5.0 (2026-09-06)
 
 Feature release: phases 2, 3 and 4 of the spatial econometrics spec
