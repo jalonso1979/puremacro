@@ -628,13 +628,41 @@ class LinearModel:
             from ._estimated_params import EstimatedParamSpec
             from .priors import ensure_prior
 
+            # A plain {name: prior} dict carries no `kind`, and guessing
+            # "param" for everything is silently wrong: a name like SE_eps
+            # would be passed to the solver as a structural parameter the
+            # equations never read, leaving Q at its declared value and the
+            # likelihood flat in it. Kinds are taken from the model's own
+            # estimated_params block where the name appears there, so
+            # overriding a prior keeps its meaning, and anything else must be
+            # a declared model parameter.
+            declared = {}
+            if self._estimated_params is not None:
+                declared = {sp.name: sp for sp in self._estimated_params.specs}
+            known_params = set(self._params or {})
             prior_dict = {k: ensure_prior(v) for k, v in dict(spec_source).items()}
-            specs = tuple(
-                EstimatedParamSpec(kind="param", target=(k,), name=k, prior=p,
-                                   init=None, lb=p.lb, ub=p.ub)
-                for k, p in prior_dict.items()
-            )
-            initial = {k: p.mean for k, p in prior_dict.items()}
+            built = []
+            for k, pr in prior_dict.items():
+                if k in declared:
+                    d = declared[k]
+                    built.append(EstimatedParamSpec(
+                        kind=d.kind, target=d.target, name=k, prior=pr,
+                        init=d.init, lb=pr.lb, ub=pr.ub, jscale=d.jscale))
+                elif k in known_params:
+                    built.append(EstimatedParamSpec(
+                        kind="param", target=(k,), name=k, prior=pr,
+                        init=None, lb=pr.lb, ub=pr.ub))
+                else:
+                    raise ModelError(
+                        f"estimate(): prior {k!r} names neither a declared "
+                        f"model parameter nor an entry of this model's "
+                        f"estimated_params block, so there is no way to know "
+                        f"what it should change. Model parameters: "
+                        f"{sorted(known_params)}. Declared estimated "
+                        f"parameters: {sorted(declared)}."
+                    )
+            specs = tuple(built)
+            initial = {sp.name: sp.start for sp in specs}
 
         obs = list(varobs) if varobs is not None else (
             list(self._varobs) if self._varobs else None)
@@ -1062,6 +1090,14 @@ def _make_observation_eq(model, specs, varobs, *, fixed_params=None,
         )
 
     structural = [s.name for s in specs if s.kind == "param"]
+    unknown = [n for n in structural if n not in (model._params or {})]
+    if unknown:
+        raise ModelError(
+            f"_make_observation_eq: {unknown} are marked as structural "
+            "parameters but the model has no such parameters, so varying them "
+            "could not change anything the solver sees. Model parameters: "
+            f"{sorted(model._params or {})}."
+        )
     se_shock = {s.name: s.target[0] for s in specs if s.kind == "stderr_shock"}
     corr_shock = {s.name: s.target for s in specs if s.kind == "corr_shock"}
     me_obs = {s.name: s.target[0] for s in specs if s.kind == "stderr_obs"}

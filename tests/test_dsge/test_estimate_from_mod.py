@@ -206,3 +206,83 @@ def test_sw07_end_to_end_from_the_mod_file():
     assert np.isfinite(res.draws).all()
     assert np.isfinite(res.log_posterior_trace).all()
     assert res.log_post_mode is not None and np.isfinite(res.log_post_mode)
+
+
+def test_posterior_mode_matches_ordinary_least_squares_on_the_same_series(ar1):
+    """An independent check of the whole connector.
+
+    For ``y_t = a_t``, ``a_t = rho a_{t-1} + eps_t`` observed without
+    measurement error, the likelihood is the AR(1) likelihood, so with a prior
+    that is nearly flat over the relevant range the posterior mode must sit
+    essentially where OLS does. Nothing in this comparison goes through the
+    .mod parser, the varobs connector or the Kalman filter — which is what
+    makes it worth running.
+    """
+    data = _simulate_ar1(T=600, seed=5)
+    a = data["y"].to_numpy()
+    y, ylag = a[1:], a[:-1]
+    rho_ols = float(ylag @ y / (ylag @ ylag))
+    sigma_ols = float((y - rho_ols * ylag).std(ddof=1))
+
+    flat = {
+        "rho": {"dist": "uniform", "mean": 0.5, "std": 0.28, "lb": 0.01, "ub": 0.99},
+        "SE_eps": {"dist": "uniform", "mean": 1.0, "std": 0.55, "lb": 0.05, "ub": 2.0},
+    }
+    res = ar1.estimate(data, priors=flat, n_draws=20, n_chains=1,
+                       burn_in=200, seed=0, mode_compute="csminwel")
+    assert res.mode["rho"] == pytest.approx(rho_ols, abs=5e-3)
+    assert res.mode["SE_eps"] == pytest.approx(sigma_ols, abs=5e-3)
+
+
+def test_a_plain_dict_prior_override_keeps_the_shock_std_semantics(ar1):
+    """Regression. A ``{name: prior}`` override carries no ``kind``, and
+    labelling every entry "param" made SE_eps a structural parameter the
+    equations never read: Q stayed at the declared 0.25 and the posterior was
+    FLAT in it. The symptom was four optimisers agreeing on the log posterior
+    (-422.030) at SE_eps values from 0.96 to 1.36.
+    """
+    from puremacro.dsge.build import _make_observation_eq
+
+    flat = {
+        "rho": {"dist": "uniform", "mean": 0.5, "std": 0.28, "lb": 0.01, "ub": 0.99},
+        "SE_eps": {"dist": "uniform", "mean": 1.0, "std": 0.55, "lb": 0.05, "ub": 2.0},
+    }
+    from puremacro.dsge.priors import ensure_prior
+    from puremacro.dsge._estimated_params import EstimatedParamSpec
+
+    declared = {s.name: s for s in ar1._estimated_params.specs}
+    specs = tuple(
+        EstimatedParamSpec(kind=declared[k].kind, target=declared[k].target, name=k,
+                           prior=ensure_prior(v), init=None,
+                           lb=ensure_prior(v).lb, ub=ensure_prior(v).ub)
+        for k, v in flat.items()
+    )
+    eq = _make_observation_eq(ar1, specs, ["y"])
+    np.testing.assert_allclose(eq({"rho": 0.7, "SE_eps": 0.3}).Q, [[0.09]])
+    np.testing.assert_allclose(eq({"rho": 0.7, "SE_eps": 1.2}).Q, [[1.44]])
+
+    # End to end: the likelihood must now move with SE_eps.
+    data = _simulate_ar1(T=300, seed=5)
+    res = ar1.estimate(data, priors=flat, n_draws=20, n_chains=1,
+                       burn_in=200, seed=0)
+    assert res.mode["SE_eps"] != pytest.approx(1.0, abs=1e-3)
+
+
+def test_a_prior_naming_nothing_the_model_knows_is_refused(ar1):
+    with pytest.raises(Exception, match="neither a declared model parameter"):
+        ar1.estimate(_simulate_ar1(T=60), n_draws=10, n_chains=1, burn_in=200,
+                     seed=0,
+                     priors={"nonsense": {"dist": "normal", "mean": 0.0,
+                                          "std": 1.0, "lb": -3.0, "ub": 3.0}})
+
+
+def test_a_structural_name_the_model_does_not_have_is_refused(ar1):
+    """Defence in depth inside the closure itself."""
+    from puremacro.dsge.build import _make_observation_eq
+    from puremacro.dsge._estimated_params import EstimatedParamSpec
+    from puremacro.dsge.priors import NormalPrior
+
+    bogus = (EstimatedParamSpec(kind="param", target=("SE_eps",), name="SE_eps",
+                                prior=NormalPrior(), init=None, lb=-9.0, ub=9.0),)
+    with pytest.raises(Exception, match="no such parameters"):
+        _make_observation_eq(ar1, bogus, ["y"])

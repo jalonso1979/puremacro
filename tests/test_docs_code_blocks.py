@@ -38,6 +38,7 @@ PAGES = [
     "docs/gertler_karadi.md",
     "docs/bvar_sv.md",
     "docs/gvar.md",
+    "docs/dsge_estimation.md",
     "docs/did.md",
     "docs/es/narrative_sign_svar.md",
     "docs/es/honest_did.md",
@@ -47,6 +48,7 @@ PAGES = [
     "docs/es/gertler_karadi.md",
     "docs/es/bvar_sv.md",
     "docs/es/gvar.md",
+    "docs/es/dsge_estimation.md",
     "docs/es/did.md",
 ]
 

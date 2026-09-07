@@ -65,6 +65,7 @@ nav:
           - Honest DiD Sensitivity: honest_did.md
           - Spatial Econometrics: spatial.md
           - Global VAR (GVAR): gvar.md
+          - Estimating a Dynare .mod file: dsge_estimation.md
           - GDP Nowcasting: nowcast.md
           - Penalized Forecasting: forecast.md
       - Publication & Reporting:

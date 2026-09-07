@@ -42,6 +42,7 @@ _USER_DOCS = [
     "gertler_karadi.md",
     "bvar_sv.md",
     "gvar.md",
+    "dsge_estimation.md",
 ]
 
 

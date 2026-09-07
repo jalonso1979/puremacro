@@ -981,20 +981,30 @@ dedicated test. Add the five-method assertions to the new per-module test files.
 
 ---
 
-## Task 10: Documentation
+## Task 10: Documentation — DONE
 
-- [ ] **Step 1** — write `docs/dsge_estimation.md` with runnable blocks: load a `.mod`, `.check()` it, `.smoother()`, `.estimate()`, marginal likelihood, `mode_check`. First 600 characters **must** contain `Español` and a link to `es/dsge_estimation.md`; copy the switcher header from `docs/gvar.md`.
-- [ ] **Step 2** — write `docs/es/dsge_estimation.md` (native academic Spanish, first 600 characters contain `English`).
-- [ ] **Step 3** — add both to `mkdocs.yml` nav under "Econometric Engines"; add `"dsge_estimation.md"` to `_USER_DOCS` in `tests/test_bilingual_docs.py`.
-- [ ] **Step 4** — if the English page's code blocks are to be executed, add it to the list in `tests/test_docs_code_blocks.py`; otherwise leave it out deliberately and say why in the page.
+- [x] **Step 1** — write `docs/dsge_estimation.md` with runnable blocks: load a `.mod`, `.check()` it, `.smoother()`, `.estimate()`, marginal likelihood, `mode_check`. First 600 characters **must** contain `Español` and a link to `es/dsge_estimation.md`; copy the switcher header from `docs/gvar.md`.
+- [x] **Step 2** — write `docs/es/dsge_estimation.md` (native academic Spanish, first 600 characters contain `English`).
+- [x] **Step 3** — add both to `mkdocs.yml` nav under "Econometric Engines"; add `"dsge_estimation.md"` to `_USER_DOCS` in `tests/test_bilingual_docs.py`.
+- [x] **Step 4** — if the English page's code blocks are to be executed, add it to the list in `tests/test_docs_code_blocks.py`; otherwise leave it out deliberately and say why in the page.
 
 ```bash
 PYTHONPATH=. python3 -m pytest tests/test_docs_nav.py tests/test_bilingual_docs.py tests/test_docs_code_blocks.py -q
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ---
+
+**Finding while writing the page.** Drafting the `mode_check` example turned up a real defect,
+because the example needed a genuine posterior rather than a placeholder. Passing `priors=` as a plain
+`{name: prior}` dict made `estimate()` label every entry `kind="param"`, so `SE_eps` became a
+structural parameter the equations never read: `Q` stayed at its declared value and the posterior was
+**flat** in it. The symptom was all four optimisers agreeing on the log posterior (-422.030) at
+`SE_eps` values from 0.96 to 1.36. Kinds are now taken from the model's own `estimated_params` block
+where the name appears there, and a name that is neither that nor a declared model parameter is
+refused. Three regression tests, plus an OLS cross-check of the whole connector, were added to
+`tests/test_dsge/test_estimate_from_mod.py`.
 
 ## Task 11: Version, changelog, API snapshot
 
