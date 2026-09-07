@@ -98,6 +98,7 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass
+import math
 from typing import Any, Callable, Mapping, Sequence
 
 import numpy as np
@@ -558,6 +559,115 @@ class LinearModel:
         from .decomposition import compute_shock_decomposition
         return compute_shock_decomposition(self, data, initial_state=initial_state, sigma=sigma)
 
+    # -- estimation ----------------------------------------------------
+
+    def estimate(self, data, *, priors=None, varobs=None, fixed_params=None,
+                 measurement_error=None, prefilter=False,
+                 observation_trends=None, ridge=0.0, mode_compute="lbfgs",
+                 n_draws: int = 10_000, n_chains: int = 2,
+                 burn_in: int = 2_000, seed: int = 0, model_name=None):
+        """Bayesian estimation of this model on ``data``.
+
+        ``priors`` and ``varobs`` default to the ``estimated_params`` and
+        ``varobs`` blocks of the .mod file the model came from, so a Dynare
+        file needs no second copy of its own declarations. Delegates to
+        :func:`~puremacro.dsge.estimate_dsge`, which is unchanged: this method
+        builds the ``observation_eq`` callable that it has always required.
+
+        Parameters
+        ----------
+        data : pandas.DataFrame
+            One column per observable, named as in ``varobs``.
+        priors : EstimatedParams or dict, optional
+            Defaults to the model's own ``estimated_params`` block.
+        varobs : Sequence[str], optional
+            Defaults to the model's own ``varobs`` declaration.
+        fixed_params : Mapping[str, float], optional
+            Parameter overrides held fixed during estimation, applied on top
+            of the model's calibration.
+        mode_compute : str, default 'lbfgs'
+            See :mod:`puremacro.dsge.mode`.
+
+        Returns
+        -------
+        DSGEPosteriorResult
+
+        Notes
+        -----
+        Only parameters of kind ``"param"`` cause the model to be re-solved; a
+        shock standard deviation, a shock correlation and a measurement-error
+        standard deviation are written straight into ``Q`` and ``H``. Each
+        re-solve warm-starts its steady-state search from the previous one.
+
+        A ``steady_state_model`` block in the .mod file is used for the
+        *initial* solve only. Re-solving at a new draw goes through the
+        numerical steady-state solver warm-started from the previous draw,
+        because the block's analytic formulas are evaluated once at parse time
+        and are not re-evaluated per draw.
+
+        There is no ``diffuse_filter`` argument. The Kalman recursion starts
+        from the unconditional distribution and falls back to the diffuse
+        prior only for a draw that has no unconditional distribution, warning
+        when it does; a flag that could not change that would be decoration.
+        """
+        from .estimate import estimate_dsge
+        from ._estimated_params import EstimatedParams
+
+        spec_source = self._estimated_params if priors is None else priors
+        if spec_source is None:
+            raise ModelError(
+                "estimate() needs priors: this model carries no "
+                "`estimated_params` block (it was not built from a .mod file "
+                "that declares one). Pass priors=... explicitly."
+            )
+        if isinstance(spec_source, EstimatedParams):
+            specs = spec_source.specs
+            prior_dict = spec_source.priors()
+            initial = spec_source.initial_params()
+        else:
+            from ._estimated_params import EstimatedParamSpec
+            from .priors import ensure_prior
+
+            prior_dict = {k: ensure_prior(v) for k, v in dict(spec_source).items()}
+            specs = tuple(
+                EstimatedParamSpec(kind="param", target=(k,), name=k, prior=p,
+                                   init=None, lb=p.lb, ub=p.ub)
+                for k, p in prior_dict.items()
+            )
+            initial = {k: p.mean for k, p in prior_dict.items()}
+
+        obs = list(varobs) if varobs is not None else (
+            list(self._varobs) if self._varobs else None)
+        if not obs:
+            raise ModelError(
+                "estimate() needs observables: this model carries no `varobs` "
+                "declaration. Pass varobs=[...] explicitly."
+            )
+
+        observation_eq = _make_observation_eq(
+            self, specs, obs, fixed_params=fixed_params,
+            measurement_error=measurement_error, prefilter=prefilter,
+            ridge=ridge,
+        )
+        frame = data
+        if observation_trends:
+            from .smoother import _trend_matrix
+
+            frame = data.copy()
+            trend = _trend_matrix(observation_trends, obs, len(data))
+            frame[obs] = frame[obs].to_numpy(dtype=float) - trend
+
+        return estimate_dsge(
+            frame,
+            observation_eq=observation_eq,
+            priors=prior_dict,
+            observed_vars=obs,
+            initial_params=initial,
+            model_name=model_name or "mod",
+            mode_compute=mode_compute,
+            n_draws=n_draws, n_chains=n_chains, burn_in=burn_in, seed=seed,
+        )
+
     # -- filtering and forecasting -------------------------------------
 
     def smoother(self, data, **kwargs):
@@ -917,6 +1027,108 @@ class LinearModel:
             shock_cov=cov,
             method=self.method,
         )
+
+
+def _make_observation_eq(model, specs, varobs, *, fixed_params=None,
+                         measurement_error=None, prefilter=False, ridge=0.0):
+    """``theta -> StateSpaceModel``, re-solving only when the model changes.
+
+    ``EstimatedParamSpec.kind`` decides that: ``"param"`` enters the model's
+    equations and needs a re-solve; ``"stderr_shock"``, ``"corr_shock"`` and
+    ``"stderr_obs"`` are written straight into ``Q`` or ``H``.
+
+    What that is worth, measured on SW07 rather than assumed: a
+    finite-difference sweep over its 36 estimated parameters takes 37
+    evaluations and 30 solves, because 7 of the 36 are shock scale parameters
+    that cannot change the solved model — 19% avoided. **For the Metropolis
+    chain itself the saving is zero**, since a random-walk proposal moves every
+    parameter at once and so changes the structural block on every draw. The
+    cache pays during the mode search and would pay far more under a blocked
+    or single-site sampler.
+
+    The cache holds one entry. A Metropolis chain does not revisit an exact
+    structural vector, so depth 1 captures the case that matters (a sweep that
+    perturbed only a shock parameter) without growing without bound.
+
+    ``observation_eq.n_solves`` is a documented test hook, not incidental
+    state.
+    """
+    from .observation import make_state_space_from_varobs
+
+    if model._dynare_equations is None:
+        raise ModelError(
+            "estimate() needs a model built with build_dynare or load_mod: "
+            "re-solving at each draw requires the canonical lead-lag equations."
+        )
+
+    structural = [s.name for s in specs if s.kind == "param"]
+    se_shock = {s.name: s.target[0] for s in specs if s.kind == "stderr_shock"}
+    corr_shock = {s.name: s.target for s in specs if s.kind == "corr_shock"}
+    me_obs = {s.name: s.target[0] for s in specs if s.kind == "stderr_obs"}
+
+    base_params = dict(model._params or {})
+    if fixed_params:
+        base_params.update({k: float(v) for k, v in fixed_params.items()})
+    shocks = list(model.shocks)
+    n_e = len(shocks)
+    base_cov = (np.asarray(model._shock_cov, dtype=float)
+                if model._shock_cov is not None else np.eye(n_e))
+    base_me = dict(measurement_error or {})
+
+    cache: dict = {}
+
+    def observation_eq(params):
+        key = tuple(float(params[n]) for n in structural)
+        solved = cache.get(key)
+        if solved is None:
+            cache.clear()
+            from .dynare import build_dynare
+
+            merged = dict(base_params)
+            merged.update({n: float(params[n]) for n in structural})
+            solved = build_dynare(
+                model._dynare_equations,
+                variables=model.variables,
+                shocks=model.shocks,
+                params=merged,
+                # `guess=`, never `steady_state=`: the previous draw's steady
+                # state is a starting point, and handing it over as exact would
+                # fail the residual check at every new parameter vector.
+                guess=observation_eq._last_ss,
+                states=model.states,
+                order=1,
+                method=model.method,
+                # The equations are the ones this model was already built and
+                # verified with; re-checking the Jacobians on every draw would
+                # double the cost to re-learn the same answer.
+                verify_derivatives=False,
+                strict=True,
+            )
+            cache[key] = solved
+            observation_eq._last_ss = solved.steady_state.to_dict()
+            observation_eq.n_solves += 1
+
+        cov = base_cov.copy()
+        for name, sh in se_shock.items():
+            i = shocks.index(sh)
+            cov[i, i] = float(params[name]) ** 2
+        for name, (s1, s2) in corr_shock.items():
+            i, j = shocks.index(s1), shocks.index(s2)
+            c = float(params[name]) * math.sqrt(max(cov[i, i], 0.0) * max(cov[j, j], 0.0))
+            cov[i, j] = cov[j, i] = c
+
+        me = dict(base_me)
+        for name, v in me_obs.items():
+            me[v] = float(params[name])
+
+        return make_state_space_from_varobs(
+            solved, varobs, shock_cov=cov,
+            measurement_error=me or None, prefilter=prefilter, ridge=ridge,
+        )
+
+    observation_eq.n_solves = 0
+    observation_eq._last_ss = model.steady_state.to_dict()
+    return observation_eq
 
 
 # ---------------------------------------------------------------------

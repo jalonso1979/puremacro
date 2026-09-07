@@ -853,11 +853,11 @@ git commit -m "feat(dsge): Laplace and modified-harmonic-mean marginal likelihoo
 
 ---
 
-## Task 8: `LinearModel.estimate()` — the connector
+## Task 8: `LinearModel.estimate()` — the connector — DONE
 
 **Files:** Modify `puremacro/dsge/build.py`. Create `tests/test_dsge/test_estimate_from_mod.py`.
 
-- [ ] **Step 1: Signature**
+- [x] **Step 1: Signature**
 
 ```python
 def estimate(self, data, *, priors=None, varobs=None, mode_compute="lbfgs",
@@ -868,7 +868,7 @@ def estimate(self, data, *, priors=None, varobs=None, mode_compute="lbfgs",
 
 `priors` and `varobs` default to `self._estimated_params` and `self._varobs`; a model built without a `.mod` file and given neither raises saying which is missing.
 
-- [ ] **Step 2: The observation closure**
+- [x] **Step 2: The observation closure**
 
 ```python
 def _make_observation_eq(model, specs, varobs, **kw):
@@ -900,7 +900,7 @@ Two performance requirements, both measurable:
 
 `observation_eq.n_solves` is a documented test hook, not incidental state.
 
-- [ ] **Step 3: Tests**
+- [x] **Step 3: Tests**
 
 ```python
 def test_estimate_recovers_known_parameters_on_a_simulated_ar1_mod():
@@ -939,7 +939,7 @@ def test_sw07_end_to_end_from_the_mod_file():
     ...
 ```
 
-- [ ] **Step 4: Run and commit**
+- [x] **Step 4: Run and commit**
 
 ```bash
 PYTHONPATH=. python3 -m pytest tests/test_dsge/test_estimate_from_mod.py -q -m "not slow"
@@ -949,6 +949,19 @@ git commit -m "feat(dsge): LinearModel.estimate — Bayesian estimation straight
 ```
 
 ---
+
+**Two deviations from this task as written, both deliberate.**
+
+1. **No `diffuse_filter` argument.** `_make_neg_log_posterior` already starts from the
+   unconditional distribution and falls back to the diffuse prior only for a draw that has none,
+   warning when it does. A flag that could not change that behaviour would be decoration, so it is
+   not offered.
+2. **The solve-cache saving is smaller than this task implied, and measured.** A finite-difference
+   sweep over SW07's 36 estimated parameters costs 37 evaluations and 30 solves — 7 of the 36 are
+   shock scale parameters that cannot change the solved model, so **19%** is avoided. **For the
+   random-walk Metropolis chain itself the saving is zero**, because every parameter moves on every
+   draw. The cache pays during the mode search, and would pay far more under a blocked or
+   single-site sampler. The docstring states this rather than the "~19 minutes of solving" framing.
 
 ## Task 9: Exports and the public surface
 
