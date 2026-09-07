@@ -794,3 +794,102 @@ class DSGEForecastResult:
         from puremacro.reports import _df_to_typst
 
         return _df_to_typst(self.to_frame(), **kwargs)
+
+
+@dataclass(frozen=True)
+class ModeCheckResult:
+    """One-parameter slices of an objective through a candidate mode.
+
+    Attributes
+    ----------
+    slices : dict[str, pandas.DataFrame]
+        Per parameter, a frame with ``value`` and ``objective`` columns: the
+        objective with every other parameter held at the mode.
+    peaks_at_mode : dict[str, bool]
+        Whether the slice attains its minimum at the mode. A ``False`` here is
+        the most common sign that the reported mode is not one.
+    mode : dict[str, float]
+        The point the slices pass through.
+    objective_at_mode : float
+        The objective there. ``find_mode`` minimises, so this is a negative log
+        posterior, not a log posterior.
+    """
+
+    slices: dict
+    peaks_at_mode: dict
+    mode: dict
+    objective_at_mode: float
+
+    @property
+    def failures(self) -> Tuple[str, ...]:
+        """Parameters whose slice bottoms out away from the mode."""
+        return tuple(n for n, ok in self.peaks_at_mode.items() if not ok)
+
+    def to_frame(self) -> pd.DataFrame:
+        rows = []
+        for name, sl in self.slices.items():
+            j = int(sl["objective"].idxmin())
+            rows.append({
+                "mode": self.mode[name],
+                "best_on_slice": float(sl["value"].iloc[j]),
+                "objective_gain": float(self.objective_at_mode - sl["objective"].iloc[j]),
+                "peaks_at_mode": self.peaks_at_mode[name],
+            })
+        return pd.DataFrame(rows, index=list(self.slices))
+
+    def summary(self) -> str:
+        bad = self.failures
+        lines = [
+            "MODE CHECK (one-parameter slices)",
+            "=" * 60,
+            f"objective at the mode: {self.objective_at_mode:.6f}",
+            "",
+            self.to_frame().round(6).to_string(),
+            "",
+        ]
+        if bad:
+            lines.append(
+                f"{len(bad)} parameter(s) improve away from the reported mode: "
+                f"{', '.join(bad)}. The point supplied is not a mode in those "
+                "directions — re-run the search from the better point."
+            )
+        else:
+            lines.append(
+                "Every slice bottoms out at the reported mode. That is "
+                "necessary, not sufficient: these are one-parameter slices, "
+                "so they say nothing about directions in between."
+            )
+        return "\n".join(lines)
+
+    def plot(self, ax=None, **kwargs):
+        import matplotlib.pyplot as plt
+
+        names = list(self.slices)
+        if ax is None:
+            ncol = min(3, len(names))
+            nrow = int(np.ceil(len(names) / ncol))
+            _, ax = plt.subplots(nrow, ncol, figsize=(4.0 * ncol, 2.6 * nrow),
+                                 squeeze=False)
+            ax = ax.ravel()
+        ax = np.atleast_1d(ax)
+        for a, name in zip(ax, names):
+            sl = self.slices[name]
+            a.plot(sl["value"], sl["objective"], **kwargs)
+            a.axvline(self.mode[name], color="0.5", ls="--", lw=0.9)
+            a.set_title(name + ("" if self.peaks_at_mode[name] else "  (!)"))
+        return ax
+
+    def to_markdown(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_markdown
+
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_latex
+
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_typst
+
+        return _df_to_typst(self.to_frame(), **kwargs)

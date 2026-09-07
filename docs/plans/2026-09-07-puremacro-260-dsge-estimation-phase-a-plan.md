@@ -722,13 +722,13 @@ git commit -m "feat(dsge): LinearModel.smoother and .forecast (Dynare calib_smoo
 
 ---
 
-## Task 6: `mode.py` — the mode-search menu
+## Task 6: `mode.py` — the mode-search menu — DONE
 
 **Files:** Create `puremacro/dsge/mode.py`, `tests/test_dsge/test_mode_search.py`. Modify `puremacro/dsge/estimate.py`.
 
 The 2.5.0 audit found the single L-BFGS-B run returning `initial_params` bit-identically with `converged_mle=True`. The fix then was a finite penalty; the fix now is alternatives.
 
-- [ ] **Step 1: Implement**
+- [x] **Step 1: Implement**
 
 ```python
 def csminwel(f, x0, *, bounds=None, h0=1e-4, tol=1e-7, max_iter=500) -> OptimizeResult
@@ -749,7 +749,7 @@ def mode_check(f, mode_vec, names, *, n_points=20, width=2.0, cov=None) -> ModeC
 
 `estimate_dsge` gains `mode_compute="csminwel"` — but the **default must stay `"lbfgs"` for one release** so the frozen `tests/fixtures/sw07_parity_seed0_200draws.npz` parity test keeps passing bit-for-bit. Flip the default in 2.7.0 with a fixture refresh, and say so in the CHANGELOG.
 
-- [ ] **Step 2: Tests**
+- [x] **Step 2: Tests**
 
 ```python
 @pytest.mark.parametrize("method", ["lbfgs", "simplex", "csminwel", "cmaes"])
@@ -768,7 +768,7 @@ def test_mode_check_result_plots(): ...
 def test_unknown_method_raises_listing_the_menu(): ...
 ```
 
-- [ ] **Step 3: Run and commit**
+- [x] **Step 3: Run and commit**
 
 ```bash
 PYTHONPATH=. python3 -m pytest tests/test_dsge/test_mode_search.py tests/test_dsge/test_sw07_wrapper.py -q

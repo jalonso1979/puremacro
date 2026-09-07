@@ -382,10 +382,14 @@ def test_mode_search_keeps_the_best_point_when_it_hits_the_iteration_cap(monkeyp
     The old code threw that away and reported `initial_params` as the mode,
     which is where the ~2330 lost log-posterior points came from.
     """
-    import puremacro.dsge.estimate as est_mod
+    import puremacro.dsge.mode as mode_mod
     from puremacro.dsge.estimate import estimate_dsge
 
-    real_minimize = est_mod._scipy_minimize
+    # The scipy call moved behind ``mode.find_mode`` in 2.6.0 when
+    # ``mode_compute`` gained a menu. The seam this test injects at moved with
+    # it; what is under test — a capped optimiser reporting success=False, and
+    # its best point being kept with a warning — is unchanged.
+    real_minimize = mode_mod._scipy_minimize
     better = {}
 
     def capped_minimize(fun, x0, **kwargs):
@@ -400,7 +404,7 @@ def test_mode_search_keeps_the_best_point_when_it_hits_the_iteration_cap(monkeyp
         better["improved"] = float(fun(x0)) - float(out.fun)
         return out
 
-    monkeypatch.setattr(est_mod, "_scipy_minimize", capped_minimize)
+    monkeypatch.setattr(mode_mod, "_scipy_minimize", capped_minimize)
     data = _simulate_ar1(0.7, 0.5, T=200, seed=0)
     init = {"rho": 0.05, "sigma": 1.5}
     with pytest.warns(UserWarning, match="stopped before converging"):

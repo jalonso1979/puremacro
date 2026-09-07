@@ -39,7 +39,7 @@ from typing import Callable, Sequence
 import numpy as np
 import pandas as pd
 import scipy.linalg
-from scipy.optimize import minimize as _scipy_minimize
+from puremacro.dsge.mode import find_mode as _find_mode
 
 from puremacro.dsge._results import DSGEPosteriorResult
 from puremacro.dsge.priors import (
@@ -468,6 +468,7 @@ def estimate_dsge(
     initial_params: dict,
     fixed_params: dict | None = None,
     model_name: str = "unknown",
+    mode_compute: str = "lbfgs",
     n_draws: int = 10_000,
     n_chains: int = 2,
     burn_in: int = 2_000,
@@ -483,13 +484,21 @@ def estimate_dsge(
 
     Scope limits worth knowing before you read the output:
 
-    * The mode search is a single bounded L-BFGS-B run from
-      ``initial_params``.  It is a local search: it finds a nearby
+    * The mode search defaults to a single bounded L-BFGS-B run from
+      ``initial_params`` (``mode_compute="lbfgs"``).  It is a local search:
+      it finds a nearby
       stationary point, not the global posterior mode, and on a model with
       many parameters it can stop early.  When it terminates without
       moving, or when the Hessian at its answer is not positive definite,
       that is reported as a ``UserWarning`` and the returned ``mode`` must
       be read as "the best point this run found", not as the mode.
+      ``mode_compute`` selects an alternative — ``"simplex"``,
+      ``"csminwel"``, ``"cmaes"`` or ``"none"``; see
+      :mod:`puremacro.dsge.mode`.  The default stays ``"lbfgs"`` because
+      changing it changes every posterior this function has ever returned.
+      :func:`puremacro.dsge.mode.mode_check` traces one-parameter slices
+      through the answer, which is the cheapest way to see that a "mode"
+      is not one.
     * The sampler is a scalar-adapted random-walk Metropolis. Convergence
       is not checked here beyond the acceptance rate; compute split-R-hat
       and effective sample size from ``result.draws`` with
@@ -535,9 +544,13 @@ def estimate_dsge(
     converged_mle = False
     f_init = float(neg_log_post_opt(init_vec))
     try:
-        opt = _scipy_minimize(
+        # ``mode_compute="lbfgs"`` forwards to exactly this scipy call with
+        # exactly these options, so the default path is bit-identical to what
+        # it was before the menu existed — which is what keeps the frozen SW07
+        # parity fixture valid. See puremacro/dsge/mode.py for the menu.
+        opt = _find_mode(
             neg_log_post_opt, init_vec,
-            method="L-BFGS-B",
+            method=mode_compute,
             bounds=param_bounds(priors),
             options={"maxiter": 100, "maxfun": 500 * len(init_vec)},
         )

@@ -342,6 +342,13 @@
       "KleinSolution",
       "klein_solve"
     ],
+    "puremacro.dsge.mode": [
+      "METHODS",
+      "cmaes",
+      "csminwel",
+      "find_mode",
+      "mode_check"
+    ],
     "puremacro.dsge.observation": [
       "make_state_space_from_varobs"
     ],
@@ -2848,6 +2855,12 @@
       "shock_names",
       "ss",
       "var_names"
+    ],
+    "puremacro.dsge._results.ModeCheckResult": [
+      "mode",
+      "objective_at_mode",
+      "peaks_at_mode",
+      "slices"
     ],
     "puremacro.dsge._results.SW07PosteriorResult": [
       "accept_rates",
