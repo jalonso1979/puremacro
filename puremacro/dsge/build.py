@@ -107,7 +107,15 @@ import scipy.linalg
 import scipy.optimize
 
 from puremacro.dsge.klein import KleinSolution, klein_solve
-from puremacro.dsge._results import DynareDR, TheoreticalMomentsResult, StochSimulResult
+from puremacro.dsge._results import (
+    DynareDR,
+    TheoreticalMomentsResult,
+    StochSimulResult,
+    EigenvalueTable,
+    ModelDiagnosticsResult,
+    IdentificationResult,
+    OSRResult,
+)
 from puremacro.dsge._moments import conditional_fevd, first_order_moments
 
 __all__ = [
@@ -118,6 +126,10 @@ __all__ = [
     "DynareDR",
     "TheoreticalMomentsResult",
     "StochSimulResult",
+    "EigenvalueTable",
+    "ModelDiagnosticsResult",
+    "IdentificationResult",
+    "OSRResult",
 ]
 
 # Complex-step size. Any value small enough that h**2 underflows relative
@@ -241,6 +253,7 @@ class LinearModel:
     C: np.ndarray
     method: str
     residual_norm: float
+    _equations: Callable | None = None
     _dynare_equations: Callable | None = None
     _params: dict | None = None
     _A_plus: np.ndarray | None = None
@@ -255,6 +268,7 @@ class LinearModel:
     _varobs: tuple | None = None
     _estimated_params: Any | None = None
     _mod_options: dict | None = None
+    _equation_tags: tuple | None = None
 
     def __post_init__(self):
         if self.timing not in ("klein", "dynare"):
@@ -281,6 +295,187 @@ class LinearModel:
     def is_determinate(self) -> bool:
         """True when the QZ solve found a unique stable solution (``eu == (1, 1)``)."""
         return tuple(self.solution.eu) == (1, 1)
+
+    @property
+    def A_plus(self) -> np.ndarray | None:
+        """Lead variable Jacobian matrix E_t y_{t+1}, or None if not lead-lag solved."""
+        return self._A_plus
+
+    @property
+    def A_0(self) -> np.ndarray | None:
+        """Current variable Jacobian matrix y_t, or None if not lead-lag solved."""
+        return self._A_0
+
+    @property
+    def A_minus(self) -> np.ndarray | None:
+        """Lagged variable Jacobian matrix y_{t-1}, or None if not lead-lag solved."""
+        return self._A_minus
+
+    @property
+    def B_u(self) -> np.ndarray | None:
+        """Shock loading Jacobian matrix u_t, or None if not lead-lag solved."""
+        return self._B_u
+
+    def check(self, *, qz_criterium: float = 1.0 + 1e-6) -> EigenvalueTable:
+        """Evaluate Blanchard-Kahn determinacy and generalized eigenvalue spectrum.
+
+        Computes generalized eigenvalues, classifies roots into stable, explosive,
+        and unit roots, and extracts variable loadings on offending eigenvectors
+        if determinacy fails.
+
+        Parameters
+        ----------
+        qz_criterium : float, default 1.0 + 1e-6
+            Threshold modulus above which a root is considered explosive.
+
+        Returns
+        -------
+        EigenvalueTable
+            Structured result table with .summary(), .plot(), and export methods.
+        """
+        from puremacro.dsge.diagnostics import check as _check
+
+        return _check(self, qz_criterium=qz_criterium)
+
+    def resid(self) -> pd.Series:
+        """Compute deterministic steady-state equation residuals.
+
+        Evaluates the model's dynamic equilibrium equations at steady state
+        f(ss, ss, ss, 0) and returns residuals sorted by absolute magnitude.
+
+        Returns
+        -------
+        pandas.Series
+            Residuals indexed by equation tags or labels, sorted descending by |resid|.
+        """
+        from puremacro.dsge.diagnostics import resid as _resid
+
+        return _resid(self)
+
+    def model_diagnostics(
+        self,
+        *,
+        tol: float = 1e-8,
+        n_eval_points: int = 5,
+    ) -> ModelDiagnosticsResult:
+        """Perform comprehensive structural and numerical diagnostics on the DSGE model.
+
+        Performs static Jacobian rank analysis, union numeric incidence evaluation
+        across neighbourhood perturbations, dynamic pencil regularity check,
+        stochastic singularity check, and unit root detection.
+
+        Parameters
+        ----------
+        tol : float, default 1e-8
+            Tolerance for rank deficiency and residual checks.
+        n_eval_points : int, default 5
+            Number of points for numeric incidence evaluation.
+
+        Returns
+        -------
+        ModelDiagnosticsResult
+            Structured diagnostics result with .summary(), .plot(), and findings.
+        """
+        from puremacro.dsge.diagnostics import model_diagnostics as _model_diagnostics
+
+        return _model_diagnostics(self, tol=tol, n_eval_points=n_eval_points)
+
+    def identification(
+        self,
+        *,
+        varobs: Sequence[str] | None = None,
+        params: Sequence[str] | Mapping[str, float] | Any | None = None,
+        lags: int = 1,
+        tol: float = 1e-8,
+        prior_mc: int = 0,
+        seed: int = 0,
+    ) -> IdentificationResult:
+        """Perform Iskrev (2010) and Ratto (2011) parameter identification analysis.
+
+        Parameters
+        ----------
+        varobs : Sequence[str], optional
+            Observable variable names. Defaults to model._varobs or all model variables.
+        params : Sequence[str] | Mapping[str, float] | EstimatedParams, optional
+            Parameters to evaluate. Defaults to model._estimated_params or calibrated parameters.
+        lags : int, default 1
+            Autocovariance lags included in moment Jacobian J2.
+        tol : float, default 1e-8
+            Relative SVD tolerance for rank determination.
+        prior_mc : int, default 0
+            Number of prior Monte Carlo draws to evaluate.
+        seed : int, default 0
+            Random seed for prior Monte Carlo.
+
+        Returns
+        -------
+        IdentificationResult
+            Frozen dataclass with rank, null spaces, collinearity, and presentation methods.
+        """
+        from puremacro.dsge.identification import identification as _identification
+
+        return _identification(
+            self,
+            varobs=varobs,
+            params=params,
+            lags=lags,
+            tol=tol,
+            prior_mc=prior_mc,
+            seed=seed,
+        )
+
+    def osr(
+        self,
+        rule_params: Sequence[str],
+        weights: Mapping[str, float],
+        *,
+        bounds: Mapping[str, tuple[float, float]] | None = None,
+        target_vars: Sequence[str] | None = None,
+        optimizer: str = "Nelder-Mead",
+        maxiter: int = 1000,
+        penalty: float = 1e6,
+    ) -> OSRResult:
+        """Optimize policy rule parameters against theoretical variance loss.
+
+        Minimizes quadratic loss L(gamma) = sum_i w_i Var(y_i; gamma) subject to
+        Blanchard-Kahn determinacy, penalizing determinacy failures with a continuous
+        numerical penalty surface.
+
+        Parameters
+        ----------
+        rule_params : Sequence[str]
+            Names of policy rule parameters to optimize (e.g. ["phi_pi", "phi_y"]).
+        weights : Mapping[str, float]
+            Quadratic loss weights per target variable (e.g. {"pi": 1.0, "y": 0.5}).
+        bounds : Mapping[str, tuple[float, float]], optional
+            Lower and upper bounds per rule parameter.
+        target_vars : Sequence[str], optional
+            Target variables (defaults to keys of weights).
+        optimizer : str, default "Nelder-Mead"
+            Optimization algorithm ("Nelder-Mead" or "Powell").
+        maxiter : int, default 1000
+            Maximum optimizer iterations.
+        penalty : float, default 1e6
+            Finite numerical penalty baseline when Blanchard-Kahn condition fails.
+
+        Returns
+        -------
+        OSRResult
+            Frozen dataclass with optimal coefficients, loss comparison, variance table,
+            and presentation methods.
+        """
+        from puremacro.dsge.policy import osr as _osr
+
+        return _osr(
+            self,
+            rule_params=rule_params,
+            weights=weights,
+            bounds=bounds,
+            target_vars=target_vars,
+            optimizer=optimizer,
+            maxiter=maxiter,
+            penalty=penalty,
+        )
 
     def _require_solution(self, what: str) -> None:
         """Refuse to report decision rules for a model without a unique
@@ -565,7 +760,8 @@ class LinearModel:
                  measurement_error=None, prefilter=False,
                  observation_trends=None, ridge=0.0, mode_compute="lbfgs",
                  n_draws: int = 10_000, n_chains: int = 2,
-                 burn_in: int = 2_000, seed: int = 0, model_name=None):
+                 burn_in: int = 2_000, seed: int = 0, model_name=None,
+                 check_identification: bool | str = False):
         """Bayesian estimation of this model on ``data``.
 
         ``priors`` and ``varobs`` default to the ``estimated_params`` and
@@ -587,6 +783,10 @@ class LinearModel:
             of the model's calibration.
         mode_compute : str, default 'lbfgs'
             See :mod:`puremacro.dsge.mode`.
+        check_identification : bool | str, default False
+            If True or 'warn', runs pre-flight identification check and emits
+            a warning if unidentified parameters are found. If 'raise', raises
+            ValueError.
 
         Returns
         -------
@@ -681,6 +881,31 @@ class LinearModel:
                 "estimate() needs observables: this model carries no `varobs` "
                 "declaration. Pass varobs=[...] explicitly."
             )
+
+        if check_identification:
+            from .identification import identification as _identification
+
+            ident_res = _identification(self, varobs=obs, params=specs)
+            if not ident_res.is_identified:
+                unident_count = max(
+                    ident_res.j1_n_params - ident_res.j1_rank,
+                    ident_res.j2_n_params - ident_res.j2_rank,
+                )
+                offending = (
+                    ident_res.j1_null_combinations
+                    or ident_res.j2_null_combinations
+                )
+                msg = (
+                    f"estimate(): DSGE parameter identification pre-flight check failed. "
+                    f"Model has {unident_count} structurally unidentified parameter direction(s). "
+                    f"J1 rank: {ident_res.j1_rank}/{ident_res.j1_n_params}, "
+                    f"J2 rank: {ident_res.j2_rank}/{ident_res.j2_n_params}. "
+                    f"Offending parameter combination(s): {list(offending)}"
+                )
+                if check_identification == "raise":
+                    raise ValueError(msg)
+                else:
+                    warnings.warn(msg, UserWarning)
 
         observation_eq = _make_observation_eq(
             self, specs, obs, fixed_params=fixed_params,
@@ -1506,33 +1731,23 @@ def _check_equation_count(resid: np.ndarray, n: int) -> None:
         )
 
 
-def _solve_steady_state(f, variables, shocks, params, guess, tol) -> np.ndarray:
-    n = len(variables)
-    zeros = np.zeros(len(shocks))
-
-    def residual(v):
-        vec = _Vec(variables, np.asarray(v, dtype=float))
-        return np.asarray(
-            f(vec, vec, _Vec(shocks, zeros, "shock"), params), dtype=float,
-        )
-
-    x0 = np.array([float(guess[name]) for name in variables])
-    out = scipy.optimize.root(residual, x0, method="hybr", tol=_SS_XTOL)
-    if not out.success:
-        # hybr can stall short of machine precision on a badly scaled
-        # model; fall back to the caller's tolerance rather than refusing
-        # a steady state that the acceptance gate below would have taken.
-        relaxed = scipy.optimize.root(
-            residual, x0, method="hybr", tol=max(float(tol), _SS_XTOL))
-        if relaxed.success:
-            out = relaxed
-    if not out.success:
-        raise SteadyStateError(
-            f"steady state did not converge from the supplied guess "
-            f"({dict(zip(variables, x0))}): {out.message}. Try a guess closer "
-            f"to the solution, or pass steady_state= directly."
-        )
-    return np.asarray(out.x, dtype=float)
+def _solve_steady_state(f, variables, shocks, params, guess, tol,
+                        solve_algo: str = "block",
+                        homotopy: Mapping[str, tuple[float, float]] | None = None,
+                        homotopy_steps: int = 10) -> np.ndarray:
+    from .steady import steady
+    ss, _ = steady(
+        f,
+        variables=variables,
+        guess=guess,
+        params=params,
+        shocks=shocks,
+        solve_algo=solve_algo,
+        homotopy=homotopy,
+        homotopy_steps=homotopy_steps,
+        tol=tol,
+    )
+    return ss
 
 
 def build(equations: Callable, *, variables: Sequence[str],
@@ -1540,6 +1755,9 @@ def build(equations: Callable, *, variables: Sequence[str],
           params: Mapping | None = None,
           steady_state: Mapping | None = None,
           guess: Mapping | None = None,
+          solve_algo: str = "block",
+          homotopy: Mapping[str, tuple[float, float]] | None = None,
+          homotopy_steps: int = 10,
           linearize: str = "log",
           method: str = "complex",
           verify_derivatives: bool = True,
@@ -1643,7 +1861,10 @@ def build(equations: Callable, *, variables: Sequence[str],
             np.asarray(equations(guess_vec, guess_vec,
                                  _Vec(shocks, np.zeros(n_e), "shock"), par),
                        dtype=float), n)
-        ss = _solve_steady_state(equations, variables, shocks, par, guess, tol)
+        ss = _solve_steady_state(
+            equations, variables, shocks, par, guess, tol,
+            solve_algo=solve_algo, homotopy=homotopy, homotopy_steps=homotopy_steps,
+        )
     else:
         missing = [v for v in variables if v not in steady_state]
         if missing:
@@ -1760,4 +1981,6 @@ def build(equations: Callable, *, variables: Sequence[str],
         steady_state=pd.Series(ss, index=list(variables)), units=units,
         solution=solution, A=A, B=B, C=C, method=method,
         residual_norm=residual_norm,
+        _equations=equations,
+        _params=dict(params or {}),
     )

@@ -922,3 +922,878 @@ class ModeCheckResult:
         from puremacro.reports import _df_to_typst
 
         return _df_to_typst(self.to_frame(), **kwargs)
+
+
+@dataclass(frozen=True)
+class DiagnosticFinding:
+    """A single diagnostic issue or verification confirmation."""
+
+    category: str  # "steady_state", "static_rank", "incidence", "pencil", "unit_root", "stochastic_singularity"
+    severity: str  # "error", "warning", "info"
+    message: str
+    details: Any = None
+
+    def __str__(self) -> str:
+        return f"[{self.severity.upper()}] ({self.category}) {self.message}"
+
+
+@dataclass(frozen=True)
+class EigenvalueTable:
+    """Frozen dataclass representing the DSGE eigenvalue spectrum and determinacy.
+
+    Attributes
+    ----------
+    eigenvalues : np.ndarray
+        Complex 1D array of generalized eigenvalues, sorted by modulus ascending.
+    modulus : np.ndarray
+        Float 1D array of eigenvalue moduli |lambda_i|.
+    real : np.ndarray
+        Float 1D array of real components Re(lambda_i).
+    imag : np.ndarray
+        Float 1D array of imaginary components Im(lambda_i).
+    is_explosive : np.ndarray
+        Boolean 1D array indicating whether |lambda_i| >= qz_criterium.
+    is_unit_root : np.ndarray
+        Boolean 1D array indicating whether ||lambda_i| - 1.0| <= 1e-5.
+    n_explosive : int
+        Total number of explosive eigenvalues.
+    n_forward : int
+        Total number of forward-looking (control) variables.
+    is_determinate : bool
+        True if n_explosive == n_forward and pencil is regular.
+    bk_status : str
+        Human-readable Blanchard-Kahn verdict message.
+    loadings : dict[int, dict[str, float]] | None
+        Mapping from offending root index to top variable loadings (|v_ij|),
+        populated only when is_determinate is False.
+    variables : tuple[str, ...]
+        Names of all variables in the system.
+    qz_criterium : float, default 1.0 + 1e-6
+        Threshold modulus above which an eigenvalue is classified as explosive.
+    """
+
+    eigenvalues: np.ndarray
+    modulus: np.ndarray
+    real: np.ndarray
+    imag: np.ndarray
+    is_explosive: np.ndarray
+    is_unit_root: np.ndarray
+    n_explosive: int
+    n_forward: int
+    is_determinate: bool
+    bk_status: str
+    loadings: dict[int, dict[str, float]] | None
+    variables: tuple[str, ...]
+    qz_criterium: float = 1.0 + 1e-6
+
+    @property
+    def bk_satisfied(self) -> bool:
+        """Alias for is_determinate."""
+        return self.is_determinate
+
+    @property
+    def offending_loadings(self) -> dict[int, dict[str, float]] | None:
+        """Alias for loadings."""
+        return self.loadings
+
+    @property
+    def summary_message(self) -> str:
+        """Alias for bk_status."""
+        return self.bk_status
+
+    @property
+    def n_stable(self) -> int:
+        """Total number of stable eigenvalues (|lambda| < qz_criterium)."""
+        return int(np.sum(~self.is_explosive))
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return eigenvalue details as a DataFrame."""
+        idx = [f"root_{i+1}" for i in range(len(self.eigenvalues))]
+        return pd.DataFrame(
+            {
+                "modulus": self.modulus,
+                "real": self.real,
+                "imag": self.imag,
+                "is_explosive": self.is_explosive,
+                "is_unit_root": self.is_unit_root,
+            },
+            index=idx,
+        )
+
+    def summary(self) -> str:
+        lines = [
+            f"EIGENVALUES & BLANCHARD-KAHN DIAGNOSTICS (qz_criterium={self.qz_criterium:.6f})",
+            "=" * 72,
+            f"Status       : {self.bk_status}",
+            f"Determinacy  : {'UNIQUE STABLE EQUILIBRIUM' if self.is_determinate else 'DETERMINACY FAILED'}",
+            f"Forward vars : {self.n_forward}",
+            f"Explosive    : {self.n_explosive}",
+            f"Stable       : {self.n_stable}",
+            f"Unit roots   : {int(np.sum(self.is_unit_root))}",
+            "",
+            "EIGENVALUE SPECTRUM",
+            "-" * 72,
+            self.to_frame().round(6).to_string(),
+        ]
+        if self.loadings:
+            lines.extend([
+                "",
+                "OFFENDING ROOT VARIABLE LOADINGS",
+                "-" * 72,
+            ])
+            for idx, lds in self.loadings.items():
+                mod = self.modulus[idx] if idx < len(self.modulus) else float("nan")
+                top_items = [f"{v}: {w:.4f}" for v, w in lds.items()]
+                lines.append(f"Root #{idx+1} (|lambda| = {mod:.4f}): {', '.join(top_items)}")
+        return "\n".join(lines)
+
+    def plot(self, ax=None, **kwargs):
+        """Plot eigenvalues on the complex plane against the unit circle."""
+        import matplotlib.pyplot as plt
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(6, 6))
+
+        if len(self.eigenvalues) == 0:
+            ax.text(0.5, 0.5, "No eigenvalues to plot", ha="center", va="center")
+            return ax
+
+        theta = np.linspace(0, 2 * np.pi, 200)
+        ax.plot(np.cos(theta), np.sin(theta), color="#4a7bb0", linestyle="--", linewidth=1.2, label="Unit circle (|lambda| = 1)")
+
+        finite_mask = np.isfinite(self.real) & np.isfinite(self.imag)
+        re = self.real[finite_mask]
+        im = self.imag[finite_mask]
+        exp = self.is_explosive[finite_mask]
+        unit = self.is_unit_root[finite_mask]
+        stable = (~exp) & (~unit)
+
+        if np.any(stable):
+            ax.scatter(re[stable], im[stable], color="#2ca02c", marker="o", s=40, label=f"Stable ({np.sum(stable)})", zorder=3)
+        if np.any(unit):
+            ax.scatter(re[unit], im[unit], color="#ff7f0e", marker="D", s=50, label=f"Unit root ({np.sum(unit)})", zorder=4)
+        if np.any(exp):
+            ax.scatter(re[exp], im[exp], color="#d62728", marker="s", s=45, label=f"Explosive ({np.sum(exp)})", zorder=3)
+
+        if self.loadings:
+            for idx, lds in self.loadings.items():
+                if idx < len(self.eigenvalues) and finite_mask[idx]:
+                    rx, ix = self.real[idx], self.imag[idx]
+                    ax.scatter([rx], [ix], facecolors="none", edgecolors="#17becf", s=130, linewidth=2.0, zorder=5)
+                    top_vars = list(lds.keys())[:2]
+                    callout = f"{self.modulus[idx]:.2f} ({', '.join(top_vars)})"
+                    ax.annotate(callout, (rx, ix), textcoords="offset points", xytext=(5, 5), fontsize=8, color="#17becf", fontweight="bold")
+
+        n_inf = int(np.sum(~finite_mask))
+        title = f"Eigenvalue Spectrum (n_fwd={self.n_forward}, n_exp={self.n_explosive})"
+        if n_inf > 0:
+            title += f" [{n_inf} infinite deflated]"
+        ax.set_title(title)
+        ax.set_xlabel("Re(lambda)")
+        ax.set_ylabel("Im(lambda)")
+        ax.axhline(0, color="0.7", linestyle=":", linewidth=0.8)
+        ax.axvline(0, color="0.7", linestyle=":", linewidth=0.8)
+        ax.grid(True, alpha=0.3)
+        ax.legend(loc="upper right", framealpha=0.9)
+        ax.set_aspect("equal", adjustable="datalim")
+        return ax
+
+    def to_markdown(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_markdown
+
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_latex
+
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_typst
+
+        return _df_to_typst(self.to_frame(), **kwargs)
+
+
+@dataclass(frozen=True)
+class ModelDiagnosticsResult:
+    """Frozen dataclass containing the results of DSGE model diagnostics.
+
+    Attributes
+    ----------
+    passed : bool
+        True if no error-severity findings were detected.
+    findings : tuple[DiagnosticFinding, ...]
+        Tuple of diagnostic findings.
+    static_rank : int
+        Numerical rank of the static Jacobian.
+    static_n_vars : int
+        Number of variables evaluated in the static Jacobian.
+    collinear_equations : tuple[str, ...]
+        Names or combinations of collinear equations identified by SVD.
+    collinear_variables : tuple[str, ...]
+        Names or combinations of unconstrained variables identified by SVD.
+    unused_variables : tuple[str, ...]
+        Variables that enter zero equations across all evaluation points.
+    unused_equations : tuple[str, ...]
+        Equations that depend on zero variables across all evaluation points.
+    is_pencil_regular : bool
+        True if the dynamic matrix pencil (A, B) is regular.
+    stochastic_singularity : bool
+        True if n_varobs > n_shocks + n_measurement_errors.
+    unit_roots : tuple[int, ...]
+        Indices of detected unit roots.
+    incidence_matrix : np.ndarray
+        Boolean incidence matrix (n_equations, n_variables), union of eval points.
+    eval_points : int, default 5
+        Number of neighbourhood points evaluated.
+    variable_names : tuple[str, ...]
+        Names of endogenous variables corresponding to columns of incidence_matrix.
+    equation_names : tuple[str, ...]
+        Names or labels of equations corresponding to rows of incidence_matrix.
+    """
+
+    passed: bool
+    findings: tuple[DiagnosticFinding, ...]
+    static_rank: int
+    static_n_vars: int
+    collinear_equations: tuple[str, ...]
+    collinear_variables: tuple[str, ...]
+    unused_variables: tuple[str, ...] = ()
+    unused_equations: tuple[str, ...] = ()
+    is_pencil_regular: bool = True
+    stochastic_singularity: bool = False
+    unit_roots: tuple[int, ...] = ()
+    incidence_matrix: np.ndarray | None = None
+    eval_points: int = 5
+    variable_names: tuple[str, ...] = ()
+    equation_names: tuple[str, ...] = ()
+
+    @property
+    def rank_deficient(self) -> bool:
+        return self.static_rank < self.static_n_vars
+
+    @property
+    def n_vars(self) -> int:
+        return self.static_n_vars
+
+    @property
+    def pencil_regular(self) -> bool:
+        return self.is_pencil_regular
+
+    @property
+    def redundant_equations(self) -> tuple[str, ...]:
+        return self.unused_equations
+
+    @property
+    def unit_roots_detected(self) -> int:
+        return len(self.unit_roots)
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return findings as a DataFrame."""
+        if not self.findings:
+            return pd.DataFrame([{
+                "category": "all",
+                "severity": "info",
+                "message": "All diagnostic checks passed successfully.",
+            }])
+        return pd.DataFrame([{
+            "category": f.category,
+            "severity": f.severity,
+            "message": f.message,
+        } for f in self.findings])
+
+    def summary(self) -> str:
+        status = "PASSED" if self.passed else "FAILED"
+        err_count = sum(1 for f in self.findings if f.severity == "error")
+        warn_count = sum(1 for f in self.findings if f.severity == "warning")
+        lines = [
+            "DSGE MODEL DIAGNOSTICS",
+            "=" * 72,
+            f"Overall status         : {status} ({err_count} errors, {warn_count} warnings)",
+            f"Static Jacobian rank   : {self.static_rank} / {self.static_n_vars} "
+            f"({'RANK DEFICIENT' if self.rank_deficient else 'FULL RANK'})",
+            f"Dynamic pencil regular : {'YES' if self.is_pencil_regular else 'NO (SINGULAR)'}",
+            f"Stochastic singularity : {'YES' if self.stochastic_singularity else 'NO'}",
+            f"Unit roots detected    : {self.unit_roots_detected}",
+            f"Unused variables       : {len(self.unused_variables)}" + (f" ({', '.join(self.unused_variables)})" if self.unused_variables else ""),
+            f"Unused equations       : {len(self.unused_equations)}" + (f" ({', '.join(self.unused_equations)})" if self.unused_equations else ""),
+        ]
+        if self.collinear_equations:
+            lines.append("Collinear equations    : " + "; ".join(self.collinear_equations))
+        if self.collinear_variables:
+            lines.append("Collinear variables    : " + "; ".join(self.collinear_variables))
+        lines.extend([
+            "",
+            "DIAGNOSTIC FINDINGS",
+            "-" * 72,
+            self.to_frame().to_string(),
+        ])
+        return "\n".join(lines)
+
+    def plot(self, ax=None, **kwargs):
+        """Plot the numeric incidence matrix."""
+        import matplotlib.pyplot as plt
+
+        if self.incidence_matrix is None:
+            if ax is None:
+                fig, ax = plt.subplots(figsize=(5, 3))
+            ax.text(0.5, 0.5, "No incidence matrix available", ha="center", va="center")
+            return ax
+
+        mat = self.incidence_matrix.astype(float)
+        if ax is None:
+            n_eq, n_var = mat.shape
+            fig, ax = plt.subplots(figsize=(max(5, n_var * 0.4), max(4, n_eq * 0.3)))
+
+        ax.imshow(mat, cmap="Blues", aspect="auto", vmin=0, vmax=1)
+        ax.set_title(f"Model Incidence Matrix ({mat.shape[0]} eqs x {mat.shape[1]} vars, {self.eval_points}-pt union)")
+
+        if self.variable_names and len(self.variable_names) == mat.shape[1]:
+            ax.set_xticks(range(len(self.variable_names)))
+            ax.set_xticklabels(self.variable_names, rotation=90, fontsize=8)
+        else:
+            ax.set_xlabel("Variables")
+
+        if self.equation_names and len(self.equation_names) == mat.shape[0]:
+            ax.set_yticks(range(len(self.equation_names)))
+            ax.set_yticklabels(self.equation_names, fontsize=8)
+        else:
+            ax.set_ylabel("Equations")
+
+        ax.grid(True, which="both", color="0.8", linestyle=":", linewidth=0.5)
+        return ax
+
+    def to_markdown(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_markdown
+
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_latex
+
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_typst
+
+        return _df_to_typst(self.to_frame(), **kwargs)
+
+
+@dataclass(frozen=True)
+class IdentificationResult:
+    """Frozen dataclass containing Iskrev (2010) parameter identification diagnostics.
+
+    Attributes
+    ----------
+    is_identified : bool
+        True if both J1 (reduced-form solution) and J2 (theoretical moments) are full rank.
+    j1_rank : int
+        Numerical rank of state-space Jacobian J1 = d vec(T, R, Q, Z, H) / d theta.
+    j1_n_params : int
+        Number of parameters tested in J1.
+    j1_null_space : np.ndarray
+        Orthonormal basis of J1 null space, shape (n_null, n_params).
+    j1_null_combinations : tuple[str, ...]
+        Human-readable linear parameter combinations spanning J1 null space.
+    j1_collinearity : pd.DataFrame
+        Pairwise and multi-way collinearity R^2 for J1 columns.
+    j2_rank : int
+        Numerical rank of theoretical moment Jacobian J2 = d m(theta) / d theta.
+    j2_n_params : int
+        Number of parameters tested in J2.
+    j2_null_space : np.ndarray
+        Orthonormal basis of J2 null space, shape (n_null, n_params).
+    j2_null_combinations : tuple[str, ...]
+        Human-readable linear parameter combinations spanning J2 null space.
+    j2_collinearity : pd.DataFrame
+        Pairwise and multi-way collinearity R^2 for J2 columns.
+    strength : pd.DataFrame
+        Ratto (2011) identification strength and sensitivity per parameter.
+    param_names : tuple[str, ...]
+        Names of evaluated parameters.
+    varobs : tuple[str, ...]
+        Observables used in identification analysis.
+    lags : int, default 1
+        Autocovariance lags included in J2 moments.
+    prior_mc_results : dict | None, default None
+        Optional Monte Carlo identification results over prior distribution.
+    """
+
+    is_identified: bool
+    j1_rank: int
+    j1_n_params: int
+    j1_null_space: np.ndarray
+    j1_null_combinations: tuple[str, ...]
+    j1_collinearity: pd.DataFrame
+    j2_rank: int
+    j2_n_params: int
+    j2_null_space: np.ndarray
+    j2_null_combinations: tuple[str, ...]
+    j2_collinearity: pd.DataFrame
+    strength: pd.DataFrame
+    param_names: tuple[str, ...]
+    varobs: tuple[str, ...]
+    lags: int = 1
+    prior_mc_results: dict | None = None
+
+    @property
+    def rank_deficient(self) -> bool:
+        """True if either J1 or J2 is rank deficient."""
+        return not self.is_identified
+
+    @property
+    def j1_rank_deficient(self) -> bool:
+        """True if state-space Jacobian J1 is rank deficient."""
+        return self.j1_rank < self.j1_n_params
+
+    @property
+    def j2_rank_deficient(self) -> bool:
+        """True if moment Jacobian J2 is rank deficient."""
+        return self.j2_rank < self.j2_n_params
+
+    @property
+    def n_params(self) -> int:
+        """Total number of parameters evaluated."""
+        return len(self.param_names)
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return parameter identification summary table as a DataFrame."""
+        rows = []
+        for p in self.param_names:
+            j1_r2 = float(self.j1_collinearity.loc[p, "r2"]) if (p in self.j1_collinearity.index and "r2" in self.j1_collinearity.columns) else 0.0
+            j2_r2 = float(self.j2_collinearity.loc[p, "r2"]) if (p in self.j2_collinearity.index and "r2" in self.j2_collinearity.columns) else 0.0
+            sens = float(self.strength.loc[p, "sensitivity"]) if (p in self.strength.index and "sensitivity" in self.strength.columns) else 0.0
+            st = float(self.strength.loc[p, "strength"]) if (p in self.strength.index and "strength" in self.strength.columns) else 0.0
+            norm_st = float(self.strength.loc[p, "normalized_strength"]) if (p in self.strength.index and "normalized_strength" in self.strength.columns) else 0.0
+            is_ident = bool((j1_r2 < 0.999) and (j2_r2 < 0.999) and (sens > 1e-8))
+            rows.append({
+                "j1_collinearity": j1_r2,
+                "j2_collinearity": j2_r2,
+                "sensitivity": sens,
+                "strength": st,
+                "normalized_strength": norm_st,
+                "identified": is_ident,
+            })
+        return pd.DataFrame(rows, index=list(self.param_names))
+
+    def summary(self) -> str:
+        """Render human-readable identification diagnostics summary."""
+        status_str = "IDENTIFIED" if self.is_identified else "UNIDENTIFIED (RANK DEFICIENT)"
+        lines = [
+            "PARAMETER IDENTIFICATION ANALYSIS (Iskrev 2010 / Ratto 2011)",
+            "=" * 72,
+            f"Overall status         : {status_str}",
+            f"Parameters evaluated   : {len(self.param_names)}",
+            f"Observables (varobs)   : {', '.join(self.varobs)}",
+            f"Autocovariance lags    : {self.lags}",
+            f"J1 (Solution) rank     : {self.j1_rank} / {self.j1_n_params} "
+            f"({'FULL RANK' if not self.j1_rank_deficient else f'DEFICIENT by {self.j1_n_params - self.j1_rank}'})",
+            f"J2 (Moments) rank      : {self.j2_rank} / {self.j2_n_params} "
+            f"({'FULL RANK' if not self.j2_rank_deficient else f'DEFICIENT by {self.j2_n_params - self.j2_rank}'})",
+        ]
+        if self.j1_null_combinations:
+            lines.extend([
+                "",
+                "J1 NULL SPACE PARAMETER COMBINATIONS",
+                "-" * 72,
+            ])
+            for comb in self.j1_null_combinations:
+                lines.append(f"  {comb}")
+
+        if self.j2_null_combinations:
+            lines.extend([
+                "",
+                "J2 NULL SPACE PARAMETER COMBINATIONS",
+                "-" * 72,
+            ])
+            for comb in self.j2_null_combinations:
+                lines.append(f"  {comb}")
+
+        if not self.j1_null_combinations and not self.j2_null_combinations:
+            lines.extend([
+                "",
+                "NULL SPACE DIRECTIONS",
+                "-" * 72,
+                "  None (All parameters locally identified)",
+            ])
+
+        lines.extend([
+            "",
+            "PARAMETER IDENTIFICATION SUMMARY",
+            "-" * 72,
+            self.to_frame().round(4).to_string(),
+            "=" * 72,
+        ])
+        return "\n".join(lines)
+
+    def plot(self, ax=None, **kwargs):
+        """Plot parameter collinearity R^2 and identification strength."""
+        import matplotlib.pyplot as plt
+
+        n_p = len(self.param_names)
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(8, max(4.0, n_p * 0.45)))
+
+        if n_p == 0:
+            ax.text(0.5, 0.5, "No parameters evaluated", ha="center", va="center")
+            return ax
+
+        y_pos = np.arange(n_p)
+        height = 0.35
+
+        r2_vals = (
+            self.j2_collinearity["r2"].to_numpy()
+            if "r2" in self.j2_collinearity.columns
+            else np.zeros(n_p)
+        )
+        st_vals = (
+            self.strength["normalized_strength"].to_numpy()
+            if "normalized_strength" in self.strength.columns
+            else (
+                self.strength["strength"].to_numpy()
+                if "strength" in self.strength.columns
+                else np.zeros(n_p)
+            )
+        )
+
+        ax.barh(
+            y_pos - height / 2,
+            r2_vals,
+            height=height,
+            color="#4a7bb0",
+            alpha=0.85,
+            label="Collinearity $R^2$ (J2)",
+        )
+        ax.barh(
+            y_pos + height / 2,
+            st_vals,
+            height=height,
+            color="#2ca02c",
+            alpha=0.85,
+            label="Norm. Identification Strength",
+        )
+        ax.axvline(
+            1.0,
+            color="#d62728",
+            linestyle="--",
+            linewidth=1.2,
+            alpha=0.7,
+            label="Collinear (1.0)",
+        )
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(list(self.param_names))
+        ax.set_xlim(0, 1.05)
+        ax.set_xlabel("Metric Value [0, 1]")
+        ax.set_title("DSGE Parameter Identification: Collinearity vs Strength")
+        ax.grid(True, axis="x", linestyle=":", alpha=0.5)
+        ax.legend(loc="lower right", fontsize=8)
+
+        return ax
+
+    def to_markdown(self, **kwargs) -> str:
+        """Render summary table as Markdown."""
+        from puremacro.reports import _df_to_markdown
+
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        """Render summary table as LaTeX tabular."""
+        from puremacro.reports import _df_to_latex
+
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        """Render summary table as Typst table."""
+        from puremacro.reports import _df_to_typst
+
+        return _df_to_typst(self.to_frame(), **kwargs)
+
+
+@dataclass(frozen=True)
+class OSRResult:
+    """Frozen dataclass containing Optimal Simple Rule optimization results.
+
+    Attributes
+    ----------
+    optimal_params : dict[str, float]
+        Dictionary of optimal rule parameter values.
+    initial_params : dict[str, float]
+        Dictionary of baseline/initial rule parameter values.
+    loss_opt : float
+        Value of quadratic loss at the optimum.
+    loss_initial : float
+        Value of quadratic loss at initial parameters.
+    rule_params : tuple[str, ...]
+        Names of optimized rule parameters.
+    target_vars : tuple[str, ...]
+        Names of target variables in loss function.
+    weights : dict[str, float]
+        Weights assigned to each target variable.
+    variance_table : pd.DataFrame
+        DataFrame detailing variances, weights, and weighted losses initially and at optimum.
+    converged : bool
+        True if the optimizer reported successful convergence.
+    message : str
+        Termination status message from optimizer.
+    n_evaluations : int
+        Total function evaluations.
+    optimal_model : Any = None
+        Model re-solved at optimal parameter values.
+    """
+
+    optimal_params: dict[str, float]
+    initial_params: dict[str, float]
+    loss_opt: float
+    loss_initial: float
+    rule_params: tuple[str, ...]
+    target_vars: tuple[str, ...]
+    weights: dict[str, float]
+    variance_table: pd.DataFrame
+    converged: bool
+    message: str
+    n_evaluations: int
+    optimal_model: Any = None
+
+    @property
+    def loss_init(self) -> float:
+        """Alias for loss_initial."""
+        return self.loss_initial
+
+    @property
+    def loss_calib(self) -> float:
+        """Alias for loss_initial."""
+        return self.loss_initial
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return canonical DataFrame representation of the variance comparison table."""
+        return self.variance_table.copy()
+
+    def summary(self) -> str:
+        """Render human-readable summary of OSR optimization results."""
+        improvement_pct = 0.0
+        if self.loss_initial > 0:
+            improvement_pct = 100.0 * (self.loss_initial - self.loss_opt) / self.loss_initial
+
+        lines = [
+            "OPTIMAL SIMPLE RULES (OSR) OPTIMIZATION",
+            "=" * 72,
+            f"Convergence status      : {'CONVERGED' if self.converged else 'TERMINATED'} ({self.message})",
+            f"Function evaluations    : {self.n_evaluations}",
+            f"Baseline loss           : {self.loss_initial:.6e}",
+            f"Optimal loss            : {self.loss_opt:.6e}",
+            f"Loss reduction          : {improvement_pct:.2f}%",
+            "",
+            "RULE PARAMETERS",
+            "-" * 72,
+            f"{'Parameter':<20} {'Initial':>15} {'Optimal':>15} {'Change':>15}",
+            "-" * 72,
+        ]
+        for p in self.rule_params:
+            init_val = self.initial_params.get(p, np.nan)
+            opt_val = self.optimal_params.get(p, np.nan)
+            chg = opt_val - init_val if not (np.isnan(init_val) or np.isnan(opt_val)) else np.nan
+            lines.append(f"{p:<20} {init_val:>15.6f} {opt_val:>15.6f} {chg:>+15.6f}")
+
+        lines.extend([
+            "",
+            "TARGET VARIABLE VARIANCES",
+            "-" * 72,
+            self.variance_table.round(6).to_string(),
+            "=" * 72,
+        ])
+        return "\n".join(lines)
+
+    def plot(self, ax=None, **kwargs):
+        """Plot grouped bar chart comparing variances under baseline vs optimal rule."""
+        import matplotlib.pyplot as plt
+
+        df = self.variance_table
+        vars_list = list(df.index)
+        n_vars = len(vars_list)
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(max(6.0, n_vars * 1.5), 4.5))
+
+        if n_vars == 0:
+            ax.text(0.5, 0.5, "No target variables to plot", ha="center", va="center")
+            return ax
+
+        x = np.arange(n_vars)
+        width = 0.35
+
+        var_init = (
+            df["var_initial"].to_numpy()
+            if "var_initial" in df.columns
+            else (df["var_calib"].to_numpy() if "var_calib" in df.columns else np.zeros(n_vars))
+        )
+        var_opt = (
+            df["var_optimal"].to_numpy()
+            if "var_optimal" in df.columns
+            else (df["var_opt"].to_numpy() if "var_opt" in df.columns else np.zeros(n_vars))
+        )
+
+        ax.bar(x - width / 2, var_init, width, label="Baseline", color="#4a7bb0", alpha=0.85)
+        ax.bar(x + width / 2, var_opt, width, label="Optimal Rule", color="#2ca02c", alpha=0.85)
+
+        ax.set_ylabel("Theoretical Variance")
+        ax.set_title("Optimal Simple Rules: Variance Comparison")
+        ax.set_xticks(x)
+        ax.set_xticklabels(vars_list)
+        ax.legend()
+        ax.grid(True, axis="y", linestyle=":", alpha=0.6)
+        return ax
+
+    def to_markdown(self, **kwargs) -> str:
+        """Render summary variance table as Markdown."""
+        from puremacro.reports import _df_to_markdown
+
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        """Render summary variance table as LaTeX tabular."""
+        from puremacro.reports import _df_to_latex
+
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        """Render summary variance table as Typst table."""
+        from puremacro.reports import _df_to_typst
+
+        return _df_to_typst(self.to_frame(), **kwargs)
+
+
+@dataclass(frozen=True)
+class PolicyResult:
+    """Frozen dataclass containing optimal policy regime results.
+
+    Attributes
+    ----------
+    regime : str
+        "discretion" or "commitment".
+    target_vars : tuple[str, ...]
+        Target variable names.
+    weights : dict[str, float]
+        Weights on target variables.
+    instruments : tuple[str, ...]
+        Names of policy instruments.
+    beta : float
+        Policymaker discount factor.
+    loss : float
+        Expected unconditional quadratic loss.
+    policy_rules : pd.DataFrame
+        Reaction function coefficients expressing instrument(s) in terms of states.
+    transition_matrix : np.ndarray
+        Closed-loop state transition matrix G.
+    impact_matrix : np.ndarray
+        Closed-loop shock loading matrix N.
+    multipliers : tuple[str, ...]
+        Names of Lagrange multiplier variables (empty in discretion).
+    linear_model : Any
+        The solved LinearModel under the policy regime, enabling .irf(), .fevd(),
+        .simulate(), and .theoretical_moments().
+    """
+
+    regime: str
+    target_vars: tuple[str, ...]
+    weights: dict[str, float]
+    instruments: tuple[str, ...]
+    beta: float
+    loss: float
+    policy_rules: pd.DataFrame
+    transition_matrix: np.ndarray
+    impact_matrix: np.ndarray
+    multipliers: tuple[str, ...]
+    linear_model: Any = None
+
+    @property
+    def augmented_model(self) -> Any:
+        """Alias for linear_model."""
+        return self.linear_model
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return canonical DataFrame representation of the policy rule reaction coefficients."""
+        return self.policy_rules.copy()
+
+    def summary(self) -> str:
+        """Render human-readable summary of policy regime equilibrium."""
+        lines = [
+            f"OPTIMAL POLICY REGIME: {self.regime.upper()}",
+            "=" * 72,
+            f"Policymaker discount (beta): {self.beta:.4f}",
+            f"Expected unconditional loss : {self.loss:.6e}",
+            f"Policy instruments          : {', '.join(self.instruments)}",
+            f"Target variables            : {', '.join(f'{k} (w={v})' for k, v in self.weights.items())}",
+        ]
+        if self.multipliers:
+            lines.append(f"Lagrange multipliers        : {', '.join(self.multipliers)}")
+        lines.extend([
+            "",
+            "POLICY REACTION FUNCTIONS (Coefficients on States)",
+            "-" * 72,
+            self.policy_rules.round(6).to_string(),
+            "=" * 72,
+        ])
+        return "\n".join(lines)
+
+    def plot(self, ax=None, periods: int = 16, shock: str | None = None, **kwargs):
+        """Plot impulse responses under the optimal policy regime."""
+        import matplotlib.pyplot as plt
+
+        if self.linear_model is None:
+            if ax is None:
+                fig, ax = plt.subplots()
+            ax.text(0.5, 0.5, "No linear model attached", ha="center", va="center")
+            return ax
+
+        shock_name = shock if shock is not None else (self.linear_model.shocks[0] if self.linear_model.shocks else None)
+        if shock_name is None:
+            if ax is None:
+                fig, ax = plt.subplots()
+            ax.text(0.5, 0.5, "No shocks in model", ha="center", va="center")
+            return ax
+        irf_df = self.linear_model.irf(shock_name, horizon=periods)
+        plot_vars = [v for v in self.target_vars if v in irf_df.columns]
+        for inst in self.instruments:
+            if inst in irf_df.columns and inst not in plot_vars:
+                plot_vars.append(inst)
+        for mult in self.multipliers:
+            if mult in irf_df.columns and mult not in plot_vars:
+                plot_vars.append(mult)
+
+        if not plot_vars:
+            plot_vars = list(irf_df.columns[:min(4, len(irf_df.columns))])
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(8, 4.5))
+
+        for v in plot_vars:
+            ax.plot(irf_df.index, irf_df[v], label=v, linewidth=1.8)
+
+        ax.axhline(0, color="k", linestyle="--", linewidth=0.8, alpha=0.7)
+        ax.set_xlabel("Horizon")
+        ax.set_ylabel("Deviation")
+        ax.set_title(f"Optimal Policy ({self.regime.capitalize()}): Impulse Responses")
+        ax.legend(loc="best")
+        ax.grid(True, linestyle=":", alpha=0.6)
+        return ax
+
+    def to_markdown(self, **kwargs) -> str:
+        """Render policy rules table as Markdown."""
+        from puremacro.reports import _df_to_markdown
+
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        """Render policy rules table as LaTeX tabular."""
+        from puremacro.reports import _df_to_latex
+
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        """Render policy rules table as Typst table."""
+        from puremacro.reports import _df_to_typst
+
+        return _df_to_typst(self.to_frame(), **kwargs)
+
+
+

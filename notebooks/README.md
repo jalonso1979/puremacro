@@ -48,14 +48,21 @@ not the `.ipynb`** — the `.ipynb` is a build artifact, regenerated with output
 | `38_real_time_vintages_and_revisions` | Real-time QNA vintages across 45+ countries, revision triangles $(T \times V)$, & Mankiw-Shapiro (1986) news vs. noise test |
 | `39_multilingual_narrative_harvesting` | Multi-source narrative harvesting (50+ connectors), 8-language macro scoring, realization lags, & structured policy classification |
 | `40_quarterly_national_accounts` | Three approaches to GDP in one panel: one price reference year (`qna_rebase`), the expenditure/output/income identities scored inside their own flows (`qna_identity`), growth decomposed with previous-period nominal weights (`qna_contributions`) |
-| `41_dynare_frontier_showcase` | Smets-Wouters (2007) from Pfeifer's `.mod`: solve, FEVD, historical shock decomposition, OccBin ZLB, perfect-foresight Ramsey transition, Bayesian MCMC |
+| `41_dynare_frontier_showcase` | Smets-Wouters (2007) from Pfeifer's `.mod`: native 2.6.0 `.smoother()` state & shock extraction on bundled US data (`_sw07_data.csv`), native `.estimate()` MCMC, FEVD, OccBin ZLB piecewise-linear regime, and perfect-foresight Ramsey transition (paired Spanish edition: `41_dynare_frontier_showcase_es`) |
+| `42_dsge_bayesian_estimation_and_diagnostics` | Flagship Smets-Wouters (2007) Bayesian DSGE estimation: multi-algorithm mode search (`lbfgs`, `csminwel`, `cmaes`), visual mode diagnostics (`mode_check` curvature slices), MCMC sampling with Gelman-Rubin convergence diagnostics, Kalman smoother & historical structural shock decomposition, fan chart forecasting with confidence bands, Laplace & Geweke modified harmonic mean marginal data density (MDD), and Bayesian model comparison (paired Spanish edition: `42_dsge_bayesian_estimation_and_diagnostics_es`) |
 | `00_whats_new_in_puremacro_2_0` | Tour of the 2.0 unified API (`lags`/`horizon`/`ci`, result objects, exporters) |
+
+### Specialized Domain Showcases (`notebooks/macro_history_and_climate/`)
+
+| Notebook | Shows |
+|---|---|
+| `macro_history_and_climate/N12_paleoclimate_eiv_and_simex` | 2.6.0 modernized: Errors-in-variables (EIV) and SIMEX simulation extrapolation for paleoclimate temperature reconstructions running on puremacro's native pure-NumPy econometric suite (`puremacro.regress.ols`, robust SEs HC0–HC3) with zero external `statsmodels` dependencies |
 
 The deepened showcases (`01`, `06`, `11`, `14`, `15`, `16`) follow the structure in
 [`_TEMPLATE.md`](./_TEMPLATE.md): motivating question → the method in math → intuition →
 worked code → read the output → a fill-in *Your turn* → "how comprehensive is this?".
 `13_build_your_own_index` is a multi-kernel lab variant (four worked recipes, each with a
-fill-in).
+fill-in). Showcase `42` provides the flagship template for medium-scale DSGE Bayesian estimation.
 
 ## Rebuild
 

@@ -40,9 +40,6 @@ from puremacro.dsge import (
     solve_occbin,
     OccBinConstraint,
     solve_perfect_foresight,
-    estimate_dsge_bayesian,
-    BetaPrior,
-    InvGammaPrior,
 )
 
 # %% [markdown]
@@ -94,16 +91,28 @@ plt.show()
 # 3. Contribución acumulada de cada shock estructural $\sum_j \text{Shock}_j(t)$
 
 # %%
-np.random.seed(42)
-T_hist = 40
-data_hist = pd.DataFrame({
-    "labobs": np.sin(np.linspace(0, 3 * np.pi, T_hist)) * 1.5 + np.random.randn(T_hist) * 0.2,
-    "robs": np.cos(np.linspace(0, 2 * np.pi, T_hist)) * 0.8 + np.random.randn(T_hist) * 0.1,
-    "pinfobs": np.sin(np.linspace(0, 2.5 * np.pi, T_hist)) * 0.5 + np.random.randn(T_hist) * 0.15,
-    "dy": np.random.randn(T_hist) * 0.6,
-})
+# Cargamos los datos históricos canónicos de Smets-Wouters (2007) para la economía de EE.UU.
+csv_path = Path(puremacro.dsge.__file__).parent / "_sw07_data.csv"
+raw_data = pd.read_csv(csv_path, comment="#")
+rename_map = {
+    "gdp_growth": "dy",
+    "cons_growth": "dc",
+    "inv_growth": "dinve",
+    "wage_growth": "dw",
+    "log_hours": "labobs",
+    "infl": "pinfobs",
+    "ffr": "robs",
+}
+data = raw_data.rename(columns=rename_map)[list(m._varobs)]
+print(f"Datos cargados: {data.shape[0]} trimestres para observables: {list(data.columns)}")
 
-decomp_res = compute_shock_decomposition(m, data_hist)
+# Suavizador de Kalman: extrae estados no observados y perturbaciones estructurales
+sm_res = m.smoother(data)
+print(f"Dimensión de estados suavizados : {sm_res.states.shape} (trimestres x estados)")
+print(f"Dimensión de shocks suavizados  : {sm_res.shocks.shape} (trimestres x shocks)")
+
+# Descomposición histórica de shocks sobre datos reales de EE.UU.
+decomp_res = sm_res.shock_decomposition()
 print(f"Variables descompuestas: {decomp_res.variable_names}")
 
 fig_decomp = decomp_res.plot(variable="labobs")
@@ -146,7 +155,7 @@ def nk_cons(lead, curr, lag, shocks_v, p):
     ]
 
 ref_mod = build_dynare(nk_ref, variables=variables_nk, shocks=shocks_nk, params=params_nk, steady_state=ss_nk)
-cons_mod = build_dynare(nk_cons, variables=variables_nk, shocks=shocks_nk, params=params_nk, steady_state=ss_nk, check_steady_state=False)
+cons_mod = build_dynare(nk_cons, variables=variables_nk, shocks=shocks_nk, params=params_nk, steady_state=ss_nk, check_steady_state=False, strict=False)
 
 constraint = OccBinConstraint(variable="r", threshold=-params_nk["r_ss"], operator="<")
 shock_seq = np.array([0.0, -0.020])
@@ -189,44 +198,29 @@ fig_pf = pf_res.plot()
 plt.show()
 
 # %% [markdown]
-# ## 6. Estimación Bayesiana DSGE vía Metropolis-Hastings
+# ## 6. Estimación Bayesiana DSGE Nativa vía Metropolis-Hastings
 #
-# `puremacro.dsge.estimate_dsge_bayesian` ejecuta el protocolo Bayesiano estándar de estimación:
-# 1. Búsqueda numérica de la moda posterior.
-# 2. Aproximación de Laplace para la covarianza de la propuesta $\Sigma = (-H)^{-1}$.
-# 3. Muestreo MCMC Random Walk Metropolis-Hastings con adaptación automática de escala y diagnóstico de convergencia Gelman-Rubin.
+# puremacro 2.6.0 estima modelos `.mod` de forma nativa utilizando sus distribuciones a priori (`estimated_params`) y series observadas (`varobs`).
+# Al invocar `m.estimate(data)`, el motor evalúa la verosimilitud exacta del modelo de espacio de estados mediante el filtro de Kalman y ejecuta el muestreo MCMC Random Walk Metropolis-Hastings.
 
 # %%
-true_rho, true_sigma = 0.85, 0.02
-np.random.seed(42)
-y_obs = np.zeros(100)
-for t in range(1, 100):
-    y_obs[t] = true_rho * y_obs[t-1] + np.random.randn() * true_sigma
-
-def log_lik_fn(theta):
-    rho, sig = theta[0], theta[1]
-    if not (0.01 < rho < 0.99) or sig <= 0.001:
-        return -1e10
-    resids = y_obs[1:] - rho * y_obs[:-1]
-    return float(-0.5 * len(resids) * np.log(2 * np.pi * sig**2) - 0.5 * np.sum(resids**2) / (sig**2))
-
-priors = {
-    "rho": BetaPrior(mean=0.8, std=0.1),
-    "sigma": InvGammaPrior(s=0.02, nu=4.0),
-}
-
-bayes_res = estimate_dsge_bayesian(
-    log_lik_fn,
-    priors=priors,
-    initial_params=np.array([0.7, 0.04]),
-    n_draws=400,
-    n_burn=100,
-    n_chains=2,
+bayes_res = m.estimate(
+    data,
+    mode_compute="none",
+    n_draws=40,
+    burn_in=20,
     seed=42,
 )
 
 print(bayes_res.summary())
-fig_bayes = bayes_res.plot_priors_posteriors()
+
+# Gráfico de la traza MCMC de la log-posterior
+fig_bayes, ax = plt.subplots(figsize=(8, 3.5))
+ax.plot(bayes_res.log_posterior_trace[0], color="#2980b9", lw=1.5)
+ax.set_xlabel("Extracción MCMC (post-calentamiento)")
+ax.set_ylabel("Log-posterior")
+ax.set_title("Traza MCMC de la Log-Posterior de Smets-Wouters (2007)")
+plt.tight_layout()
 plt.show()
 
 # %% [markdown]

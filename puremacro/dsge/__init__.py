@@ -17,13 +17,20 @@ For likelihood-based estimation, pair the state-space form returned by
 """
 from .klein import BlanchardKahnError, KleinSolution, klein_solve
 from .build import LinearModel, ModelError, SteadyStateError, build
+from .steady import StructuralSingularityError, steady
 from ._results import (
     DSGEPosteriorResult, SW07PosteriorResult,
     FertilitySolution,
     DynareDR, Dynare2ndDR, TheoreticalMomentsResult,
     StochSimulResult,
     SmootherResult, DSGEForecastResult, ModeCheckResult,
+    DiagnosticFinding, EigenvalueTable, ModelDiagnosticsResult,
+    IdentificationResult,
+    OSRResult, PolicyResult,
 )
+from .diagnostics import check, resid, model_diagnostics
+from .identification import identification
+from .policy import osr, discretionary_policy, lq_commitment
 from .estimate import estimate_dsge
 from .bayesian import BayesianEstimationResult, estimate_dsge_bayesian
 from .sw07_estimate import estimate_sw07
@@ -83,6 +90,7 @@ from . import marginal, mode, observation, smoother
 __all__ = [
     "klein_solve", "KleinSolution", "BlanchardKahnError",
     "build", "LinearModel", "ModelError", "SteadyStateError",
+    "steady", "StructuralSingularityError",
     "DSGEPosteriorResult", "SW07PosteriorResult", "BayesianEstimationResult", "FertilitySolution",
     "DynareDR", "Dynare2ndDR", "TheoreticalMomentsResult", "StochSimulResult",
     "build_dynare", "parse_mod", "load_mod", "load_dynare_mod", "solve_dynare_2nd_order",
@@ -105,6 +113,14 @@ __all__ = [
     "laplace_mdd", "harmonic_mean_mdd", "model_comparison", "HarmonicMeanResult",
     "marginal", "mode", "observation", "smoother",
     "priors", "fertility_adj_costs",
+    # --- 2.6.0: DSGE Diagnostics & Residuals ------------------------------
+    "check", "resid", "model_diagnostics",
+    "EigenvalueTable", "ModelDiagnosticsResult", "DiagnosticFinding",
+    # --- 2.6.0: Parameter Identification Analysis ------------------------
+    "identification", "IdentificationResult",
+    # --- 2.6.0: Optimal Simple Rules & Policy Regimes --------------------
+    "osr", "discretionary_policy", "lq_commitment",
+    "OSRResult", "PolicyResult",
 ]
 from . import smets_wouters  # re-export for back-compat with 0.50.0 callers
 from . import gertler_karadi

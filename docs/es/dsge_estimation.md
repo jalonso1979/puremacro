@@ -170,6 +170,218 @@ Dos estimadores, y no son equivalentes. **Laplace** es exacto cuando la posterio
 
 `model_comparison` puntúa todos los modelos con el *mismo* estimador y se niega cuando alguno no puede aportarlo. Un valor de Laplace y uno de media armónica no están en pie de igualdad, y mezclarlos en silencio es la vía por la que un factor de Bayes se convierte en ficción.
 
+## Diagnóstico del modelo y análisis de residuos
+
+Antes de estimar un modelo o confiar en simulaciones de política, puremacro proporciona tres puntos de entrada de diagnóstico que igualan y amplían las herramientas de Dynare: `check()`, `resid()` y `model_diagnostics()`.
+
+### Determinación de Blanchard-Kahn y valores propios (`check()`)
+
+`model.check()` evalúa el espectro de valores propios generalizados del haz de matrices acompañante, clasifica las raíces en categorías estables, con raíz unitaria y explosivas, y verifica las condiciones de orden y rango de Blanchard-Kahn:
+
+```python
+table = model.check()
+print(table.summary())
+```
+
+Cuando la determinación falla (indeterminación o explosividad), `check()` va más allá de un simple recuento escalar: calcula los vectores propios generalizados asociados a las raíces problemáticas y aísla las principales cargas por variable, señalando con precisión qué variables económicas originan el fallo:
+
+```text
+EIGENVALUES & BLANCHARD-KAHN DIAGNOSTICS (qz_criterium=1.000001)
+========================================================================
+Status       : 1 explosive roots for 2 forward-looking variables; missing root at |lambda| = 0.9421 loads chiefly on pi, y (indeterminacy).
+Determinacy  : DETERMINACY FAILED
+Forward vars : 2
+Explosive    : 1
+Stable       : 3
+Unit roots   : 0
+```
+
+Visualización del espectro frente al círculo unitario complejo:
+
+```python
+fig = table.plot()  # grafica raíces estables, unitarias y explosivas con el círculo unitario
+```
+
+### Residuos de estado estacionario (`resid()`)
+
+`model.resid()` evalúa las ecuaciones dinámicas de equilibrio en el estado estacionario, $f(ss, ss, ss, 0)$, y devuelve una `pd.Series` de residuos ordenados de forma descendente por su magnitud absoluta:
+
+```python
+resids = model.resid()
+print(resids.head(5).round(6))
+```
+
+Las etiquetas y etiquetas identificadoras del archivo `.mod` se preservan, lo que permite aislar de inmediato las ecuaciones con residuos no nulos (por ejemplo, al diagnosticar discrepancias de calibración).
+
+### Diagnósticos estructurales del modelo (`model_diagnostics()`)
+
+`model.model_diagnostics()` ejecuta comprobaciones estructurales estáticas y dinámicas exhaustivas:
+- **Análisis de rango del jacobiano estático**: evalúa $\text{rango}(J_{\text{estático}})$ frente al número de variables.
+- **Ecuaciones y variables colineales**: emplea la Descomposición en Valores Singulares (SVD) para identificar subconjuntos exactos de ecuaciones colineales y variables no restringidas.
+- **Matriz de incidencia numérica**: evalúa la incidencia de unión a lo largo de perturbaciones de vecindad para detectar variables no utilizadas y ecuaciones redundantes.
+- **Regularidad del haz dinámico de matrices**: verifica que $\det(B - \lambda A) \not\equiv 0$.
+- **Singularidad estocástica**: señala si el número de variables observadas declaradas en `varobs` supera la suma de choques y errores de medida.
+
+```python
+diag = model.model_diagnostics()
+print(diag.summary())
+
+# Graficar la matriz de incidencia booleana
+fig = diag.plot()
+```
+
+## Resolución robusta del estado estacionario por bloques triangulares
+
+El cómputo de estados estacionarios deterministas en modelos DSGE de mediana y gran escala falla con frecuencia al utilizar solucionadores de Newton multidimensionales ingenuos. Puremacro incorpora un motor de descomposición en bloques triangulares (`puremacro.dsge.steady`):
+
+1. **Emparejamiento bipartito de Hopcroft-Karp**: halla un emparejamiento de máxima cardinalidad entre ecuaciones y variables en tiempo $O(|E|\sqrt{|V|})$.
+2. **Descomposición de singularidad de Dulmage-Mendelsohn**: cuando no existe un emparejamiento completo, descompone el grafo bipartito de incidencia en subconjuntos sobredeterminados, subdeterminados y bien determinados, generando un error informativo `StructuralSingularityError` que nombra explícitamente los subconjuntos problemáticos:
+   ```python
+   from puremacro.dsge.steady import StructuralSingularityError
+
+   try:
+       ss, info = steady(equations, variables, guess, params)
+   except StructuralSingularityError as err:
+       print("Ecuaciones sobredeterminadas :", err.overdetermined_equations)
+       print("Variables subdeterminadas    :", err.underdetermined_variables)
+   ```
+3. **Componentes fuertemente conexas de Tarjan (SCC)**: descompone el grafo de dependencias inducido por el emparejamiento en sub-bloques topológicos resueltos en secuencia. Las ecuaciones escalares aisladas se resuelven con métodos unidimensionales (Brent / secante), mientras que los bloques acoplados emplean solucionadores vectoriales.
+
+### Menú de algoritmos y continuación por homotopía
+
+El parámetro `solve_algo` permite seleccionar entre distintos algoritmos numéricos:
+- `"block"` (por defecto): solucionador recursivo en bloques triangulares.
+- `"hybr"`: método híbrido de Powell (MINPACK).
+- `"lm"`: mínimos cuadrados no lineales de Levenberg-Marquardt.
+- `"df-sane"`: método espectral libre de derivadas para sistemas de gran escala.
+
+Cuando los métodos no lineales fallan debido a un punto inicial alejado, la **continuación por homotopía adaptativa** recorre una trayectoria paramétrica con bisección automática de pasos:
+
+```python
+from puremacro.dsge.steady import steady
+
+# Continuación paramétrica desde alpha=0.20 hasta alpha=0.36
+ss, info = steady(
+    equations,
+    variables,
+    guess,
+    params={"alpha": 0.36, "beta": 0.99},
+    solve_algo="block",
+    homotopy={"alpha": (0.20, 0.36)},
+    homotopy_steps=10,
+)
+```
+
+## Análisis de identificación de parámetros
+
+Siguiendo a Iskrev (2010) y Ratto (2011), `model.identification()` evalúa si los parámetros estructurales pueden recuperarse unívocamente a partir de las variables observadas declaradas en `varobs`:
+
+```python
+ident = model.identification(varobs=["y", "pi", "i"], lags=2)
+print(ident.summary())
+```
+
+El procedimiento evalúa dos jacobianos fundamentales:
+1. **$J_1$ (Jacobiano de la solución en espacio de estados)**: $\frac{\partial \text{vec}(T, R, Q, Z, H)}{\partial \theta}$.
+2. **$J_2$ (Jacobiano de momentos teóricos)**: $\frac{\partial m(\theta)}{\partial \theta}$, donde $m(\theta)$ apila las autocovarianzas del modelo hasta el orden `lags`.
+
+El objeto `IdentificationResult` resultante reporta:
+- **Deficiencia de rango**: determina si $J_1$ y $J_2$ tienen rango completo y la dimensión de sus espacios nulos.
+- **Combinaciones de parámetros en el espacio nulo**: combinaciones lineales exactas que generan el espacio nulo (por ejemplo, `0.7071 * theta1 - 0.7071 * theta2 = 0`), revelando parámetros redundantes o proporcionales.
+- **Colinealidad multivariada ($R^2$)**: $R^2$ resultante de la regresión de cada columna del jacobiano sobre las demás; valores cercanos a $1.0$ identifican parámetros colineales.
+- **Fuerza de identificación**: métricas de sensibilidad y fuerza normalizada de Ratto.
+
+```python
+# Graficar colinealidad R^2 frente a fuerza de identificación
+fig = ident.plot()
+```
+
+### Comprobación previa de identificación en la estimación
+
+Para evitar el lanzamiento de cadenas MCMC computacionalmente costosas en modelos no identificados, pase `check_identification=True` a `model.estimate()`:
+
+```python
+# Emite una advertencia informativa si existen parámetros deficientes de rango
+res = model.estimate(data, check_identification=True)
+
+# O use check_identification="raise" para abortar inmediatamente ante deficiencias de rango
+# res = model.estimate(data, check_identification="raise")
+```
+
+## Regímenes de política óptima y reglas simples óptimas
+
+Puremacro ofrece soporte integral para el diseño de política monetaria y macroprudencial en tres regímenes estándar:
+
+### Reglas simples óptimas (`osr()`)
+
+`model.osr()` optimiza los coeficientes de respuesta en reglas de política simples (como reglas de Taylor) para minimizar una pérdida cuadrática sobre las varianzas teóricas:
+$$L(\gamma) = \sum_i w_i \text{Var}(y_i; \gamma)$$
+sujeta a la condición de determinación de Blanchard-Kahn. Una superficie de penalización numérica continua garantiza la evaluación suave del gradiente cuando los parámetros candidatos ingresan en regiones de indeterminación:
+
+```python
+osr_res = model.osr(
+    rule_params=["phi_pi", "phi_y"],
+    target_vars=["pi", "y"],
+    weights={"pi": 1.0, "y": 0.5},
+)
+print(osr_res.summary())
+
+# Gráfico de barras agrupadas comparando varianzas entre la regla base y la óptima
+fig = osr_res.plot()
+```
+
+### Política discrecional (`discretionary_policy()`)
+
+`discretionary_policy()` calcula el equilibrio discrecional markoviano perfecto y temporalmente consistente (Dennis 2007) mediante iteración de funciones de política sobre las matrices de respuesta del sector privado y del banco central:
+
+```python
+from puremacro.dsge import discretionary_policy
+
+disc_res = discretionary_policy(
+    model,
+    target_vars=["pi", "y"],
+    weights={"pi": 1.0, "y": 0.25},
+    instruments=["i"],
+    beta=0.99,
+)
+print(disc_res.summary())
+```
+
+### Compromiso lineal-cuadrático (`lq_commitment()`)
+
+`lq_commitment()` resuelve la política óptima bajo compromiso desde la perspectiva intemporal ($\lambda_{-1} = 0$). Plantea el lagrangiano del planificador sobre las condiciones de equilibrio con expectativas racionales, ampliando el vector de estado con multiplicadores de Lagrange hacia adelante:
+
+```python
+from puremacro.dsge import lq_commitment
+
+commit_res = lq_commitment(
+    model,
+    target_vars=["pi", "y"],
+    weights={"pi": 1.0, "y": 0.25},
+    instruments=["i"],
+    beta=0.99,
+)
+print(commit_res.summary())
+
+# Acceder a los multiplicadores de política y graficar funciones de respuesta a impulsos
+augmented_model = commit_res.linear_model
+print("Multiplicadores:", commit_res.multipliers)
+fig = commit_res.plot(periods=16)
+```
+
+## Contrato unificado de presentación de resultados
+
+Todos los objetos de resultados DSGE (`EigenvalueTable`, `ModelDiagnosticsResult`, `IdentificationResult`, `OSRResult`, `PolicyResult`) cumplen el contrato uniforme de presentación de puremacro:
+
+| Método | Tipo devuelto | Descripción |
+|---|---|---|
+| `.to_frame()` | `pandas.DataFrame` | Representación tabular canónica de los resultados |
+| `.summary()` | `str` | Salida limpia y legible en terminal |
+| `.plot()` | `matplotlib` Figure/Axes | Diagnóstico visual con estilo listo para publicación |
+| `.to_markdown()` | `str` | Tabla en formato GitHub-flavored Markdown |
+| `.to_latex()` | `str` | Tabla LaTeX `tabular` lista para publicación con caracteres especiales escapados |
+| `.to_typst()` | `str` | Tabla `#table(...)` para composición científica moderna en Typst |
+
 ## Lo que deliberadamente no hace
 
 - **No hay procesador de macros.** `@#define`, `@#for`, `@#if`, `@#include` y `@{...}` lanzan `DynareFeatureError`. Antes se ignoraban, con lo que el archivo se cargaba limpio y se resolvía un *modelo distinto*. Expándelos con `dynare model.mod savemacro` y pasa el archivo expandido. Previsto para la 2.7.0.
@@ -177,5 +389,21 @@ Dos estimadores, y no son equivalentes. **Laplace** es exacto cuando la posterio
 - **Solo primer orden.** Una solución de segundo orden se rechaza en lugar de linealizarse en silencio; el filtro de partículas correspondiente queda para una versión posterior.
 - **El muestreador adapta un escalar, no una matriz de covarianzas**, y su adaptación solo actúa cada 100 iteraciones, así que un `burn_in` inferior a 100 no adapta nunca y puede dejar la cadena atascada con una tasa de aceptación del 0 %. Dale al menos unos cientos.
 - **`mode_compute` vale `"lbfgs"` por defecto**, y no el mejor `csminwel`, porque cambiarlo cambia todas las posterioris obtenidas hasta ahora.
-- **`observation_trends` se aplica quitando la tendencia a los datos**, porque el espacio de estados es invariante en el tiempo por construcción.
+- **observation_trends se aplica quitando la tendencia a los datos**, porque el espacio de estados es invariante en el tiempo por construcción.
 - **Las verosimilitudes marginales anteriores a la 2.5.0 no son comparables** ni con estas ni entre sí: la recursión de Kalman partía entonces de un `P0` difuso, lo que en Smets–Wouters vale unos 114 puntos logarítmicos.
+
+## Cuadernos de demostración
+
+Para tutoriales interactivos completos con visualización y diagnósticos:
+
+- **`notebooks/42_dsge_bayesian_estimation_and_diagnostics.py`** (y edición en español `42_dsge_bayesian_estimation_and_diagnostics_es.py`): Cuaderno insignia de estimación bayesiana que reproduce el flujo de trabajo completo de Smets-Wouters (2007). Demuestra la búsqueda de la moda con múltiples algoritmos comparando `"lbfgs"`, `"csminwel"` y `"cmaes"`; diagnósticos visuales de la moda mediante cortes de curvatura `mode_check`; muestreo MCMC de Metropolis-Hastings con métricas de convergencia de Gelman-Rubin; extracción de estados y choques con el suavizador de Kalman y descomposición histórica de choques estructurales; pronósticos fuera de muestra y condicionales con gráficos de abanico (fan charts); y cálculo de la densidad marginal de los datos (aproximación de Laplace frente a la media armónica modificada de Geweke) con comparación formal de modelos bayesianos.
+- **`notebooks/41_dynare_frontier_showcase.py`** (y edición en español `41_dynare_frontier_showcase_es.py`): Demuestra capacidades de frontera de Dynare usando las funciones nativas 2.6.0 `.smoother()` y `.estimate()` sobre `sw07_pfeifer.mod` con datos trimestrales de EE.UU. empaquetados (`_sw07_data.csv`), restricciones ocasionalmente activas ZLB con OccBin y transiciones de Ramsey con previsión perfecta.
+
+## Suite de replicación: familia `dsge_estimation`
+
+El módulo `puremacro.replication` proporciona verificación automatizada de los principales resultados empíricos publicados en la literatura académica. La familia `dsge_estimation` verifica:
+
+- **`dsge_estimation.sw07_log_posterior_at_mode`**: Evalúa el log-posteriori exacto de Kalman en la moda posterior sobre el conjunto de datos de EE.UU. 1966–2004 (`_sw07_data.csv`) bajo la inicialización de covarianza estacionaria de Lyapunov (`_stationary_init`). Objetivo: `-1673.72` (`Tol.TIGHT`).
+- **`dsge_estimation.sw07_laplace_marginal_data_density`**: Evalúa la aproximación de Laplace a la densidad marginal de los datos a partir del hessiano inverso en la moda. Objetivo: `-1686.09` (`Tol.TIGHT`).
+- **`dsge_estimation.sw07_harmonic_mean_mdd_consistency`**: Evalúa la media armónica modificada de Geweke (1999) a través de los parámetros de truncamiento `[0.1, 0.3, 0.5, 0.7, 0.9]` y comprueba la consistencia entre niveles de truncamiento (dispersión $< 2.5$ puntos logarítmicos).
+- **`dsge_estimation.sw07_structural_parameters_mode`**: Verifica los parámetros estructurales clave de la moda en la Tabla 1 de Smets y Wouters (2007) (`csadjcost`, `csigma`, `chabb`, `csigl`, `cprobp`, `cfc`, `crr`, `crdy`, `ctrend`).

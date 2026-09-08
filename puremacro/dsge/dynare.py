@@ -238,6 +238,9 @@ def build_dynare(
     params: Mapping[str, float] | None = None,
     steady_state: Mapping[str, float] | Sequence[float] | None = None,
     guess: Mapping[str, float] | Sequence[float] | None = None,
+    solve_algo: str = "block",
+    homotopy: Mapping[str, tuple[float, float]] | None = None,
+    homotopy_steps: int = 10,
     states: Sequence[str] | None = None,
     order: int = 1,
     shock_cov: np.ndarray | None = None,
@@ -319,6 +322,9 @@ def build_dynare(
             params=params,
             steady_state=steady_state,
             guess=guess,
+            solve_algo=solve_algo,
+            homotopy=homotopy,
+            homotopy_steps=homotopy_steps,
             states=states,
             shock_cov=shock_cov,
             tol=tol,
@@ -384,12 +390,18 @@ def build_dynare(
                 f"residual(s) for {n_vars} variables — a square system needs one "
                 f"equation per variable"
             )
-        sol = scipy.optimize.root(ss_res, g_arr, method="hybr")
-        if not sol.success or float(np.max(np.abs(sol.fun))) > tol:
-            raise SteadyStateError(
-                f"steady state solver did not converge from guess: {sol.message}"
-            )
-        ss_arr = sol.x
+        from .steady import steady
+        ss_arr, _ = steady(
+            equations,
+            variables=variables,
+            guess=guess,
+            params=par_dict,
+            shocks=shocks,
+            solve_algo=solve_algo,
+            homotopy=homotopy,
+            homotopy_steps=homotopy_steps,
+            tol=tol,
+        )
 
     ss_series = pd.Series(ss_arr, index=variables, name="steady_state")
 
@@ -548,6 +560,9 @@ def solve_dynare_2nd_order(
     params: Mapping[str, float] | None = None,
     steady_state: Mapping[str, float] | Sequence[float] | None = None,
     guess: Mapping[str, float] | Sequence[float] | None = None,
+    solve_algo: str = "block",
+    homotopy: Mapping[str, tuple[float, float]] | None = None,
+    homotopy_steps: int = 10,
     states: Sequence[str] | None = None,
     shock_cov: np.ndarray | None = None,
     tol: float = 1e-8,
@@ -627,6 +642,9 @@ def solve_dynare_2nd_order(
         params=params,
         steady_state=steady_state,
         guess=guess,
+        solve_algo=solve_algo,
+        homotopy=homotopy,
+        homotopy_steps=homotopy_steps,
         states=states,
         order=1,
         tol=tol,
@@ -1339,6 +1357,9 @@ def load_mod(
     params: Mapping[str, float] | None = None,
     steady_state: Mapping[str, float] | Sequence[float] | None = None,
     guess: Mapping[str, float] | Sequence[float] | None = None,
+    solve_algo: str = "block",
+    homotopy: Mapping[str, tuple[float, float]] | None = None,
+    homotopy_steps: int = 10,
     states: Sequence[str] | None = None,
     order: int | None = None,
     shock_cov: np.ndarray | None = None,
@@ -1452,6 +1473,9 @@ def load_mod(
         params=merged_params,
         steady_state=final_ss,
         guess=final_guess,
+        solve_algo=solve_algo,
+        homotopy=homotopy,
+        homotopy_steps=homotopy_steps,
         states=final_states,
         order=eff_order,
         shock_cov=eff_shock_cov,

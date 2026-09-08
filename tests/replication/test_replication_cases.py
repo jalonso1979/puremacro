@@ -42,3 +42,32 @@ def test_okun_case_present_and_passes():
     r = results.get("stylized_facts.okun_law_fred")
     assert r is not None, "Okun case missing"
     assert r.target_kind == "correlation" and r.passed, f"margin={r.margin}; error={r.error}"
+
+
+def test_dsge_estimation_cases_present_and_pass():
+    results = {r.id: r for r in run_all(family="dsge_estimation")}
+    expected_ids = {
+        "dsge_estimation.sw07_log_posterior_at_mode",
+        "dsge_estimation.sw07_laplace_marginal_data_density",
+        "dsge_estimation.sw07_harmonic_mean_mdd_consistency",
+        "dsge_estimation.sw07_structural_parameters_mode",
+    }
+    assert expected_ids <= set(results), f"Missing cases: {expected_ids - set(results)}"
+    for cid in expected_ids:
+        r = results[cid]
+        assert r.passed, f"{cid} failed: margin={r.margin}, error={r.error}"
+
+
+def test_regression_cases_present_and_pass():
+    results = {r.id: r for r in run_all(family="regression")}
+    expected_ids = {
+        "regression.card1995_iv_vs_ols",
+        "regression.long_ervin2000_hc_hierarchy",
+        "regression.mroz1987_logit_participation",
+        "regression.romer_romer_tax_multiplier_ols",
+    }
+    assert expected_ids <= set(results), f"Missing cases: {expected_ids - set(results)}"
+    for cid in expected_ids:
+        r = results[cid]
+        assert r.passed, f"{cid} failed: margin={r.margin}, error={r.error}"
+

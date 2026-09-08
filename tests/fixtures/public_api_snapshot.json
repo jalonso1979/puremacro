@@ -214,9 +214,11 @@
       "BlanchardKahnError",
       "DSGEForecastResult",
       "DSGEPosteriorResult",
+      "DiagnosticFinding",
       "Dynare2ndDR",
       "DynareDR",
       "DynareFeatureError",
+      "EigenvalueTable",
       "EstimatedParamSpec",
       "EstimatedParams",
       "FEVDResult",
@@ -225,15 +227,19 @@
       "GammaPrior",
       "GertlerKaradiResult",
       "HarmonicMeanResult",
+      "IdentificationResult",
       "InvGammaPrior",
       "KleinSolution",
       "LinearModel",
       "ModeCheckResult",
+      "ModelDiagnosticsResult",
       "ModelError",
       "NormalPrior",
+      "OSRResult",
       "OccBinConstraint",
       "OccBinResult",
       "PerfectForesightResult",
+      "PolicyResult",
       "Prior",
       "PrunedDSGESolution",
       "PrunedSimulationResult",
@@ -242,6 +248,7 @@
       "SmootherResult",
       "SteadyStateError",
       "StochSimulResult",
+      "StructuralSingularityError",
       "TheoreticalMomentsResult",
       "UniformPrior",
       "WeibullPrior",
@@ -249,10 +256,12 @@
       "build_dynare",
       "build_gertler_karadi_model",
       "canonical_growth_2nd_order",
+      "check",
       "cmaes",
       "compute_fevd",
       "compute_shock_decomposition",
       "csminwel",
+      "discretionary_policy",
       "estimate_dsge",
       "estimate_dsge_bayesian",
       "estimate_sw07",
@@ -260,21 +269,26 @@
       "find_mode",
       "forecast_model",
       "harmonic_mean_mdd",
+      "identification",
       "klein_solve",
       "laplace_mdd",
       "load_dynare_mod",
       "load_mod",
+      "lq_commitment",
       "make_state_space_from_varobs",
       "marginal",
       "mode",
       "mode_check",
       "model_comparison",
+      "model_diagnostics",
       "observation",
+      "osr",
       "parse_estimated_params",
       "parse_estimated_params_bounds",
       "parse_estimated_params_init",
       "parse_mod",
       "priors",
+      "resid",
       "smooth_model",
       "smoother",
       "solve_bgp",
@@ -283,7 +297,8 @@
       "solve_gertler_karadi",
       "solve_occbin",
       "solve_perfect_foresight",
-      "solve_steady_state"
+      "solve_steady_state",
+      "steady"
     ],
     "puremacro.dsge._estimated_params": [
       "EstimatedParamSpec",
@@ -316,8 +331,12 @@
     ],
     "puremacro.dsge.build": [
       "DynareDR",
+      "EigenvalueTable",
+      "IdentificationResult",
       "LinearModel",
+      "ModelDiagnosticsResult",
       "ModelError",
+      "OSRResult",
       "SteadyStateError",
       "StochSimulResult",
       "TheoreticalMomentsResult",
@@ -328,6 +347,11 @@
       "ShockDecompResult",
       "compute_fevd",
       "compute_shock_decomposition"
+    ],
+    "puremacro.dsge.diagnostics": [
+      "check",
+      "model_diagnostics",
+      "resid"
     ],
     "puremacro.dsge.dynare": [
       "build_dynare",
@@ -359,6 +383,9 @@
       "GensysSolution",
       "gensys"
     ],
+    "puremacro.dsge.identification": [
+      "identification"
+    ],
     "puremacro.dsge.klein": [
       "BlanchardKahnError",
       "KleinResidualError",
@@ -389,6 +416,11 @@
     "puremacro.dsge.perfect_foresight": [
       "PerfectForesightResult",
       "solve_perfect_foresight"
+    ],
+    "puremacro.dsge.policy": [
+      "discretionary_policy",
+      "lq_commitment",
+      "osr"
     ],
     "puremacro.dsge.priors": [
       "BetaPrior",
@@ -2905,6 +2937,12 @@
       "param_names",
       "seed"
     ],
+    "puremacro.dsge._results.DiagnosticFinding": [
+      "category",
+      "details",
+      "message",
+      "severity"
+    ],
     "puremacro.dsge._results.Dynare2ndDR": [
       "ghs2",
       "ghu",
@@ -2925,6 +2963,21 @@
       "variable_names",
       "ys"
     ],
+    "puremacro.dsge._results.EigenvalueTable": [
+      "bk_status",
+      "eigenvalues",
+      "imag",
+      "is_determinate",
+      "is_explosive",
+      "is_unit_root",
+      "loadings",
+      "modulus",
+      "n_explosive",
+      "n_forward",
+      "qz_criterium",
+      "real",
+      "variables"
+    ],
     "puremacro.dsge._results.FertilitySolution": [
       "F",
       "G",
@@ -2936,11 +2989,73 @@
       "ss",
       "var_names"
     ],
+    "puremacro.dsge._results.IdentificationResult": [
+      "is_identified",
+      "j1_collinearity",
+      "j1_n_params",
+      "j1_null_combinations",
+      "j1_null_space",
+      "j1_rank",
+      "j2_collinearity",
+      "j2_n_params",
+      "j2_null_combinations",
+      "j2_null_space",
+      "j2_rank",
+      "lags",
+      "param_names",
+      "prior_mc_results",
+      "strength",
+      "varobs"
+    ],
     "puremacro.dsge._results.ModeCheckResult": [
       "mode",
       "objective_at_mode",
       "peaks_at_mode",
       "slices"
+    ],
+    "puremacro.dsge._results.ModelDiagnosticsResult": [
+      "collinear_equations",
+      "collinear_variables",
+      "equation_names",
+      "eval_points",
+      "findings",
+      "incidence_matrix",
+      "is_pencil_regular",
+      "passed",
+      "static_n_vars",
+      "static_rank",
+      "stochastic_singularity",
+      "unit_roots",
+      "unused_equations",
+      "unused_variables",
+      "variable_names"
+    ],
+    "puremacro.dsge._results.OSRResult": [
+      "converged",
+      "initial_params",
+      "loss_initial",
+      "loss_opt",
+      "message",
+      "n_evaluations",
+      "optimal_model",
+      "optimal_params",
+      "rule_params",
+      "target_vars",
+      "variance_table",
+      "weights"
+    ],
+    "puremacro.dsge._results.PolicyResult": [
+      "beta",
+      "impact_matrix",
+      "instruments",
+      "linear_model",
+      "loss",
+      "multipliers",
+      "policy_rules",
+      "regime",
+      "target_vars",
+      "transition_matrix",
+      "weights"
     ],
     "puremacro.dsge._results.SW07PosteriorResult": [
       "accept_rates",
@@ -3001,6 +3116,8 @@
       "_A_plus",
       "_B_u",
       "_dynare_equations",
+      "_equation_tags",
+      "_equations",
       "_estimated_params",
       "_mod_options",
       "_params",

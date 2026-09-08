@@ -10,16 +10,19 @@ inference calls an applied notebook actually makes. Neither adds a runtime depen
 
 ---
 
-**Track 1 — DSGE: a `.mod` file to a posterior.**
+**Track 1 — DSGE: .mod file to posterior, diagnostics, robust steady state & policy regimes.**
 
-Feature release: phase A of the DSGE Tier 1 roadmap
+Feature release: Phases A, B, and C of the DSGE Tier 1 roadmap
 (`docs/plans/2026-09-07-puremacro-dsge-dynare-parity-roadmap.md`, design in
 `docs/specs/2026-09-07-puremacro-dsge-tier1-design.md`). **A Dynare `.mod` file can now be
-estimated.** Before this release puremacro could solve one and not estimate one: every piece was
-present — priors that read Dynare's `estimated_params` conventions, a Kalman filter and smoother with
-exact diffuse initialisation, an audited Metropolis driver — and nothing turned a `varobs`
+estimated, diagnosed, robustly solved, checked for parameter identification, and analyzed under
+optimal policy regimes.** Before this release puremacro could solve one and not estimate one: every
+piece was present — priors that read Dynare's `estimated_params` conventions, a Kalman filter and
+smoother with exact diffuse initialisation, an audited Metropolis driver — and nothing turned a `varobs`
 declaration into a measurement equation. `sw07_pfeifer.mod` now goes from file to posterior, 36
-estimated parameters and seven observables, with no hand-written observation equation.
+estimated parameters and seven observables, with no hand-written observation equation. In addition,
+Phases B and C deliver full Dynare parity with eigenvalue diagnostics, block-triangular steady states,
+Iskrev parameter identification, and optimal simple rules/commitment policy.
 
 No new runtime dependencies: numpy, scipy, pandas and matplotlib, as before.
 
@@ -135,6 +138,61 @@ warning. That was the only silent failure mode left in the parser. Expand the ma
   `estimated_params` with an informative `ModelError` rather than failing downstream with a `KeyError`.
 - `mkdocs.yml` now registers the Spanish guide `es/dsge_estimation.md` in the sidebar navigation under
   `Motores econométricos`.
+
+### Added — DSGE Model Diagnostics & Residuals (Phase B)
+- `LinearModel.check()`: evaluates the generalized eigenvalue spectrum and verifies the Blanchard-Kahn
+  order and rank conditions. When determinacy fails (missing or excess explosive roots), isolates the
+  offending generalized eigenvectors and extracts the top variable loadings (|v_ij|), explicitly naming
+  which economic variables drive the indeterminacy or explosiveness. Exposes a complex-plane unit-circle
+  visualization via `.plot()`.
+- `LinearModel.resid()`: evaluates the deterministic dynamic equilibrium equations at steady state
+  $f(ss, ss, ss, 0)$ and returns residuals sorted by absolute magnitude as a labelled `pd.Series`,
+  preserving equation tags and names from the `.mod` file.
+- `LinearModel.model_diagnostics()`: comprehensive structural sanity checker performing:
+  1. Static Jacobian rank analysis ($R = \text{rank}(J_{\text{static}})$ vs $N_{\text{vars}}$).
+  2. SVD-based collinear equation and unconstrained variable detection.
+  3. Union numeric incidence matrix across random neighbourhood perturbations to detect unused variables
+     and redundant equations.
+  4. Dynamic matrix pencil regularity check ($\det(B - \lambda A) \not\equiv 0$).
+  5. Stochastic singularity detection ($N_{\text{varobs}} > N_{\text{shocks}} + N_{\text{ME}}$).
+
+### Added — Robust Block-Triangular Steady-State Solver (Phase B)
+- `puremacro.dsge.steady`: block-triangular steady-state solving using:
+  1. Hopcroft-Karp maximum bipartite matching between equations and variables in $O(|E|\sqrt{|V|})$ time.
+  2. Dulmage-Mendelsohn structural singularity decomposition when a complete matching does not exist,
+     isolating overdetermined and underdetermined equation and variable subsets and raising an informative
+     `StructuralSingularityError`.
+  3. Tarjan strongly connected components (SCC) on the matching-induced dependency graph, solving
+     recursive sub-blocks in topological order. Singletons are solved with scalar 1D root finders
+     (Brent / secant), while coupled blocks use vector solvers.
+- Solver algorithm menu via `solve_algo`: `"block"` (default), `"hybr"`, `"lm"`, and `"df-sane"`.
+- Adaptive homotopy continuation: parameter path continuation with automatic step bisection on solver
+  failure (`steady(..., homotopy={"param": (start, target)})`).
+
+### Added — Parameter Identification Analysis (Phase C)
+- `LinearModel.identification()`: Iskrev (2010) and Ratto (2011) local parameter identification diagnostics:
+  1. State-space solution Jacobian $J_1 = \partial \text{vec}(T, R, Q, Z, H) / \partial \theta$.
+  2. Theoretical moment Jacobian $J_2 = \partial m(\theta) / \partial \theta$ across autocovariance lags.
+  3. Quantifies rank deficiency and expresses null-space directions as exact linear parameter combinations.
+  4. Multi-way parameter collinearity ($R^2$) from regressing each Jacobian column on all others.
+  5. Ratto's identification sensitivity and normalized strength per parameter.
+  6. Visual comparison of collinearity vs strength via `.plot()`.
+- Pre-flight identification check in `LinearModel.estimate(data, check_identification=True)` (or `"raise"`).
+
+### Added — Optimal Policy Regimes & Optimal Simple Rules (Phase C)
+- `LinearModel.osr()`: Optimal Simple Rules optimizing feedback parameters in policy rules (e.g. Taylor rules)
+  against a quadratic loss on theoretical variances, with a continuous numerical penalty surface when
+  Blanchard-Kahn determinacy fails.
+- `discretionary_policy()`: Markov-perfect time-consistent discretionary policy equilibrium using Dennis (2007)
+  policy function iteration.
+- `lq_commitment()`: Linear-quadratic optimal commitment policy under the timeless perspective ($\lambda_{-1} = 0$),
+  augmenting the first-order system with forward-looking Lagrange multipliers accessible as model variables for
+  impulse response functions and moment analysis.
+
+### Added — Results Presentation Contract
+- All 5 DSGE Tier 1 result dataclasses (`EigenvalueTable`, `ModelDiagnosticsResult`, `IdentificationResult`,
+  `OSRResult`, `PolicyResult`) implement the unified 6-method presentation contract:
+  `.to_frame()`, `.summary()`, `.plot()`, `.to_markdown()`, `.to_latex()`, and `.to_typst()`.
 
 ### Known limitations
 - **No macro processor and no expression parser.** `@#` directives raise; `STEADY_STATE()`,

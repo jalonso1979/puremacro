@@ -41,8 +41,7 @@
 %matplotlib inline
 import numpy as np
 import pandas as pd
-import statsmodels.api as sm
-from statsmodels.regression.linear_model import OLS
+from puremacro.regress import ols, add_constant
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
@@ -90,8 +89,8 @@ def simex_estimator(
     for lam in lambda_grid:
         if lam == 0.0:
             # Naive OLS
-            X_mat = sm.add_constant(X_noisy)
-            m = OLS(Y, X_mat).fit(cov_type="HC1")
+            X_mat = add_constant(X_noisy)
+            m = ols(Y, X_mat, cov_type="HC1")
             beta_sim_means.append(m.params[1])
             beta_sim_ses.append(m.bse[1])
         else:
@@ -99,8 +98,8 @@ def simex_estimator(
             for b in range(B):
                 noise = np.random.normal(0, np.sqrt(lam) * sigma_u, N)
                 X_inflated = X_noisy + noise
-                X_mat = sm.add_constant(X_inflated)
-                m = OLS(Y, X_mat).fit()
+                X_mat = add_constant(X_inflated)
+                m = ols(Y, X_mat)
                 betas_b.append(m.params[1])
             beta_sim_means.append(np.mean(betas_b))
             beta_sim_ses.append(np.std(betas_b))
