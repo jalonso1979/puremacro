@@ -889,7 +889,9 @@
       "bootstrap_pvalue_median",
       "bootstrap_resample",
       "cragg_donald_f",
+      "durbin_watson",
       "enumerate_specs",
+      "fdrcorrection",
       "hac_fixed_b",
       "hansen_j",
       "kleibergen_paap_f",
@@ -897,20 +899,29 @@
       "llsw_critical_value",
       "moving_block_bootstrap",
       "msw_bands",
+      "multipletests",
       "newey_west",
       "olea_pflueger_f",
       "pesaran_cd",
+      "proportion_confint",
       "quandt_andrews_supF",
       "run_spec_curve",
       "simex_ols",
       "stock_yogo_cv",
       "supt_band",
       "swamy_test",
+      "vif",
       "wild_bootstrap",
       "wild_bootstrap_var"
     ],
     "puremacro.inference._ols_helpers": [
       "ols_hac"
+    ],
+    "puremacro.inference.collinearity": [
+      "vif"
+    ],
+    "puremacro.inference.diagnostics": [
+      "durbin_watson"
     ],
     "puremacro.inference.dk": [
       "driscoll_kraay"
@@ -922,12 +933,19 @@
     "puremacro.inference.lewbel_iv": [
       "lewbel_iv"
     ],
+    "puremacro.inference.multiple": [
+      "fdrcorrection",
+      "multipletests"
+    ],
     "puremacro.inference.newey_west": [
       "newey_west_se"
     ],
     "puremacro.inference.over_id": [
       "hansen_j",
       "stock_yogo_cv"
+    ],
+    "puremacro.inference.proportions": [
+      "proportion_confint"
     ],
     "puremacro.inference.quandt_andrews": [
       "quandt_andrews_supF"
@@ -1884,11 +1902,43 @@
       "smoothed_to_indicator"
     ],
     "puremacro.regress": [
-      "lp_panel"
+      "ConvergenceWarning",
+      "DiscreteResult",
+      "FTestResult",
+      "OLSResult",
+      "PerfectSeparationError",
+      "PredictionResult",
+      "QuantRegResult",
+      "TTestResult",
+      "add_constant",
+      "logit",
+      "lp_panel",
+      "ols",
+      "poisson",
+      "quantreg"
+    ],
+    "puremacro.regress.discrete": [
+      "ConvergenceWarning",
+      "DiscreteResult",
+      "PerfectSeparationError",
+      "logit",
+      "poisson"
     ],
     "puremacro.regress.lp": [
       "_dk_default_lag",
       "lp_panel"
+    ],
+    "puremacro.regress.ols": [
+      "FTestResult",
+      "OLSResult",
+      "PredictionResult",
+      "TTestResult",
+      "add_constant",
+      "ols"
+    ],
+    "puremacro.regress.quantile": [
+      "QuantRegResult",
+      "quantreg"
     ],
     "puremacro.replication": [
       "CaseResult",
@@ -3762,6 +3812,106 @@
       "end",
       "name",
       "start"
+    ],
+    "puremacro.regress.discrete.DiscreteResult": [
+      "aic",
+      "bic",
+      "bic_llf",
+      "converged",
+      "cov_kwds",
+      "cov_type",
+      "deviance",
+      "df_model",
+      "df_resid",
+      "df_resid_inference",
+      "endog",
+      "exog",
+      "linpred",
+      "llf",
+      "llnull",
+      "model",
+      "mu",
+      "n_groups",
+      "n_iter",
+      "names",
+      "nobs",
+      "null_deviance",
+      "offset",
+      "params",
+      "pearson_chi2",
+      "scale",
+      "use_t",
+      "vcov",
+      "weights"
+    ],
+    "puremacro.regress.ols.FTestResult": [
+      "df_denom",
+      "df_num",
+      "fvalue",
+      "pvalue"
+    ],
+    "puremacro.regress.ols.OLSResult": [
+      "cov",
+      "cov_type",
+      "df_model",
+      "df_resid",
+      "df_resid_inference",
+      "exog",
+      "fittedvalues",
+      "k_constant",
+      "k_params",
+      "llf",
+      "n_groups",
+      "names",
+      "nobs",
+      "params",
+      "resid",
+      "rsquared",
+      "rsquared_adj",
+      "scale",
+      "use_t",
+      "weights",
+      "wresid"
+    ],
+    "puremacro.regress.ols.PredictionResult": [
+      "df",
+      "predicted_mean",
+      "se_mean",
+      "se_obs",
+      "use_t"
+    ],
+    "puremacro.regress.ols.TTestResult": [
+      "df_denom",
+      "effect",
+      "pvalue",
+      "sd",
+      "tvalue",
+      "use_t"
+    ],
+    "puremacro.regress.quantile.QuantRegResult": [
+      "bandwidth",
+      "bandwidth_rule",
+      "bse",
+      "converged",
+      "cov_type",
+      "df_model",
+      "df_resid",
+      "exog_names",
+      "fittedvalues",
+      "iterations",
+      "kernel",
+      "nobs",
+      "params",
+      "prsquared",
+      "pvalues",
+      "q",
+      "rank",
+      "resid",
+      "scale",
+      "sparsity",
+      "tvalues",
+      "use_t",
+      "vcov"
     ],
     "puremacro.replication._model.CaseResult": [
       "citation",

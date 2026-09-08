@@ -4,6 +4,14 @@ This file records user-visible changes per release. Internal refactors that don'
 
 ## 2.6.0 (2026-09-07)
 
+Two independent tracks land together here. They share no code and read separately: **Track 1**
+makes a Dynare `.mod` file estimable, **Track 2** replaces `statsmodels` for the regression and
+inference calls an applied notebook actually makes. Neither adds a runtime dependency.
+
+---
+
+**Track 1 — DSGE: a `.mod` file to a posterior.**
+
 Feature release: phase A of the DSGE Tier 1 roadmap
 (`docs/plans/2026-09-07-puremacro-dsge-dynare-parity-roadmap.md`, design in
 `docs/specs/2026-09-07-puremacro-dsge-tier1-design.md`). **A Dynare `.mod` file can now be
@@ -142,6 +150,217 @@ warning. That was the only silent failure mode left in the parser. Expand the ma
 - **A `steady_state_model` block is used for the initial solve only.** Re-solving at a new draw goes
   through the numerical steady-state solver warm-started from the previous draw; the block's analytic
   formulas are evaluated once at parse time and not re-evaluated per draw.
+
+---
+
+**Track 2 — statsmodels parity in pure numpy.**
+
+
+**A notebook can now drop `statsmodels` and keep its numbers: OLS/WLS with the full robust-covariance
+family, logit, Poisson, quantile regression, multiple-testing correction, VIF, binomial confidence
+intervals and Durbin-Watson all ship here in pure numpy/scipy/pandas, reproducing statsmodels 0.14.6
+to machine precision on full-rank designs.**
+
+Additive only — no existing signature changed, and no new runtime dependency: the library still
+imports numpy, scipy, pandas and matplotlib and nothing else, so these estimators run under Pyodide
+on an iPad. statsmodels appears only in the parity test files, which skip when it is absent.
+
+Every number below was checked by running both implementations, not by reading either one. The
+tolerances are stated per module, and where parity is *refused* — a singular design, perfect
+separation, a statsmodels default that is unreachable through its own API — it is refused loudly and
+listed under "Known issues". Read that section before porting a call site.
+
+Everything new is re-exported from its subpackage, so
+`from puremacro.regress import add_constant, ols, logit, poisson, quantreg` and
+`from puremacro.inference import multipletests, fdrcorrection, vif, proportion_confint, durbin_watson`
+both work, as do the full module paths (`puremacro.regress.ols`, `puremacro.inference.multiple`, …).
+
+### Added — `puremacro.regress.ols` (linear regression with statsmodels-compatible inference)
+- `ols(y, X, ...)` and `add_constant(...)`: the pure-numpy replacement for `sm.OLS` / `sm.WLS` /
+  `sm.add_constant`. `cov_type` covers `'nonrobust'`, `'HC0'`–`'HC3'`, `'HAC'`, `'cluster'` (one- and
+  two-way), `'hac-panel'` and `'hac-groupsum'`, with `weights=` for WLS.
+- `OLSResult` carries statsmodels' attribute names — `params`, `bse`, `tvalues`, `pvalues`,
+  `conf_int()`, `cov_params()`, `rsquared`, `rsquared_adj`, `aic`, `bic`, `llf`, `df_model`,
+  `df_resid`, `nobs`, `resid`, `fittedvalues`, `use_t` — plus `t_test`, `f_test`, `get_prediction`
+  and `summary`. A call site changes its constructor line and nothing else.
+- Parity: `params`, `bse`, `tvalues`, `pvalues`, `conf_int`, `rsquared`, `aic` and `bic` agree to
+  `atol=1e-10`; `t_test` and `f_test` to `atol=1e-8`.
+- The traps that are reproduced rather than tidied: `use_correction` defaults differ per covariance
+  (`False` for HAC, `True` for cluster, `'cluster'` for hac-groupsum); `use_t` is `True` only for
+  `'nonrobust'`, so every robust p-value is normal-tail; `cluster` / `hac-panel` / `hac-groupsum` set
+  the inference degrees of freedom to `G - 1`; `hac-groupsum` uses the number of *time periods* for
+  the variance correction and the number of *panel units* for the degrees of freedom; and WLS runs
+  every sandwich, HC family included, on the weighted arrays.
+- `cov_kwds['maxlags']` may be omitted for `cov_type='HAC'` and falls back to
+  `floor(4·(T/100)^(2/9))`. statsmodels raises `KeyError` when the key is absent but applies that
+  same rule when it is present and `None`, so no working call changes. `'hac-panel'` and
+  `'hac-groupsum'` still require it.
+- Only the Bartlett kernel is implemented; `cov_kwds['kernel']` / `'weights_func'` raise rather than
+  being ignored, as do unknown `cov_kwds` keys generally (statsmodels documents that it does not
+  check them, so a stray `{'maxlag': 4}` there silently becomes the default bandwidth).
+- The string restriction parser for `t_test` / `f_test` is a deliberate subset of patsy: sums of
+  optionally-scaled regressor names plus constants, comma-separated, with an exact-name fast path for
+  names containing operators (`'I(x ** 2)'`, `'region_North-East'`). Anything else raises
+  `NotImplementedError` naming the `(q, k)` array form, and so does any string restriction when `X`
+  had no column names.
+- Not carried over from `RegressionResults`: the overall-model `fvalue` / `f_pvalue`, `mse_model` /
+  `mse_resid`, `ess` / `ssr` / `centered_tss` as attributes, the `HC0_se`–`HC3_se` shortcuts,
+  `wald_test` on the chi2 scale, and `predict()` (use `get_prediction`).
+
+### Added — `puremacro.regress.discrete` (binary choice and counts)
+- `logit(y, X, ...)` and `poisson(y, X, ...)` replace `sm.Logit(...).fit(disp=False)` and
+  `sm.GLM(..., family=sm.families.Poisson()).fit(...)`. Both are the same Fisher-scoring loop,
+  differing only in link, variance function and log-likelihood.
+- `DiscreteResult` carries `params`, `bse`, `tvalues`, `pvalues`, `conf_int()`, `nobs`, `llf`,
+  `llnull`, `prsquared`, `aic`, `bic`, `bic_llf`, `deviance`, `pearson_chi2`, `df_model`, `df_resid`,
+  `mu`, `linpred`, `converged` and `summary()`. `cov_type` is `'nonrobust'`, `'HC0'`–`'HC3'`, `'HAC'`
+  or `'cluster'`; `params` / `bse` / `pvalues` come back as pandas Series indexed by column name
+  whenever `X` is a DataFrame.
+- Parity: `atol=1e-8` throughout, with two disclosed exceptions under "Known issues".
+- `bic` and `fittedvalues` deliberately mean *different things on the two estimators*, because
+  statsmodels' two result classes do: `bic` is `-2·llf + k·log(n)` for the logit and the deviance form
+  for the Poisson, and `fittedvalues` is the linear predictor for the logit and the mean for the
+  Poisson. `bic_llf`, `linpred` and `mu` are unambiguous and should be preferred in new code.
+- `cov_type='HAC'` without `maxlags` falls back to the same `floor(4·(n/100)^(2/9))` rule `ols` uses.
+  statsmodels indexes `cov_kwds['maxlags']` unconditionally here and dies with a bare `KeyError`, so
+  the default its own source comment promises is unreachable through its API.
+- Not implemented, and named in the error when reached: `'hac-panel'` / `'hac-groupsum'` (OLS only),
+  two-way clustering, GLM families and links other than Poisson-log and Logit, `var_weights` /
+  `freq_weights`, `start_params`, non-Fisher `method=`, `fit_regularized`, `get_margeff`, and
+  `t_test` / `f_test` on the result object.
+
+### Added — `puremacro.regress.quantile` (cross-sectional quantile regression)
+- `quantreg(y, X, q=...)` reproduces `QuantReg(y, X).fit(q=τ)` — the IRLS loop, the Hall-Sheather
+  bandwidth, the Epanechnikov kernel and the Koenker-Machado / Powell sparsity sandwich. It is the
+  only quantile fitter in the library that returns standard errors, t statistics, p values,
+  confidence intervals and a covariance matrix.
+- All three of statsmodels' bandwidth rules (`bandwidth='hsheather'`, the default, plus `'bofinger'`
+  and `'chamberlain'`, or a float) and all five of its kernels (`kernel` in `'epa'`, `'biw'`, `'cos'`,
+  `'gau'`, `'par'`) are selectable.
+- Parity: `params` and `bse` to `atol=1e-6`, `pvalues` to `1e-8`, `tvalues` and `conf_int` to `1e-5`.
+  The measured agreement on numpy 2.x / statsmodels 0.14.6 is 0.0, but 1e-6 is the promise a
+  quantile regression can keep: neither implementation has a closed form and both stop at
+  `max|Δβ| ≤ 1e-6`, so the estimator itself is defined only to that threshold.
+- Four `UserWarning`s statsmodels does not emit: hitting `max_iter`, `q ± h` falling outside `(0, 1)`
+  so every standard error is NaN, a non-positive kernel density at zero, and a non-finite `y` under
+  `missing='none'`. No number moves; numpy's own `RuntimeWarning`s on those paths are suppressed so
+  the one informative message is not buried.
+- There is no formula parser: build the design matrix yourself, including the constant column.
+- The module docstring now states plainly which of the library's three quantile fitters to use when —
+  this one for statsmodels-comparable cross-sectional inference, `puremacro.lp.lp_quantile` and
+  `puremacro.gar.qar` for growth-at-risk paths.
+
+### Added — `puremacro.inference` (four statsmodels stats helpers)
+- `multipletests` and `fdrcorrection`: bonferroni, sidak, holm, holm-sidak, simes-hochberg, hommel,
+  fdr_bh, fdr_by and fdr_gbs, including statsmodels' method aliases. `reject` and `pvals_corrected` are
+  asserted **bit-exactly** against statsmodels rather than with a tolerance, because the sidak
+  formulation only differs from a naive one at p ≈ 1e-300 and any absolute tolerance swallows it.
+  The signature is `(pvals, alpha, method, maxiter, is_sorted, returnsorted)`, matching statsmodels
+  0.14's parameter *order* and not just its names: `maxiter` sits in the fourth positional slot, and
+  a replacement that omitted it would read `multipletests(p, 0.05, 'holm', 1)` as `is_sorted=1` and
+  return the wrong corrected p-values for an unsorted family, silently. It is ignored by every
+  implemented method, exactly as it is in statsmodels.
+- `vif`: variance inflation factors, matching `outliers_influence.variance_inflation_factor` **bit for
+  bit** below the singularity gate (633 column-VIFs over 120 near-collinear designs reaching VIF 9e11,
+  max abs diff 0.0), with statsmodels' four-branch constant detection (including its rank test for an
+  *implicit* constant) reproduced rather than approximated by "is there a column of ones", and its
+  `centered_tss` taken from the `weights` branch that OLS actually reaches rather than the `np.dot`
+  one below it. A constant column's own VIF is statsmodels' degenerate `0.0`, behind a `UserWarning`
+  naming the column instead of numpy's anonymous divide-by-zero.
+- `proportion_confint`: the five closed-form binomial intervals — `normal`, `agresti_coull`, `beta`,
+  `wilson`, `jeffreys` — to `atol=1e-12`.
+- `durbin_watson`: the first-order autocorrelation statistic, multi-dimensional and `axis`-aware, to
+  `atol=1e-12`.
+- The two-stage FDR family (`fdr_tsbh`, `fdr_2sbh`, `fdr_tsbky`, `fdr_2sbky`, `fdr_twostage`) and
+  `proportion_confint(method='binom_test')` are **not** implemented; each raises
+  `NotImplementedError` naming the procedure and the alternative, rather than the misleading
+  "method not recognized". Those five are the only methods whose answers depend on `maxiter`.
+
+### Known issues — where these deliberately do not match statsmodels
+Every item here is a decision, not a defect. Each is pinned by a test in both directions, so it
+cannot drift silently.
+
+- **A rank-deficient or near-singular design raises** `numpy.linalg.LinAlgError` from
+  `puremacro._linalg.inv_xtx`, naming the offending columns, in `ols`, `quantreg` and `vif`.
+  statsmodels goes through `pinv` and silently returns the minimum-norm solution with
+  `df_resid = n - rank`. A notebook whose dummy block is collinear will now fail loudly instead of
+  reporting a number. For `vif` the gate is on the whole design, so one exactly-redundant regressor
+  suppresses every column's VIF rather than only its own. The boundary is measured, not asserted:
+  `vif` is bit-identical to statsmodels up to VIFs of order 1e12 — already far past any interpretable
+  range — and raises from a VIF of order 1e13, where statsmodels reports whatever its pseudo-inverse
+  produced (8.3e13, 9.0e15, `inf`, behind a `RuntimeWarning`). Those are floating-point noise, not
+  measurements.
+- **Perfect separation raises** `PerfectSeparationError` (a `LinAlgError` subclass) from `logit`.
+  statsmodels warns and returns the diverging iterate — on the test fixture, a coefficient of −671
+  with a standard error of 150 507 and `converged=False`; a positive-control test proves the fixture
+  really produces that garbage. Non-convergence, by contrast, warns (`ConvergenceWarning`) and returns
+  the last iterate with `converged=False`, matching statsmodels.
+- **The non-robust Poisson `bse` does not reach 1e-8** against the default `sm.GLM(...).fit()`: up to
+  1.9e-7 absolute on a standard error of order 0.06 (relative ≈ 3e-6). statsmodels' IRLS stops when
+  the deviance stops moving and then reports the covariance from its final weighted-least-squares
+  step, whose weights came from the *previous* iterate — so its non-robust standard error is
+  evaluated one Newton step behind its own coefficients. This module evaluates the information matrix
+  at the converged coefficients. Against `sm.GLM(...).fit(tol=1e-14)`, which forces statsmodels to the
+  same fixed point, agreement is ~6e-17; the gap appears only on designs where statsmodels' deviance
+  criterion stops it at four IRLS iterations, and is ~1e-12 when it takes five. Robust, HAC and
+  cluster standard errors are unaffected, and the test pins the gap in both directions so it cannot
+  grow unnoticed.
+- **`logit`'s `llnull` is exact where statsmodels' is not**: statsmodels refits the intercept-only
+  model with BFGS and stops 1.4e-8 short of its own maximum, while this returns the closed form
+  `n₁·log(p̄) + n₀·log(1 − p̄)`. `prsquared` inherits an attenuated ≈1e-11 and still passes at 1e-8;
+  `llnull` itself does not, and matching it would mean reproducing an optimiser's residual error.
+- **`summary()` returns a formatted `str`**, on all three estimators. `print(res.summary())` works;
+  `res.summary().tables[1]` does not, and a call site that parsed the summary object must be
+  rewritten to read `params` / `bse` directly.
+- **`ols`'s pandas-or-ndarray return rule is driven by `X` alone.** statsmodels returns a Series
+  whenever *any* input is pandas, inventing the labels `const`, `x1`, `x2` for a bare ndarray `X`;
+  here a pandas `y` with an ndarray `X` gives ndarrays. `resid` and `fittedvalues` still take their
+  index from whichever input had one.
+- **`t_test` shapes are tidier**: for a single restriction statsmodels returns `sd` and `tvalue` as
+  (1,1) matrices and `pvalue` as a 0-d array; every field here is a length-`q` vector. The values are
+  identical.
+- **`quantreg` reports the `cov_type` it actually used** — `'robust'` or `'iid'`. statsmodels reports
+  `'nonrobust'` whatever you pass, because `QuantReg.fit` smuggles the sandwich in through
+  `normalized_cov_params` and never sets the label. No number moves.
+- **`quantreg` (IRLS) and `puremacro.lp.quantile._qreg` (exact LP) differ by up to 9.3e-5** in
+  coefficients on a measured `n=120, k=3` design. That is an estimator gap, not a parity gap — the
+  check loss is flat near the optimum — but a *ratio* of coefficients amplifies it, so a turning point
+  of the form `−b₁/(2b₂)` should not be quoted past three significant figures without checking which
+  fitter produced it.
+- **Input validation is stricter, with catchable types**, in a handful of places where statsmodels
+  returns nonsense or raises something unhelpful: `q` outside `(0, 1)` and bad kernel/bandwidth names
+  raise `ValueError` (statsmodels raises a bare `Exception`); a non-finite `X` raises `ValueError`
+  (statsmodels raises `MissingDataError`); empty or 2-D `pvals` raise `ValueError` (statsmodels raises
+  `ZeroDivisionError`, or silently counts rows); `alpha` outside `(0, 1)`, `nobs <= 0` and `count`
+  outside `[0, nobs]` raise `ValueError`; and `durbin_watson` on fewer than two observations raises
+  rather than returning `0.0`, which is indistinguishable from extreme positive autocorrelation.
+- **`vif` warns when `exog` has no constant**, explicit or implicit. The numbers are unchanged and
+  match statsmodels exactly; only stderr gains a line.
+- **`vif(X, -j)` wraps Python-style**; `variance_inflation_factor(X, -j)` returns `inf` for every
+  negative index on every design, because it drops the target column with
+  `mask = np.arange(k) != exog_idx`, which masks nothing when `exog_idx` is negative. Reproducing
+  that would mean reproducing a bug. A boolean mask as `exog_idx` raises rather than being read as
+  the integers 1 and 0.
+- **`vif`'s singularity gate is invariant to what a VIF is invariant to.** It runs on
+  column-normalised regressors, and — when the design has an explicit constant, so that every
+  auxiliary regression keeps an intercept — on centered ones as well, because with an intercept a VIF
+  does not change when a column is shifted. Levels data whose columns share a mean of 1e7 is
+  therefore evaluated rather than refused. Centering is deliberately skipped when the constant is
+  only *implicit* (a saturated dummy set): deleting one dummy destroys it, so those VIFs really are
+  location-dependent.
+
+### Internal
+- `puremacro.regress.discrete` reuses `puremacro.regress.ols`'s cluster sandwich and default-bandwidth
+  rule rather than re-deriving them. It deliberately does *not* reuse the OLS HC family: statsmodels
+  applies neither the `n/(n-k)` HC1 factor nor the hat-matrix leverages of HC2/HC3 to a GLM result, so
+  sharing that code would ship a confidently wrong HC1.
+- `puremacro.regress.ols` and `puremacro.regress.quantile` route every matrix inversion through
+  `puremacro._linalg.inv_xtx`, per the diagnostic-error contract in `CONTRIBUTING.md`.
+- `poisson` starts its IRLS from statsmodels' own initial mean, `mu0 = (y + ȳ)/2`, rather than from
+  `beta = 0`. This is not cosmetic: on a count series with a spike, starting from an implied mean of 1
+  makes the first Newton step enormous — a spike of 5 000 failed to converge in 100 iterations and a
+  spike of 100 000 overflowed. With statsmodels' start, all three spike cases converge in eight
+  iterations to machine parity. `logit` still starts from `beta = 0`, which is what `sm.Logit` does.
 
 ## 2.5.0 (2026-09-06)
 

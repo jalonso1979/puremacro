@@ -18,6 +18,12 @@ from .lewbel_iv import lewbel_iv
 from .spec_curve import enumerate_specs, run_spec_curve, bootstrap_pvalue_median
 from .supt import supt_band
 from .simex import simex_ols, SIMEXResult
+# statsmodels-parity helpers (2.6.0). Module names and exported names are
+# distinct here, so no submodule/callable shadowing to work around.
+from .multiple import multipletests, fdrcorrection
+from .collinearity import vif
+from .proportions import proportion_confint
+from .diagnostics import durbin_watson
 
 # quandt_andrews_supF is loaded lazily because quandt_andrews.py depends on
 # puremacro.tests.breaks, which can fail to resolve when the project root is
@@ -60,4 +66,9 @@ __all__ = [
     "SupTBandResult",
     "simex_ols",
     "SIMEXResult",
+    "multipletests",
+    "fdrcorrection",
+    "vif",
+    "proportion_confint",
+    "durbin_watson",
 ]
