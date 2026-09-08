@@ -15,16 +15,23 @@ adding the trend back to the fitted observables and the forecast, exactly as
 Dynare does. ``StateSpaceModel`` is time-invariant by construction, so a
 time-varying measurement intercept cannot live inside the filter.
 
-**The first smoothed period is the least reliable one**, and that is a property
-of smoothing rather than of this implementation. ``t = 0`` is pinned by the
-initial-state covariance — here the Lyapunov solution — while every later
-period is pinned by the data. With no measurement error the interior fit
-reproduces the observations to machine precision, but the first period inherits
-whatever accuracy that Lyapunov solve has on the platform: perturbing ``P0`` by
-1e-8 relative moves the first fitted observable by about 2e-07, roughly twenty
-times the perturbation, and leaves everything from ``t = 1`` onward at 2e-16.
-Read ``shocks.iloc[0]`` with that in mind, and pass ``a0``/``P0`` explicitly
-when the initial condition is something you actually know.
+**The first smoothed period is not reproducible to machine precision across
+platforms.** Carrying the innovation in the state makes ``P_pred`` structurally
+rank-deficient — the augmented state has ``n_states + n_shocks`` dimensions
+driven by ``n_shocks`` innovations — and :func:`~puremacro.state_space.kalman_smoother`
+builds its RTS gain from ``numpy.linalg.pinv`` of that matrix. On a small RBC
+the condition number runs 1e15 to 8e15 with the smallest singular value sitting
+at the default pinv cutoff, so whether the near-null direction is kept or
+discarded is settled by last-bit differences in the SVD and differs between
+LAPACK builds.
+
+The consequence is confined to ``t = 0``: with no measurement error the fit
+from ``t = 1`` onward reproduces the observations to machine precision on every
+platform, while the first period can differ by around 3e-06 on an observable of
+magnitude 2. Read ``shocks.iloc[0]`` and ``states.iloc[0]`` with that in mind.
+A rank-aware smoother gain would remove the platform dependence; it changes
+``kalman_smoother`` for every caller, so it is tracked separately rather than
+folded in here.
 """
 from __future__ import annotations
 

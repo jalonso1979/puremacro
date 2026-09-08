@@ -1069,6 +1069,19 @@ schedule, warn when `adapt_burnin < adapt_window`) changes the draws of every ex
 `burn_in=500` so its sampler invariants are testable at all. Candidate home: 2.6.0 Task 6, or 2.8.0
 alongside the SMC/slice samplers.
 
+**F3 — the RTS smoother's `pinv` gain is not reproducible across LAPACK builds.**
+`puremacro/state_space.py::kalman_smoother` forms `J = P_filt @ T' @ pinv(P_pred_next)`. The
+augmented filter state this phase introduces, `[x_t; u_t]`, is structurally rank-deficient —
+`n_states + n_shocks` dimensions driven by `n_shocks` innovations — so on a small RBC `P_pred` has
+condition number 1e15 to 8e15 with its smallest singular value (2.4e-18 at t=1) sitting at pinv's
+default cutoff `s0 * max(M,N) * eps = 1.8e-18`. Whether that direction is kept is decided by last-bit
+SVD differences, and it flips between builds. It is a discontinuity, not a sensitivity: locally a
+1e-8 perturbation of `P0` moves `t=0` by 2.3e-08 while 1e-6, 1e-4, 1e-2 and 1e-1 move it by exactly
+zero. The consequence is confined to `t = 0` (about 3e-06 on an observable of magnitude 2); every
+later period is exact on every platform. Not fixed here: an explicit `rcond`, or a Cholesky/Joseph
+form gain, changes `kalman_smoother` for every caller including the audited paths, and belongs in its
+own change with its own goldens.
+
 **F2 — slow-marked tests run in neither the default suite nor `release_check` gate 1.**
 `pyproject.toml` `addopts` carries `-m "not slow and not network and not reference and not
 replication"`, and `run_pytest_collect_failures` independently passes `-m "not network and not

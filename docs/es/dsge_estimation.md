@@ -128,7 +128,7 @@ print(fc.mean.head(3).round(4))
 
 La banda recoge únicamente la incertidumbre de las perturbaciones: los parámetros quedan fijos en los valores con los que se resolvió el modelo.
 
-Una advertencia sobre el suavizador que conviene conocer: **el primer periodo suavizado es el menos fiable**. `t = 0` queda determinado por la covarianza del estado inicial, mientras que todos los periodos posteriores los determinan los datos; así, sin error de medida el ajuste interior reproduce las observaciones con precisión de máquina, pero el primer periodo hereda la exactitud de la solución de Lyapunov que hay detrás: perturbar `P0` en 1e-8 relativo lo mueve unos 2e-07 y deja `t >= 1` en 2e-16. Pasa `a0`/`P0` explícitamente cuando conozcas de verdad la condición inicial.
+Una advertencia sobre el suavizador: **el primer periodo suavizado no es reproducible con precisión de máquina entre plataformas**. Llevar la innovación dentro del estado hace que la covarianza predicha sea estructuralmente deficiente de rango (el estado ampliado tiene `n_states + n_shocks` dimensiones impulsadas por `n_shocks` innovaciones), y la ganancia RTS se construye con `numpy.linalg.pinv` de esa matriz. En un RBC pequeño su número de condición ronda 1e15 y su menor valor singular queda justo en el umbral por defecto de `pinv`, de modo que la decisión de rango difiere entre compilaciones de LAPACK. El efecto se limita a `t = 0`: desde `t = 1` el ajuste reproduce los datos con precisión de máquina en todas partes, mientras que el primer periodo puede diferir en ~3e-06 sobre una observable de magnitud 2. Lee `shocks.iloc[0]` teniéndolo en cuenta.
 
 ## Comprobar la moda
 

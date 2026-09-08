@@ -50,15 +50,27 @@ def _simulate(model, u, obs):
 
 
 # ---------------------------------------------------------------------------
-# A property of the smoother, not of this implementation: the FIRST smoothed
-# period is pinned by the initial-state covariance, and everything after it is
-# not. With no measurement error the interior fit is exact to machine
-# precision, while t=0 inherits whatever accuracy the Lyapunov solve behind
-# `_stationary_init` has on the platform. Measured here: perturbing P0 by 1e-8
-# relative moves t=0 by 2.2e-07 (about 20x) and leaves t>=1 at 2e-16. On CI it
-# showed up as exactly one mismatched element out of 120, at index 0, of order
-# 3e-06, on 7 of 9 targets. The tests below therefore assert the interior
-# tightly and the first period loosely, which is the truthful split.
+# Why the FIRST smoothed period gets a looser tolerance than the rest.
+#
+# The augmented filter state is [x_t; u_t] — here 3 dimensions driven by a
+# single shock — so `P_pred` is structurally rank-deficient by construction.
+# Measured: cond(P_pred) is 1e15 to 8e15, and its smallest singular value
+# (2.4e-18 at t=1) sits right at the default cutoff `np.linalg.pinv` uses,
+# s0 * max(M,N) * eps = 1.8e-18. The RTS gain in `kalman_smoother` is built
+# from that pinv, so whether the near-null direction is kept or discarded is
+# decided by last-bit differences in the SVD and flips between LAPACK builds.
+#
+# It is a DISCONTINUITY, not a sensitivity: on this machine a 1e-8 relative
+# perturbation of P0 moves t=0 by 2.3e-08 while 1e-6, 1e-4, 1e-2 and 1e-1 move
+# it by exactly zero. So a test asserting "the boundary moves" is not a stable
+# property, and an earlier version of one failed on 3 of 9 CI targets with
+# dev[0] == 0.0. What IS stable is that the interior is exact everywhere and
+# the boundary can differ by ~3e-06 on an observable of magnitude ~2. The
+# split below asserts exactly that, and no more.
+#
+# Tracked as deferred finding F3: a rank-aware or Cholesky-based smoother gain
+# would remove the platform dependence, but it changes `kalman_smoother` for
+# every caller and belongs in its own change.
 # ---------------------------------------------------------------------------
 _INTERIOR = dict(rtol=0, atol=1e-8)
 _FIRST_PERIOD = dict(rtol=0, atol=1e-4)
@@ -181,27 +193,3 @@ def test_smoothed_shocks_agree_with_the_shock_decomposition_path(rbc):
     got, want = dec.smoothed_shocks["eps"].to_numpy(), res.shocks["eps"].to_numpy()
     np.testing.assert_allclose(got[1:], want[1:], **_INTERIOR)
     np.testing.assert_allclose(got[:1], want[:1], **_FIRST_PERIOD)
-
-
-def test_the_first_smoothed_period_inherits_the_initial_covariance(rbc):
-    """Pin the mechanism, so it is a documented property rather than a
-    tolerance someone later tightens back and rediscovers on CI.
-
-    The smoothed path at t=0 is determined by the initial-state covariance;
-    every later period is not. A relative perturbation of P0 therefore moves
-    the first fitted observable by orders of magnitude more than the rest.
-    """
-    from puremacro.dsge.estimate import _stationary_init
-    from puremacro.dsge.observation import make_state_space_from_varobs
-
-    rng = np.random.default_rng(41)
-    data = _simulate(rbc, rng.standard_normal((120, 1)) * 0.01, ["c"])
-    ssm = make_state_space_from_varobs(rbc, ["c"])
-    a0, P0 = _stationary_init(ssm)
-    base = rbc.smoother(data, a0=a0, P0=P0).smoothed_obs["c"].to_numpy()
-
-    moved = rbc.smoother(data, a0=a0, P0=P0 * (1.0 + 1e-8)).smoothed_obs["c"].to_numpy()
-    dev = np.abs(moved - base)
-    assert dev[0] > 1e-9, dev[0]            # the boundary moves
-    assert dev[1:].max() < 1e-12, dev[1:].max()   # the interior does not
-    assert dev[0] > 100 * max(dev[1:].max(), 1e-300)
