@@ -352,6 +352,31 @@ cannot drift silently.
   only *implicit* (a saturated dummy set): deleting one dummy destroys it, so those VIFs really are
   location-dependent.
 
+### Known issues — statsmodels 0.15
+The parity suites assert statsmodels **0.14** answers, and the `dev` extra is bounded
+`statsmodels>=0.14,<0.15` because of it. Three upstream changes in 0.15.0 make 25 parity tests fail;
+each was reproduced locally against 0.15.0 (25 failed, 1640 passed) and against 0.14.6 (1665 passed),
+so all three are upstream behaviour changes rather than defects here.
+
+**This bound is test-time only.** statsmodels is not a runtime dependency, and every import of it
+inside `puremacro/` is lazy (the Pyodide contract requires that), so the shipped wheel is unaffected
+and a user may install any statsmodels they like. What follows is what will differ if they install
+0.15.
+
+- **`vif` on a constant column — 22 tests.** Measured on the same design, 0.14.6 returns
+  `[1.016445, 64.071063, 64.071063]` and 0.15.0 returns `[1.0, 64.071063, 64.071063]`: the
+  non-constant columns are identical and 0.15 special-cases the constant to exactly 1. The 0.14 value
+  is the artefact of regressing a column of ones on the others, so 0.15 arguably fixed a wart and
+  `puremacro.inference.vif` currently reproduces the old one. Whether to follow is an open decision.
+- **`GLMResults.bic` — 1 test.** 0.15.0 completes the deviance → log-likelihood migration that 0.14
+  announces with a `FutureWarning` on every access. On the fixture, 0.14.6 gives `bic = -163.112602`
+  and 0.15.0 gives `204.926443`, which is exactly `bic_llf` in both. `puremacro.regress` deliberately
+  reproduces the deviance form and exposes the other as `bic_llf`; the two are one rename apart.
+- **QuantReg exact-zero residuals — 2 tests.** The interior-point solver's numerics moved, so
+  residuals that were exactly `0.0` now sit at ~1e-15: a test counting exact zeros sees 5 where it
+  expected 13. This one is test fragility rather than a behaviour change — the assertion should be a
+  tolerance, not an exact count — and it is the least stable of the three across platforms.
+
 ### Internal
 - `puremacro.regress.discrete` reuses `puremacro.regress.ols`'s cluster sandwich and default-bandwidth
   rule rather than re-deriving them. It deliberately does *not* reuse the OLS HC family: statsmodels

@@ -69,7 +69,14 @@ puremacro-dynare = "puremacro.dsge.cli:main"
 [project.optional-dependencies]
 # pyarrow is now a base dependency (see [project.dependencies]) -- do not re-add it here.
 # openpyxl is now a base dependency (see [project.dependencies]) -- do not re-add it here.
-dev = ["pytest>=8", "statsmodels>=0.14", "linearmodels>=5", "arch>=6", "mypy>=1.10", "pytest-cov>=5", "pyyaml>=6", "hypothesis>=6"]
+# statsmodels is upper-bounded because the parity suites pin its 0.14 behaviour: 0.15.0
+# special-cases the constant column in variance_inflation_factor (1.016445 -> 1.0),
+# completes the GLMResults.bic deviance -> log-likelihood migration that 0.14 announces
+# with a FutureWarning, and shifts QuantReg residuals that were exactly 0.0 to ~1e-15.
+# 25 parity tests assert the 0.14 answers. See CHANGELOG 2.6.0 "Known issues — statsmodels
+# 0.15". This is a TEST-time bound only: statsmodels is not a runtime dependency and every
+# import of it inside puremacro/ is lazy, so the shipped wheel is unaffected.
+dev = ["pytest>=8", "statsmodels>=0.14,<0.15", "linearmodels>=5", "arch>=6", "mypy>=1.10", "pytest-cov>=5", "pyyaml>=6", "hypothesis>=6"]
 narrative = ["pypdf>=4.0", "beautifulsoup4>=4.12", "pdfplumber>=0.11"]
 accel = [
   "numba>=0.59",
