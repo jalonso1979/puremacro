@@ -128,6 +128,8 @@ print(fc.mean.head(3).round(4))
 
 The band reflects shock uncertainty only — the parameters are held fixed at the values the model was solved with.
 
+One caveat on the smoother worth knowing: **the first smoothed period is the least reliable one**. `t = 0` is pinned by the initial-state covariance while every later period is pinned by the data, so with no measurement error the interior fit reproduces the observations to machine precision while the first period inherits the accuracy of the Lyapunov solve behind it — perturbing `P0` by 1e-8 relative moves it by about 2e-07 and leaves `t >= 1` at 2e-16. Pass `a0`/`P0` explicitly when you actually know the initial condition.
+
 ## Checking the mode
 
 `estimate_dsge` used to do one bounded L-BFGS-B run, and a 2.5.0 audit caught it returning the starting values while reporting convergence. `mode_compute` now selects among `lbfgs` (the default), `simplex`, `csminwel`, `cmaes` and `none`.

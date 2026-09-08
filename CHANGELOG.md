@@ -132,6 +132,13 @@ warning. That was the only silent failure mode left in the parser. Expand the ma
   on SW07: `burn_in=50` gives acceptance 0.000 and one distinct draw in 200; `burn_in=200` gives
   0.110. Recorded as deferred finding F1 in the phase A plan and not fixed here, because every
   candidate fix changes the draws of every existing posterior.
+- **The first smoothed period is the least reliable one.** `t = 0` is pinned by the initial-state
+  covariance while every later period is pinned by the data, so with no measurement error the
+  interior fit reproduces the observations to machine precision while the first period inherits the
+  accuracy of the Lyapunov solve behind it. Perturbing `P0` by 1e-8 relative moves the first fitted
+  observable by about 2e-07 — roughly twenty times the perturbation — and leaves `t >= 1` at 2e-16.
+  This is a property of smoothing, not of the implementation; pass `a0`/`P0` explicitly when the
+  initial condition is actually known.
 - **A `steady_state_model` block is used for the initial solve only.** Re-solving at a new draw goes
   through the numerical steady-state solver warm-started from the previous draw; the block's analytic
   formulas are evaluated once at parse time and not re-evaluated per draw.

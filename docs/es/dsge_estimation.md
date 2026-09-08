@@ -128,6 +128,8 @@ print(fc.mean.head(3).round(4))
 
 La banda recoge únicamente la incertidumbre de las perturbaciones: los parámetros quedan fijos en los valores con los que se resolvió el modelo.
 
+Una advertencia sobre el suavizador que conviene conocer: **el primer periodo suavizado es el menos fiable**. `t = 0` queda determinado por la covarianza del estado inicial, mientras que todos los periodos posteriores los determinan los datos; así, sin error de medida el ajuste interior reproduce las observaciones con precisión de máquina, pero el primer periodo hereda la exactitud de la solución de Lyapunov que hay detrás: perturbar `P0` en 1e-8 relativo lo mueve unos 2e-07 y deja `t >= 1` en 2e-16. Pasa `a0`/`P0` explícitamente cuando conozcas de verdad la condición inicial.
+
 ## Comprobar la moda
 
 `estimate_dsge` hacía una única ejecución acotada de L-BFGS-B, y una auditoría en la 2.5.0 la sorprendió devolviendo los valores iniciales mientras informaba convergencia. `mode_compute` selecciona ahora entre `lbfgs` (por defecto), `simplex`, `csminwel`, `cmaes` y `none`.

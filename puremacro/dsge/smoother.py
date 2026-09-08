@@ -14,6 +14,17 @@ disturbance smoother is needed.
 adding the trend back to the fitted observables and the forecast, exactly as
 Dynare does. ``StateSpaceModel`` is time-invariant by construction, so a
 time-varying measurement intercept cannot live inside the filter.
+
+**The first smoothed period is the least reliable one**, and that is a property
+of smoothing rather than of this implementation. ``t = 0`` is pinned by the
+initial-state covariance — here the Lyapunov solution — while every later
+period is pinned by the data. With no measurement error the interior fit
+reproduces the observations to machine precision, but the first period inherits
+whatever accuracy that Lyapunov solve has on the platform: perturbing ``P0`` by
+1e-8 relative moves the first fitted observable by about 2e-07, roughly twenty
+times the perturbation, and leaves everything from ``t = 1`` onward at 2e-16.
+Read ``shocks.iloc[0]`` with that in mind, and pass ``a0``/``P0`` explicitly
+when the initial condition is something you actually know.
 """
 from __future__ import annotations
 
