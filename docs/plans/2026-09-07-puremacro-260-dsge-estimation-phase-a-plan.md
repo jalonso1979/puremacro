@@ -1029,9 +1029,9 @@ Regenerating in the working tree risks baking a file-sync artifact into the rele
 
 ---
 
-## Task 12: Release gates
+## Task 12: Release gates — DONE
 
-- [ ] **Step 1**
+- [x] **Step 1**
 
 ```bash
 PYTHONPATH=. python3 tools/release_check.py
@@ -1039,7 +1039,7 @@ PYTHONPATH=. python3 tools/release_check.py
 
 Expected: `all 4 gates PASS`.
 
-- [ ] **Step 2**
+- [x] **Step 2**
 
 ```bash
 PYTHONPATH=. python3 tools/release_check.py --examples --pyodide
@@ -1077,6 +1077,31 @@ slow"`. That is how F1 and the stale `sw07_parity_seed0_200draws.npz` both survi
 every task in this plan that leans on a slow test must run it explicitly.
 
 ---
+
+**Result, 2026-09-07:**
+
+```
+Gate 1 (test baseline):    PASS — 0 known red, no new
+Gate 2 (Pyodide contract): PASS
+Gate 3 (public API snapshot): PASS
+Gate 4 (version sync):     PASS — all read 2.6.0
+Gate 5 (examples gallery): PASS — 76 PASS, 7 SKIP, 0 FAIL
+Gate 6 (pyodide smoke):    PASS — 31 passed in Pyodide 0.28.3 (6.8s)
+
+all 6 gates PASS
+```
+
+Gate 5 emitted its `stale` advisory (an example source newer than the gallery JSON). It is **not from
+this phase**: the two files concerned, `puremacro/examples/narrative_sign_adrr.py` and
+`lp_smooth_demo.py`, were last touched on 2026-09-05, before 2.5.0 shipped, and phase A added no
+example. The gallery was left alone rather than re-rendered, because doing so would fold unrelated
+churn into this release and risks the flaky-example restoration described in the 0.51.0 notes.
+
+Self-review, run mechanically rather than asserted: no `object.__setattr__` on `LinearModel` (the
+hits in the package are the pre-existing ones in `_Vec.__init__` and
+`PrunedDSGESolution.__post_init__`); no bare `...` left in shipped source; the pre-2.6.0 nine-argument
+`DSGEPosteriorResult` construction and positional `Prior` construction both still work. 105 tests
+across the seven new files.
 
 ## Self-review checklist (run AFTER all 12 tasks)
 
