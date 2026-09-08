@@ -193,3 +193,15 @@ def test_smoothed_shocks_agree_with_the_shock_decomposition_path(rbc):
     got, want = dec.smoothed_shocks["eps"].to_numpy(), res.shocks["eps"].to_numpy()
     np.testing.assert_allclose(got[1:], want[1:], **_INTERIOR)
     np.testing.assert_allclose(got[:1], want[:1], **_FIRST_PERIOD)
+
+
+def test_forecast_observation_trends_applied_to_subset_and_reordered_variables(rbc):
+    rng = np.random.default_rng(37)
+    data = _simulate(rbc, rng.standard_normal((50, 1)) * 0.01, ["c"])
+    trends = {"c": 0.05}
+    fc_all = rbc.forecast(horizon=6, data=data, observation_trends=trends)
+    fc_sub = rbc.forecast(horizon=6, data=data, variables=["c"], observation_trends=trends)
+    np.testing.assert_allclose(fc_sub.mean["c"], fc_all.mean["c"])
+    np.testing.assert_allclose(fc_sub.lower["c"], fc_all.lower["c"])
+    np.testing.assert_allclose(fc_sub.upper["c"], fc_all.upper["c"])
+

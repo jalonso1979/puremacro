@@ -105,6 +105,7 @@ nav:
           - Sensibilidad en DiD honesto: es/honest_did.md
           - Econometría espacial: es/spatial.md
           - VAR global (GVAR): es/gvar.md
+          - Estimación de un archivo .mod de Dynare: es/dsge_estimation.md
           - Nowcasting del PIB: es/nowcast.md
           - Pronóstico penalizado: es/forecast.md
       - Publicación e informes:

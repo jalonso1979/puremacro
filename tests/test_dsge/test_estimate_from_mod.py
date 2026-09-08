@@ -286,3 +286,27 @@ def test_a_structural_name_the_model_does_not_have_is_refused(ar1):
                                 prior=NormalPrior(), init=None, lb=-9.0, ub=9.0),)
     with pytest.raises(Exception, match="no such parameters"):
         _make_observation_eq(ar1, bogus, ["y"])
+
+
+def test_unpriored_param_in_estimated_params_is_refused():
+    mod_text = """
+    var y;
+    varexo eps;
+    parameters rho;
+    rho = 0.7;
+    model;
+      y = rho * y(-1) + eps;
+    end;
+    initval; y = 0; end;
+    shocks; var eps; stderr 0.5; end;
+    varobs y;
+    estimated_params;
+      rho, 0.7;
+    end;
+    """
+    model = load_mod(mod_text)
+    data = pd.DataFrame({"y": [0.1, 0.2, 0.3, 0.4]})
+    from puremacro.dsge.build import ModelError
+    with pytest.raises(ModelError, match="requires a prior for every parameter in estimated_params"):
+        model.estimate(data)
+

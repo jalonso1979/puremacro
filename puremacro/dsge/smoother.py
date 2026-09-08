@@ -216,9 +216,17 @@ def forecast_model(
         var = np.diag(ssm_out.Z @ P @ ssm_out.Z.T + ssm_out.H)
         sd[h] = np.sqrt(np.maximum(var, 0.0))
 
-    fwd_trend = _trend_matrix(observation_trends, names, horizon, offset=t0)
-    if report == list(names):
-        mean = mean + fwd_trend
+    if observation_trends:
+        stray = [k for k in observation_trends if k not in names]
+        if stray:
+            raise ValueError(
+                f"observation_trends names {sorted(stray)}, which are not among the "
+                f"observables {list(names)}."
+            )
+        t = np.arange(t0, t0 + horizon, dtype=float)
+        for i, v in enumerate(report):
+            if v in observation_trends:
+                mean[:, i] += float(observation_trends[v]) * t
 
     idx = pd.RangeIndex(1, horizon + 1, name="horizon")
     return DSGEForecastResult(

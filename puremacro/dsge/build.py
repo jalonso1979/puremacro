@@ -621,6 +621,16 @@ class LinearModel:
                 "that declares one). Pass priors=... explicitly."
             )
         if isinstance(spec_source, EstimatedParams):
+            missing_prior = [s.name for s in spec_source.specs if s.prior is None]
+            if missing_prior:
+                raise ModelError(
+                    f"LinearModel.estimate() performs Bayesian estimation and "
+                    f"requires a prior for every parameter in estimated_params; "
+                    f"{missing_prior} was declared without a prior shape (Dynare "
+                    f"maximum likelihood estimation is not implemented yet). "
+                    f"Pass priors=... explicitly or declare a prior shape in the "
+                    f".mod file."
+                )
             specs = spec_source.specs
             prior_dict = spec_source.priors()
             initial = spec_source.initial_params()

@@ -128,6 +128,13 @@ warning. That was the only silent failure mode left in the parser. Expand the ma
   `SE_eps` from 0.96 to 1.36. Kinds are now taken from the model's own `estimated_params` block, and
   a name that is neither that nor a declared model parameter is refused. Found by an OLS cross-check
   of the whole connector, which is now a test.
+- `LinearModel.forecast(variables=...)` now correctly adds the forward observation trend when a subset
+  or reordered list of variables is requested. Previously, requesting a subset checked `report == list(names)`
+  which evaluated to False, leaving the forecast detrended.
+- `LinearModel.estimate()` now explicitly refuses parameters declared without a prior shape in
+  `estimated_params` with an informative `ModelError` rather than failing downstream with a `KeyError`.
+- `mkdocs.yml` now registers the Spanish guide `es/dsge_estimation.md` in the sidebar navigation under
+  `Motores econométricos`.
 
 ### Known limitations
 - **No macro processor and no expression parser.** `@#` directives raise; `STEADY_STATE()`,
