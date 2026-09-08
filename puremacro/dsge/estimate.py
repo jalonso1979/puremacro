@@ -33,6 +33,7 @@ This module hosts the helpers that were previously inlined in
 """
 from __future__ import annotations
 
+import math
 import warnings
 from typing import Callable, Sequence
 
@@ -45,9 +46,16 @@ from puremacro.dsge._results import DSGEPosteriorResult
 from puremacro.dsge.priors import (
     log_prior, prior_stds, param_bounds, param_names, _validate_priors,
 )
+from puremacro.dsge.build import LinearModel, ModelError
+from puremacro.dsge.occbin import (
+    OccBinConstraint,
+    PiecewiseKalmanResult,
+    piecewise_kalman_filter,
+)
 from puremacro.mcmc import random_walk_metropolis
 from puremacro.numerics import numerical_hessian
 from puremacro.state_space import StateSpaceModel, kalman_filter
+
 
 
 # Finite stand-in for +inf handed to the mode optimiser (Dynare's
@@ -220,6 +228,95 @@ def _make_neg_log_posterior(
         if not np.isfinite(ll):
             return penalty
         return -(ll + lp)
+    return neg_log_post
+
+
+def _make_piecewise_neg_log_posterior(
+    data: pd.DataFrame,
+    m_unconstrained: Any,
+    m_constrained_dict: Any,
+    constraints: Any,
+    priors: dict,
+    names: Sequence[str],
+    fixed_params: dict | None,
+    observed_vars: Sequence[str],
+    horizon: int = 30,
+    penalty: float = np.inf,
+    failure: _LikelihoodFailure | None = None,
+):
+    from typing import Mapping
+    from puremacro.dsge.dynare import build_dynare
+
+    base_params = dict(getattr(m_unconstrained, "_params", None) or getattr(m_unconstrained, "params", None) or {})
+    if fixed_params:
+        base_params.update({k: float(v) for k, v in fixed_params.items()})
+
+    def neg_log_post(vec: np.ndarray) -> float:
+        for nm, val in zip(names, vec):
+            pr = priors[nm]
+            if val < pr.lb or val > pr.ub:
+                return penalty
+        par_dict = _vec_to_dict(vec, names, fixed_params)
+        lp = log_prior(par_dict, priors)
+        if not np.isfinite(lp):
+            return penalty
+
+        curr_params = dict(base_params)
+        curr_params.update(par_dict)
+
+        try:
+            if getattr(m_unconstrained, "_dynare_equations", None) is not None:
+                ref_m = build_dynare(
+                    m_unconstrained._dynare_equations,
+                    variables=m_unconstrained.variables,
+                    shocks=m_unconstrained.shocks,
+                    params=curr_params,
+                    steady_state=m_unconstrained.steady_state,
+                    check_steady_state=False,
+                    strict=False,
+                )
+            else:
+                ref_m = m_unconstrained
+
+            if isinstance(m_constrained_dict, Mapping):
+                cons_dict = {}
+                for k, m_k in m_constrained_dict.items():
+                    if getattr(m_k, "_dynare_equations", None) is not None:
+                        k_base = dict(getattr(m_k, "_params", None) or getattr(m_k, "params", None) or base_params)
+                        k_params = dict(k_base)
+                        k_params.update(par_dict)
+                        cons_dict[k] = build_dynare(
+                            m_k._dynare_equations,
+                            variables=m_k.variables,
+                            shocks=m_k.shocks,
+                            params=k_params,
+                            steady_state=m_k.steady_state,
+                            check_steady_state=False,
+                            strict=False,
+                        )
+                    else:
+                        cons_dict[k] = m_k
+            else:
+                cons_dict = m_constrained_dict
+
+            pkf_res = piecewise_kalman_filter(
+                ref_m,
+                cons_dict,
+                data,
+                varobs=observed_vars,
+                constraints=constraints,
+                horizon=horizon,
+            )
+            ll = pkf_res.log_likelihood
+        except Exception as exc:
+            if failure is not None:
+                failure.record(exc, vec)
+            return penalty
+
+        if not np.isfinite(ll):
+            return penalty
+        return -(ll + lp)
+
     return neg_log_post
 
 
@@ -462,11 +559,16 @@ def _check_stochastic_singularity(
 def estimate_dsge(
     data: pd.DataFrame,
     *,
-    observation_eq: Callable[[dict], StateSpaceModel],
+    observation_eq: Callable[[dict], StateSpaceModel] | None = None,
     priors: dict,
     observed_vars: Sequence[str],
     initial_params: dict,
     fixed_params: dict | None = None,
+    method: str = "kalman",
+    m_unconstrained: Any = None,
+    m_constrained_dict: Any = None,
+    constraints: Any = None,
+    occbin_regimes: Any = None,
     model_name: str = "unknown",
     mode_compute: str = "lbfgs",
     n_draws: int = 10_000,
@@ -476,36 +578,9 @@ def estimate_dsge(
 ) -> DSGEPosteriorResult:
     """Bayesian DSGE estimation via Random-Walk Metropolis-Hastings.
 
-    The Kalman recursion starts from the model's **unconditional** state
-    distribution (the Lyapunov solution ``P = T P T' + R Q R'``), which is
-    the correct prior for a solved, stationary linear DSGE and the only
-    initialisation under which the likelihood *level* is meaningful.  See
-    the module docstring.
-
-    Scope limits worth knowing before you read the output:
-
-    * The mode search defaults to a single bounded L-BFGS-B run from
-      ``initial_params`` (``mode_compute="lbfgs"``).  It is a local search:
-      it finds a nearby
-      stationary point, not the global posterior mode, and on a model with
-      many parameters it can stop early.  When it terminates without
-      moving, or when the Hessian at its answer is not positive definite,
-      that is reported as a ``UserWarning`` and the returned ``mode`` must
-      be read as "the best point this run found", not as the mode.
-      ``mode_compute`` selects an alternative — ``"simplex"``,
-      ``"csminwel"``, ``"cmaes"`` or ``"none"``; see
-      :mod:`puremacro.dsge.mode`.  The default stays ``"lbfgs"`` because
-      changing it changes every posterior this function has ever returned.
-      :func:`puremacro.dsge.mode.mode_check` traces one-parameter slices
-      through the answer, which is the cheapest way to see that a "mode"
-      is not one.
-    * The sampler is a scalar-adapted random-walk Metropolis. Convergence
-      is not checked here beyond the acceptance rate; compute split-R-hat
-      and effective sample size from ``result.draws`` with
-      :func:`puremacro.mcmc.gelman_rubin` and
-      :func:`puremacro.mcmc.effective_sample_size` before reporting
-      posterior moments.
-    * There is no marginal-likelihood estimator, so no model comparison.
+    Supports standard linear Kalman filtering (method="kalman") and
+    Piecewise Kalman Filtering (method="piecewise_kalman") for occasionally
+    binding constraints (Giovannini, Pfeiffer & Ratto 2021).
     """
     # 1. Validate data.
     missing = set(observed_vars) - set(data.columns)
@@ -513,7 +588,7 @@ def estimate_dsge(
         raise ValueError(f"data missing columns: {sorted(missing)}")
     if len(data) < 10:
         raise ValueError(f"data has only {len(data)} obs; need >= 10")
-    if data[list(observed_vars)].isna().any().any():
+    if method != "piecewise_kalman" and data[list(observed_vars)].isna().any().any():
         raise ValueError("data contains NaN in observed_vars")
     y = data[list(observed_vars)].to_numpy()
 
@@ -523,25 +598,38 @@ def estimate_dsge(
     names = param_names(priors)
     fixed = dict(fixed_params or {})
     failure = _LikelihoodFailure()
-    neg_log_post = _make_neg_log_posterior(
-        y, observation_eq, priors, names, fixed, failure=failure,
-    )
-    # Same target, but with a large finite value on infeasible draws: see
-    # _OPT_PENALTY. Only the optimiser sees it; the MCMC target keeps +inf.
-    neg_log_post_opt = _make_neg_log_posterior(
-        y, observation_eq, priors, names, fixed,
-        penalty=_OPT_PENALTY, failure=failure,
-    )
     init_vec = _initial_vec_from_dict(initial_params, priors,
                                       caller="estimate_dsge")
 
-    _check_stochastic_singularity(
-        y, observation_eq, _vec_to_dict(init_vec, names, fixed),
-    )
+    if method == "piecewise_kalman":
+        cons_dict = m_constrained_dict or occbin_regimes or {}
+        neg_log_post = _make_piecewise_neg_log_posterior(
+            data, m_unconstrained, cons_dict, constraints,
+            priors, names, fixed, observed_vars, failure=failure,
+        )
+        neg_log_post_opt = _make_piecewise_neg_log_posterior(
+            data, m_unconstrained, cons_dict, constraints,
+            priors, names, fixed, observed_vars,
+            penalty=_OPT_PENALTY, failure=failure,
+        )
+    else:
+        if observation_eq is None:
+            raise ValueError("estimate_dsge: observation_eq is required when method='kalman'.")
+        neg_log_post = _make_neg_log_posterior(
+            y, observation_eq, priors, names, fixed, failure=failure,
+        )
+        neg_log_post_opt = _make_neg_log_posterior(
+            y, observation_eq, priors, names, fixed,
+            penalty=_OPT_PENALTY, failure=failure,
+        )
+        _check_stochastic_singularity(
+            y, observation_eq, _vec_to_dict(init_vec, names, fixed),
+        )
 
     # 3. Mode refinement.
     mode_vec = init_vec.copy()
     converged_mle = False
+
     f_init = float(neg_log_post_opt(init_vec))
     try:
         # ``mode_compute="lbfgs"`` forwards to exactly this scipy call with
@@ -734,4 +822,124 @@ def estimate_dsge(
     )
 
 
-__all__ = ["estimate_dsge"]
+_orig_linear_model_estimate = LinearModel.estimate
+
+
+def _linear_model_estimate_with_method(
+    self,
+    data,
+    *,
+    method: str = "kalman",
+    m_constrained_dict=None,
+    constraints=None,
+    occbin_regimes=None,
+    priors=None,
+    initial_params=None,
+    varobs=None,
+    fixed_params=None,
+    measurement_error=None,
+    prefilter=False,
+    observation_trends=None,
+    ridge=0.0,
+    mode_compute="lbfgs",
+    n_draws: int = 10_000,
+    n_chains: int = 2,
+    burn_in: int = 2_000,
+    seed: int = 0,
+    model_name=None,
+    check_identification: bool | str = False,
+    **kwargs,
+):
+    """Bayesian estimation supporting method='kalman' and method='piecewise_kalman'."""
+    if method == "piecewise_kalman":
+        from ._estimated_params import EstimatedParams
+        from .priors import ensure_prior
+
+        spec_source = self._estimated_params if priors is None else priors
+        if spec_source is None:
+            raise ModelError("estimate() needs priors: pass priors=... explicitly.")
+
+        if isinstance(spec_source, EstimatedParams):
+            prior_dict = spec_source.priors()
+            initial = (
+                dict(initial_params)
+                if initial_params is not None
+                else spec_source.initial_params()
+            )
+        else:
+            prior_dict = {k: ensure_prior(v) for k, v in dict(spec_source).items()}
+            initial = (
+                dict(initial_params)
+                if initial_params is not None
+                else {
+                    k: float(
+                        getattr(
+                            pr,
+                            "start",
+                            getattr(
+                                pr,
+                                "mean",
+                                (pr.lb + pr.ub) / 2.0
+                                if math.isfinite(getattr(pr, "lb", -math.inf))
+                                and math.isfinite(getattr(pr, "ub", math.inf))
+                                else 0.0,
+                            ),
+                        )
+                    )
+                    for k, pr in prior_dict.items()
+                }
+            )
+
+        obs = list(varobs) if varobs is not None else (
+            list(self._varobs) if getattr(self, "_varobs", None) else list(data.columns)
+        )
+
+        return estimate_dsge(
+            data,
+            method="piecewise_kalman",
+            m_unconstrained=self,
+            m_constrained_dict=m_constrained_dict or occbin_regimes,
+            constraints=constraints,
+            priors=prior_dict,
+            observed_vars=obs,
+            initial_params=initial,
+            fixed_params=fixed_params,
+            model_name=model_name or "mod",
+            mode_compute=mode_compute,
+            n_draws=n_draws,
+            n_chains=n_chains,
+            burn_in=burn_in,
+            seed=seed,
+            **kwargs,
+        )
+
+    return _orig_linear_model_estimate(
+        self,
+        data,
+        priors=priors,
+        varobs=varobs,
+        fixed_params=fixed_params,
+        measurement_error=measurement_error,
+        prefilter=prefilter,
+        observation_trends=observation_trends,
+        ridge=ridge,
+        mode_compute=mode_compute,
+        n_draws=n_draws,
+        n_chains=n_chains,
+        burn_in=burn_in,
+        seed=seed,
+        model_name=model_name,
+        check_identification=check_identification,
+        **kwargs,
+    )
+
+
+LinearModel.estimate = _linear_model_estimate_with_method
+
+
+__all__ = [
+    "estimate_dsge",
+    "piecewise_kalman_filter",
+    "PiecewiseKalmanResult",
+]
+

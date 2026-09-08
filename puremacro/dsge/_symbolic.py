@@ -277,13 +277,89 @@ def _normalize_vec(
 
 
 @dataclass
+class SparseDynamicTensor3D:
+    """Sparse coordinate representation of 3rd dynamic tensor derivatives T_f.
+
+    Avoids allocating dense N x K^3 tensor (which would consume >650 MB for SW07
+    and crash Pyodide). Coordinates are stored for non-decreasing index triplets
+    (0 <= p <= q <= r < K) by permutation symmetry.
+    """
+
+    shape: tuple[int, int, int, int]
+    entries: dict[tuple[int, int, int, int], float]
+
+    def __getitem__(self, key: tuple[int, int, int, int]) -> float:
+        i, p, q, r = key
+        p, q, r = sorted((p, q, r))
+        return self.entries.get((i, p, q, r), 0.0)
+
+    def __len__(self) -> int:
+        return len(self.entries)
+
+    def contract(
+        self,
+        M1: np.ndarray,
+        M2: np.ndarray,
+        M3: np.ndarray,
+        flatten: bool = True,
+    ) -> np.ndarray:
+        """Contract tensor T_f with matrices M1 (K, d1), M2 (K, d2), M3 (K, d3).
+
+        Computes:
+            C_{i, a, b, c} = sum_{p, q, r} T_{f, i, p, q, r} M1_{p, a} M2_{q, b} M3_{r, c}
+        summing over all distinct permutations of (p, q, r) without allocating
+        any intermediate 4D dense tensors.
+        """
+        import itertools
+
+        N, K1, K2, K3 = self.shape
+        d1 = M1.shape[1]
+        d2 = M2.shape[1]
+        d3 = M3.shape[1]
+
+        C = np.zeros((N, d1 * d2 * d3), dtype=float)
+        if not self.entries:
+            return C if flatten else C.reshape((N, d1, d2, d3))
+
+        for (i, p, q, r), v in self.entries.items():
+            perms = set(itertools.permutations([p, q, r]))
+            for jp, jq, jr in perms:
+                v1 = M1[jp]
+                v2 = M2[jq]
+                v3 = M3[jr]
+                C[i] += v * np.kron(np.kron(v1, v2), v3)
+
+        return C if flatten else C.reshape((N, d1, d2, d3))
+
+    def to_dense(self, max_elements: int = 5_000_000) -> np.ndarray:
+        """Materialize dense array if within safety limit (raises MemoryError if too large)."""
+        import itertools
+
+        N, K1, K2, K3 = self.shape
+        total_elements = N * K1 * K2 * K3
+        if total_elements > max_elements:
+            raise MemoryError(
+                f"Dense tensor size {total_elements} elements ({total_elements * 8 / 1e6:.1f} MB) "
+                f"exceeds safe threshold {max_elements} ({max_elements * 8 / 1e6:.1f} MB). "
+                "Use SparseDynamicTensor3D.contract() instead."
+            )
+        dense = np.zeros(self.shape, dtype=float)
+        for (i, p, q, r), v in self.entries.items():
+            for jp, jq, jr in set(itertools.permutations([p, q, r])):
+                dense[i, jp, jq, jr] = v
+        return dense
+
+
+@dataclass
 class CompiledDerivatives:
     """Compiled analytical derivatives engine with CSE and structural sparsity.
 
     Provides high-speed analytical evaluation of first-order Jacobians:
         (A_+, A_0, A_-, B_u)
-    and second-order dynamic Hessian tensor:
-        H_f of shape (N, K, K) where K = 3N + n_e.
+    second-order dynamic Hessian tensor:
+        H_f of shape (N, K, K) where K = 3N + n_e,
+    and third-order dynamic derivatives:
+        T_f as a memory-efficient SparseDynamicTensor3D.
     """
 
     variables: list[str]
@@ -296,6 +372,7 @@ class CompiledDerivatives:
     _eval_first_order_impl: Callable
     _eval_second_order_impl: Callable
     _eval_derivatives_impl: Callable
+    _eval_third_order_impl: Callable | None = None
 
     @property
     def N(self) -> int:
@@ -370,6 +447,33 @@ class CompiledDerivatives:
         return self._eval_derivatives_impl(
             lead_arr, curr_arr, lag_arr, shk_arr, p_arr
         )
+
+    def eval_third_order(
+        self,
+        lead: Any = None,
+        curr: Any = None,
+        lag: Any = None,
+        shocks: Any = None,
+        params: Any = None,
+    ) -> SparseDynamicTensor3D:
+        """Evaluate third-order dynamic derivatives T_f as SparseDynamicTensor3D."""
+        if self.is_linear or self._eval_third_order_impl is None:
+            return SparseDynamicTensor3D(shape=(self.N, self.K, self.K, self.K), entries={})
+        lead_arr = _normalize_vec(lead, self.N, self.variables)
+        curr_arr = _normalize_vec(curr, self.N, self.variables)
+        lag_arr = _normalize_vec(lag, self.N, self.variables)
+        shk_arr = _normalize_vec(shocks, self.n_e, self.shocks)
+        p_arr = _normalize_vec(
+            params, len(self.parameters), self.parameters, self.parameter_defaults
+        )
+        return self._eval_third_order_impl(
+            lead_arr, curr_arr, lag_arr, shk_arr, p_arr
+        )
+
+    @property
+    def has_third_order(self) -> bool:
+        """Whether third-order dynamic derivatives are compiled."""
+        return self._eval_third_order_impl is not None
 
 
 def compile_derivatives(model_dag: Any) -> CompiledDerivatives:
@@ -478,6 +582,22 @@ def compile_derivatives(model_dag: Any) -> CompiledDerivatives:
                                 if p != q:
                                     h_f_sparsity.append((i, q, p))
 
+    # 2b. Third-order dynamic tensor T_f[i, p, q, r] = d^3 f_i / (dz_p dz_q dz_r)
+    # Guided by DAG incidence over non-zero branches for p <= q <= r (6x permutation symmetry)
+    t_f_entries: list[tuple[int, int, int, int, Node]] = []
+    t_f_sparsity: list[tuple[int, int, int, int]] = []
+
+    for i, p, q, d2 in h_f_entries:
+        d2_vars = d2.variables()
+        for cr in d2_vars:
+            if cr in coord_to_idx:
+                r = coord_to_idx[cr]
+                if r >= q:
+                    d3 = d2.diff(cr[0], cr[1]).simplify()
+                    if not _is_zero(d3):
+                        t_f_entries.append((i, p, q, r, d3))
+                        t_f_sparsity.append((i, p, q, r))
+
     sparsity_pattern = {
         "A_plus": (
             np.array(a_plus_sparsity, dtype=int).reshape(-1, 2)
@@ -504,11 +624,16 @@ def compile_derivatives(model_dag: Any) -> CompiledDerivatives:
             if h_f_sparsity
             else np.zeros((0, 3), dtype=int)
         ),
+        "T_f": (
+            np.array(t_f_sparsity, dtype=int).reshape(-1, 4)
+            if t_f_sparsity
+            else np.zeros((0, 4), dtype=int)
+        ),
     }
 
-    is_linear = len(h_f_entries) == 0
+    is_linear = len(h_f_entries) == 0 and len(t_f_entries) == 0
 
-    # 3. Common Subexpression Elimination (CSE) across first-order and second-order
+    # 3. Common Subexpression Elimination (CSE) across first-, second-, and third-order
     first_order_nodes = (
         [d for _, _, d in a_plus_entries]
         + [d for _, _, d in a_0_entries]
@@ -516,7 +641,8 @@ def compile_derivatives(model_dag: Any) -> CompiledDerivatives:
         + [d for _, _, d in b_u_entries]
     )
     second_order_nodes = [d2 for _, _, _, d2 in h_f_entries]
-    all_nodes = first_order_nodes + second_order_nodes
+    third_order_nodes = [d3 for _, _, _, _, d3 in t_f_entries]
+    all_nodes = first_order_nodes + second_order_nodes + third_order_nodes
 
     # CSE for first order alone (for fastest order-1 Klein solves)
     fo_temps, fo_replacements = _perform_cse(
@@ -671,10 +797,39 @@ def compile_derivatives(model_dag: Any) -> CompiledDerivatives:
             all_code_lines.append(f"    H_f[{i}, {q}, {p}] = H_f[{i}, {p}, {q}]")
     all_code_lines.append("    return A_plus, A_0, A_minus, B_u, H_f\n")
 
-    compiled_src = "\n".join(
-        fo_code_lines + ["\n"] + so_code_lines + ["\n"] + all_code_lines
+    # 7. Code generation for _eval_third_order (sparse dynamic 3rd-order tensor)
+    to_temps, to_replacements = _perform_cse(
+        third_order_nodes, var_indices, shock_indices, param_indices
     )
-    scope: dict[str, Any] = {"np": np, "math": math}
+    to_code_lines = [
+        "def _compiled_eval_third_order(lead, curr, lag, shocks, params):",
+        "    entries = {}",
+    ]
+    for tvar, rhs in to_temps:
+        to_code_lines.append(f"    {tvar} = {rhs}")
+
+    for i, p, q, r, d3 in t_f_entries:
+        val_py = _node_to_py(
+            d3,
+            to_replacements,
+            var_indices,
+            shock_indices,
+            param_indices,
+            is_defining=False,
+        )
+        to_code_lines.append(f"    _v = float({val_py})")
+        to_code_lines.append(f"    if _v != 0.0:")
+        to_code_lines.append(f"        entries[({i}, {p}, {q}, {r})] = _v")
+    to_code_lines.append(f"    return SparseDynamicTensor3D(shape=({N}, {K}, {K}, {K}), entries=entries)\n")
+
+    compiled_src = "\n".join(
+        fo_code_lines + ["\n"] + so_code_lines + ["\n"] + all_code_lines + ["\n"] + to_code_lines
+    )
+    scope: dict[str, Any] = {
+        "np": np,
+        "math": math,
+        "SparseDynamicTensor3D": SparseDynamicTensor3D,
+    }
     exec(compiled_src, scope)
 
     return CompiledDerivatives(
@@ -688,4 +843,5 @@ def compile_derivatives(model_dag: Any) -> CompiledDerivatives:
         _eval_first_order_impl=scope["_compiled_eval_first_order"],
         _eval_second_order_impl=scope["_compiled_eval_second_order"],
         _eval_derivatives_impl=scope["_compiled_eval_derivatives"],
+        _eval_third_order_impl=scope["_compiled_eval_third_order"],
     )

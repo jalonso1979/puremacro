@@ -76,6 +76,7 @@ nav:
           - Gertler-Karadi (2011) DSGE: gertler_karadi.md
           - Climate Macro (DICE): climate.md
           - DSGE Sketchpad & Dynare: dsge_build.md
+          - DSGE Higher-Order & Constraints: dsge_higher_order.md
       - Running Anywhere (iPad / browser): tablet.md
       - Performance & Benchmarks: benchmarks.md
       - Reference:
@@ -116,6 +117,7 @@ nav:
           - DSGE de Gertler-Karadi (2011): es/gertler_karadi.md
           - Macroeconomía del clima (DICE): es/climate.md
           - Cuaderno de bocetos DSGE y Dynare: es/dsge_build.md
+          - DSGE de orden superior y restricciones: es/dsge_higher_order.md
       - Ejecución en cualquier entorno (iPad / navegador): es/tablet.md
       - Rendimiento y pruebas comparativas: es/benchmarks.md
       - Referencia:

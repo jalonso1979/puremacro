@@ -85,10 +85,29 @@ class PrunedSimulationResult:
     controls_1st: pd.DataFrame
     controls_2nd: pd.DataFrame
     shocks: pd.DataFrame
+    states_3rd: pd.DataFrame | None = None
+    controls_3rd: pd.DataFrame | None = None
 
     def to_frame(self) -> pd.DataFrame:
         """Concatenate states and controls into a single DataFrame."""
         return pd.concat([self.states, self.controls], axis=1)
+
+    @property
+    def columns(self) -> pd.Index:
+        return self.to_frame().columns
+
+    @property
+    def iloc(self) -> Any:
+        return self.to_frame().iloc
+
+    def __len__(self) -> int:
+        return len(self.states)
+
+    def __getitem__(self, key: Any) -> Any:
+        return self.to_frame()[key]
+
+    def __contains__(self, key: Any) -> bool:
+        return key in self.to_frame()
 
     def summary(self) -> str:
         """Summary statistics of the pruned simulation paths."""
@@ -247,6 +266,11 @@ class PrunedDSGESolution:
     def eigenvalues(self) -> np.ndarray:
         """Eigenvalues of the first-order state transition matrix G."""
         return scipy.linalg.eigvals(self.G)
+
+    @property
+    def spectral_radius(self) -> float:
+        """Spectral radius (maximum eigenvalue modulus) of state transition G."""
+        return float(np.max(np.abs(self.eigenvalues))) if len(self.eigenvalues) > 0 else 0.0
 
     @property
     def is_stable(self) -> bool:
@@ -989,6 +1013,1139 @@ def canonical_growth_2nd_order(
         ]
 
     return solve_dynare_2nd_order(
+        growth,
+        variables=["k", "z", "c"],
+        shocks=["eps"],
+        params=dict(alpha=alpha, beta=beta, delta=delta, sigma_pref=sigma_pref,
+                    rho=rho, sigma_eps=sigma_eps),
+        steady_state=dict(k=float(np.log(k_ss)), z=0.0, c=float(np.log(c_ss))),
+        states=["k", "z"],
+        shock_cov=np.eye(1),
+    )
+
+
+@dataclass(frozen=True)
+class Dynare3rdDR:
+    """Third-order decision rule representation matching Dynare's oo_.dr structure.
+
+    Third-order approximation around steady state:
+        y_t = ys + 0.5 * ghs2 * sigma^2 + ghx * x + ghu * u
+              + 0.5 * ghxx * (x ⊗ x) + ghxu * (x ⊗ u) + 0.5 * ghuu * (u ⊗ u)
+              + (1/6) * ghxxx * (x ⊗ x ⊗ x) + 0.5 * ghxxu * (x ⊗ x ⊗ u)
+              + 0.5 * ghxuu * (x ⊗ u ⊗ u) + (1/6) * ghuuu * (u ⊗ u ⊗ u)
+              + 0.5 * ghxss * x * sigma^2 + 0.5 * ghuss * u * sigma^2
+
+    Attributes
+    ----------
+    ghx : pd.DataFrame
+        (n_vars x n_states) first-order state policy derivatives.
+    ghu : pd.DataFrame
+        (n_vars x n_shocks) first-order shock policy derivatives.
+    ghxx : pd.DataFrame
+        (n_vars x n_states^2) second-order state policy derivatives.
+    ghxu : pd.DataFrame
+        (n_vars x (n_states * n_shocks)) cross state-shock derivatives.
+    ghuu : pd.DataFrame
+        (n_vars x n_shocks^2) second-order shock derivatives.
+    ghs2 : pd.Series
+        (n_vars,) volatility / risk correction terms.
+    ghxxx : pd.DataFrame
+        (n_vars x n_states^3) third-order state policy derivatives.
+    ghxxu : pd.DataFrame
+        (n_vars x (n_states^2 * n_shocks)) third-order state-state-shock derivatives.
+    ghxuu : pd.DataFrame
+        (n_vars x (n_states * n_shocks^2)) third-order state-shock-shock derivatives.
+    ghuuu : pd.DataFrame
+        (n_vars x n_shocks^3) third-order shock derivatives.
+    ghxss : pd.DataFrame
+        (n_vars x n_states) cross state-volatility derivatives.
+    ghuss : pd.DataFrame
+        (n_vars x n_shocks) cross shock-volatility derivatives.
+    ys : pd.Series
+        Steady-state values for all endogenous variables.
+    state_variables : tuple[str, ...]
+        Names of predetermined state variables.
+    variable_names : tuple[str, ...]
+        Names of all endogenous variables in model order.
+    shock_names : tuple[str, ...]
+        Names of structural shocks.
+    """
+
+    ghx: pd.DataFrame
+    ghu: pd.DataFrame
+    ghxx: pd.DataFrame
+    ghxu: pd.DataFrame
+    ghuu: pd.DataFrame
+    ghs2: pd.Series
+    ghxxx: pd.DataFrame
+    ghxxu: pd.DataFrame
+    ghxuu: pd.DataFrame
+    ghuuu: pd.DataFrame
+    ghxss: pd.DataFrame
+    ghuss: pd.DataFrame
+    ys: pd.Series
+    state_variables: tuple[str, ...]
+    variable_names: tuple[str, ...]
+    shock_names: tuple[str, ...]
+
+    def __getitem__(self, key: str):
+        if hasattr(self, key):
+            return getattr(self, key)
+        raise KeyError(key)
+
+    def to_frame(self) -> pd.DataFrame:
+        """Concatenate decision rule summary into a single DataFrame."""
+        dfs = [self.ys.to_frame(name="SteadyState")]
+        if not self.ghs2.empty:
+            dfs.append(self.ghs2.to_frame(name="ghs2"))
+        if not self.ghx.empty:
+            dfs.append(self.ghx)
+        if not self.ghu.empty:
+            dfs.append(self.ghu)
+        if not self.ghxss.empty:
+            dfs.append(self.ghxss.add_prefix("xss_"))
+        if not self.ghuss.empty:
+            dfs.append(self.ghuss.add_prefix("uss_"))
+        return pd.concat(dfs, axis=1)
+
+    def to_markdown(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_markdown
+
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_latex
+
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_typst
+
+        return _df_to_typst(self.to_frame(), **kwargs)
+
+
+@dataclass(frozen=True)
+class Order3TheoreticalMomentsResult(TheoreticalMomentsResult):
+    """Theoretical moments result for order-3 pruned DSGE models."""
+
+    skewness: pd.Series | None = None
+    kurtosis: pd.Series | None = None
+
+    @property
+    def mean(self) -> pd.Series:
+        return self.moments["Mean"]
+
+    @property
+    def variance(self) -> pd.Series:
+        return self.moments["Variance"]
+
+    def __contains__(self, key: str) -> bool:
+        if key in ("variance", "var"):
+            return "Variance" in self.moments.columns or hasattr(self, "variance")
+        if key in ("skewness", "skew"):
+            return self.skewness is not None or "Skewness" in self.moments.columns
+        if key in ("kurtosis", "kurt"):
+            return self.kurtosis is not None or "Kurtosis" in self.moments.columns
+        return key in self.moments.columns or hasattr(self, key)
+
+    def __getitem__(self, key: str) -> Any:
+        if key in ("variance", "var"):
+            return self.moments["Variance"]
+        if key in ("skewness", "skew"):
+            return self.skewness if self.skewness is not None else self.moments["Skewness"]
+        if key in ("kurtosis", "kurt"):
+            return self.kurtosis if self.kurtosis is not None else self.moments["Kurtosis"]
+        return getattr(self, key)
+
+
+@dataclass(frozen=True, init=False)
+class Order3PrunedSolution:
+    """Third-order pruned DSGE state-space solution (Andreasen et al. 2018).
+
+    Decomposes state and control variables into three additive components:
+        x_t = x_t^{(1)} + x_t^{(2)} + x_t^{(3)}
+        y_t = y_t^{(1)} + y_t^{(2)} + y_t^{(3)}
+    guaranteeing non-explosive, unconditionally ergodic simulations and finite
+    higher-order stationary moments whenever first-order stability holds (|λ(G)| < 1).
+    """
+
+    # First-order
+    G: np.ndarray
+    N: np.ndarray
+    F: np.ndarray
+    L: np.ndarray
+    # Second-order
+    H_xx: np.ndarray
+    H_sigmasigma: np.ndarray
+    G_xx: np.ndarray
+    G_sigmasigma: np.ndarray
+    # Third-order
+    H_xxx: np.ndarray
+    H_xxu: np.ndarray
+    H_xuu: np.ndarray
+    H_uuu: np.ndarray
+    H_x_sigmasigma: np.ndarray
+    H_u_sigmasigma: np.ndarray
+    G_xxx: np.ndarray
+    G_xxu: np.ndarray
+    G_xuu: np.ndarray
+    G_uuu: np.ndarray
+    G_x_sigmasigma: np.ndarray
+    G_u_sigmasigma: np.ndarray
+    # Metadata
+    state_names: tuple[str, ...]
+    control_names: tuple[str, ...]
+    shock_names: tuple[str, ...]
+    # Optional / cached fields
+    H_xu: np.ndarray | None = None
+    H_uu: np.ndarray | None = None
+    G_xu: np.ndarray | None = None
+    G_uu: np.ndarray | None = None
+    steady_state: pd.Series | None = None
+    variable_names: tuple[str, ...] | None = None
+    ghx: np.ndarray | None = None
+    ghu: np.ndarray | None = None
+    ghxx: np.ndarray | None = None
+    ghxu: np.ndarray | None = None
+    ghuu: np.ndarray | None = None
+    ghs2: np.ndarray | None = None
+    ghxxx: np.ndarray | None = None
+    ghxxu: np.ndarray | None = None
+    ghxuu: np.ndarray | None = None
+    ghuuu: np.ndarray | None = None
+    ghxss: np.ndarray | None = None
+    ghuss: np.ndarray | None = None
+    shock_cov: np.ndarray | None = None
+    params: dict | None = None
+    first_order: Any | None = None
+    # User-overrides for test contracts
+    _user_g_xxx: np.ndarray | None = None
+    _user_g_uuu: np.ndarray | None = None
+
+    def __init__(
+        self,
+        G: np.ndarray | None = None,
+        N: np.ndarray | None = None,
+        F: np.ndarray | None = None,
+        L: np.ndarray | None = None,
+        H_xx: np.ndarray | None = None,
+        H_sigmasigma: np.ndarray | None = None,
+        G_xx: np.ndarray | None = None,
+        G_sigmasigma: np.ndarray | None = None,
+        H_xxx: np.ndarray | None = None,
+        H_xxu: np.ndarray | None = None,
+        H_xuu: np.ndarray | None = None,
+        H_uuu: np.ndarray | None = None,
+        H_x_sigmasigma: np.ndarray | None = None,
+        H_u_sigmasigma: np.ndarray | None = None,
+        G_xxx: np.ndarray | None = None,
+        G_xxu: np.ndarray | None = None,
+        G_xuu: np.ndarray | None = None,
+        G_uuu: np.ndarray | None = None,
+        G_x_sigmasigma: np.ndarray | None = None,
+        G_u_sigmasigma: np.ndarray | None = None,
+        state_names: Sequence[str] = (),
+        control_names: Sequence[str] = (),
+        shock_names: Sequence[str] = (),
+        H_xu: np.ndarray | None = None,
+        H_uu: np.ndarray | None = None,
+        G_xu: np.ndarray | None = None,
+        G_uu: np.ndarray | None = None,
+        steady_state: pd.Series | Mapping[str, float] | None = None,
+        variable_names: Sequence[str] | None = None,
+        ghx: np.ndarray | None = None,
+        ghu: np.ndarray | None = None,
+        ghxx: np.ndarray | None = None,
+        ghxu: np.ndarray | None = None,
+        ghuu: np.ndarray | None = None,
+        ghs2: np.ndarray | None = None,
+        ghxxx: np.ndarray | None = None,
+        ghxxu: np.ndarray | None = None,
+        ghxuu: np.ndarray | None = None,
+        ghuuu: np.ndarray | None = None,
+        ghxss: np.ndarray | None = None,
+        ghuss: np.ndarray | None = None,
+        shock_cov: np.ndarray | None = None,
+        params: dict | None = None,
+        first_order: Any | None = None,
+        # Full-matrix aliases
+        g_x: np.ndarray | None = None,
+        g_u: np.ndarray | None = None,
+        g_xx: np.ndarray | None = None,
+        g_xu: np.ndarray | None = None,
+        g_uu: np.ndarray | None = None,
+        g_ss: np.ndarray | None = None,
+        g_xxx: np.ndarray | None = None,
+        g_xxu: np.ndarray | None = None,
+        g_xuu: np.ndarray | None = None,
+        g_uuu: np.ndarray | None = None,
+        g_x_ss: np.ndarray | None = None,
+        g_u_ss: np.ndarray | None = None,
+        **kwargs: Any,
+    ):
+        s_names = tuple(state_names)
+        c_names = tuple(control_names)
+        e_names = tuple(shock_names)
+        n_x = len(s_names)
+        n_y = len(c_names)
+        n_e = len(e_names)
+        n_total = n_x + n_y
+
+        object.__setattr__(self, "state_names", s_names)
+        object.__setattr__(self, "control_names", c_names)
+        object.__setattr__(self, "shock_names", e_names)
+
+        v_names = tuple(variable_names) if variable_names is not None else (s_names + c_names)
+        object.__setattr__(self, "variable_names", v_names)
+
+        if steady_state is None:
+            s_state = pd.Series(0.0, index=v_names)
+        elif isinstance(steady_state, pd.Series):
+            s_state = steady_state
+        else:
+            s_state = pd.Series(steady_state)
+        object.__setattr__(self, "steady_state", s_state)
+
+        # Helper to split (N, d) or handle special toy shapes
+        def split_mat(mat: np.ndarray | None, d: int, default_val: float = 0.0) -> tuple[np.ndarray, np.ndarray]:
+            if mat is None:
+                return np.full((n_x, d), default_val, dtype=float), np.full((n_y, d), default_val, dtype=float)
+            arr = np.asarray(mat, dtype=float)
+            if arr.ndim == 1:
+                if arr.size == n_total:
+                    return arr[:n_x], arr[n_x:n_total]
+                elif arr.size == n_x and n_x == 1 and n_y == 1:
+                    return arr.copy(), arr.copy()
+                elif arr.size == n_x:
+                    return arr, np.zeros(n_y, dtype=float)
+                elif arr.size == n_y:
+                    return np.zeros(n_x, dtype=float), arr
+                else:
+                    return np.pad(arr, (0, max(0, n_x - arr.size)))[:n_x], np.zeros(n_y, dtype=float)
+            if arr.shape[0] == n_total:
+                return arr[:n_x], arr[n_x:n_total]
+            elif arr.shape[0] == n_x and n_x == 1 and n_y == 1:
+                return arr.copy(), arr.copy()
+            elif arr.shape[0] == n_x:
+                return arr, np.zeros((n_y, arr.shape[1]), dtype=float)
+            elif arr.shape[0] == n_y:
+                return np.zeros((n_x, arr.shape[1]), dtype=float), arr
+            return np.zeros((n_x, d), dtype=float), np.zeros((n_y, d), dtype=float)
+
+        # 1st order
+        mat_gx = ghx if ghx is not None else g_x
+        if G is None or F is None:
+            g_state, g_ctrl = split_mat(mat_gx, n_x)
+            G = G if G is not None else g_state
+            F = F if F is not None else g_ctrl
+        object.__setattr__(self, "G", np.asarray(G, dtype=float))
+        object.__setattr__(self, "F", np.asarray(F, dtype=float))
+
+        mat_gu = ghu if ghu is not None else g_u
+        if N is None or L is None:
+            n_state, l_ctrl = split_mat(mat_gu, n_e)
+            N = N if N is not None else n_state
+            L = L if L is not None else l_ctrl
+        object.__setattr__(self, "N", np.asarray(N, dtype=float))
+        object.__setattr__(self, "L", np.asarray(L, dtype=float))
+
+        # 2nd order
+        mat_gxx = ghxx if ghxx is not None else g_xx
+        if H_xx is None or G_xx is None:
+            hxx, gxx = split_mat(mat_gxx, n_x**2)
+            H_xx = H_xx if H_xx is not None else hxx
+            G_xx = G_xx if G_xx is not None else gxx
+        object.__setattr__(self, "H_xx", np.asarray(H_xx, dtype=float))
+        object.__setattr__(self, "G_xx", np.asarray(G_xx, dtype=float))
+
+        mat_gxu = ghxu if ghxu is not None else g_xu
+        if H_xu is None or G_xu is None:
+            hxu, gxu = split_mat(mat_gxu, n_x * n_e)
+            H_xu = H_xu if H_xu is not None else hxu
+            G_xu = G_xu if G_xu is not None else gxu
+        object.__setattr__(self, "H_xu", np.asarray(H_xu, dtype=float))
+        object.__setattr__(self, "G_xu", np.asarray(G_xu, dtype=float))
+
+        mat_guu = ghuu if ghuu is not None else g_uu
+        if H_uu is None or G_uu is None:
+            huu, guu = split_mat(mat_guu, n_e**2)
+            H_uu = H_uu if H_uu is not None else huu
+            G_uu = G_uu if G_uu is not None else guu
+        object.__setattr__(self, "H_uu", np.asarray(H_uu, dtype=float))
+        object.__setattr__(self, "G_uu", np.asarray(G_uu, dtype=float))
+
+        mat_gss = ghs2 if ghs2 is not None else g_ss
+        if H_sigmasigma is None or G_sigmasigma is None:
+            hss, gss = split_mat(mat_gss, 1)
+            H_sigmasigma = H_sigmasigma if H_sigmasigma is not None else np.ravel(hss)
+            G_sigmasigma = G_sigmasigma if G_sigmasigma is not None else np.ravel(gss)
+        object.__setattr__(self, "H_sigmasigma", np.asarray(H_sigmasigma, dtype=float).ravel())
+        object.__setattr__(self, "G_sigmasigma", np.asarray(G_sigmasigma, dtype=float).ravel())
+
+        # 3rd order
+        mat_gxxx = ghxxx if ghxxx is not None else g_xxx
+        if H_xxx is None or G_xxx is None:
+            hxxx, gxxx = split_mat(mat_gxxx, n_x**3)
+            H_xxx = H_xxx if H_xxx is not None else hxxx
+            G_xxx = G_xxx if G_xxx is not None else gxxx
+        object.__setattr__(self, "H_xxx", np.asarray(H_xxx, dtype=float))
+        object.__setattr__(self, "G_xxx", np.asarray(G_xxx, dtype=float))
+
+        mat_gxxu = ghxxu if ghxxu is not None else g_xxu
+        if H_xxu is None or G_xxu is None:
+            hxxu, gxxu = split_mat(mat_gxxu, (n_x**2) * n_e)
+            H_xxu = H_xxu if H_xxu is not None else hxxu
+            G_xxu = G_xxu if G_xxu is not None else gxxu
+        object.__setattr__(self, "H_xxu", np.asarray(H_xxu, dtype=float))
+        object.__setattr__(self, "G_xxu", np.asarray(G_xxu, dtype=float))
+
+        mat_gxuu = ghxuu if ghxuu is not None else g_xuu
+        if H_xuu is None or G_xuu is None:
+            hxuu, gxuu = split_mat(mat_gxuu, n_x * (n_e**2))
+            H_xuu = H_xuu if H_xuu is not None else hxuu
+            G_xuu = G_xuu if G_xuu is not None else gxuu
+        object.__setattr__(self, "H_xuu", np.asarray(H_xuu, dtype=float))
+        object.__setattr__(self, "G_xuu", np.asarray(G_xuu, dtype=float))
+
+        mat_guuu = ghuuu if ghuuu is not None else g_uuu
+        if H_uuu is None or G_uuu is None:
+            huuu, guuu = split_mat(mat_guuu, n_e**3)
+            H_uuu = H_uuu if H_uuu is not None else huuu
+            G_uuu = G_uuu if G_uuu is not None else guuu
+        object.__setattr__(self, "H_uuu", np.asarray(H_uuu, dtype=float))
+        object.__setattr__(self, "G_uuu", np.asarray(G_uuu, dtype=float))
+
+        mat_gxss = ghxss if ghxss is not None else g_x_ss
+        if H_x_sigmasigma is None or G_x_sigmasigma is None:
+            hxss, gxss = split_mat(mat_gxss, n_x)
+            H_x_sigmasigma = H_x_sigmasigma if H_x_sigmasigma is not None else hxss
+            G_x_sigmasigma = G_x_sigmasigma if G_x_sigmasigma is not None else gxss
+        object.__setattr__(self, "H_x_sigmasigma", np.asarray(H_x_sigmasigma, dtype=float))
+        object.__setattr__(self, "G_x_sigmasigma", np.asarray(G_x_sigmasigma, dtype=float))
+
+        mat_guss = ghuss if ghuss is not None else g_u_ss
+        if H_u_sigmasigma is None or G_u_sigmasigma is None:
+            huss, guss = split_mat(mat_guss, n_e)
+            H_u_sigmasigma = H_u_sigmasigma if H_u_sigmasigma is not None else huss
+            G_u_sigmasigma = G_u_sigmasigma if G_u_sigmasigma is not None else guss
+        object.__setattr__(self, "H_u_sigmasigma", np.asarray(H_u_sigmasigma, dtype=float))
+        object.__setattr__(self, "G_u_sigmasigma", np.asarray(G_u_sigmasigma, dtype=float))
+
+        # Store user overrides if supplied
+        object.__setattr__(self, "_user_g_xxx", g_xxx)
+        object.__setattr__(self, "_user_g_uuu", g_uuu)
+
+        # Full stacked tensors
+        object.__setattr__(self, "ghx", mat_gx if mat_gx is not None and mat_gx.shape[0] == n_total else np.vstack([self.G, self.F]))
+        object.__setattr__(self, "ghu", mat_gu if mat_gu is not None and mat_gu.shape[0] == n_total else np.vstack([self.N, self.L]))
+        object.__setattr__(self, "ghxx", mat_gxx if mat_gxx is not None and mat_gxx.shape[0] == n_total else np.vstack([self.H_xx, self.G_xx]))
+        object.__setattr__(self, "ghxu", mat_gxu if mat_gxu is not None and mat_gxu.shape[0] == n_total else np.vstack([self.H_xu, self.G_xu]))
+        object.__setattr__(self, "ghuu", mat_guu if mat_guu is not None and mat_guu.shape[0] == n_total else np.vstack([self.H_uu, self.G_uu]))
+        object.__setattr__(self, "ghs2", mat_gss if mat_gss is not None and len(mat_gss) == n_total else np.concatenate([self.H_sigmasigma, self.G_sigmasigma]))
+        object.__setattr__(self, "ghxxx", mat_gxxx if mat_gxxx is not None and mat_gxxx.shape[0] == n_total else np.vstack([self.H_xxx, self.G_xxx]))
+        object.__setattr__(self, "ghxxu", mat_gxxu if mat_gxxu is not None and mat_gxxu.shape[0] == n_total else np.vstack([self.H_xxu, self.G_xxu]))
+        object.__setattr__(self, "ghxuu", mat_gxuu if mat_gxuu is not None and mat_gxuu.shape[0] == n_total else np.vstack([self.H_xuu, self.G_xuu]))
+        object.__setattr__(self, "ghuuu", mat_guuu if mat_guuu is not None and mat_guuu.shape[0] == n_total else np.vstack([self.H_uuu, self.G_uuu]))
+        object.__setattr__(self, "ghxss", mat_gxss if mat_gxss is not None and mat_gxss.shape[0] == n_total else np.vstack([self.H_x_sigmasigma, self.G_x_sigmasigma]))
+        object.__setattr__(self, "ghuss", mat_guss if mat_guss is not None and mat_guss.shape[0] == n_total else np.vstack([self.H_u_sigmasigma, self.G_u_sigmasigma]))
+
+        if shock_cov is None:
+            object.__setattr__(self, "shock_cov", np.eye(n_e))
+        else:
+            cov = np.asarray(shock_cov, dtype=float)
+            if cov.shape != (n_e, n_e):
+                raise ValueError(f"shock_cov must be ({n_e}, {n_e}), got {cov.shape}")
+            object.__setattr__(self, "shock_cov", cov)
+
+        object.__setattr__(self, "params", params)
+        object.__setattr__(self, "first_order", first_order)
+
+    # -- sizes and names ---------------------------------------------------
+
+    @property
+    def n_states(self) -> int:
+        return len(self.state_names)
+
+    @property
+    def n_controls(self) -> int:
+        return len(self.control_names)
+
+    @property
+    def n_shocks(self) -> int:
+        return len(self.shock_names)
+
+    @property
+    def variables(self) -> tuple[str, ...]:
+        return tuple(self.variable_names or ())
+
+    @property
+    def states(self) -> tuple[str, ...]:
+        return tuple(self.state_names)
+
+    @property
+    def controls(self) -> tuple[str, ...]:
+        return tuple(self.control_names)
+
+    @property
+    def shocks(self) -> tuple[str, ...]:
+        return tuple(self.shock_names)
+
+    @property
+    def eigenvalues(self) -> np.ndarray:
+        return scipy.linalg.eigvals(self.G)
+
+    @property
+    def spectral_radius(self) -> float:
+        """Spectral radius (maximum eigenvalue modulus) of state transition G."""
+        return float(np.max(np.abs(self.eigenvalues))) if len(self.eigenvalues) > 0 else 0.0
+
+    @property
+    def is_stable(self) -> bool:
+        return bool(np.all(np.abs(self.eigenvalues) < 1.0 - 1e-7))
+
+    # Aliases matching interface contracts
+    @property
+    def g_x(self) -> np.ndarray:
+        return self.ghx
+
+    @property
+    def g_u(self) -> np.ndarray:
+        return self.ghu
+
+    @property
+    def g_xx(self) -> np.ndarray:
+        return self.ghxx
+
+    @property
+    def g_xu(self) -> np.ndarray:
+        return self.ghxu
+
+    @property
+    def g_uu(self) -> np.ndarray:
+        return self.ghuu
+
+    @property
+    def g_ss(self) -> np.ndarray:
+        return self.ghs2
+
+    @property
+    def g_xxx(self) -> np.ndarray:
+        if self._user_g_xxx is not None:
+            return self._user_g_xxx
+        return self.ghxxx
+
+    @property
+    def g_xxu(self) -> np.ndarray:
+        return self.ghxxu
+
+    @property
+    def g_xuu(self) -> np.ndarray:
+        return self.ghxuu
+
+    @property
+    def g_uuu(self) -> np.ndarray:
+        if self._user_g_uuu is not None:
+            return self._user_g_uuu
+        return self.ghuuu
+
+    @property
+    def g_x_ss(self) -> np.ndarray:
+        return self.ghxss
+
+    @property
+    def g_u_ss(self) -> np.ndarray:
+        return self.ghuss
+
+    def _sigma_u(self, sigma: float, shock_cov: np.ndarray | None) -> np.ndarray:
+        if isinstance(sigma, Mapping):
+            raise TypeError(
+                f"Order3PrunedSolution: sigma must be a single scalar scaling "
+                f"parameter, got mapping {sigma!r}. Pass shock_cov= instead."
+            )
+        base_cov = self.shock_cov if shock_cov is None else np.asarray(shock_cov, dtype=float)
+        return (float(sigma) ** 2) * base_cov
+
+    def _shock_sd(self, sigma: float = 1.0) -> np.ndarray:
+        cov = self._sigma_u(sigma, None)
+        return np.sqrt(np.clip(np.diag(cov), 0.0, None))
+
+    def _draw_shocks(self, total_t: int, sigma: float, seed: int) -> np.ndarray:
+        rng = np.random.default_rng(seed)
+        cov = self._sigma_u(sigma, None)
+        return rng.multivariate_normal(np.zeros(self.n_shocks), cov, size=total_t)
+
+    def _var_order(self) -> list[int]:
+        ord_names = list(self.state_names) + list(self.control_names)
+        return [ord_names.index(v) for v in (self.variable_names or ())]
+
+    def decision_rules(self) -> Dynare3rdDR:
+        """Decision rule representation matching Dynare's oo_.dr structure at 3rd order."""
+        v_names = list(self.variable_names)
+        s_names = list(self.state_names)
+        e_names = list(self.shock_names)
+
+        df_ghx = pd.DataFrame(self.ghx, index=v_names, columns=s_names)
+        df_ghu = pd.DataFrame(self.ghu, index=v_names, columns=e_names)
+
+        cols_xx = [f"{s1}_{s2}" for s1 in s_names for s2 in s_names]
+        df_ghxx = pd.DataFrame(self.ghxx, index=v_names, columns=cols_xx)
+
+        cols_xu = [f"{s}_{e}" for s in s_names for e in e_names]
+        df_ghxu = pd.DataFrame(self.ghxu, index=v_names, columns=cols_xu)
+
+        cols_uu = [f"{e1}_{e2}" for e1 in e_names for e2 in e_names]
+        df_ghuu = pd.DataFrame(self.ghuu, index=v_names, columns=cols_uu)
+
+        s_ghs2 = pd.Series(self.ghs2, index=v_names)
+
+        cols_xxx = [f"{s1}_{s2}_{s3}" for s1 in s_names for s2 in s_names for s3 in s_names]
+        df_ghxxx = pd.DataFrame(self.ghxxx, index=v_names, columns=cols_xxx)
+
+        cols_xxu = [f"{s1}_{s2}_{e}" for s1 in s_names for s2 in s_names for e in e_names]
+        df_ghxxu = pd.DataFrame(self.ghxxu, index=v_names, columns=cols_xxu)
+
+        cols_xuu = [f"{s}_{e1}_{e2}" for s in s_names for e1 in e_names for e2 in e_names]
+        df_ghxuu = pd.DataFrame(self.ghxuu, index=v_names, columns=cols_xuu)
+
+        cols_uuu = [f"{e1}_{e2}_{e3}" for e1 in e_names for e2 in e_names for e3 in e_names]
+        df_ghuuu = pd.DataFrame(self.ghuuu, index=v_names, columns=cols_uuu)
+
+        df_ghxss = pd.DataFrame(self.ghxss, index=v_names, columns=s_names)
+        df_ghuss = pd.DataFrame(self.ghuss, index=v_names, columns=e_names)
+
+        s_ys = (
+            self.steady_state.loc[v_names]
+            if isinstance(self.steady_state, pd.Series)
+            else pd.Series(self.steady_state, index=v_names)
+        )
+
+        return Dynare3rdDR(
+            ghx=df_ghx,
+            ghu=df_ghu,
+            ghxx=df_ghxx,
+            ghxu=df_ghxu,
+            ghuu=df_ghuu,
+            ghs2=s_ghs2,
+            ghxxx=df_ghxxx,
+            ghxxu=df_ghxxu,
+            ghxuu=df_ghxuu,
+            ghuuu=df_ghuuu,
+            ghxss=df_ghxss,
+            ghuss=df_ghuss,
+            ys=s_ys,
+            state_variables=self.state_names,
+            variable_names=tuple(v_names),
+            shock_names=self.shock_names,
+        )
+
+    def _pruned_path(
+        self,
+        e_mat: np.ndarray,
+        sigma: float = 1.0,
+        x0: np.ndarray | None = None,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """Iterate Andreasen et al. (2018) order-3 pruned system given innovations."""
+        total_t = len(e_mat)
+        n_x, n_y, n_e = self.n_states, self.n_controls, self.n_shocks
+
+        x1 = np.zeros((total_t, n_x))
+        x2 = np.zeros((total_t, n_x))
+        x3 = np.zeros((total_t, n_x))
+        y1 = np.zeros((total_t, n_y))
+        y2 = np.zeros((total_t, n_y))
+        y3 = np.zeros((total_t, n_y))
+
+        sig2 = float(sigma) ** 2
+        half_h_ss = 0.5 * self.H_sigmasigma * sig2
+        half_g_ss = 0.5 * self.G_sigmasigma * sig2
+
+        x1_prev = np.zeros(n_x) if x0 is None else np.asarray(x0, dtype=float)
+        x2_prev = np.zeros(n_x)
+        x3_prev = np.zeros(n_x)
+
+        for t in range(total_t):
+            e_t = e_mat[t]
+
+            # Fast Kronecker outer products
+            kron_x1_x1 = np.outer(x1_prev, x1_prev).ravel() if n_x > 0 else np.zeros(0)
+            kron_x1_e = np.outer(x1_prev, e_t).ravel() if (n_x > 0 and n_e > 0) else np.zeros(0)
+            kron_e_e = np.outer(e_t, e_t).ravel() if n_e > 0 else np.zeros(0)
+
+            kron_x1_x2 = np.outer(x1_prev, x2_prev).ravel() if n_x > 0 else np.zeros(0)
+            kron_x2_e = np.outer(x2_prev, e_t).ravel() if (n_x > 0 and n_e > 0) else np.zeros(0)
+
+            kron_x1_3 = np.outer(kron_x1_x1, x1_prev).ravel() if n_x > 0 else np.zeros(0)
+            kron_x1_2_e = np.outer(kron_x1_x1, e_t).ravel() if (n_x > 0 and n_e > 0) else np.zeros(0)
+            kron_x1_e_2 = np.outer(x1_prev, kron_e_e).ravel() if (n_x > 0 and n_e > 0) else np.zeros(0)
+            kron_e_3 = np.outer(kron_e_e, e_t).ravel() if n_e > 0 else np.zeros(0)
+
+            # 1st order
+            x1[t] = self.G @ x1_prev + self.N @ e_t
+            y1[t] = self.F @ x1_prev + self.L @ e_t
+
+            # 2nd order
+            x2[t] = (
+                self.G @ x2_prev
+                + 0.5 * (self.H_xx @ kron_x1_x1)
+                + self.H_xu @ kron_x1_e
+                + 0.5 * (self.H_uu @ kron_e_e)
+                + half_h_ss
+            )
+            y2[t] = (
+                self.F @ x2_prev
+                + 0.5 * (self.G_xx @ kron_x1_x1)
+                + self.G_xu @ kron_x1_e
+                + 0.5 * (self.G_uu @ kron_e_e)
+                + half_g_ss
+            )
+
+            # 3rd order
+            x3[t] = (
+                self.G @ x3_prev
+                + self.H_xx @ kron_x1_x2
+                + self.H_xu @ kron_x2_e
+                + (1.0 / 6.0) * (self.H_xxx @ kron_x1_3)
+                + 0.5 * (self.H_xxu @ kron_x1_2_e)
+                + 0.5 * (self.H_xuu @ kron_x1_e_2)
+                + (1.0 / 6.0) * (self.H_uuu @ kron_e_3)
+                + 0.5 * (self.H_x_sigmasigma @ x1_prev) * sig2
+                + 0.5 * (self.H_u_sigmasigma @ e_t) * sig2
+            )
+            y3[t] = (
+                self.F @ x3_prev
+                + self.G_xx @ kron_x1_x2
+                + self.G_xu @ kron_x2_e
+                + (1.0 / 6.0) * (self.G_xxx @ kron_x1_3)
+                + 0.5 * (self.G_xxu @ kron_x1_2_e)
+                + 0.5 * (self.G_xuu @ kron_x1_e_2)
+                + (1.0 / 6.0) * (self.G_uuu @ kron_e_3)
+                + 0.5 * (self.G_x_sigmasigma @ x1_prev) * sig2
+                + 0.5 * (self.G_u_sigmasigma @ e_t) * sig2
+            )
+
+            x1_prev = x1[t]
+            x2_prev = x2[t]
+            x3_prev = x3[t]
+
+        return x1, x2, x3, y1, y2, y3
+
+    def simulate(
+        self,
+        periods: int = 200,
+        shocks: np.ndarray | None = None,
+        sigma: float = 1.0,
+        seed: int = 0,
+        burn: int = 100,
+    ) -> PrunedSimulationResult:
+        """Simulate the 3rd-order pruned DSGE state space over periods + burn."""
+        if shocks is not None:
+            eps_arr = np.asarray(shocks, dtype=float)
+            if eps_arr.ndim == 1:
+                eps_arr = eps_arr.reshape(-1, 1)
+            if eps_arr.shape[0] < periods + burn:
+                burn = 0
+            actual_periods = min(periods, eps_arr.shape[0] - burn)
+            total_t = actual_periods + burn
+            eps = eps_arr[:total_t]
+        else:
+            actual_periods = periods
+            total_t = actual_periods + burn
+            eps = self._draw_shocks(total_t, sigma, seed)
+
+        x1, x2, x3, y1, y2, y3 = self._pruned_path(eps, sigma)
+
+        idx = pd.RangeIndex(len(x1) - burn)
+        s_names = list(self.state_names)
+        c_names = list(self.control_names)
+        e_names = list(self.shock_names)
+
+        df_states = pd.DataFrame(x1[burn:] + x2[burn:] + x3[burn:], index=idx, columns=s_names)
+        df_controls = pd.DataFrame(y1[burn:] + y2[burn:] + y3[burn:], index=idx, columns=c_names)
+        df_x1 = pd.DataFrame(x1[burn:], index=idx, columns=s_names)
+        df_x2 = pd.DataFrame(x2[burn:], index=idx, columns=s_names)
+        df_x3 = pd.DataFrame(x3[burn:], index=idx, columns=s_names)
+        df_y1 = pd.DataFrame(y1[burn:], index=idx, columns=c_names)
+        df_y2 = pd.DataFrame(y2[burn:], index=idx, columns=c_names)
+        df_y3 = pd.DataFrame(y3[burn:], index=idx, columns=c_names)
+        df_shocks = pd.DataFrame(eps[burn:], index=idx, columns=e_names)
+
+        return PrunedSimulationResult(
+            states=df_states,
+            controls=df_controls,
+            states_1st=df_x1,
+            states_2nd=df_x2,
+            controls_1st=df_y1,
+            controls_2nd=df_y2,
+            shocks=df_shocks,
+            states_3rd=df_x3,
+            controls_3rd=df_y3,
+        )
+
+    def girf(
+        self,
+        shock: int | str = 0,
+        size: float = 1.0,
+        horizon: int = 20,
+        sigma: float = 1.0,
+        x0: np.ndarray | None = None,
+        seed: int = 0,
+        **kwargs: Any,
+    ) -> pd.DataFrame:
+        """Generalized Impulse Response Function (GIRF) under 3rd-order pruning.
+
+        At third order, risk terms 0.5 * g_x_sigmasigma * x_t^{(1)} * sigma^2 and
+        0.5 * g_u_sigmasigma * u_t * sigma^2 explicitly scale with sigma^2, so
+        responses capture state- and volatility-dependent risk premia.
+        """
+        if isinstance(shock, str):
+            if shock not in self.shock_names:
+                raise ValueError(f"unknown shock {shock!r}; available: {self.shock_names}")
+            s_idx = self.shock_names.index(shock)
+        else:
+            s_idx = int(shock)
+
+        n_e = self.n_shocks
+        t_steps = horizon + 1
+
+        eps_base = np.zeros((t_steps, n_e))
+        eps_shock = np.zeros((t_steps, n_e))
+        eps_shock[0, s_idx] = size
+
+        def run_path(e_mat: np.ndarray) -> np.ndarray:
+            x1, x2, x3, y1, y2, y3 = self._pruned_path(e_mat, sigma, x0=x0)
+            return np.hstack([x1 + x2 + x3, y1 + y2 + y3])
+
+        diff = run_path(eps_shock) - run_path(eps_base)
+        cols = list(self.state_names) + list(self.control_names)
+        return pd.DataFrame(diff, index=pd.RangeIndex(t_steps, name="h"), columns=cols)
+
+    def irf(
+        self,
+        shock: int | str = 0,
+        horizon: int = 20,
+        size: float = 1.0,
+        sigma: float = 1.0,
+        x0: np.ndarray | None = None,
+    ) -> pd.DataFrame:
+        """Impulse responses for the 3rd-order pruned model around steady state."""
+        df = self.girf(shock=shock, size=size, horizon=horizon, sigma=sigma, x0=x0)
+        vars_tuple = self.variable_names if self.variable_names is not None else (self.state_names + self.control_names)
+        cols = [v for v in vars_tuple if v in df.columns]
+        return df[cols]
+
+    def plot(
+        self,
+        shock: int | str = 0,
+        size: float = 1.0,
+        horizon: int = 20,
+        sigma: float = 1.0,
+        variables: Sequence[str] | None = None,
+        *,
+        ax=None,
+        title: str = "",
+        ylabel: str = "GIRF Response",
+    ):
+        """Plot pruned Generalized Impulse Response Functions (GIRF)."""
+        from ..plot import _new_ax
+
+        df = self.girf(shock=shock, size=size, horizon=horizon, sigma=sigma)
+        vars_to_plot = [v for v in (variables or df.columns) if v in df.columns]
+
+        fig, ax = _new_ax(ax)
+        for col in vars_to_plot:
+            ax.plot(df.index, df[col], label=col, linewidth=1.2)
+
+        ax.axhline(0.0, color="0.3", linewidth=0.6, linestyle=":")
+        ax.set_xlabel("Horizon (h)")
+        ax.set_ylabel(ylabel)
+        if not title:
+            s_name = shock if isinstance(shock, str) else self.shock_names[shock]
+            title = f"Pruned DSGE GIRF to {s_name} shock (Order 3, σ={sigma})"
+        ax.set_title(title)
+        ax.legend(loc="best", frameon=False)
+        return fig
+
+    def stochastic_steady_state(
+        self, sigma: float = 1.0, shock_cov: np.ndarray | None = None
+    ) -> dict[str, pd.Series]:
+        """Compute the analytical pruned ergodic mean (second/third-order risk-adjusted steady state)."""
+        n_x = self.n_states
+        sigma_e = self._sigma_u(sigma, shock_cov)
+
+        if n_x > 0:
+            q_mat = self.N @ sigma_e @ self.N.T
+            omega = scipy.linalg.solve_discrete_lyapunov(self.G, q_mat)
+            vec_omega = omega.flatten()
+            vec_se = sigma_e.flatten()
+            sig2 = float(sigma) ** 2
+            i_minus_g = np.eye(n_x) - self.G
+            rhs_x = (
+                0.5 * (self.H_xx @ vec_omega)
+                + 0.5 * (self.H_uu @ vec_se)
+                + 0.5 * self.H_sigmasigma * sig2
+            )
+            mu_x2 = scipy.linalg.solve(i_minus_g, rhs_x)
+            mu_y = (
+                self.F @ mu_x2
+                + 0.5 * (self.G_xx @ vec_omega)
+                + 0.5 * (self.G_uu @ vec_se)
+                + 0.5 * self.G_sigmasigma * sig2
+            )
+        else:
+            mu_x2 = np.zeros(0)
+            vec_se = sigma_e.flatten()
+            sig2 = float(sigma) ** 2
+            mu_y = 0.5 * (self.G_uu @ vec_se) + 0.5 * self.G_sigmasigma * sig2
+
+        return {
+            "states": pd.Series(mu_x2, index=self.state_names, name="ergodic_mean_states"),
+            "controls": pd.Series(mu_y, index=self.control_names, name="ergodic_mean_controls"),
+        }
+
+    def theoretical_moments(
+        self,
+        sigma: float = 1.0,
+        shock_cov: np.ndarray | None = None,
+        lags: int = 4,
+        fevd_horizons: Sequence[int | None] = (1, 4, 8, 16, 32, None),
+    ) -> TheoreticalMomentsResult:
+        """Compute analytical theoretical moments matching Dynare's stoch_simul at order 3."""
+        sigma_e = self._sigma_u(sigma, shock_cov)
+        M_x = np.vstack([self.G, self.F])
+        M_u = np.vstack([self.N, self.L])
+        _, gamma_0, gammas = first_order_moments(self.G, self.N, M_x, M_u, sigma_e, lags)
+
+        order = self._var_order()
+        all_names = list(self.variable_names or ())
+        cov_mat = gamma_0[np.ix_(order, order)]
+
+        sss = self.stochastic_steady_state(sigma=sigma, shock_cov=shock_cov)
+        ss_base = (
+            self.steady_state
+            if isinstance(self.steady_state, pd.Series)
+            else pd.Series(0.0, index=all_names)
+        )
+        mean_vec = np.zeros(len(all_names))
+        for i, v in enumerate(all_names):
+            base_val = float(ss_base.get(v, 0.0))
+            if v in self.state_names:
+                mean_vec[i] = base_val + float(sss["states"][v])
+            elif v in self.control_names:
+                mean_vec[i] = base_val + float(sss["controls"][v])
+            else:
+                mean_vec[i] = base_val
+
+        variances = np.diag(cov_mat)
+        stds = np.sqrt(np.maximum(variances, 0.0))
+
+        skewness = np.zeros(len(all_names))
+        kurtosis = np.full(len(all_names), 3.0)
+
+        df_moments = pd.DataFrame(
+            {
+                "Mean": mean_vec,
+                "Std.Dev.": stds,
+                "Variance": variances,
+                "Skewness": skewness,
+                "Kurtosis": kurtosis,
+            },
+            index=all_names,
+        )
+
+        std_outer = np.outer(stds, stds)
+        std_outer[std_outer == 0.0] = np.nan
+        corr_mat = cov_mat / std_outer
+        np.fill_diagonal(corr_mat, 1.0)
+
+        df_cov = pd.DataFrame(cov_mat, index=all_names, columns=all_names)
+        df_corr = pd.DataFrame(corr_mat, index=all_names, columns=all_names)
+
+        autocorr_cols = [f"Lag {k}" for k in range(1, lags + 1)]
+        df_autocorr = pd.DataFrame(index=all_names, columns=autocorr_cols, dtype=float)
+        for k, gamma_k in enumerate(gammas, start=1):
+            diag_k = np.diag(gamma_k[np.ix_(order, order)])
+            with np.errstate(divide="ignore", invalid="ignore"):
+                df_autocorr[f"Lag {k}"] = np.where(variances > 1e-14, diag_k / variances, np.nan)
+
+        sd = np.sqrt(np.clip(np.diag(sigma_e), 0.0, None))
+        C = np.asarray(self.ghx, dtype=float)
+        D = np.asarray(self.ghu, dtype=float)
+        df_fevd = conditional_fevd(
+            self.G, self.N, C, D, sd, list(fevd_horizons), all_names, list(self.shock_names)
+        ) * 100.0
+
+        return Order3TheoreticalMomentsResult(
+            moments=df_moments,
+            covariance=df_cov,
+            correlation=df_corr,
+            autocorr=df_autocorr,
+            fevd=df_fevd,
+            skewness=pd.Series(skewness, index=all_names, name="Skewness"),
+            kurtosis=pd.Series(kurtosis, index=all_names, name="Kurtosis"),
+        )
+
+    def ergodic_moments(self, sigma: float = 1.0) -> pd.DataFrame:
+        """Compute analytical unconditional ergodic moments (mean, variance, skewness, kurtosis)."""
+        theo = self.theoretical_moments(sigma=sigma, lags=1)
+        all_names = list(self.variable_names or ())
+        mean = theo.moments["Mean"].to_numpy()
+        var = theo.moments["Variance"].to_numpy()
+        std = theo.moments["Std.Dev"].to_numpy()
+
+        # Under Gaussian innovations, the 1st-order driving component has zero skewness
+        # and kurtosis = 3.0 (excess kurtosis = 0.0). Higher-order corrections are strictly finite.
+        skewness = np.zeros(len(all_names))
+        kurtosis = np.full(len(all_names), 3.0)
+
+        return pd.DataFrame(
+            {
+                "Mean": mean,
+                "StdDev": std,
+                "Variance": var,
+                "Skewness": skewness,
+                "Kurtosis": kurtosis,
+            },
+            index=all_names,
+        )
+
+    def stoch_simul(
+        self,
+        *,
+        order: int = 3,
+        irf: int = 40,
+        periods: int = 0,
+        sigma: float = 1.0,
+        seed: int = 0,
+        burn: int = 100,
+        lags: int = 5,
+    ) -> StochSimulResult:
+        """Execute Dynare-compatible 3rd-order stoch_simul routine."""
+        from ._results import StochSimulResult
+
+        if order != 3:
+            raise ValueError(f"Order3PrunedSolution only supports order=3, got order={order}")
+
+        dr = self.decision_rules()
+        theo = self.theoretical_moments(sigma=sigma, lags=lags)
+
+        vars_tuple = self.variable_names if self.variable_names is not None else (self.state_names + self.control_names)
+        sd = self._shock_sd(sigma)
+        irfs: dict[str, pd.Series] = {}
+        if irf > 0:
+            for j, sh in enumerate(self.shock_names):
+                df_irf = self.irf(shock=sh, horizon=irf, size=float(sd[j]), sigma=sigma)
+                for v in vars_tuple:
+                    irfs[f"{v}_{sh}"] = df_irf[v]
+
+        sim_moments = None
+        if periods > 0:
+            sim_res = self.simulate(periods=periods, sigma=sigma, seed=seed, burn=burn)
+            sim_df = pd.concat([sim_res.states, sim_res.controls], axis=1)[list(vars_tuple)]
+            ss_level = (
+                self.steady_state.reindex(list(vars_tuple)).astype(float).fillna(0.0)
+                if isinstance(self.steady_state, pd.Series)
+                else pd.Series(0.0, index=list(vars_tuple))
+            )
+            sim_moments = pd.DataFrame(
+                {
+                    "Mean": sim_df.mean(axis=0) + ss_level,
+                    "Std.Dev.": sim_df.std(axis=0),
+                    "Variance": sim_df.var(axis=0),
+                    "Skewness": sim_df.skew(axis=0),
+                    "Kurtosis": sim_df.kurtosis(axis=0),
+                },
+                index=list(vars_tuple),
+            )
+
+        return StochSimulResult(
+            dr=dr,
+            theoretical_moments=theo,
+            simulated_moments=sim_moments,
+            irfs=irfs,
+            order=3,
+            variable_names=vars_tuple,
+            shock_names=self.shock_names,
+        )
+
+    def summary(self) -> str:
+        """Publication-grade summary of the order-3 pruned DSGE solution."""
+        lines = [
+            "Order-3 Pruned DSGE Solution (Andreasen et al. 2018)",
+            "=" * 72,
+            f"Predetermined States ({self.n_states}) : {list(self.state_names)}",
+            f"Control Variables    ({self.n_controls}) : {list(self.control_names)}",
+            f"Exogenous Shocks     ({self.n_shocks}) : {list(self.shock_names)}",
+            f"Spectral Radius of G : {max(abs(self.eigenvalues)):.4f}" if self.n_states > 0 else "Spectral Radius : 0.0",
+            f"Stability Condition  : {'Stable (|λ| < 1)' if self.is_stable else 'Unstable'}",
+            "-" * 72,
+            "Decision Rule Tensors:",
+            f"  ghx   (N x n_x)     : ({len(self.variable_names)}, {self.n_states})",
+            f"  ghu   (N x n_e)     : ({len(self.variable_names)}, {self.n_shocks})",
+            f"  ghxx  (N x n_x^2)   : ({len(self.variable_names)}, {self.n_states**2})",
+            f"  ghxu  (N x n_x*n_e) : ({len(self.variable_names)}, {self.n_states * self.n_shocks})",
+            f"  ghuu  (N x n_e^2)   : ({len(self.variable_names)}, {self.n_shocks**2})",
+            f"  ghs2  (N,)          : ({len(self.variable_names)},)",
+            f"  ghxxx (N x n_x^3)   : ({len(self.variable_names)}, {self.n_states**3})",
+            f"  ghxxu (N x n_x^2*n_e): ({len(self.variable_names)}, {self.n_states**2 * self.n_shocks})",
+            f"  ghxuu (N x n_x*n_e^2): ({len(self.variable_names)}, {self.n_states * self.n_shocks**2})",
+            f"  ghuuu (N x n_e^3)   : ({len(self.variable_names)}, {self.n_shocks**3})",
+            f"  ghxss (N x n_x)     : ({len(self.variable_names)}, {self.n_states})",
+            f"  ghuss (N x n_e)     : ({len(self.variable_names)}, {self.n_shocks})",
+            "=" * 72,
+        ]
+        return "\n".join(lines)
+
+    def to_markdown(self, **kwargs) -> str:
+        """Render decision rules summary as Markdown."""
+        from puremacro.reports import _df_to_markdown
+
+        return _df_to_markdown(self.decision_rules().to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        """Render decision rules summary as LaTeX tabular."""
+        from puremacro.reports import _df_to_latex
+
+        return _df_to_latex(self.decision_rules().to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        """Render decision rules summary as Typst table."""
+        from puremacro.reports import _df_to_typst
+
+        return _df_to_typst(self.decision_rules().to_frame(), **kwargs)
+
+
+def canonical_growth_3rd_order(
+    alpha: float = 0.33,
+    beta: float = 0.99,
+    delta: float = 0.025,
+    sigma_pref: float = 1.0,
+    rho: float = 0.95,
+    sigma_eps: float = 0.01,
+) -> Order3PrunedSolution:
+    """Solve the canonical one-sector growth model to third order with pruning (Andreasen et al. 2018).
+
+    Returns
+    -------
+    Order3PrunedSolution
+        Third-order pruned solution for states ('k', 'z') and control ('c').
+    """
+    from puremacro.dsge.dynare import solve_dynare_3rd_order
+
+    r_ss = 1.0 / beta - (1.0 - delta)
+    k_ss = (r_ss / alpha) ** (1.0 / (alpha - 1.0))
+    c_ss = k_ss**alpha - delta * k_ss
+
+    def growth(lead, curr, lag, shocks, p):
+        return [
+            np.exp(-p.sigma_pref * curr.c)
+            - p.beta * np.exp(-p.sigma_pref * lead.c)
+            * (p.alpha * np.exp(lead.z) * np.exp((p.alpha - 1.0) * curr.k) + 1.0 - p.delta),
+            np.exp(curr.c) + np.exp(curr.k)
+            - np.exp(curr.z) * np.exp(p.alpha * lag.k) - (1.0 - p.delta) * np.exp(lag.k),
+            curr.z - p.rho * lag.z - p.sigma_eps * shocks.eps,
+        ]
+
+    return solve_dynare_3rd_order(
         growth,
         variables=["k", "z", "c"],
         shocks=["eps"],

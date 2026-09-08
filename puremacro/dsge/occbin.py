@@ -201,6 +201,18 @@ class OccBinResult:
     constrained_model: Any
     constraint: OccBinConstraint | None = None
     shadow_path: pd.DataFrame | None = None
+    constrained_models: dict[str, Any] | None = None
+    constraints: dict[str, OccBinConstraint] | None = None
+
+    @property
+    def path(self) -> pd.DataFrame:
+        """Alias for simulated_path matching puremacro convention."""
+        return self.simulated_path
+
+    @property
+    def regime_history(self) -> np.ndarray:
+        """Array representation of regime sequence."""
+        return np.asarray(self.regimes)
 
     def to_frame(self) -> pd.DataFrame:
         """Return simulated path as a DataFrame."""
@@ -218,7 +230,12 @@ class OccBinResult:
         """Render a formatted summary of the OccBin simulation."""
         status = "Converged" if self.converged else "Did NOT converge"
         horizon = len(self.simulated_path)
-        c_desc = repr(self.constraint) if self.constraint else "Unspecified"
+        if self.constraints:
+            c_desc = ", ".join(repr(c) for c in self.constraints.values())
+        elif self.constraint:
+            c_desc = repr(self.constraint)
+        else:
+            c_desc = "Unspecified"
 
         lines = [
             "OCCASIONALLY BINDING CONSTRAINTS REPORT (OccBin - Guerrieri & Iacoviello 2015)",
@@ -317,7 +334,7 @@ class OccBinResult:
             ax.plot(time_grid, self.simulated_path[var], label=var, color=c, linestyle=ls, linewidth=1.5)
 
             # Highlight binding regime periods
-            binding_mask = np.array(self.regimes[:horizon]) == 1
+            binding_mask = np.array(self.regimes[:horizon]) > 0
             if np.any(binding_mask):
                 diff = np.diff(np.pad(binding_mask.astype(int), (1, 1), "constant"))
                 starts = np.where(diff == 1)[0] + 1
@@ -334,6 +351,16 @@ class OccBinResult:
                     linewidth=1.0,
                     label=f"Threshold ({self.constraint.threshold:.3g})",
                 )
+            elif self.constraints is not None:
+                for c_name, c_obj in self.constraints.items():
+                    if var == c_obj.variable:
+                        ax.axhline(
+                            c_obj.threshold,
+                            color="0.4",
+                            linestyle="--",
+                            linewidth=1.0,
+                            label=f"Threshold ({c_obj.threshold:.3g})",
+                        )
 
             ax.axhline(0, color="0.6", linestyle=":", linewidth=0.6)
             ax.set_title(var)
@@ -346,6 +373,194 @@ class OccBinResult:
 
         fig.tight_layout()
         return fig
+
+
+@dataclass(frozen=True)
+class PiecewiseKalmanResult:
+    """Result of Piecewise Kalman Filter likelihood evaluation and state filtering.
+
+    Attributes
+    ----------
+    log_likelihood : float
+        Total log-likelihood ln L(Y | theta).
+    filtered_states : pd.DataFrame, shape (T_obs, n_states)
+        Filtered state estimates x_{t|t}.
+    regime_history : pd.Series | pd.DataFrame
+        Realized regime sequence r_t in {0, ..., 2^K - 1}.
+    filtered_covariances : list[np.ndarray]
+        Filtered state error covariances P_{t|t}.
+    imputed_shocks : pd.DataFrame
+        Imputed contemporaneous innovations u_{t|t}.
+    forecast_errors : pd.DataFrame
+        One-step prediction errors v_t.
+    converged : bool
+        Whether regime consistency succeeded at all observation dates.
+    iterations : int
+        Average/total regime consistency iterations.
+    reference_model : Any, optional
+        Reference DSGE model.
+    constraints : dict[str, OccBinConstraint] | None, optional
+        OccBin constraints applied during filtering.
+    """
+
+    log_likelihood: float
+    filtered_states: pd.DataFrame
+    regime_history: pd.Series | pd.DataFrame
+    filtered_covariances: list[np.ndarray]
+    imputed_shocks: pd.DataFrame
+    forecast_errors: pd.DataFrame
+    converged: bool = True
+    iterations: int = 1
+    reference_model: Any = None
+    constraints: dict[str, OccBinConstraint] | None = None
+
+    @property
+    def regimes(self) -> list[int]:
+        """List of integer regime indices matching sample length."""
+        if isinstance(self.regime_history, pd.Series):
+            return [int(x) for x in self.regime_history.tolist()]
+        elif isinstance(self.regime_history, pd.DataFrame):
+            return [int(x) for x in self.regime_history.iloc[:, 0].tolist()]
+        return [int(x) for x in np.asarray(self.regime_history).ravel()]
+
+    def __iter__(self):
+        """Enable tuple unpacking: ll, filtered_states, regimes = pkf(...)"""
+        yield self.log_likelihood
+        yield self.filtered_states
+        yield self.regime_history
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return filtered states as a DataFrame."""
+        return self.filtered_states.copy()
+
+    def summary(self, as_dataframe: bool = False) -> str | pd.DataFrame:
+        """Render a publication-quality report of the Piecewise Kalman Filter results."""
+        t_obs = len(self.filtered_states)
+        reg_arr = np.asarray(self.regimes)
+        n_binding = int(np.sum(reg_arr > 0))
+        binding_pct = 100.0 * n_binding / max(1, t_obs)
+
+        if as_dataframe:
+            return pd.DataFrame(
+                {
+                    "Log-Likelihood": [self.log_likelihood],
+                    "Observations": [t_obs],
+                    "Binding Periods": [n_binding],
+                    "Binding Pct (%)": [binding_pct],
+                    "Converged": [self.converged],
+                }
+            )
+
+        lines = [
+            "PIECEWISE KALMAN FILTER REPORT (Giovannini, Pfeiffer & Ratto 2021)",
+            "=" * 78,
+            f"Log-likelihood     : {self.log_likelihood:.6f}",
+            f"Observations       : {t_obs}",
+            f"Constraint regimes : {n_binding} period(s) binding ({binding_pct:.1f}%)",
+            f"Regime convergence : {'Verified' if self.converged else 'Failed'}",
+            f"Recent regimes     : {self.regimes[-min(t_obs, 20):]}",
+            "-" * 78,
+            "FILTERED STATE SUMMARY STATISTICS",
+            "-" * 78,
+        ]
+        stats_df = pd.DataFrame(
+            {
+                "Initial (t=1)": self.filtered_states.iloc[0],
+                "Min": self.filtered_states.min(),
+                "Max": self.filtered_states.max(),
+                "Mean": self.filtered_states.mean(),
+                "Final (t=T)": self.filtered_states.iloc[-1],
+            }
+        )
+        lines.append(stats_df.round(6).to_string())
+        lines.append("=" * 78)
+        return "\n".join(lines)
+
+    def plot(self, variables: Sequence[str] | None = None, style: str = "publication", ax=None):
+        """Plot filtered state trajectories with shaded constrained regimes."""
+        import matplotlib.pyplot as plt
+
+        if variables is None:
+            variables = list(self.filtered_states.columns)
+        else:
+            variables = [v for v in variables if v in self.filtered_states.columns]
+
+        n_vars = len(variables)
+        n_cols = min(2, n_vars)
+        n_rows = (n_vars + n_cols - 1) // n_cols
+
+        if style == "publication":
+            from puremacro.plotting.bw_style import apply_bw_style, bw_colors, bw_linestyles
+
+            apply_bw_style()
+            colors: list[str | None] = list(bw_colors(n_vars))
+            styles: list[str] = list(bw_linestyles(n_vars))
+        else:
+            colors = [None] * n_vars
+            styles = ["-"] * n_vars
+
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(5.5 * n_cols, 3.2 * n_rows), squeeze=False)
+        axes_flat = axes.flatten()
+
+        t_total = len(self.filtered_states)
+        time_grid = np.arange(1, t_total + 1)
+        reg_arr = np.asarray(self.regimes)
+
+        for i, var in enumerate(variables):
+            a = axes_flat[i]
+            c = colors[i] if colors[i] is not None else "black"
+            ls = styles[i] if styles[i] is not None else "-"
+            a.plot(time_grid, self.filtered_states[var], label=var, color=c, linestyle=ls, linewidth=1.5)
+
+            # Highlight binding regime periods
+            binding_mask = reg_arr > 0
+            if np.any(binding_mask):
+                diff = np.diff(np.pad(binding_mask.astype(int), (1, 1), "constant"))
+                starts = np.where(diff == 1)[0] + 1
+                ends = np.where(diff == -1)[0]
+                for s, e in zip(starts, ends):
+                    a.axvspan(s - 0.5, e + 0.5, color="0.85", alpha=0.3, label="Constrained" if i == 0 else None)
+
+            if self.constraints:
+                for c_name, c_obj in self.constraints.items():
+                    if var == c_obj.variable:
+                        a.axhline(
+                            c_obj.threshold,
+                            color="0.4",
+                            linestyle="--",
+                            linewidth=1.0,
+                            label=f"Threshold ({c_obj.threshold:.3g})",
+                        )
+
+            a.axhline(0, color="0.6", linestyle=":", linewidth=0.6)
+            a.set_title(var)
+            a.set_xlabel("Period")
+            a.legend(loc="best", frameon=False, fontsize=8)
+
+        for j in range(n_vars, len(axes_flat)):
+            axes_flat[j].set_visible(False)
+
+        fig.tight_layout()
+        return fig
+
+    def to_markdown(self, **kwargs) -> str:
+        """Export filtered states to Markdown table."""
+        from puremacro.reports import _df_to_markdown
+
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        """Export filtered states to LaTeX tabular."""
+        from puremacro.reports import _df_to_latex
+
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        """Export filtered states to Typst table."""
+        from puremacro.reports import _df_to_typst
+
+        return _df_to_typst(self.to_frame(), **kwargs)
+
 
 
 # ---------------------------------------------------------------------------
@@ -928,8 +1143,731 @@ def solve_occbin(
     )
 
 
+# ---------------------------------------------------------------------------
+# Multi-Constraint OccBin & Piecewise Kalman Filter
+# ---------------------------------------------------------------------------
+
+
+def _auto_detect_constraint(
+    ref_model: Any,
+    cons_model: Any,
+    default_name: str = "constraint",
+    user_constraint: OccBinConstraint | None = None,
+) -> tuple[OccBinConstraint, int, tuple]:
+    """Identify switching equation row and constraint definition for a constrained model."""
+    A_p_0, A_0_0, A_m_0, B_u_0, c_0, ss_0, variables, shocks = _extract_model_matrices(ref_model)
+    A_p_1, A_0_1, A_m_1, B_u_1, c_1, ss_1, _, _ = _extract_model_matrices(
+        cons_model, ref_model=ref_model
+    )
+
+    diff_rows = np.where(
+        (np.linalg.norm(A_0_0 - A_0_1, axis=1) > 1e-8)
+        | (np.linalg.norm(A_p_0 - A_p_1, axis=1) > 1e-8)
+        | (np.linalg.norm(A_m_0 - A_m_1, axis=1) > 1e-8)
+        | (np.linalg.norm(B_u_0 - B_u_1, axis=1) > 1e-8)
+        | (np.abs(c_0 - c_1) > 1e-8)
+    )[0]
+
+    if len(diff_rows) == 0:
+        raise ValueError(
+            f"No differing equations found between reference model and constrained model '{default_name}'."
+        )
+
+    if user_constraint is not None:
+        if user_constraint.variable not in variables:
+            raise ValueError(f"Constraint variable '{user_constraint.variable}' not in model variables: {variables}")
+        idx_var = variables.index(user_constraint.variable)
+        has_var = np.abs(A_0_0[:, idx_var]) > 1e-12
+        switching = [int(r) for r in diff_rows if has_var[r]]
+        eq_row = switching[0] if switching else int(diff_rows[0])
+        return user_constraint, eq_row, (A_p_1, A_0_1, A_m_1, B_u_1, c_1)
+
+    # Auto-detect: find which variable is pegged or determined by the differing row
+    eq_row = int(diff_rows[0])
+    row_abs = np.abs(A_0_1[eq_row, :])
+    if np.max(row_abs) > 1e-12:
+        idx_var = int(np.argmax(row_abs))
+        var_name = variables[idx_var]
+        coeff = A_0_1[eq_row, idx_var]
+        const_val = c_1[eq_row]
+        thresh = -float(const_val) / float(coeff) if abs(coeff) > 1e-12 else 0.0
+    else:
+        row_abs_ref = np.abs(A_0_0[eq_row, :])
+        idx_var = int(np.argmax(row_abs_ref))
+        var_name = variables[idx_var]
+        thresh = 0.0
+
+    name_lower = default_name.lower()
+    if "zlb" in name_lower or "floor" in name_lower or thresh < 0:
+        op = "<"
+    elif "borrow" in name_lower or "cap" in name_lower or "collateral" in name_lower or thresh > 0:
+        op = ">"
+    else:
+        op = "<"
+
+    constraint = OccBinConstraint(variable=var_name, threshold=thresh, operator=op)
+    return constraint, eq_row, (A_p_1, A_0_1, A_m_1, B_u_1, c_1)
+
+
+def _build_multi_regime_matrices(
+    ref_matrices: tuple,
+    constraint_info: list[tuple[OccBinConstraint, int, tuple]],
+) -> dict[int, tuple]:
+    """Construct (A_p, A_0, A_m, B_u, c) for all 2^K regimes."""
+    A_p_0, A_0_0, A_m_0, B_u_0, c_0 = ref_matrices[:5]
+    K = len(constraint_info)
+    n_regimes = 2 ** K
+
+    eq_rows = [info[1] for info in constraint_info]
+    if len(eq_rows) != len(set(eq_rows)):
+        raise ValueError(
+            f"Incompatible constraint regimes: multiple constraints modify the same equation row ({eq_rows})."
+        )
+
+    regime_matrices = {}
+    for r in range(n_regimes):
+        Ap_r = A_p_0.copy()
+        A0_r = A_0_0.copy()
+        Am_r = A_m_0.copy()
+        Bu_r = B_u_0.copy()
+        c_r = c_0.copy()
+
+        for k in range(K):
+            if (r >> k) & 1:
+                _, eq, (Ap_k, A0_k, Am_k, Bu_k, c_k) = constraint_info[k]
+                Ap_r[eq, :] = Ap_k[eq, :]
+                A0_r[eq, :] = A0_k[eq, :]
+                Am_r[eq, :] = Am_k[eq, :]
+                Bu_r[eq, :] = Bu_k[eq, :]
+                c_r[eq] = c_k[eq]
+
+        regime_matrices[r] = (Ap_r, A0_r, Am_r, Bu_r, c_r)
+
+    return regime_matrices
+
+
+def solve_multiconstraint_occbin(
+    m_unconstrained: Any,
+    m_constrained_dict: Mapping[str, Any] | Sequence[Any],
+    shock_seq: np.ndarray,
+    constraints: Mapping[str, OccBinConstraint] | Sequence[OccBinConstraint] | None = None,
+    horizon: int = 40,
+    max_iter: int = 50,
+) -> OccBinResult:
+    """Solve multi-constraint OccBin across 2^K regimes (up to 4 regimes for K<=2).
+
+    Parameters
+    ----------
+    m_unconstrained : LinearModel
+        The unconstrained reference model.
+    m_constrained_dict : Mapping[str, LinearModel | Callable] or Sequence
+        Dictionary mapping constraint identifiers to their constrained regime models.
+    shock_seq : np.ndarray
+        Anticipated structural shock sequence of shape (n_shocks,) or (horizon, n_shocks).
+    constraints : Mapping[str, OccBinConstraint] or Sequence, optional
+        Definitions of the occasionally binding constraints. If None, automatically deduced.
+    horizon : int, default 40
+        Simulation horizon.
+    max_iter : int, default 50
+        Maximum fixed-point regime iterations.
+
+    Returns
+    -------
+    OccBinResult
+        Container holding multi-regime simulation trajectory and diagnostics.
+    """
+    if not isinstance(horizon, (int, np.integer)) or int(horizon) < 1:
+        raise ValueError(f"solve_multiconstraint_occbin: horizon must be an integer >= 1, got {horizon!r}")
+    if not isinstance(max_iter, (int, np.integer)) or int(max_iter) < 1:
+        raise ValueError(f"solve_multiconstraint_occbin: max_iter must be an integer >= 1, got {max_iter!r}")
+    horizon = int(horizon)
+    max_iter = int(max_iter)
+
+    ref_matrices = _extract_model_matrices(m_unconstrained)
+    A_p_0, A_0_0, A_m_0, B_u_0, c_0, ss_0, variables, shocks = ref_matrices
+    n_vars = len(variables)
+    n_shocks = len(shocks)
+
+    # Standardize m_constrained_dict
+    if isinstance(m_constrained_dict, Mapping):
+        model_items = list(m_constrained_dict.items())
+    elif isinstance(m_constrained_dict, (list, tuple)):
+        model_items = [(f"constraint_{i}", m) for i, m in enumerate(m_constrained_dict)]
+    else:
+        model_items = [("constraint_0", m_constrained_dict)]
+
+    K = len(model_items)
+    if K == 0:
+        raise ValueError("solve_multiconstraint_occbin requires at least one constrained model.")
+
+    # Standardize constraints parameter
+    user_constraints_dict: dict[str, OccBinConstraint] = {}
+    if constraints is not None:
+        if isinstance(constraints, Mapping):
+            user_constraints_dict = dict(constraints)
+        elif isinstance(constraints, (list, tuple)):
+            for i, c in enumerate(constraints):
+                key = model_items[i][0] if i < len(model_items) else f"constraint_{i}"
+                user_constraints_dict[key] = c
+        elif isinstance(constraints, OccBinConstraint):
+            user_constraints_dict[model_items[0][0]] = constraints
+
+    # Build constraint info for each constraint
+    constraint_info = []
+    final_constraints: dict[str, OccBinConstraint] = {}
+    for name, c_model in model_items:
+        u_c = user_constraints_dict.get(name, None)
+        c_obj, eq_row, cons_mats = _auto_detect_constraint(
+            m_unconstrained, c_model, default_name=name, user_constraint=u_c
+        )
+        constraint_info.append((c_obj, eq_row, cons_mats))
+        final_constraints[name] = c_obj
+
+    # Check for incompatible constraint regimes
+    eq_rows = [info[1] for info in constraint_info]
+    if len(eq_rows) != len(set(eq_rows)):
+        raise ValueError(
+            f"Incompatible constraint regimes: multiple constraints replace the exact same equation row ({eq_rows})."
+        )
+
+    regime_matrices = _build_multi_regime_matrices(ref_matrices, constraint_info)
+
+    # Standardize shock sequence
+    sh_arr = np.asarray(shock_seq, dtype=float)
+    if sh_arr.ndim == 1:
+        if len(sh_arr) != n_shocks:
+            raise ValueError(f"1D shock sequence has length {len(sh_arr)}, expected {n_shocks}: {shocks}")
+        shocks_mat = np.zeros((horizon, n_shocks))
+        shocks_mat[0, :] = sh_arr
+    elif sh_arr.ndim == 2:
+        n_rows, n_cols = sh_arr.shape
+        if n_cols != n_shocks:
+            raise ValueError(f"shock sequence columns {n_cols} != model shocks {n_shocks}")
+        shocks_mat = np.zeros((horizon, n_shocks))
+        shocks_mat[: min(n_rows, horizon), :] = sh_arr[: min(n_rows, horizon), :]
+    else:
+        raise ValueError("shock_seq must be 1D or 2D array")
+
+    # Reference decision rule
+    dr = m_unconstrained.decision_rules()
+    P_0 = np.zeros((n_vars, n_vars))
+    for s in m_unconstrained.states:
+        idx_s = variables.index(s)
+        P_0[:, idx_s] = dr.ghx[s].values
+
+    # Pre-extract variable indices and relax parameters
+    c_indices = []
+    for k in range(K):
+        c_obj, eq_row, _ = constraint_info[k]
+        idx_var = variables.index(c_obj.variable)
+        relax_idx = variables.index(c_obj.relax_variable) if c_obj.relax_variable else None
+        c_indices.append((c_obj, eq_row, idx_var, relax_idx))
+
+    # Check if shocks are zero: degenerate case
+    if np.all(np.abs(shocks_mat) < 1e-14):
+        zero_path = np.zeros((horizon, n_vars))
+        period_index = pd.RangeIndex(1, horizon + 1, name="t")
+        sim_df = pd.DataFrame(zero_path, columns=variables, index=period_index)
+        return OccBinResult(
+            simulated_path=sim_df,
+            regimes=[0] * horizon,
+            binding_periods=0,
+            converged=True,
+            iterations=1,
+            reference_model=m_unconstrained,
+            constrained_model=model_items[0][1],
+            constrained_models=dict(model_items),
+            constraint=constraint_info[0][0],
+            constraints=final_constraints,
+            shadow_path=sim_df.copy(),
+        )
+
+    # Backward recursion engine
+    def compute_decision_rules(regime_seq: np.ndarray):
+        P_seq = [None] * (horizon + 1)
+        D_seq = [None] * (horizon + 1)
+        P_next = P_0
+        D_next = np.zeros(n_vars)
+        for t in range(horizon, 0, -1):
+            r_t = int(regime_seq[t - 1])
+            Ap, A0, Am, Bu, c = regime_matrices[r_t]
+            M_t = A0 + Ap @ P_next
+            P_t = _safe_solve(M_t, -Am)
+            D_t = _safe_solve(M_t, -(Ap @ D_next + c + Bu @ shocks_mat[t - 1]))
+            P_seq[t] = P_t
+            D_seq[t] = D_t
+            P_next, D_next = P_t, D_t
+        return P_seq, D_seq
+
+    # Forward simulation and shadow calculation
+    def simulate_path(regime_seq: np.ndarray):
+        P_seq, D_seq = compute_decision_rules(regime_seq)
+        X = np.zeros((horizon + 1, n_vars))
+        for t in range(1, horizon + 1):
+            X[t] = P_seq[t] @ X[t - 1] + D_seq[t]
+        sim_X = X[1:]
+
+        shadow_vals = np.zeros((K, horizon))
+        for k in range(K):
+            c_obj, eq_row, idx_var, relax_idx = c_indices[k]
+            a_var = float(A_0_0[eq_row, idx_var])
+            if abs(a_var) > 1e-12:
+                row_others = A_0_0[eq_row].copy()
+                row_others[idx_var] = 0.0
+                for t in range(horizon):
+                    x_prev = X[t]
+                    x_curr = sim_X[t]
+                    x_next = sim_X[t + 1] if t + 1 < horizon else P_0 @ x_curr
+                    u_t = shocks_mat[t]
+                    term_other = row_others @ x_curr
+                    term_next = A_p_0[eq_row, :] @ x_next
+                    term_prev = A_m_0[eq_row, :] @ x_prev
+                    term_shock = B_u_0[eq_row, :] @ u_t
+                    shadow_vals[k, t] = -(term_other + term_next + term_prev + term_shock + c_0[eq_row]) / a_var
+            else:
+                shadow_vals[k, :] = sim_X[:, idx_var]
+
+        return sim_X, shadow_vals
+
+    def next_regime(regime_seq: np.ndarray, sim_X: np.ndarray, shadow_vals: np.ndarray):
+        upd = np.zeros(horizon, dtype=int)
+        for t in range(horizon):
+            r_t = int(regime_seq[t])
+            r_new = 0
+            for k in range(K):
+                c_obj, eq_row, idx_var, relax_idx = c_indices[k]
+                bit_k = (r_t >> k) & 1
+                if bit_k == 1:
+                    val = sim_X[t, relax_idx] if relax_idx is not None else shadow_vals[k, t]
+                    binds = not bool(c_obj.evaluate_relax(val))
+                else:
+                    val = sim_X[t, idx_var]
+                    binds = bool(c_obj.evaluate(val))
+                if binds:
+                    r_new |= (1 << k)
+            upd[t] = r_new
+        return upd
+
+    # Fixed-point iteration with damping
+    regime = np.zeros(horizon, dtype=int)
+    history: set[tuple[int, ...]] = {tuple(regime.tolist())}
+    fixed_point = False
+    iteration = 0
+
+    for iteration in range(1, max_iter + 1):
+        sim_X, shadow_vals = simulate_path(regime)
+        upd = next_regime(regime, sim_X, shadow_vals)
+
+        if np.array_equal(upd, regime):
+            fixed_point = True
+            break
+
+        key = tuple(upd.tolist())
+        if key in history:
+            # Oscillatory chattering detected: apply damping
+            diff_t = np.where(upd != regime)[0]
+            if len(diff_t) > 0:
+                damped = regime.copy()
+                damped[diff_t[0]] = upd[diff_t[0]]
+                damped_key = tuple(damped.tolist())
+                if damped_key not in history:
+                    history.add(damped_key)
+                    regime = damped
+                    continue
+            break
+
+        history.add(key)
+        regime = upd
+    else:
+        sim_X, shadow_vals = simulate_path(regime)
+
+    converged = fixed_point
+    period_index = pd.RangeIndex(1, horizon + 1, name="t")
+    sim_df = pd.DataFrame(sim_X, columns=variables, index=period_index)
+    shadow_df = sim_df.copy()
+    for k in range(K):
+        c_obj = constraint_info[k][0]
+        shadow_df[f"{c_obj.variable}_shadow"] = shadow_vals[k]
+
+    regimes_list = [int(v) for v in regime]
+    binding_periods = int(np.sum(np.asarray(regimes_list) > 0))
+
+    return OccBinResult(
+        simulated_path=sim_df,
+        regimes=regimes_list,
+        binding_periods=binding_periods,
+        converged=converged,
+        iterations=iteration,
+        reference_model=m_unconstrained,
+        constrained_model=model_items[0][1],
+        constrained_models=dict(model_items),
+        constraint=constraint_info[0][0],
+        constraints=final_constraints,
+        shadow_path=shadow_df,
+    )
+
+
+def piecewise_kalman_filter(
+    m_unconstrained: Any,
+    m_constrained_dict: Mapping[str, Any] | Sequence[Any],
+    data: pd.DataFrame | np.ndarray,
+    varobs: Sequence[str] | None = None,
+    constraints: Mapping[str, OccBinConstraint] | Sequence[OccBinConstraint] | None = None,
+    horizon: int = 30,
+    max_regime_iter: int = 20,
+    H: np.ndarray | None = None,
+    Q: np.ndarray | None = None,
+) -> PiecewiseKalmanResult:
+    """Piecewise Kalman Filter (Giovannini, Pfeiffer & Ratto 2021).
+
+    Combines OccBin backward recursions with forward Kalman updates to evaluate
+    exact Gaussian log-likelihoods in models with occasionally binding constraints.
+
+    Parameters
+    ----------
+    m_unconstrained : LinearModel
+        The unconstrained reference model.
+    m_constrained_dict : Mapping[str, LinearModel | Callable] or Sequence
+        Dictionary or sequence of constrained regime models.
+    data : pd.DataFrame or np.ndarray
+        Observed macroeconomic time series.
+    varobs : Sequence[str], optional
+        List of observable variable names. If None, inferred from DataFrame columns.
+    constraints : Mapping[str, OccBinConstraint] or Sequence, optional
+        Constraint definitions. If None, auto-detected from model equations.
+    horizon : int, default 30
+        Regime anticipation horizon H.
+    max_regime_iter : int, default 20
+        Maximum iterations for regime consistency at each observation date.
+    H : np.ndarray, optional
+        Measurement error covariance matrix (n_obs, n_obs).
+    Q : np.ndarray, optional
+        Structural innovation covariance matrix (n_shocks, n_shocks).
+
+    Returns
+    -------
+    PiecewiseKalmanResult
+        Object containing log-likelihood, filtered states, regime history,
+        imputed innovations, and presentation methods. Can be unpacked directly
+        as (log_likelihood, filtered_states, regime_history).
+    """
+    ref_matrices = _extract_model_matrices(m_unconstrained)
+    A_p_0, A_0_0, A_m_0, B_u_0, c_0, ss_0, variables, shocks = ref_matrices
+    n_vars = len(variables)
+    n_shocks = len(shocks)
+
+    # Standardize data and varobs
+    if isinstance(data, pd.DataFrame):
+        data_df = data
+        t_index = data.index
+        if varobs is None:
+            varobs = list(data.columns)
+    else:
+        data_mat = np.asarray(data, dtype=float)
+        if varobs is None:
+            varobs = [variables[i] for i in range(min(data_mat.shape[1], n_vars))]
+        t_index = pd.RangeIndex(len(data_mat), name="t")
+        data_df = pd.DataFrame(data_mat, columns=varobs, index=t_index)
+
+    obs_vars = list(varobs)
+    n_obs = len(obs_vars)
+    T_obs = len(data_df)
+
+    # Observation selection matrix Z: shape (n_obs, n_vars)
+    Z = np.zeros((n_obs, n_vars))
+    for i, v in enumerate(obs_vars):
+        if v not in variables:
+            raise ValueError(f"Observable variable '{v}' not in model variables: {variables}")
+        Z[i, variables.index(v)] = 1.0
+
+    # Covariance matrices
+    if H is None:
+        H_mat = np.zeros((n_obs, n_obs))
+    else:
+        H_mat = np.asarray(H, dtype=float)
+
+    if Q is None:
+        Q_mat = np.eye(n_shocks)
+    else:
+        Q_mat = np.asarray(Q, dtype=float)
+
+    # Standardize models and constraints
+    if isinstance(m_constrained_dict, Mapping):
+        model_items = list(m_constrained_dict.items())
+    elif isinstance(m_constrained_dict, (list, tuple)):
+        model_items = [(f"c_{i}", m) for i, m in enumerate(m_constrained_dict)]
+    else:
+        model_items = [("c_0", m_constrained_dict)]
+
+    K = len(model_items)
+    user_constraints_dict: dict[str, OccBinConstraint] = {}
+    if constraints is not None:
+        if isinstance(constraints, Mapping):
+            user_constraints_dict = dict(constraints)
+        elif isinstance(constraints, (list, tuple)):
+            for i, c in enumerate(constraints):
+                key = model_items[i][0] if i < len(model_items) else f"c_{i}"
+                user_constraints_dict[key] = c
+        elif isinstance(constraints, OccBinConstraint):
+            user_constraints_dict[model_items[0][0]] = constraints
+
+    constraint_info = []
+    final_constraints: dict[str, OccBinConstraint] = {}
+    for name, c_model in model_items:
+        u_c = user_constraints_dict.get(name, None)
+        c_obj, eq_row, cons_mats = _auto_detect_constraint(
+            m_unconstrained, c_model, default_name=name, user_constraint=u_c
+        )
+        constraint_info.append((c_obj, eq_row, cons_mats))
+        final_constraints[name] = c_obj
+
+    # Check for incompatible constraint regimes
+    eq_rows = [info[1] for info in constraint_info]
+    if len(eq_rows) != len(set(eq_rows)):
+        raise ValueError(
+            f"Incompatible constraint regimes: multiple constraints modify the same equation row ({eq_rows})."
+        )
+
+    regime_matrices = _build_multi_regime_matrices(ref_matrices, constraint_info)
+
+    # Reference decision rule
+    dr = m_unconstrained.decision_rules()
+    P_0 = np.zeros((n_vars, n_vars))
+    for s in m_unconstrained.states:
+        P_0[:, variables.index(s)] = dr.ghx[s].values
+
+    # Pre-extract variable indices and relax parameters
+    c_indices = []
+    for k in range(K):
+        c_obj, eq_row, _ = constraint_info[k]
+        idx_var = variables.index(c_obj.variable)
+        relax_idx = variables.index(c_obj.relax_variable) if c_obj.relax_variable else None
+        c_indices.append((c_obj, eq_row, idx_var, relax_idx))
+
+    # Seed state and covariance
+    x_filt = np.zeros(n_vars)
+    # Solve discrete Lyapunov for stationary P_0
+    M_0 = A_0_0 + A_p_0 @ P_0
+    R_0 = _safe_solve(M_0, -B_u_0)
+    RQR = R_0 @ Q_mat @ R_0.T
+    try:
+        P_filt = scipy.linalg.solve_discrete_lyapunov(P_0, RQR)
+        P_filt = 0.5 * (P_filt + P_filt.T)
+        if not np.all(np.isfinite(P_filt)) or np.any(np.linalg.eigvalsh(P_filt) < -1e-8):
+            P_filt = 10.0 * np.eye(n_vars)
+    except Exception:
+        P_filt = 10.0 * np.eye(n_vars)
+
+    # Storage arrays
+    filtered_states_mat = np.zeros((T_obs, n_vars))
+    filtered_covs = []
+    imputed_shocks_mat = np.zeros((T_obs, n_shocks))
+    forecast_errors_mat = np.zeros((T_obs, n_obs))
+    realized_regimes = np.zeros(T_obs, dtype=int)
+    total_loglik = 0.0
+    all_converged = True
+    total_iters = 0
+
+    prev_regime_seq = np.zeros(horizon, dtype=int)
+
+    for t in range(T_obs):
+        y_t = data_df.iloc[t][obs_vars].to_numpy(dtype=float)
+        obs_mask = np.isfinite(y_t)
+        n_valid = int(np.sum(obs_mask))
+
+        # Initialize conjectured regime sequence: warm-start from previous period
+        conjectured_R = np.zeros(horizon, dtype=int)
+        if t > 0:
+            conjectured_R[:-1] = prev_regime_seq[1:]
+            conjectured_R[-1] = 0
+
+        converged_t = False
+        reg_history: set[tuple[int, ...]] = set()
+
+        for reg_it in range(1, max_regime_iter + 1):
+            total_iters += 1
+            # 1. OccBin backward recursion under conjectured_R with future shocks = 0
+            P_seq = [None] * (horizon + 1)
+            D_seq = [None] * (horizon + 1)
+            R_seq = [None] * (horizon + 1)
+            P_next = P_0
+            D_next = np.zeros(n_vars)
+
+            for s in range(horizon, 0, -1):
+                r_s = int(conjectured_R[s - 1])
+                Ap_s, A0_s, Am_s, Bu_s, c_s = regime_matrices[r_s]
+                M_s = A0_s + Ap_s @ P_next
+                P_s = _safe_solve(M_s, -Am_s)
+                D_s = _safe_solve(M_s, -(Ap_s @ D_next + c_s))
+                R_s = _safe_solve(M_s, -Bu_s)
+                P_seq[s], D_seq[s], R_seq[s] = P_s, D_s, R_s
+                P_next, D_next = P_s, D_s
+
+            T_t = P_seq[1]
+            C_t = D_seq[1]
+            R_t = R_seq[1]
+
+            # 2. Kalman Prediction
+            x_pred = T_t @ x_filt + C_t
+            P_pred = T_t @ P_filt @ T_t.T + R_t @ Q_mat @ R_t.T
+            P_pred = 0.5 * (P_pred + P_pred.T)
+
+            # 3. Kalman Update
+            if n_valid == 0:
+                # All variables missing at period t
+                x_upd = x_pred.copy()
+                P_upd = P_pred.copy()
+                u_hat = np.zeros(n_shocks)
+                v_t_full = np.zeros(n_obs)
+                ll_t = 0.0
+            else:
+                Z_v = Z[obs_mask, :]
+                y_v = y_t[obs_mask]
+                H_v = H_mat[obs_mask, :][:, obs_mask]
+                v_v = y_v - Z_v @ x_pred
+
+                F_v = Z_v @ P_pred @ Z_v.T + H_v
+                F_v = 0.5 * (F_v + F_v.T)
+                # Safeguard against zero measurement error boundary / rank deficiency
+                jitter = 1e-11 * max(1.0, float(np.trace(F_v) / len(F_v)))
+                F_v_safe = F_v + jitter * np.eye(len(F_v))
+
+                try:
+                    L_F = scipy.linalg.cho_factor(F_v_safe, lower=True)
+                    F_inv_v = scipy.linalg.cho_solve(L_F, v_v)
+                    log_det_F = 2.0 * float(np.sum(np.log(np.diag(L_F[0]))))
+                    K_gain = scipy.linalg.cho_solve(L_F, Z_v @ P_pred.T).T
+                except (np.linalg.LinAlgError, scipy.linalg.LinAlgError):
+                    evals = np.linalg.eigvalsh(F_v_safe)
+                    log_det_F = float(np.sum(np.log(np.maximum(evals, 1e-12))))
+                    F_inv = np.linalg.pinv(F_v_safe)
+                    F_inv_v = F_inv @ v_v
+                    K_gain = P_pred @ Z_v.T @ F_inv
+
+                x_upd = x_pred + K_gain @ v_v
+                P_upd = (np.eye(n_vars) - K_gain @ Z_v) @ P_pred
+                P_upd = 0.5 * (P_upd + P_upd.T)
+
+                # Impute contemporaneous shock: u_hat = Q R_t^T Z_v^T F_v^{-1} v_v
+                u_hat = Q_mat @ R_t.T @ Z_v.T @ F_inv_v
+
+                quad = float(v_v @ F_inv_v)
+                ll_t = -0.5 * (n_valid * np.log(2.0 * np.pi) + log_det_F + quad)
+
+                v_t_full = np.zeros(n_obs)
+                v_t_full[obs_mask] = v_v
+
+            # 4. Forward simulate over horizon H to verify regime consistency
+            X_sim = np.zeros((horizon + 1, n_vars))
+            X_sim[0] = x_filt
+            X_sim[1] = T_t @ x_filt + C_t + R_t @ u_hat
+            for s in range(2, horizon + 1):
+                X_sim[s] = P_seq[s] @ X_sim[s - 1] + D_seq[s]
+
+            sim_X_h = X_sim[1:]
+
+            # Compute shadow values along simulated trajectory
+            shadow_vals_h = np.zeros((K, horizon))
+            for k in range(K):
+                c_obj, eq_row, idx_var, relax_idx = c_indices[k]
+                a_var = float(A_0_0[eq_row, idx_var])
+                if abs(a_var) > 1e-12:
+                    row_others = A_0_0[eq_row].copy()
+                    row_others[idx_var] = 0.0
+                    for s in range(horizon):
+                        x_p = X_sim[s]
+                        x_c = sim_X_h[s]
+                        x_n = sim_X_h[s + 1] if s + 1 < horizon else P_0 @ x_c
+                        u_s = u_hat if s == 0 else np.zeros(n_shocks)
+                        term_other = row_others @ x_c
+                        term_next = A_p_0[eq_row, :] @ x_n
+                        term_prev = A_m_0[eq_row, :] @ x_p
+                        term_shock = B_u_0[eq_row, :] @ u_s
+                        shadow_vals_h[k, s] = -(term_other + term_next + term_prev + term_shock + c_0[eq_row]) / a_var
+                else:
+                    shadow_vals_h[k, :] = sim_X_h[:, idx_var]
+
+            # Update regime sequence
+            new_R = np.zeros(horizon, dtype=int)
+            for s in range(horizon):
+                r_s = int(conjectured_R[s])
+                r_new = 0
+                for k in range(K):
+                    c_obj, eq_row, idx_var, relax_idx = c_indices[k]
+                    bit_k = (r_s >> k) & 1
+                    if bit_k == 1:
+                        val = sim_X_h[s, relax_idx] if relax_idx is not None else shadow_vals_h[k, s]
+                        binds = not bool(c_obj.evaluate_relax(val))
+                    else:
+                        val = sim_X_h[s, idx_var]
+                        binds = bool(c_obj.evaluate(val))
+                    if binds:
+                        r_new |= (1 << k)
+                new_R[s] = r_new
+
+            if np.array_equal(new_R, conjectured_R):
+                converged_t = True
+                conjectured_R = new_R
+                break
+
+            key = tuple(new_R.tolist())
+            if key in reg_history:
+                # Oscillating cycle: damp by updating first divergent period
+                diff_s = np.where(new_R != conjectured_R)[0]
+                if len(diff_s) > 0:
+                    damped_R = conjectured_R.copy()
+                    damped_R[diff_s[0]] = new_R[diff_s[0]]
+                    d_key = tuple(damped_R.tolist())
+                    if d_key not in reg_history:
+                        reg_history.add(d_key)
+                        conjectured_R = damped_R
+                        continue
+                converged_t = False
+                break
+
+            reg_history.add(key)
+            conjectured_R = new_R
+
+        if not converged_t:
+            all_converged = False
+
+        # Advance state to t
+        x_filt = x_upd
+        P_filt = P_upd
+
+        filtered_states_mat[t, :] = x_filt
+        filtered_covs.append(P_filt)
+        imputed_shocks_mat[t, :] = u_hat
+        forecast_errors_mat[t, :] = v_t_full
+        realized_regimes[t] = int(conjectured_R[0])
+        total_loglik += ll_t
+        prev_regime_seq = conjectured_R
+
+    filtered_states_df = pd.DataFrame(filtered_states_mat, columns=variables, index=t_index)
+    imputed_shocks_df = pd.DataFrame(imputed_shocks_mat, columns=shocks, index=t_index)
+    forecast_errors_df = pd.DataFrame(forecast_errors_mat, columns=obs_vars, index=t_index)
+    regime_series = pd.Series(realized_regimes, index=t_index, name="regime")
+
+    return PiecewiseKalmanResult(
+        log_likelihood=float(total_loglik),
+        filtered_states=filtered_states_df,
+        regime_history=regime_series,
+        filtered_covariances=filtered_covs,
+        imputed_shocks=imputed_shocks_df,
+        forecast_errors=forecast_errors_df,
+        converged=all_converged,
+        iterations=max(1, total_iters // max(1, T_obs)),
+        reference_model=m_unconstrained,
+        constraints=final_constraints,
+    )
+
+
 __all__ = [
     "OccBinConstraint",
     "OccBinResult",
+    "PiecewiseKalmanResult",
     "solve_occbin",
+    "solve_multiconstraint_occbin",
+    "piecewise_kalman_filter",
 ]
+

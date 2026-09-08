@@ -2,6 +2,56 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## 2.8.0 (2026-09-08)
+
+### Tier 2: Higher Order & Constraints — Order-3 Perturbation & Pruning, Deterministic Transitions & Semismooth Newton MCP, Multi-Constraint OccBin & Piecewise Kalman Filter, Sequential Monte Carlo (SMC) & Particle Filtering, Nonlinear Ramsey Optimal Policy & BGP Detrending
+
+Feature release: Tier 2 (Higher Order & Constraints) of the DSGE Dynare parity roadmap (`docs/plans/2026-09-07-puremacro-dsge-dynare-parity-roadmap.md`).
+
+This major release extends puremacro's DSGE modeling engine with cutting-edge non-linear and constrained macroeconomic capabilities running on the strict Pyodide four-package contract (`numpy`, `scipy`, `pandas`, `matplotlib`):
+
+---
+
+### Added — Order-3 Perturbation & Pruning (`puremacro.dsge.pruning`, `_symbolic`, `_sylvester`)
+- **Symbolic Dynamic 3rd Derivatives**: Exact symbolic evaluation of dynamic third tensor derivatives $\mathcal{T}_f = \partial^3 f / (\partial z_j \partial z_k \partial z_l)$ over the expression AST DAG exploiting 6-fold permutation symmetry ($j \le k \le l$) and Common Subexpression Elimination (CSE).
+- **3-Fold Generalized Schur Sylvester Solver**: Solves third-order state curvature tensors $\hat{A} g_{xxx} + A_+ g_{xxx} (h_x^{\otimes 3}) = -K_{xxx}$ using decoupled triangular back-substitution with LU caching in $\le 0.8$s allocating $< 5$ MB memory.
+- **Andreasen et al. (2018) 3-State Pruning**: Full implementation of third-order state pruning decomposing state deviations into first-, second-, and third-order components $(x_t^{(1)}, x_t^{(2)}, x_t^{(3)})$, eliminating explosive polynomial trajectories and guaranteeing ergodic stationarity over 10,000+ periods.
+- **Analytical Ergodic Moments**: Exact analytical derivation of unconditional ergodic mean, variance, skewness, and kurtosis under pruning.
+- **Result Object**: `Order3PrunedSolution` adhering to puremacro presentation contract (`.summary()`, `.girf()`, `.stoch_simul()`, `.theoretical_moments()`, `.to_markdown()`, `.to_latex()`, `.to_typst()`).
+
+### Added — Deterministic Transitions & Mixed Complementarity Problems (`puremacro.dsge.perfect_foresight`, `_parser`)
+- **Permanent Shock Transitions**: Support for `histval; ... end;` and `endval; ... end;` blocks in `_parser.py` and `dynare.py`, enabling simulation of deterministic transitions between distinct initial and terminal steady states across permanent regime shifts ($y_{init} \to y_{end}$ with error $\le 10^{-10}$).
+- **Anticipated & Surprise Shocks**: Native support for `varexo_det` (anticipated deterministic exogenous paths) and `simulate_surprise_shocks` (rolling unanticipated replanning / MIT shocks).
+- **Semismooth Newton MCP**: Mixed Complementarity Problem solver utilizing the Fischer-Burmeister complementarity function $\Phi(a, b) = a + b - \sqrt{a^2 + b^2} = 0$ directly on the sparse block-tridiagonal stacked Jacobian, preserving $O(T)$ complexity while strictly enforcing inequality constraints such as the Zero Lower Bound (ZLB $i_t \ge 0$).
+- **Result Object**: `MCPResult` tracking binding periods, complementarity residuals, and path trajectories with full presentation methods.
+
+### Added — Multi-Constraint OccBin & Piecewise Kalman Filter (`puremacro.dsge.occbin`, `puremacro.dsge.estimate`)
+- **Multi-Constraint OccBin**: Extension of Guerrieri & Iacoviello (2015) to $K \ge 2$ occasionally binding constraints (supporting up to 4 regimes / $2^K$ combinations, e.g. simultaneous ZLB and collateral constraints) with simultaneous shadow value updating and regime convergence.
+- **Piecewise Kalman Filter (PKF)**: Implements Giovannini, Pfeiffer, Ratto (2021) combining OccBin backward recursions with forward Kalman updating for exact likelihood evaluation in the presence of occasionally binding constraints.
+- **Bayesian Estimation with PKF**: Integrated into `LinearModel.estimate(method="piecewise_kalman", occbin_regimes=...)` with posterior summaries and diagnostics.
+- **Result Objects**: `PiecewiseKalmanResult` and multi-constraint `OccBinResult`.
+
+### Added — Sequential Monte Carlo & Particle Filtering (`puremacro.dsge.smc`)
+- **Herbst & Schorfheide (2014, 2015) SMC Sampler**: Full Sequential Monte Carlo estimation engine with adaptive tempering schedules $\phi_n \in [0, 1]$, systematic resampling when $ESS < 0.5 N_{part}$, and particle mutation using adaptive empirical proposal covariance.
+- **Exact Marginal Data Density (MDD)**: Exact computation of $\ln \hat{p}(Y)$ as the cumulative product of stage normalizing constants with asymptotic numerical standard errors.
+- **Nonlinear Bootstrap Particle Filter**: Sequential importance resampling particle filter for order-2 and order-3 pruned state spaces with non-Gaussian observation equations.
+- **Result Object**: `SMCResult` with stage diagnostics (`plot_stages`), posterior distribution plots (`plot_posterior`), and model comparison utilities.
+
+### Added — Nonlinear Ramsey Optimal Policy & BGP Detrending (`puremacro.dsge.ramsey`, `_parser`)
+- **Automated Ramsey Lagrangian**: `ramsey_model` automatically formulates the intertemporal planner Lagrangian $\mathcal{L} = \sum \beta^t [U(y_t) + \lambda_t^\top f(\dots)]$ and symbolically derives exact first-order conditions w.r.t endogenous variables and Lagrange multipliers over the AST DAG.
+- **Commitment Saddle-Path Solution**: Solves augmented first-order system using Klein QZ decomposition, replicating timeless-perspective policy rules (e.g. Clarida, Galí & Gertler 1999).
+- **Balanced Growth Path (BGP) Detrending**: Support for `trend_var` / `log_trend_var` declarations and `var(deflator=...)`, automating stationarization transformations.
+- **Result Object**: `RamseyResult` exposing policy multipliers, impulse responses, and comparisons with Optimal Simple Rules (OSR).
+
+### Spanish Notes / Notas de la Versión en Español
+- **Perturbación y poda de orden 3**: Derivadas tensoriales simbólicas de tercer orden, solucionador Schur Sylvester tridimensional y algoritmo de poda de Andreasen et al. (2018) con momentos ergódicos analíticos y `Order3PrunedSolution`.
+- **Transiciones deterministas y MCP**: Bloques `histval` y `endval` para transiciones entre estados estacionarios distintos, perturbaciones anticipadas y sorpresivas, y solucionador Newton semisuave con complementariedad de Fischer-Burmeister para restricciones de desigualdad (como la cota inferior cero o ZLB).
+- **OccBin multirrestricción y Filtro de Kalman por Tramos**: Soporte para hasta 4 regímenes simultáneos ($2^K$) y Filtro de Kalman por Tramos (Giovannini et al. 2021) para evaluación de verosimilitud y estimación bayesiana con restricciones ocasionales.
+- **Monte Carlo Secuencial (SMC) y Filtro de Partículas**: Muestreador SMC de Herbst y Schorfheide (2014, 2015) con templado adaptativo, cálculo exacto de la densidad marginal de los datos (MDD) y filtro de partículas bootstrap para espacios de estados no lineales podados.
+- **Política óptima de Ramsey no lineal y BGP**: Formulación automática del lagrangiano del planificador, derivación simbólica de CPO en el DAG del AST, solución saddle-path con compromiso y desestacionalización de sendas de crecimiento balanceado (BGP).
+
+---
+
 ## 2.7.0 (2026-09-08)
 
 ### Tier 0: The Front End — Native Macro Preprocessor, Recursive-Descent AST Parser, Symbolic Differentiation & Fast Sylvester Solver

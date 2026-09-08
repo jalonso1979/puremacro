@@ -43,6 +43,7 @@ _USER_DOCS = [
     "bvar_sv.md",
     "gvar.md",
     "dsge_estimation.md",
+    "dsge_higher_order.md",
 ]
 
 

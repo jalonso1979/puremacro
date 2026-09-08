@@ -146,6 +146,13 @@ KEYWORDS = {
     "linear",
     "stderr",
     "corr",
+    "histval",
+    "endval",
+    "varexo_det",
+    "trend_var",
+    "log_trend_var",
+    "deflator",
+    "log_deflator",
 }
 
 
@@ -469,6 +476,23 @@ class ParsedModelDAG:
     shock_cov: np.ndarray | None = None
     steady_state: dict[str, float] | None = None
     guess: dict[str, float] | None = None
+    det_shocks: list[str] = field(default_factory=list)
+    histval: dict[str, Node] | None = None
+    endval: dict[str, Node] | None = None
+    histval_values: dict[str, float] | None = None
+    endval_values: dict[str, float] | None = None
+    trend_vars: list[str] = field(default_factory=list)
+    deflators: dict[str, str] = field(default_factory=dict)
+    log_trend_vars: list[str] = field(default_factory=list)
+    log_deflators: dict[str, str] = field(default_factory=dict)
+
+    @property
+    def varexo_det(self) -> list[str]:
+        return self.det_shocks
+
+    @varexo_det.setter
+    def varexo_det(self, val: list[str]) -> None:
+        self.det_shocks = val
 
     def compile_equations(self) -> Callable:
         """Compile AST equations into a Python callable compatible with legacy LinearModel."""
@@ -506,6 +530,8 @@ class ParsedModelDAG:
         return {
             "variables": list(self.variables),
             "shocks": list(self.shocks),
+            "det_shocks": list(self.det_shocks),
+            "varexo_det": list(self.det_shocks),
             "params": dict(self.parameter_values),
             "predetermined_variables": (
                 list(self.predetermined_variables)
@@ -514,6 +540,8 @@ class ParsedModelDAG:
             ),
             "guess": dict(self.guess) if self.guess else None,
             "steady_state": dict(self.steady_state) if self.steady_state else None,
+            "histval": dict(self.histval_values) if self.histval_values else None,
+            "endval": dict(self.endval_values) if self.endval_values else None,
             "equations": self.compile_equations(),
             "shock_cov": self.shock_cov,
             "options": dict(self.options),
@@ -535,6 +563,7 @@ class Parser:
         # Symbol tables
         self.variables: list[str] = []
         self.shocks: list[str] = []
+        self.det_shocks: list[str] = []
         self.parameters: list[str] = []
         self.predetermined_variables: list[str] = []
         self.varobs: list[str] = []
@@ -551,6 +580,8 @@ class Parser:
 
         # Blocks
         self.initval_defs: dict[str, Node] = {}
+        self.histval_defs: dict[str, Node] = {}
+        self.endval_defs: dict[str, Node] = {}
         self.steady_state_defs: dict[str, Node] = {}
         self.shocks_config: dict[str, Any] = {
             "variances": {},
@@ -560,6 +591,10 @@ class Parser:
         }
         self.has_shocks_block: bool = False
         self.options: dict[str, Any] = {}
+        self.trend_vars: list[str] = []
+        self.log_trend_vars: list[str] = []
+        self.deflators: dict[str, str] = {}
+        self.log_deflators: dict[str, str] = {}
 
     def _curr(self) -> Token:
         return self.tokens[self.pos]
@@ -911,7 +946,7 @@ class Parser:
             )
 
     def _parse_assignment_block(self, block_name: str) -> dict[str, Node]:
-        """Parse assignment block (initval, steady_state_model) storing AST expressions."""
+        """Parse assignment block (initval, histval, endval, steady_state_model) storing AST expressions."""
         self._expect("KEYWORD", block_name)
         self._expect("SEMI")
         defs: dict[str, Node] = {}
@@ -922,6 +957,15 @@ class Parser:
                 break
             if self._curr().type in ("IDENT", "KEYWORD"):
                 name = str(self._advance().value)
+                if self._match("LPAREN"):
+                    # Handle possible lead/lag index like y(0) or y(-1)
+                    if self._curr().type in ("NUMBER", "INT", "MINUS", "PLUS"):
+                        if self._curr().type in ("MINUS", "PLUS"):
+                            self._advance()
+                        if self._curr().type in ("NUMBER", "INT"):
+                            self._advance()
+                    self._expect("RPAREN")
+
                 self._expect("ASSIGN")
                 expr = self.parse_expression()
                 self._expect("SEMI")
@@ -933,6 +977,10 @@ class Parser:
     def _parse_shocks_block(self) -> None:
         """Parse shocks; block."""
         self._expect("KEYWORD", "shocks")
+        if self._match("LPAREN"):
+            if self._curr().type in ("IDENT", "KEYWORD"):
+                self.shocks_config["type"] = str(self._advance().value)
+            self._expect("RPAREN")
         self._expect("SEMI")
         self.has_shocks_block = True
 
@@ -1040,13 +1088,58 @@ class Parser:
             if t.type == "KEYWORD":
                 if t.value == "var":
                     self._advance()
+                    deflator_name = None
+                    is_log_deflator = False
+                    if self._curr().type == "LPAREN":
+                        self._advance()
+                        while self._curr().type != "RPAREN" and self._curr().type != "EOF":
+                            cur = self._curr()
+                            if cur.type in ("KEYWORD", "IDENT") and cur.value in ("deflator", "log_deflator"):
+                                is_log_deflator = (cur.value == "log_deflator")
+                                self._advance()
+                                if self._curr().type == "ASSIGN":
+                                    self._advance()
+                                    if self._curr().type in ("IDENT", "KEYWORD"):
+                                        deflator_name = str(self._advance().value)
+                            else:
+                                self._advance()
+                        self._match("RPAREN")
                     new_vars = self._parse_id_list()
                     for v in new_vars:
-                        if v in self.variables or v in self.shocks or v in self.parameters:
+                        if v in self.shocks or v in self.parameters:
                             raise DynareParseError(
                                 f"Symbol '{v}' declared twice", t.line, t.col
                             )
-                    self.variables.extend(new_vars)
+                        if v in self.variables:
+                            if deflator_name:
+                                if is_log_deflator:
+                                    self.log_deflators[v] = deflator_name
+                                else:
+                                    self.deflators[v] = deflator_name
+                            continue
+                        self.variables.append(v)
+                        if deflator_name:
+                            if is_log_deflator:
+                                self.log_deflators[v] = deflator_name
+                            else:
+                                self.deflators[v] = deflator_name
+                elif t.value in ("trend_var", "log_trend_var"):
+                    is_log = (t.value == "log_trend_var")
+                    self._advance()
+                    growth_param = None
+                    if self._curr().type == "LPAREN":
+                        self._advance()
+                        if self._curr().type in ("IDENT", "KEYWORD"):
+                            growth_param = str(self._advance().value)
+                        self._match("RPAREN")
+                    new_trends = self._parse_id_list()
+                    if is_log:
+                        self.log_trend_vars.extend(new_trends)
+                    else:
+                        self.trend_vars.extend(new_trends)
+                    if growth_param:
+                        for tr in new_trends:
+                            self.deflators[tr] = growth_param
                 elif t.value == "varexo":
                     self._advance()
                     new_shocks = self._parse_id_list()
@@ -1068,6 +1161,9 @@ class Parser:
                 elif t.value == "predetermined_variables":
                     self._advance()
                     self.predetermined_variables.extend(self._parse_id_list())
+                elif t.value == "varexo_det":
+                    self._advance()
+                    self.det_shocks.extend(self._parse_id_list())
                 elif t.value == "varobs":
                     self._advance()
                     self.varobs.extend(self._parse_id_list())
@@ -1075,6 +1171,10 @@ class Parser:
                     self._parse_model_block()
                 elif t.value == "initval":
                     self.initval_defs = self._parse_assignment_block("initval")
+                elif t.value == "histval":
+                    self.histval_defs = self._parse_assignment_block("histval")
+                elif t.value == "endval":
+                    self.endval_defs = self._parse_assignment_block("endval")
                 elif t.value == "steady_state_model":
                     self.steady_state_defs = self._parse_assignment_block(
                         "steady_state_model"
@@ -1282,6 +1382,36 @@ class Parser:
                 root_var = parts[2] if len(parts) >= 3 else aux
                 guess[aux] = guess.get(root_var, 1.0)
 
+        histval_values: dict[str, float] | None = None
+        if self.histval_defs:
+            h_scope = dict(self.param_values)
+            for h_name, h_expr in self.histval_defs.items():
+                try:
+                    val = h_expr.eval(h_scope, self.param_values)
+                    h_scope[h_name] = float(val)
+                except Exception:
+                    pass
+            histval_values = {
+                v: h_scope[v]
+                for v in (self.variables + self.shocks + self.det_shocks + self.parameters)
+                if v in h_scope
+            }
+
+        endval_values: dict[str, float] | None = None
+        if self.endval_defs:
+            e_scope = dict(self.param_values)
+            for e_name, e_expr in self.endval_defs.items():
+                try:
+                    val = e_expr.eval(e_scope, self.param_values)
+                    e_scope[e_name] = float(val)
+                except Exception:
+                    pass
+            endval_values = {
+                v: e_scope[v]
+                for v in (self.variables + self.shocks + self.det_shocks + self.parameters)
+                if v in e_scope
+            }
+
         # ---------------------------------------------------------------------
         # Post-Processing: Shock Covariance Matrix
         # ---------------------------------------------------------------------
@@ -1382,6 +1512,15 @@ class Parser:
             shock_cov=shock_cov,
             steady_state=steady_state,
             guess=guess,
+            det_shocks=self.det_shocks,
+            histval=self.histval_defs if self.histval_defs else None,
+            endval=self.endval_defs if self.endval_defs else None,
+            histval_values=histval_values,
+            endval_values=endval_values,
+            trend_vars=self.trend_vars,
+            deflators=self.deflators,
+            log_trend_vars=self.log_trend_vars,
+            log_deflators=self.log_deflators,
         )
 
 
