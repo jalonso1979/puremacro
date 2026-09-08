@@ -9,20 +9,27 @@ import pathlib
 import pytest
 
 
+# Paths are relative to the REPO ROOT (the directory holding pyproject.toml). Before the
+# monorepo split these read "puremacro/puremacro/..." and `_repo_root` returned the monorepo
+# directory *above* the package repo — which only kept working afterwards because the standalone
+# checkout happened to be named "puremacro" too. In any other directory name (a git worktree, a
+# CI scratch dir, a fork cloned under a different name) `_repo_root` raised and this test failed
+# for a reason that had nothing to do with the code it lints.
 _TARGET_DIRS = [
-    "puremacro/puremacro/fetch",
-    "puremacro/puremacro/narrative/scoring",
-    "puremacro/puremacro/narrative/indices",
-    "puremacro/puremacro/instruments",
+    "puremacro/fetch",
+    "puremacro/narrative/scoring",
+    "puremacro/narrative/indices",
+    "puremacro/instruments",
 ]
 
 
 def _repo_root() -> pathlib.Path:
+    """The directory holding pyproject.toml — the repo root, whatever it is named."""
     here = pathlib.Path(__file__).resolve()
     for parent in here.parents:
-        if (parent / "puremacro" / "pyproject.toml").exists():
+        if (parent / "pyproject.toml").exists() and (parent / "puremacro").is_dir():
             return parent
-    raise RuntimeError("could not find puremacro/ repo root")
+    raise RuntimeError("could not find the puremacro repo root")
 
 
 def _python_files(root: pathlib.Path):
