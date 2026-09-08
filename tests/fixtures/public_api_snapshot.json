@@ -307,6 +307,11 @@
       "parse_estimated_params_bounds",
       "parse_estimated_params_init"
     ],
+    "puremacro.dsge._macro": [
+      "DynareMacroError",
+      "Scope",
+      "preprocess_macro"
+    ],
     "puremacro.dsge._moments": [
       "ZeroVarianceWarning",
       "conditional_fevd",
@@ -354,11 +359,17 @@
       "resid"
     ],
     "puremacro.dsge.dynare": [
+      "DynareFeatureError",
+      "DynareMacroError",
+      "DynareParseError",
       "build_dynare",
+      "detect_linear_model",
       "load_dynare_mod",
       "load_mod",
+      "model_info",
       "parse_mod",
-      "solve_dynare_2nd_order"
+      "solve_dynare_2nd_order",
+      "write_latex_dynamic_model"
     ],
     "puremacro.dsge.estimate": [
       "estimate_dsge"
@@ -2904,6 +2915,29 @@
       "treat_time",
       "unit"
     ],
+    "puremacro.dsge._ast.BinOp": [
+      "left",
+      "op",
+      "right"
+    ],
+    "puremacro.dsge._ast.Call": [
+      "args",
+      "func"
+    ],
+    "puremacro.dsge._ast.Const": [
+      "value"
+    ],
+    "puremacro.dsge._ast.Param": [
+      "name"
+    ],
+    "puremacro.dsge._ast.UnaryOp": [
+      "expr",
+      "op"
+    ],
+    "puremacro.dsge._ast.Var": [
+      "lead",
+      "name"
+    ],
     "puremacro.dsge._estimated_params.EstimatedParamSpec": [
       "init",
       "jscale",
@@ -2916,6 +2950,36 @@
     ],
     "puremacro.dsge._estimated_params.EstimatedParams": [
       "specs"
+    ],
+    "puremacro.dsge._parser.ParsedModelDAG": [
+      "auxiliary_variables",
+      "equation_tags",
+      "equations",
+      "estimated_params",
+      "estimated_params_bounds",
+      "estimated_params_init",
+      "guess",
+      "initval",
+      "is_linear",
+      "local_variables",
+      "options",
+      "parameter_values",
+      "parameters",
+      "predetermined_variables",
+      "shock_cov",
+      "shocks",
+      "shocks_config",
+      "steady_state",
+      "steady_state_model",
+      "tex_labels",
+      "variables",
+      "varobs"
+    ],
+    "puremacro.dsge._parser.Token": [
+      "col",
+      "line",
+      "type",
+      "value"
     ],
     "puremacro.dsge._results.DSGEForecastResult": [
       "ci",
@@ -3095,6 +3159,37 @@
       "covariance",
       "fevd",
       "moments"
+    ],
+    "puremacro.dsge._symbolic.CompiledDerivatives": [
+      "_eval_derivatives_impl",
+      "_eval_first_order_impl",
+      "_eval_second_order_impl",
+      "is_linear",
+      "model_dag",
+      "parameter_defaults",
+      "parameters",
+      "shocks",
+      "sparsity_pattern",
+      "variables"
+    ],
+    "puremacro.dsge._utils.ModelInfoResult": [
+      "controls",
+      "equation_tags",
+      "is_linear",
+      "jacobian_sparsity",
+      "lead_lag_incidence",
+      "mixed",
+      "num_equations",
+      "num_parameters",
+      "num_shocks",
+      "num_variables",
+      "parameter_names",
+      "purely_backward",
+      "purely_forward",
+      "purely_static",
+      "shock_names",
+      "states",
+      "variable_names"
     ],
     "puremacro.dsge.bayesian.BayesianEstimationResult": [
       "acceptance_rate",

@@ -231,6 +231,51 @@ print(m.decision_rules().summary())
 print(m.theoretical_moments().summary())
 ```
 
+### 4b. Tier 0: The Front End — Macro Preprocessor, AST Parser & Symbolic Differentiation (v2.7.0)
+
+Starting with `puremacro 2.7.0`, the DSGE engine features a production-grade front-end pipeline designed for seamless compatibility with published Dynare models and zero external dependencies:
+
+#### Dynare Macro Directives
+`puremacro.dsge` natively preprocesses Dynare macro directives before tokenization:
+- `@#define VAR = EXPR`: define integer, float, boolean, string, or array constants.
+- `@#for VAR in EXPR ... @#endfor`: iterate over integer ranges (`1:N`) or array literals (`["c", "k"]`).
+- `@#if EXPR ... @#elif EXPR ... @#else ... @#endif`: conditional compilation based on parameter regimes or flags.
+- `@#include "path/to/file.mod"`: recursive file inclusion with relative path resolution.
+- `@{EXPR}`: string and value interpolation into equations and parameter assignments.
+
+```python
+mod_macro = """
+@#define CALIBRATION = "baseline"
+@#define SECTORS = ["agr", "mfg", "srv"]
+
+var
+@#for s in SECTORS
+  y_@{s} c_@{s}
+@#endfor
+;
+...
+"""
+m = dsge.load_mod(mod_macro)
+```
+
+#### Expression AST & Recursive-Descent Parser
+- **Immutable Expression DAG**: Equations are converted into an immutable Directed Acyclic Graph (`Const`, `Var`, `Param`, `UnaryOp`, `BinOp`, `Call`), eliminating string manipulation and substring collision bugs.
+- **Model-Local `#` Variables**: Supports declarations like `#MU = c^(-gamma);` that are inlined cleanly during equation DAG construction.
+- **Special Operators**: Supports `STEADY_STATE(x)`, `EXPECTATION(t)(x)`, and `diff(x)`.
+- **Transcendental Functions**: Full parsing and analytical differentiation for `exp`, `log`, `sin`, `cos`, `tan`, `normcdf`, `normpdf`, `erf`, `abs`, and `sign`.
+
+#### Symbolic Differentiation & Common Subexpression Elimination (CSE)
+- Exact analytical first-order Jacobians ($A_+, A_0, A_-, B_u$) and dynamic second-order Hessians ($H_f$) with zero numerical difference errors.
+- Common Subexpression Elimination (CSE) prunes redundant algebraic operations by 30–70%, compiling dynamic derivatives into high-speed bytecode evaluators.
+
+#### Fast Generalized Schur Sylvester Solver
+- The second-order state curvature equation $(A_0 + A_+ g_x P_s) g_{xx} + A_+ g_{xx} (h_x \otimes h_x) = -K_{xx}$ is solved via complex Schur decomposition $h_x = U_h T_h U_h^H$ with diagonal block LU caching and push-forward coupling.
+- Solves large models like Smets-Wouters (2007) in **0.028 seconds** (down from 4.6s), avoiding massive dense Kronecker allocations (under 2 MB RAM vs 648 MB).
+
+#### Model Introspection & LaTeX Export
+- **Schema Diagnostics**: `m.model_info()` or `dsge.model_info(dag)` provides detailed inspection of dynamic lead/lag structures, variable classifications, and Jacobian sparsity.
+- **Publication-Grade LaTeX**: `m.write_latex_dynamic_model("model.tex")` generates camera-ready LaTeX `\begin{align}...\end{align}` dynamic equations formatted with mathematical symbols.
+
 ### 5. Automated 2nd-Order Perturbation with Pruning (SGU 2004, Kim et al. 2008)
 
 Solve second-order approximations directly from Python equations or `.mod` files:

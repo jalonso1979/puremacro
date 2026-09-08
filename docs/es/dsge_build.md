@@ -176,6 +176,51 @@ print(m.decision_rules().summary())
 print(m.theoretical_moments().summary())
 ```
 
+### 4b. Nivel 0: El Front End — Preprocesador de Macros, Parser AST y Diferenciación Simbólica (v2.7.0)
+
+A partir de `puremacro 2.7.0`, el motor DSGE incorpora un pipeline frontal de nivel de producción diseñado para compatibilidad nativa con modelos de Dynare publicados y sin ninguna dependencia externa:
+
+#### Directivas de Macro Dynare
+`puremacro.dsge` preprocesa de forma nativa las directivas macro de Dynare antes de la tokenización:
+- `@#define VAR = EXPR`: define constantes enteras, reales, booleanas, cadenas o arreglos.
+- `@#for VAR in EXPR ... @#endfor`: iteración sobre rangos numéricos (`1:N`) o listas literales (`["c", "k"]`).
+- `@#if EXPR ... @#elif EXPR ... @#else ... @#endif`: compilación condicional según parámetros o banderas de régimen.
+- `@#include "ruta/al/archivo.mod"`: inclusión recursiva de archivos con resolución de rutas relativas.
+- `@{EXPR}`: interpolación de expresiones y valores directamente en ecuaciones o parámetros.
+
+```python
+mod_macro = """
+@#define CALIBRATION = "baseline"
+@#define SECTORS = ["agr", "mfg", "srv"]
+
+var
+@#for s in SECTORS
+  y_@{s} c_@{s}
+@#endfor
+;
+...
+"""
+m = dsge.load_mod(mod_macro)
+```
+
+#### Árbol de Sintaxis Abstracta (AST) y Parser Descendente Recursivo
+- **Grafo Acíclico Dirigido Inmutable (DAG)**: Las ecuaciones se transforman en un grafo inmutable de expresiones (`Const`, `Var`, `Param`, `UnaryOp`, `BinOp`, `Call`), eliminando manipulaciones frágiles de texto y errores por colisiones de subcadenas.
+- **Variables Locales `#`**: Soporte nativo para declaraciones de variables auxiliares como `#MU = c^(-gamma);` que se expanden limpiamente en el grafo de ecuaciones.
+- **Operadores Especiales**: Soporte completo para `STEADY_STATE(x)`, `EXPECTATION(t)(x)` y `diff(x)`.
+- **Funciones Trascendentes**: Análisis sintáctico y diferenciación analítica exacta para `exp`, `log`, `sin`, `cos`, `tan`, `normcdf`, `normpdf`, `erf`, `abs` y `sign`.
+
+#### Diferenciación Simbólica y Eliminación de Subexpresiones Comunes (CSE)
+- Jacobianos de primer orden ($A_+, A_0, A_-, B_u$) y matriz hessiana dinámica de segundo orden ($H_f$) diferenciados analíticamente con cero error de aproximación numérica.
+- La Eliminación de Subexpresiones Comunes (CSE) optimiza el grafo eliminando entre un 30% y un 70% de operaciones algebraicas redundantes, compilando derivados dinámicos en evaluadores de alto rendimiento.
+
+#### Solucionador Rápido Schur Sylvester
+- La ecuación de curvatura de segundo orden $(A_0 + A_+ g_x P_s) g_{xx} + A_+ g_{xx} (h_x \otimes h_x) = -K_{xx}$ se resuelve mediante la descomposición compleja de Schur $h_x = U_h T_h U_h^H$ con almacenamiento en caché de factorizaciones LU diagonales y propagación hacia adelante.
+- Resuelve modelos a gran escala como Smets-Wouters (2007) en **0.028 segundos** (frente a 4.6s anteriores), reduciendo el consumo de memoria de 648 MB a menos de 2 MB.
+
+#### Introspección del Modelo y Exportación a LaTeX
+- **Diagnóstico Estructural**: `m.model_info()` o `dsge.model_info(dag)` proporciona un reporte detallado de incidencias temporales, clasificación de variables y dispersión del jacobiano.
+- **Ecuaciones en LaTeX para Publicación**: `m.write_latex_dynamic_model("modelo.tex")` genera bloques `\begin{align}...\end{align}` listos para su inclusión en manuscritos académicos.
+
 ---
 
 ### 5. Perturbación de segundo orden con poda (*Pruning*)

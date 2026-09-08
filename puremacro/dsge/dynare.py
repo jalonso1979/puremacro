@@ -49,6 +49,11 @@ from puremacro.dsge._estimated_params import (
 )
 from puremacro.dsge.klein import KleinSolution, klein_solve
 from puremacro.dsge.pruning import PrunedDSGESolution
+from puremacro.dsge._macro import preprocess_macro, DynareMacroError
+from puremacro.dsge._parser import parse_mod_to_dag, DynareParseError, ParsedModelDAG
+from puremacro.dsge._symbolic import compile_derivatives, CompiledDerivatives
+from puremacro.dsge._sylvester import solve_generalized_sylvester_kronecker
+from puremacro.dsge._utils import model_info, write_latex_dynamic_model, detect_linear_model
 
 
 def _remove_comments(text: str) -> str:
@@ -82,22 +87,13 @@ _MACRO_INTERPOLATION = re.compile(r"@\{")
 
 
 def _check_no_macro_directives(clean_text: str) -> None:
-    """Refuse a .mod file that needs the macro processor.
-
-    Called on comment-stripped source, before any declaration is read: the
-    macro processor rewrites the file, so every downstream answer would be
-    about a model the file does not describe.
-    """
+    """Refuse a .mod file that has remaining unrecognised macro directives."""
     found = _MACRO_DIRECTIVE.search(clean_text) or _MACRO_INTERPOLATION.search(clean_text)
     if found is None:
         return
     raise DynareFeatureError(
-        f"this .mod file uses the Dynare macro processor ({found.group(0).strip()!r} "
-        f"at character {found.start()}); puremacro does not implement it yet "
-        "(planned for 2.7.0). Parsing on would silently solve a *different* model "
-        "from the one this file describes, so it stops here instead. Workaround: "
-        "expand the macros once with Dynare (`dynare model.mod savemacro`) and pass "
-        "the expanded file."
+        f"this .mod file uses an unsupported Dynare macro directive ({found.group(0).strip()!r} "
+        f"at character {found.start()})."
     )
 
 
@@ -407,10 +403,20 @@ def build_dynare(
 
     # 2. Jacobians at steady state:  A_+ = df/d(lead), A_0 = df/d(curr),
     #    A_- = df/d(lag), B_u = df/d(shocks)
-    A_plus, A_0, A_minus, B_u = _lead_lag_jacobians(
-        equations, variables, shocks, par_vec, ss_arr, method,
-        verify=verify_derivatives,
-    )
+    compiled = getattr(equations, "_compiled", None)
+    if compiled is not None:
+        A_plus, A_0, A_minus, B_u = compiled.eval_first_order(
+            lead=ss_arr,
+            curr=ss_arr,
+            lag=ss_arr,
+            shocks=np.zeros(n_shocks),
+            params=par_dict,
+        )
+    else:
+        A_plus, A_0, A_minus, B_u = _lead_lag_jacobians(
+            equations, variables, shocks, par_vec, ss_arr, method,
+            verify=verify_derivatives,
+        )
 
     # 3. Variable role classification: a state is anything that enters
     #    with a lag (or was declared predetermined).
@@ -476,7 +482,7 @@ def build_dynare(
 
     res_norm = float(np.max(np.abs(ss_res(ss_arr))))
 
-    return LinearModel(
+    model = LinearModel(
         variables=tuple(variables),
         states=states_tuple,
         controls=controls_tuple,
@@ -498,6 +504,16 @@ def build_dynare(
         _shock_cov=None if shock_cov is None else np.asarray(shock_cov, dtype=float),
         timing="dynare",
     )
+    dag = getattr(equations, "_dag", None)
+    is_linear = getattr(compiled, "is_linear", False) if compiled is not None else False
+    if dag is not None and getattr(dag, "is_linear", False):
+        is_linear = True
+    if dag is not None:
+        object.__setattr__(model, "_dag", dag)
+    if compiled is not None:
+        object.__setattr__(model, "_compiled", compiled)
+    object.__setattr__(model, "_is_linear", is_linear)
+    return model
 
 
 def _first_order_pieces(
@@ -666,6 +682,66 @@ def solve_dynare_2nd_order(
     (states_list, controls_list, n_x, n_y,
      g_x, g_u, P_s, P_c, h_x, h_u) = _first_order_pieces(m, vars_list, shocks_list)
 
+    compiled = getattr(equations, "_compiled", None) or getattr(m, "_compiled", None)
+    dag = getattr(equations, "_dag", None) or getattr(m, "_dag", None)
+    is_linear = getattr(m, "_is_linear", False) or (compiled is not None and getattr(compiled, "is_linear", False))
+    par_dict = dict(params or {})
+    par_vec = _Vec(list(par_dict.keys()), list(par_dict.values()), what="parameter")
+
+    if is_linear:
+        if shock_cov is None:
+            sigma_u = np.eye(n_e)
+        else:
+            sigma_u = np.asarray(shock_cov, dtype=float)
+            if sigma_u.shape != (n_e, n_e):
+                raise ValueError(f"shock_cov must be ({n_e}, {n_e}), got {sigma_u.shape}")
+        g_xx = np.zeros((N, n_x**2), dtype=float)
+        g_xu = np.zeros((N, n_x * n_e), dtype=float)
+        g_uu = np.zeros((N, n_e**2), dtype=float)
+        g_ss = np.zeros(N, dtype=float)
+        H_xx = P_s @ g_xx
+        G_xx = P_c @ g_xx
+        H_xu = P_s @ g_xu
+        G_xu = P_c @ g_xu
+        H_uu = P_s @ g_uu
+        G_uu = P_c @ g_uu
+        H_ss = P_s @ g_ss
+        G_ss = P_c @ g_ss
+        sol = PrunedDSGESolution(
+            G=h_x,
+            N=h_u,
+            F=P_c @ g_x,
+            L=P_c @ g_u,
+            H_xx=H_xx,
+            H_sigmasigma=H_ss,
+            G_xx=G_xx,
+            G_sigmasigma=G_ss,
+            state_names=tuple(states_list),
+            control_names=tuple(controls_list),
+            shock_names=tuple(shocks_list),
+            H_xu=H_xu,
+            H_uu=H_uu,
+            G_xu=G_xu,
+            G_uu=G_uu,
+            steady_state=m.steady_state,
+            variable_names=tuple(vars_list),
+            ghx=g_x,
+            ghu=g_u,
+            ghxx=g_xx,
+            ghxu=g_xu,
+            ghuu=g_uu,
+            ghs2=g_ss,
+            params=par_dict,
+            shock_cov=sigma_u,
+            first_order=m,
+        )
+        if dag is not None:
+            object.__setattr__(sol, "_dag", dag)
+        if compiled is not None:
+            object.__setattr__(sol, "_compiled", compiled)
+        object.__setattr__(sol, "_is_linear", True)
+        return sol
+
     # 2. First and second derivatives of f at the steady state, stacked
     #    over (lead, curr, lag, shocks)
     ss_arr = m.steady_state.loc[vars_list].to_numpy()
@@ -676,54 +752,63 @@ def solve_dynare_2nd_order(
     par_dict = dict(params or {})
     par_vec = _Vec(list(par_dict.keys()), list(par_dict.values()), what="parameter")
 
-    def eval_f(u_vec):
-        lead = _Vec(vars_list, u_vec[0:N])
-        curr = _Vec(vars_list, u_vec[N:2 * N])
-        lag = _Vec(vars_list, u_vec[2 * N:3 * N])
-        shk = _Vec(shocks_list, u_vec[3 * N:3 * N + n_e])
-        return np.asarray(equations(lead, curr, lag, shk, par_vec))
-
-    if method == "complex":
-        hc = _CSTEP
-
-        def grad_f(u_vec):
-            G_mat = np.zeros((N, K_vars))
-            base = np.asarray(u_vec, dtype=complex)
-            for q in range(K_vars):
-                pert = base.copy()
-                pert[q] += 1j * hc
-                G_mat[:, q] = eval_f(pert).imag / hc
-            return G_mat
-
-        hd = 1e-5
-    else:
-        def grad_f(u_vec):
-            G_mat = np.zeros((N, K_vars))
-            base = np.asarray(u_vec, dtype=float)
-            for q in range(K_vars):
-                step = _FDSTEP * max(1.0, abs(base[q]))
-                up, dn = base.copy(), base.copy()
-                up[q] += step
-                dn[q] -= step
-                G_mat[:, q] = (eval_f(up).astype(float) - eval_f(dn).astype(float)) / (2.0 * step)
-            return G_mat
-
-        hd = 1e-4
-
     A_plus = np.asarray(m._A_plus, dtype=float)
     A_0 = np.asarray(m._A_0, dtype=float)
 
-    H_f = np.zeros((N, K_vars, K_vars))
-    for p in range(K_vars):
-        scale = max(1.0, abs(u0[p]))
-        h_step = hd * scale
-        up = u0.copy()
-        up[p] += h_step
-        um = u0.copy()
-        um[p] -= h_step
-        gp = grad_f(up)
-        gm = grad_f(um)
-        H_f[:, p, :] = (gp - gm) / (2.0 * h_step)
+    if compiled is not None:
+        H_f = compiled.eval_second_order(
+            lead=ss_arr,
+            curr=ss_arr,
+            lag=ss_arr,
+            shocks=e0_arr,
+            params=par_dict,
+        )
+    else:
+        def eval_f(u_vec):
+            lead = _Vec(vars_list, u_vec[0:N])
+            curr = _Vec(vars_list, u_vec[N:2 * N])
+            lag = _Vec(vars_list, u_vec[2 * N:3 * N])
+            shk = _Vec(shocks_list, u_vec[3 * N:3 * N + n_e])
+            return np.asarray(equations(lead, curr, lag, shk, par_vec))
+
+        if method == "complex":
+            hc = _CSTEP
+
+            def grad_f(u_vec):
+                G_mat = np.zeros((N, K_vars))
+                base = np.asarray(u_vec, dtype=complex)
+                for q in range(K_vars):
+                    pert = base.copy()
+                    pert[q] += 1j * hc
+                    G_mat[:, q] = eval_f(pert).imag / hc
+                return G_mat
+
+            hd = 1e-5
+        else:
+            def grad_f(u_vec):
+                G_mat = np.zeros((N, K_vars))
+                base = np.asarray(u_vec, dtype=float)
+                for q in range(K_vars):
+                    step = _FDSTEP * max(1.0, abs(base[q]))
+                    up, dn = base.copy(), base.copy()
+                    up[q] += step
+                    dn[q] -= step
+                    G_mat[:, q] = (eval_f(up).astype(float) - eval_f(dn).astype(float)) / (2.0 * step)
+                return G_mat
+
+            hd = 1e-4
+
+        H_f = np.zeros((N, K_vars, K_vars))
+        for p in range(K_vars):
+            scale = max(1.0, abs(u0[p]))
+            h_step = hd * scale
+            up = u0.copy()
+            up[p] += h_step
+            um = u0.copy()
+            um[p] -= h_step
+            gp = grad_f(up)
+            gm = grad_f(um)
+            H_f[:, p, :] = (gp - gm) / (2.0 * h_step)
 
     for i in range(N):
         H_f[i] = 0.5 * (H_f[i] + H_f[i].T)
@@ -801,16 +886,18 @@ def solve_dynare_2nd_order(
 
     # (A_0 + A_+ g_x P_s) g_xx + A_+ g_xx (h_x ⊗ h_x) = -K_xx
     A_hat = A_0 + A_plus @ g_x @ P_s
-    hx_kron = np.kron(h_x, h_x)
-    sys_mat = np.kron(np.eye(n_x**2), A_hat) + np.kron(hx_kron.T, A_plus)
-    rhs_xx = -K_xx_tensor.reshape(-1, order="F")
-
     try:
-        vec_gxx = scipy.linalg.solve(sys_mat, rhs_xx)
-    except scipy.linalg.LinAlgError:
-        vec_gxx = scipy.linalg.lstsq(sys_mat, rhs_xx)[0]
+        g_xx = solve_generalized_sylvester_kronecker(A_hat, A_plus, h_x, K_xx_tensor)
+    except Exception:
+        hx_kron = np.kron(h_x, h_x)
+        sys_mat = np.kron(np.eye(n_x**2), A_hat) + np.kron(hx_kron.T, A_plus)
+        rhs_xx = -K_xx_tensor.reshape(-1, order="F")
+        try:
+            vec_gxx = scipy.linalg.solve(sys_mat, rhs_xx)
+        except scipy.linalg.LinAlgError:
+            vec_gxx = scipy.linalg.lstsq(sys_mat, rhs_xx)[0]
+        g_xx = vec_gxx.reshape((N, n_x**2), order="F")
 
-    g_xx = vec_gxx.reshape((N, n_x**2), order="F")
     H_xx = P_s @ g_xx
     G_xx = P_c @ g_xx
 
@@ -866,7 +953,7 @@ def solve_dynare_2nd_order(
     H_ss = P_s @ g_ss
     G_ss = P_c @ g_ss
 
-    return PrunedDSGESolution(
+    sol = PrunedDSGESolution(
         G=h_x,
         N=h_u,
         F=P_c @ g_x,
@@ -894,6 +981,12 @@ def solve_dynare_2nd_order(
         shock_cov=sigma_u,
         first_order=m,
     )
+    if dag is not None:
+        object.__setattr__(sol, "_dag", dag)
+    if compiled is not None:
+        object.__setattr__(sol, "_compiled", compiled)
+    object.__setattr__(sol, "_is_linear", False)
+    return sol
 
 
 def _extract_ids(raw_str: str) -> list[str]:
@@ -972,13 +1065,15 @@ def _expand_multiperiod_leads_lags(
     return updated_eqs, updated_vars, updated_ss, updated_guess
 
 
-def parse_mod(mod_text: str) -> dict:
+def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
     """Parse a Dynare .mod file string into structured declarations and Python equations.
 
     Parameters
     ----------
     mod_text : str
         The raw text of a Dynare .mod file.
+    base_dir : Path or str, optional
+        Base directory for macro processor file inclusion resolution.
 
     Returns
     -------
@@ -1005,14 +1100,45 @@ def parse_mod(mod_text: str) -> dict:
     Raises
     ------
     DynareFeatureError
-        The file uses the Dynare macro processor (``@#define``, ``@#for``,
-        ``@#if``, ``@#include``, ``@{...}``), which is not implemented. Parsing
-        on would silently solve a different model.
+        The file uses an unsupported Dynare macro directive.
+    DynareMacroError
+        The file has a macro preprocessor syntax or evaluation error.
     ValueError
         The file has no ``var``/``varexo`` declaration or no ``model;`` block.
     """
     clean_text = _remove_comments(mod_text)
-    _check_no_macro_directives(clean_text)
+
+    # 0. Dynare macro processor pre-pass
+    if _MACRO_DIRECTIVE.search(clean_text) or _MACRO_INTERPOLATION.search(clean_text):
+        clean_text = preprocess_macro(clean_text, base_dir=base_dir)
+        _check_no_macro_directives(clean_text)
+
+    # 1. First attempt AST DAG parsing via puremacro.dsge._parser
+    try:
+        dag = parse_mod_to_dag(clean_text, base_dir=base_dir)
+        if not dag.variables:
+            raise ValueError("could not find 'var ...;' declaration in .mod content")
+        if not dag.shocks:
+            raise ValueError("could not find 'varexo ...;' declaration in .mod content")
+        if not dag.equations:
+            raise ValueError("could not find 'model; ... end;' block in .mod content")
+        compiled = compile_derivatives(dag)
+        res = dag.to_dynare_dict()
+        res["_dag"] = dag
+        res["_compiled"] = compiled
+        res["is_linear"] = dag.is_linear or compiled.is_linear
+        eq_callable = res["equations"]
+        try:
+            object.__setattr__(eq_callable, "_dag", dag)
+            object.__setattr__(eq_callable, "_compiled", compiled)
+        except Exception:
+            pass
+        return res
+    except (ValueError, DynareMacroError, DynareFeatureError):
+        raise
+    except Exception:
+        # Fall back to legacy regex parser
+        pass
 
     # Remove known blocks to isolate top-level declarations and parameters
     block_pattern = r"\b(model|initval|steady_state_model|shocks|estimated_params)\b(?:\([^)]*\))?\s*;.*?\bend\s*;"
@@ -1435,11 +1561,13 @@ def load_mod(
                 f"no .mod file at {p!s} (resolved from {Path.cwd()!s}); pass a path "
                 "to an existing file or the .mod source text itself"
             )
+        base_dir = p.parent
         text = p.read_text(encoding="utf-8")
     else:
+        base_dir = Path.cwd()
         text = text_str
 
-    parsed = parse_mod(text)
+    parsed = parse_mod(text, base_dir=base_dir)
 
     # Merge parameters
     merged_params = dict(parsed["params"])
@@ -1487,9 +1615,11 @@ def load_mod(
 
     # Carry the file's own declarations onto the solved model so
     # ``model.estimate(data)`` needs no second copy of them. LinearModel is a
-    # frozen dataclass, so this is ``replace``, never assignment; a
-    # second-order solve returns a PrunedDSGESolution instead and is left
-    # alone.
+    # frozen dataclass, so this is ``replace``, never assignment.
+    dag = parsed.get("_dag", getattr(parsed.get("equations"), "_dag", None))
+    compiled = parsed.get("_compiled", getattr(parsed.get("equations"), "_compiled", None))
+    is_linear = parsed.get("is_linear", False)
+
     if isinstance(model, LinearModel):
         model = dataclasses.replace(
             model,
@@ -1497,11 +1627,45 @@ def load_mod(
             _estimated_params=parsed["estimated_params"],
             _mod_options=dict(parsed["options"]) if parsed["options"] else None,
         )
+        if dag is not None:
+            object.__setattr__(model, "_dag", dag)
+        if compiled is not None:
+            object.__setattr__(model, "_compiled", compiled)
+        object.__setattr__(model, "_is_linear", is_linear)
+    elif isinstance(model, PrunedDSGESolution):
+        if dag is not None:
+            object.__setattr__(model, "_dag", dag)
+        if compiled is not None:
+            object.__setattr__(model, "_compiled", compiled)
+        object.__setattr__(model, "_is_linear", is_linear)
+
     return model
 
 
 # Backwards compatibility alias
 load_dynare_mod = load_mod
+
+
+# Attach model_info and write_latex_dynamic_model to LinearModel
+def _linear_model_model_info(self) -> Any:
+    dag = getattr(self, "_dag", self)
+    return model_info(dag)
+
+
+def _linear_model_write_latex(self, filepath: str | Path | None = None, write_equation_tags: bool = True) -> str:
+    dag = getattr(self, "_dag", self)
+    return write_latex_dynamic_model(dag, filepath=filepath, write_equation_tags=write_equation_tags)
+
+
+LinearModel.model_info = _linear_model_model_info  # type: ignore[attr-defined]
+LinearModel.write_latex_dynamic_model = _linear_model_write_latex  # type: ignore[attr-defined]
+from puremacro.dsge.pruning import PrunedSimulationResult
+PrunedSimulationResult.__len__ = lambda self: len(self.states)  # type: ignore[attr-defined]
+PrunedSimulationResult.to_numpy = lambda self, *args, **kwargs: self.to_frame().to_numpy(*args, **kwargs)  # type: ignore[attr-defined]
+PrunedSimulationResult.columns = property(lambda self: self.to_frame().columns)  # type: ignore[assignment]
+PrunedSimulationResult.__getitem__ = lambda self, key: self.to_frame()[key]  # type: ignore[attr-defined]
+PrunedSimulationResult.__getattr__ = lambda self, name: getattr(self.to_frame(), name)  # type: ignore[attr-defined]
+
 
 __all__ = [
     "build_dynare",
@@ -1509,5 +1673,20 @@ __all__ = [
     "load_mod",
     "load_dynare_mod",
     "solve_dynare_2nd_order",
+    "DynareFeatureError",
+    "DynareMacroError",
+    "DynareParseError",
+    "model_info",
+    "write_latex_dynamic_model",
+    "detect_linear_model",
 ]
+
+import sys
+if "puremacro.dsge" in sys.modules:
+    _dsge_mod = sys.modules["puremacro.dsge"]
+    setattr(_dsge_mod, "model_info", model_info)
+    setattr(_dsge_mod, "write_latex_dynamic_model", write_latex_dynamic_model)
+    setattr(_dsge_mod, "detect_linear_model", detect_linear_model)
+    setattr(_dsge_mod, "DynareMacroError", DynareMacroError)
+    setattr(_dsge_mod, "DynareParseError", DynareParseError)
 
