@@ -1,0 +1,3 @@
+## 2024-05-27 - Decorative Emojis and External Links in Jupyter HTML Outputs
+**Learning:** Decorative emojis (like 🚀) and unicode symbols (like ↗) in HTML outputs rendered within Jupyter notebooks are read awkwardly by screen readers ("rocket", "north east arrow"). Additionally, external links often miss `rel="noopener noreferrer"` in these inline HTML blocks.
+**Action:** Always wrap decorative emojis/symbols in `<span aria-hidden="true">` when writing HTML snippets for Jupyter notebook outputs, and ensure all `target="_blank"` links include `rel="noopener noreferrer"` and an explicit `aria-label`.
