@@ -78,6 +78,7 @@ def gensys(
     *,
     div: float = 1.0 + 1e-8,
     tol: float = 1e-6,
+    qz_criterium: float | None = None,
 ) -> GensysSolution:
     """Sims (2002) gensys — QZ solution for Γ_0 z = Γ_1 z_{-1} + Ψ ε + Π η.
 
@@ -93,6 +94,8 @@ def gensys(
              existence and uniqueness tests (Sims's ``realsmall``, here
              applied relative to the largest singular value rather than
              absolutely, so the verdict does not depend on the model's units).
+    qz_criterium : float, optional
+             Alias for div (stability threshold). If provided, overrides div.
 
     Returns
     -------
@@ -133,6 +136,9 @@ def gensys(
     n = Gamma0.shape[0]
     n_eta = Pi.shape[1]
     n_eps = Psi.shape[1]
+
+    if qz_criterium is not None:
+        div = float(qz_criterium)
 
     # Generalised Schur decomposition of (Γ_0, Γ_1):
     # Γ_0 = Q S Z^H,   Γ_1 = Q T Z^H

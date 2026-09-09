@@ -18,6 +18,7 @@ For likelihood-based estimation, pair the state-space form returned by
 from .klein import BlanchardKahnError, KleinSolution, klein_solve
 from .build import LinearModel, ModelError, SteadyStateError, build
 from .steady import StructuralSingularityError, steady
+from ._moments import one_sided_hp_filter
 from ._results import (
     DSGEPosteriorResult, SW07PosteriorResult,
     FertilitySolution,
@@ -27,7 +28,19 @@ from ._results import (
     DiagnosticFinding, EigenvalueTable, ModelDiagnosticsResult,
     IdentificationResult,
     OSRResult, PolicyResult,
+    ExtendedPathResult,
+    ConditionalForecastResult,
+    ShockDecompositionResult,
+    BayesianIRFResult,
+    PriorPredictiveResult,
+    ModelParityResult,
+    ParityDashboardResult,
 )
+from .parity import verify_dynare_parity, compare_model_to_dynare, run_parity_suite
+from .load_dynare import load_dynare_dr, load_dynare_moments, load_irfs, load_fevd
+from .conditional import conditional_forecast
+from .shock_groups import shock_groups_decomposition
+from .bayesian import bayesian_irf, prior_predictive
 from .diagnostics import check, resid, model_diagnostics
 from .identification import identification
 from .policy import osr, discretionary_policy, lq_commitment
@@ -43,8 +56,12 @@ from .pruning import (
 from .dynare import (
     DynareFeatureError,
     build_dynare, parse_mod, load_mod, load_dynare_mod, solve_dynare_2nd_order,
+    _orig_stoch_simul, _linear_model_stoch_simul,
 )
+import functools as _functools
+LinearModel.stoch_simul = _functools.wraps(_orig_stoch_simul)(_linear_model_stoch_simul)
 from .perfect_foresight import PerfectForesightResult, solve_perfect_foresight
+from .extended_path import extended_path
 from .occbin import OccBinConstraint, OccBinResult, solve_occbin
 from .gertler_karadi import (
     GK2011_PARAMS,
@@ -121,7 +138,23 @@ __all__ = [
     # --- 2.6.0: Optimal Simple Rules & Policy Regimes --------------------
     "osr", "discretionary_policy", "lq_commitment",
     "OSRResult", "PolicyResult",
+    # --- 2.9.0: stoch_simul Filtering & Simulation Surface ---------------
+    "one_sided_hp_filter",
+    # --- 2.9.0: Extended Path (Fair-Taylor 1983) -------------------------
+    "extended_path", "ExtendedPathResult",
+    # --- 2.9.0: Tier 3 Surface -------------------------------------------
+    "conditional_forecast", "ConditionalForecastResult",
+    "shock_groups_decomposition", "ShockDecompositionResult",
+    "bayesian_irf", "BayesianIRFResult",
+    "prior_predictive", "PriorPredictiveResult",
+    # --- 2.9.0: Dynare Parity Dashboard & CLI ----------------------------
+    "verify_dynare_parity", "compare_model_to_dynare", "run_parity_suite",
+    "load_dynare_dr", "load_dynare_moments", "load_irfs", "load_fevd",
+    "ParityDashboardResult", "ModelParityResult",
+    "load_dynare", "parity",
 ]
 from . import smets_wouters  # re-export for back-compat with 0.50.0 callers
 from . import gertler_karadi
+from . import load_dynare, parity
+
 

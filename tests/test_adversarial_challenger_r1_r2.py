@@ -614,20 +614,28 @@ class TestTask6PyodideFourPackageContract:
 
     def test_dsge_tier2_modules_zero_unauthorized_imports(self):
         """Confirm no forbidden symbols or packages leaked into dsge submodules."""
-        forbidden = {"sympy", "jax", "torch", "numba", "statsmodels", "linearmodels", "arch"}
-        
-        # Import target modules
-        import puremacro.dsge._ast
-        import puremacro.dsge._parser
-        import puremacro.dsge._symbolic
-        import puremacro.dsge._sylvester
-        import puremacro.dsge.pruning
-        import puremacro.dsge.perfect_foresight
-        import puremacro.dsge.dynare
+        import subprocess
 
-        loaded_modules = set(sys.modules.keys())
-        for f in forbidden:
-            assert f not in loaded_modules, f"Forbidden dependency {f} was loaded into sys.modules"
+        code = (
+            "import sys\n"
+            "import puremacro.dsge._ast\n"
+            "import puremacro.dsge._parser\n"
+            "import puremacro.dsge._symbolic\n"
+            "import puremacro.dsge._sylvester\n"
+            "import puremacro.dsge.pruning\n"
+            "import puremacro.dsge.perfect_foresight\n"
+            "import puremacro.dsge.dynare\n"
+            "forbidden = {'sympy', 'jax', 'torch', 'numba', 'statsmodels', 'linearmodels', 'arch'}\n"
+            "loaded = set(sys.modules.keys())\n"
+            "leaked = forbidden & loaded\n"
+            "assert not leaked, f'Forbidden dependency leaked: {leaked}'\n"
+        )
+        proc = subprocess.run(
+            [sys.executable, "-c", code],
+            capture_output=True,
+            text=True,
+        )
+        assert proc.returncode == 0, f"Import leak detected:\n{proc.stderr}"
 
     def test_four_package_dependency_whitelist(self):
         """Assert core dependencies are restricted to numpy, scipy, pandas, matplotlib."""

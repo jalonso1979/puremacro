@@ -42,7 +42,14 @@ import numpy as np
 import pandas as pd
 import scipy.linalg
 
-__all__ = ["first_order_moments", "conditional_fevd", "ZeroVarianceWarning"]
+__all__ = [
+    "first_order_moments",
+    "conditional_fevd",
+    "ZeroVarianceWarning",
+    "spectral_moments",
+    "one_sided_hp_filter",
+    "compute_autocorr_matrices",
+]
 
 
 class ZeroVarianceWarning(UserWarning):
@@ -82,6 +89,289 @@ def first_order_moments(
         gammas.append(M_x @ g_pow @ base)
         g_pow = g_pow @ G
     return sigma_x, gamma_0, gammas
+
+
+def spectral_moments(
+    G: np.ndarray,
+    N: np.ndarray,
+    M_x: np.ndarray,
+    M_u: np.ndarray,
+    sigma_u: np.ndarray,
+    lags: int = 5,
+    *,
+    filter_type: str | None = None,
+    hp_lambda: float = 1600.0,
+    bandpass: tuple[float, float] | None = None,
+    n_quad: int = 128,
+) -> tuple[np.ndarray, np.ndarray, list[np.ndarray]]:
+    """Evaluate theoretical filtered or unfiltered moments via Gauss-Legendre quadrature.
+
+    Integrates the power spectral density matrix:
+        S_y(omega) = (1 / 2*pi) H_y(omega) Sigma_u H_y(omega)^H
+    over [0, pi] for HP/unfiltered, or [omega_L, omega_H] for Baxter-King bandpass:
+        Gamma_k = 2 * int |H(omega)|^2 Re[S_y(omega) e^{i omega k}] d omega
+
+    Parameters
+    ----------
+    G : np.ndarray, shape (n_x, n_x)
+        State transition companion matrix.
+    N : np.ndarray, shape (n_x, n_u)
+        Shock impact matrix on states.
+    M_x : np.ndarray, shape (n_v, n_x)
+        Observation loading on predetermined states.
+    M_u : np.ndarray, shape (n_v, n_u)
+        Observation loading on contemporaneous innovations.
+    sigma_u : np.ndarray, shape (n_u, n_u)
+        Innovation covariance matrix.
+    lags : int, default 5
+        Number of autocovariance lags to compute.
+    filter_type : {"hp", "bandpass"} or None, optional
+        Filter specification. If None, computes unfiltered moments.
+    hp_lambda : float, default 1600.0
+        Smoothing parameter lambda for HP filter.
+    bandpass : tuple of (float, float), optional
+        Periodicity bounds (low, high) for Baxter-King bandpass filter.
+    n_quad : int, default 128
+        Number of Gauss-Legendre quadrature nodes.
+
+    Returns
+    -------
+    sigma_x : np.ndarray, shape (n_x, n_x)
+        Filtered or unfiltered state covariance matrix.
+    gamma_0 : np.ndarray, shape (n_v, n_v)
+        Contemporaneous covariance matrix.
+    gammas : list of np.ndarray, length `lags`
+        Autocovariance matrices Gamma_k = cov(v_t, v_{t-k}) for k=1..lags.
+    """
+    G = np.asarray(G, dtype=float)
+    N = np.asarray(N, dtype=float)
+    M_x = np.asarray(M_x, dtype=float)
+    M_u = np.asarray(M_u, dtype=float)
+    sigma_u = np.asarray(sigma_u, dtype=float)
+    lags = int(lags)
+    n_quad = int(n_quad)
+
+    n_x = G.shape[0]
+    n_v = M_x.shape[0]
+
+    if n_x > 0:
+        g_eigs = np.abs(scipy.linalg.eigvals(G))
+        if filter_type is None and bandpass is None:
+            if np.any(g_eigs >= 1.0 - 1e-7):
+                bad = g_eigs[g_eigs >= 1.0 - 1e-7]
+                raise ValueError(
+                    f"State transition matrix G has non-stationary eigenvalues (|λ| >= 1.0: {bad}); "
+                    "unconditional stationary moments do not exist."
+                )
+        else:
+            if np.any(g_eigs > 1.0 + 1e-7):
+                bad = g_eigs[g_eigs > 1.0 + 1e-7]
+                raise ValueError(
+                    f"State transition matrix G has explosive eigenvalues (|λ| > 1.0: {bad}); "
+                    "filtered moments do not exist."
+                )
+
+    # Determine integration domain [a, b]
+    if filter_type == "bandpass" or (filter_type is None and bandpass is not None):
+        filter_type = "bandpass"
+        if bandpass is None:
+            raise ValueError("bandpass parameter required for bandpass filter")
+        low, high = float(bandpass[0]), float(bandpass[1])
+        if low <= 0 or high <= low:
+            raise ValueError(f"bandpass requires 0 < low < high, got low={low}, high={high}")
+        omega_L = max(2.0 * np.pi / high, 0.0)
+        omega_H = min(2.0 * np.pi / low, np.pi)
+        a, b = omega_L, omega_H
+    else:
+        a, b = 0.0, np.pi
+
+    # Gauss-Legendre quadrature nodes and weights mapped to [a, b]
+    x_nodes, w_weights = np.polynomial.legendre.leggauss(n_quad)
+    omega = 0.5 * (b - a) * x_nodes + 0.5 * (b + a)
+    weights = 0.5 * (b - a) * w_weights
+
+    # Squared gain transfer function |H(omega)|^2
+    if filter_type == "hp":
+        if hp_lambda <= 0:
+            raise ValueError(f"hp_lambda must be positive, got {hp_lambda}")
+        cos_w = np.cos(omega)
+        term = 4.0 * float(hp_lambda) * ((1.0 - cos_w) ** 2)
+        gain2 = term / (1.0 + term)
+    elif filter_type == "bandpass":
+        gain2 = np.ones_like(omega)
+    else:
+        gain2 = np.ones_like(omega)
+
+    S_tilde = np.zeros((n_quad, n_v, n_v), dtype=complex)
+    Sx_tilde = np.zeros((n_quad, n_x, n_x), dtype=complex)
+
+    if n_x == 0:
+        S_const = (1.0 / (2.0 * np.pi)) * (M_u @ sigma_u @ M_u.T)
+        for j in range(n_quad):
+            S_tilde[j] = (2.0 * weights[j] * gain2[j]) * S_const
+        sigma_x = np.zeros((0, 0))
+    else:
+        Inx = np.eye(n_x)
+        for j in range(n_quad):
+            wj = omega[j]
+            # Resolvent (e^{i omega_j} I - G) X_j = N
+            Zj = np.exp(1j * wj) * Inx - G
+            X_j = np.linalg.solve(Zj, N)
+            H_j = M_x @ X_j + M_u
+            S_j = (1.0 / (2.0 * np.pi)) * (H_j @ sigma_u @ H_j.conj().T)
+            S_tilde[j] = (2.0 * weights[j] * gain2[j]) * S_j
+            Sx_j = (1.0 / (2.0 * np.pi)) * (X_j @ sigma_u @ X_j.conj().T)
+            Sx_tilde[j] = (2.0 * weights[j] * gain2[j]) * Sx_j
+
+        sigma_x = np.sum(Sx_tilde.real, axis=0)
+        sigma_x = 0.5 * (sigma_x + sigma_x.T)
+        diag_x = np.diag(sigma_x)
+        if np.any(diag_x < 0):
+            np.fill_diagonal(sigma_x, np.maximum(diag_x, 0.0))
+        if sigma_x.size > 0:
+            wx, vx = np.linalg.eigh(sigma_x)
+            if np.any(wx < 0):
+                sigma_x = (vx * np.maximum(wx, 0.0)) @ vx.T
+                sigma_x = 0.5 * (sigma_x + sigma_x.T)
+
+    k_vals = np.arange(lags + 1)
+    E = np.exp(1j * np.outer(omega, k_vals))  # shape (n_quad, lags + 1)
+    Gamma = np.einsum("jvu, jk -> kvu", S_tilde, E).real
+
+    gamma_0 = 0.5 * (Gamma[0] + Gamma[0].T)
+    diag_g0 = np.diag(gamma_0)
+    if np.any(diag_g0 < 0):
+        np.fill_diagonal(gamma_0, np.maximum(diag_g0, 0.0))
+    if gamma_0.size > 0:
+        w0, v0 = np.linalg.eigh(gamma_0)
+        if np.any(w0 < 0):
+            gamma_0 = (v0 * np.maximum(w0, 0.0)) @ v0.T
+            gamma_0 = 0.5 * (gamma_0 + gamma_0.T)
+
+    gammas = [Gamma[k] for k in range(1, lags + 1)]
+    return sigma_x, gamma_0, gammas
+
+
+def one_sided_hp_filter(
+    y: np.ndarray | pd.Series | pd.DataFrame,
+    lamb: float = 1600.0,
+) -> tuple[np.ndarray | pd.Series | pd.DataFrame, np.ndarray | pd.Series | pd.DataFrame]:
+    """One-sided Hodrick-Prescott filter via recursive forward Kalman filter.
+
+    Implements the causal state-space filter of Stock & Watson (1999, p. 301)
+    and Hamilton (1994, Ch. 13), matching Dynare's one_sided_hp_filter:
+        Delta^2 tau_t = eta_t,   y_t = tau_t + epsilon_t,   sigma_eps^2 / sigma_eta^2 = lambda
+
+    Parameters
+    ----------
+    y : array-like, Series, or DataFrame
+        Time series data of shape (T,) or (T, n). T must be >= 4.
+    lamb : float, default 1600.0
+        Smoothing parameter lambda (e.g. 1600 for quarterly data).
+
+    Returns
+    -------
+    cycle, trend : tuple matching input container type
+        Extracted cyclical component (y - trend) and trend component.
+    """
+    if lamb <= 0:
+        raise ValueError(f"one_sided_hp_filter parameter lambda must be positive, got {lamb}")
+
+    is_series = isinstance(y, pd.Series)
+    is_df = isinstance(y, pd.DataFrame)
+    orig = y
+
+    arr = np.asarray(y, dtype=float)
+    if arr.ndim == 1:
+        arr = arr[:, None]
+    T, n_vars = arr.shape
+
+    if T < 4:
+        raise ValueError(f"one_sided_hp_filter requires at least 4 observations, got {T}")
+
+    q = 1.0 / float(lamb)
+    F = np.array([[2.0, -1.0], [1.0, 0.0]])
+    H = np.array([[1.0, 0.0]])
+    Q = np.array([[q, 0.0], [0.0, 0.0]])
+    R = 1.0
+
+    ytrend = np.empty((T, n_vars), dtype=float)
+
+    for k in range(n_vars):
+        yk = arr[:, k]
+        # Backwards linear extrapolation initialization matching Dynare
+        x = np.array([2.0 * yk[0] - yk[1], 3.0 * yk[0] - 2.0 * yk[1]])
+        P = np.eye(2) * 1e5
+
+        for j in range(T):
+            obs = yk[j]
+            S = (H @ P @ H.T)[0, 0] + R
+            K = (F @ P @ H.T) / S
+            v = obs - (H @ x)[0]
+            x = F @ x + (K * v).flatten()
+            Temp = F - K @ H
+            P = Temp @ P @ Temp.T + Q + K * R @ K.T
+            ytrend[j, k] = x[1]  # Second state element is tau_{t|t}
+
+    ycycle = arr - ytrend
+
+    if is_series:
+        c_out = pd.Series(ycycle[:, 0], index=orig.index, name=orig.name)
+        t_out = pd.Series(ytrend[:, 0], index=orig.index, name=orig.name)
+        return c_out, t_out
+    elif is_df:
+        c_out = pd.DataFrame(ycycle, index=orig.index, columns=orig.columns)
+        t_out = pd.DataFrame(ytrend, index=orig.index, columns=orig.columns)
+        return c_out, t_out
+    else:
+        if orig.ndim == 1:
+            return ycycle[:, 0], ytrend[:, 0]
+        return ycycle, ytrend
+
+
+def compute_autocorr_matrices(
+    gamma_0: np.ndarray,
+    gammas: Sequence[np.ndarray],
+    variable_names: Sequence[str],
+) -> tuple[pd.DataFrame, list[pd.DataFrame]]:
+    """Compute contemporaneous correlation matrix R(0) and autocorrelation matrices R(k).
+
+    Parameters
+    ----------
+    gamma_0 : np.ndarray, shape (N, N)
+        Contemporaneous covariance matrix.
+    gammas : Sequence of np.ndarray, each shape (N, N)
+        Autocovariance matrices for lags 1..n.
+    variable_names : Sequence of str
+        Endogenous variable names for DataFrame indexing.
+
+    Returns
+    -------
+    df_corr : pd.DataFrame, shape (N, N)
+        Contemporaneous correlation matrix R(0) with 1.0 diagonal and bounds [-1, 1].
+    autocorr_matrices : list of pd.DataFrame, each shape (N, N)
+        Cross-variable autocorrelation matrices R(k) = D^{-1/2} Gamma_k D^{-1/2}.
+    """
+    vars_list = list(variable_names)
+    variances = np.diag(gamma_0)
+    stds = np.sqrt(np.maximum(variances, 0.0))
+    std_outer = np.outer(stds, stds)
+
+    with np.errstate(divide="ignore", invalid="ignore"):
+        inv_outer = np.where(std_outer > 1e-14, 1.0 / std_outer, np.nan)
+
+    corr_mat = gamma_0 * inv_outer
+    corr_mat = 0.5 * (corr_mat + corr_mat.T)
+    np.fill_diagonal(corr_mat, 1.0)
+    corr_mat = np.clip(corr_mat, -1.0, 1.0)
+    df_corr = pd.DataFrame(corr_mat, index=vars_list, columns=vars_list)
+
+    autocorr_mats: list[pd.DataFrame] = []
+    for gamma_k in gammas:
+        R_k = np.clip(gamma_k * inv_outer, -1.0, 1.0)
+        autocorr_mats.append(pd.DataFrame(R_k, index=vars_list, columns=vars_list))
+
+    return df_corr, autocorr_mats
 
 
 def _is_asymptotic(h) -> bool:

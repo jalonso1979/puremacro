@@ -15,8 +15,66 @@ import numpy as np
 import pandas as pd
 
 
+class DynareParser(argparse.ArgumentParser):
+    """Dual-mode parser supporting both legacy model solving and parity verification."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._parity_parser = argparse.ArgumentParser(
+            prog="puremacro-dynare parity",
+            description="Run automated parity verification against Dynare golden outputs.",
+        )
+        self._parity_parser.add_argument(
+            "path",
+            nargs="?",
+            default=".",
+            help="Path to .mod file, *_results.mat file, or directory of models. Default: .",
+        )
+        self._parity_parser.add_argument(
+            "--order",
+            type=int,
+            choices=[1, 2],
+            default=1,
+            help="Perturbation order to verify (1 or 2). Default: 1.",
+        )
+        self._parity_parser.add_argument(
+            "--tol",
+            type=float,
+            default=None,
+            help="Maximum absolute deviation tolerance override.",
+        )
+        self._parity_parser.add_argument(
+            "--format",
+            choices=["markdown", "latex", "typst", "all", "text"],
+            default="text",
+            help="Output scorecard format. Default: text.",
+        )
+        self._parity_parser.add_argument(
+            "--outdir",
+            type=str,
+            default=None,
+            help="Directory to export scorecard artifacts.",
+        )
+        self._parity_parser.add_argument(
+            "--quiet",
+            action="store_true",
+            help="Suppress terminal summary output.",
+        )
+        self._parity_parser.set_defaults(command="parity")
+
+    def parse_args(self, args=None, namespace=None):
+        if args is None:
+            args = sys.argv[1:]
+        if args and args[0] == "parity":
+            return self._parity_parser.parse_args(args[1:], namespace=namespace)
+        ns = super().parse_args(args, namespace=namespace)
+        if not hasattr(ns, "command"):
+            ns.command = "solve"
+        return ns
+
+
 def create_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
+    parser = DynareParser(
         prog="puremacro-dynare",
         description="Run Dynare .mod macroeconomic models in pure Python without MATLAB/C++.",
     )
@@ -86,6 +144,59 @@ def create_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def run_parity_cli(args: argparse.Namespace) -> int:
+    """Execute parity verification subcommand."""
+    target_path = Path(args.path)
+    if not target_path.exists():
+        sys.stderr.write(f"Error: Path '{target_path}' not found.\n")
+        return 1
+
+    from puremacro.dsge.parity import compare_model_to_dynare, run_parity_suite
+
+    if target_path.is_file():
+        if target_path.suffix == ".mod":
+            mat_candidates = [
+                target_path.with_name(f"{target_path.stem}_results.mat"),
+                target_path.with_suffix(".mat"),
+                target_path.parent / "results" / f"{target_path.stem}_results.mat",
+            ]
+            mat_path = next((m for m in mat_candidates if m.exists()), None)
+            if mat_path is None:
+                sys.stderr.write(f"Error: No matching results .mat file found for {target_path}.\n")
+                return 1
+            res = compare_model_to_dynare(target_path, mat_path, order=args.order, tol=args.tol)
+        elif target_path.suffix == ".mat":
+            mod_candidates = [
+                target_path.with_suffix(".mod"),
+                target_path.with_name(f"{target_path.stem.replace('_results', '')}.mod"),
+            ]
+            mod_path = next((m for m in mod_candidates if m.exists()), None)
+            if mod_path is None:
+                sys.stderr.write(f"Error: No matching .mod file found for {target_path}.\n")
+                return 1
+            res = compare_model_to_dynare(mod_path, target_path, order=args.order, tol=args.tol)
+        else:
+            sys.stderr.write(f"Error: Unrecognized file type '{target_path.suffix}'; expected .mod or .mat\n")
+            return 1
+    else:
+        res = run_parity_suite(target_path, order=args.order, tol=args.tol)
+
+    if not args.quiet:
+        sys.stdout.write(res.summary() + "\n")
+
+    if args.outdir or (args.format and args.format != "text"):
+        out_dir = Path(args.outdir) if args.outdir else Path("./dynare_parity_results")
+        out_dir.mkdir(parents=True, exist_ok=True)
+        if args.format in ("markdown", "all"):
+            (out_dir / "parity_scorecard.md").write_text(res.to_markdown(), encoding="utf-8")
+        if args.format in ("latex", "all"):
+            (out_dir / "parity_scorecard.tex").write_text(res.to_latex(), encoding="utf-8")
+        if args.format in ("typst", "all"):
+            (out_dir / "parity_scorecard.typ").write_text(res.to_typst(), encoding="utf-8")
+
+    return 0 if res.passed else 1
+
+
 def _bk_status_line(model) -> str:
     """Blanchard-Kahn verdict read off the solved model, never assumed."""
     first = getattr(model, "first_order", None)
@@ -104,6 +215,9 @@ def _bk_status_line(model) -> str:
 def run_cli(argv: Sequence[str] | None = None) -> int:
     parser = create_parser()
     args = parser.parse_args(argv)
+
+    if getattr(args, "command", None) == "parity":
+        return run_parity_cli(args)
 
     mod_path = Path(args.model)
     if not mod_path.exists():

@@ -237,6 +237,7 @@ El cómputo de estados estacionarios deterministas en modelos DSGE de mediana y 
 1. **Emparejamiento bipartito de Hopcroft-Karp**: halla un emparejamiento de máxima cardinalidad entre ecuaciones y variables en tiempo $O(|E|\sqrt{|V|})$.
 2. **Descomposición de singularidad de Dulmage-Mendelsohn**: cuando no existe un emparejamiento completo, descompone el grafo bipartito de incidencia en subconjuntos sobredeterminados, subdeterminados y bien determinados, generando un error informativo `StructuralSingularityError` que nombra explícitamente los subconjuntos problemáticos:
    ```python
+   # requires: standalone snippet
    from puremacro.dsge.steady import StructuralSingularityError
 
    try:
@@ -258,6 +259,7 @@ El parámetro `solve_algo` permite seleccionar entre distintos algoritmos numér
 Cuando los métodos no lineales fallan debido a un punto inicial alejado, la **continuación por homotopía adaptativa** recorre una trayectoria paramétrica con bisección automática de pasos:
 
 ```python
+# requires: standalone snippet
 from puremacro.dsge.steady import steady
 
 # Continuación paramétrica desde alpha=0.20 hasta alpha=0.36
@@ -277,6 +279,7 @@ ss, info = steady(
 Siguiendo a Iskrev (2010) y Ratto (2011), `model.identification()` evalúa si los parámetros estructurales pueden recuperarse unívocamente a partir de las variables observadas declaradas en `varobs`:
 
 ```python
+# requires: standalone snippet
 ident = model.identification(varobs=["y", "pi", "i"], lags=2)
 print(ident.summary())
 ```
@@ -292,6 +295,7 @@ El objeto `IdentificationResult` resultante reporta:
 - **Fuerza de identificación**: métricas de sensibilidad y fuerza normalizada de Ratto.
 
 ```python
+# requires: standalone snippet
 # Graficar colinealidad R^2 frente a fuerza de identificación
 fig = ident.plot()
 ```
@@ -301,6 +305,7 @@ fig = ident.plot()
 Para evitar el lanzamiento de cadenas MCMC computacionalmente costosas en modelos no identificados, pase `check_identification=True` a `model.estimate()`:
 
 ```python
+# requires: standalone snippet
 # Emite una advertencia informativa si existen parámetros deficientes de rango
 res = model.estimate(data, check_identification=True)
 
@@ -319,6 +324,7 @@ $$L(\gamma) = \sum_i w_i \text{Var}(y_i; \gamma)$$
 sujeta a la condición de determinación de Blanchard-Kahn. Una superficie de penalización numérica continua garantiza la evaluación suave del gradiente cuando los parámetros candidatos ingresan en regiones de indeterminación:
 
 ```python
+# requires: standalone snippet
 osr_res = model.osr(
     rule_params=["phi_pi", "phi_y"],
     target_vars=["pi", "y"],
@@ -335,6 +341,7 @@ fig = osr_res.plot()
 `discretionary_policy()` calcula el equilibrio discrecional markoviano perfecto y temporalmente consistente (Dennis 2007) mediante iteración de funciones de política sobre las matrices de respuesta del sector privado y del banco central:
 
 ```python
+# requires: standalone snippet
 from puremacro.dsge import discretionary_policy
 
 disc_res = discretionary_policy(
@@ -352,6 +359,7 @@ print(disc_res.summary())
 `lq_commitment()` resuelve la política óptima bajo compromiso desde la perspectiva intemporal ($\lambda_{-1} = 0$). Plantea el lagrangiano del planificador sobre las condiciones de equilibrio con expectativas racionales, ampliando el vector de estado con multiplicadores de Lagrange hacia adelante:
 
 ```python
+# requires: standalone snippet
 from puremacro.dsge import lq_commitment
 
 commit_res = lq_commitment(

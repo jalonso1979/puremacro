@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math
-from typing import Any, Callable, Sequence
+from typing import Any, Callable, Mapping, Sequence
 import warnings
 
 import matplotlib.pyplot as plt
@@ -22,6 +22,7 @@ from scipy import stats
 from scipy.optimize import minimize
 
 from puremacro.dsge.priors import ensure_prior, Prior, _validate_priors
+from puremacro.dsge._results import BayesianIRFResult, PriorPredictiveResult
 from puremacro.mcmc import gelman_rubin, geweke_z
 
 
@@ -817,7 +818,463 @@ def estimate_dsge_bayesian(
     )
 
 
+def _resolve_model_with_params(
+    model: Any,
+    p_dict: Mapping[str, float],
+    qz_criterium: float = 1.0 + 1e-8,
+) -> Any:
+    """Re-solve DSGE model with new parameter values and specified QZ criterium."""
+    # 1. Lead-lag Dynare model
+    if getattr(model, "_dynare_equations", None) is not None:
+        new_params = dict(getattr(model, "_params", {}) or {})
+        new_params.update(p_dict)
+        from puremacro.dsge.dynare import build_dynare
+
+        ss = getattr(model, "_steady_state_dict", None)
+        if ss is None and hasattr(model, "steady_state"):
+            ss = model.steady_state.to_dict() if hasattr(model.steady_state, "to_dict") else dict(model.steady_state)
+
+        return build_dynare(
+            model._dynare_equations,
+            variables=list(model.variables),
+            shocks=list(model.shocks),
+            params=new_params,
+            steady_state=ss,
+            check_steady_state=False,
+            strict=True,
+            qz_criterium=qz_criterium,
+        )
+    # 2. Parsed Model DAG / AST equations
+    elif hasattr(model, "compile_equations") and hasattr(model, "variables"):
+        from puremacro.dsge.dynare import build_dynare
+
+        new_params = dict(getattr(model, "parameter_values", {}) or {})
+        new_params.update(p_dict)
+        eq_fn = model.compile_equations()
+        ss = getattr(model, "steady_state", {v: 0.0 for v in model.variables})
+        return build_dynare(
+            eq_fn,
+            variables=list(model.variables),
+            shocks=list(model.shocks),
+            params=new_params,
+            steady_state=ss,
+            check_steady_state=False,
+            strict=True,
+            qz_criterium=qz_criterium,
+        )
+    # 3. Klein timing build() model
+    elif getattr(model, "_equations", None) is not None:
+        from puremacro.dsge.build import build
+
+        new_params = dict(getattr(model, "_params", {}) or {})
+        new_params.update(p_dict)
+        ss = getattr(model, "_steady_state_dict", None)
+        if ss is None and hasattr(model, "steady_state"):
+            ss = model.steady_state.to_dict() if hasattr(model.steady_state, "to_dict") else dict(model.steady_state)
+
+        return build(
+            model._equations,
+            variables=list(model.variables),
+            states=list(model.states),
+            shocks=list(model.shocks),
+            params=new_params,
+            steady_state=ss,
+            strict=True,
+            qz_criterium=qz_criterium,
+        )
+    else:
+        raise ValueError(f"Cannot re-solve model of type {type(model).__name__} with updated parameters.")
+
+
+def _sample_from_prior(spec: Any, n_samples: int, rng: np.random.Generator) -> np.ndarray:
+    """Sample parameter values from a prior specification."""
+    if isinstance(spec, Prior):
+        spec = spec.to_dict() if hasattr(spec, "to_dict") else {
+            "dist": spec.dist,
+            "mean": spec.mean,
+            "std": spec.std,
+            "lb": spec.lb,
+            "ub": spec.ub,
+            **getattr(spec, "_extra", {}),
+        }
+    dist = str(spec.get("dist", "normal")).lower()
+    mean = float(spec.get("mean", 0.0))
+    std = float(spec.get("std", 1.0))
+    lb = float(spec.get("lb", -math.inf))
+    ub = float(spec.get("ub", math.inf))
+
+    if dist == "uniform":
+        low = lb if np.isfinite(lb) else (mean - math.sqrt(3.0) * std)
+        high = ub if np.isfinite(ub) else (mean + math.sqrt(3.0) * std)
+        return rng.uniform(low, high, size=n_samples)
+
+    elif dist == "normal":
+        samples = rng.normal(mean, std, size=n_samples)
+        if np.isfinite(lb) or np.isfinite(ub):
+            for idx in range(n_samples):
+                val = samples[idx]
+                attempts = 0
+                while (val < lb or val > ub) and attempts < 100:
+                    val = rng.normal(mean, std)
+                    attempts += 1
+                if val < lb or val > ub:
+                    val = np.clip(val, lb, ub)
+                samples[idx] = val
+        return samples
+
+    elif dist == "beta":
+        shift = float(spec.get("shift", 0.0))
+        scale = float(spec.get("scale", 1.0))
+        norm_mean = (mean - shift) / scale
+        norm_var = (std / scale) ** 2
+        if norm_var >= norm_mean * (1.0 - norm_mean) or norm_mean <= 0.0 or norm_mean >= 1.0:
+            return rng.uniform(shift, shift + scale, size=n_samples)
+        temp = norm_mean * (1.0 - norm_mean) / norm_var - 1.0
+        a = norm_mean * temp
+        b = (1.0 - norm_mean) * temp
+        raw = rng.beta(a, b, size=n_samples)
+        return shift + scale * raw
+
+    elif dist == "gamma":
+        shift = float(spec.get("shift", 0.0))
+        adj_mean = mean - shift
+        if adj_mean <= 0.0 or std <= 0.0:
+            return rng.normal(mean, std, size=n_samples)
+        k = (adj_mean / std) ** 2
+        theta = (std ** 2) / adj_mean
+        raw = rng.gamma(shape=k, scale=theta, size=n_samples)
+        return shift + raw
+
+    elif dist == "invgamma":
+        if "s" in spec and "nu" in spec:
+            s_val = float(spec["s"])
+            nu_val = float(spec["nu"])
+        else:
+            nu_val = 4.0
+            s_val = mean * math.sqrt(nu_val / 2.0)
+        raw_gamma = rng.gamma(shape=nu_val / 2.0, scale=2.0, size=n_samples)
+        raw_gamma = np.maximum(raw_gamma, 1e-12)
+        raw_x2 = (s_val ** 2) / raw_gamma
+        return np.sqrt(np.maximum(raw_x2, 1e-12))
+
+    elif dist == "weibull":
+        shape = float(spec.get("shape", 2.0))
+        scale = float(spec.get("scale", 1.0))
+        shift = float(spec.get("shift", 0.0))
+        return shift + rng.weibull(shape, size=n_samples) * scale
+
+    else:
+        return rng.normal(mean, std, size=n_samples)
+
+
+def bayesian_irf(
+    model: Any,
+    draws: Any = None,
+    param_names: Sequence[str] | None = None,
+    *,
+    priors: Mapping[str, Any] | None = None,
+    n_draws: int | None = None,
+    seed: int = 0,
+    periods: int | None = None,
+    shocks: Sequence[str] | str | None = None,
+    horizon: int = 40,
+    bands: Sequence[float] = (0.68, 0.90, 0.95),
+    quantiles: Sequence[float] | None = None,
+    shock: str | None = None,
+    variables: Sequence[str] | None = None,
+    size: float = 1.0,
+    burn_in: int = 0,
+    qz_criterium: float = 1.0 + 1e-8,
+) -> BayesianIRFResult:
+    """Compute Bayesian impulse response functions and credible intervals across parameter draws."""
+    if periods is not None:
+        horizon = int(periods)
+
+    # Swap arguments if order is inverted
+    if hasattr(draws, "variables") and not hasattr(model, "variables"):
+        model, draws = draws, model
+    elif isinstance(model, (np.ndarray, pd.DataFrame)) and not isinstance(draws, (np.ndarray, pd.DataFrame)):
+        model, draws = draws, model
+
+    # Resolve parameter draws array and names
+    if draws is None and priors is not None:
+        num_draws = int(n_draws) if n_draws is not None else 50
+        rng_p = np.random.default_rng(seed)
+        param_names = list(priors.keys())
+        draw_cols = []
+        for p_name in param_names:
+            p_spec = priors[p_name]
+            draw_cols.append(_sample_from_prior(p_spec, num_draws, rng_p))
+        draws_arr = np.column_stack(draw_cols)
+    elif isinstance(draws, BayesianEstimationResult):
+        if param_names is None:
+            param_names = list(draws.param_names)
+        chains = draws.chains
+        if chains.ndim == 3:
+            post_burn = chains[:, burn_in:, :]
+            draws_arr = post_burn.reshape(-1, chains.shape[-1])
+        else:
+            draws_arr = np.asarray(chains[burn_in:], dtype=float)
+    elif isinstance(draws, pd.DataFrame):
+        if param_names is None:
+            param_names = list(draws.columns)
+        draws_arr = draws[list(param_names)].to_numpy(dtype=float)
+    elif isinstance(draws, Mapping):
+        if param_names is None:
+            param_names = list(draws.keys())
+        draws_arr = np.column_stack([draws[k] for k in param_names])
+    elif isinstance(draws, np.ndarray):
+        if draws.ndim == 3:
+            post_burn = draws[:, burn_in:, :]
+            draws_arr = post_burn.reshape(-1, draws.shape[-1])
+        else:
+            draws_arr = np.asarray(draws, dtype=float)
+        if param_names is None:
+            model_p = getattr(model, "_params", None)
+            if model_p:
+                param_names = list(model_p.keys())[: draws_arr.shape[1]]
+            else:
+                param_names = [f"param_{i+1}" for i in range(draws_arr.shape[1])]
+    else:
+        raise TypeError(f"Unsupported type for draws: {type(draws).__name__}")
+
+    effective_n_draws = len(draws_arr)
+    if effective_n_draws == 0:
+        raise ValueError("draws is empty")
+
+    p_names = list(param_names)
+    model_vars = list(variables) if variables is not None else list(getattr(model, "variables", []))
+    model_shocks = list(getattr(model, "shocks", []))
+
+    if shocks is not None and not isinstance(shocks, str):
+        target_shocks = [s for s in shocks if s in model_shocks]
+    elif shock is not None:
+        target_shocks = [shock]
+    elif model_shocks:
+        target_shocks = [model_shocks[0]]
+    else:
+        target_shocks = ["e_1"]
+
+    shock_irf_lists: dict[str, list[np.ndarray]] = {s: [] for s in target_shocks}
+    n_valid = 0
+
+    for i in range(effective_n_draws):
+        p_row = draws_arr[i]
+        p_dict = dict(zip(p_names, p_row))
+        try:
+            new_m = _resolve_model_with_params(model, p_dict, qz_criterium=qz_criterium)
+            if not getattr(new_m, "is_determinate", True):
+                continue
+            for s in target_shocks:
+                irf_df = new_m.irf(s, horizon=horizon, size=size)
+                v_cols = [v for v in model_vars if v in irf_df.columns]
+                shock_irf_lists[s].append(irf_df[v_cols].to_numpy(dtype=float))
+            n_valid += 1
+        except Exception:
+            continue
+
+    if n_valid == 0:
+        raise RuntimeError(
+            f"All {effective_n_draws} parameter draws were indeterminate or failed to solve."
+        )
+
+    determinacy_rate = float(n_valid / effective_n_draws)
+    idx = pd.RangeIndex(0, horizon + 1, name="horizon")
+
+    q_set: set[float] = {0.5}
+    if quantiles is not None:
+        for q in quantiles:
+            q_set.add(float(q))
+    if bands is not None:
+        for b in bands:
+            b_val = float(b)
+            if b_val > 1.0:
+                b_val = b_val / 100.0
+            tail = (1.0 - b_val) / 2.0
+            q_set.add(round(tail, 4))
+            q_set.add(round(1.0 - tail, 4))
+
+    q_list = sorted(q_set)
+
+    all_medians: dict[str, pd.DataFrame] = {}
+    all_bands: dict[str, dict[float, tuple[pd.DataFrame, pd.DataFrame]]] = {}
+    all_quantiles: dict[str, dict[float, pd.DataFrame]] = {}
+
+    for s in target_shocks:
+        stacked = np.array(shock_irf_lists[s])
+        s_quantiles: dict[float, pd.DataFrame] = {}
+        for q in q_list:
+            q_arr = np.quantile(stacked, q, axis=0)
+            s_quantiles[q] = pd.DataFrame(q_arr, index=idx, columns=model_vars)
+
+        s_median = s_quantiles[0.5]
+        all_medians[s] = s_median
+        all_quantiles[s] = s_quantiles
+
+        s_bands: dict[float, tuple[pd.DataFrame, pd.DataFrame]] = {}
+        if bands is not None:
+            for b in bands:
+                b_val = float(b)
+                if b_val > 1.0:
+                    b_val = b_val / 100.0
+                tail = (1.0 - b_val) / 2.0
+                low_q = min(s_quantiles.keys(), key=lambda q: abs(q - tail))
+                high_q = min(s_quantiles.keys(), key=lambda q: abs(q - (1.0 - tail)))
+                s_bands[b_val] = (s_quantiles[low_q], s_quantiles[high_q])
+        all_bands[s] = s_bands
+
+    if shock is not None or len(target_shocks) == 1:
+        chosen_shock = shock if shock is not None else target_shocks[0]
+        final_median = all_medians[chosen_shock]
+        final_bands = all_bands[chosen_shock]
+        final_quantiles = all_quantiles[chosen_shock]
+    else:
+        final_median = all_medians
+        final_bands = all_bands
+        final_quantiles = all_quantiles
+
+    return BayesianIRFResult(
+        median=final_median,
+        bands=final_bands,
+        quantiles=final_quantiles,
+        variables=tuple(model_vars),
+        shocks=tuple(target_shocks),
+        n_draws=effective_n_draws,
+        n_valid=n_valid,
+        determinacy_rate=determinacy_rate,
+        horizon=horizon,
+    )
+
+
+def prior_predictive(
+    model: Any,
+    priors: Mapping[str, Any] | None = None,
+    *,
+    n_draws: int = 500,
+    draws: np.ndarray | pd.DataFrame | None = None,
+    seed: int = 0,
+    moments: bool = True,
+    irf: int | bool = 40,
+    irf_periods: int | None = None,
+    qz_criterium: float = 1.0 + 1e-8,
+) -> PriorPredictiveResult:
+    """Simulate theoretical moments and impulse responses across prior parameter distributions."""
+    if irf_periods is not None:
+        irf = int(irf_periods)
+    rng = np.random.default_rng(seed)
+
+    resolved_priors: dict[str, Any] = {}
+    if draws is not None:
+        if isinstance(draws, pd.DataFrame):
+            param_names = list(draws.columns)
+            param_draws = draws.to_numpy(dtype=float)
+        else:
+            param_draws = np.asarray(draws, dtype=float)
+            model_p = getattr(model, "_params", {}) or {}
+            param_names = list(model_p.keys())[: param_draws.shape[1]] if model_p else [f"p_{i}" for i in range(param_draws.shape[1])]
+        total_draws = len(param_draws)
+    else:
+        total_draws = int(n_draws)
+        if priors is not None:
+            resolved_priors = dict(priors)
+        elif getattr(model, "_estimated_params", None) is not None:
+            resolved_priors = dict(model._estimated_params.get("priors", {}))
+        elif hasattr(model, "estimated_params") and model.estimated_params is not None:
+            resolved_priors = dict(getattr(model.estimated_params, "priors", {}))
+        else:
+            base_params = dict(getattr(model, "_params", {}) or getattr(model, "parameter_values", {}) or {})
+            for p_name, p_val in base_params.items():
+                val = float(p_val)
+                if 0.0 < val < 1.0:
+                    resolved_priors[p_name] = {
+                        "dist": "uniform",
+                        "lb": max(1e-4, val * 0.85),
+                        "ub": min(0.999, val * 1.15),
+                        "mean": val,
+                        "std": (val * 0.3) / math.sqrt(12.0),
+                    }
+                elif val > 0.0:
+                    resolved_priors[p_name] = {
+                        "dist": "uniform",
+                        "lb": max(1e-4, val * 0.85),
+                        "ub": val * 1.15,
+                        "mean": val,
+                        "std": (val * 0.3) / math.sqrt(12.0),
+                    }
+                else:
+                    resolved_priors[p_name] = {
+                        "dist": "normal",
+                        "mean": val,
+                        "std": 0.05,
+                    }
+
+        param_names = list(resolved_priors.keys())
+        cols = []
+        for p_name in param_names:
+            p_spec = resolved_priors[p_name]
+            cols.append(_sample_from_prior(p_spec, total_draws, rng))
+        param_draws = np.column_stack(cols) if cols else np.zeros((total_draws, 0))
+
+    prior_draws_df = pd.DataFrame(param_draws, columns=param_names)
+
+    valid_rows = []
+    moment_records: list[dict[str, float]] = []
+
+    for i in range(total_draws):
+        row = param_draws[i]
+        p_dict = dict(zip(param_names, row))
+        try:
+            new_m = _resolve_model_with_params(model, p_dict, qz_criterium=qz_criterium)
+            if not getattr(new_m, "is_determinate", True):
+                continue
+            if moments:
+                tm = new_m.theoretical_moments()
+                tm_df = tm.moments if hasattr(tm, "moments") else tm.to_frame()
+                rec = {}
+                for v in tm_df.index:
+                    for col in tm_df.columns:
+                        rec[f"{v}_{col}"] = float(tm_df.loc[v, col])
+                moment_records.append(rec)
+            valid_rows.append(row)
+        except Exception:
+            continue
+
+    n_valid = len(valid_rows)
+    valid_draws_df = pd.DataFrame(valid_rows, columns=param_names) if valid_rows else pd.DataFrame(columns=param_names)
+    determinacy_rate = float(n_valid / total_draws) if total_draws > 0 else 0.0
+
+    if moment_records:
+        rec_df = pd.DataFrame(moment_records)
+        prior_moments = pd.DataFrame(
+            {
+                "mean": rec_df.mean(),
+                "std": rec_df.std(),
+                "p5": rec_df.quantile(0.05),
+                "median": rec_df.median(),
+                "p95": rec_df.quantile(0.95),
+            }
+        )
+    else:
+        prior_moments = pd.DataFrame(columns=["mean", "std", "p5", "median", "p95"])
+
+    return PriorPredictiveResult(
+        prior_moments=prior_moments,
+        prior_draws=prior_draws_df,
+        valid_draws=valid_draws_df,
+        param_names=tuple(param_names),
+        determinacy_rate=determinacy_rate,
+        n_draws=total_draws,
+        n_valid=n_valid,
+        priors=resolved_priors if draws is None else None,
+    )
+
+
 __all__ = [
     "BayesianEstimationResult",
     "estimate_dsge_bayesian",
+    "bayesian_irf",
+    "BayesianIRFResult",
+    "prior_predictive",
+    "PriorPredictiveResult",
 ]
+

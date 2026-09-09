@@ -1089,9 +1089,14 @@ class Dynare3rdDR:
     shock_names: tuple[str, ...]
 
     def __getitem__(self, key: str):
+        if not isinstance(key, str):
+            raise KeyError(key)
         if hasattr(self, key):
             return getattr(self, key)
         raise KeyError(key)
+
+    def __contains__(self, key: object) -> bool:
+        return isinstance(key, str) and (hasattr(self, key) or key in getattr(self, "extra", {}))
 
     def to_frame(self) -> pd.DataFrame:
         """Concatenate decision rule summary into a single DataFrame."""

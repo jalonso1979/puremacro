@@ -1,7 +1,8 @@
 """Frozen-dataclass result types for puremacro.dsge."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+import copy
+from dataclasses import dataclass, field
 from typing import Any, Sequence, Tuple
 
 import numpy as np
@@ -210,9 +211,14 @@ class DynareDR:
 
     def __getitem__(self, key: str):
         """Allow dict-like access matching Dynare MATLAB struct conventions."""
+        if not isinstance(key, str):
+            raise KeyError(key)
         if hasattr(self, key):
             return getattr(self, key)
         raise KeyError(f"DynareDR has no field {key!r}")
+
+    def __contains__(self, key: object) -> bool:
+        return isinstance(key, str) and (hasattr(self, key) or key in getattr(self, "extra", {}))
 
     def to_frame(self) -> pd.DataFrame:
         """Return transition and policy functions matching Dynare's output layout.
@@ -316,9 +322,14 @@ class Dynare2ndDR:
 
     def __getitem__(self, key: str):
         """Allow dict-like access matching Dynare MATLAB struct conventions."""
+        if not isinstance(key, str):
+            raise KeyError(key)
         if hasattr(self, key):
             return getattr(self, key)
         raise KeyError(f"Dynare2ndDR has no field {key!r}")
+
+    def __contains__(self, key: object) -> bool:
+        return isinstance(key, str) and (hasattr(self, key) or key in getattr(self, "extra", {}))
 
     def to_frame(self) -> pd.DataFrame:
         """Return transition and policy functions matching Dynare layout."""
@@ -406,9 +417,24 @@ class TheoreticalMomentsResult:
 
     moments: pd.DataFrame
     covariance: pd.DataFrame
-    correlation: pd.DataFrame
+    correlation: pd.DataFrame | None
     autocorr: pd.DataFrame
     fevd: pd.DataFrame
+    autocorr_matrices: list[pd.DataFrame] = field(default_factory=list)
+
+    def autocorr_matrix(self, lag: int = 1) -> pd.DataFrame:
+        """Return the N x N cross-variable autocorrelation matrix at the specified lag."""
+        if lag < 1 or lag > len(self.autocorr_matrices):
+            raise IndexError(f"Lag {lag} out of range (1..{len(self.autocorr_matrices)})")
+        return self.autocorr_matrices[lag - 1]
+
+    @property
+    def autocorrelation_matrices(self) -> list[pd.DataFrame]:
+        return self.autocorr_matrices
+
+    @property
+    def contemporaneous_correlation(self) -> pd.DataFrame | None:
+        return self.correlation
 
     def summary(self) -> str:
         """Render complete Dynare-style theoretical moments report."""
@@ -416,10 +442,15 @@ class TheoreticalMomentsResult:
             "THEORETICAL MOMENTS (Dynare stoch_simul)",
             "=" * 72,
             self.moments.round(6).to_string(),
-            "",
-            "MATRIX OF CORRELATIONS",
-            "-" * 72,
-            self.correlation.round(4).to_string(),
+        ]
+        if self.correlation is not None and not self.correlation.empty:
+            lines += [
+                "",
+                "MATRIX OF CORRELATIONS",
+                "-" * 72,
+                self.correlation.round(4).to_string(),
+            ]
+        lines += [
             "",
             "COEFFICIENTS OF AUTOCORRELATION",
             "-" * 72,
@@ -460,7 +491,7 @@ class StochSimulResult:
     ----------
     dr : DynareDR | Dynare2ndDR
         First- or second-order decision rule structure (oo_.dr).
-    theoretical_moments : TheoreticalMomentsResult
+    theoretical_moments : TheoreticalMomentsResult | None
         Analytical unconditional moments, correlations, autocorrelations, and FEVD.
     simulated_moments : pd.DataFrame | None
         Sample moments if simulation with periods > 0 was requested.
@@ -472,15 +503,47 @@ class StochSimulResult:
         Names of all endogenous variables.
     shock_names : tuple[str, ...]
         Names of structural shocks.
+    _sim_corr : pd.DataFrame | None
+        Simulated contemporaneous correlation matrix when periods > 0.
     """
 
     dr: DynareDR | Dynare2ndDR | Any
-    theoretical_moments: TheoreticalMomentsResult
+    theoretical_moments: TheoreticalMomentsResult | None
     simulated_moments: pd.DataFrame | None
     irfs: dict[str, pd.Series]
     order: int
     variable_names: tuple[str, ...]
     shock_names: tuple[str, ...]
+    _sim_corr: pd.DataFrame | None = None
+
+    @property
+    def contemporaneous_correlation(self) -> pd.DataFrame | None:
+        if self.simulated_moments is not None and self._sim_corr is not None:
+            return self._sim_corr
+        if self.theoretical_moments is not None:
+            return self.theoretical_moments.correlation
+        return None
+
+    @property
+    def autocorr_matrices(self) -> list[pd.DataFrame]:
+        if self.theoretical_moments is not None:
+            return self.theoretical_moments.autocorr_matrices
+        return []
+
+    @property
+    def autocorrelation_matrices(self) -> list[pd.DataFrame]:
+        return self.autocorr_matrices
+
+    def autocorr_matrix(self, lag: int = 1) -> pd.DataFrame:
+        if self.theoretical_moments is not None:
+            return self.theoretical_moments.autocorr_matrix(lag)
+        raise AttributeError("No theoretical autocorrelation matrices available")
+
+    @property
+    def mc_se(self) -> pd.Series | None:
+        if self.simulated_moments is not None and "MC Std.Err." in self.simulated_moments.columns:
+            return self.simulated_moments["MC Std.Err."]
+        return None
 
     def __getitem__(self, key: str):
         """Allow subscript access matching Dynare struct conventions."""
@@ -514,9 +577,12 @@ class StochSimulResult:
             f"Exogenous shocks     : {len(self.shock_names)}",
             "-" * 72,
             self.dr.summary(),
-            "",
-            self.theoretical_moments.summary(),
         ]
+        if self.theoretical_moments is not None:
+            lines += [
+                "",
+                self.theoretical_moments.summary(),
+            ]
         if self.simulated_moments is not None:
             lines += [
                 "",
@@ -531,19 +597,34 @@ class StochSimulResult:
         """Export primary theoretical moments to Markdown."""
         from puremacro.reports import _df_to_markdown
 
-        return _df_to_markdown(self.theoretical_moments.to_frame(), **kwargs)
+        df = (
+            self.theoretical_moments.to_frame()
+            if self.theoretical_moments is not None
+            else (self.simulated_moments if self.simulated_moments is not None else pd.DataFrame())
+        )
+        return _df_to_markdown(df, **kwargs)
 
     def to_latex(self, **kwargs) -> str:
         """Export primary theoretical moments to LaTeX."""
         from puremacro.reports import _df_to_latex
 
-        return _df_to_latex(self.theoretical_moments.to_frame(), **kwargs)
+        df = (
+            self.theoretical_moments.to_frame()
+            if self.theoretical_moments is not None
+            else (self.simulated_moments if self.simulated_moments is not None else pd.DataFrame())
+        )
+        return _df_to_latex(df, **kwargs)
 
     def to_typst(self, **kwargs) -> str:
         """Export primary theoretical moments to Typst."""
         from puremacro.reports import _df_to_typst
 
-        return _df_to_typst(self.theoretical_moments.to_frame(), **kwargs)
+        df = (
+            self.theoretical_moments.to_frame()
+            if self.theoretical_moments is not None
+            else (self.simulated_moments if self.simulated_moments is not None else pd.DataFrame())
+        )
+        return _df_to_typst(df, **kwargs)
 
     def plot(
         self,
@@ -638,6 +719,22 @@ __all__ = [
     "TheoreticalMomentsResult",
     "StochSimulResult",
     "PerfectForesightResult",
+    "ExtendedPathResult",
+    "SmootherResult",
+    "DSGEForecastResult",
+    "ModeCheckResult",
+    "DiagnosticFinding",
+    "EigenvalueTable",
+    "ModelDiagnosticsResult",
+    "IdentificationResult",
+    "OSRResult",
+    "PolicyResult",
+    "ConditionalForecastResult",
+    "ShockDecompositionResult",
+    "BayesianIRFResult",
+    "PriorPredictiveResult",
+    "ModelParityResult",
+    "ParityDashboardResult",
 ]
 
 
@@ -1794,6 +1891,1254 @@ class PolicyResult:
         from puremacro.reports import _df_to_typst
 
         return _df_to_typst(self.to_frame(), **kwargs)
+
+
+@dataclass(frozen=True)
+class ExtendedPathResult:
+    """Result of Fair & Taylor (1983) non-linear extended path stochastic simulation.
+
+    Extended path simulates non-linear dynamic models without perturbation by
+    replacing future mathematical expectations with deterministic forecasts
+    under the assumption of zero future innovations (u_{t+s}^e = 0 for s >= 1),
+    solving a rolling boundary value problem over horizon T_H at each date t
+    via the SuperLU sparse stacked Newton-Raphson engine.
+
+    Attributes
+    ----------
+    path : pd.DataFrame, shape (periods, n_vars)
+        Realized simulation trajectory of endogenous variables from t=1 to t=periods.
+    shocks : pd.DataFrame, shape (periods, n_shocks)
+        Sequence of structural shock innovations drawn or supplied across periods.
+    converged : bool
+        Whether the stacked Newton solver converged at all simulation periods.
+    iterations : list[int] | int
+        Number of Newton iterations per simulation period (or total sum).
+    residual_norm : float
+        Maximum dynamic equation residual infinity-norm across all periods.
+    terminal_error : float
+        Maximum boundary error ||y_{t+T_H} - y_ss||_inf across all rolling solves.
+    variable_names : tuple[str, ...], default ()
+        Names of endogenous variables in declaration or column order.
+    shock_names : tuple[str, ...], default ()
+        Names of structural shocks in declaration or column order.
+    horizon : int, default 100
+        Forward anticipation horizon T_H used at each step.
+    """
+
+    path: pd.DataFrame
+    shocks: pd.DataFrame
+    converged: bool
+    iterations: list[int] | int
+    residual_norm: float
+    terminal_error: float
+    variable_names: tuple[str, ...] = ()
+    shock_names: tuple[str, ...] = ()
+    horizon: int = 100
+
+    def __post_init__(self) -> None:
+        if not self.variable_names and not self.path.empty:
+            object.__setattr__(self, "variable_names", tuple(str(c) for c in self.path.columns))
+        if not self.shock_names and not self.shocks.empty:
+            object.__setattr__(self, "shock_names", tuple(str(c) for c in self.shocks.columns))
+
+    @property
+    def periods(self) -> int:
+        """Number of simulation periods."""
+        return len(self.path)
+
+    @property
+    def n_vars(self) -> int:
+        """Number of endogenous variables."""
+        return len(self.variable_names)
+
+    @property
+    def n_shocks(self) -> int:
+        """Number of structural shocks."""
+        return len(self.shock_names)
+
+    @property
+    def total_iterations(self) -> int:
+        """Total Newton-Raphson iterations summed across all periods."""
+        if isinstance(self.iterations, (list, tuple, np.ndarray)):
+            return int(sum(self.iterations))
+        return int(self.iterations)
+
+    @property
+    def mean_iterations(self) -> float:
+        """Mean Newton-Raphson iterations per period."""
+        if isinstance(self.iterations, (list, tuple, np.ndarray)):
+            return float(np.mean(self.iterations)) if len(self.iterations) > 0 else 0.0
+        return float(self.iterations)
+
+    @property
+    def max_iterations(self) -> int:
+        """Maximum Newton-Raphson iterations in any single period."""
+        if isinstance(self.iterations, (list, tuple, np.ndarray)):
+            return int(np.max(self.iterations)) if len(self.iterations) > 0 else 0
+        return int(self.iterations)
+
+    def __getitem__(self, key: str) -> pd.Series:
+        """Access variable or shock trajectory by column name."""
+        if hasattr(self, key):
+            return getattr(self, key)
+        if key in self.path.columns:
+            return self.path[key]
+        if key in self.shocks.columns:
+            return self.shocks[key]
+        raise KeyError(f"Variable or attribute {key!r} not found in ExtendedPathResult.")
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return the simulated trajectory of endogenous variables as a DataFrame."""
+        return self.path.copy()
+
+    def summary(self, as_dataframe: bool = False) -> str | pd.DataFrame:
+        """Render summary report of extended path convergence and trajectory statistics.
+
+        Parameters
+        ----------
+        as_dataframe : bool, default False
+            If True, returns a pandas DataFrame with summary statistics.
+            If False, returns a publication-formatted string report.
+        """
+        stats = self.path.describe().T[["mean", "std", "min", "max"]].copy()
+        if not self.path.empty:
+            stats["initial"] = self.path.iloc[0].values
+            stats["terminal"] = self.path.iloc[-1].values
+
+        if as_dataframe:
+            return stats
+
+        status_str = "CONVERGED" if self.converged else "FAILED (solver divergence)"
+        lines = [
+            "EXTENDED PATH SIMULATION RESULT (Fair-Taylor 1983)",
+            "=" * 72,
+            f"Convergence status  : {status_str}",
+            f"Simulation periods  : {len(self.path)}",
+            f"Forward horizon T_H : {self.horizon}",
+            f"Total iterations    : {self.total_iterations} (mean: {self.mean_iterations:.2f}, max: {self.max_iterations})",
+            f"Residual norm       : {self.residual_norm:.4e}",
+            f"Terminal error      : {self.terminal_error:.4e}",
+            f"Endogenous vars ({self.n_vars}) : {', '.join(self.variable_names)}",
+            f"Structural shocks ({self.n_shocks}) : {', '.join(self.shock_names)}",
+            "-" * 72,
+            "TRAJECTORY SUMMARY (t=1..T):",
+            stats.round(6).to_string(),
+            "=" * 72,
+        ]
+        return "\n".join(lines)
+
+    def to_markdown(self, *, head: int | None = None, index: bool = True, **kwargs) -> str:
+        """Render simulated path as a Markdown table."""
+        from puremacro.reports import _df_to_markdown
+
+        df = self.path.head(head) if head is not None else self.path
+        return _df_to_markdown(df, index=index, **kwargs)
+
+    def to_latex(self, *, head: int | None = None, index: bool = True, **kwargs) -> str:
+        """Render simulated path as a LaTeX tabular environment."""
+        from puremacro.reports import _df_to_latex
+
+        df = self.path.head(head) if head is not None else self.path
+        return _df_to_latex(df, index=index, **kwargs)
+
+    def to_typst(self, *, head: int | None = None, index: bool = True, **kwargs) -> str:
+        """Render simulated path as a Typst table."""
+        from puremacro.reports import _df_to_typst
+
+        df = self.path.head(head) if head is not None else self.path
+        return _df_to_typst(df, index=index, **kwargs)
+
+    def plot(
+        self,
+        variables: Sequence[str] | None = None,
+        style: str = "publication",
+        *,
+        ax: Any = None,
+        figsize: tuple[float, float] | None = None,
+        title: str | None = None,
+        xlabel: str = "Period (t)",
+        ylabel: str = "Level",
+        subplots: bool = False,
+        **kwargs,
+    ) -> Any:
+        """Plot simulated variable trajectories.
+
+        Parameters
+        ----------
+        variables : Sequence[str], optional
+            Names of variables to plot. Defaults to all variables.
+        style : str, default 'publication'
+            Theme ('publication', 'grayscale', 'default').
+        ax : matplotlib.axes.Axes, optional
+            Existing axes to draw on. If None, a new figure is created.
+        figsize : tuple[float, float], optional
+            Figure dimensions (width, height).
+        title : str, optional
+            Figure or axes title.
+        xlabel : str, default 'Period (t)'
+            X-axis label.
+        ylabel : str, default 'Level'
+            Y-axis label.
+        subplots : bool, default False
+            If True and ax is None, creates a grid of subplots for each variable.
+        **kwargs
+            Additional arguments passed to ax.plot.
+
+        Returns
+        -------
+        matplotlib.figure.Figure | matplotlib.axes.Axes
+            Returns Figure when ax is None, or Axes when ax is provided.
+        """
+        import matplotlib.pyplot as plt
+        from puremacro.plot import _new_ax, _palette, _styles
+
+        if variables is not None:
+            cols = [v for v in variables if v in self.path.columns]
+            if not cols:
+                raise ValueError(
+                    f"None of requested variables {variables} found in path columns {list(self.path.columns)}"
+                )
+        else:
+            cols = list(self.path.columns)
+
+        if subplots and len(cols) > 1 and ax is None:
+            n_plots = len(cols)
+            n_cols = min(3, n_plots)
+            n_rows = (n_plots + n_cols - 1) // n_cols
+            fig_size = figsize or (3.8 * n_cols, 2.5 * n_rows)
+            fig, axes = plt.subplots(n_rows, n_cols, figsize=fig_size, squeeze=False, sharex=True)
+            ax_flat = axes.flatten()
+
+            for idx, col in enumerate(cols):
+                a = ax_flat[idx]
+                a.plot(self.path.index, self.path[col], linewidth=1.5, **kwargs)
+                a.set_title(str(col), fontsize=10, fontweight="bold")
+                a.set_ylabel(ylabel, fontsize=8)
+                a.grid(True, linestyle=":", alpha=0.5)
+                if idx >= (n_rows - 1) * n_cols or idx == n_plots - 1:
+                    a.set_xlabel(xlabel, fontsize=8)
+
+            for idx in range(n_plots, len(ax_flat)):
+                ax_flat[idx].set_visible(False)
+
+            if title:
+                fig.suptitle(title, fontsize=12, fontweight="bold")
+            else:
+                fig.suptitle("Extended Path Simulation (Fair-Taylor 1983)", fontsize=12, fontweight="bold")
+            fig.tight_layout()
+            return fig
+
+        fig, target_ax = _new_ax(ax, figsize=figsize or (8.0, 4.5))
+
+        if style in ("publication", "grayscale"):
+            try:
+                from puremacro.plotting.bw_style import bw_colors, bw_linestyles
+                colors = bw_colors(len(cols))
+                linestyles = bw_linestyles(len(cols))
+            except ImportError:
+                colors = _palette(len(cols))
+                linestyles = _styles(len(cols))
+
+            for i, col in enumerate(cols):
+                target_ax.plot(
+                    self.path.index,
+                    self.path[col],
+                    label=str(col),
+                    color=colors[i % len(colors)],
+                    linestyle=linestyles[i % len(linestyles)],
+                    linewidth=1.4,
+                    **kwargs,
+                )
+            target_ax.spines["top"].set_visible(False)
+            target_ax.spines["right"].set_visible(False)
+            target_ax.grid(True, linestyle=":", linewidth=0.5, color="0.7", alpha=0.7)
+        else:
+            for col in cols:
+                target_ax.plot(
+                    self.path.index,
+                    self.path[col],
+                    label=str(col),
+                    linewidth=1.4,
+                    **kwargs,
+                )
+            target_ax.grid(True, alpha=0.3)
+
+        target_ax.set_xlabel(xlabel)
+        target_ax.set_ylabel(ylabel)
+        if title is not None:
+            target_ax.set_title(title)
+        else:
+            target_ax.set_title("Extended Path Simulation (Fair-Taylor 1983)")
+        target_ax.legend(loc="best", frameon=False)
+
+        if ax is None:
+            return fig
+        return target_ax
+
+
+@dataclass(frozen=True)
+class ConditionalForecastResult:
+    """Container for DSGE conditional forecast results (Waggoner & Zha 1999).
+
+    Attributes
+    ----------
+    forecast : pd.DataFrame
+        Realized forecast trajectory for all model variables across horizons.
+    shocks : pd.DataFrame
+        Required structural shock paths across horizons.
+    conditions : dict
+        Target paths specified for conditioned variables.
+    controlled_shocks : tuple[str, ...]
+        Names of structural shocks adjusted to satisfy conditions.
+    baseline : pd.DataFrame, optional
+        Unconditional baseline forecast trajectory with zero future shocks.
+    bands : dict[str, pd.DataFrame], optional
+        Confidence bands (e.g. "lower", "upper", "lower_68", "upper_68").
+    variable_names : tuple[str, ...], optional
+        Names of all model variables.
+    shock_names : tuple[str, ...], optional
+        Names of all structural shocks.
+    horizon : int, optional
+        Forecast horizon length.
+    """
+
+    forecast: pd.DataFrame
+    shocks: pd.DataFrame
+    conditions: dict = field(default_factory=dict)
+    controlled_shocks: tuple[str, ...] = ()
+    baseline: pd.DataFrame | None = None
+    bands: dict[str, pd.DataFrame] | None = None
+    variable_names: tuple[str, ...] = ()
+    shock_names: tuple[str, ...] = ()
+    horizon: int = 0
+    simulations: np.ndarray | None = None
+
+    def __post_init__(self) -> None:
+        if self.baseline is None:
+            object.__setattr__(self, "baseline", self.forecast.copy())
+        if not self.variable_names:
+            object.__setattr__(self, "variable_names", tuple(self.forecast.columns))
+        if not self.shock_names:
+            object.__setattr__(self, "shock_names", tuple(self.shocks.columns))
+        if self.horizon == 0:
+            object.__setattr__(self, "horizon", len(self.forecast))
+        if isinstance(self.controlled_shocks, (list, set)):
+            object.__setattr__(self, "controlled_shocks", tuple(self.controlled_shocks))
+
+    def summary(self) -> str:
+        """Render human-readable summary of conditional forecast."""
+        lines = [
+            "Conditional Forecast (Waggoner & Zha 1999)",
+            "=" * 72,
+            f"Forecast Horizon    : {self.horizon} periods",
+            f"Controlled Shocks   : {', '.join(self.controlled_shocks) if self.controlled_shocks else 'All declared shocks'}",
+            f"Conditioned Vars    : {', '.join(self.conditions.keys()) if self.conditions else 'None (unconditional)'}",
+            "-" * 72,
+            "TARGET CONDITIONS & REALIZED VALUES:",
+        ]
+        for var, path in self.conditions.items():
+            vals_str = ", ".join(f"h={h+1}: {v:.4f}" for h, v in enumerate(path) if v is not None and not np.isnan(v))
+            lines.append(f"  {var:15s}: {vals_str}")
+        lines.extend([
+            "",
+            "REQUIRED STRUCTURAL SHOCKS (Active Horizons):",
+            "-" * 72,
+        ])
+        ctrl_cols = [s for s in self.controlled_shocks if s in self.shocks.columns]
+        shock_subset = self.shocks[ctrl_cols] if ctrl_cols else self.shocks
+        lines.append(shock_subset.round(6).to_string())
+        lines.append("=" * 72)
+        return "\n".join(lines)
+
+    def shock_paths(self) -> pd.DataFrame:
+        """Return DataFrame of required structural shocks."""
+        ctrl_cols = [s for s in self.controlled_shocks if s in self.shocks.columns]
+        return self.shocks[ctrl_cols].copy() if ctrl_cols else self.shocks.copy()
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return canonical DataFrame representation of the conditional forecast."""
+        return self.forecast.copy()
+
+    def plot(
+        self,
+        variables: Sequence[str] | None = None,
+        *,
+        ax=None,
+        show_baseline: bool = True,
+        show_bands: bool = True,
+        figsize: tuple[float, float] | None = None,
+    ):
+        """Plot conditional forecast paths with baseline and target points."""
+        import matplotlib.pyplot as plt
+
+        plot_vars = list(variables) if variables is not None else (
+            list(self.conditions.keys()) if self.conditions else list(self.forecast.columns[:min(4, len(self.forecast.columns))])
+        )
+
+        n_plots = len(plot_vars)
+        if ax is None:
+            if n_plots == 1:
+                fig, ax_arr = plt.subplots(figsize=figsize or (8, 4.5))
+                axes = [ax_arr]
+            else:
+                ncols = 2 if n_plots > 1 else 1
+                nrows = (n_plots + ncols - 1) // ncols
+                fig, ax_arr = plt.subplots(nrows, ncols, figsize=figsize or (10, 3.5 * nrows), squeeze=False)
+                axes = ax_arr.flatten()
+        else:
+            fig = ax.figure
+            axes = [ax] * n_plots
+
+        for i, var in enumerate(plot_vars):
+            axi = axes[i]
+            if var in self.forecast.columns:
+                axi.plot(self.forecast.index, self.forecast[var], label="Conditional", color="#1f77b4", linewidth=2.0)
+            if show_baseline and self.baseline is not None and var in self.baseline.columns:
+                axi.plot(self.baseline.index, self.baseline[var], label="Baseline", color="#7f7f7f", linestyle="--", linewidth=1.5)
+            if var in self.conditions:
+                targets = self.conditions[var]
+                for h, val in enumerate(targets):
+                    if val is not None and not np.isnan(val) and h < len(self.forecast):
+                        axi.scatter([self.forecast.index[h]], [val], color="#d62728", marker="x", s=60, zorder=5, label="Target" if h == 0 else None)
+            if show_bands and self.bands is not None:
+                if "lower" in self.bands and "upper" in self.bands and var in self.bands["lower"].columns:
+                    axi.fill_between(self.forecast.index, self.bands["lower"][var], self.bands["upper"][var], color="#1f77b4", alpha=0.2, label="Confidence Band")
+            axi.set_title(var, fontweight="bold")
+            axi.set_xlabel("Horizon")
+            axi.grid(True, linestyle=":", alpha=0.6)
+            axi.legend(loc="best", fontsize=9)
+
+        if ax is None and n_plots < len(axes):
+            for j in range(n_plots, len(axes)):
+                fig.delaxes(axes[j])
+        fig.tight_layout()
+        return fig
+
+    def to_markdown(self, **kwargs) -> str:
+        """Render forecast table as Markdown."""
+        from puremacro.reports import _df_to_markdown
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        """Render forecast table as LaTeX tabular."""
+        from puremacro.reports import _df_to_latex
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        """Render forecast table as Typst table."""
+        from puremacro.reports import _df_to_typst
+        return _df_to_typst(self.to_frame(), **kwargs)
+
+
+@dataclass(frozen=True)
+class ShockDecompositionResult:
+    """Container for grouped shock decomposition results.
+
+    Attributes
+    ----------
+    groups : dict[str, tuple[str, ...]]
+        Mapping from shock group names to tuples of structural shock names.
+    decomposition : dict[str, pd.DataFrame]
+        Mapping from component names (group names, 'Others', 'initial', 'residual')
+        to DataFrames of shape (T, n_variables).
+    components : dict[str, pd.DataFrame]
+        Alias for decomposition.
+    variables : tuple[str, ...]
+        Tuple of endogenous variable names.
+    shock_names : tuple[str, ...]
+        Tuple of structural shock names in the underlying model.
+    actual : pd.DataFrame | None
+        Observed or simulated actual data path, if available.
+    initial_state : pd.DataFrame | None
+        Initial state decay and steady-state contribution path.
+    """
+
+    groups: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    components: dict[str, pd.DataFrame] = field(default_factory=dict)
+    decomposition: dict[str, pd.DataFrame] = field(default_factory=dict)
+    variables: tuple[str, ...] = ()
+    shock_names: tuple[str, ...] = ()
+    actual: pd.DataFrame | None = None
+    initial_state: pd.DataFrame | None = None
+
+    def __post_init__(self) -> None:
+        target_dict = self.components if self.components else self.decomposition
+        if not target_dict:
+            raise ValueError("Either 'components' or 'decomposition' must be provided.")
+
+        object.__setattr__(self, "components", target_dict)
+        object.__setattr__(self, "decomposition", target_dict)
+
+        norm_groups = {k: tuple(v) if not isinstance(v, tuple) else v for k, v in self.groups.items()}
+        object.__setattr__(self, "groups", norm_groups)
+
+        if not self.variables and target_dict:
+            first_df = next(iter(target_dict.values()))
+            object.__setattr__(self, "variables", tuple(first_df.columns))
+
+        if self.initial_state is None:
+            init_df = target_dict.get("initial", target_dict.get("initial_state", target_dict.get("initial_condition")))
+            object.__setattr__(self, "initial_state", init_df)
+
+        if not self.shock_names:
+            all_s = []
+            for s_tuple in norm_groups.values():
+                all_s.extend(s_tuple)
+            object.__setattr__(self, "shock_names", tuple(dict.fromkeys(all_s)))
+
+        if self.actual is not None:
+            for var in self.variables:
+                if var not in self.actual.columns:
+                    continue
+                total = np.zeros(len(self.actual))
+                for g_df in target_dict.values():
+                    if var in g_df.columns:
+                        total += g_df[var].to_numpy(dtype=float)
+                act = self.actual[var].to_numpy(dtype=float)
+                finite = np.isfinite(act)
+                if finite.any():
+                    err = float(np.max(np.abs(total[finite] - act[finite])))
+                    scale = float(np.max(np.abs(act[finite])))
+                    tol = max(1e-10 * max(scale, 1.0), 1e-12)
+                    if err > tol:
+                        raise ValueError(
+                            f"Shock decomposition adding-up invariant violated for '{var}': "
+                            f"sum(components) differs from actual by max={err:.3e} (tolerance {tol:.3e})."
+                        )
+
+    def to_frame(self, variable: str | None = None, *, var: str | None = None) -> pd.DataFrame:
+        """Return the decomposition table as a DataFrame."""
+        effective_var = var if var is not None else variable
+        if effective_var is not None:
+            if effective_var not in self.variables:
+                found = any(effective_var in comp_df.columns for comp_df in self.components.values())
+                if not found:
+                    raise KeyError(f"Variable '{effective_var}' not in decomposition variables: {self.variables}")
+            data = {}
+            for comp_name, comp_df in self.components.items():
+                if effective_var in comp_df.columns:
+                    data[comp_name] = comp_df[effective_var]
+            if self.actual is not None and effective_var in self.actual.columns:
+                data["actual"] = self.actual[effective_var]
+            first_df = next(iter(self.components.values()))
+            return pd.DataFrame(data, index=first_df.index)
+
+        if len(self.variables) == 1:
+            return self.to_frame(self.variables[0])
+
+        frames = {v: self.to_frame(v) for v in self.variables}
+        return pd.concat(frames, axis=1)
+
+    def summary(self, variable: str | None = None, *, var: str | None = None) -> str:
+        """Render a publication-ready text summary of the shock decomposition."""
+        effective_var = var if var is not None else variable
+        target_var = effective_var if effective_var is not None else (self.variables[0] if self.variables else "Decomposition")
+        lines = [
+            f"Shock Decomposition: {target_var}",
+            "=" * 72,
+            "Declared Groups:",
+        ]
+        for g, shocks in self.groups.items():
+            lines.append(f"  - {g}: {', '.join(shocks)}")
+        lines.append("-" * 72)
+
+        try:
+            df = self.to_frame(target_var)
+            lines.append(df.round(6).to_string())
+        except Exception:
+            for g, df in self.components.items():
+                lines.append(f"[{g}]:\n{df.head().to_string()}\n")
+
+        lines.append("=" * 72)
+        return "\n".join(lines)
+
+    def to_markdown(self, variable: str | None = None, *, var: str | None = None, **kwargs) -> str:
+        """Export decomposition table to Markdown."""
+        from puremacro.reports import _df_to_markdown
+        return _df_to_markdown(self.to_frame(var=var if var is not None else variable), **kwargs)
+
+    def to_latex(self, variable: str | None = None, *, var: str | None = None, **kwargs) -> str:
+        """Export decomposition table to LaTeX tabular."""
+        from puremacro.reports import _df_to_latex
+        return _df_to_latex(self.to_frame(var=var if var is not None else variable), **kwargs)
+
+    def to_typst(self, variable: str | None = None, *, var: str | None = None, **kwargs) -> str:
+        """Export decomposition table to Typst table."""
+        from puremacro.reports import _df_to_typst
+        return _df_to_typst(self.to_frame(var=var if var is not None else variable), **kwargs)
+
+    def plot(
+        self,
+        variable: str | None = None,
+        style: str = "publication",
+        ax=None,
+        *,
+        var: str | None = None,
+    ):
+        """Generate stacked-bar chart of shock group contributions overlaid with actual series."""
+        import matplotlib.pyplot as plt
+        effective_var = var if var is not None else variable
+        target_var = effective_var if effective_var is not None else (self.variables[0] if self.variables else "y")
+        df = self.to_frame(target_var)
+        T = len(df)
+        t = np.arange(T) if isinstance(df.index, pd.RangeIndex) else df.index
+
+        width = 0.8
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(8.5, 4.8))
+        else:
+            fig = ax.figure
+
+        comp_cols = [c for c in df.columns if c != "actual"]
+        colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"]
+
+        pos_bottom = np.zeros(T)
+        neg_bottom = np.zeros(T)
+
+        for i, col in enumerate(comp_cols):
+            color = colors[i % len(colors)]
+            vals = df[col].to_numpy(dtype=float)
+            pos_vals = np.where(vals > 0, vals, 0.0)
+            neg_vals = np.where(vals < 0, vals, 0.0)
+
+            ax.bar(t, pos_vals, width=width, bottom=pos_bottom, color=color, label=col, alpha=0.85)
+            ax.bar(t, neg_vals, width=width, bottom=neg_bottom, color=color, alpha=0.85)
+
+            pos_bottom += pos_vals
+            neg_bottom += neg_vals
+
+        if "actual" in df.columns:
+            ax.plot(t, df["actual"].to_numpy(dtype=float), color="black", linewidth=1.6, label="Actual")
+
+        ax.axhline(0, color="gray", linestyle="--", linewidth=0.8, alpha=0.7)
+        ax.set_title(f"Shock Decomposition: {target_var}", fontsize=11, fontweight="bold")
+        ax.set_ylabel("Contribution", fontsize=10)
+        ax.legend(loc="best", frameon=True, fontsize=8)
+        fig.tight_layout()
+        return fig
+
+
+@dataclass(frozen=True)
+class BayesianIRFResult:
+    """Posterior impulse response functions and credible interval bands.
+
+    Attributes
+    ----------
+    median : pd.DataFrame | dict[str, pd.DataFrame]
+        Posterior median IRF.
+    bands : dict[Any, tuple[pd.DataFrame, pd.DataFrame]]
+        Mapping from band level (e.g. 0.68, 0.90, 0.95) to (lower_df, upper_df).
+    quantiles : dict[float, pd.DataFrame]
+        Mapping from quantile level (e.g. 0.05, 0.16, 0.50, 0.84, 0.95) to DataFrame.
+    draws : np.ndarray | None
+        Raw IRF draws array.
+    variables : tuple[str, ...]
+        Endogenous variable names.
+    shocks : tuple[str, ...]
+        Shock names.
+    horizon : int
+        Impulse response horizon.
+    n_draws : int
+        Total number of parameter draws evaluated.
+    n_valid : int
+        Number of determinate parameter draws retained.
+    determinacy_rate : float
+        Fraction of draws satisfying Blanchard-Kahn conditions (n_valid / n_draws).
+    """
+
+    median: pd.DataFrame | dict[str, pd.DataFrame]
+    bands: dict[Any, tuple[pd.DataFrame, pd.DataFrame]] = field(default_factory=dict)
+    quantiles: dict[float, pd.DataFrame] = field(default_factory=dict)
+    draws: np.ndarray | None = None
+    variables: tuple[str, ...] = ()
+    shocks: tuple[str, ...] = ()
+    horizon: int = 0
+    n_draws: int = 0
+    n_valid: int = 0
+    determinacy_rate: float = 1.0
+
+    def __post_init__(self) -> None:
+        if not self.variables:
+            if isinstance(self.median, pd.DataFrame):
+                object.__setattr__(self, "variables", tuple(self.median.columns))
+            elif isinstance(self.median, dict) and self.median:
+                first_df = next(iter(self.median.values()))
+                object.__setattr__(self, "variables", tuple(first_df.columns))
+        if self.horizon == 0:
+            if isinstance(self.median, pd.DataFrame):
+                object.__setattr__(self, "horizon", len(self.median) - 1)
+            elif isinstance(self.median, dict) and self.median:
+                first_df = next(iter(self.median.values()))
+                object.__setattr__(self, "horizon", len(first_df) - 1)
+
+    @property
+    def shock_names(self) -> tuple[str, ...]:
+        """Alias for shocks."""
+        return self.shocks
+
+    @property
+    def shock(self) -> str:
+        """Alias for the first shock name."""
+        return self.shocks[0] if self.shocks else ""
+
+    @property
+    def periods(self) -> int:
+        """Alias for horizon."""
+        return self.horizon
+
+    def to_frame(self, shock: str | None = None) -> pd.DataFrame:
+        """Return median IRF DataFrame."""
+        if isinstance(self.median, pd.DataFrame):
+            return self.median.copy()
+        if isinstance(self.median, dict):
+            if shock is not None:
+                return self.median[shock].copy()
+            if len(self.median) == 1:
+                return next(iter(self.median.values())).copy()
+            return pd.concat(self.median, axis=1)
+        raise ValueError("Invalid median structure")
+
+    def summary(self, shock: str | None = None) -> str:
+        """Render publication-grade text summary of Bayesian IRF."""
+        lines = [
+            "BAYESIAN IMPULSE RESPONSE FUNCTIONS",
+            "=" * 72,
+            f"Horizon             : {self.horizon} periods",
+            f"Total Draws         : {self.n_draws}",
+            f"Determinate Draws   : {self.n_valid}",
+            f"Determinacy Rate    : {self.determinacy_rate * 100:.1f}%",
+            f"Credible Bands      : {list(self.bands.keys())}",
+            "-" * 72,
+            "Posterior Median IRF:",
+        ]
+        lines.append(self.to_frame(shock).round(6).to_string())
+        lines.append("=" * 72)
+        return "\n".join(lines)
+
+    def plot(
+        self,
+        variables: Sequence[str] | None = None,
+        shock: str | None = None,
+        bands: Sequence[float] = (0.68, 0.90, 0.95),
+        *,
+        ax=None,
+        figsize: tuple[float, float] | None = None,
+    ):
+        """Plot Bayesian IRF fan chart with median line and shaded credible intervals."""
+        import matplotlib.pyplot as plt
+
+        med_df = self.to_frame(shock)
+        plot_vars = list(variables) if variables is not None else list(med_df.columns[:min(6, len(med_df.columns))])
+        n_plots = len(plot_vars)
+
+        if ax is None:
+            if n_plots == 1:
+                fig, ax_arr = plt.subplots(figsize=figsize or (8, 4.5))
+                axes = [ax_arr]
+            else:
+                ncols = 2 if n_plots > 1 else 1
+                nrows = (n_plots + ncols - 1) // ncols
+                fig, ax_arr = plt.subplots(nrows, ncols, figsize=figsize or (10, 3.2 * nrows), squeeze=False)
+                axes = ax_arr.flatten()
+        else:
+            fig = ax.figure
+            axes = [ax] * n_plots
+
+        alphas = {0.68: 0.35, 0.90: 0.22, 0.95: 0.12}
+
+        for i, var in enumerate(plot_vars):
+            axi = axes[i]
+            if var in med_df.columns:
+                sorted_bands = sorted(bands, reverse=True)
+                for b in sorted_bands:
+                    if b in self.bands:
+                        low_df, up_df = self.bands[b]
+                        if var in low_df.columns and var in up_df.columns:
+                            alpha = alphas.get(b, 0.15)
+                            axi.fill_between(
+                                med_df.index,
+                                low_df[var],
+                                up_df[var],
+                                color="#1f77b4",
+                                alpha=alpha,
+                                label=f"{int(b*100)}% Band",
+                            )
+                axi.plot(med_df.index, med_df[var], color="#08519c", linewidth=2.0, label="Median")
+                axi.axhline(0, color="k", linestyle="--", linewidth=0.8, alpha=0.6)
+                axi.set_title(var, fontweight="bold")
+                axi.set_xlabel("Horizon")
+                axi.grid(True, linestyle=":", alpha=0.6)
+                axi.legend(loc="best", fontsize=8)
+
+        if ax is None and n_plots < len(axes):
+            for j in range(n_plots, len(axes)):
+                fig.delaxes(axes[j])
+        fig.tight_layout()
+        return fig
+
+    def to_markdown(self, shock: str | None = None, **kwargs) -> str:
+        """Export median IRF table to Markdown."""
+        from puremacro.reports import _df_to_markdown
+        return _df_to_markdown(self.to_frame(shock), **kwargs)
+
+    def to_latex(self, shock: str | None = None, **kwargs) -> str:
+        """Export median IRF table to LaTeX tabular."""
+        from puremacro.reports import _df_to_latex
+        return _df_to_latex(self.to_frame(shock), **kwargs)
+
+    def to_typst(self, shock: str | None = None, **kwargs) -> str:
+        """Export median IRF table to Typst table."""
+        from puremacro.reports import _df_to_typst
+        return _df_to_typst(self.to_frame(shock), **kwargs)
+
+
+@dataclass(frozen=True)
+class PriorPredictiveResult:
+    """Result of prior predictive simulation.
+
+    Attributes
+    ----------
+    prior_moments : pd.DataFrame
+        Distribution summary (mean, std, 5%, 50%, 95%) of theoretical moments across prior draws.
+    prior_draws : pd.DataFrame
+        Sampled parameter vectors (n_draws x n_params).
+    valid_draws : pd.DataFrame
+        Parameter vectors satisfying Blanchard-Kahn determinacy.
+    param_names : tuple[str, ...]
+        Names of sampled parameters.
+    determinacy_rate : float
+        Fraction of prior parameter draws that yielded unique stable solutions.
+    n_draws : int
+        Total draws sampled.
+    n_valid : int
+        Determinate draws solved.
+    irfs : Any | None
+        Impulse responses evaluated across prior draws.
+    priors : dict[str, Any] | None
+        Dictionary of prior specifications used.
+    """
+
+    prior_moments: pd.DataFrame
+    prior_draws: pd.DataFrame = field(default_factory=pd.DataFrame)
+    valid_draws: pd.DataFrame = field(default_factory=pd.DataFrame)
+    param_names: tuple[str, ...] = ()
+    determinacy_rate: float = 1.0
+    n_draws: int = 0
+    n_valid: int = 0
+    irfs: Any | None = None
+    priors: dict[str, Any] | None = None
+
+    @property
+    def moments(self) -> pd.DataFrame:
+        """Alias for prior_moments."""
+        return self.prior_moments
+
+    @property
+    def theoretical_moments(self) -> pd.DataFrame:
+        """Alias for prior_moments."""
+        return self.prior_moments
+
+    @property
+    def parameter_draws(self) -> pd.DataFrame:
+        """Alias for prior_draws."""
+        return self.prior_draws
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return canonical DataFrame representation of prior moments."""
+        return self.prior_moments.copy()
+
+    def summary(self) -> str:
+        """Render publication-grade text summary of prior predictive analysis."""
+        lines = [
+            "Prior Predictive Analysis",
+            "=" * 72,
+            f"Total Draws         : {self.n_draws}",
+            f"Determinate Draws   : {self.n_valid}",
+            f"Determinacy Rate    : {self.determinacy_rate * 100:.1f}%",
+            f"Parameters          : {', '.join(self.param_names)}",
+            "-" * 72,
+            "PRIOR PREDICTIVE MOMENTS DISTRIBUTION:",
+            self.prior_moments.round(6).to_string(),
+            "=" * 72,
+        ]
+        return "\n".join(lines)
+
+    def plot(
+        self,
+        variables: Sequence[str] | None = None,
+        *,
+        ax=None,
+        figsize: tuple[float, float] | None = None,
+    ):
+        """Plot prior predictive moment distributions."""
+        import matplotlib.pyplot as plt
+
+        df = self.to_frame()
+        plot_vars = list(variables) if variables is not None else list(df.index[:min(6, len(df.index))])
+        n_plots = len(plot_vars)
+
+        if ax is None:
+            if n_plots == 1:
+                fig, ax_arr = plt.subplots(figsize=figsize or (8, 4.5))
+                axes = [ax_arr]
+            else:
+                ncols = 2 if n_plots > 1 else 1
+                nrows = (n_plots + ncols - 1) // ncols
+                fig, ax_arr = plt.subplots(nrows, ncols, figsize=figsize or (10, 3.2 * nrows), squeeze=False)
+                axes = ax_arr.flatten()
+        else:
+            fig = ax.figure
+            axes = [ax] * n_plots
+
+        for i, var in enumerate(plot_vars):
+            axi = axes[i]
+            if var in df.index:
+                row = df.loc[var]
+                cols = [c for c in ["5%", "50%", "95%"] if c in df.columns]
+                if not cols:
+                    cols = [c for c in df.columns if c in ["mean", "std"]]
+                axi.bar(cols, [row[c] for c in cols], color="#1f77b4", alpha=0.7)
+                axi.set_title(f"Prior Predictive Moments: {var}", fontweight="bold")
+                axi.grid(True, linestyle=":", alpha=0.6)
+
+        if ax is None and n_plots < len(axes):
+            for j in range(n_plots, len(axes)):
+                fig.delaxes(axes[j])
+        fig.tight_layout()
+        return fig
+
+    def to_markdown(self, **kwargs) -> str:
+        """Export prior moments table to Markdown."""
+        from puremacro.reports import _df_to_markdown
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        """Export prior moments table to LaTeX tabular."""
+        from puremacro.reports import _df_to_latex
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        """Export prior moments table to Typst table."""
+        from puremacro.reports import _df_to_typst
+        return _df_to_typst(self.to_frame(), **kwargs)
+
+
+class CallableDataFrame(pd.DataFrame):
+    """DataFrame subclass that also allows invocation as a nullary function."""
+
+    @property
+    def _constructor(self):
+        return CallableDataFrame
+
+    def __call__(self) -> pd.DataFrame:
+        return self
+
+    def __deepcopy__(self, memo):
+        return CallableDataFrame(copy.deepcopy(pd.DataFrame(self), memo))
+
+
+@dataclass(frozen=True)
+class ModelParityResult:
+    """Individual DSGE model Dynare parity verification result."""
+
+    model_name: str
+    order: int
+    n_vars: int
+    n_shocks: int
+    passed: bool
+    status: str
+    max_dev_ghx: float
+    max_dev_ghu: float
+    max_dev_ghxx: float = 0.0
+    max_dev_ghs2: float = 0.0
+    max_dev_moments: float = 0.0
+    max_dev_irf: float = 0.0
+    max_dev_dr: float = 0.0
+    score: float = 100.0
+    runtime_sec: float = 0.0
+    dr_diff: pd.DataFrame = field(default_factory=pd.DataFrame)
+    moments_diff: pd.DataFrame = field(default_factory=pd.DataFrame)
+    tolerances: dict[str, float] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return model deviation scorecard summary."""
+        if self.dr_diff is not None and not self.dr_diff.empty:
+            return self.dr_diff.copy()
+        return pd.DataFrame([{
+            "model": self.model_name,
+            "order": self.order,
+            "status": self.status,
+            "score": f"{self.score:.1f}%",
+            "max_dev_ghx": self.max_dev_ghx,
+            "max_dev_ghu": self.max_dev_ghu,
+            "max_dev_ghxx": self.max_dev_ghxx,
+            "max_dev_ghs2": self.max_dev_ghs2,
+            "max_dev_moments": self.max_dev_moments,
+            "time_s": round(self.runtime_sec, 4),
+        }])
+
+    def summary(self) -> str:
+        """Render individual model parity summary string."""
+        lines = [
+            f"Dynare Parity Report: {self.model_name} (Order {self.order})",
+            "=" * 72,
+            f"Status       : {self.status} ({'PASS' if self.passed else 'FAIL'})",
+            f"Parity Score : {self.score:.1f}%",
+            f"Variables    : {self.n_vars} endogenous, {self.n_shocks} exogenous",
+            f"Max Dev ghx  : {self.max_dev_ghx:.4e}",
+            f"Max Dev ghu  : {self.max_dev_ghu:.4e}",
+        ]
+        if self.order >= 2:
+            lines.append(f"Max Dev ghxx : {self.max_dev_ghxx:.4e}")
+            lines.append(f"Max Dev ghs2 : {self.max_dev_ghs2:.4e}")
+        lines.append(f"Max Dev mom  : {self.max_dev_moments:.4e}")
+        lines.append(f"Runtime      : {self.runtime_sec:.4f}s")
+        lines.append("=" * 72)
+        return "\n".join(lines)
+
+    def to_markdown(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_markdown
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_latex
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        from puremacro.reports import _df_to_typst
+        return _df_to_typst(self.to_frame(), **kwargs)
+
+    def plot(
+        self,
+        variables: Sequence[str] | None = None,
+        *,
+        figsize: tuple[float, float] | None = None,
+        ax: Any | None = None,
+        style: str = "default",
+    ) -> Any:
+        import matplotlib.pyplot as plt
+        df = self.dr_diff
+        if df is None or df.empty:
+            df = self.to_frame()
+
+        if ax is None:
+            fig, target_ax = plt.subplots(figsize=figsize or (8.0, 4.5))
+        else:
+            fig = ax.figure
+            target_ax = ax
+
+        if "dev_ghx" in df.columns:
+            display_df = df.head(15) if variables is None else df.loc[[v for v in variables if v in df.index]]
+            y_pos = np.arange(len(display_df))
+            devs = display_df["dev_ghx"].to_numpy(dtype=float)
+            tol = self.tolerances.get("ghx", 1e-6)
+            log_devs = np.log10(np.maximum(devs, 1e-16))
+            log_tol = np.log10(tol)
+
+            colors = ["#2b8cbe" if d <= tol else "#e41a1c" for d in devs]
+            if style in ("publication", "grayscale"):
+                colors = ["0.3" if d <= tol else "0.7" for d in devs]
+
+            target_ax.barh(y_pos, log_devs, color=colors, height=0.55, align="center")
+            target_ax.axvline(log_tol, color="red", linestyle="--", linewidth=1.2, label=f"Tolerance ({tol:.1e})")
+            target_ax.set_yticks(y_pos)
+            target_ax.set_yticklabels(display_df.index)
+            target_ax.set_xlabel(r"$\log_{10}(\text{Absolute Deviation in } ghx)$")
+            target_ax.legend(loc="best", frameon=False)
+        else:
+            target_ax.text(
+                0.5, 0.5,
+                f"Parity: {self.status} ({self.score:.1f}%)",
+                ha="center", va="center", fontsize=14, fontweight="bold",
+            )
+            target_ax.axis("off")
+
+        target_ax.set_title(f"Parity Deviations: {self.model_name}", fontsize=11, fontweight="bold")
+        target_ax.spines["top"].set_visible(False)
+        target_ax.spines["right"].set_visible(False)
+        target_ax.grid(True, linestyle=":", alpha=0.5)
+
+        if ax is None:
+            fig.tight_layout()
+            return fig
+        return target_ax
+
+
+@dataclass
+class ParityDashboardResult:
+    """Dynare parity verification result and publication scorecard."""
+
+    passed: bool = True
+    score: float = 100.0
+    dr_diff: pd.DataFrame = field(default_factory=pd.DataFrame)
+    moments_diff: pd.DataFrame = field(default_factory=pd.DataFrame)
+    tolerances: dict[str, float] = field(default_factory=dict)
+    model_name: str = "model"
+    scorecard: Any = None
+    total_models: int = 1
+    passed_models: int = 1
+    failed_models: int = 0
+    max_dev_ghx: float = 0.0
+    max_dev_ghu: float = 0.0
+    max_dev_ghxx: float = 0.0
+    max_dev_ghs2: float = 0.0
+    max_dev_moments: float = 0.0
+    max_dev_dr: float = 0.0
+    results: list[ModelParityResult] = field(default_factory=list)
+    details: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self):
+        if self.max_dev_dr == 0.0:
+            valid = [float(v) for v in (self.max_dev_ghx, self.max_dev_ghu, self.max_dev_ghxx) if v is not None and not np.isnan(v)]
+            self.max_dev_dr = max(valid) if valid else 0.0
+
+        if self.scorecard is not None:
+            if not isinstance(self.scorecard, CallableDataFrame):
+                self.scorecard = CallableDataFrame(self.scorecard)
+        else:
+            if self.results:
+                rows = []
+                for r in self.results:
+                    rows.append({
+                        "model": getattr(r, "model_name", "model"),
+                        "order": getattr(r, "order", 1),
+                        "status": getattr(r, "status", ("PASS" if getattr(r, "passed", False) else "FAIL")),
+                        "score": f"{getattr(r, 'score', 0.0):.1f}%",
+                        "max_dev_dr": getattr(r, "max_dev_dr", 0.0),
+                        "max_dev_moments": getattr(r, "max_dev_moments", 0.0),
+                        "time_s": round(getattr(r, "runtime_sec", 0.0), 4),
+                    })
+                self.scorecard = CallableDataFrame(rows)
+            else:
+                self.scorecard = CallableDataFrame([{
+                    "model": self.model_name,
+                    "order": self.details.get("order", 1),
+                    "status": "PASS" if self.passed else "FAIL",
+                    "score": f"{self.score:.1f}%",
+                    "max_dev_dr": self.max_dev_dr,
+                    "max_dev_moments": self.max_dev_moments,
+                    "time_s": round(self.details.get("runtime_sec", 0.0), 4),
+                }])
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return scorecard table as a DataFrame."""
+        return self.scorecard.copy()
+
+    def summary(self) -> str:
+        """Render comprehensive Dynare Parity Dashboard summary."""
+        lines = [
+            "=" * 72,
+            "  Dynare Parity Dashboard Scorecard",
+            "=" * 72,
+            f"Overall Status : {'PASS' if self.passed else 'FAIL'}",
+            f"Parity Score   : {self.score:.1f}%",
+            f"Models Tested  : {self.total_models} (Passed: {self.passed_models}, Failed: {self.failed_models})",
+            "",
+            "Tolerances:",
+        ]
+        if self.tolerances:
+            for k, v in sorted(self.tolerances.items()):
+                lines.append(f"  {k:<12s}: {v:.1e}")
+        else:
+            lines.append("  (none specified)")
+
+        lines.extend([
+            "",
+            "Maximum Absolute Deviations:",
+            f"  ghx          : {self.max_dev_ghx:12.4e}  (tol: {self.tolerances.get('ghx', 1e-6):.1e})",
+            f"  ghu          : {self.max_dev_ghu:12.4e}  (tol: {self.tolerances.get('ghu', 1e-6):.1e})",
+        ])
+        if self.max_dev_ghxx > 0.0 or "ghxx" in self.tolerances:
+            lines.append(f"  ghxx         : {self.max_dev_ghxx:12.4e}  (tol: {self.tolerances.get('ghxx', 1e-4):.1e})")
+        if self.max_dev_ghs2 > 0.0 or "ghs2" in self.tolerances:
+            lines.append(f"  ghs2         : {self.max_dev_ghs2:12.4e}  (tol: {self.tolerances.get('ghs2', 1e-4):.1e})")
+        if self.max_dev_moments > 0.0 or "mean" in self.tolerances or "var" in self.tolerances:
+            lines.append(f"  moments      : {self.max_dev_moments:12.4e}  (tol: {self.tolerances.get('mean', 1e-5):.1e})")
+
+        lines.extend([
+            "",
+            "Scorecard Table:",
+            "-" * 72,
+            self.scorecard.to_string(index=False),
+            "=" * 72,
+        ])
+        return "\n".join(lines)
+
+    def to_markdown(self, **kwargs) -> str:
+        """Export scorecard table to Markdown format."""
+        from puremacro.reports import _df_to_markdown
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        """Export scorecard table to LaTeX tabular format."""
+        from puremacro.reports import _df_to_latex
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        """Export scorecard table to Typst table format."""
+        from puremacro.reports import _df_to_typst
+        return _df_to_typst(self.to_frame(), **kwargs)
+
+    def plot(
+        self,
+        variables: Sequence[str] | None = None,
+        *,
+        figsize: tuple[float, float] | None = None,
+        ax: Any | None = None,
+        style: str = "default",
+    ) -> Any:
+        """Generate publication-grade deviation comparison plot across variables."""
+        import matplotlib.pyplot as plt
+
+        df = self.dr_diff
+        if df is None or df.empty:
+            df = self.to_frame()
+
+        if ax is None:
+            fig, target_ax = plt.subplots(figsize=figsize or (8.0, 4.5))
+        else:
+            fig = ax.figure
+            target_ax = ax
+
+        if "dev_ghx" in df.columns:
+            display_df = df.head(15) if variables is None else df.loc[[v for v in variables if v in df.index]]
+            y_pos = np.arange(len(display_df))
+            devs = display_df["dev_ghx"].to_numpy(dtype=float)
+            tol = self.tolerances.get("ghx", 1e-6)
+            log_devs = np.log10(np.maximum(devs, 1e-16))
+            log_tol = np.log10(tol)
+
+            colors = ["#2b8cbe" if d <= tol else "#e41a1c" for d in devs]
+            if style in ("publication", "grayscale"):
+                colors = ["0.3" if d <= tol else "0.7" for d in devs]
+
+            target_ax.barh(y_pos, log_devs, color=colors, height=0.55, align="center")
+            target_ax.axvline(log_tol, color="red", linestyle="--", linewidth=1.2, label=f"Tolerance ({tol:.1e})")
+            target_ax.set_yticks(y_pos)
+            target_ax.set_yticklabels(display_df.index)
+            target_ax.set_xlabel(r"$\log_{10}(\text{Absolute Deviation in } ghx)$")
+            target_ax.legend(loc="best", frameon=False)
+        else:
+            target_ax.text(
+                0.5, 0.5,
+                f"Dynare Parity Score: {self.score:.1f}%\nStatus: {'PASS' if self.passed else 'FAIL'}",
+                ha="center", va="center", fontsize=14, fontweight="bold",
+            )
+            target_ax.axis("off")
+
+        target_ax.set_title(f"Dynare Parity Dashboard: {self.model_name}", fontsize=11, fontweight="bold")
+        target_ax.spines["top"].set_visible(False)
+        target_ax.spines["right"].set_visible(False)
+        target_ax.grid(True, linestyle=":", alpha=0.5)
+
+        if ax is None:
+            fig.tight_layout()
+            return fig
+        return target_ax
+
+
+
 
 
 

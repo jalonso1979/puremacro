@@ -184,13 +184,20 @@ class TestTier1FeatureCoverage:
 
     def test_t1_f1_sys_modules_purity_after_regress_execution(self, sample_regression_data):
         """T1.1.5: Verify statsmodels/linearmodels/arch are not imported by puremacro.regress."""
-        df = sample_regression_data
-        X = add_constant(df[["x1", "x2"]])
-        res = ols(df["y"], X, cov_type="HC1")
-        assert res.params is not None
-        
-        for forbidden in ("statsmodels", "linearmodels", "arch"):
-            assert forbidden not in sys.modules, f"{forbidden} was loaded into sys.modules"
+        import subprocess
+
+        code = (
+            "import sys, numpy as np, pandas as pd\n"
+            "from puremacro.regress import add_constant, ols\n"
+            "df = pd.DataFrame({'y': np.arange(20, dtype=float), 'x1': np.arange(20, dtype=float), 'x2': np.arange(20, dtype=float)**2})\n"
+            "X = add_constant(df[['x1', 'x2']])\n"
+            "res = ols(df['y'], X, cov_type='HC1')\n"
+            "assert res.params is not None\n"
+            "for forbidden in ('statsmodels', 'linearmodels', 'arch'):\n"
+            "    assert forbidden not in sys.modules, f'{forbidden} was loaded into sys.modules'\n"
+        )
+        proc = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+        assert proc.returncode == 0, proc.stderr
 
     # -----------------------------------------------------------------------
     # Feature 2: Showcase 41 runs natively with smoother and estimate (>=5 tests)

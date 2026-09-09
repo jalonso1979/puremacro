@@ -184,14 +184,13 @@ def _solve_lead_lag_system(
     state_idx: Sequence[int],
     *,
     strict: bool,
+    qz_criterium: float = 1.0 + 1e-8,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, KleinSolution, np.ndarray, np.ndarray]:
-    """Solve ``A_+ E_t y_{t+1} + A_0 y_t + A_- y_{t-1} + B_u u_t = 0`` by Klein QZ.
+    r"""Solve the lead-lag system via Klein's generalized Schur solver.
 
-    The Klein vector stacks the lagged copies of the state variables
-    (predetermined) with *all* current variables (non-predetermined):
-
-        z_t = [s_{t-1}; y_t],   s_t = P_s y_t
-
+    Transforms the first-order conditions ``A_+ E_t y_{t+1} + A_0 y_t +
+    A_- s_{t-1} + B_u u_t = 0`` into the standard Klein state-space system
+    ``A E_t z_{t+1} = B z_t + C u_t`` by stacking ``z_t = [s_{t-1}; y_t]``,
     so the system is the ``n`` model equations plus ``n_s`` identity rows
     ``s_t = P_s y_t``; nothing is dropped, and a variable may appear at
     ``t-1``, ``t`` and ``t+1`` at once (TFP in every textbook Euler
@@ -219,7 +218,7 @@ def _solve_lead_lag_system(
     A_klein[n:, :n_s] = np.eye(n_s)
     B_klein[n:, n_s:] = P_s
 
-    sol_full = klein_solve(A_klein, B_klein, n_pre=n_s, C=C_klein, strict=strict)
+    sol_full = klein_solve(A_klein, B_klein, n_pre=n_s, C=C_klein, strict=strict, div=qz_criterium)
     F_full = np.asarray(sol_full.F, dtype=float)
     L_full = np.asarray(sol_full.L, dtype=float)
     return A_klein, B_klein, C_klein, sol_full, F_full, L_full
@@ -261,6 +260,7 @@ def build_dynare(
     verify_derivatives: bool = True,
     check_steady_state: bool = True,
     strict: bool = True,
+    qz_criterium: float = 1.0 + 1e-8,
 ) -> LinearModel | PrunedDSGESolution:
     """Solve a DSGE model written in Dynare canonical lead-lag form.
 
@@ -479,7 +479,7 @@ def build_dynare(
     # 4. Klein QZ on the stacked system z_t = [s_{t-1}; y_t]
     state_idx = [variables.index(v) for v in states_tuple]
     A_klein, B_klein, C_klein, sol_full, F_full, L_full = _solve_lead_lag_system(
-        A_plus, A_0, A_minus, B_u, state_idx, strict=strict,
+        A_plus, A_0, A_minus, B_u, state_idx, strict=strict, qz_criterium=qz_criterium,
     )
 
     n_s = len(states_tuple)
@@ -548,6 +548,7 @@ def build_dynare(
     if compiled is not None:
         object.__setattr__(model, "_compiled", compiled)
     object.__setattr__(model, "_is_linear", is_linear)
+    object.__setattr__(model, "_qz_criterium", qz_criterium)
     return model
 
 
@@ -1723,7 +1724,7 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
         pass
 
     # Remove known blocks to isolate top-level declarations and parameters
-    block_pattern = r"\b(model|initval|steady_state_model|shocks|estimated_params|histval|endval)\b(?:\([^)]*\))?\s*;.*?\bend\s*;"
+    block_pattern = r"\b(model|initval|steady_state_model|shocks|estimated_params|histval|endval|shock_groups)\b(?:\([^)]*\))?\s*;.*?\bend\s*;"
     non_block_text = re.sub(block_pattern, "", clean_text, flags=re.DOTALL)
 
     # 1. Parse var
@@ -2100,6 +2101,7 @@ def load_mod(
     method: str = "complex",
     verify_derivatives: bool = True,
     strict: bool = True,
+    qz_criterium: float = 1.0 + 1e-8,
 ) -> LinearModel | PrunedDSGESolution:
     """Load and solve a Dynare .mod file directly in puremacro.
 
@@ -2218,6 +2220,7 @@ def load_mod(
         method=method,
         verify_derivatives=verify_derivatives,
         strict=strict,
+        qz_criterium=qz_criterium,
     )
 
     # Carry the file's own declarations onto the solved model so
@@ -2247,6 +2250,10 @@ def load_mod(
             object.__setattr__(model, "_varexo_det", parsed["varexo_det"])
         if parsed.get("det_shocks"):
             object.__setattr__(model, "_det_shocks", parsed["det_shocks"])
+        if parsed.get("shock_groups"):
+            object.__setattr__(model, "_shock_groups", parsed["shock_groups"])
+        if parsed.get("named_shock_groups"):
+            object.__setattr__(model, "_named_shock_groups", parsed["named_shock_groups"])
     elif isinstance(model, (PrunedDSGESolution, Order3PrunedSolution)):
         if dag is not None:
             object.__setattr__(model, "_dag", dag)
@@ -2308,10 +2315,16 @@ LinearModel.solve_third_order = _linear_model_solve_third_order  # type: ignore[
 _orig_solve = LinearModel.solve
 
 
-def _linear_model_solve(self, order: int = 1, *, shock_cov: np.ndarray | None = None):
+def _linear_model_solve(
+    self,
+    order: int = 1,
+    *,
+    shock_cov: np.ndarray | None = None,
+    qz_criterium: float | None = None,
+):
     if order == 3:
         return self.solve_third_order(shock_cov=shock_cov)
-    return _orig_solve(self, order=order, shock_cov=shock_cov)
+    return _orig_solve(self, order=order, shock_cov=shock_cov, qz_criterium=qz_criterium)
 
 
 LinearModel.solve = _linear_model_solve  # type: ignore[assignment]

@@ -210,8 +210,10 @@
     ],
     "puremacro.dsge": [
       "BayesianEstimationResult",
+      "BayesianIRFResult",
       "BetaPrior",
       "BlanchardKahnError",
+      "ConditionalForecastResult",
       "DSGEForecastResult",
       "DSGEPosteriorResult",
       "DiagnosticFinding",
@@ -221,6 +223,7 @@
       "EigenvalueTable",
       "EstimatedParamSpec",
       "EstimatedParams",
+      "ExtendedPathResult",
       "FEVDResult",
       "FertilitySolution",
       "GK2011_PARAMS",
@@ -234,17 +237,21 @@
       "ModeCheckResult",
       "ModelDiagnosticsResult",
       "ModelError",
+      "ModelParityResult",
       "NormalPrior",
       "OSRResult",
       "OccBinConstraint",
       "OccBinResult",
+      "ParityDashboardResult",
       "PerfectForesightResult",
       "PolicyResult",
       "Prior",
+      "PriorPredictiveResult",
       "PrunedDSGESolution",
       "PrunedSimulationResult",
       "SW07PosteriorResult",
       "ShockDecompResult",
+      "ShockDecompositionResult",
       "SmootherResult",
       "SteadyStateError",
       "StochSimulResult",
@@ -252,19 +259,23 @@
       "TheoreticalMomentsResult",
       "UniformPrior",
       "WeibullPrior",
+      "bayesian_irf",
       "build",
       "build_dynare",
       "build_gertler_karadi_model",
       "canonical_growth_2nd_order",
       "check",
       "cmaes",
+      "compare_model_to_dynare",
       "compute_fevd",
       "compute_shock_decomposition",
+      "conditional_forecast",
       "csminwel",
       "discretionary_policy",
       "estimate_dsge",
       "estimate_dsge_bayesian",
       "estimate_sw07",
+      "extended_path",
       "fertility_adj_costs",
       "find_mode",
       "forecast_model",
@@ -272,7 +283,12 @@
       "identification",
       "klein_solve",
       "laplace_mdd",
+      "load_dynare",
+      "load_dynare_dr",
       "load_dynare_mod",
+      "load_dynare_moments",
+      "load_fevd",
+      "load_irfs",
       "load_mod",
       "lq_commitment",
       "make_state_space_from_varobs",
@@ -282,13 +298,18 @@
       "model_comparison",
       "model_diagnostics",
       "observation",
+      "one_sided_hp_filter",
       "osr",
+      "parity",
       "parse_estimated_params",
       "parse_estimated_params_bounds",
       "parse_estimated_params_init",
       "parse_mod",
+      "prior_predictive",
       "priors",
       "resid",
+      "run_parity_suite",
+      "shock_groups_decomposition",
       "smooth_model",
       "smoother",
       "solve_bgp",
@@ -298,7 +319,8 @@
       "solve_occbin",
       "solve_perfect_foresight",
       "solve_steady_state",
-      "steady"
+      "steady",
+      "verify_dynare_parity"
     ],
     "puremacro.dsge._estimated_params": [
       "EstimatedParamSpec",
@@ -314,25 +336,50 @@
     ],
     "puremacro.dsge._moments": [
       "ZeroVarianceWarning",
+      "compute_autocorr_matrices",
       "conditional_fevd",
-      "first_order_moments"
+      "first_order_moments",
+      "one_sided_hp_filter",
+      "spectral_moments"
     ],
     "puremacro.dsge._qz": [
-      "ordqz_sorted"
+      "DEFAULT_QZ_CRITERIUM",
+      "ordqz_sorted",
+      "qz_stable_predicate"
     ],
     "puremacro.dsge._results": [
+      "BayesianIRFResult",
+      "ConditionalForecastResult",
+      "DSGEForecastResult",
       "DSGEPosteriorResult",
+      "DiagnosticFinding",
       "Dynare2ndDR",
       "DynareDR",
+      "EigenvalueTable",
+      "ExtendedPathResult",
       "FertilitySolution",
+      "IdentificationResult",
+      "ModeCheckResult",
+      "ModelDiagnosticsResult",
+      "ModelParityResult",
+      "OSRResult",
+      "ParityDashboardResult",
       "PerfectForesightResult",
+      "PolicyResult",
+      "PriorPredictiveResult",
       "SW07PosteriorResult",
+      "ShockDecompositionResult",
+      "SmootherResult",
       "StochSimulResult",
       "TheoreticalMomentsResult"
     ],
     "puremacro.dsge.bayesian": [
       "BayesianEstimationResult",
-      "estimate_dsge_bayesian"
+      "BayesianIRFResult",
+      "PriorPredictiveResult",
+      "bayesian_irf",
+      "estimate_dsge_bayesian",
+      "prior_predictive"
     ],
     "puremacro.dsge.build": [
       "DynareDR",
@@ -346,6 +393,10 @@
       "StochSimulResult",
       "TheoreticalMomentsResult",
       "build"
+    ],
+    "puremacro.dsge.conditional": [
+      "ConditionalForecastResult",
+      "conditional_forecast"
     ],
     "puremacro.dsge.decomposition": [
       "FEVDResult",
@@ -388,6 +439,10 @@
       "PiecewiseKalmanResult",
       "estimate_dsge",
       "piecewise_kalman_filter"
+    ],
+    "puremacro.dsge.extended_path": [
+      "ExtendedPathResult",
+      "extended_path"
     ],
     "puremacro.dsge.fertility_adj_costs": [
       "FERTILITY_CALIB_TARGETS",
@@ -474,6 +529,10 @@
       "detrend_bgp",
       "detrend_model",
       "ramsey_model"
+    ],
+    "puremacro.dsge.shock_groups": [
+      "ShockDecompositionResult",
+      "shock_groups_decomposition"
     ],
     "puremacro.dsge.smc": [
       "SMCResult",
@@ -3007,11 +3066,13 @@
       "local_variables",
       "log_deflators",
       "log_trend_vars",
+      "named_shock_groups",
       "options",
       "parameter_values",
       "parameters",
       "predetermined_variables",
       "shock_cov",
+      "shock_groups",
       "shocks",
       "shocks_config",
       "steady_state",
@@ -3026,6 +3087,30 @@
       "line",
       "type",
       "value"
+    ],
+    "puremacro.dsge._results.BayesianIRFResult": [
+      "bands",
+      "determinacy_rate",
+      "draws",
+      "horizon",
+      "median",
+      "n_draws",
+      "n_valid",
+      "quantiles",
+      "shocks",
+      "variables"
+    ],
+    "puremacro.dsge._results.ConditionalForecastResult": [
+      "bands",
+      "baseline",
+      "conditions",
+      "controlled_shocks",
+      "forecast",
+      "horizon",
+      "shock_names",
+      "shocks",
+      "simulations",
+      "variable_names"
     ],
     "puremacro.dsge._results.DSGEForecastResult": [
       "ci",
@@ -3088,6 +3173,17 @@
       "real",
       "variables"
     ],
+    "puremacro.dsge._results.ExtendedPathResult": [
+      "converged",
+      "horizon",
+      "iterations",
+      "path",
+      "residual_norm",
+      "shock_names",
+      "shocks",
+      "terminal_error",
+      "variable_names"
+    ],
     "puremacro.dsge._results.FertilitySolution": [
       "F",
       "G",
@@ -3140,6 +3236,27 @@
       "unused_variables",
       "variable_names"
     ],
+    "puremacro.dsge._results.ModelParityResult": [
+      "details",
+      "dr_diff",
+      "max_dev_dr",
+      "max_dev_ghs2",
+      "max_dev_ghu",
+      "max_dev_ghx",
+      "max_dev_ghxx",
+      "max_dev_irf",
+      "max_dev_moments",
+      "model_name",
+      "moments_diff",
+      "n_shocks",
+      "n_vars",
+      "order",
+      "passed",
+      "runtime_sec",
+      "score",
+      "status",
+      "tolerances"
+    ],
     "puremacro.dsge._results.OSRResult": [
       "converged",
       "initial_params",
@@ -3154,6 +3271,26 @@
       "variance_table",
       "weights"
     ],
+    "puremacro.dsge._results.ParityDashboardResult": [
+      "details",
+      "dr_diff",
+      "failed_models",
+      "max_dev_dr",
+      "max_dev_ghs2",
+      "max_dev_ghu",
+      "max_dev_ghx",
+      "max_dev_ghxx",
+      "max_dev_moments",
+      "model_name",
+      "moments_diff",
+      "passed",
+      "passed_models",
+      "results",
+      "score",
+      "scorecard",
+      "tolerances",
+      "total_models"
+    ],
     "puremacro.dsge._results.PolicyResult": [
       "beta",
       "impact_matrix",
@@ -3166,6 +3303,17 @@
       "target_vars",
       "transition_matrix",
       "weights"
+    ],
+    "puremacro.dsge._results.PriorPredictiveResult": [
+      "determinacy_rate",
+      "irfs",
+      "n_draws",
+      "n_valid",
+      "param_names",
+      "prior_draws",
+      "prior_moments",
+      "priors",
+      "valid_draws"
     ],
     "puremacro.dsge._results.SW07PosteriorResult": [
       "accept_rates",
@@ -3180,6 +3328,15 @@
       "param_names",
       "seed"
     ],
+    "puremacro.dsge._results.ShockDecompositionResult": [
+      "actual",
+      "components",
+      "decomposition",
+      "groups",
+      "initial_state",
+      "shock_names",
+      "variables"
+    ],
     "puremacro.dsge._results.SmootherResult": [
       "_data",
       "_model",
@@ -3191,6 +3348,7 @@
       "varobs"
     ],
     "puremacro.dsge._results.StochSimulResult": [
+      "_sim_corr",
       "dr",
       "irfs",
       "order",
@@ -3201,6 +3359,7 @@
     ],
     "puremacro.dsge._results.TheoreticalMomentsResult": [
       "autocorr",
+      "autocorr_matrices",
       "correlation",
       "covariance",
       "fevd",
@@ -3462,6 +3621,7 @@
     ],
     "puremacro.dsge.pruning.Order3TheoreticalMomentsResult": [
       "autocorr",
+      "autocorr_matrices",
       "correlation",
       "covariance",
       "fevd",

@@ -2219,9 +2219,9 @@ class TestTier2BoundaryAndCornerCases:
         assert len(m1.variables) == len(m2.variables)
 
     def test_t2_f21_load_mod_order_parameter_validation(self):
-        """T2.21.2: Calling load_mod with order > 2 raises ValueError."""
+        """T2.21.2: Calling load_mod with order > 3 raises ValueError."""
         with pytest.raises(ValueError, match="order"):
-            load_mod(_RBC_LINEAR_MOD, order=3)
+            load_mod(_RBC_LINEAR_MOD, order=4)
 
     def test_t2_f21_load_mod_missing_file_raises(self):
         """T2.21.3: Passing non-existent Path raises FileNotFoundError."""
@@ -2320,10 +2320,18 @@ class TestTier2BoundaryAndCornerCases:
 
     def test_t2_f23_sys_modules_purity_after_dsge_solve(self):
         """T2.23.3: Zero forbidden modules loaded into sys.modules after solve."""
-        m = load_mod(_RBC_LINEAR_MOD, order=1)
-        assert m is not None
-        for forbidden in ("sympy", "ply", "lark", "antlr4", "torch", "statsmodels"):
-            assert forbidden not in sys.modules
+        import subprocess
+
+        code = (
+            "import sys\n"
+            "from puremacro.dsge.dynare import load_mod\n"
+            f"m = load_mod({_RBC_LINEAR_MOD!r}, order=1)\n"
+            "assert m is not None\n"
+            "for forbidden in ('sympy', 'ply', 'lark', 'antlr4', 'torch', 'statsmodels'):\n"
+            "    assert forbidden not in sys.modules, f'{forbidden} was loaded into sys.modules'\n"
+        )
+        proc = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+        assert proc.returncode == 0, proc.stderr
 
     def test_t2_f23_all_dsge_files_pure_python(self):
         """T2.23.4: All files in puremacro.dsge are pure Python (no C extensions)."""

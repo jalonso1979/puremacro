@@ -613,14 +613,18 @@ class LinearModel:
         sigma: float | Mapping[str, float] | None = None,
         lags: int = 5,
         fevd_horizons: Sequence[int | None] = (1, 4, 8, 16, 32, None),
+        hp_filter: float | None = None,
+        bandpass_filter: tuple[float, float] | Sequence[float] | None = None,
+        one_sided_hp_filter: bool | float | None = None,
+        contemporaneous_correlation: bool = True,
+        ar: int | None = None,
     ) -> TheoreticalMomentsResult:
         """Calculate analytical theoretical moments matching Dynare's stoch_simul.
 
-        Solves the discrete Lyapunov equation for unconditional stationary moments,
-        cross-correlations, autocorrelations, and forecast error variance decomposition.
-        The moments are those of the variables as reported by :meth:`irf` and
-        :meth:`simulate` (Dynare timing for ``build_dynare`` / ``load_mod``
-        models), so a long :meth:`simulate` run reproduces them.
+        Solves the discrete Lyapunov equation or evaluates Gauss-Legendre
+        quadrature spectral density integrals for unconditional stationary
+        moments, cross-correlations, autocorrelations, and forecast error
+        variance decomposition.
 
         Parameters
         ----------
@@ -633,46 +637,110 @@ class LinearModel:
         fevd_horizons : Sequence[int | None], default (1, 4, 8, 16, 32, None)
             Forecast horizons for variance decomposition. None represents
             asymptotic infinity (unconditional variance share).
+        hp_filter : float, optional
+            Hodrick-Prescott filter smoothing parameter lambda (e.g. 1600.0).
+            Theoretical moments are evaluated via Gauss-Legendre quadrature.
+        bandpass_filter : tuple of (float, float), optional
+            Baxter-King bandpass filter periodicities (low, high), e.g. (6, 32).
+        one_sided_hp_filter : bool or float, optional
+            One-sided HP filter. Theoretical moments are incompatible and will raise ValueError.
+        contemporaneous_correlation : bool, default True
+            Whether to compute and populate contemporaneous correlation matrix.
+        ar : int, optional
+            Number of autocorrelation lags (overrides ``lags`` if specified).
 
         Returns
         -------
         TheoreticalMomentsResult
             Container with moments, covariance, correlation, autocorrelation, and FEVD.
         """
-        self._require_solution("theoretical_moments()")
-        g_eigs = np.abs(scipy.linalg.eigvals(self.solution.G))
-        if np.any(g_eigs >= 1.0 - 1e-7):
-            bad = g_eigs[g_eigs >= 1.0 - 1e-7]
+        if one_sided_hp_filter is not None and one_sided_hp_filter is not False:
             raise ValueError(
-                f"State transition matrix G has non-stationary eigenvalues (|λ| >= 1.0: {bad}); "
-                "unconditional stationary moments do not exist."
+                "disp_th_moments:: theoretical moments incompatible with one-sided HP filter. "
+                "Use simulated moments instead."
             )
 
+        n_filters = (hp_filter is not None) + (bandpass_filter is not None)
+        if n_filters > 1:
+            raise ValueError(
+                "Only one filter can be specified among hp_filter, one_sided_hp_filter, and bandpass_filter."
+            )
+
+        if hp_filter is not None and hp_filter <= 0:
+            raise ValueError(f"hp_filter parameter lambda must be positive, got {hp_filter}")
+
+        if bandpass_filter is not None:
+            bp = tuple(bandpass_filter)
+            if len(bp) != 2 or bp[0] <= 0 or bp[1] <= bp[0]:
+                raise ValueError(f"bandpass_filter requires 0 < low < high, got {bandpass_filter}")
+
+        if ar is not None:
+            if ar < 0:
+                raise ValueError(f"ar must be a non-negative integer, got {ar}")
+            lags = int(ar)
+
+        self._require_solution("theoretical_moments()")
         sigma_u = self._shock_covariance(sigma)
         G, N = self.solution.G, self.solution.N
         M_x, M_u = self._reported_loadings()
-        _, gamma_0, gammas = first_order_moments(G, N, M_x, M_u, sigma_u, lags)
+
+        from puremacro.dsge._moments import (
+            compute_autocorr_matrices,
+            first_order_moments,
+            spectral_moments,
+        )
+
+        if hp_filter is not None or bandpass_filter is not None:
+            filter_type = "hp" if hp_filter is not None else "bandpass"
+            hp_lambda = float(hp_filter) if hp_filter is not None else 1600.0
+            bp_tuple = tuple(bandpass_filter) if bandpass_filter is not None else None
+            _, gamma_0, gammas = spectral_moments(
+                G,
+                N,
+                M_x,
+                M_u,
+                sigma_u,
+                lags=lags,
+                filter_type=filter_type,
+                hp_lambda=hp_lambda,
+                bandpass=bp_tuple,
+            )
+        else:
+            g_eigs = np.abs(scipy.linalg.eigvals(self.solution.G))
+            if np.any(g_eigs >= 1.0 - 1e-7):
+                bad = g_eigs[g_eigs >= 1.0 - 1e-7]
+                raise ValueError(
+                    f"State transition matrix G has non-stationary eigenvalues (|λ| >= 1.0: {bad}); "
+                    "unconditional stationary moments do not exist."
+                )
+            _, gamma_0, gammas = first_order_moments(G, N, M_x, M_u, sigma_u, lags)
 
         order_vars = list(self.states) + list(self.controls)
         cov_df = pd.DataFrame(
             gamma_0, index=order_vars, columns=order_vars
         ).loc[list(self.variables), list(self.variables)]
 
+        gammas_reordered = [
+            pd.DataFrame(gk, index=order_vars, columns=order_vars).loc[
+                list(self.variables), list(self.variables)
+            ].to_numpy()
+            for gk in gammas
+        ]
+
+        df_corr, autocorr_matrices = compute_autocorr_matrices(
+            cov_df.to_numpy(), gammas_reordered, list(self.variables)
+        )
+
         variances = np.diag(cov_df.to_numpy())
         stds = np.sqrt(np.maximum(variances, 0.0))
-        means = np.array([float(self.steady_state[v]) for v in self.variables])
+        if hp_filter is not None or bandpass_filter is not None:
+            means = np.zeros(len(self.variables))
+        else:
+            means = np.array([float(self.steady_state[v]) for v in self.variables])
 
         df_moments = pd.DataFrame(
             {"Mean": means, "Std.Dev.": stds, "Variance": variances},
             index=list(self.variables),
-        )
-
-        std_outer = np.outer(stds, stds)
-        std_outer[std_outer == 0.0] = np.nan
-        corr_mat = cov_df.to_numpy() / std_outer
-        np.fill_diagonal(corr_mat, 1.0)
-        df_corr = pd.DataFrame(
-            corr_mat, index=list(self.variables), columns=list(self.variables)
         )
 
         # Autocorrelations: diag(Gamma_k) / diag(Gamma_0)
@@ -680,14 +748,8 @@ class LinearModel:
         df_autocorr = pd.DataFrame(
             index=list(self.variables), columns=autocorr_cols, dtype=float
         )
-        for k, gamma_k in enumerate(gammas, start=1):
-            df_gamma_k = pd.DataFrame(
-                gamma_k, index=order_vars, columns=order_vars
-            ).loc[list(self.variables), list(self.variables)]
-            diag_gamma = np.diag(df_gamma_k.to_numpy())
-            with np.errstate(divide="ignore", invalid="ignore"):
-                rho_k = np.where(variances > 1e-14, diag_gamma / variances, np.nan)
-            df_autocorr[f"Lag {k}"] = rho_k
+        for k, mat in enumerate(autocorr_matrices, start=1):
+            df_autocorr[f"Lag {k}"] = np.diag(mat.to_numpy())
 
         # Variance Decomposition
         df_fevd = self.fevd(horizons=fevd_horizons, sigma=sigma)
@@ -695,9 +757,10 @@ class LinearModel:
         return TheoreticalMomentsResult(
             moments=df_moments,
             covariance=cov_df,
-            correlation=df_corr,
+            correlation=df_corr if contemporaneous_correlation else None,
             autocorr=df_autocorr,
             fevd=df_fevd,
+            autocorr_matrices=autocorr_matrices,
         )
 
     def fevd(
@@ -1055,14 +1118,25 @@ class LinearModel:
         ax.legend(loc="best", frameon=False)
         return fig
 
-    def simulate(self, periods: int = 200, *, sigma=None, seed: int = 0,
-                 burn: int = 100) -> pd.DataFrame:
-        """Simulate the model with i.i.d. Gaussian innovations.
+    def simulate(
+        self,
+        periods: int = 200,
+        shocks: np.ndarray | None = None,
+        *,
+        sigma=None,
+        seed: int = 0,
+        burn: int = 100,
+        initial_state: np.ndarray | None = None,
+    ) -> pd.DataFrame:
+        """Simulate the model with i.i.d. Gaussian innovations or supplied shocks.
 
         Parameters
         ----------
         periods : int, default 200
             Periods returned, after ``burn``.
+        shocks : np.ndarray, optional
+            Pre-specified shock innovations of shape ``(periods, n_shocks)``
+            or ``(periods + burn, n_shocks)``. If provided, random draws are bypassed.
         sigma : float | Mapping[str, float], optional
             Innovation standard deviations. A scalar applies to every
             shock; a mapping sets them by name (missing shocks get 0).
@@ -1073,6 +1147,8 @@ class LinearModel:
             Seed for ``numpy.random.default_rng``.
         burn : int, default 100
             Discarded initial periods.
+        initial_state : np.ndarray, optional
+            Initial state vector of length ``n_states``. Default is zeros.
 
         Returns
         -------
@@ -1083,25 +1159,65 @@ class LinearModel:
         """
         self._require_solution("simulate()")
         n_e = len(self.shocks)
-        rng = np.random.default_rng(seed)
-        total = periods + burn
-        if sigma is None and self._shock_cov is not None:
-            cov = self._shock_covariance(None)
-            shocks = rng.multivariate_normal(np.zeros(n_e), cov, size=total, method="cholesky") \
-                if n_e else np.zeros((total, 0))
+        if shocks is not None:
+            shocks_in = np.asarray(shocks, dtype=float)
+            if shocks_in.ndim == 1:
+                if n_e == 1:
+                    shocks_in = shocks_in.reshape(-1, 1)
+                elif len(shocks_in) == n_e:
+                    shocks_in = shocks_in.reshape(1, n_e)
+                else:
+                    shocks_in = shocks_in.reshape(-1, 1)
+            if n_e > 0 and shocks_in.shape[1] != n_e:
+                raise ValueError(
+                    f"shocks column dimension ({shocks_in.shape[1]}) does not match "
+                    f"model shocks ({n_e})"
+                )
+            if shocks_in.shape[0] == periods + burn:
+                total = periods + burn
+                actual_burn = burn
+            elif shocks_in.shape[0] == periods:
+                total = periods
+                actual_burn = 0
+            else:
+                total = len(shocks_in)
+                actual_burn = 0
+            actual_shocks = shocks_in
         else:
-            sd = self._shock_sd(sigma, missing=0.0)
-            shocks = rng.standard_normal((total, n_e)) * sd
+            rng = np.random.default_rng(seed)
+            total = periods + burn
+            actual_burn = burn
+            if sigma is None and self._shock_cov is not None:
+                cov = self._shock_covariance(None)
+                actual_shocks = (
+                    rng.multivariate_normal(np.zeros(n_e), cov, size=total, method="cholesky")
+                    if n_e else np.zeros((total, 0))
+                )
+            else:
+                sd = self._shock_sd(sigma, missing=0.0)
+                actual_shocks = rng.standard_normal((total, n_e)) * sd
 
         G, N = self.solution.G, self.solution.N
         M_x, M_u = self._reported_loadings()
         out = np.zeros((total, self.n_states + self.n_controls))
-        x = np.zeros(self.n_states)
+        if initial_state is not None:
+            init_arr = np.asarray(initial_state, dtype=float).ravel()
+            if len(init_arr) == self.n_states:
+                x = init_arr.copy()
+            elif len(init_arr) == len(self.variables):
+                x = np.array([init_arr[list(self.variables).index(s)] for s in self.states], dtype=float)
+            else:
+                raise ValueError(
+                    f"initial_state length ({len(init_arr)}) must equal n_states ({self.n_states}) "
+                    f"or n_vars ({len(self.variables)})"
+                )
+        else:
+            x = np.zeros(self.n_states)
         for t in range(total):
-            out[t] = M_x @ x + M_u @ shocks[t]
-            x = G @ x + N @ shocks[t]
+            out[t] = M_x @ x + M_u @ actual_shocks[t]
+            x = G @ x + N @ actual_shocks[t]
         frame = pd.DataFrame(out, columns=list(self.states) + list(self.controls))
-        return frame.iloc[burn:].reset_index(drop=True)[list(self.variables)]
+        return frame.iloc[actual_burn:].reset_index(drop=True)[list(self.variables)]
 
     def stoch_simul(
         self,
@@ -1113,6 +1229,13 @@ class LinearModel:
         seed: int = 0,
         burn: int = 100,
         lags: int = 5,
+        hp_filter: float | None = None,
+        bandpass_filter: tuple[float, float] | Sequence[float] | None = None,
+        one_sided_hp_filter: bool | float | None = None,
+        simul_replic: int = 0,
+        contemporaneous_correlation: bool = True,
+        ar: int | None = None,
+        qz_criterium: float = 1.0 + 1e-8,
     ) -> StochSimulResult:
         """Execute Dynare-compatible stoch_simul routine.
 
@@ -1120,7 +1243,7 @@ class LinearModel:
         1. Decision rules (oo_.dr)
         2. Analytical theoretical moments (moments, covariance, correlation, autocorrelations, FEVD)
         3. Impulse response functions to a one-standard-deviation innovation in each shock
-        4. Simulated sample moments (if periods > 0)
+        4. Simulated sample moments (if periods > 0), with Monte Carlo SEs if simul_replic > 0.
 
         Parameters
         ----------
@@ -1142,6 +1265,22 @@ class LinearModel:
             Burn-in periods dropped before calculating simulated moments.
         lags : int, default 5
             Number of autocorrelation lags.
+        hp_filter : float, optional
+            Hodrick-Prescott filter smoothing parameter lambda.
+        bandpass_filter : tuple of (float, float), optional
+            Baxter-King bandpass filter periodicities (low, high).
+        one_sided_hp_filter : bool or float, optional
+            One-sided HP filter. When periods > 0, applies recursive forward
+            Kalman filter to simulated trajectories.
+        simul_replic : int, default 0
+            Number of simulation replications. If > 0, runs M independent
+            replications and computes Monte Carlo standard errors.
+        contemporaneous_correlation : bool, default True
+            Whether to compute and expose contemporaneous correlation matrix.
+        ar : int, optional
+            Number of autocorrelation lags (overrides ``lags`` if specified).
+        qz_criterium : float, default 1.0 + 1e-8
+            Eigenvalue cutoff for generalized Schur decomposition.
 
         Returns
         -------
@@ -1157,17 +1296,62 @@ class LinearModel:
                 sigma=1.0,
                 seed=seed,
                 burn=burn,
-                lags=lags,
+                lags=lags if ar is None else int(ar),
             )
         elif order != 1:
             raise ValueError(f"unsupported perturbation order {order}; must be 1 or 2")
+
+        if periods == 0 and (one_sided_hp_filter is not None and one_sided_hp_filter is not False):
+            raise ValueError(
+                "disp_th_moments:: theoretical moments incompatible with one-sided HP filter. "
+                "Use simulated moments instead."
+            )
+
+        if simul_replic < 0:
+            raise ValueError(f"simul_replic must be non-negative, got {simul_replic}")
+        if simul_replic > 0 and periods <= 0:
+            raise ValueError(f"simul_replic > 0 requires periods > 0, got periods={periods}")
+
+        n_filters = (
+            (hp_filter is not None)
+            + (bandpass_filter is not None)
+            + bool(one_sided_hp_filter is not None and one_sided_hp_filter is not False)
+        )
+        if n_filters > 1:
+            raise ValueError(
+                "Only one filter can be specified among hp_filter, one_sided_hp_filter, and bandpass_filter."
+            )
+
+        if hp_filter is not None and hp_filter <= 0:
+            raise ValueError(f"hp_filter parameter lambda must be positive, got {hp_filter}")
+
+        if bandpass_filter is not None:
+            bp = tuple(bandpass_filter)
+            if len(bp) != 2 or bp[0] <= 0 or bp[1] <= bp[0]:
+                raise ValueError(f"bandpass_filter requires 0 < low < high, got {bandpass_filter}")
+
+        if ar is not None:
+            if ar < 0:
+                raise ValueError(f"ar must be a non-negative integer, got {ar}")
+            lags = int(ar)
 
         self._require_solution("stoch_simul()")
         sd = self._shock_sd(sigma)
         sigma_full = sigma if sigma is None else dict(zip(self.shocks, sd))
 
         dr = self.decision_rules()
-        theo = self.theoretical_moments(sigma=sigma_full, lags=lags)
+
+        theo = None
+        if not (periods > 0 and (one_sided_hp_filter is not None and one_sided_hp_filter is not False)):
+            theo = self.theoretical_moments(
+                sigma=sigma_full,
+                lags=lags,
+                hp_filter=hp_filter,
+                bandpass_filter=bandpass_filter,
+                one_sided_hp_filter=None,
+                contemporaneous_correlation=contemporaneous_correlation,
+                ar=ar,
+            )
 
         irfs: dict[str, pd.Series] = {}
         if irf > 0:
@@ -1177,18 +1361,118 @@ class LinearModel:
                     irfs[f"{v}_{sh}"] = df_irf[v]
 
         sim_moments = None
+        sim_corr = None
         if periods > 0:
-            sim_df = self.simulate(periods=periods, sigma=sigma_full, seed=seed, burn=burn)
-            sim_moments = pd.DataFrame(
-                {
-                    "Mean": sim_df.mean(axis=0),
-                    "Std.Dev.": sim_df.std(axis=0),
-                    "Variance": sim_df.var(axis=0),
-                    "Skewness": sim_df.skew(axis=0),
-                    "Kurtosis": sim_df.kurtosis(axis=0),
-                },
-                index=list(self.variables),
+            var_names = list(self.variables)
+            ss_level = np.array([float(self.steady_state.get(v, 0.0)) for v in var_names])
+            is_filtered = (
+                (hp_filter is not None)
+                or (bandpass_filter is not None)
+                or bool(one_sided_hp_filter is not None and one_sided_hp_filter is not False)
             )
+            from puremacro.dsge._moments import one_sided_hp_filter as one_sided_hp_func
+
+            def _filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+                if one_sided_hp_filter is not None and one_sided_hp_filter is not False:
+                    lamb = 1600.0 if isinstance(one_sided_hp_filter, bool) else float(one_sided_hp_filter)
+                    c_df, _ = one_sided_hp_func(df, lamb=lamb)
+                    return c_df
+                elif hp_filter is not None:
+                    from puremacro.data import hp_filter as two_sided_hp
+
+                    res_df = df.copy()
+                    for col in res_df.columns:
+                        c_series, _ = two_sided_hp(res_df[col], lamb=float(hp_filter))
+                        res_df[col] = c_series.to_numpy()
+                    return res_df
+                elif bandpass_filter is not None:
+                    from puremacro.cycles import baxter_king_filter
+
+                    low, high = bandpass_filter
+                    res_df = df.copy()
+                    for col in res_df.columns:
+                        res_df[col] = baxter_king_filter(res_df[col], low=low, high=high).cycle
+                    return res_df
+                return df
+
+            if simul_replic == 0:
+                sim_df = self.simulate(periods=periods, sigma=sigma_full, seed=seed, burn=burn)
+                sim_df = _filter_dataframe(sim_df)
+                sim_means = sim_df.mean(axis=0, skipna=True)
+                if not is_filtered:
+                    sim_means = sim_means + ss_level
+                sim_moments = pd.DataFrame(
+                    {
+                        "Mean": sim_means,
+                        "Std.Dev.": sim_df.std(axis=0, skipna=True),
+                        "Variance": sim_df.var(axis=0, skipna=True),
+                        "Skewness": sim_df.skew(axis=0, skipna=True),
+                        "Kurtosis": sim_df.kurtosis(axis=0, skipna=True),
+                    },
+                    index=var_names,
+                )
+                sim_corr = sim_df.corr()
+            else:
+                M = int(simul_replic)
+                master_rng = np.random.default_rng(seed)
+                n_vars = len(var_names)
+                rep_means = np.zeros((M, n_vars))
+                rep_stds = np.zeros((M, n_vars))
+                rep_vars = np.zeros((M, n_vars))
+                rep_skews = np.zeros((M, n_vars))
+                rep_kurts = np.zeros((M, n_vars))
+                corr_list = []
+
+                from scipy.stats import kurtosis as sp_kurtosis, skew as sp_skew
+
+                for m in range(M):
+                    rep_df = self.simulate(periods=periods, sigma=sigma_full, seed=master_rng, burn=burn)
+                    rep_df = _filter_dataframe(rep_df)
+                    rep_arr = rep_df.to_numpy()
+
+                    m_mean = np.nanmean(rep_arr, axis=0)
+                    if not is_filtered:
+                        m_mean = m_mean + ss_level
+                    rep_means[m] = m_mean
+
+                    rep_stds[m] = np.nanstd(rep_arr, axis=0, ddof=1)
+                    rep_vars[m] = np.nanvar(rep_arr, axis=0, ddof=1)
+                    rep_skews[m] = sp_skew(rep_arr, axis=0, nan_policy="omit")
+                    rep_kurts[m] = sp_kurtosis(rep_arr, axis=0, nan_policy="omit")
+
+                    c_mat = rep_df.corr().to_numpy()
+                    corr_list.append(c_mat)
+
+                mean_avg = np.mean(rep_means, axis=0)
+                std_avg = np.mean(rep_stds, axis=0)
+                var_avg = np.mean(rep_vars, axis=0)
+                skew_avg = np.mean(rep_skews, axis=0)
+                kurt_avg = np.mean(rep_kurts, axis=0)
+
+                se_mean = np.std(rep_means, axis=0, ddof=1) / np.sqrt(M)
+                se_var = np.std(rep_vars, axis=0, ddof=1) / np.sqrt(M)
+                se_std = np.std(rep_stds, axis=0, ddof=1) / np.sqrt(M)
+
+                sim_moments = pd.DataFrame(
+                    {
+                        "Mean": mean_avg,
+                        "Std.Dev.": std_avg,
+                        "Variance": var_avg,
+                        "Skewness": skew_avg,
+                        "Kurtosis": kurt_avg,
+                        "MC Std.Err.": se_mean,
+                    },
+                    index=var_names,
+                )
+                sim_moments.attrs["simul_replic"] = M
+                sim_moments.attrs["mc_se_mean"] = pd.Series(se_mean, index=var_names)
+                sim_moments.attrs["mc_se_var"] = pd.Series(se_var, index=var_names)
+                sim_moments.attrs["mc_se_std"] = pd.Series(se_std, index=var_names)
+
+                avg_corr = np.nanmean(np.stack(corr_list, axis=0), axis=0)
+                np.fill_diagonal(avg_corr, 1.0)
+                avg_corr = np.clip(avg_corr, -1.0, 1.0)
+                sim_corr = pd.DataFrame(avg_corr, index=var_names, columns=var_names)
 
         return StochSimulResult(
             dr=dr,
@@ -1196,8 +1480,9 @@ class LinearModel:
             simulated_moments=sim_moments,
             irfs=irfs,
             order=1,
-            variable_names=self.variables,
-            shock_names=self.shocks,
+            variable_names=tuple(self.variables),
+            shock_names=tuple(self.shocks),
+            _sim_corr=sim_corr,
         )
 
     def summary(self) -> str:
@@ -1230,28 +1515,180 @@ class LinearModel:
             )
         return "\n".join(lines)
 
-    def solve(self, order: int = 1, *, shock_cov: np.ndarray | None = None):
+    def solve(
+        self,
+        order: int = 1,
+        *,
+        shock_cov: np.ndarray | None = None,
+        qz_criterium: float | None = None,
+    ):
         """Return the solution at the requested perturbation order.
 
         Parameters
         ----------
         order : {1, 2}, default 1
-            ``1`` returns this (already solved) first-order model itself;
+            ``1`` returns this (already solved) first-order model itself (or re-solved
+            if qz_criterium is specified);
             ``2`` returns the pruned second-order solution from
             :meth:`solve_second_order`.
         shock_cov : np.ndarray, optional
             Innovation covariance used for the second-order risk correction.
             Defaults to the declared shock covariance, else the identity.
+        qz_criterium : float, optional
+            Stability threshold override for generalised Schur (QZ) root sorting.
 
         Returns
         -------
         LinearModel | PrunedDSGESolution
         """
         if order == 1:
+            if qz_criterium is None and shock_cov is None:
+                return self
+            if qz_criterium is not None:
+                div = float(qz_criterium)
+                if self.timing == "dynare":
+                    n_s = len(self.states)
+                    sol_full = klein_solve(
+                        self.A, self.B, n_pre=n_s, C=self.C, strict=True, div=div,
+                    )
+                    F_full = np.asarray(sol_full.F, dtype=float)
+                    L_full = np.asarray(sol_full.L, dtype=float)
+                    state_idx = [self.variables.index(v) for v in self.states]
+                    ctrl_idx = [self.variables.index(v) for v in self.controls]
+                    G = F_full[state_idx]
+                    N = L_full[state_idx]
+                    F = F_full[ctrl_idx]
+                    L = L_full[ctrl_idx]
+                    sol = KleinSolution(
+                        G=G, F=F, N=N, L=L, eu=tuple(sol_full.eu), eigenvalues=sol_full.eigenvalues,
+                    )
+                    import dataclasses
+                    res = dataclasses.replace(self, solution=sol)
+                    object.__setattr__(res, "_qz_criterium", qz_criterium)
+                    return res
+                else:
+                    sol = klein_solve(
+                        self.A, self.B, n_pre=len(self.states), C=self.C, strict=True, div=div,
+                    )
+                    import dataclasses
+                    res = dataclasses.replace(self, solution=sol)
+                    object.__setattr__(res, "_qz_criterium", qz_criterium)
+                    return res
             return self
         if order == 2:
             return self.solve_second_order(shock_cov=shock_cov)
         raise ValueError(f"unsupported perturbation order {order}; must be 1 or 2")
+
+    @property
+    def shock_groups(self) -> dict[str, list[str]]:
+        """Dictionary of parsed shock groups if defined in .mod file."""
+        return getattr(self, "_shock_groups", {}) or (
+            getattr(self._dag, "shock_groups", {}) if hasattr(self, "_dag") and self._dag else {}
+        )
+
+    def conditional_forecast(
+        self,
+        conditions: Mapping[str, Sequence[float | None]] | None = None,
+        *,
+        target_paths: Mapping[str, Sequence[float | None]] | None = None,
+        horizon: int | None = None,
+        controlled_shocks: Sequence[str] | None = None,
+        x0: np.ndarray | Mapping[str, float] | None = None,
+        shock_cov: np.ndarray | None = None,
+        method: str = "covariance_weighted",
+        exact: bool = True,
+        ci: float | Sequence[float] | None = None,
+        n_sims: int = 0,
+        seed: int = 0,
+    ):
+        """Compute conditional forecast using Waggoner & Zha (1999) shock inversion."""
+        from .conditional import conditional_forecast as _cond_fc
+        return _cond_fc(
+            self,
+            conditions=conditions,
+            target_paths=target_paths,
+            horizon=horizon,
+            controlled_shocks=controlled_shocks,
+            x0=x0,
+            shock_cov=shock_cov,
+            method=method,
+            exact=exact,
+            ci=ci,
+            n_sims=n_sims,
+            seed=seed,
+        )
+
+    def shock_groups_decomposition(
+        self,
+        data: Any,
+        groups: Mapping[str, Sequence[str]] | None = None,
+        *,
+        initial_state: np.ndarray | None = None,
+        sigma: float | Mapping[str, float] | Sequence[float] | None = None,
+    ):
+        """Compute grouped historical and forecast shock decomposition."""
+        from .shock_groups import shock_groups_decomposition as _sg_decomp
+        return _sg_decomp(
+            self,
+            data=data,
+            groups=groups,
+            initial_state=initial_state,
+            sigma=sigma,
+        )
+
+    def bayesian_irf(
+        self,
+        draws: Any = None,
+        param_names: Sequence[str] | None = None,
+        *,
+        horizon: int = 40,
+        bands: Sequence[float] = (0.68, 0.90, 0.95),
+        quantiles: Sequence[float] | None = None,
+        shock: str | None = None,
+        variables: Sequence[str] | None = None,
+        size: float = 1.0,
+        burn_in: int = 0,
+        qz_criterium: float = 1.0 + 1e-8,
+    ):
+        """Compute Bayesian posterior impulse response functions and fan chart bands."""
+        from .bayesian import bayesian_irf as _b_irf
+        return _b_irf(
+            self,
+            draws=draws,
+            param_names=param_names,
+            horizon=horizon,
+            bands=bands,
+            quantiles=quantiles,
+            shock=shock,
+            variables=variables,
+            size=size,
+            burn_in=burn_in,
+            qz_criterium=qz_criterium,
+        )
+
+    def prior_predictive(
+        self,
+        priors: Mapping[str, Any] | None = None,
+        *,
+        n_draws: int = 500,
+        draws: int | None = None,
+        seed: int = 0,
+        moments: bool = True,
+        irf: int | None = 40,
+        qz_criterium: float = 1.0 + 1e-8,
+    ):
+        """Perform prior predictive simulation directly from prior distributions."""
+        from .bayesian import prior_predictive as _p_pred
+        return _p_pred(
+            self,
+            priors=priors,
+            n_draws=n_draws,
+            draws=draws,
+            seed=seed,
+            moments=moments,
+            irf=irf,
+            qz_criterium=qz_criterium,
+        )
 
     def solve_second_order(
         self,
@@ -1762,7 +2199,8 @@ def build(equations: Callable, *, variables: Sequence[str],
           method: str = "complex",
           verify_derivatives: bool = True,
           strict: bool = True,
-          tol: float = 1e-9) -> LinearModel:
+          tol: float = 1e-9,
+          qz_criterium: float = 1.0 + 1e-8) -> LinearModel:
     """Linearise and solve a model written as an equilibrium-condition function.
 
     Parameters
@@ -1970,9 +2408,9 @@ def build(equations: Callable, *, variables: Sequence[str],
     B = -Fc[:, order]
     C = -Fu
 
-    solution = klein_solve(A, B, len(states), C, strict=strict)
+    solution = klein_solve(A, B, len(states), C, strict=strict, div=qz_criterium)
 
-    return LinearModel(
+    model = LinearModel(
         # tuple(...) is a no-op at run time (_validate_names already
         # returned tuples) and keeps the declared Sequence[str] parameter
         # types from leaking into the frozen dataclass's tuple fields.
@@ -1984,3 +2422,5 @@ def build(equations: Callable, *, variables: Sequence[str],
         _equations=equations,
         _params=dict(params or {}),
     )
+    object.__setattr__(model, "_qz_criterium", qz_criterium)
+    return model

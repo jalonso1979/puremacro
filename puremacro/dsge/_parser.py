@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import math
 import re
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence, Set, Tuple
@@ -153,6 +154,7 @@ KEYWORDS = {
     "log_trend_var",
     "deflator",
     "log_deflator",
+    "shock_groups",
 }
 
 
@@ -485,6 +487,8 @@ class ParsedModelDAG:
     deflators: dict[str, str] = field(default_factory=dict)
     log_trend_vars: list[str] = field(default_factory=list)
     log_deflators: dict[str, str] = field(default_factory=dict)
+    shock_groups: dict[str, list[str]] = field(default_factory=dict)
+    named_shock_groups: dict[str, dict[str, list[str]]] = field(default_factory=dict)
 
     @property
     def varexo_det(self) -> list[str]:
@@ -549,6 +553,8 @@ class ParsedModelDAG:
             "estimated_params": self.estimated_params,
             "estimated_params_init": self.estimated_params_init,
             "estimated_params_bounds": self.estimated_params_bounds,
+            "shock_groups": dict(self.shock_groups),
+            "named_shock_groups": dict(self.named_shock_groups),
         }
 
 
@@ -595,6 +601,8 @@ class Parser:
         self.log_trend_vars: list[str] = []
         self.deflators: dict[str, str] = {}
         self.log_deflators: dict[str, str] = {}
+        self.shock_groups: dict[str, list[str]] = {}
+        self.named_shock_groups: dict[str, dict[str, list[str]]] = {}
 
     def _curr(self) -> Token:
         return self.tokens[self.pos]
@@ -1016,6 +1024,14 @@ class Parser:
                         expr = self.parse_expression()
                         self._expect("SEMI")
                         self.shocks_config["stderrs"][shock1] = expr
+                    elif (
+                        self._curr().type in ("KEYWORD", "IDENT")
+                        and self._curr().value == "variance"
+                    ):
+                        self._advance()
+                        expr = self.parse_expression()
+                        self._expect("SEMI")
+                        self.shocks_config["variances"][shock1] = expr
                 elif self._match("ASSIGN"):
                     expr = self.parse_expression()
                     self._expect("SEMI")
@@ -1053,6 +1069,57 @@ class Parser:
         while self._curr().type != "SEMI" and self._curr().type != "EOF":
             self._advance()
         self._expect("SEMI")
+
+    def _parse_shock_groups_block(self) -> None:
+        """Parse Dynare shock_groups; or shock_groups(name = ...); block."""
+        self._expect("KEYWORD", "shock_groups")
+        group_set_name = "default"
+        if self._match("LPAREN"):
+            while self._curr().type != "RPAREN" and self._curr().type != "EOF":
+                if (
+                    self._curr().type in ("IDENT", "KEYWORD")
+                    and str(self._curr().value).lower() in ("name", "group_name")
+                ):
+                    self._advance()
+                    self._expect("ASSIGN")
+                    if self._curr().type in ("IDENT", "KEYWORD", "STRING"):
+                        group_set_name = str(self._advance().value).strip("'\"")
+                else:
+                    self._advance()
+                self._match("COMMA")
+            self._expect("RPAREN")
+        self._expect("SEMI")
+
+        target_dict: dict[str, list[str]] = {}
+        while self._curr().type != "EOF":
+            if self._curr().type == "KEYWORD" and self._curr().value == "end":
+                self._advance()
+                self._expect("SEMI")
+                break
+            if self._curr().type == "SEMI":
+                self._advance()
+                continue
+            if self._curr().type in ("IDENT", "KEYWORD", "STRING"):
+                grp_tok = self._advance()
+                grp_name = str(grp_tok.value).strip("'\"")
+                self._expect("ASSIGN")
+                shocks_list: list[str] = []
+                while self._curr().type not in ("SEMI", "EOF"):
+                    if self._curr().type in ("IDENT", "KEYWORD", "STRING"):
+                        s_name = str(self._advance().value).strip("'\"")
+                        shocks_list.append(s_name)
+                    elif self._curr().type == "COMMA":
+                        self._advance()
+                    else:
+                        self._advance()
+                self._match("SEMI")
+                target_dict[grp_name] = shocks_list
+            else:
+                self._advance()
+
+        self.named_shock_groups[group_set_name] = target_dict
+        if group_set_name == "default" or not self.shock_groups:
+            self.shock_groups.update(target_dict)
 
     def _skip_unrecognised_statement(self) -> None:
         """Safely skip MATLAB scripting or unhandled commands outside model blocks."""
@@ -1183,6 +1250,8 @@ class Parser:
                     self._parse_shocks_block()
                 elif t.value == "stoch_simul":
                     self._parse_stoch_simul()
+                elif t.value == "shock_groups":
+                    self._parse_shock_groups_block()
                 elif t.value in (
                     "estimated_params",
                     "estimated_params_init",
@@ -1357,10 +1426,12 @@ class Parser:
             ss_scope: dict[str, float] = dict(self.param_values)
             for s_name, s_expr in self.steady_state_defs.items():
                 try:
-                    val = s_expr.eval(ss_scope, self.param_values)
+                    val = s_expr.eval(ss_scope, {**self.param_values, **ss_scope})
                     ss_scope[s_name] = float(val)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    raise ValueError(
+                        f"could not evaluate '{s_name}' in the steady_state_model block: {exc}"
+                    ) from exc
             steady_state = {v: ss_scope.get(v, 0.0) for v in self.variables}
             for aux in aux_vars:
                 parts = aux.split("_")
@@ -1372,7 +1443,7 @@ class Parser:
             init_scope: dict[str, float] = dict(self.param_values)
             for i_name, i_expr in self.initval_defs.items():
                 try:
-                    val = i_expr.eval(init_scope, self.param_values)
+                    val = i_expr.eval(init_scope, {**self.param_values, **init_scope})
                     init_scope[i_name] = float(val)
                 except Exception:
                     pass
@@ -1387,7 +1458,7 @@ class Parser:
             h_scope = dict(self.param_values)
             for h_name, h_expr in self.histval_defs.items():
                 try:
-                    val = h_expr.eval(h_scope, self.param_values)
+                    val = h_expr.eval(h_scope, {**self.param_values, **h_scope})
                     h_scope[h_name] = float(val)
                 except Exception:
                     pass
@@ -1402,7 +1473,7 @@ class Parser:
             e_scope = dict(self.param_values)
             for e_name, e_expr in self.endval_defs.items():
                 try:
-                    val = e_expr.eval(e_scope, self.param_values)
+                    val = e_expr.eval(e_scope, {**self.param_values, **e_scope})
                     e_scope[e_name] = float(val)
                 except Exception:
                     pass
@@ -1419,16 +1490,19 @@ class Parser:
         if self.has_shocks_block:
             n_e = len(self.shocks)
             shock_cov = np.zeros((n_e, n_e))
+            variance_declared: set[str] = set()
             for s_name, s_expr in self.shocks_config["stderrs"].items():
                 if s_name in self.shocks:
                     idx = self.shocks.index(s_name)
                     val = s_expr.eval({}, self.param_values)
                     shock_cov[idx, idx] = float(val) ** 2
+                    variance_declared.add(s_name)
             for s_name, s_expr in self.shocks_config["variances"].items():
                 if s_name in self.shocks:
                     idx = self.shocks.index(s_name)
                     val = s_expr.eval({}, self.param_values)
                     shock_cov[idx, idx] = float(val)
+                    variance_declared.add(s_name)
             for (s1, s2), c_expr in self.shocks_config["covariances"].items():
                 if s1 in self.shocks and s2 in self.shocks:
                     i1, i2 = self.shocks.index(s1), self.shocks.index(s2)
@@ -1442,6 +1516,18 @@ class Parser:
                     cov = rho * math.sqrt(shock_cov[i1, i1] * shock_cov[i2, i2])
                     shock_cov[i1, i2] = cov
                     shock_cov[i2, i1] = cov
+            undeclared = [sh for sh in self.shocks if sh not in variance_declared]
+            if undeclared:
+                warnings.warn(
+                    f"parse_mod: the shocks; block declares no variance for "
+                    f"{undeclared} — following Dynare (M_.Sigma_e starts at zero), "
+                    "their innovation variance is 0, so they are inert in the "
+                    "moments, the IRFs and the second-order risk correction ghs2. "
+                    "Add 'var <name>; stderr <value>;' to the shocks; block if that "
+                    "is not what you meant.",
+                    UserWarning,
+                    stacklevel=2,
+                )
         elif self.shocks:
             shock_cov = np.eye(len(self.shocks))
 
@@ -1521,6 +1607,8 @@ class Parser:
             deflators=self.deflators,
             log_trend_vars=self.log_trend_vars,
             log_deflators=self.log_deflators,
+            shock_groups=self.shock_groups,
+            named_shock_groups=self.named_shock_groups,
         )
 
 

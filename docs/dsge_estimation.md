@@ -237,6 +237,7 @@ Computing deterministic steady states in medium- and large-scale DSGE models fre
 1. **Hopcroft-Karp Bipartite Matching**: finds a maximum cardinality matching between equations and variables in $O(|E|\sqrt{|V|})$ time.
 2. **Dulmage-Mendelsohn Singularity Decomposition**: when a complete matching does not exist, decomposes the incidence bipartite graph into overdetermined, underdetermined, and well-determined subsets, raising an informative `StructuralSingularityError` that explicitly names the offending equation and variable subsets:
    ```python
+   # requires: standalone snippet
    from puremacro.dsge.steady import StructuralSingularityError
 
    try:
@@ -258,6 +259,7 @@ The `solve_algo` parameter selects among numerical algorithms:
 When non-linear solvers fail from a distant initial guess, **adaptive homotopy continuation** traces a parameter path with automatic step bisection:
 
 ```python
+# requires: standalone snippet
 from puremacro.dsge.steady import steady
 
 # Continuation from alpha=0.20 to alpha=0.36
@@ -277,6 +279,7 @@ ss, info = steady(
 Following Iskrev (2010) and Ratto (2011), `model.identification()` assesses whether structural parameters can be uniquely recovered from the declared observables `varobs`:
 
 ```python
+# requires: standalone snippet
 ident = model.identification(varobs=["y", "pi", "i"], lags=2)
 print(ident.summary())
 ```
@@ -292,6 +295,7 @@ The returned `IdentificationResult` reports:
 - **Identification strength**: Ratto's sensitivity and normalized strength measures.
 
 ```python
+# requires: standalone snippet
 # Visualize collinearity R^2 vs identification strength
 fig = ident.plot()
 ```
@@ -301,6 +305,7 @@ fig = ident.plot()
 To prevent launching expensive MCMC chains on unidentifiable models, pass `check_identification=True` to `model.estimate()`:
 
 ```python
+# requires: standalone snippet
 # Issues an informative warning if parameters are rank-deficient
 res = model.estimate(data, check_identification=True)
 
@@ -319,6 +324,7 @@ $$L(\gamma) = \sum_i w_i \text{Var}(y_i; \gamma)$$
 subject to Blanchard-Kahn determinacy. A continuous penalty surface guarantees smooth gradient evaluation when parameter candidates venture into indeterminacy:
 
 ```python
+# requires: standalone snippet
 osr_res = model.osr(
     rule_params=["phi_pi", "phi_y"],
     target_vars=["pi", "y"],
@@ -335,6 +341,7 @@ fig = osr_res.plot()
 `discretionary_policy()` computes the Markov-perfect time-consistent discretionary equilibrium (Dennis 2007) by iterating on private-sector and central-bank feedback matrices:
 
 ```python
+# requires: standalone snippet
 from puremacro.dsge import discretionary_policy
 
 disc_res = discretionary_policy(
@@ -352,6 +359,7 @@ print(disc_res.summary())
 `lq_commitment()` solves optimal policy under commitment from the timeless perspective ($\lambda_{-1} = 0$). It forms the Lagrangian over the rational-expectations equilibrium conditions, augmenting the state vector with forward-looking Lagrange multipliers:
 
 ```python
+# requires: standalone snippet
 from puremacro.dsge import lq_commitment
 
 commit_res = lq_commitment(

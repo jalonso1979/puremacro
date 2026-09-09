@@ -290,6 +290,7 @@ def klein_solve(
     *,
     strict: bool = False,
     div: float = 1.0 + 1e-8,
+    qz_criterium: float | None = None,
 ) -> KleinSolution:
     """Solve A E_t z_{t+1} = B z_t + C u_t via QZ decomposition.
 
@@ -315,6 +316,8 @@ def klein_solve(
         non-stationary and a ``RuntimeWarning`` says so. Pass ``div=1.0``
         for the strict pre-2.5.0 behaviour, which classified a unit root as
         unstable.
+    qz_criterium : float, optional
+        Alias for div (stability threshold). If provided, overrides div.
 
     Returns
     -------
@@ -338,6 +341,9 @@ def klein_solve(
     BlanchardKahnError
         Under ``strict=True``, when ``eu != (1, 1)``.
     """
+    if qz_criterium is not None:
+        div = float(qz_criterium)
+
     A = np.asarray(A, dtype=float)
     B = np.asarray(B, dtype=float)
     n = A.shape[0]

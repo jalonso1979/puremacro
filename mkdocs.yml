@@ -77,6 +77,7 @@ nav:
           - Climate Macro (DICE): climate.md
           - DSGE Sketchpad & Dynare: dsge_build.md
           - DSGE Higher-Order & Constraints: dsge_higher_order.md
+          - DSGE Parity & Surface Area: dsge_parity_surface.md
       - Running Anywhere (iPad / browser): tablet.md
       - Performance & Benchmarks: benchmarks.md
       - Reference:
@@ -118,6 +119,7 @@ nav:
           - Macroeconomía del clima (DICE): es/climate.md
           - Cuaderno de bocetos DSGE y Dynare: es/dsge_build.md
           - DSGE de orden superior y restricciones: es/dsge_higher_order.md
+          - Paridad y superficie operativa DSGE: es/dsge_parity_surface.md
       - Ejecución en cualquier entorno (iPad / navegador): es/tablet.md
       - Rendimiento y pruebas comparativas: es/benchmarks.md
       - Referencia:

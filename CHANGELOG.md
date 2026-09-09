@@ -2,6 +2,47 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## 2.9.0 (2026-09-09)
+
+### Tier 3: Parity & Surface Area — stoch_simul Filtering & Simulation Surface, Extended Path (Fair & Taylor 1983), Advanced Forecasting & Shock Decompositions, Dynare Parity Dashboard & CLI
+
+Feature release: Tier 3 (Parity & Surface Area) of the DSGE Dynare parity roadmap (`docs/plans/2026-09-07-puremacro-dsge-dynare-parity-roadmap.md`).
+
+This release completes puremacro's full operational parity surface with Dynare under the zero-dependency Pyodide four-package contract (`numpy`, `scipy`, `pandas`, `matplotlib`):
+
+---
+
+### Added — stoch_simul Filtering & Simulation Surface (`puremacro.dsge._moments`, `dynare`)
+- **Spectral Density Integration**: Gauss-Legendre quadrature ($n_{quad}=256$) evaluation of continuous spectral densities $S_v(\omega) = \frac{1}{2\pi} H(e^{-i\omega}) \Sigma_u H(e^{i\omega})^\top$ for theoretical filtered autocovariance matrices.
+- **Theoretical HP & Bandpass Filtering**: Exact theoretical moments under Hodrick-Prescott filtering (`hp_filter=lambda`) and frequency bandpass filtering (`bandpass_filter=[low, high]`).
+- **One-Sided Recursive Kalman HP Filter**: Causal real-time trend/cycle decomposition (`one_sided_hp_filter`) via state-space forward Kalman filtering matching Dynare.
+- **Cross-Variable Autocorrelations & Contemporaneous Correlations**: Full cross-variable autocorrelation matrices up to lag $n$ (`ar=n`, `compute_autocorr_matrices`) and contemporaneous correlation matrix $R(0)$ bounded in $[-1, 1]$ with 1.0 diagonal.
+- **Empirical Simulation Moments (`simul_replic=M`)**: Multi-path Monte Carlo empirical simulation computing sample moments and standard errors across $M$ replications.
+
+### Added — Extended Path Non-Linear Stochastic Simulation (`puremacro.dsge.extended_path`)
+- **Fair & Taylor (1983) Algorithm**: Dynamic non-linear stochastic simulation without perturbation Taylor approximations, stacking deterministic boundary value problems over horizon $T_H$ assuming zero future innovations.
+- **Stacked SuperLU Newton-Raphson Engine**: Fast boundary-value solution interfacing with `perfect_foresight.py` sparse solver.
+- **Linear Model Invariance**: Verified machine-precision numerical equivalence ($\le 10^{-10}$) between extended path and linear state space simulation on linear models.
+- **Result Object**: `ExtendedPathResult` adhering to the puremacro presentation contract (`.summary()`, `.plot()`, `.to_markdown()`, `.to_latex()`, `.to_typst()`).
+
+### Added — Advanced Forecasting & Shock Decompositions (`puremacro.dsge.conditional`, `shock_groups`, `bayesian`)
+- **Waggoner & Zha (1999) Conditional Forecasting**: Inversion of structural shock sequences ($U = R^{-1} d$) to enforce target endogenous trajectories under covariance-weighted or minimum energy objectives (`conditional_forecast`).
+- **Grouped Historical Shock Decompositions (`shock_groups;`)**: Grammar support for `.mod` `shock_groups;` blocks and grouped historical shock decompositions (`shock_groups_decomposition`) satisfying exact adding-up balance to machine precision ($\le 10^{-12}$).
+- **Bayesian IRF Fan Charts**: Posterior impulse response distributions across MCMC/SMC chains computing 68%, 90%, and 95% credible intervals (`bayesian_irf`).
+- **Prior Predictive Analysis**: Prior moment and IRF simulation (`prior_predictive`).
+- **Tunable `qz_criterium`**: Configurable generalized Schur eigenvalue classification boundary supporting cointegrated and unit-root macroeconomic models.
+
+### Added — Dynare Parity Dashboard & CLI (`puremacro.dsge.parity`, `load_dynare`, `cli`)
+- **Dynare Golden Output Parser**: Extraction of `oo_.dr` (`ghx`, `ghu`, `ghxx`, `ghs2`), `oo_.mean`, `oo_.var`, and `oo_.autocorr` from Dynare `_results.mat` files (`load_dynare_dr`, `load_dynare_moments`).
+- **Automated Parity Harness**: Automated verification engine comparing puremacro model solutions against Dynare reference results (`verify_dynare_parity`, `compare_model_to_dynare`, `run_parity_suite`).
+- **Parity Scorecards**: Structured `ParityDashboardResult` generating publication-grade Markdown, LaTeX, and Typst parity reports.
+- **CLI Benchmark Tool**: Standalone command `puremacro-dynare parity` for automated CI/CD model verification.
+
+### Documentation
+- Bilingual documentation for the complete DSGE Parity Surface in English (`docs/dsge_parity_surface.md`) and native academic Spanish (`docs/es/dsge_parity_surface.md`), integrated into `mkdocs.yml` and verified via `tests/test_bilingual_docs.py`.
+
+---
+
 ## 2.8.0 (2026-09-08)
 
 ### Tier 2: Higher Order & Constraints — Order-3 Perturbation & Pruning, Deterministic Transitions & Semismooth Newton MCP, Multi-Constraint OccBin & Piecewise Kalman Filter, Sequential Monte Carlo (SMC) & Particle Filtering, Nonlinear Ramsey Optimal Policy & BGP Detrending

@@ -610,7 +610,7 @@ def test_linear_model_solve_api():
     assert sol.first_order is not None and sol.first_order.timing == "dynare"
     assert sol.variables == m.variables and sol.shocks == m.shocks
     with pytest.raises(ValueError, match="order"):
-        m.solve(order=3)
+        m.solve(order=4)
 
 
 # ---------------------------------------------------------------------------

@@ -5,5 +5,5 @@ supported target) and the module-by-module overview. Public API is
 curated in submodules; nothing is exported at the top level beyond the
 version string.
 """
-__version__ = "2.8.0"
+__version__ = "2.9.0"
 __all__ = ["__version__"]

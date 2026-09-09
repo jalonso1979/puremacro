@@ -29,7 +29,14 @@ import numpy as np
 import scipy.linalg
 from numpy.linalg import LinAlgError
 
-__all__ = ["ordqz_sorted"]
+__all__ = ["ordqz_sorted", "DEFAULT_QZ_CRITERIUM", "qz_stable_predicate"]
+
+DEFAULT_QZ_CRITERIUM: float = 1.0 + 1e-8
+
+
+def qz_stable_predicate(qz_criterium: float = DEFAULT_QZ_CRITERIUM):
+    """Predicate returning True if generalised eigenvalue |beta/alpha| < qz_criterium."""
+    return lambda a, b: abs(b) < qz_criterium * abs(a)
 
 # ``SingularPencilError`` and ``_check_regular`` below are the success-path
 # counterpart of ``_diagnosis``: the same "both sides vanish" test, but run on
