@@ -164,7 +164,9 @@ def _vif_one(exog, idx):
     gives ``inf``, Python raises.
     """
     x_i = exog[:, idx]
-    x_noti = np.delete(exog, idx, axis=1)
+    k_vars = exog.shape[1]
+    mask = np.arange(k_vars) != idx
+    x_noti = exog[:, mask]
 
     # ``pinv``, not ``lstsq`` and not a normal-equations inverse, because
     # ``pinv`` is literally what statsmodels' default
@@ -412,7 +414,7 @@ def vif(exog, exog_idx=None):
         raise ValueError(
             f"vif: exog must be 2-D (n, k), got shape {arr.shape}."
         )
-    n, k = arr.shape
+    _n, k = arr.shape
     if k < 2:
         raise ValueError(
             f"vif: exog has {k} column(s); a variance inflation factor needs "
