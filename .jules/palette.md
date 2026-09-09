@@ -1,0 +1,3 @@
+## 2024-05-20 - Accessible HTML Snippets for Jupyter
+**Learning:** When injecting raw HTML into Jupyter notebooks or interactive widgets (like Google Colab dialogs), standard web accessibility rules apply. Screen readers struggle with raw emojis (`🚀`) and floating external symbols (`↗`), and new tab links without `rel="noopener noreferrer"` can pose a risk.
+**Action:** Always add `aria-hidden="true"` to purely decorative span elements holding emojis or icon characters, and ensure target="_blank" links carry `rel="noopener noreferrer"` along with an explicit `aria-label` explaining the destination and the fact it opens a new tab.
