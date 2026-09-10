@@ -54,4 +54,5 @@ TEST_READY.md
 
 # Documentation build
 site/
+output/
 uv.lock

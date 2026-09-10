@@ -24,10 +24,10 @@ import scipy.optimize
 from puremacro.dsge.klein import BlanchardKahnError, KleinSolution, klein_solve
 from puremacro.dsge.dynare import _solve_lead_lag_system
 from puremacro.dsge._moments import first_order_moments
-from puremacro.dsge._results import OSRResult, PolicyResult
+from puremacro.dsge._results import OSRResult, PolicyResult, DiscretionaryPolicyResult
 from puremacro.dsge.build import LinearModel, ModelError
 
-__all__ = ["osr", "discretionary_policy", "lq_commitment"]
+__all__ = ["osr", "discretionary_policy", "lq_commitment", "optimal_policy"]
 
 
 # ==============================================================================
@@ -378,14 +378,21 @@ def _identify_policy_equations(
 def discretionary_policy(
     model: LinearModel,
     target_vars: Sequence[str],
-    weights: Mapping[str, float] | Sequence[float],
+    weights: Mapping[str, float] | Sequence[float] | pd.Series,
     instruments: Sequence[str] | str,
     *,
     beta: float = 0.99,
-    max_iter: int = 1000,
-    tol: float = 1e-8,
+    max_iter: int = 2000,
+    tol: float = 1e-9,
     policy_eq: int | str | Sequence[int | str] | None = None,
-) -> PolicyResult:
+    targets: Mapping[str, float] | None = None,
+    y_star: float | None = None,
+    target_output: float | None = None,
+    compare_commitment: bool = True,
+    kappa: float | None = None,
+    slope_pc: float | None = None,
+    **kwargs: Any,
+) -> DiscretionaryPolicyResult:
     """Solve optimal discretionary policy using Dennis (2007) policy iteration.
 
     Computes the Markov-perfect time-consistent discretionary policy equilibrium
@@ -402,24 +409,40 @@ def discretionary_policy(
         The baseline linear DSGE model with lead-lag companion matrices.
     target_vars : Sequence[str]
         Variables entering the policymaker's loss function.
-    weights : Mapping[str, float] or Sequence[float]
+    weights : Mapping[str, float], Sequence[float], or pd.Series
         Quadratic loss weights. If a sequence is given, matches target_vars.
     instruments : Sequence[str] or str
         Policy instrument variable name(s).
     beta : float, default 0.99
         Policymaker discount factor.
-    max_iter : int, default 1000
+    max_iter : int, default 2000
         Maximum fixed-point policy iterations.
-    tol : float, default 1e-8
-        Convergence tolerance on feedback matrices.
+    tol : float, default 1e-9
+        Convergence tolerance on feedback matrices ||F_{k+1} - F_k||_infty.
     policy_eq : int, str, or sequence, optional
         Explicit index or tag name of the policy rule equation(s) to remove.
+    targets : Mapping[str, float], optional
+        Target values for loss variables (e.g. {"y": 0.05}).
+    y_star : float, optional
+        Target output gap y* > 0 to quantify inflation bias.
+    target_output : float, optional
+        Alias for y_star.
+    compare_commitment : bool, default True
+        Whether to run lq_commitment to quantify stabilization bias.
+    kappa : float, optional
+        Phillips curve slope parameter for computing theoretical inflation bias.
+        If None, resolved dynamically from model parameters, kwargs, or dynamic Jacobian.
+    slope_pc : float, optional
+        Alias for kappa.
+    **kwargs : Any
+        Additional options passed to solver or parameter overrides.
 
     Returns
     -------
-    PolicyResult
-        Frozen dataclass carrying optimal reaction functions, transition matrices,
-        unconditional loss, and solved LinearModel under discretion.
+    DiscretionaryPolicyResult
+        Frozen dataclass carrying optimal reaction functions, Riccati value matrix V,
+        policy feedback matrix F, closed-loop transition matrices, unconditional loss,
+        inflation bias, stabilization bias, and solved LinearModel under discretion.
     """
     if isinstance(instruments, str):
         instruments = [instruments]
@@ -428,6 +451,8 @@ def discretionary_policy(
 
     if isinstance(weights, Mapping):
         weights_dict = {k: float(v) for k, v in weights.items()}
+    elif isinstance(weights, pd.Series):
+        weights_dict = {str(k): float(v) for k, v in weights.items()}
     else:
         weights_dict = {k: float(v) for k, v in zip(target_vars, weights)}
 
@@ -501,6 +526,8 @@ def discretionary_policy(
     V = np.zeros((n_x, n_x))
 
     converged = False
+    diff_F = float("inf")
+    iterations = max_iter
     for it in range(max_iter):
         D1 = D[:, :n_y]
         D2 = D[:, n_y:]
@@ -551,18 +578,28 @@ def discretionary_policy(
         W_perm = np.block([[Q, U], [U.T, R]])
         V_new = M_x.T @ W_perm @ M_x + beta * M_x.T @ V @ M_x
 
-        diff = max(
-            float(np.max(np.abs(D_new - D))),
-            float(np.max(np.abs(F_new - F))),
-        )
+        diff_F = float(np.max(np.abs(F_new - F)))
+        diff_D = float(np.max(np.abs(D_new - D)))
+        diff = max(diff_D, diff_F)
         D, F, V = D_new, F_new, V_new
 
-        if diff < tol:
+        if diff_F < tol:
             converged = True
+            iterations = it + 1
             break
+    else:
+        iterations = max_iter
 
     if not converged:
-        warnings.warn(f"discretionary_policy(): Dennis (2007) iteration did not converge within {max_iter} steps (final diff={diff:.2e}).")
+        warnings.warn(
+            f"discretionary_policy(): Dennis (2007) iteration did not converge within {max_iter} steps (final diff={diff_F:.2e})."
+        )
+
+    # Polish and symmetrize Riccati continuation value
+    M_x = np.vstack([D, F])
+    W_perm = np.block([[Q, U], [U.T, R]])
+    V = M_x.T @ W_perm @ M_x + beta * M_x.T @ V @ M_x
+    V = 0.5 * (V + V.T)
 
     # Map state transition back to original model variable ordering
     perm = y_indices + inst_indices
@@ -573,6 +610,32 @@ def discretionary_policy(
 
     G = G_perm[inv_perm, :][:, inv_perm]
     N_mat = N_perm[inv_perm, :]
+
+    V_model = V[inv_perm, :][:, inv_perm]
+    V_model = 0.5 * (V_model + V_model.T)
+    # Exact discrete Lyapunov solution for Riccati continuation value V in model ordering
+    # Bellman equation: V = G.T @ W_full @ G + beta * G.T @ V @ G
+    # Discrete Lyapunov form: A_lyap @ V @ A_lyap.T - V + Q_lyap = 0
+    # where A_lyap = sqrt(beta) * G.T and Q_lyap = G.T @ W_full @ G
+    try:
+        A_lyap = np.sqrt(beta) * G.T
+        Q_lyap = G.T @ W_full @ G
+        V_model = scipy.linalg.solve_discrete_lyapunov(A_lyap, Q_lyap)
+        V_model = 0.5 * (V_model + V_model.T)
+    except Exception:
+        for _ in range(100):
+            V_next = G.T @ W_full @ G + beta * G.T @ V_model @ G
+            V_next = 0.5 * (V_next + V_next.T)
+            if np.max(np.abs(V_next - V_model)) < 1e-12:
+                V_model = V_next
+                break
+            V_model = V_next
+
+    # Ensure eigenvalues of V_model are non-negative (PSD clamp np.maximum(w, 0.0))
+    w_v, v_v = np.linalg.eigh(V_model)
+    w_v = np.maximum(w_v, 0.0)
+    V_model = v_v @ np.diag(w_v) @ v_v.T
+    V_model = 0.5 * (V_model + V_model.T)
 
     # Shock covariance and unconditional loss
     sigma_u = getattr(model, "_shock_cov", None)
@@ -593,9 +656,137 @@ def discretionary_policy(
     # Columns are variables in perm order [y_names + instruments]
     col_names = [variables[j] for j in perm]
     df_policy_rules = pd.DataFrame(F, index=instruments, columns=col_names)
+    df_F = pd.DataFrame(F, index=instruments, columns=col_names)
+    df_transition = pd.DataFrame(G, index=variables, columns=variables)
+    df_impact = pd.DataFrame(N_mat, index=variables, columns=list(model.shocks))
+    weights_series = pd.Series(weights_dict, name="weight")
+
+    # Formal bias quantification
+    y_star_val = 0.0
+    if y_star is not None:
+        y_star_val = float(y_star)
+    elif target_output is not None:
+        y_star_val = float(target_output)
+    elif targets is not None:
+        for y_cand in ("y", "y_gap", "output", "x", "gap"):
+            if y_cand in targets:
+                y_star_val = float(targets[y_cand])
+                break
+        if y_star_val == 0.0 and len(targets) > 0:
+            for k, v in targets.items():
+                if k not in ("pi", "pfe", "inflation", "infl"):
+                    y_star_val = float(v)
+                    break
+
+    # Dynamic parameter resolution for Phillips curve slope kappa:
+    # 1. Check explicit kappa, slope_pc arguments and kwargs ("kappa", "slope_pc", "kap", "pc_slope")
+    kappa_val = None
+    if kappa is not None:
+        kappa_val = float(kappa)
+    elif slope_pc is not None:
+        kappa_val = float(slope_pc)
+    else:
+        for k_kw in ("kappa", "slope_pc", "kap", "pc_slope"):
+            if k_kw in kwargs and kwargs[k_kw] is not None:
+                try:
+                    kappa_val = float(kwargs[k_kw])
+                    break
+                except (TypeError, ValueError):
+                    pass
+
+    # 2. Check model._params and model.parameters mappings
+    if kappa_val is None:
+        param_sources: list[Mapping[str, Any]] = []
+        _p = getattr(model, "_params", None)
+        if isinstance(_p, Mapping):
+            param_sources.append(_p)
+        _p2 = getattr(model, "parameters", None)
+        if isinstance(_p2, Mapping):
+            param_sources.append(_p2)
+
+        for p_map in param_sources:
+            for k_name in ("kappa", "slope_pc", "kap", "pc_slope"):
+                if k_name in p_map and p_map[k_name] is not None:
+                    try:
+                        kappa_val = float(p_map[k_name])
+                        break
+                    except (TypeError, ValueError):
+                        pass
+            if kappa_val is not None:
+                break
+
+    # 3. Check structural Phillips curve row from dynamic Jacobian if parameters are unassigned
+    if kappa_val is None and A_0 is not None:
+        pi_idx = None
+        for pi_name in ("pi", "inflation", "infl", "pfe"):
+            if pi_name in variables:
+                pi_idx = variables.index(pi_name)
+                break
+        y_idx = None
+        for y_name in ("y", "y_gap", "output", "x", "gap"):
+            if y_name in variables:
+                y_idx = variables.index(y_name)
+                break
+        if pi_idx is not None and y_idx is not None:
+            candidates: list[tuple[bool, float]] = []
+            for row in priv_eq_indices:
+                c_pi = A_0[row, pi_idx]
+                c_y = A_0[row, y_idx]
+                if abs(c_pi) > 1e-12 and abs(c_y) > 1e-12:
+                    has_pi_lead = A_plus is not None and abs(A_plus[row, pi_idx]) > 1e-12
+                    slope = abs(c_y / c_pi)
+                    candidates.append((has_pi_lead, slope))
+            if candidates:
+                candidates.sort(key=lambda item: item[0], reverse=True)
+                kappa_val = float(candidates[0][1])
+
+    # 4. Fall back to 0.5 only if completely undetermined
+    if kappa_val is None:
+        kappa_val = 0.5
+
+    w_pi = None
+    for pi_name in ("pi", "inflation", "infl", "pfe"):
+        if pi_name in weights_dict:
+            w_pi = float(weights_dict[pi_name])
+            break
+    if w_pi is None or w_pi == 0.0:
+        w_pi = 1.0
+
+    w_y = None
+    for y_name in ("y", "y_gap", "output", "x", "gap"):
+        if y_name in weights_dict:
+            w_y = float(weights_dict[y_name])
+            break
+    if w_y is None:
+        w_y = 0.25
+
+    lambda_y = float(w_y / w_pi)
+
+    if y_star_val > 0.0:
+        denom = lambda_y * (1.0 - beta) + (kappa_val ** 2)
+        inflation_bias = float((kappa_val * lambda_y / denom) * y_star_val)
+    else:
+        inflation_bias = 0.0
+
+    commitment_res = None
+    stabilization_bias = 0.0
+    if compare_commitment:
+        try:
+            commitment_res = lq_commitment(
+                model=model,
+                target_vars=target_vars,
+                weights=weights_dict,
+                instruments=instruments,
+                beta=beta,
+                policy_eq=policy_eq,
+            )
+            if commitment_res is not None and not np.isnan(commitment_res.loss):
+                stabilization_bias = float(loss - commitment_res.loss)
+        except Exception:
+            commitment_res = None
+            stabilization_bias = 0.0
 
     # Wrap into LinearModel for seamless .irf(), .fevd(), .simulate()
-    # In Dynare timing, states are the variables themselves
     sol_discretion = KleinSolution(
         G=G,
         F=np.zeros((0, N)),
@@ -626,18 +817,26 @@ def discretionary_policy(
         timing="dynare",
     )
 
-    return PolicyResult(
+    return DiscretionaryPolicyResult(
         regime="discretion",
         target_vars=tuple(target_vars),
-        weights=weights_dict,
+        weights=weights_series,
         instruments=tuple(instruments),
         beta=float(beta),
         loss=loss,
         policy_rules=df_policy_rules,
-        transition_matrix=G,
-        impact_matrix=N_mat,
+        F=df_F,
+        V=V_model,
+        transition_matrix=df_transition,
+        impact_matrix=df_impact,
+        inflation_bias=inflation_bias,
+        stabilization_bias=stabilization_bias,
+        converged=converged,
+        iterations=iterations,
+        diff=diff_F,
         multipliers=(),
         linear_model=m_discretion,
+        commitment_result=commitment_res,
     )
 
 
@@ -655,6 +854,7 @@ def lq_commitment(
     discount: float | None = None,
     timeless: bool = True,
     policy_eq: int | str | Sequence[int | str] | None = None,
+    **kwargs: Any,
 ) -> PolicyResult:
     """Solve optimal linear-quadratic commitment policy under the timeless perspective.
 
@@ -888,3 +1088,174 @@ def lq_commitment(
         multipliers=tuple(mult_names),
         linear_model=m_commitment,
     )
+
+
+# ==============================================================================
+# 4. Optimal Policy Top-Level Dispatch
+# ==============================================================================
+
+def optimal_policy(
+    model: LinearModel,
+    loss: Mapping[str, Any] | Sequence[float] | str,
+    rule: str = "discretion",
+    *,
+    instruments: Sequence[str] | str | None = None,
+    target_vars: Sequence[str] | None = None,
+    beta: float = 0.99,
+    targets: Mapping[str, float] | None = None,
+    y_star: float | None = None,
+    target_output: float | None = None,
+    max_iter: int = 2000,
+    tol: float = 1e-9,
+    policy_eq: int | str | Sequence[int | str] | None = None,
+    compare_commitment: bool = True,
+    **kwargs: Any,
+) -> DiscretionaryPolicyResult | PolicyResult:
+    """Solve optimal monetary and macroeconomic policy under discretion or commitment.
+
+    Dispatches to Dennis (2007) Markov-perfect discretionary policy or
+    timeless-perspective linear-quadratic commitment policy.
+
+    Parameters
+    ----------
+    model : LinearModel
+        The baseline structural linear DSGE model.
+    loss : dict, sequence, or str
+        Loss specification:
+        - dict: e.g. ``{"pi": 1.0, "y": 0.25}``, or with keys
+          ``"weights"``, ``"targets"``, ``"instruments"``, ``"target_vars"``.
+        - str: quadratic loss string expression like ``"pi^2 + 0.25 * y^2"``
+          or ``"pi^2 + 0.25 * (y - 0.05)^2"``.
+        - sequence: loss weights matching ``target_vars``.
+    rule : {"discretion", "commitment"}, default "discretion"
+        Policy regime to solve.
+    instruments : Sequence[str] or str, optional
+        Policy instrument(s). If omitted, inferred from model variables (e.g. "r", "i").
+    target_vars : Sequence[str], optional
+        Target variables. If omitted, inferred from loss keys or expression.
+    beta : float, default 0.99
+        Policymaker discount factor.
+    targets : Mapping[str, float], optional
+        Target values (e.g. {"y": 0.05} for target output gap).
+    y_star : float, optional
+        Target output gap y* > 0 to quantify inflation bias.
+    target_output : float, optional
+        Alias for y_star.
+    max_iter : int, default 2000
+        Maximum iterations for policy function iteration.
+    tol : float, default 1e-9
+        Convergence tolerance on policy feedback matrix F.
+    policy_eq : int, str, or sequence, optional
+        Equation(s) in model corresponding to policy rule to remove.
+    compare_commitment : bool, default True
+        Under discretion, whether to solve commitment and compute stabilization bias.
+    **kwargs : Any
+        Additional keyword arguments forwarded to the solver.
+
+    Returns
+    -------
+    DiscretionaryPolicyResult or PolicyResult
+        Solved policy result container.
+    """
+    weights: Any = None
+    extracted_targets: dict[str, float] = {}
+
+    if isinstance(loss, str):
+        import re
+
+        s = loss.replace(" ", "")
+        pattern = re.compile(r"([+-]?[0-9.]*)\*?\(?([a-zA-Z_]\w*)(?:-([0-9.]+))?\)?\^2")
+        parsed_weights: dict[str, float] = {}
+        for match in pattern.finditer(s):
+            w_str, var, tgt_str = match.groups()
+            if not w_str or w_str == "+":
+                w = 1.0
+            elif w_str == "-":
+                w = -1.0
+            else:
+                w = float(w_str)
+            parsed_weights[var] = w
+            if tgt_str:
+                extracted_targets[var] = float(tgt_str)
+        if not parsed_weights:
+            raise ValueError(f"Could not parse quadratic loss from expression: '{loss}'")
+        weights = parsed_weights
+        if target_vars is None:
+            target_vars = list(parsed_weights.keys())
+
+    elif isinstance(loss, Mapping):
+        if "weights" in loss:
+            weights = loss["weights"]
+            if "targets" in loss and targets is None:
+                targets = loss["targets"]
+            if "target_vars" in loss and target_vars is None:
+                target_vars = loss["target_vars"]
+            if "instruments" in loss and instruments is None:
+                instruments = loss["instruments"]
+            if "beta" in loss and beta == 0.99:
+                beta = float(loss["beta"])
+            if "y_star" in loss and y_star is None:
+                y_star = float(loss["y_star"])
+            elif "target_output" in loss and target_output is None:
+                target_output = float(loss["target_output"])
+        else:
+            weights = loss
+            if target_vars is None:
+                target_vars = list(loss.keys())
+    else:
+        weights = loss
+
+    if targets is None and extracted_targets:
+        targets = extracted_targets
+
+    if target_vars is None:
+        if isinstance(weights, Mapping):
+            target_vars = list(weights.keys())
+        elif isinstance(weights, pd.Series):
+            target_vars = list(weights.index)
+        else:
+            raise ValueError("target_vars must be specified when weights is a sequence.")
+
+    if instruments is None:
+        for cand in ("r", "i", "R", "interest", "i_t", "r_t"):
+            if cand in model.variables:
+                instruments = cand
+                break
+        if instruments is None:
+            raise ValueError(
+                "Policy instrument(s) must be specified via instruments=... "
+                f"Available model variables: {model.variables}"
+            )
+
+    rule_lower = rule.strip().lower()
+    if rule_lower in ("discretion", "discretionary", "disc", "markov_perfect"):
+        return discretionary_policy(
+            model=model,
+            target_vars=target_vars,
+            weights=weights,
+            instruments=instruments,
+            beta=beta,
+            max_iter=max_iter,
+            tol=tol,
+            policy_eq=policy_eq,
+            targets=targets,
+            y_star=y_star,
+            target_output=target_output,
+            compare_commitment=compare_commitment,
+            **kwargs,
+        )
+    elif rule_lower in ("commitment", "comm", "ramsey", "timeless"):
+        return lq_commitment(
+            model=model,
+            target_vars=target_vars,
+            weights=weights,
+            instruments=instruments,
+            beta=beta,
+            policy_eq=policy_eq,
+            **kwargs,
+        )
+    else:
+        raise ValueError(
+            f"Unknown policy rule '{rule}'. Supported regimes are 'discretion' and 'commitment'."
+        )
+

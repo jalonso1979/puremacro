@@ -79,6 +79,7 @@ nav:
           - DSGE Higher-Order & Constraints: dsge_higher_order.md
           - DSGE Parity & Surface Area: dsge_parity_surface.md
           - DSGE Gradients, NUTS & HANK Bridge: dsge_v3.md
+          - DSGE Frontier (Policy, DSGE-VAR & News): dsge_phase_c.md
       - Running Anywhere (iPad / browser): tablet.md
       - Performance & Benchmarks: benchmarks.md
       - Reference:
@@ -122,6 +123,7 @@ nav:
           - DSGE de orden superior y restricciones: es/dsge_higher_order.md
           - Paridad y superficie operativa DSGE: es/dsge_parity_surface.md
           - DSGE Gradientes, NUTS y Puente HANK: es/dsge_v3.md
+          - Frontera DSGE (Política, DSGE-VAR y Noticias): es/dsge_phase_c.md
       - Ejecución en cualquier entorno (iPad / navegador): es/tablet.md
       - Rendimiento y pruebas comparativas: es/benchmarks.md
       - Referencia:

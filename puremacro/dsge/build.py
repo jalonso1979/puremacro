@@ -269,11 +269,20 @@ class LinearModel:
     _estimated_params: Any | None = None
     _mod_options: dict | None = None
     _equation_tags: tuple | None = None
+    anticipated_shocks: dict | None = None
 
     def __post_init__(self):
         if self.timing not in ("klein", "dynare"):
             raise ValueError(
                 f"timing must be 'klein' or 'dynare', got {self.timing!r}"
+            )
+        if (
+            self.anticipated_shocks is None
+            and self._mod_options
+            and "anticipated_shocks" in self._mod_options
+        ):
+            object.__setattr__(
+                self, "anticipated_shocks", self._mod_options["anticipated_shocks"]
             )
 
     # -- inspection ----------------------------------------------------
@@ -476,6 +485,61 @@ class LinearModel:
             maxiter=maxiter,
             penalty=penalty,
         )
+
+    def optimal_policy(
+        self,
+        loss: Mapping[str, Any] | Sequence[float] | str,
+        rule: str = "discretion",
+        **kwargs: Any,
+    ) -> Any:
+        """Solve optimal discretionary or commitment policy for this linear model.
+
+        Parameters
+        ----------
+        loss : dict, sequence, or str
+            Quadratic loss specification (weights, targets, or string expression).
+        rule : {"discretion", "commitment"}, default "discretion"
+            Policy regime to solve.
+        **kwargs : Any
+            Additional options passed to optimal_policy (e.g. instruments, target_vars, beta, tol).
+
+        Returns
+        -------
+        DiscretionaryPolicyResult or PolicyResult
+        """
+        from puremacro.dsge.policy import optimal_policy as _optimal_policy
+
+        return _optimal_policy(self, loss=loss, rule=rule, **kwargs)
+
+    def dsge_var(
+        self,
+        data: pd.DataFrame | np.ndarray,
+        p: int = 4,
+        lamb: float | str | None = None,
+        **kwargs: Any,
+    ) -> Any:
+        """Estimate Del Negro & Schorfheide (2004) DSGE-VAR(lambda).
+
+        Parameters
+        ----------
+        data : pd.DataFrame or np.ndarray
+            Sample observable time series.
+        p : int, default 4
+            VAR lag order.
+        lamb : float, 'optimal', or None, default None
+            Prior weight parameter lambda. If None or 'optimal', maximizes
+            the marginal data density over lambda in [0.2, 5.0].
+        **kwargs : Any
+            Additional keyword arguments passed to :func:`estimate_dsge_var`.
+
+        Returns
+        -------
+        DSGEVARResult
+            Estimated hybrid DSGE-VAR container.
+        """
+        from puremacro.dsge.dsge_var import estimate_dsge_var
+
+        return estimate_dsge_var(self, data, p=p, lamb=lamb, **kwargs)
 
     def _require_solution(self, what: str) -> None:
         """Refuse to report decision rules for a model without a unique
@@ -1083,6 +1147,35 @@ class LinearModel:
         )
         frame.index.name = "h"
         return frame[list(self.variables)]
+
+    def news_irf(
+        self,
+        shock: str,
+        lead: int = 0,
+        horizon: int = 40,
+        size: float = 1.0,
+    ) -> Any:
+        """Compute impulse response function for surprise or news (anticipated) shock.
+
+        Parameters
+        ----------
+        shock : str
+            Name of the structural shock innovation.
+        lead : int, default 0
+            Anticipation lead (0 for contemporaneous surprise shock).
+            When lead = k > 0, an announcement arrives at t=0 about an innovation
+            of magnitude `size` realizing at date t=k.
+        horizon : int, default 40
+            Simulation horizon in periods.
+        size : float, default 1.0
+            Magnitude of the shock.
+
+        Returns
+        -------
+        NewsIRFResult
+        """
+        from puremacro.dsge.news import news_irf
+        return news_irf(self, shock=shock, lead=lead, horizon=horizon, size=size)
 
     def plot(
         self,
@@ -2248,7 +2341,8 @@ def build(equations: Callable, *, variables: Sequence[str],
           verify_derivatives: bool = True,
           strict: bool = True,
           tol: float = 1e-9,
-          qz_criterium: float = 1.0 + 1e-8) -> LinearModel:
+          qz_criterium: float = 1.0 + 1e-8,
+          anticipated_shocks: dict | None = None) -> LinearModel:
     """Linearise and solve a model written as an equilibrium-condition function.
 
     Parameters
@@ -2469,6 +2563,7 @@ def build(equations: Callable, *, variables: Sequence[str],
         residual_norm=residual_norm,
         _equations=equations,
         _params=dict(params or {}),
+        anticipated_shocks=anticipated_shocks,
     )
     object.__setattr__(model, "_qz_criterium", qz_criterium)
     return model

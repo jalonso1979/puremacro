@@ -1183,6 +1183,8 @@ class StochSimulResult:
 
 
 from .perfect_foresight import PerfectForesightResult
+from .dsge_var import DSGEVARResult
+from .news import NewsIRFResult, NewsDecompositionResult
 
 __all__ = [
     "DSGEPosteriorResult",
@@ -1198,6 +1200,9 @@ __all__ = [
     "ExtendedPathResult",
     "SmootherResult",
     "DSGEForecastResult",
+    "DSGEVARResult",
+    "NewsIRFResult",
+    "NewsDecompositionResult",
     "ModeCheckResult",
     "DiagnosticFinding",
     "EigenvalueTable",
@@ -1205,6 +1210,7 @@ __all__ = [
     "IdentificationResult",
     "OSRResult",
     "PolicyResult",
+    "DiscretionaryPolicyResult",
     "ConditionalForecastResult",
     "ShockDecompositionResult",
     "BayesianIRFResult",
@@ -2478,7 +2484,7 @@ class PolicyResult:
     policy_rules: pd.DataFrame
     transition_matrix: np.ndarray
     impact_matrix: np.ndarray
-    multipliers: tuple[str, ...]
+    multipliers: tuple[str, ...] = ()
     linear_model: Any = None
 
     @property
@@ -2570,6 +2576,138 @@ class PolicyResult:
         from puremacro.reports import _df_to_typst
 
         return _df_to_typst(self.to_frame(), **kwargs)
+
+
+@dataclass(frozen=True)
+class DiscretionaryPolicyResult(PolicyResult):
+    """Frozen dataclass containing optimal discretionary policy regime results (Dennis 2007).
+
+    Attributes
+    ----------
+    regime : str
+        Always "discretion".
+    target_vars : tuple[str, ...]
+        Target variable names.
+    weights : pd.Series
+        Quadratic loss weights per target variable.
+    instruments : tuple[str, ...]
+        Names of policy instruments.
+    beta : float
+        Policymaker discount factor.
+    loss : float
+        Expected unconditional quadratic loss.
+    policy_rules : pd.DataFrame
+        Reaction function coefficients expressing instrument(s) in terms of states.
+    F : pd.DataFrame
+        Policy feedback matrix F mapping predetermined states to instruments.
+    V : np.ndarray
+        Converged Riccati continuation value matrix.
+    transition_matrix : pd.DataFrame
+        Closed-loop state transition matrix G.
+    impact_matrix : pd.DataFrame
+        Closed-loop shock loading matrix N.
+    inflation_bias : float
+        Quantified inflation bias E[pi^disc] - E[pi^comm].
+    stabilization_bias : float
+        Quantified stabilization bias Loss^disc - Loss^comm.
+    converged : bool
+        Whether Dennis (2007) policy iteration converged within max_iter.
+    iterations : int
+        Number of policy iterations executed.
+    diff : float
+        Final sup-norm difference ||F_{k+1} - F_k||_infty.
+    linear_model : Any
+        The solved LinearModel under discretion.
+    commitment_result : Any | None
+        Solved PolicyResult under LQ commitment for formal bias comparison.
+    """
+
+    F: pd.DataFrame = field(default_factory=pd.DataFrame)
+    V: np.ndarray = field(default_factory=lambda: np.zeros((0, 0)))
+    inflation_bias: float = 0.0
+    stabilization_bias: float = 0.0
+    converged: bool = True
+    iterations: int = 0
+    diff: float = 0.0
+    commitment_result: Any | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.weights, pd.Series):
+            object.__setattr__(self, "weights", pd.Series(self.weights))
+        if not isinstance(self.transition_matrix, pd.DataFrame):
+            object.__setattr__(self, "transition_matrix", pd.DataFrame(self.transition_matrix))
+        if not isinstance(self.impact_matrix, pd.DataFrame):
+            object.__setattr__(self, "impact_matrix", pd.DataFrame(self.impact_matrix))
+        if not isinstance(self.F, pd.DataFrame):
+            object.__setattr__(self, "F", pd.DataFrame(self.F))
+        if not isinstance(self.policy_rules, pd.DataFrame):
+            object.__setattr__(self, "policy_rules", pd.DataFrame(self.policy_rules))
+
+    @property
+    def transition(self) -> np.ndarray:
+        """Closed-loop state transition matrix G as numpy array."""
+        if isinstance(self.transition_matrix, pd.DataFrame):
+            return self.transition_matrix.values
+        return np.asarray(self.transition_matrix)
+
+    @property
+    def impact(self) -> np.ndarray:
+        """Closed-loop shock loading matrix N as numpy array."""
+        if isinstance(self.impact_matrix, pd.DataFrame):
+            return self.impact_matrix.values
+        return np.asarray(self.impact_matrix)
+
+    def summary(self) -> str:
+        """Render human-readable summary of discretionary policy regime equilibrium."""
+        lines = [
+            f"OPTIMAL POLICY REGIME: {self.regime.upper()} (DENNIS 2007)",
+            "=" * 72,
+            f"Policymaker discount (beta): {self.beta:.4f}",
+            f"Expected unconditional loss : {self.loss:.6e}",
+            f"Policy instruments          : {', '.join(self.instruments)}",
+            f"Target variables            : {', '.join(f'{k} (w={v})' for k, v in self.weights.items())}",
+            f"Convergence status          : {'Converged' if self.converged else 'Did not converge'} in {self.iterations} iterations (diff={self.diff:.2e})",
+        ]
+        if self.inflation_bias != 0.0:
+            lines.append(f"Inflation bias (E[pi^disc] - E[pi^comm]): {self.inflation_bias:.6e}")
+        if self.stabilization_bias != 0.0:
+            lines.append(f"Stabilization bias (Loss^disc - Loss^comm): {self.stabilization_bias:.6e}")
+        if self.V is not None and self.V.size > 0:
+            lines.append(f"Riccati value matrix (norm) : {float(np.linalg.norm(self.V)):.6e}")
+        lines.extend([
+            "",
+            "POLICY REACTION FUNCTIONS (Coefficients on States)",
+            "-" * 72,
+            self.policy_rules.round(6).to_string(),
+            "=" * 72,
+        ])
+        return "\n".join(lines)
+
+    def plot(self, ax=None, periods: int = 16, shock: str | None = None, compare_commitment: bool = False, **kwargs):
+        """Plot impulse responses under the optimal discretionary policy regime."""
+        import matplotlib.pyplot as plt
+
+        if compare_commitment and self.commitment_result is not None and self.linear_model is not None:
+            if ax is None:
+                fig, ax = plt.subplots(figsize=(8, 4.5))
+            shock_name = shock if shock is not None else (self.linear_model.shocks[0] if self.linear_model.shocks else None)
+            if shock_name is not None:
+                irf_disc = self.linear_model.irf(shock_name, horizon=periods)
+                irf_comm = self.commitment_result.linear_model.irf(shock_name, horizon=periods)
+                plot_vars = [v for v in self.target_vars if v in irf_disc.columns]
+                for v in plot_vars:
+                    ax.plot(irf_disc.index, irf_disc[v], label=f"{v} (discretion)", linewidth=2.0)
+                    if v in irf_comm.columns:
+                        ax.plot(irf_comm.index, irf_comm[v], label=f"{v} (commitment)", linestyle="--", linewidth=1.8)
+                ax.axhline(0, color="k", linestyle="--", linewidth=0.8, alpha=0.7)
+                ax.set_xlabel("Horizon")
+                ax.set_ylabel("Deviation")
+                ax.set_title(f"Optimal Policy (Discretion vs Commitment): {shock_name}")
+                ax.legend(loc="best")
+                ax.grid(True, linestyle=":", alpha=0.6)
+                return ax
+        return super().plot(ax=ax, periods=periods, shock=shock, **kwargs)
+
 
 
 @dataclass(frozen=True)

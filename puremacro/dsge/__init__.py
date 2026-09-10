@@ -27,7 +27,7 @@ from ._results import (
     SmootherResult, DSGEForecastResult, ModeCheckResult,
     DiagnosticFinding, EigenvalueTable, ModelDiagnosticsResult,
     IdentificationResult,
-    OSRResult, PolicyResult,
+    OSRResult, PolicyResult, DiscretionaryPolicyResult,
     ExtendedPathResult,
     ConditionalForecastResult,
     ShockDecompositionResult,
@@ -36,6 +36,7 @@ from ._results import (
     ModelParityResult,
     ParityDashboardResult,
 )
+from .dsge_var import DSGEVARResult, estimate_dsge_var
 from .hank import HANKModel, load_hank_mod, solve_hank_bridge
 from .parity import verify_dynare_parity, compare_model_to_dynare, run_parity_suite
 from .load_dynare import load_dynare_dr, load_dynare_moments, load_irfs, load_fevd
@@ -44,7 +45,7 @@ from .shock_groups import shock_groups_decomposition
 from .bayesian import bayesian_irf, prior_predictive
 from .diagnostics import check, resid, model_diagnostics
 from .identification import identification
-from .policy import osr, discretionary_policy, lq_commitment
+from .policy import osr, discretionary_policy, lq_commitment, optimal_policy
 from .estimate import estimate, estimate_dsge
 from .nuts import nuts_sample
 from ._gradients import ScoreDiagnosticsResult
@@ -123,8 +124,15 @@ from .marginal import (
     laplace_mdd,
     model_comparison,
 )
+from .news import (
+    NewsIRFResult,
+    NewsDecompositionResult,
+    news_irf,
+    decompose_news,
+    plot_news_vs_surprise,
+)
 from . import priors, fertility_adj_costs
-from . import marginal, mode, observation, smoother
+from . import marginal, mode, observation, smoother, news
 
 __all__ = [
     "klein_solve", "KleinSolution", "BlanchardKahnError",
@@ -159,8 +167,8 @@ __all__ = [
     # --- 2.6.0: Parameter Identification Analysis ------------------------
     "identification", "IdentificationResult",
     # --- 2.6.0: Optimal Simple Rules & Policy Regimes --------------------
-    "osr", "discretionary_policy", "lq_commitment",
-    "OSRResult", "PolicyResult",
+    "osr", "discretionary_policy", "lq_commitment", "optimal_policy",
+    "OSRResult", "PolicyResult", "DiscretionaryPolicyResult",
     # --- 2.9.0: stoch_simul Filtering & Simulation Surface ---------------
     "one_sided_hp_filter",
     # --- 2.9.0: Extended Path (Fair-Taylor 1983) -------------------------
@@ -182,12 +190,18 @@ __all__ = [
     "preprocess_macro", "DynareMacroError", "Scope",
     "interactive_irf", "InteractiveIRFResult",
     "macro", "widgets",
+    # --- Del Negro & Schorfheide (2004) DSGE-VAR Hybrid Modeling ---------
+    "estimate_dsge_var", "DSGEVARResult",
+    # --- Milestone 3: News & Anticipated Shocks Engine -------------------
+    "NewsIRFResult", "NewsDecompositionResult", "news_irf", "decompose_news", "plot_news_vs_surprise",
+    "news",
 ]
 from . import smets_wouters  # re-export for back-compat with 0.50.0 callers
 from . import gertler_karadi
 from . import load_dynare, parity
 from . import hank
 from . import macro, widgets
+from . import news
 
 
 

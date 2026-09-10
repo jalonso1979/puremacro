@@ -156,6 +156,8 @@ KEYWORDS = {
     "log_deflator",
     "shock_groups",
     "hetagent_block",
+    "periods",
+    "values",
 }
 
 
@@ -557,6 +559,12 @@ class ParsedModelDAG:
             "estimated_params_bounds": self.estimated_params_bounds,
             "shock_groups": dict(self.shock_groups),
             "named_shock_groups": dict(self.named_shock_groups),
+            "shocks_config": dict(self.shocks_config),
+            "anticipated_shocks": (
+                dict(self.shocks_config["anticipated"])
+                if self.shocks_config.get("anticipated")
+                else None
+            ),
         }
 
 
@@ -596,6 +604,7 @@ class Parser:
             "stderrs": {},
             "covariances": {},
             "correlations": {},
+            "anticipated": {},
         }
         self.has_shocks_block: bool = False
         self.options: dict[str, Any] = {}
@@ -985,6 +994,58 @@ class Parser:
                 self._advance()
         return defs
 
+    def _parse_period_list(self) -> list[int]:
+        """Parse periods range or list (e.g. 1:4, 1:2:8, 1, 2, 3, [1:4])."""
+        periods: list[int] = []
+        has_bracket = bool(self._match("LBRACKET") or self._match("LPAREN"))
+        while self._curr().type not in ("SEMI", "RBRACKET", "RPAREN", "EOF"):
+            if self._curr().type == "NUMBER":
+                val1 = int(self._advance().value)
+                if self._match("COLON"):
+                    val2 = int(self._expect("NUMBER").value)
+                    if self._match("COLON"):
+                        val3 = int(self._expect("NUMBER").value)
+                        periods.extend(list(range(val1, val3 + 1, val2)))
+                    else:
+                        periods.extend(list(range(val1, val2 + 1)))
+                else:
+                    periods.append(val1)
+            elif self._match("COMMA"):
+                continue
+            else:
+                break
+        if has_bracket:
+            if not (self._match("RBRACKET") or self._match("RPAREN")):
+                raise DynareParseError(
+                    "Expected closing bracket/parenthesis for periods",
+                    self._curr().line,
+                    self._curr().col,
+                )
+        self._expect("SEMI")
+        return periods
+
+    def _parse_values_list(self) -> list[float]:
+        """Parse values list or single value (e.g. 0.01, 0.02, 0.01, [0.01])."""
+        values: list[float] = []
+        has_bracket = bool(self._match("LBRACKET") or self._match("LPAREN"))
+        while self._curr().type not in ("SEMI", "RBRACKET", "RPAREN", "EOF"):
+            expr = self.parse_expression()
+            try:
+                val = float(expr.eval({}, self.param_values))
+            except Exception:
+                val = float(expr.eval({}, {}))
+            values.append(val)
+            self._match("COMMA")
+        if has_bracket:
+            if not (self._match("RBRACKET") or self._match("RPAREN")):
+                raise DynareParseError(
+                    "Expected closing bracket/parenthesis for values",
+                    self._curr().line,
+                    self._curr().col,
+                )
+        self._expect("SEMI")
+        return values
+
     def _parse_shocks_block(self) -> None:
         """Parse shocks; block."""
         self._expect("KEYWORD", "shocks")
@@ -995,6 +1056,8 @@ class Parser:
         self._expect("SEMI")
         self.has_shocks_block = True
 
+        last_var: str | None = None
+
         while self._curr().type != "EOF":
             if self._curr().type == "KEYWORD" and self._curr().value == "end":
                 self._advance()
@@ -1003,7 +1066,28 @@ class Parser:
 
             if self._match("KEYWORD", "var"):
                 shock1 = str(self._expect("IDENT").value)
-                if self._match("COMMA"):
+                last_var = shock1
+                if self._curr().value == "periods":
+                    self._advance()
+                    periods = self._parse_period_list()
+                    if self._curr().value != "values":
+                        raise DynareParseError(
+                            f"Expected 'values' after 'periods' in shocks block for shock '{shock1}'",
+                            self._curr().line,
+                            self._curr().col,
+                        )
+                    self._advance()
+                    values = self._parse_values_list()
+                    if len(values) == 1 and len(periods) > 1:
+                        values = [values[0]] * len(periods)
+                    if "anticipated" not in self.shocks_config:
+                        self.shocks_config["anticipated"] = {}
+                    self.shocks_config["anticipated"][shock1] = {
+                        "periods": periods,
+                        "values": values,
+                    }
+                    self.options["anticipated_shocks"] = self.shocks_config["anticipated"]
+                elif self._match("COMMA"):
                     if (
                         self._curr().type in ("KEYWORD", "IDENT")
                         and self._curr().value == "stderr"
@@ -1019,7 +1103,27 @@ class Parser:
                         self._expect("SEMI")
                         self.shocks_config["covariances"][(shock1, shock2)] = expr
                 elif self._match("SEMI"):
-                    if (
+                    if self._curr().value == "periods":
+                        self._advance()
+                        periods = self._parse_period_list()
+                        if self._curr().value != "values":
+                            raise DynareParseError(
+                                f"Expected 'values' after 'periods' in shocks block for shock '{shock1}'",
+                                self._curr().line,
+                                self._curr().col,
+                            )
+                        self._advance()
+                        values = self._parse_values_list()
+                        if len(values) == 1 and len(periods) > 1:
+                            values = [values[0]] * len(periods)
+                        if "anticipated" not in self.shocks_config:
+                            self.shocks_config["anticipated"] = {}
+                        self.shocks_config["anticipated"][shock1] = {
+                            "periods": periods,
+                            "values": values,
+                        }
+                        self.options["anticipated_shocks"] = self.shocks_config["anticipated"]
+                    elif (
                         self._curr().type in ("KEYWORD", "IDENT")
                         and self._curr().value == "stderr"
                     ):
@@ -1039,6 +1143,26 @@ class Parser:
                     expr = self.parse_expression()
                     self._expect("SEMI")
                     self.shocks_config["variances"][shock1] = expr
+            elif self._curr().value == "periods" and last_var is not None:
+                self._advance()
+                periods = self._parse_period_list()
+                if self._curr().value != "values":
+                    raise DynareParseError(
+                        f"Expected 'values' after 'periods' in shocks block for shock '{last_var}'",
+                        self._curr().line,
+                        self._curr().col,
+                    )
+                self._advance()
+                values = self._parse_values_list()
+                if len(values) == 1 and len(periods) > 1:
+                    values = [values[0]] * len(periods)
+                if "anticipated" not in self.shocks_config:
+                    self.shocks_config["anticipated"] = {}
+                self.shocks_config["anticipated"][last_var] = {
+                    "periods": periods,
+                    "values": values,
+                }
+                self.options["anticipated_shocks"] = self.shocks_config["anticipated"]
             elif self._match("KEYWORD", "corr"):
                 shock1 = str(self._expect("IDENT").value)
                 self._expect("COMMA")
