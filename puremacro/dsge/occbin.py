@@ -154,6 +154,306 @@ class OccBinConstraint:
         return f"OccBinConstraint({self.variable} {self.operator} {self.threshold})"
 
 
+# ---------------------------------------------------------------------------
+# Smooth Operators & Fischer-Burmeister Relaxation
+# ---------------------------------------------------------------------------
+
+
+def smin_tau(x: float | np.ndarray, y: float | np.ndarray, tau: float = 0.01) -> float | np.ndarray:
+    """Smooth-min operator with temperature parameter tau > 0.
+
+    smin_tau(x, y) = 0.5 * (x + y - sqrt((x - y)^2 + tau^2))
+    """
+    x_arr = np.asarray(x, dtype=float)
+    y_arr = np.asarray(y, dtype=float)
+    diff = x_arr - y_arr
+    res = 0.5 * (x_arr + y_arr - np.sqrt(diff**2 + tau**2))
+    if np.ndim(x) == 0 and np.ndim(y) == 0:
+        return float(res)
+    return res
+
+
+def smax_tau(x: float | np.ndarray, y: float | np.ndarray, tau: float = 0.01) -> float | np.ndarray:
+    """Smooth-max operator with temperature parameter tau > 0.
+
+    smax_tau(x, y) = 0.5 * (x + y + sqrt((x - y)^2 + tau^2))
+    """
+    x_arr = np.asarray(x, dtype=float)
+    y_arr = np.asarray(y, dtype=float)
+    diff = x_arr - y_arr
+    res = 0.5 * (x_arr + y_arr + np.sqrt(diff**2 + tau**2))
+    if np.ndim(x) == 0 and np.ndim(y) == 0:
+        return float(res)
+    return res
+
+
+def d_smax_tau(x: float | np.ndarray, y: float | np.ndarray, tau: float = 0.01, wrt: str = "x") -> float | np.ndarray:
+    """Smooth C^inf derivative of smax_tau(x, y).
+
+    d/dx smax_tau(x, y) = 0.5 * (1 + (x - y) / sqrt((x - y)^2 + tau^2))
+    d/dy smax_tau(x, y) = 0.5 * (1 - (x - y) / sqrt((x - y)^2 + tau^2))
+    """
+    x_arr = np.asarray(x, dtype=float)
+    y_arr = np.asarray(y, dtype=float)
+    diff = x_arr - y_arr
+    root = np.sqrt(diff**2 + tau**2)
+    if wrt == "x":
+        res = 0.5 * (1.0 + diff / root)
+    elif wrt == "y":
+        res = 0.5 * (1.0 - diff / root)
+    else:
+        raise ValueError(f"wrt must be 'x' or 'y', got {wrt!r}")
+    if np.ndim(x) == 0 and np.ndim(y) == 0:
+        return float(res)
+    return res
+
+
+def d_smin_tau(x: float | np.ndarray, y: float | np.ndarray, tau: float = 0.01, wrt: str = "x") -> float | np.ndarray:
+    """Smooth C^inf derivative of smin_tau(x, y).
+
+    d/dx smin_tau(x, y) = 0.5 * (1 - (x - y) / sqrt((x - y)^2 + tau^2))
+    d/dy smin_tau(x, y) = 0.5 * (1 + (x - y) / sqrt((x - y)^2 + tau^2))
+    """
+    x_arr = np.asarray(x, dtype=float)
+    y_arr = np.asarray(y, dtype=float)
+    diff = x_arr - y_arr
+    root = np.sqrt(diff**2 + tau**2)
+    if wrt == "x":
+        res = 0.5 * (1.0 - diff / root)
+    elif wrt == "y":
+        res = 0.5 * (1.0 + diff / root)
+    else:
+        raise ValueError(f"wrt must be 'x' or 'y', got {wrt!r}")
+    if np.ndim(x) == 0 and np.ndim(y) == 0:
+        return float(res)
+    return res
+
+
+smooth_min = smin_tau
+smooth_max = smax_tau
+d_smooth_max = d_smax_tau
+d_smooth_min = d_smin_tau
+
+
+def fischer_burmeister(a: float | np.ndarray, b: float | np.ndarray, tau: float = 0.01) -> float | np.ndarray:
+    """Fischer-Burmeister complementary condition relaxation.
+
+    Phi_tau(a, b) = a + b - sqrt(a^2 + b^2 + 2 * tau^2)
+    """
+    a_arr = np.asarray(a, dtype=float)
+    b_arr = np.asarray(b, dtype=float)
+    res = a_arr + b_arr - np.sqrt(a_arr**2 + b_arr**2 + 2.0 * tau**2)
+    if np.ndim(a) == 0 and np.ndim(b) == 0:
+        return float(res)
+    return res
+
+
+Phi_tau = fischer_burmeister
+
+
+def grad_fischer_burmeister(
+    a: float | np.ndarray, b: float | np.ndarray, tau: float = 0.01
+) -> tuple[float | np.ndarray, float | np.ndarray]:
+    """Smooth gradient of Fischer-Burmeister relaxation w.r.t (a, b)."""
+    a_arr = np.asarray(a, dtype=float)
+    b_arr = np.asarray(b, dtype=float)
+    root = np.sqrt(a_arr**2 + b_arr**2 + 2.0 * tau**2)
+    d_da = 1.0 - a_arr / root
+    d_db = 1.0 - b_arr / root
+    if np.ndim(a) == 0 and np.ndim(b) == 0:
+        return float(d_da), float(d_db)
+    return d_da, d_db
+
+
+@dataclass(frozen=True)
+class DifferentiableOccBinResult:
+    """Result of Differentiable OccBin simulation with smooth relaxation (tau > 0).
+
+    Attributes
+    ----------
+    simulated_path : pd.DataFrame
+        Simulated trajectory of all endogenous variables over the horizon.
+    weights : np.ndarray
+        Continuous regime weights w_t in (0, 1) over the horizon.
+    regimes : list[int]
+        Discretized regime indicator (w_t >= 0.5) for comparison with discrete OccBin.
+    binding_periods : int
+        Number of periods where w_t >= 0.5.
+    converged : bool
+        Whether the fixed-point relaxation iteration reached convergence.
+    iterations : int
+        Number of fixed-point iterations.
+    reference_model : Any
+        Underlying unconstrained reference model.
+    constrained_model : Any
+        Underlying constrained regime model.
+    constraint : OccBinConstraint
+        Constraint definition.
+    tau : float
+        Temperature parameter tau.
+    shadow_path : pd.DataFrame | None
+        Simulated path with shadow / notional values.
+    loss : float | None
+        Objective loss value if target data provided.
+    gradient : dict[str, float] | np.ndarray | None
+        Gradient of simulated path or loss w.r.t model parameters.
+    param_sensitivities : pd.DataFrame | None
+        Sensitivities dX/dtheta if computed.
+    """
+
+    simulated_path: pd.DataFrame
+    weights: np.ndarray
+    regimes: list[int]
+    binding_periods: int
+    converged: bool
+    iterations: int
+    reference_model: Any
+    constrained_model: Any
+    constraint: OccBinConstraint
+    tau: float = 0.01
+    shadow_path: pd.DataFrame | None = None
+    loss: float | None = None
+    gradient: dict[str, float] | np.ndarray | None = None
+    param_sensitivities: pd.DataFrame | None = None
+
+    @property
+    def path(self) -> pd.DataFrame:
+        """Alias for simulated_path matching puremacro convention."""
+        return self.simulated_path
+
+    @property
+    def regime_history(self) -> np.ndarray:
+        """Array representation of regime sequence."""
+        return np.asarray(self.regimes)
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return simulated path as a DataFrame."""
+        return self.simulated_path.copy()
+
+    def __getitem__(self, key: str) -> pd.Series:
+        """Allow subscript access to simulated variable series."""
+        if key in self.simulated_path.columns:
+            return self.simulated_path[key]
+        if hasattr(self, key):
+            return getattr(self, key)
+        raise KeyError(f"DifferentiableOccBinResult has no variable or attribute {key!r}")
+
+    def summary(self) -> str:
+        """Render a formatted summary of the differentiable OccBin simulation."""
+        status = "Converged" if self.converged else "Did NOT converge"
+        horizon = len(self.simulated_path)
+        c_desc = repr(self.constraint) if self.constraint else "Unspecified"
+
+        lines = [
+            "DIFFERENTIABLE OCCBIN SIMULATION REPORT (Smooth Relaxation)",
+            "=" * 78,
+            f"Constraint         : {c_desc}",
+            f"Temperature tau    : {self.tau:.6g}",
+            f"Algorithm status   : {status} in {self.iterations} iteration(s)",
+            f"Binding duration   : {self.binding_periods} period(s) out of {horizon} (w_t >= 0.5)",
+            f"Mean regime weight : {float(np.mean(self.weights)):.4f}",
+            "-" * 78,
+            "TRAJECTORY SUMMARY STATISTICS",
+            "-" * 78,
+        ]
+
+        stats_df = pd.DataFrame(
+            {
+                "Impact (t=1)": self.simulated_path.iloc[0],
+                "Min": self.simulated_path.min(),
+                "Max": self.simulated_path.max(),
+                "Mean": self.simulated_path.mean(),
+                "Final (t=H)": self.simulated_path.iloc[-1],
+            }
+        )
+        lines.append(stats_df.round(6).to_string())
+        lines.append("=" * 78)
+        return "\n".join(lines)
+
+    def to_markdown(self, **kwargs) -> str:
+        """Export simulated path to Markdown table."""
+        from puremacro.reports import _df_to_markdown
+
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        """Export simulated path to LaTeX tabular."""
+        from puremacro.reports import _df_to_latex
+
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        """Export simulated path to Typst table."""
+        from puremacro.reports import _df_to_typst
+
+        return _df_to_typst(self.to_frame(), **kwargs)
+
+    def plot(
+        self,
+        variables: Sequence[str] | None = None,
+        style: str = "publication",
+    ):
+        """Plot the simulated trajectories with continuous weight shading."""
+        import matplotlib.pyplot as plt
+
+        if variables is None:
+            variables = list(self.simulated_path.columns)
+        else:
+            variables = [v for v in variables if v in self.simulated_path.columns]
+
+        n_vars = len(variables)
+        n_cols = min(2, n_vars)
+        n_rows = (n_vars + n_cols - 1) // n_cols
+
+        if style == "publication":
+            from puremacro.plotting.bw_style import apply_bw_style, bw_colors, bw_linestyles
+
+            apply_bw_style()
+            colors: list[str | None] = list(bw_colors(n_vars))
+            styles: list[str] = list(bw_linestyles(n_vars))
+        else:
+            colors = [None] * n_vars
+            styles = ["-"] * n_vars
+
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(5.5 * n_cols, 3.2 * n_rows), squeeze=False)
+        axes_flat = axes.flatten()
+
+        horizon = len(self.simulated_path)
+        time_grid = np.arange(1, horizon + 1)
+
+        for i, var in enumerate(variables):
+            ax = axes_flat[i]
+            c = colors[i] if colors[i] is not None else "black"
+            ls = styles[i] if styles[i] is not None else "-"
+            ax.plot(time_grid, self.simulated_path[var], label=var, color=c, linestyle=ls, linewidth=1.5)
+
+            # Continuous weight shading
+            for t in range(horizon):
+                w_t = float(self.weights[t])
+                if w_t > 0.05:
+                    ax.axvspan(t + 0.5, t + 1.5, color="0.8", alpha=min(0.5, w_t * 0.5))
+
+            if self.constraint is not None and var == self.constraint.variable:
+                ax.axhline(
+                    self.constraint.threshold,
+                    color="0.4",
+                    linestyle="--",
+                    linewidth=1.0,
+                    label=f"Threshold ({self.constraint.threshold:.3g})",
+                )
+
+            ax.axhline(0, color="0.6", linestyle=":", linewidth=0.6)
+            ax.set_title(var)
+            ax.set_xlabel("Period")
+            ax.legend(loc="best", frameon=False, fontsize=8)
+
+        for j in range(n_vars, len(axes_flat)):
+            axes_flat[j].set_visible(False)
+
+        fig.tight_layout()
+        return fig
+
+
 @dataclass(frozen=True)
 class OccBinResult:
     """Result of an OccBin simulation for occasionally binding constraints.
@@ -1144,6 +1444,402 @@ def solve_occbin(
 
 
 # ---------------------------------------------------------------------------
+# Differentiable OccBin Solver (Smooth Relaxation)
+# ---------------------------------------------------------------------------
+
+
+def solve_differentiable_occbin(
+    reference_model: Any,
+    constrained_model: Any,
+    constraint: OccBinConstraint,
+    shock_sequence: np.ndarray,
+    tau: float = 0.01,
+    horizon: int = 40,
+    max_iter: int = 50,
+    tol: float = 1e-6,
+    damping: float = 0.5,
+    compute_gradient: bool = False,
+    param_names: Sequence[str] | None = None,
+    target_data: np.ndarray | pd.DataFrame | None = None,
+    observed_vars: Sequence[str] | None = None,
+    init_weights: np.ndarray | None = None,
+) -> DifferentiableOccBinResult:
+    """Solve dynamic models with occasionally binding constraints via smooth relaxation.
+
+    Replaces discrete piecewise regime switching with continuous regime weights
+    w_t in (0, 1) smoothly interpolating system matrices:
+        A_{p, t}(w_t) = (1 - w_t) A_{p, 0} + w_t A_{p, 1}
+        A_{0, t}(w_t) = (1 - w_t) A_{0, 0} + w_t A_{0, 1}
+        A_{m, t}(w_t) = (1 - w_t) A_{m, 0} + w_t A_{m, 1}
+        B_{u, t}(w_t) = (1 - w_t) B_{u, 0} + w_t B_{u, 1}
+        c_t(w_t) = (1 - w_t) c_0 + w_t c_1
+
+    This produces C^inf smooth, differentiable simulated trajectories and likelihood
+    surfaces enabling gradient-guided MCMC (Hamiltonian Monte Carlo / NUTS) without
+    divergences caused by non-differentiable threshold kinks.
+
+    Parameters
+    ----------
+    reference_model : LinearModel | Callable
+        The unconstrained baseline model.
+    constrained_model : LinearModel | Callable
+        The model under the binding constraint.
+    constraint : OccBinConstraint
+        Constraint definition specifying variable, threshold, and direction.
+    shock_sequence : np.ndarray
+        Structural shock sequence, shape (horizon, n_shocks) or (n_shocks,).
+    tau : float, default 0.01
+        Temperature parameter controlling the softness of the relaxation.
+        As tau -> 0, the smooth relaxation converges to discrete OccBin.
+    horizon : int, default 40
+        Simulation horizon.
+    max_iter : int, default 50
+        Maximum fixed-point iterations for continuous regime weights.
+    tol : float, default 1e-6
+        Tolerance for convergence of continuous weights ||w_{k+1} - w_k||_inf.
+    damping : float, default 0.5
+        Damping factor in (0, 1] for fixed-point iteration.
+    compute_gradient : bool, default False
+        Whether to compute parameter sensitivities dX/dtheta and loss gradient.
+    param_names : Sequence[str], optional
+        List of parameter names for gradient computation.
+    target_data : np.ndarray | pd.DataFrame, optional
+        Target observations for squared loss or likelihood gradient evaluation.
+    observed_vars : Sequence[str], optional
+        List of observed variable names matching columns of target_data.
+    init_weights : np.ndarray, optional
+        Initial guess for weights vector, shape (horizon,).
+
+    Returns
+    -------
+    DifferentiableOccBinResult
+        Container holding simulated path, continuous weights, convergence stats,
+        shadow values, loss, and parameter sensitivities / gradients.
+    """
+    if not isinstance(horizon, (int, np.integer)) or int(horizon) < 1:
+        raise ValueError(f"solve_differentiable_occbin: horizon must be an integer >= 1, got {horizon!r}")
+    if not isinstance(max_iter, (int, np.integer)) or int(max_iter) < 1:
+        raise ValueError(f"solve_differentiable_occbin: max_iter must be an integer >= 1, got {max_iter!r}")
+    if float(tau) <= 0.0:
+        raise ValueError(f"solve_differentiable_occbin: tau must be positive, got {tau!r}")
+    horizon = int(horizon)
+    max_iter = int(max_iter)
+    tau = float(tau)
+
+    # 1. Extract system matrices for both regimes
+    A_p_0, A_0_0, A_m_0, B_u_0, c_0, ss_0, variables, shocks = _extract_model_matrices(reference_model)
+    A_p_1, A_0_1, A_m_1, B_u_1, c_1, ss_1, _, _ = _extract_model_matrices(
+        constrained_model, ref_model=reference_model
+    )
+
+    n_vars = len(variables)
+    n_shocks = len(shocks)
+
+    # Standardize shock sequence to shape (horizon, n_shocks)
+    sh_arr = np.asarray(shock_sequence, dtype=float)
+    if sh_arr.ndim == 1:
+        if len(sh_arr) != n_shocks:
+            raise ValueError(f"1D shock sequence has length {len(sh_arr)}, expected {n_shocks} shocks: {shocks}")
+        shocks_mat = np.zeros((horizon, n_shocks))
+        shocks_mat[0, :] = sh_arr
+    elif sh_arr.ndim == 2:
+        n_rows, n_cols = sh_arr.shape
+        if n_cols != n_shocks:
+            raise ValueError(f"shock sequence columns {n_cols} != model shocks {n_shocks}")
+        shocks_mat = np.zeros((horizon, n_shocks))
+        shocks_mat[: min(n_rows, horizon), :] = sh_arr[: min(n_rows, horizon), :]
+    else:
+        raise ValueError("shock_sequence must be 1D or 2D array")
+
+    # 2. Reference-regime decision rule X_t = P_0 X_{t-1}
+    dr = reference_model.decision_rules() if hasattr(reference_model, "decision_rules") else None
+    P_0 = np.zeros((n_vars, n_vars))
+    if dr is not None and hasattr(reference_model, "states"):
+        for s in reference_model.states:
+            idx_s = variables.index(s)
+            P_0[:, idx_s] = dr.ghx[s].values
+    else:
+        from puremacro.dsge.klein import klein_solve
+        try:
+            sol = klein_solve(A_0_0, -A_m_0, n_pre=n_vars)
+            P_0 = sol.P
+        except Exception:
+            P_0 = np.zeros((n_vars, n_vars))
+
+    # Find the row index of the constrained variable
+    if constraint.variable not in variables:
+        raise ValueError(f"constraint variable {constraint.variable!r} not found in model variables: {variables}")
+    idx_var = variables.index(constraint.variable)
+
+    relax_idx = None
+    if constraint.relax_variable is not None:
+        if constraint.relax_variable not in variables:
+            raise ValueError(
+                f"solve_differentiable_occbin: relax_variable {constraint.relax_variable!r} is not a model "
+                f"variable; expected one of {variables}"
+            )
+        relax_idx = variables.index(constraint.relax_variable)
+
+    # Identify switching equation row
+    diff_rows = np.where(
+        (np.linalg.norm(A_0_0 - A_0_1, axis=1) > 1e-8)
+        | (np.linalg.norm(A_p_0 - A_p_1, axis=1) > 1e-8)
+        | (np.linalg.norm(A_m_0 - A_m_1, axis=1) > 1e-8)
+        | (np.linalg.norm(B_u_0 - B_u_1, axis=1) > 1e-8)
+        | (np.abs(c_0 - c_1) > 1e-8)
+    )[0]
+    has_var = np.abs(A_0_0[:, idx_var]) > 1e-12
+    switching_rows = [int(r) for r in diff_rows if has_var[r]]
+    if switching_rows:
+        eq_row = switching_rows[0]
+    elif np.any(has_var):
+        eq_row = None
+    else:
+        raise ValueError(
+            f"solve_differentiable_occbin: constrained variable {constraint.variable!r} does not appear "
+            f"contemporaneously in any equation of the reference model."
+        )
+
+    if eq_row is not None:
+        a_var = float(A_0_0[eq_row, idx_var])
+        row_others = A_0_0[eq_row].copy()
+        row_others[idx_var] = 0.0
+
+    # 3. Forward-backward simulation under given continuous weights w in (0, 1)^H
+    def simulate_with_weights(weights: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        w_cl = np.clip(weights, 0.0, 1.0)
+        P_seq: list[np.ndarray | None] = [None] * (horizon + 1)
+        D_seq: list[np.ndarray | None] = [None] * (horizon + 1)
+        P_next = P_0
+        D_next = np.zeros(n_vars)
+        for t in range(horizon, 0, -1):
+            w_t = float(w_cl[t - 1])
+            A_p_t = (1.0 - w_t) * A_p_0 + w_t * A_p_1
+            A_0_t = (1.0 - w_t) * A_0_0 + w_t * A_0_1
+            A_m_t = (1.0 - w_t) * A_m_0 + w_t * A_m_1
+            B_u_t = (1.0 - w_t) * B_u_0 + w_t * B_u_1
+            c_t = (1.0 - w_t) * c_0 + w_t * c_1
+
+            M_t = A_0_t + A_p_t @ P_next
+            P_t = _safe_solve(M_t, -A_m_t)
+            D_t = _safe_solve(M_t, -(A_p_t @ D_next + c_t + B_u_t @ shocks_mat[t - 1]))
+            P_seq[t] = P_t
+            D_seq[t] = D_t
+            P_next, D_next = P_t, D_t
+
+        X = np.zeros((horizon + 1, n_vars))
+        for t in range(1, horizon + 1):
+            X[t] = P_seq[t] @ X[t - 1] + D_seq[t]
+
+        sim_X = X[1:]
+
+        if eq_row is None:
+            shadow_vals = sim_X[:, idx_var].copy()
+        else:
+            shadow_vals = np.zeros(horizon)
+            for t in range(horizon):
+                x_prev = X[t]
+                x_curr = sim_X[t]
+                x_next = sim_X[t + 1] if t + 1 < horizon else P_0 @ x_curr
+                u_t = shocks_mat[t]
+                other_curr = row_others @ x_curr
+                term_next = A_p_0[eq_row, :] @ x_next
+                term_prev = A_m_0[eq_row, :] @ x_prev
+                term_shock = B_u_0[eq_row, :] @ u_t
+                shadow_vals[t] = -(other_curr + term_next + term_prev + term_shock + c_0[eq_row]) / a_var
+
+        return sim_X, shadow_vals
+
+    def compute_target_weights(sim_X: np.ndarray, shadow_vals: np.ndarray) -> np.ndarray:
+        if relax_idx is not None:
+            v = sim_X[:, relax_idx]
+        elif eq_row is not None:
+            v = shadow_vals
+        else:
+            v = sim_X[:, idx_var]
+
+        thresh = float(constraint.threshold)
+        if constraint.operator in ("<", "<="):
+            gap = thresh - v
+        else:
+            gap = v - thresh
+
+        # Smooth relaxation via derivative of smax_tau(gap, 0):
+        root = np.sqrt(gap**2 + tau**2)
+        target_w = 0.5 * (1.0 + gap / root)
+        return np.clip(target_w, 0.0, 1.0)
+
+    # 4. Fixed-point iteration
+    if init_weights is not None:
+        weights = np.asarray(init_weights, dtype=float).copy()
+    else:
+        weights = np.zeros(horizon, dtype=float)
+
+    converged = False
+    sim_X = np.zeros((horizon, n_vars))
+    shadow_vals = np.zeros(horizon)
+
+    for it in range(1, max_iter + 1):
+        sim_X, shadow_vals = simulate_with_weights(weights)
+        target_w = compute_target_weights(sim_X, shadow_vals)
+        diff = float(np.max(np.abs(target_w - weights)))
+        weights = (1.0 - damping) * weights + damping * target_w
+        if diff < tol:
+            converged = True
+            break
+    else:
+        sim_X, shadow_vals = simulate_with_weights(weights)
+
+    # 5. Build result frames
+    period_index = pd.RangeIndex(1, horizon + 1, name="t")
+    sim_df = pd.DataFrame(sim_X, columns=variables, index=period_index)
+    shadow_df = sim_df.copy()
+    shadow_df[f"{constraint.variable}_shadow"] = shadow_vals
+
+    regimes = [int(w >= 0.5) for w in weights]
+    binding_periods = int(np.sum(np.asarray(weights) >= 0.5))
+
+    # Loss computation if target data provided
+    loss_val = None
+    t_vars = list(observed_vars) if observed_vars is not None else variables
+    if target_data is not None:
+        if isinstance(target_data, pd.DataFrame):
+            t_vars = [c for c in target_data.columns if c in variables]
+            y_target = target_data[t_vars].to_numpy(dtype=float)
+            y_sim = sim_df[t_vars].to_numpy(dtype=float)
+        else:
+            y_target = np.asarray(target_data, dtype=float)
+            y_sim = sim_X[:, : y_target.shape[1]]
+        loss_val = float(0.5 * np.sum((y_sim - y_target) ** 2))
+
+    # 6. Sensitivity / Gradient computation if requested
+    gradient_dict: dict[str, float] | None = None
+    sens_df: pd.DataFrame | None = None
+
+    if compute_gradient or param_names is not None:
+        gradient_dict = {}
+        sensitivities = {}
+        p_names = list(param_names) if param_names is not None else list(getattr(reference_model, "_params", {}).keys())
+
+        base_p = dict(getattr(reference_model, "_params", {}) or {})
+        from puremacro.dsge.dynare import build_dynare
+
+        for p_name in p_names:
+            if p_name not in base_p:
+                continue
+            val = float(base_p[p_name])
+            h = 1e-5 * max(1.0, abs(val))
+
+            p_plus = dict(base_p)
+            p_plus[p_name] = val + h
+            p_minus = dict(base_p)
+            p_minus[p_name] = val - h
+
+            try:
+                if getattr(reference_model, "_dynare_equations", None) is not None:
+                    ref_plus = build_dynare(
+                        reference_model._dynare_equations,
+                        variables=reference_model.variables,
+                        shocks=reference_model.shocks,
+                        params=p_plus,
+                        steady_state=reference_model.steady_state,
+                        check_steady_state=False,
+                        strict=False,
+                    )
+                    ref_minus = build_dynare(
+                        reference_model._dynare_equations,
+                        variables=reference_model.variables,
+                        shocks=reference_model.shocks,
+                        params=p_minus,
+                        steady_state=reference_model.steady_state,
+                        check_steady_state=False,
+                        strict=False,
+                    )
+                else:
+                    ref_plus, ref_minus = reference_model, reference_model
+
+                if getattr(constrained_model, "_dynare_equations", None) is not None:
+                    cons_base = dict(getattr(constrained_model, "_params", {}) or base_p)
+                    cp_plus = dict(cons_base)
+                    cp_plus[p_name] = val + h
+                    cp_minus = dict(cons_base)
+                    cp_minus[p_name] = val - h
+                    cons_plus = build_dynare(
+                        constrained_model._dynare_equations,
+                        variables=constrained_model.variables,
+                        shocks=constrained_model.shocks,
+                        params=cp_plus,
+                        steady_state=constrained_model.steady_state,
+                        check_steady_state=False,
+                        strict=False,
+                    )
+                    cons_minus = build_dynare(
+                        constrained_model._dynare_equations,
+                        variables=constrained_model.variables,
+                        shocks=constrained_model.shocks,
+                        params=cp_minus,
+                        steady_state=constrained_model.steady_state,
+                        check_steady_state=False,
+                        strict=False,
+                    )
+                else:
+                    cons_plus, cons_minus = constrained_model, constrained_model
+
+                res_p = solve_differentiable_occbin(
+                    ref_plus, cons_plus, constraint, shock_sequence,
+                    tau=tau, horizon=horizon, max_iter=20, tol=tol,
+                    init_weights=weights,
+                )
+                res_m = solve_differentiable_occbin(
+                    ref_minus, cons_minus, constraint, shock_sequence,
+                    tau=tau, horizon=horizon, max_iter=20, tol=tol,
+                    init_weights=weights,
+                )
+
+                dX_dp = (res_p.simulated_path.to_numpy() - res_m.simulated_path.to_numpy()) / (2.0 * h)
+                sensitivities[p_name] = dX_dp
+
+                if target_data is not None:
+                    lp_p = 0.5 * np.sum((res_p.simulated_path[t_vars].to_numpy() - y_target) ** 2)
+                    lp_m = 0.5 * np.sum((res_m.simulated_path[t_vars].to_numpy() - y_target) ** 2)
+                    gradient_dict[p_name] = float((lp_p - lp_m) / (2.0 * h))
+                else:
+                    gradient_dict[p_name] = float(dX_dp[0, idx_var])
+            except Exception:
+                gradient_dict[p_name] = 0.0
+
+        if sensitivities:
+            records = []
+            for p_name, mat in sensitivities.items():
+                for v_idx, var in enumerate(variables):
+                    records.append({
+                        "parameter": p_name,
+                        "variable": var,
+                        "impact_sensitivity": float(mat[0, v_idx]),
+                        "mean_sensitivity": float(np.mean(mat[:, v_idx])),
+                        "max_sensitivity": float(np.max(np.abs(mat[:, v_idx]))),
+                    })
+            sens_df = pd.DataFrame(records)
+
+    return DifferentiableOccBinResult(
+        simulated_path=sim_df,
+        weights=weights,
+        regimes=regimes,
+        binding_periods=binding_periods,
+        converged=converged,
+        iterations=it,
+        reference_model=reference_model,
+        constrained_model=constrained_model,
+        constraint=constraint,
+        tau=tau,
+        shadow_path=shadow_df,
+        loss=loss_val,
+        gradient=gradient_dict,
+        param_sensitivities=sens_df,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Multi-Constraint OccBin & Piecewise Kalman Filter
 # ---------------------------------------------------------------------------
 
@@ -1866,8 +2562,21 @@ __all__ = [
     "OccBinConstraint",
     "OccBinResult",
     "PiecewiseKalmanResult",
+    "DifferentiableOccBinResult",
     "solve_occbin",
+    "solve_differentiable_occbin",
     "solve_multiconstraint_occbin",
     "piecewise_kalman_filter",
+    "smin_tau",
+    "smax_tau",
+    "d_smax_tau",
+    "d_smin_tau",
+    "smooth_min",
+    "smooth_max",
+    "d_smooth_max",
+    "d_smooth_min",
+    "fischer_burmeister",
+    "grad_fischer_burmeister",
+    "Phi_tau",
 ]
 

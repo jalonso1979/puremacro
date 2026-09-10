@@ -8,10 +8,12 @@ Currently:
 from puremacro.models.dmp_regime_dependent import DMPParameters, DMPState, dmp_steady_state, dmp_irf
 from puremacro.models.hank_sequence_space import (
     SequenceSpaceHANKResult,
+    TwoAssetSequenceSpaceHANKResult,
     FakeNewsResult,
     FiscalTransferResult,
     NonlinearHANKResult,
     solve_hank_sequence_space,
+    solve_two_asset_hank_sequence_space,
     fake_news_algorithm,
     simulate_targeted_transfer,
     solve_nonlinear_transition,
@@ -19,8 +21,9 @@ from puremacro.models.hank_sequence_space import (
 
 __all__ = [
     "DMPParameters", "DMPState", "dmp_steady_state", "dmp_irf",
-    "SequenceSpaceHANKResult", "FakeNewsResult", "FiscalTransferResult",
+    "SequenceSpaceHANKResult", "TwoAssetSequenceSpaceHANKResult", "FakeNewsResult", "FiscalTransferResult",
     "NonlinearHANKResult",
-    "solve_hank_sequence_space", "fake_news_algorithm", "simulate_targeted_transfer",
+    "solve_hank_sequence_space", "solve_two_asset_hank_sequence_space", "fake_news_algorithm", "simulate_targeted_transfer",
     "solve_nonlinear_transition",
 ]
+

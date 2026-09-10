@@ -51,6 +51,8 @@ from puremacro.dsge.occbin import (
     OccBinConstraint,
     PiecewiseKalmanResult,
     piecewise_kalman_filter,
+    DifferentiableOccBinResult,
+    solve_differentiable_occbin,
 )
 from puremacro.mcmc import random_walk_metropolis
 from puremacro.numerics import numerical_hessian
@@ -320,6 +322,161 @@ def _make_piecewise_neg_log_posterior(
     return neg_log_post
 
 
+def _auto_build_pegged_model(ref_model: Any, constraint: OccBinConstraint) -> Any:
+    """Build a constrained LinearModel pegging constraint.variable to constraint.threshold."""
+    from puremacro.dsge.dynare import build_dynare
+
+    if getattr(ref_model, "_dynare_equations", None) is None:
+        return ref_model
+
+    var_name = constraint.variable
+    thresh = float(constraint.threshold)
+    variables = list(ref_model.variables)
+    if var_name not in variables:
+        return ref_model
+    idx_var = variables.index(var_name)
+
+    from puremacro.dsge.occbin import _extract_model_matrices
+
+    A_p_0, A_0_0, A_m_0, B_u_0, c_0, ss_0, _, _ = _extract_model_matrices(ref_model)
+    has_var = np.abs(A_0_0[:, idx_var]) > 1e-12
+    cand_rows = np.where(has_var)[0]
+    eq_row = int(cand_rows[0]) if len(cand_rows) > 0 else 0
+
+    orig_eqs = ref_model._dynare_equations
+
+    def constrained_eqs(lead, curr, lag, shocks, params):
+        res = list(orig_eqs(lead, curr, lag, shocks, params))
+        val = getattr(curr, var_name) if hasattr(curr, var_name) else curr[var_name]
+        res[eq_row] = val - thresh
+        return res
+
+    ss = dict(ref_model.steady_state)
+    ss[var_name] = thresh
+    return build_dynare(
+        constrained_eqs,
+        variables=ref_model.variables,
+        shocks=ref_model.shocks,
+        params=ref_model._params or {},
+        steady_state=ss,
+        check_steady_state=False,
+        strict=False,
+    )
+
+
+def _make_differentiable_occbin_neg_log_posterior(
+    data: pd.DataFrame,
+    m_unconstrained: Any,
+    constraint: OccBinConstraint,
+    constrained_model: Any | None,
+    priors: dict,
+    names: Sequence[str],
+    fixed_params: dict | None,
+    observed_vars: Sequence[str],
+    tau: float = 0.01,
+    horizon: int | None = None,
+    penalty: float = np.inf,
+    failure: _LikelihoodFailure | None = None,
+    sigma_meas: float = 0.05,
+    shock_sequence: np.ndarray | None = None,
+    **kwargs: Any,
+):
+    from puremacro.dsge.dynare import build_dynare
+
+    base_params = dict(getattr(m_unconstrained, "_params", None) or getattr(m_unconstrained, "params", None) or {})
+    if fixed_params:
+        base_params.update({k: float(v) for k, v in fixed_params.items()})
+
+    obs_list = list(observed_vars)
+    y_target = data[obs_list].to_numpy(dtype=float)
+    T_data = len(data)
+    H = horizon if horizon is not None else max(T_data, 20)
+
+    n_shocks = len(m_unconstrained.shocks)
+    if shock_sequence is not None:
+        sh_seq = np.asarray(shock_sequence, dtype=float)
+    else:
+        sh_cols = [s for s in m_unconstrained.shocks if s in data.columns]
+        if len(sh_cols) == n_shocks:
+            sh_seq = data[list(m_unconstrained.shocks)].to_numpy(dtype=float)
+        else:
+            sh_seq = np.zeros((H, n_shocks))
+
+    def neg_log_post(vec: np.ndarray) -> float:
+        for nm, val in zip(names, vec):
+            pr = priors[nm]
+            if val < pr.lb or val > pr.ub:
+                return penalty
+        par_dict = _vec_to_dict(vec, names, fixed_params)
+        lp = log_prior(par_dict, priors)
+        if not np.isfinite(lp):
+            return penalty
+
+        curr_params = dict(base_params)
+        curr_params.update(par_dict)
+
+        try:
+            if getattr(m_unconstrained, "_dynare_equations", None) is not None:
+                ref_m = build_dynare(
+                    m_unconstrained._dynare_equations,
+                    variables=m_unconstrained.variables,
+                    shocks=m_unconstrained.shocks,
+                    params=curr_params,
+                    steady_state=m_unconstrained.steady_state,
+                    check_steady_state=False,
+                    strict=False,
+                )
+            else:
+                ref_m = m_unconstrained
+
+            if constrained_model is not None and getattr(constrained_model, "_dynare_equations", None) is not None:
+                k_base = dict(getattr(constrained_model, "_params", None) or getattr(constrained_model, "params", None) or base_params)
+                k_params = dict(k_base)
+                k_params.update(par_dict)
+                cons_m = build_dynare(
+                    constrained_model._dynare_equations,
+                    variables=constrained_model.variables,
+                    shocks=constrained_model.shocks,
+                    params=k_params,
+                    steady_state=constrained_model.steady_state,
+                    check_steady_state=False,
+                    strict=False,
+                )
+            elif constrained_model is not None:
+                cons_m = constrained_model
+            else:
+                cons_m = _auto_build_pegged_model(ref_m, constraint)
+
+            occ_res = solve_differentiable_occbin(
+                ref_m,
+                cons_m,
+                constraint,
+                shock_sequence=sh_seq,
+                tau=tau,
+                horizon=H,
+                max_iter=30,
+            )
+            sim_df = occ_res.simulated_path
+            sim_mat = sim_df[obs_list].iloc[:T_data].to_numpy(dtype=float)
+
+            var_meas = max(1e-6, sigma_meas ** 2)
+            diff = y_target - sim_mat
+            sse = float(np.sum(diff ** 2))
+            n_tot = diff.size
+            ll = -0.5 * (n_tot * np.log(2.0 * np.pi * var_meas) + sse / var_meas)
+        except Exception as exc:
+            if failure is not None:
+                failure.record(exc, vec)
+            return penalty
+
+        if not np.isfinite(ll):
+            return penalty
+        return -(ll + lp)
+
+    return neg_log_post
+
+
+
 def _interior_point(value: float, spec, *, margin: float = 1e-3) -> float:
     """Clip ``value`` strictly inside ``[lb, ub]``, never returning +-inf.
 
@@ -568,6 +725,8 @@ def estimate_dsge(
     m_unconstrained: Any = None,
     m_constrained_dict: Any = None,
     constraints: Any = None,
+    constraint: Any = None,
+    tau: float = 0.01,
     occbin_regimes: Any = None,
     model_template: Any = None,
     model_name: str = "unknown",
@@ -584,7 +743,7 @@ def estimate_dsge(
     Piecewise Kalman Filtering (method="piecewise_kalman") for occasionally
     binding constraints (Giovannini, Pfeiffer & Ratto 2021), and No-U-Turn
     Sampler Hamiltonian Monte Carlo (method="nuts") with exact analytic
-    likelihood gradients.
+    likelihood gradients or differentiable OccBin smooth relaxation.
     """
     # 1. Validate data.
     missing = set(observed_vars) - set(data.columns)
@@ -592,7 +751,7 @@ def estimate_dsge(
         raise ValueError(f"data missing columns: {sorted(missing)}")
     if len(data) < 10:
         raise ValueError(f"data has only {len(data)} obs; need >= 10")
-    if method != "piecewise_kalman" and data[list(observed_vars)].isna().any().any():
+    if method != "piecewise_kalman" and constraint is None and data[list(observed_vars)].isna().any().any():
         raise ValueError("data contains NaN in observed_vars")
     y = data[list(observed_vars)].to_numpy()
 
@@ -605,7 +764,23 @@ def estimate_dsge(
     init_vec = _initial_vec_from_dict(initial_params, priors,
                                       caller="estimate_dsge")
 
-    if method == "piecewise_kalman":
+    active_constraint = constraint or (constraints if isinstance(constraints, OccBinConstraint) else None)
+
+    if active_constraint is not None:
+        cons_dict = m_constrained_dict or occbin_regimes
+        neg_log_post = _make_differentiable_occbin_neg_log_posterior(
+            data, m_unconstrained or model_template, active_constraint, cons_dict,
+            priors, names, fixed, observed_vars, tau=tau, failure=failure,
+            **kwargs,
+        )
+        neg_log_post_opt = _make_differentiable_occbin_neg_log_posterior(
+            data, m_unconstrained or model_template, active_constraint, cons_dict,
+            priors, names, fixed, observed_vars, tau=tau,
+            penalty=_OPT_PENALTY, failure=failure,
+            **kwargs,
+        )
+        model_template = None  # Force smooth gradient evaluation via differentiable OccBin
+    elif method == "piecewise_kalman":
         cons_dict = m_constrained_dict or occbin_regimes or {}
         neg_log_post = _make_piecewise_neg_log_posterior(
             data, m_unconstrained, cons_dict, constraints,
@@ -891,10 +1066,13 @@ def _linear_model_estimate_with_method(
     method: str = "kalman",
     m_constrained_dict=None,
     constraints=None,
+    constraint=None,
+    tau: float = 0.01,
     occbin_regimes=None,
     priors=None,
     initial_params=None,
     varobs=None,
+    observed_vars=None,
     fixed_params=None,
     measurement_error=None,
     prefilter=False,
@@ -909,8 +1087,10 @@ def _linear_model_estimate_with_method(
     check_identification: bool | str = False,
     **kwargs,
 ):
-    """Bayesian estimation supporting method='kalman' and method='piecewise_kalman'."""
-    if method == "piecewise_kalman":
+    """Bayesian estimation supporting method='kalman', 'piecewise_kalman', and 'nuts' with constraints."""
+    active_constraint = constraint or (constraints if isinstance(constraints, OccBinConstraint) else None)
+
+    if method == "piecewise_kalman" or (method == "nuts" and active_constraint is not None):
         from ._estimated_params import EstimatedParams
         from .priors import ensure_prior
 
@@ -950,15 +1130,18 @@ def _linear_model_estimate_with_method(
             )
 
         obs = list(varobs) if varobs is not None else (
-            list(self._varobs) if getattr(self, "_varobs", None) else list(data.columns)
+            list(observed_vars) if observed_vars is not None else
+            (list(self._varobs) if getattr(self, "_varobs", None) else list(data.columns))
         )
 
         return estimate_dsge(
             data,
-            method="piecewise_kalman",
+            method=method,
             m_unconstrained=self,
             m_constrained_dict=m_constrained_dict or occbin_regimes,
             constraints=constraints,
+            constraint=active_constraint,
+            tau=tau,
             priors=prior_dict,
             observed_vars=obs,
             initial_params=initial,
@@ -990,6 +1173,120 @@ def _linear_model_estimate_with_method(
         model_name=model_name,
         check_identification=check_identification,
         method=method,
+        constraint=constraint,
+        tau=tau,
+        **kwargs,
+    )
+
+
+def estimate(
+    model: Any,
+    data: pd.DataFrame,
+    observed_vars: Sequence[str] | None = None,
+    priors: Any = None,
+    *,
+    method: str = "nuts",
+    constraint: Any = None,
+    constraints: Any = None,
+    m_constrained_dict: Any = None,
+    tau: float = 0.01,
+    initial_params: dict | None = None,
+    fixed_params: dict | None = None,
+    n_draws: int = 1000,
+    n_chains: int = 2,
+    burn_in: int = 500,
+    seed: int = 0,
+    **kwargs,
+) -> DSGEPosteriorResult | NUTSResult:
+    """High-level DSGE estimation interface supporting NUTS with ZLB constraints.
+
+    Parameters
+    ----------
+    model : LinearModel
+        The DSGE model to estimate.
+    data : pd.DataFrame
+        Observed data series.
+    observed_vars : Sequence[str], optional
+        List of observed variable names.
+    priors : EstimatedParams | dict, optional
+        Prior specifications.
+    method : {'nuts', 'kalman', 'piecewise_kalman'}, default 'nuts'
+        Estimation method.
+    constraint : OccBinConstraint, optional
+        Occasionally binding constraint (e.g. ZLB on nominal rate).
+    tau : float, default 0.01
+        Temperature parameter for differentiable OccBin relaxation.
+    initial_params : dict, optional
+        Starting values for parameters.
+    fixed_params : dict, optional
+        Parameters held fixed during estimation.
+    n_draws : int, default 1000
+        Number of MCMC draws per chain.
+    n_chains : int, default 2
+        Number of parallel Markov chains.
+    burn_in : int, default 500
+        Number of warmup draws discarded.
+    seed : int, default 0
+        Random seed for reproducibility.
+
+    Returns
+    -------
+    DSGEPosteriorResult | NUTSResult
+    """
+    if "n_samples" in kwargs and n_draws == 1000:
+        n_draws = int(kwargs.pop("n_samples"))
+    if "n_warmup" in kwargs and burn_in == 500:
+        burn_in = int(kwargs.pop("n_warmup"))
+    if "chains" in kwargs and n_chains == 2:
+        n_chains = int(kwargs.pop("chains"))
+    if "random_seed" in kwargs and seed == 0:
+        seed = int(kwargs.pop("random_seed"))
+
+    if hasattr(model, "estimate"):
+        return model.estimate(
+            data,
+            priors=priors,
+            varobs=observed_vars,
+            observed_vars=observed_vars,
+            method=method,
+            constraint=constraint,
+            constraints=constraints,
+            m_constrained_dict=m_constrained_dict,
+            tau=tau,
+            initial_params=initial_params,
+            fixed_params=fixed_params,
+            n_draws=n_draws,
+            n_chains=n_chains,
+            burn_in=burn_in,
+            seed=seed,
+            **kwargs,
+        )
+
+    from .priors import ensure_prior
+
+    prior_dict = {k: ensure_prior(v) for k, v in dict(priors).items()} if priors else {}
+    init = initial_params or {
+        k: float(getattr(pr, "start", getattr(pr, "mean", 0.0)))
+        for k, pr in prior_dict.items()
+    }
+    obs = list(observed_vars) if observed_vars is not None else list(data.columns)
+
+    return estimate_dsge(
+        data,
+        method=method,
+        m_unconstrained=model,
+        constraint=constraint,
+        constraints=constraints,
+        m_constrained_dict=m_constrained_dict,
+        tau=tau,
+        priors=prior_dict,
+        observed_vars=obs,
+        initial_params=init,
+        fixed_params=fixed_params,
+        n_draws=n_draws,
+        n_chains=n_chains,
+        burn_in=burn_in,
+        seed=seed,
         **kwargs,
     )
 
@@ -1002,4 +1299,5 @@ __all__ = [
     "piecewise_kalman_filter",
     "PiecewiseKalmanResult",
 ]
+
 

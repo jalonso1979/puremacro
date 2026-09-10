@@ -45,7 +45,7 @@ from .bayesian import bayesian_irf, prior_predictive
 from .diagnostics import check, resid, model_diagnostics
 from .identification import identification
 from .policy import osr, discretionary_policy, lq_commitment
-from .estimate import estimate_dsge
+from .estimate import estimate, estimate_dsge
 from .nuts import nuts_sample
 from ._gradients import ScoreDiagnosticsResult
 from .bayesian import BayesianEstimationResult, estimate_dsge_bayesian
@@ -67,7 +67,24 @@ import functools as _functools
 LinearModel.stoch_simul = _functools.wraps(_orig_stoch_simul)(_linear_model_stoch_simul)
 from .perfect_foresight import PerfectForesightResult, solve_perfect_foresight
 from .extended_path import extended_path
-from .occbin import OccBinConstraint, OccBinResult, solve_occbin
+from .occbin import (
+    OccBinConstraint,
+    OccBinResult,
+    DifferentiableOccBinResult,
+    solve_occbin,
+    solve_differentiable_occbin,
+    smin_tau,
+    smax_tau,
+    d_smax_tau,
+    d_smin_tau,
+    smooth_min,
+    smooth_max,
+    d_smooth_max,
+    d_smooth_min,
+    fischer_burmeister,
+    grad_fischer_burmeister,
+    Phi_tau,
+)
 from .gertler_karadi import (
     GK2011_PARAMS,
     GertlerKaradiResult,

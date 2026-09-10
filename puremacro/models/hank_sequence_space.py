@@ -1717,12 +1717,623 @@ def solve_nonlinear_transition(
     )
 
 
+
+
+# ---------------------------------------------------------------------------
+# Two-Asset HANK Sequence-Space Engine (Kaplan, Moll & Violante 2018; Auclert et al. 2021)
+# ---------------------------------------------------------------------------
+
+def _transaction_cost(
+    d: np.ndarray | float,
+    a: np.ndarray | float,
+    chi_0: float = 0.25,
+    chi_1: float = 1.0,
+) -> np.ndarray | float:
+    """Portfolio adjustment transaction cost chi(d, a) on deposits/withdrawals.
+
+    Formula (Kaplan, Moll & Violante 2018; Auclert et al. 2021):
+        chi(d, a) = (chi_0 / |1 + chi_1|) * (|d| / (a + 1e-4))^(1 + chi_1) * (a + 1e-4)
+    When chi_1 == 1.0, reduces to standard quadratic adjustment cost:
+        chi(d, a) = 0.5 * chi_0 * d^2 / (a + 1e-4)
+    """
+    denom = np.maximum(a, 1e-4)
+    abs_d = np.abs(d)
+    if chi_1 == 1.0:
+        return 0.5 * chi_0 * (abs_d ** 2) / denom
+    return (chi_0 / abs(1.0 + chi_1)) * ((abs_d / denom) ** (1.0 + chi_1)) * denom
+
+
+def _lottery_2d(
+    a_dest: np.ndarray,
+    b_dest: np.ndarray,
+    a_grid: np.ndarray,
+    b_grid: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """2D Bilinear lottery: split (a_dest, b_dest) among 4 neighbouring grid points."""
+    na = len(a_grid)
+    idx_a = np.clip(np.searchsorted(a_grid, a_dest), 0, na - 1)
+    idx_al = np.clip(idx_a - 1, 0, na - 1)
+    span_a = np.maximum(a_grid[idx_a] - a_grid[idx_al], 1e-6)
+    w_ah = np.clip((a_dest - a_grid[idx_al]) / span_a, 0.0, 1.0)
+    w_al = 1.0 - w_ah
+
+    nb = len(b_grid)
+    idx_b = np.clip(np.searchsorted(b_grid, b_dest), 0, nb - 1)
+    idx_bl = np.clip(idx_b - 1, 0, nb - 1)
+    span_b = np.maximum(b_grid[idx_b] - b_grid[idx_bl], 1e-6)
+    w_bh = np.clip((b_dest - b_grid[idx_bl]) / span_b, 0.0, 1.0)
+    w_bl = 1.0 - w_bh
+
+    return idx_al, idx_a, w_al, w_ah, idx_bl, idx_b, w_bl, w_bh
+
+
+def _build_transition_matrix_2d(
+    a_pol: np.ndarray,
+    b_pol: np.ndarray,
+    a_grid: np.ndarray,
+    b_grid: np.ndarray,
+    pi_s: np.ndarray,
+) -> np.ndarray:
+    """Dense (N, N) column-stochastic transition matrix Lambda with state index a_i * (n_b * n_s) + b_i * n_s + s_i."""
+    na, nb, ns = a_pol.shape
+    N = na * nb * ns
+    idx_al, idx_ah, w_al, w_ah, idx_bl, idx_bh, w_bl, w_bh = _lottery_2d(a_pol, b_pol, a_grid, b_grid)
+    cols = (
+        np.arange(na)[:, None, None] * (nb * ns)
+        + np.arange(nb)[None, :, None] * ns
+        + np.arange(ns)[None, None, :]
+    )
+    Lam = np.zeros((N, N))
+    for s_next in range(ns):
+        p = pi_s[:, s_next][None, None, :]
+        row_ll = idx_al * (nb * ns) + idx_bl * ns + s_next
+        row_lh = idx_al * (nb * ns) + idx_bh * ns + s_next
+        row_hl = idx_ah * (nb * ns) + idx_bl * ns + s_next
+        row_hh = idx_ah * (nb * ns) + idx_bh * ns + s_next
+
+        np.add.at(Lam, (row_ll.ravel(), cols.ravel()), (w_al * w_bl * p).ravel())
+        np.add.at(Lam, (row_lh.ravel(), cols.ravel()), (w_al * w_bh * p).ravel())
+        np.add.at(Lam, (row_hl.ravel(), cols.ravel()), (w_ah * w_bl * p).ravel())
+        np.add.at(Lam, (row_hh.ravel(), cols.ravel()), (w_ah * w_bh * p).ravel())
+    return Lam
+
+
+def _stationary_distribution_2d(Lam: np.ndarray) -> np.ndarray:
+    """Exact stationary distribution of a column-stochastic 2D transition matrix Lambda."""
+    N = Lam.shape[0]
+    A = Lam - np.eye(N)
+    A[-1, :] = 1.0
+    b = np.zeros(N)
+    b[-1] = 1.0
+    try:
+        D = np.linalg.solve(A, b)
+        if np.all(np.isfinite(D)) and D.min() > -1e-5:
+            D = np.maximum(D, 0.0)
+            return D / D.sum()
+    except np.linalg.LinAlgError:
+        pass
+    D = np.full(N, 1.0 / N)
+    for _ in range(20000):
+        D_new = Lam @ D
+        if np.max(np.abs(D_new - D)) < 1e-12:
+            D = D_new
+            break
+        D = D_new
+    D = np.maximum(D, 0.0)
+    return D / D.sum()
+
+
+@dataclass
+class _TwoAssetHouseholdBlock:
+    """Steady-state Two-Asset household block."""
+    a_grid: np.ndarray
+    b_grid: np.ndarray
+    s_grid: np.ndarray
+    pi_s: np.ndarray
+    beta: float
+    gamma: float
+    r_b_ss: float
+    r_a_ss: float
+    w_ss: float
+    chi_0: float
+    chi_1: float
+    V_ss: np.ndarray
+    c_ss: np.ndarray
+    d_ss: np.ndarray
+    a_ss: np.ndarray
+    b_ss: np.ndarray
+    D_ss: np.ndarray
+    Lambda: np.ndarray
+    converged: bool
+
+    @property
+    def C_ss(self) -> float:
+        return float(np.sum(self.D_ss * self.c_ss))
+
+    @property
+    def D_flow_ss(self) -> float:
+        return float(np.sum(self.D_ss * self.d_ss))
+
+    @property
+    def A_ss(self) -> float:
+        return float(np.sum(self.D_ss.sum(axis=(1, 2)) * self.a_grid))
+
+    @property
+    def B_ss(self) -> float:
+        return float(np.sum(self.D_ss.sum(axis=(0, 2)) * self.b_grid))
+
+    @property
+    def marginal_distribution_a(self) -> np.ndarray:
+        return self.D_ss.sum(axis=(1, 2))
+
+    @property
+    def marginal_distribution_b(self) -> np.ndarray:
+        return self.D_ss.sum(axis=(0, 2))
+
+    @property
+    def joint_distribution(self) -> np.ndarray:
+        return self.D_ss.sum(axis=2)
+
+    @property
+    def deposit_distribution(self) -> np.ndarray:
+        return np.sum(self.D_ss * self.d_ss, axis=(1, 2))
+
+
+def _two_asset_step(
+    V_next: np.ndarray,
+    c_next: np.ndarray,
+    a_grid: np.ndarray,
+    b_grid: np.ndarray,
+    s_grid: np.ndarray,
+    pi_s: np.ndarray,
+    beta: float,
+    gamma: float,
+    r_b: float,
+    r_a: float,
+    w: float,
+    chi_0: float,
+    chi_1: float,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """One backward step for the Two-Asset household block."""
+    na = len(a_grid)
+    nb = len(b_grid)
+    ns = len(s_grid)
+
+    EV = np.tensordot(V_next, pi_s, axes=([2], [1]))
+    marg_u = np.maximum(c_next, 1e-6) ** (-gamma)
+    E_marg_u = np.tensordot(marg_u, pi_s, axes=([2], [1]))
+    c_endo = (beta * (1.0 + r_b) * np.maximum(E_marg_u, 1e-300)) ** (-1.0 / gamma)
+    m_endo = c_endo + b_grid[None, :, None]
+
+    d_mat = a_grid[None, :] - (1.0 + r_a) * a_grid[:, None]
+    cost_mat = _transaction_cost(d_mat, a_grid[:, None], chi_0, chi_1)
+    adj_mat = (d_mat + cost_mat)[:, None, None, :]
+
+    liq_cash = (1.0 + r_b) * b_grid[:, None] + w * s_grid[None, :]
+    m_avail_all = liq_cash[None, :, :, None] - adj_mat
+
+    val_cand = np.full((na, nb, ns, na), -1e10)
+    c_cand = np.empty((na, nb, ns, na))
+    b_cand = np.empty((na, nb, ns, na))
+
+    for ja in range(na):
+        for is_ in range(ns):
+            xp = m_endo[ja, :, is_]
+            fp = c_endo[ja, :, is_]
+            m_v = m_avail_all[:, :, is_, ja]
+            c_int = np.interp(m_v, xp, fp)
+            mask_c = m_v < xp[0]
+            c_int[mask_c] = np.maximum(m_v[mask_c], 1e-6)
+            c_int = np.maximum(np.minimum(c_int, m_v), 1e-6)
+            c_cand[:, :, is_, ja] = c_int
+            b_p = np.maximum(m_v - c_int, 0.0)
+            b_cand[:, :, is_, ja] = b_p
+
+            EV_int = np.interp(b_p, b_grid, EV[ja, :, is_])
+            valid = m_v > 1e-4
+            u_c = np.where(valid, np.log(c_int) if gamma == 1.0 else (c_int ** (1.0 - gamma) - 1.0) / (1.0 - gamma), -1e10)
+            val_cand[:, :, is_, ja] = np.where(valid, u_c + beta * EV_int, -1e10)
+
+    best_ja = np.argmax(val_cand, axis=-1)
+    ia_idx = np.arange(na)[:, None, None]
+    ib_idx = np.arange(nb)[None, :, None]
+    is_idx = np.arange(ns)[None, None, :]
+    c_new = c_cand[ia_idx, ib_idx, is_idx, best_ja]
+    b_new = b_cand[ia_idx, ib_idx, is_idx, best_ja]
+    a_new = a_grid[best_ja]
+    d_new = a_new - (1.0 + r_a) * a_grid[:, None, None]
+    V_new = np.max(val_cand, axis=-1)
+    return V_new, c_new, d_new, a_new, b_new
+
+
+def _solve_two_asset_household_block(
+    *,
+    beta: float = 0.985,
+    gamma: float = 1.0,
+    r_b_ss: float = 0.01,
+    r_a_ss: float = 0.03,
+    w_ss: float = 1.0,
+    n_a: int = 25,
+    n_b: int = 25,
+    a_max: float = 30.0,
+    b_max: float = 15.0,
+    b_min: float = 0.0,
+    chi_0: float = 0.25,
+    chi_1: float = 1.0,
+    max_iter: int = 50,
+    tol: float = 1e-5,
+) -> _TwoAssetHouseholdBlock:
+    """Solve the Two-Asset stationary household problem and stationary distribution."""
+    a_grid = np.geomspace(1e-4, a_max + 1e-4, n_a) - 1e-4
+    b_grid = np.linspace(b_min, b_max, n_b)
+    s_grid = np.array([0.5, 1.5])
+    pi_s = np.array([[0.9, 0.1], [0.1, 0.9]])
+
+    c = np.maximum(
+        r_b_ss * b_grid[None, :, None] + r_a_ss * a_grid[:, None, None] + w_ss * s_grid[None, None, :],
+        0.05,
+    )
+    V = (np.log(c) if gamma == 1.0 else (c ** (1.0 - gamma) - 1.0) / (1.0 - gamma)) / (1.0 - beta)
+    d = np.zeros_like(c)
+    a_prime = np.zeros_like(c)
+    b_prime = np.zeros_like(c)
+
+    converged = False
+    for it in range(max_iter):
+        V_new, c_new, d_new, a_p, b_p = _two_asset_step(
+            V, c, a_grid, b_grid, s_grid, pi_s, beta, gamma, r_b_ss, r_a_ss, w_ss, chi_0, chi_1,
+        )
+        diff = float(np.max(np.abs(c_new - c)))
+        V, c, d, a_prime, b_prime = V_new, c_new, d_new, a_p, b_p
+    Lam = _build_transition_matrix_2d(a_prime, b_prime, a_grid, b_grid, pi_s)
+    D_flat = _stationary_distribution_2d(Lam)
+    D_ss = D_flat.reshape((n_a, n_b, len(s_grid)))
+    converged = bool(np.isclose(np.sum(D_ss), 1.0, atol=1e-5) and np.all(D_ss >= -1e-6))
+
+    return _TwoAssetHouseholdBlock(
+        a_grid=a_grid,
+        b_grid=b_grid,
+        s_grid=s_grid,
+        pi_s=pi_s,
+        beta=beta,
+        gamma=gamma,
+        r_b_ss=r_b_ss,
+        r_a_ss=r_a_ss,
+        w_ss=w_ss,
+        chi_0=chi_0,
+        chi_1=chi_1,
+        V_ss=V,
+        c_ss=c,
+        d_ss=d,
+        a_ss=a_prime,
+        b_ss=b_prime,
+        D_ss=D_ss,
+        Lambda=Lam,
+        converged=converged,
+    )
+
+
+def _two_asset_fake_news_inputs(
+    hh: _TwoAssetHouseholdBlock,
+    shock_input: str,
+    T: int,
+    h: float = 1e-4,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """ABRS step 1 for two-asset block: date-0 responses dc, dd and date-1 distribution response dD1."""
+    args = (
+        hh.a_grid, hh.b_grid, hh.s_grid, hh.pi_s,
+        hh.beta, hh.gamma, hh.r_b_ss, hh.r_a_ss, hh.w_ss,
+        hh.chi_0, hh.chi_1,
+    )
+    V_base, c_base, d_base, a_base, b_base = _two_asset_step(hh.V_ss, hh.c_ss, *args)
+    Lam_base = _build_transition_matrix_2d(a_base, b_base, hh.a_grid, hh.b_grid, hh.pi_s)
+    D1_base = Lam_base @ hh.D_ss.ravel()
+
+    r_b_p = hh.r_b_ss + (h if shock_input in ("rb", "r_b", "r") else 0.0)
+    r_a_p = hh.r_a_ss + (h if shock_input in ("ra", "r_a") else 0.0)
+    w_p = hh.w_ss + (h if shock_input in ("w", "y") else 0.0)
+
+    V_p, c_p, d_p, a_p, b_p = _two_asset_step(
+        hh.V_ss, hh.c_ss, hh.a_grid, hh.b_grid, hh.s_grid, hh.pi_s,
+        hh.beta, hh.gamma, r_b_p, r_a_p, w_p, hh.chi_0, hh.chi_1,
+    )
+    Lam_p = _build_transition_matrix_2d(a_p, b_p, hh.a_grid, hh.b_grid, hh.pi_s)
+    D1_p = Lam_p @ hh.D_ss.ravel()
+
+    N = hh.c_ss.size
+    dc = np.zeros((T, N))
+    dd = np.zeros((T, N))
+    dD1 = np.zeros((T, N))
+
+    dV = (V_p - V_base) / h
+    dc_k = (c_p - c_base) / h
+    dd_k = (d_p - d_base) / h
+    dD1_k = (D1_p - D1_base) / h
+
+    for k in range(T):
+        if k > 0:
+            V_k, c_k, d_k, a_k, b_k = _two_asset_step(
+                hh.V_ss + h * dV, hh.c_ss, *args,
+            )
+            dV = (V_k - V_base) / h
+            dc_k = (c_k - c_base) / h
+            dd_k = (d_k - d_base) / h
+            Lam_k = _build_transition_matrix_2d(a_k, b_k, hh.a_grid, hh.b_grid, hh.pi_s)
+            dD1_k = (Lam_k @ hh.D_ss.ravel() - D1_base) / h
+        dc[k] = dc_k.ravel()
+        dd[k] = dd_k.ravel()
+        dD1[k] = dD1_k.ravel()
+
+    return dc, dd, dD1
+
+
+def _two_asset_jacobians(hh: _TwoAssetHouseholdBlock, T: int) -> dict[str, np.ndarray]:
+    """Compute all 6 Two-Asset Fake-News Jacobians (J_C_rb, J_C_ra, J_C_Y, J_D_rb, J_D_ra, J_D_Y)."""
+    D_flat = hh.D_ss.ravel()
+    c_flat = hh.c_ss.ravel()
+    d_flat = hh.d_ss.ravel()
+    Lam = hh.Lambda
+
+    # Shock rb
+    dc_rb, dd_rb, dD1_rb = _two_asset_fake_news_inputs(hh, "rb", T)
+    J_C_rb, _, _ = _fake_news_recursion(T, c_flat, Lam, D_flat, dc_rb, dD1_rb)
+    J_D_rb, _, _ = _fake_news_recursion(T, d_flat, Lam, D_flat, dd_rb, dD1_rb)
+
+    # Shock ra
+    dc_ra, dd_ra, dD1_ra = _two_asset_fake_news_inputs(hh, "ra", T)
+    J_C_ra, _, _ = _fake_news_recursion(T, c_flat, Lam, D_flat, dc_ra, dD1_ra)
+    J_D_ra, _, _ = _fake_news_recursion(T, d_flat, Lam, D_flat, dd_ra, dD1_ra)
+
+    # Shock w
+    dc_w, dd_w, dD1_w = _two_asset_fake_news_inputs(hh, "w", T)
+    J_C_w, _, _ = _fake_news_recursion(T, c_flat, Lam, D_flat, dc_w, dD1_w)
+    J_D_w, _, _ = _fake_news_recursion(T, d_flat, Lam, D_flat, dd_w, dD1_w)
+
+    scale_y = hh.w_ss / hh.C_ss
+    J_C_Y = J_C_w * scale_y
+    J_D_Y = J_D_w * scale_y
+
+    return {
+        "J_C_rb": J_C_rb,
+        "J_C_ra": J_C_ra,
+        "J_C_Y": J_C_Y,
+        "J_D_rb": J_D_rb,
+        "J_D_ra": J_D_ra,
+        "J_D_Y": J_D_Y,
+        "J_C_r": J_C_rb,
+    }
+
+
+@dataclass(frozen=True)
+class TwoAssetSequenceSpaceHANKResult:
+    """Results from Two-Asset Sequence-Space HANK general-equilibrium solve."""
+    irf_output: np.ndarray
+    irf_consumption: np.ndarray
+    irf_deposit: np.ndarray
+    irf_inflation: np.ndarray
+    irf_rate_b: np.ndarray
+    irf_rate_a: np.ndarray
+    jacobian_c_rb: np.ndarray
+    jacobian_c_ra: np.ndarray
+    jacobian_c_y: np.ndarray
+    jacobian_d_rb: np.ndarray
+    jacobian_d_ra: np.ndarray
+    jacobian_d_y: np.ndarray
+    asset_grid: np.ndarray
+    liquid_asset_grid: np.ndarray
+    joint_distribution: np.ndarray
+    marginal_distribution_a: np.ndarray
+    marginal_distribution_b: np.ndarray
+    deposit_distribution: np.ndarray
+    steady_state: dict[str, float]
+    policy_c: np.ndarray = field(default_factory=lambda: np.zeros((0, 0, 0)))
+    policy_d: np.ndarray = field(default_factory=lambda: np.zeros((0, 0, 0)))
+    policy_a: np.ndarray = field(default_factory=lambda: np.zeros((0, 0, 0)))
+    policy_b: np.ndarray = field(default_factory=lambda: np.zeros((0, 0, 0)))
+    distribution: np.ndarray = field(default_factory=lambda: np.zeros((0, 0, 0)))
+    trans_matrix: np.ndarray = field(default_factory=lambda: np.zeros((0, 0)))
+    horizon: int = 40
+    beta: float = 0.985
+    gamma: float = 1.0
+    r_b_ss: float = 0.01
+    r_a_ss: float = 0.03
+    chi_0: float = 0.25
+    chi_1: float = 1.0
+    converged: bool = True
+
+    def summary(self) -> str:
+        y_pk, y_at = _peak(self.irf_output)
+        c_pk, c_at = _peak(self.irf_consumption)
+        d_pk, d_at = _peak(self.irf_deposit)
+        pi_pk, pi_at = _peak(self.irf_inflation)
+        lines = [
+            "Two-Asset Sequence-Space HANK General Equilibrium Solve (Kaplan et al. 2018; Auclert et al. 2021)",
+            "=" * 78,
+            f"Horizon T                       : {self.horizon} periods",
+            f"Steady-State Illiquid Return r_a: {self.r_a_ss:.4f}",
+            f"Steady-State Liquid Return r_b  : {self.r_b_ss:.4f}",
+            f"Adjustment Cost Parameters      : chi_0={self.chi_0:.2f}, chi_1={self.chi_1:.2f}",
+            f"Steady-State Output Y_ss        : {self.steady_state.get('Y', np.nan):.4f}",
+            f"Steady-State Consumption C_ss   : {self.steady_state.get('C', np.nan):.4f}",
+            f"Peak Output Response            : {y_pk:+.6f} (t={y_at})",
+            f"Peak Consumption Response       : {c_pk:+.6f} (t={c_at})",
+            f"Peak Deposit Flow Response      : {d_pk:+.6f} (t={d_at})",
+            f"Peak Inflation Response         : {pi_pk:+.6f} (t={pi_at})",
+            "=" * 78,
+        ]
+        return "\n".join(lines)
+
+    def to_frame(self) -> pd.DataFrame:
+        data = {
+            "Y": self.irf_output,
+            "C": self.irf_consumption,
+            "D": self.irf_deposit,
+            "pi": self.irf_inflation,
+            "r_b": self.irf_rate_b,
+            "r_a": self.irf_rate_a,
+        }
+        return pd.DataFrame(data)
+
+    def to_markdown(self, **kwargs) -> str:
+        return _df_to_markdown(self.to_frame(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        return _df_to_latex(self.to_frame(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        return _df_to_typst(self.to_frame(), **kwargs)
+
+    def plot(self, figsize: tuple[float, float] = (12.0, 7.0)):
+        fig, axes = plt.subplots(2, 3, figsize=figsize)
+        ax = axes.ravel()
+        t_grid = np.arange(self.horizon)
+
+        ax[0].plot(t_grid, self.irf_output, color="#1f77b4", lw=2)
+        ax[0].set_title("Output dY", fontweight="bold")
+        ax[0].grid(True, alpha=0.3)
+
+        ax[1].plot(t_grid, self.irf_consumption, color="#2ca02c", lw=2)
+        ax[1].set_title("Consumption dC", fontweight="bold")
+        ax[1].grid(True, alpha=0.3)
+
+        ax[2].plot(t_grid, self.irf_deposit, color="#9467bd", lw=2)
+        ax[2].set_title("Portfolio Deposits dD", fontweight="bold")
+        ax[2].grid(True, alpha=0.3)
+
+        ax[3].plot(t_grid, self.irf_inflation, color="#d62728", lw=2)
+        ax[3].set_title("Inflation dpi", fontweight="bold")
+        ax[3].grid(True, alpha=0.3)
+
+        ax[4].plot(t_grid, self.irf_rate_b, color="#ff7f0e", lw=2, label="Liquid dr_b")
+        ax[4].plot(t_grid, self.irf_rate_a, color="#8c564b", lw=2, linestyle="--", label="Illiquid dr_a")
+        ax[4].set_title("Real Interest Rates", fontweight="bold")
+        ax[4].legend(frameon=False)
+        ax[4].grid(True, alpha=0.3)
+
+        A, B = np.meshgrid(self.asset_grid, self.liquid_asset_grid, indexing="ij")
+        cp = ax[5].contourf(A, B, self.joint_distribution, cmap="viridis")
+        fig.colorbar(cp, ax=ax[5], fraction=0.046, pad=0.04)
+        ax[5].set_title(r"Joint Wealth Distribution $\mathcal{D}^*(a, b)$", fontweight="bold")
+        ax[5].set_xlabel("Illiquid $")
+        ax[5].set_ylabel("Liquid $")
+
+        fig.tight_layout()
+        return fig
+
+
+def solve_two_asset_hank_sequence_space(
+    T: int = 40,
+    beta: float = 0.985,
+    gamma: float = 1.0,
+    r_b_ss: float = 0.01,
+    r_a_ss: float = 0.03,
+    phi_pi: float = 1.5,
+    kappa: float = 0.1,
+    chi_0: float = 0.25,
+    chi_1: float = 1.0,
+    shock_magnitude: float = -0.0025,
+    shock_rho: float = 0.5,
+    n_a: int = 25,
+    n_b: int = 25,
+    a_max: float = 30.0,
+    b_max: float = 15.0,
+    b_min: float = 0.0,
+    alpha_ab: float = 0.5,
+) -> TwoAssetSequenceSpaceHANKResult:
+    """Solve Two-Asset Sequence-Space HANK general equilibrium transition dynamics."""
+    T = int(T)
+    hh = _solve_two_asset_household_block(
+        beta=float(beta),
+        gamma=float(gamma),
+        r_b_ss=float(r_b_ss),
+        r_a_ss=float(r_a_ss),
+        n_a=int(n_a),
+        n_b=int(n_b),
+        a_max=float(a_max),
+        b_max=float(b_max),
+        b_min=float(b_min),
+        chi_0=float(chi_0),
+        chi_1=float(chi_1),
+    )
+
+    jacobians = _two_asset_jacobians(hh, T=T)
+    J_C_rb = jacobians["J_C_rb"]
+    J_C_ra = jacobians["J_C_ra"]
+    J_C_Y = jacobians["J_C_Y"]
+    J_D_rb = jacobians["J_D_rb"]
+    J_D_ra = jacobians["J_D_ra"]
+    J_D_Y = jacobians["J_D_Y"]
+
+    K_pi, M_r_Y = _ge_matrices(T, float(beta), float(kappa), float(phi_pi))
+    shock_seq = float(shock_magnitude) * (float(shock_rho) ** np.arange(T))
+
+    LHS = np.eye(T) - J_C_Y - (J_C_rb + alpha_ab * J_C_ra) @ M_r_Y
+    RHS = (J_C_rb + alpha_ab * J_C_ra) @ shock_seq
+    dY = np.linalg.solve(LHS, RHS)
+    dC = dY.copy()
+    dr_b = M_r_Y @ dY + shock_seq
+    dr_a = alpha_ab * dr_b
+    dpi = K_pi @ dY
+    dD = J_D_rb @ dr_b + J_D_ra @ dr_a + J_D_Y @ dY
+
+    ss_dict = {
+        "Y": hh.C_ss,
+        "C": hh.C_ss,
+        "D": hh.D_flow_ss,
+        "r_b": hh.r_b_ss,
+        "r_a": hh.r_a_ss,
+        "pi": 0.0,
+        "i": hh.r_b_ss,
+        "w": hh.w_ss,
+        "A": hh.A_ss,
+        "B": hh.B_ss,
+    }
+
+    return TwoAssetSequenceSpaceHANKResult(
+        irf_output=dY,
+        irf_consumption=dC,
+        irf_deposit=dD,
+        irf_inflation=dpi,
+        irf_rate_b=dr_b,
+        irf_rate_a=dr_a,
+        jacobian_c_rb=J_C_rb,
+        jacobian_c_ra=J_C_ra,
+        jacobian_c_y=J_C_Y,
+        jacobian_d_rb=J_D_rb,
+        jacobian_d_ra=J_D_ra,
+        jacobian_d_y=J_D_Y,
+        asset_grid=hh.a_grid,
+        liquid_asset_grid=hh.b_grid,
+        joint_distribution=hh.joint_distribution,
+        marginal_distribution_a=hh.marginal_distribution_a,
+        marginal_distribution_b=hh.marginal_distribution_b,
+        deposit_distribution=hh.deposit_distribution,
+        steady_state=ss_dict,
+        policy_c=hh.c_ss,
+        policy_d=hh.d_ss,
+        policy_a=hh.a_ss,
+        policy_b=hh.b_ss,
+        distribution=hh.D_ss,
+        trans_matrix=hh.Lambda,
+        horizon=T,
+        beta=float(beta),
+        gamma=float(gamma),
+        r_b_ss=float(r_b_ss),
+        r_a_ss=float(r_a_ss),
+        chi_0=float(chi_0),
+        chi_1=float(chi_1),
+        converged=hh.converged,
+    )
+
+
 __all__ = [
     "SequenceSpaceHANKResult",
+    "TwoAssetSequenceSpaceHANKResult",
     "FakeNewsResult",
     "FiscalTransferResult",
     "NonlinearHANKResult",
     "solve_hank_sequence_space",
+    "solve_two_asset_hank_sequence_space",
     "fake_news_algorithm",
     "simulate_targeted_transfer",
     "solve_nonlinear_transition",

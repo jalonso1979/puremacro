@@ -444,6 +444,10 @@ class HANKResult:
     asset_distribution: np.ndarray
     asset_grid: np.ndarray
     mpc_distribution: np.ndarray | None = None
+    liquid_asset_grid: np.ndarray | None = None
+    joint_distribution: np.ndarray | None = None
+    marginal_distribution_b: np.ndarray | None = None
+    deposit_distribution: np.ndarray | None = None
     shock_name: str = "eps_m"
     horizon: int = 40
     model_name: str = "hank_sequence_space"
@@ -531,8 +535,37 @@ class HANKResult:
         axes: Any = None,
         figsize: tuple[float, float] = (10.0, 4.0),
     ) -> tuple[Any, Any]:
-        """Plot stationary asset distribution and MPC distribution."""
+        """Plot stationary asset distribution and MPC distribution (or 2D joint distribution)."""
         import matplotlib.pyplot as plt
+
+        if self.joint_distribution is not None and self.liquid_asset_grid is not None:
+            if axes is None:
+                fig, axes = plt.subplots(1, 2, figsize=figsize)
+            ax_flat = axes.ravel() if hasattr(axes, "ravel") else [axes]
+
+            # Left panel: 2D joint distribution contour
+            A, B = np.meshgrid(self.asset_grid, self.liquid_asset_grid, indexing="ij")
+            cp = ax_flat[0].contourf(A, B, self.joint_distribution, cmap="viridis")
+            if fig is not None:
+                fig.colorbar(cp, ax=ax_flat[0], fraction=0.046, pad=0.04)
+            ax_flat[0].set_title(r"Joint Wealth Distribution $\mathcal{D}^*(a, b)$", fontsize=11, fontweight="bold")
+            ax_flat[0].set_xlabel("Illiquid Assets $a$")
+            ax_flat[0].set_ylabel("Liquid Assets $b$")
+            ax_flat[0].grid(True, alpha=0.3)
+
+            # Right panel: Marginals of illiquid and liquid assets
+            ax_flat[1].plot(self.asset_grid, self.asset_distribution, color="#1f77b4", lw=2.0, label=r"Illiquid $a$")
+            if self.marginal_distribution_b is not None:
+                ax_flat[1].plot(self.liquid_asset_grid, self.marginal_distribution_b, color="#ff7f0e", lw=2.0, label=r"Liquid $b$")
+            ax_flat[1].set_title("Marginal Wealth Distributions", fontsize=11, fontweight="bold")
+            ax_flat[1].set_xlabel("Assets")
+            ax_flat[1].set_ylabel("Density")
+            ax_flat[1].legend(loc="upper right", frameon=False)
+            ax_flat[1].grid(True, alpha=0.3)
+
+            if fig is not None:
+                fig.tight_layout()
+            return fig, axes
 
         if axes is None:
             fig, axes = plt.subplots(1, 2, figsize=figsize)
