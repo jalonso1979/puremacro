@@ -2,6 +2,39 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## 3.1.0 (2026-09-10)
+
+### Milestone 3.1: Optimal Policy (Discretion vs Commitment), DSGE-VAR, News Shocks, Nonlinear Particle Filtering, & Markov-Switching DSGE
+
+Feature release: Completing Phases A, B, C, and D of the frontier macroeconomic modeling and policy suite under the strict Pyodide four-package contract (`numpy`, `scipy`, `pandas`, `matplotlib`):
+
+---
+
+### Added — Dynare Macro Processor, Live Parameter Sliders & Rank Identification (Phase A)
+- **Dynare Macro Processor** (`puremacro.dsge.macro`): Native preprocessor handling `@#define`, `@#for`, `@#if/@#elseif/@#else`, `@#include`, and dynamic variable interpolation `@{EXPR}` for parameter-conditional model construction (`preprocess_macro`).
+- **Live Interactive IRF Parameter Slider Widgets** (`puremacro.dsge.widgets`): Instantaneous sub-2ms Klein (2000) QZ re-solve on parameter adjustments using pure `matplotlib.widgets.Slider` with zero browser or NodeJS dependencies (`interactive_irf`, `InteractiveIRFResult`).
+- **Formal Rank Identification Criteria** (`puremacro.dsge.identification`): Local parameter identification testing combining Iskrev (2010) solution Jacobian $J_1$ and moment Jacobian $J_2$ rank criteria with Komunjer & Ng (2011) transfer function $J_H$ and spectral density $J_S$ rank tests with collinearity and sensitivity diagnostics (`identification`, `IdentificationResult`).
+
+### Added — Differentiable OccBin for NUTS & Two-Asset HANK Bridge (Phase B)
+- **Differentiable OccBin with Smooth Relaxation** (`puremacro.dsge.occbin`): $C^\infty$ smooth-min and smooth-max operators ($\text{smin}_\tau, \text{smax}_\tau$) with temperature parameter $\tau > 0$ and Fischer-Burmeister complementary condition relaxation $\Phi_\tau(a, b) = 0$. Backward recursion solver `solve_differentiable_occbin` with continuous regime weights $w_t \in (0, 1)$ yielding exact parameter sensitivities $\nabla_\theta$ for NUTS Hamiltonian Monte Carlo under Zero Lower Bound (ZLB) constraints.
+- **Two-Asset HANK Sequence-Space Bridge** (`puremacro.models.hank_sequence_space`, `puremacro.dsge.hank`): Household optimization over illiquid assets $a$ and liquid assets $b$ with portfolio transaction costs $\chi(d, a)$, column-stochastic 2D stationary wealth distribution $\mathcal{D}^*(a, b)$, multidimensional Fake-News Jacobians ($\mathcal{J}_{C, r^b}, \mathcal{J}_{C, r^a}, \mathcal{J}_{C, Y}, \mathcal{J}_{D, r^b}, \mathcal{J}_{D, r^a}, \mathcal{J}_{D, Y}$)$, and Dynare `.mod` syntax integration (`hetagent_block` with `assets = 2`).
+
+### Added — Optimal Discretionary Policy, DSGE-VAR Hybrid Modeling, & News Shocks (Phase C)
+- **Optimal Discretionary Policy vs Commitment** (`puremacro.dsge.policy`): Time-consistent Markov-perfect discretionary policy via Dennis (2007) Riccati matrix iterations on continuation value $V$, timeless-perspective LQ commitment via Lagrange multiplier state augmentation, and analytical decomposition of Kydland-Prescott / Barro-Gordon **inflation bias** and **stabilization bias** (`discretionary_policy`, `optimal_policy`, `DiscretionaryPolicyResult`).
+- **DSGE-VAR Hybrid Modeling** (`puremacro.dsge.dsge_var`): Del Negro & Schorfheide (2004) DSGE-VAR($\lambda$) mapping theoretical DSGE autocovariances to Normal-Inverted-Wishart VAR priors. Closed-form evaluation of the log marginal data density $\ln p(Y \mid \lambda, \theta)$, bounded hyperparameter optimization for $\hat{\lambda}$, and structural identification via the DSGE rotation matrix $Q^*(\theta)$ (`estimate_dsge_var`, `DSGEVARResult`).
+- **News & Anticipated Shocks Engine** (`puremacro.dsge.news`): Linear companion state-space augmentation $V_t = K_H V_{t-1} + \eta_t$ with strictly nilpotent shift matrix $K_H$ ($\rho(K_H) = 0$) preserving Blanchard-Kahn saddle-path determinacy. Verified zero pre-realization revisions on predetermined physical states, date-0 forward jump in forward-looking controls, and forecast error variance decomposition across surprise and news leads (`news_irf`, `decompose_news`, `NewsIRFResult`, `NewsDecompositionResult`).
+
+### Added — Nonlinear Particle Filtering, Stochastic Volatility & Markov-Switching DSGE (Phase D)
+- **Vectorized Sequential Monte Carlo Particle Filtering** (`puremacro.dsge.particle_filter`): Pure-Python vectorized Bootstrap Particle Filter (BPF) and Auxiliary Particle Filter (APF) with systematic, stratified, residual, and multinomial resampling schemes. Exact nonlinear likelihood evaluation for 2nd/3rd-order pruned perturbation DSGE models (`PrunedDSGESolution`).
+- **Stochastic Volatility & Fat-Tailed Innovations** (`puremacro.dsge.particle_filter`): Support for time-varying macroeconomic uncertainty $\sigma_t = \bar{\sigma} \exp(h_t), h_t = \rho_h h_{t-1} + \sigma_h \eta_t$ and fat-tailed innovation distributions (Student-$t$, mixture of Gaussians) in particle filtering and Particle SMC estimation (`StochasticVolatilitySpec`, `particle_filter`, `ParticleFilterResult`).
+- **Markov-Switching DSGE (MS-DSGE)** (`puremacro.dsge.markov_switching`): Foerster, Rubio-Ramírez, Waggoner & Zha (2016) perturbation solution for rational expectations models with discrete Markov regime transitions $s_t \in \{1, \dots, S\}$. Minimal State Variable (MSV) decision rules $y_t = T(s_t) y_{t-1} + R(s_t) \epsilon_t$ via coupled quadratic matrix iterations, Mean-Square Stability (MSS) spectral radius checks $\rho(M_2) < 1$, ergodic stationary distributions, and closed-form analytical Generalized Impulse Response Functions (GIRF) (`solve_ms_dsge`, `MSDSGEResult`).
+
+### Added — Showcase & Pedagogical Notebooks (`notebooks/`)
+- **Notebook 45** (`45_dsge_discretion_dsge_var_and_news_shocks.py` & `.ipynb`, EN & ES): Frontier DSGE policy and macroeconometrics walkthrough showcasing Dynare macro preprocessor, interactive IRF parameter sliders, formal rank identification, optimal discretionary policy vs commitment, DSGE-VAR prior optimization, and anticipated news shocks.
+- **Notebook 46** (`46_dsge_particle_filtering_and_markov_switching.py` & `.ipynb`, EN & ES): Nonlinear DSGE frontiers showcasing Differentiable OccBin for NUTS, Two-Asset HANK sequence-space bridge, Markov-Switching DSGE perturbation with analytical GIRFs, and vectorized Sequential Monte Carlo particle filtering with Stochastic Volatility.
+
+---
+
 ## 3.0.0 (2026-09-09)
 
 ### Milestone 3.0: Exact Analytic Likelihood Gradients, Pure-Python HMC/NUTS, & Heterogeneous Agents (HANK) Sequence-Space Bridge

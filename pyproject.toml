@@ -5,10 +5,10 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "puremacro"
 # Release version. It must be bumped in the SAME commit in all four places
-# `tools/release_check.py` gate 4 compares: pyproject.toml,
+# defined by the project release contract: `version = "X.Y.Z"` in pyproject.toml,
 # puremacro/__init__.py (`__version__`), the top `## X.Y.Z` heading in
 # CHANGELOG.md, and `version:` in CITATION.cff.
-version = "3.0.0"
+version = "3.1.0"
 description = "Pyodide-compatible empirical macro toolbox: SVAR + LP + GARCH + inference"
 readme = "README.md"
 requires-python = ">=3.11"
