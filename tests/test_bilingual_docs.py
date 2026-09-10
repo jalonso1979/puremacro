@@ -46,6 +46,7 @@ _USER_DOCS = [
     "dsge_higher_order.md",
     "dsge_parity_surface.md",
     "dsge_v3.md",
+    "dsge_phase_c.md",
     "dsge_phase_d.md",
 ]
 
