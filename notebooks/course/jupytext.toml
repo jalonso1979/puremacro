@@ -1,0 +1,3 @@
+# Jupytext configuration for puremacro course lessons
+# Automatically pairs .ipynb notebooks with .py scripts using percent format.
+formats = "ipynb,py:percent"

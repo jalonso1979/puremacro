@@ -4,6 +4,8 @@
 #     text_representation:
 #       extension: .py
 #       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.5
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -44,12 +46,12 @@ try:  # bajo Jupyter/ipykernel: conserva el backend inline (captura figuras)
 except NameError:
     matplotlib.use("Agg")  # script plano / CLI: backend no interactivo
 import matplotlib.pyplot as plt
-_cwd = pathlib.Path.cwd()
-_nb = _cwd if (_cwd / "_nbstyle.py").exists() else _cwd.parent
+_here = pathlib.Path(__file__).resolve().parent if "__file__" in globals() else pathlib.Path.cwd()
+_nb = _here if (_here / "_nbstyle.py").exists() else (_here.parent if (_here.parent / "_nbstyle.py").exists() else _here)
 sys.path.insert(0, str(_nb)); sys.path.insert(0, str(_nb / "course"))
 import _nbstyle; _nbstyle.apply_style()
 from _tutor import tutor
-DATA = (_nb / "course" / "data")
+DATA = (_here / "data") if (_here / "data").exists() else (_nb / "course" / "data")
 
 # %% slideshow={"slide_type": "skip"}
 # --------------------------------------------------------------------------------------
@@ -552,7 +554,7 @@ def dotacion(psi, rstar=0.01, gamma=2.0, rho_y=0.85, dbar_y=1.4):
     A[1, iY] = 1.0; B[1, iY] = rho_y                          # dotación AR(1)
     A[2, iC] = 1.0; B[2, iC] = 1.0                            # Euler del consumo
     B[2, :] += psi_y * Dn / (gamma * (1 + rstar))
-    return klein_solve(A, B, n_pre=2)
+    return klein_solve(A, B, n_pre=2, div=1.0)
 
 
 print("psi        eu        valores propios de G")

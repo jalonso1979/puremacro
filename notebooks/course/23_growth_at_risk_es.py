@@ -4,6 +4,8 @@
 #     text_representation:
 #       extension: .py
 #       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.5
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -40,12 +42,12 @@ try:  # bajo Jupyter/ipykernel: conserva el backend inline (captura figuras)
 except NameError:
     matplotlib.use("Agg")  # script plano / CLI: backend no interactivo
 import matplotlib.pyplot as plt
-_cwd = pathlib.Path.cwd()
-_nb = _cwd if (_cwd / "_nbstyle.py").exists() else _cwd.parent
+_here = pathlib.Path(__file__).resolve().parent if "__file__" in globals() else pathlib.Path.cwd()
+_nb = _here if (_here / "_nbstyle.py").exists() else (_here.parent if (_here.parent / "_nbstyle.py").exists() else _here)
 sys.path.insert(0, str(_nb)); sys.path.insert(0, str(_nb / "course"))
 import _nbstyle; _nbstyle.apply_style()
 from _tutor import tutor
-DATA = (_nb / "course" / "data")
+DATA = (_here / "data") if (_here / "data").exists() else (_nb / "course" / "data")
 
 # %% [markdown] slideshow={"slide_type": "slide"}
 # ## 1. La confrontación: la media no es el riesgo
@@ -268,6 +270,44 @@ ax.set_title("Vulnerable growth: la cola izquierda se hunde cuando aprietan\n"
              "las condiciones financieras; la derecha casi no se mueve")
 ax.legend(loc="lower left", ncol=2)
 plt.show()
+
+# %% [markdown] slideshow={"slide_type": "slide"}
+# ### 2.4 Proyecciones locales cuantílicas (`lp_quantile`) y tablas de publicación
+#
+# La autorregresión cuantílica (`qar`) asume una estructura dinámica paramétrica fija
+# ($p=4$ rezagos comunes). Una vía alternativa y semi-paramétrica son las
+# **proyecciones locales cuantílicas** (`puremacro.lp.lp_quantile`), que proyectan directamente
+# el cuantil $\tau$ de $y_{t+h}$ sobre el choque o control financiero $x_t$, permitiendo que la
+# dinámica de transmisión sea flexible horizonte por horizonte.
+#
+# Comparamos la sensibilidad del crecimiento condicional a la NFCI en los cuantiles
+# $\tau \in \{0.05, 0.50, 0.95\}$ a horizontes $h \in \{1, 2, 4\}$ (1 trimestre a 1 año adelante)
+# y exportamos los resultados en formato de publicación con `puremacro.reports`.
+
+# %% slideshow={"slide_type": "fragment"}
+from puremacro.lp import lp_quantile
+from puremacro.reports import df_to_markdown, df_to_latex
+
+panel_lp = panel.reset_index()
+res_lpq = lp_quantile(panel_lp, y="gdp", x="nfci", quantiles=(0.05, 0.50, 0.95),
+                      horizons=(1, 2, 4), n_lags=4, n_boot=50, seed=1)
+
+lpq_tab = []
+for h_idx in (1, 2, 4):
+    sub = res_lpq[res_lpq["h"] == h_idx].set_index("tau")
+    lpq_tab.append({
+        "h (trimestres)": h_idx,
+        "GaR 5% (beta)": sub.loc[0.05, "beta"],
+        "Mediana 50% (beta)": sub.loc[0.50, "beta"],
+        "Cola der. 95% (beta)": sub.loc[0.95, "beta"],
+    })
+df_lpq_pub = pd.DataFrame(lpq_tab)
+
+print("\n--- Sensibilidad del PIB a la NFCI por cuantiles y horizontes (Quantile LP) ---")
+print(df_to_markdown(df_lpq_pub, digits=3))
+
+assert res_lpq.shape[0] > 0
+assert sub.loc[0.05, "beta"] < sub.loc[0.95, "beta"]  # a 1 año (h=4), la cola izquierda sigue cayendo más
 
 # %% [markdown] slideshow={"slide_type": "slide"}
 # ## 3. La humildad del dato en tiempo real (Orphanides)

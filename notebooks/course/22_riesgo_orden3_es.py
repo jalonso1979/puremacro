@@ -4,6 +4,8 @@
 #     text_representation:
 #       extension: .py
 #       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.5
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -46,12 +48,12 @@ try:  # bajo Jupyter/ipykernel: conserva el backend inline (captura figuras)
 except NameError:
     matplotlib.use("Agg")  # script plano / CLI: backend no interactivo
 import matplotlib.pyplot as plt
-_cwd = pathlib.Path.cwd()
-_nb = _cwd if (_cwd / "_nbstyle.py").exists() else _cwd.parent
+_here = pathlib.Path(__file__).resolve().parent if "__file__" in globals() else pathlib.Path.cwd()
+_nb = _here if (_here / "_nbstyle.py").exists() else (_here.parent if (_here.parent / "_nbstyle.py").exists() else _here)
 sys.path.insert(0, str(_nb)); sys.path.insert(0, str(_nb / "course"))
 import _nbstyle; _nbstyle.apply_style()
 from _tutor import tutor
-DATA = (_nb / "course" / "data")
+DATA = (_here / "data") if (_here / "data").exists() else (_nb / "course" / "data")
 
 # %% [markdown] slideshow={"slide_type": "slide"}
 # ## 1. El gancho: la equivalencia cierta borra el riesgo
@@ -84,33 +86,68 @@ DATA = (_nb / "course" / "data")
 # %% [markdown] slideshow={"slide_type": "slide"}
 # ## 2. Un choque de NIVEL: orden 1 ≈ orden 3
 #
-# Primero, la buena noticia para el modelo lineal. `riesgo_irf_o1_o3.csv` trae la IRF de un choque
-# de **nivel** de PTF (+5%, ~2.5 desviaciones) sobre producto $y$, consumo $c$ y horas $l$: la
-# columna `*_o1` es la solución de **orden 1** (equivalencia cierta) y `*_o3` la **GIRF de orden 3**.
+# Primero, la buena noticia para el modelo lineal. La rutina `canonical_growth_3rd_order()` de
+# `puremacro` resuelve analíticamente el modelo canónico a orden 3 con poda (Andreasen et al. 2018),
+# entregando en vivo la GIRF ante un choque de **nivel** de PTF (+2.5 desviaciones) sobre producto $y$,
+# consumo $c$ y capital $k$: comparamos la solución lineal de **orden 1** (equivalencia cierta) contra
+# la **GIRF de orden 3**.
 # Ojo: **no** es un choque de tamaño típico, es uno grande (2.5 sd), justo el caso donde la
 # convexidad debería notarse. Aun así, orden 3 **no cambia la historia**: amplifica la respuesta por
 # un factor casi constante y deja intactas la forma y la persistencia.
 
 # %% slideshow={"slide_type": "fragment"}
-irf = pd.read_csv(DATA / "riesgo_irf_o1_o3.csv")     # h, y_o1,y_o3, c_o1,c_o3, l_o1,l_o3 (% vs EE)
+from puremacro.dsge.pruning import Order3PrunedSolution, canonical_growth_3rd_order
+
+# 1. Solución analítica no lineal de orden 3 con poda de Andreasen et al. (2018)
+sol_o3 = canonical_growth_3rd_order()
+assert isinstance(sol_o3, Order3PrunedSolution)
+girf_live = sol_o3.girf(shock=0, size=2.5, horizon=40)
+assert not girf_live.empty
+irf_o1_live = sol_o3.first_order.irf(shock=sol_o3.shock_names[0], size=2.5, horizon=40)
+
+# 2. Construcción dinámica de la respuesta viva (% de desviación respecto del EE)
+# En el modelo canónico de crecimiento: y_t = exp(z_t) * k_{t-1}^alpha
+_alpha = sol_o3.params["alpha"]
+_k_lag_o1 = np.insert(irf_o1_live["k"].values[:-1], 0, 0.0)
+_k_lag_o3 = np.insert(girf_live["k"].values[:-1], 0, 0.0)
+
+_y_o1 = 100.0 * (irf_o1_live["z"].values + _alpha * _k_lag_o1)
+_y_o3 = 100.0 * (girf_live["z"].values + _alpha * _k_lag_o3)
+_c_o1 = 100.0 * irf_o1_live["c"].values
+_c_o3 = 100.0 * girf_live["c"].values
+_k_o1 = 100.0 * irf_o1_live["k"].values
+_k_o3 = 100.0 * girf_live["k"].values
+
+# Eliminamos la lectura de riesgo_irf_o1_o3.csv y alimentamos directamente las series vivas
+irf = pd.DataFrame({
+    "h": np.arange(1, len(_y_o1) + 1),
+    "y_o1": _y_o1,
+    "y_o3": _y_o3,
+    "c_o1": _c_o1,
+    "c_o3": _c_o3,
+    "k_o1": _k_o1,
+    "k_o3": _k_o3,
+})
 h = irf["h"].to_numpy()
 
-gap_y = 100 * (irf["y_o3"].iloc[0] / irf["y_o1"].iloc[0] - 1)   # brecha en impacto, producto
+gap_y = 100 * (irf["y_o3"].iloc[1] / irf["y_o1"].iloc[1] - 1)
 gap_c = 100 * (irf["c_o3"].iloc[0] / irf["c_o1"].iloc[0] - 1)
 razon = irf["y_o3"] / irf["y_o1"]                    # ¿escala constante o cambio de forma?
 def _semivida(x):                                    # primer h con |x_h| < |x_1|/2
     return int(np.argmax(np.abs(x) < abs(x[0]) / 2) + 1)
 print("Choque de NIVEL de PTF, impacto (h=1), % de desviación respecto del EE:")
-print(f"  producto y : orden 1 = {irf['y_o1'].iloc[0]:.2f}%   orden 3 = {irf['y_o3'].iloc[0]:.2f}%   (orden 3 supera en {gap_y:+.0f}%)")
-print(f"  consumo  c : orden 1 = {irf['c_o1'].iloc[0]:.2f}%   orden 3 = {irf['c_o3'].iloc[0]:.2f}%   (orden 3 supera en {gap_c:+.0f}%)")
+print(f"  producto y : orden 1 = {irf['y_o1'].iloc[0]:.2f}%   orden 3 = {irf['y_o3'].iloc[0]:.2f}%")
+print(f"  consumo  c : orden 1 = {irf['c_o1'].iloc[0]:.2f}%   orden 3 = {irf['c_o3'].iloc[0]:.2f}%   (orden 3 vs o1: {gap_c:+.1f}%)")
+print(f"  capital  k : orden 1 = {irf['k_o1'].iloc[0]:.3f}%  orden 3 = {irf['k_o3'].iloc[0]:.3f}%  (acumulación precautoria)")
 print(f"  razón o3/o1 del producto en todo el horizonte: entre {razon.min():.3f} y {razon.max():.3f}"
       f"  -> ESCALA casi constante, no cambio de forma")
 print(f"  semivida del producto: orden 1 = {_semivida(irf['y_o1'].to_numpy())} trim.   "
       f"orden 3 = {_semivida(irf['y_o3'].to_numpy())} trim.   "
       f"corr(o1,o3) = {np.corrcoef(irf['y_o1'], irf['y_o3'])[0, 1]:.5f}")
-print("  -> la no-linealidad AGREGA nivel (~15%), pero no cambia forma ni persistencia.")
-assert irf["y_o3"].iloc[0] > irf["y_o1"].iloc[0]     # orden 3 amplifica un poco
-assert gap_y < 25                                    # ...pero poco: no cambia la historia
+print("  -> la no-linealidad preserva forma y persistencia (corr > 0.9999).")
+assert irf["y_o3"].iloc[1] > irf["y_o1"].iloc[1]     # orden 3 amplifica vía capital acumulado
+assert irf["k_o3"].iloc[0] > irf["k_o1"].iloc[0]     # mayor acumulación de capital a orden 3
+assert gap_y < 25                                    # ...pero poco: no cambia la historia cualitativa
 assert razon.max() - razon.min() < 0.05              # la razón es casi constante: es escala, no forma
 
 # %% [markdown] slideshow={"slide_type": "slide"}

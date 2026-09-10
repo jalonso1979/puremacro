@@ -424,9 +424,28 @@ def test_publication_tables_and_plots():
 
 def test_pyodide_zero_dependency_contract():
     """Test 10: Ensures zero foreign runtime dependencies (numpy, scipy, pandas, matplotlib only)."""
-    forbidden = ["statsmodels", "linearmodels", "arch", "bs4", "ipywidgets", "torch"]
-    for pkg in forbidden:
-        assert pkg not in sys.modules, f"Forbidden package {pkg} leaked into sys.modules"
+    import ast
+    from pathlib import Path
+
+    forbidden = {"statsmodels", "linearmodels", "arch", "bs4", "ipywidgets", "torch"}
+    dsge_dir = Path(__file__).resolve().parents[1] / "puremacro" / "dsge"
+
+    # Verify via AST analysis of all puremacro.dsge source files that no forbidden
+    # foreign packages are imported, guaranteeing Pyodide zero-dependency contract
+    # without false-positive leakage from other tests in shared pytest processes.
+    imported_pkgs: set[str] = set()
+    for py_file in dsge_dir.rglob("*.py"):
+        tree = ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    imported_pkgs.add(alias.name.split(".")[0])
+            elif isinstance(node, ast.ImportFrom):
+                if node.module:
+                    imported_pkgs.add(node.module.split(".")[0])
+
+    leaked = sorted(imported_pkgs.intersection(forbidden))
+    assert not leaked, f"Forbidden package(s) {leaked} imported in puremacro.dsge"
 
     # Confirm module imports
     import importlib

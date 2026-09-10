@@ -4,6 +4,8 @@
 #     text_representation:
 #       extension: .py
 #       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.5
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -41,12 +43,12 @@ try:  # bajo Jupyter/ipykernel: conserva el backend inline (captura figuras)
 except NameError:
     matplotlib.use("Agg")  # script plano / CLI: backend no interactivo
 import matplotlib.pyplot as plt
-_cwd = pathlib.Path.cwd()
-_nb = _cwd if (_cwd / "_nbstyle.py").exists() else _cwd.parent
+_here = pathlib.Path(__file__).resolve().parent if "__file__" in globals() else pathlib.Path.cwd()
+_nb = _here if (_here / "_nbstyle.py").exists() else (_here.parent if (_here.parent / "_nbstyle.py").exists() else _here)
 sys.path.insert(0, str(_nb)); sys.path.insert(0, str(_nb / "course"))
 import _nbstyle; _nbstyle.apply_style()
 from _tutor import tutor
-DATA = (_nb / "course" / "data")
+DATA = (_here / "data") if (_here / "data").exists() else (_nb / "course" / "data")
 
 # %% [markdown] slideshow={"slide_type": "slide"}
 # ## 1. El gancho: un hecho fiscal que el agente representativo no puede generar
@@ -383,6 +385,30 @@ plt.show()
 # año) y la cola rica (Gini $0.534$ contra $\ge0.74$).
 # La versión de dos activos de KMV (riqueza ilíquida → "ricos de mano a boca") es la que la
 # acerca a los datos.
+
+# %% [markdown] slideshow={"slide_type": "slide"}
+# ### 3.4 El Jacobiano en el espacio de secuencias y el algoritmo Fake News
+#
+# Auclert et al. (2021) demuestran que resolver el equilibrio general en modelos HANK no requiere
+# simular miles de trayectorias estocásticas no lineales, sino calcular la matriz jacobiana intertemporal
+# $\mathcal{J}_{C, Y} = \frac{\partial \mathbf{C}}{\partial \mathbf{Y}}$.
+# El algoritmo **Fake News** de puremacro (`models.fake_news_algorithm`) calcula este Jacobiano
+# en tiempo $\mathcal{O}(T^2)$ acumulando la matriz de noticias $\mathcal{F}$:
+# $$\mathcal{J}_{t,s} = \mathcal{J}_{t-1,s-1} + \mathcal{F}_{t,s}$$
+# La primera columna $\mathcal{J}_{C,Y}[:, 0]$ representa la **escalera intertemporal de propensión marginal a consumir** (MPC ladder).
+
+# %% slideshow={"slide_type": "fragment"}
+from puremacro.models import fake_news_algorithm
+
+# Cálculo de Jacobiano en espacio de secuencias con fake_news_algorithm
+fn_hank = fake_news_algorithm(T=20, n_a=60, beta=0.985, r_ss=0.01)
+jac_cy = fn_hank.jacobian
+mpc_ladder = jac_cy[:, 0]
+
+print("Jacobiano en espacio de secuencias J_C,Y shape:", jac_cy.shape)
+print("Escalera intertemporal de MPC (primeros 5 periodos):", np.round(mpc_ladder[:5], 4))
+assert jac_cy.shape == (20, 20)
+assert mpc_ladder[0] > mpc_ladder[1] > mpc_ladder[2]
 
 # %% [markdown] slideshow={"slide_type": "slide"}
 # ## 4. Preguntas para pensar

@@ -46,7 +46,7 @@ from .bayesian import bayesian_irf, prior_predictive
 from .diagnostics import check, resid, model_diagnostics
 from .identification import identification
 from .policy import osr, discretionary_policy, lq_commitment, optimal_policy
-from .estimate import estimate, estimate_dsge
+from .estimate import estimate_dsge
 from .nuts import nuts_sample
 from ._gradients import ScoreDiagnosticsResult
 from .bayesian import BayesianEstimationResult, estimate_dsge_bayesian
@@ -131,8 +131,22 @@ from .news import (
     decompose_news,
     plot_news_vs_surprise,
 )
+from .particle_filter import (
+    ParticleFilterResult,
+    StochasticVolatilitySpec,
+    multinomial_resample,
+    particle_filter,
+    residual_resample,
+    stratified_resample,
+    systematic_resample,
+)
+from .markov_switching import (
+    MSDSGEResult,
+    solve_ms_dsge,
+)
 from . import priors, fertility_adj_costs
 from . import marginal, mode, observation, smoother, news
+
 
 __all__ = [
     "klein_solve", "KleinSolution", "BlanchardKahnError",
@@ -195,6 +209,11 @@ __all__ = [
     # --- Milestone 3: News & Anticipated Shocks Engine -------------------
     "NewsIRFResult", "NewsDecompositionResult", "news_irf", "decompose_news", "plot_news_vs_surprise",
     "news",
+    # --- Phase D: Particle Filtering & Markov-Switching DSGE -------------
+    "particle_filter", "ParticleFilterResult", "StochasticVolatilitySpec",
+    "systematic_resample", "stratified_resample", "residual_resample", "multinomial_resample",
+    "solve_ms_dsge", "MSDSGEResult",
+    "markov_switching",
 ]
 from . import smets_wouters  # re-export for back-compat with 0.50.0 callers
 from . import gertler_karadi
@@ -202,6 +221,32 @@ from . import load_dynare, parity
 from . import hank
 from . import macro, widgets
 from . import news
+from . import markov_switching
+from . import particle_filter
+from . import estimate
+import types as _types
+
+
+class _EstimateModule(_types.ModuleType):
+    """Module proxy allowing puremacro.dsge.estimate to act as both module and callable function."""
+
+    def __call__(self, *args, **kwargs):
+        from .estimate import estimate as _estimate_func
+        return _estimate_func(*args, **kwargs)
+
+
+estimate.__class__ = _EstimateModule
+
+# Convenience aliases so particle_filter function can also act like module export
+particle_filter.particle_filter = particle_filter
+particle_filter.ParticleFilterResult = ParticleFilterResult
+particle_filter.StochasticVolatilitySpec = StochasticVolatilitySpec
+particle_filter.systematic_resample = systematic_resample
+particle_filter.stratified_resample = stratified_resample
+particle_filter.residual_resample = residual_resample
+particle_filter.multinomial_resample = multinomial_resample
+
+
 
 
 

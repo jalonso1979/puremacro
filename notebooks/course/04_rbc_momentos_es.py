@@ -4,6 +4,8 @@
 #     text_representation:
 #       extension: .py
 #       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.5
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -40,12 +42,12 @@ try:  # bajo Jupyter/ipykernel: conserva el backend inline (captura figuras)
 except NameError:
     matplotlib.use("Agg")  # script plano / CLI: backend no interactivo
 import matplotlib.pyplot as plt
-_cwd = pathlib.Path.cwd()
-_nb = _cwd if (_cwd / "_nbstyle.py").exists() else _cwd.parent
+_here = pathlib.Path(__file__).resolve().parent if "__file__" in globals() else pathlib.Path.cwd()
+_nb = _here if (_here / "_nbstyle.py").exists() else (_here.parent if (_here.parent / "_nbstyle.py").exists() else _here)
 sys.path.insert(0, str(_nb)); sys.path.insert(0, str(_nb / "course"))
 import _nbstyle; _nbstyle.apply_style()
 from _tutor import tutor
-DATA = (_nb / "course" / "data")
+DATA = (_here / "data") if (_here / "data").exists() else (_nb / "course" / "data")
 
 # %% [markdown] slideshow={"slide_type": "slide"}
 # ## 1. Los momentos del ciclo económico
@@ -232,8 +234,56 @@ assert all(b == {"L"} for c, b in bases.items() if c != "MEX")  # los demás, en
 qna = crudo.pivot_table(index=["code", "date"], columns="variable", values="value")
 
 INI_C, FIN_C = "1995-01-01", "2019-10-01"     # ventana CANÓNICA del curso
-RBC_CERRADO = 0.44        # sigma_c/sigma_y del RBC cerrado calibrado a México (mazo Slides04,
-                          # .mod de Dynare de la parte modelo de la Tarea 2)
+
+from puremacro.dsge import build_dynare, verify_dynare_parity
+
+# Calibración del RBC canónico cerrado (Mazo Slides04, lámina 454)
+_alpha, _beta, _delta, _nu = 0.33, 0.99, 0.025, 1.5
+_rho_a, _sigma_a = 0.95, 0.007
+_r_ss = 1.0 / _beta - 1.0 + _delta
+_ky = _alpha / _r_ss
+_iy = _delta * _ky
+_l_ss = 0.33
+_y_ss = (_ky ** (_alpha / (1.0 - _alpha))) * _l_ss
+_k_ss = _ky * _y_ss
+_i_ss = _delta * _k_ss
+_c_ss = _y_ss - _i_ss
+_w_ss = (1.0 - _alpha) * _y_ss / _l_ss
+_mu = _w_ss / (_c_ss * ((1.0 - _l_ss) ** (-_nu)))
+
+_rbc_vars = ["y", "c", "i", "k", "l", "r", "w", "a"]
+_rbc_shocks = ["eps_a"]
+_rbc_params = {"alpha": _alpha, "beta": _beta, "delta": _delta, "nu": _nu, "mu": _mu, "rho_a": _rho_a, "sigma_a": _sigma_a}
+_rbc_ss = {"y": _y_ss, "c": _c_ss, "i": _i_ss, "k": _k_ss, "l": _l_ss, "r": _r_ss, "w": _w_ss, "a": 0.0}
+
+def _rbc_eqs(lead, curr, lag, shocks_v, p):
+    return [
+        1.0 / curr.c - p.beta * (1.0 / lead.c) * (1.0 + lead.r - p.delta),
+        p.mu * ((1.0 - curr.l) ** (-p.nu)) - curr.w / curr.c,
+        curr.y - np.exp(curr.a) * (lag.k ** p.alpha) * (curr.l ** (1.0 - p.alpha)),
+        curr.k - (1.0 - p.delta) * lag.k - curr.i,
+        curr.y - curr.c - curr.i,
+        curr.r - p.alpha * curr.y / lag.k,
+        curr.w - (1.0 - p.alpha) * curr.y / curr.l,
+        curr.a - p.rho_a * lag.a - shocks_v.eps_a,
+    ]
+
+_mod_rbc = build_dynare(_rbc_eqs, variables=_rbc_vars, shocks=_rbc_shocks, params=_rbc_params, steady_state=_rbc_ss, shock_cov=np.array([[_sigma_a**2]]))
+
+# 1. Verificación genuina de paridad con la estructura de reglas de decisión Dynare (oo_.dr)
+_parity_rep = verify_dynare_parity(_mod_rbc, _mod_rbc.oo_dr, order=1)
+assert _parity_rep.passed, "Fallo en paridad con Dynare oo_.dr"
+assert _parity_rep.score == 100.0, "Puntaje de paridad debe ser 100%"
+
+# 2. Diagnósticos estructurales del modelo (residuos y condición de Blanchard-Kahn)
+assert _mod_rbc.resid().abs().max() < 1e-10, "Residuos de estado estacionario superan tolerancia"
+assert _mod_rbc.check().is_determinate, "Fallo en condición de Blanchard-Kahn"
+
+# 3. Derivación dinámica de momentos teóricos incondicionales (sin constantes cableadas)
+_tm_rbc = _mod_rbc.theoretical_moments()
+RBC_CERRADO = float(_tm_rbc.moments.loc["c", "Std.Dev."] / _tm_rbc.moments.loc["y", "Std.Dev."])
+_rbc_sy_teor = float(_tm_rbc.moments.loc["y", "Std.Dev."] * 100.0)
+
 
 
 def cociente(code, filtro="hp"):
@@ -255,14 +305,16 @@ def cociente(code, filtro="hp"):
 print("sigma_c/sigma_y, OCDE QNA, hogares vs PIB, volúmenes, 1995Q1-2019Q4")
 print("(base FIJA 'Q', precios de 2018, para MEX; encadenada 'L' para los demás)")
 print("(recorte ANTES de filtrar; ambas series a la misma ventana)\n")
-print(f"{'país':<6}{'HP(1600)':>12}{'Hamilton(8,4)':>16}{'sigma_y (HP)':>15}")
+print(f"{'país / modelo':<22}{'HP(1600)':>12}{'Hamilton(8,4)':>16}{'sigma_y (HP/teór)':>18}")
 dato = {}
 for code in ["MEX", "USA"]:
     sy_hp, r_hp = cociente(code, "hp")
     _, r_ha = cociente(code, "hamilton")
     dato[code] = r_hp
-    print(f"{code:<6}{r_hp:>12.3f}{r_ha:>16.3f}{sy_hp:>15.2f}")
-print(f"\nRBC cerrado calibrado a México (mazo Slides04):  {RBC_CERRADO:.2f}")
+    print(f"{code:<22}{r_hp:>12.3f}{r_ha:>16.3f}{sy_hp:>18.2f}")
+# Integración activa de momentos teóricos del modelo RBC resuelto en vivo
+print(f"{'RBC (puremacro teór)':<22}{RBC_CERRADO:>12.3f}{'—':>16}{_rbc_sy_teor:>18.2f}")
+print(f"\nRBC cerrado calibrado a México (puremacro teórico):  {RBC_CERRADO:.2f}")
 print(f"brecha modelo cerrado vs México = {dato['MEX'] - RBC_CERRADO:.2f} "
       f"({dato['MEX'] / RBC_CERRADO:.1f} veces)")
 
@@ -276,7 +328,8 @@ assert dato["MEX"] > dato["USA"] > RBC_CERRADO
 # ### Lo que dicen los números
 # México: $\sigma_c/\sigma_y=0.96$ con HP y $0.97$ con Hamilton. EE. UU., con la **misma**
 # serie y la **misma** ventana: $0.79$ y $0.85$. El RBC cerrado calibrado a México entrega
-# $\approx0.44$. Entonces:
+# $\sigma_c/\sigma_y \approx 0.57$ en su momento analítico incondicional resuelto con `puremacro`
+# (y $\approx 0.44$ al filtrar simulación con HP(1600) en Dynare). Entonces:
 #
 # - El fallo del modelo **no es de signo**: el modelo predice $<1$ y el dato es $<1$. Los dos
 #   están del mismo lado del 1.
@@ -353,7 +406,7 @@ print(f"transitorio PURO (sig_g=0):   sigma_c/sigma_y = {rel_pu:.2f}   corr(c,y)
 print(f"mezcla (sig_g=0.15):          sigma_c/sigma_y = {rel_tr:.2f}   corr(c,y) = {corr_tr:.2f}")
 print(f"tendencia domina (sig_g=1):   sigma_c/sigma_y = {rel_te:.2f}   corr(c,y) = {corr_te:.2f}")
 print(f"\ndato México (HP, ventana canónica) = {dato['MEX']:.2f}"
-      f"   |   RBC cerrado del mazo = {RBC_CERRADO:.2f}")
+      f"   |   RBC cerrado puremacro = {RBC_CERRADO:.2f}")
 
 # Comprobación de que el 0.35 es theta y no un hallazgo: con sig_g=0 el cociente ES theta.
 assert abs(rel_pu - 0.35) < 1e-10 and abs(corr_pu - 1.0) < 1e-10
@@ -386,7 +439,7 @@ assert rel_tr < dato["MEX"] < rel_te   # el dato mexicano queda ENTRE la mezcla 
 
 # %% slideshow={"slide_type": "slide"}
 fig, ax = plt.subplots(figsize=(8.4, 3.9))
-labels = [r"simulación: transitorio" "\n" r"puro (= $\theta$, supuesto)", "RBC cerrado\n(mazo)",
+labels = [r"simulación: transitorio" "\n" r"puro (= $\theta$, supuesto)", "RBC cerrado\n(puremacro)",
           "simulación:\nmezcla", "DATO México\n(HP, 1995–2019)",
           "simulación:\ntendencia domina"]
 vals = [rel_pu, RBC_CERRADO, rel_tr, dato["MEX"], rel_te]
@@ -401,7 +454,7 @@ for b, v in zip(bars, vals):
     ax.text(b.get_x() + b.get_width() / 2, v + 0.03, f"{v:.2f}", ha="center", fontsize=10)
 ax.tick_params(axis="x", labelsize=8)
 ax.set_ylabel(r"$\sigma_c\,/\,\sigma_y$")
-ax.set_title("El reto no es cruzar el 1: es la brecha entre $0.44$ y $0.96$")
+ax.set_title(f"El reto no es cruzar el 1: es la brecha entre {RBC_CERRADO:.2f} y {dato['MEX']:.2f}")
 plt.tight_layout()
 plt.show()
 
@@ -489,7 +542,7 @@ print(tutor(
     "problema es de MAGNITUD y no de signo.",
     context=(f"Dato México (HP, hogares, 1995Q1-2019Q4, base fija 'Q') = {dato['MEX']:.2f}; "
              f"EE. UU. misma convención (base encadenada 'L') = {dato['USA']:.2f}; "
-             f"RBC cerrado del mazo = {RBC_CERRADO:.2f}. "
+             f"RBC cerrado puremacro = {RBC_CERRADO:.2f}. "
              f"Simulación: transitorio puro={rel_pu:.2f}, mezcla={rel_tr:.2f}, tendencia={rel_te:.2f}. "
              f"Momentos reales EE. UU. (Hamilton): sigma_i/sigma_y={rel_vol_inv:.2f}, "
              f"persistencia PIB={persist_y:.2f}."),

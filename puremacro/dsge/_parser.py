@@ -158,6 +158,7 @@ KEYWORDS = {
     "hetagent_block",
     "periods",
     "values",
+    "markov_switching",
 }
 
 
@@ -493,6 +494,7 @@ class ParsedModelDAG:
     shock_groups: dict[str, list[str]] = field(default_factory=dict)
     named_shock_groups: dict[str, dict[str, list[str]]] = field(default_factory=dict)
     hetagent_block: dict[str, Any] | None = None
+    markov_switching_config: dict[str, Any] | None = None
 
     @property
     def varexo_det(self) -> list[str]:
@@ -615,6 +617,7 @@ class Parser:
         self.shock_groups: dict[str, list[str]] = {}
         self.named_shock_groups: dict[str, dict[str, list[str]]] = {}
         self.hetagent_config: dict[str, Any] | None = None
+        self.markov_switching_config: dict[str, Any] | None = None
 
     def _curr(self) -> Token:
         return self.tokens[self.pos]
@@ -1287,6 +1290,135 @@ class Parser:
                 self._advance()
         self.hetagent_config = config
 
+    def _parse_ms_val(self) -> Any:
+        """Parse value, list, or matrix for markov_switching block."""
+        tok = self._curr()
+        if tok.type == "LBRACKET":
+            self._advance()
+            rows: list[Any] = []
+            curr_row: list[Any] = []
+            while self._curr().type not in ("RBRACKET", "EOF"):
+                ctok = self._curr()
+                if ctok.type == "COMMA":
+                    self._advance()
+                    continue
+                elif ctok.type == "SEMI":
+                    self._advance()
+                    if curr_row:
+                        rows.append(curr_row)
+                        curr_row = []
+                    continue
+                elif ctok.type == "LBRACKET":
+                    sub = self._parse_ms_val()
+                    rows.append(sub)
+                elif ctok.type == "MINUS":
+                    self._advance()
+                    num_tok = self._advance()
+                    curr_row.append(-num_tok.value)
+                elif ctok.type == "NUMBER":
+                    curr_row.append(self._advance().value)
+                elif ctok.type in ("IDENT", "STRING"):
+                    curr_row.append(str(self._advance().value))
+                else:
+                    self._advance()
+            self._match("RBRACKET")
+            if curr_row:
+                rows.append(curr_row)
+
+            if len(rows) > 1 and all(isinstance(r, (list, tuple, np.ndarray)) for r in rows):
+                try:
+                    return np.asarray(rows, dtype=float)
+                except Exception:
+                    return rows
+            elif len(rows) == 1 and isinstance(rows[0], list):
+                return rows[0]
+            else:
+                return rows
+        elif tok.type == "MINUS":
+            self._advance()
+            num_tok = self._advance()
+            return -num_tok.value
+        elif tok.type == "NUMBER":
+            return self._advance().value
+        elif tok.type in ("IDENT", "STRING"):
+            return str(self._advance().value)
+        else:
+            return str(self._advance().value)
+
+    def _parse_markov_switching_block(self) -> None:
+        """Parse markov_switching; ... end; block."""
+        self._expect("KEYWORD", "markov_switching")
+        self._expect("SEMI")
+        config: dict[str, Any] = {
+            "num_regimes": None,
+            "transition_matrix": None,
+            "parameters": {},
+            "regimes": {},
+        }
+        current_regime: int | str | None = None
+
+        while self._curr().type != "EOF":
+            if self._curr().type == "KEYWORD" and self._curr().value == "end":
+                self._advance()
+                self._expect("SEMI")
+                break
+            if self._curr().type == "SEMI":
+                self._advance()
+                continue
+
+            tok = self._curr()
+            tok_val_lower = str(tok.value).lower()
+            if tok.type in ("IDENT", "KEYWORD") and tok_val_lower == "regime":
+                self._advance()
+                reg_tok = self._curr()
+                if reg_tok.type == "NUMBER":
+                    current_regime = int(reg_tok.value)
+                    self._advance()
+                else:
+                    current_regime = str(reg_tok.value)
+                    self._advance()
+                self._match("SEMI")
+                if current_regime not in config["regimes"]:
+                    config["regimes"][current_regime] = {}
+                continue
+
+            if tok.type in ("IDENT", "KEYWORD") and tok_val_lower in ("param", "parameters"):
+                self._advance()
+                tok = self._curr()
+
+            if tok.type in ("IDENT", "KEYWORD"):
+                key = str(self._advance().value)
+                if self._curr().type == "ASSIGN":
+                    self._advance()
+                    val = self._parse_ms_val()
+                    self._match("SEMI")
+                    if current_regime is not None:
+                        config["regimes"][current_regime][key] = val
+                    else:
+                        key_lower = key.lower()
+                        if key_lower in ("num_regimes", "regimes", "n_regimes"):
+                            config["num_regimes"] = int(val)
+                        elif key_lower in ("p", "transition_matrix", "trans_mat"):
+                            config["transition_matrix"] = np.asarray(val, dtype=float)
+                        else:
+                            config["parameters"][key] = val
+                            config[key] = val
+                else:
+                    self._match("SEMI")
+            else:
+                self._advance()
+
+        if config["num_regimes"] is None:
+            if config["transition_matrix"] is not None:
+                config["num_regimes"] = int(config["transition_matrix"].shape[0])
+            elif config["regimes"]:
+                config["num_regimes"] = len(config["regimes"])
+            elif config["parameters"]:
+                first_val = next(iter(config["parameters"].values()))
+                if isinstance(first_val, (list, tuple, np.ndarray)):
+                    config["num_regimes"] = len(first_val)
+        self.markov_switching_config = config
+
     def _skip_unrecognised_statement(self) -> None:
         """Safely skip MATLAB scripting or unhandled commands outside model blocks."""
         t = self._curr()
@@ -1420,6 +1552,8 @@ class Parser:
                     self._parse_shock_groups_block()
                 elif t.value == "hetagent_block":
                     self._parse_hetagent_block()
+                elif t.value == "markov_switching":
+                    self._parse_markov_switching_block()
                 elif t.value in (
                     "estimated_params",
                     "estimated_params_init",
@@ -1778,6 +1912,7 @@ class Parser:
             shock_groups=self.shock_groups,
             named_shock_groups=self.named_shock_groups,
             hetagent_block=self.hetagent_config,
+            markov_switching_config=self.markov_switching_config,
         )
 
 

@@ -1087,6 +1087,16 @@ class LinearModel:
 
         return forecast_model(self, horizon, **kwargs)
 
+    def particle_filter(self, data, observed_vars, **kwargs):
+        """Evaluate nonlinear log-likelihood via vectorized particle filtering.
+
+        Delegates to :func:`puremacro.dsge.particle_filter.particle_filter`.
+        """
+        from .particle_filter import particle_filter
+
+        return particle_filter(self, data, observed_vars, **kwargs)
+
+
     # -- simulation ----------------------------------------------------
 
     def _paths(self, horizon: int, impulse: np.ndarray) -> np.ndarray:

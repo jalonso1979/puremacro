@@ -4,6 +4,8 @@
 #     text_representation:
 #       extension: .py
 #       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.5
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -39,12 +41,12 @@ try:  # bajo Jupyter/ipykernel: conserva el backend inline (captura figuras)
 except NameError:
     matplotlib.use("Agg")  # script plano / CLI: backend no interactivo
 import matplotlib.pyplot as plt
-_cwd = pathlib.Path.cwd()
-_nb = _cwd if (_cwd / "_nbstyle.py").exists() else _cwd.parent
+_here = pathlib.Path(__file__).resolve().parent if "__file__" in globals() else pathlib.Path.cwd()
+_nb = _here if (_here / "_nbstyle.py").exists() else (_here.parent if (_here.parent / "_nbstyle.py").exists() else _here)
 sys.path.insert(0, str(_nb)); sys.path.insert(0, str(_nb / "course"))
 import _nbstyle; _nbstyle.apply_style()
 from _tutor import tutor
-DATA = (_nb / "course" / "data")
+DATA = (_here / "data") if (_here / "data").exists() else (_nb / "course" / "data")
 
 # %% [markdown] slideshow={"slide_type": "slide"}
 # ## 1. Dos formas de estimar una IRF
@@ -297,6 +299,47 @@ plt.show()
 # **La banda.** Es ancha, y debe serlo: la F efectiva quedó **por debajo de 23.1**. Con un
 # instrumento que no es del todo fuerte, la incertidumbre es real y la banda usual del 90%
 # probablemente aún la subestima (de ahí la pregunta 2).
+
+# %% [markdown] slideshow={"slide_type": "slide"}
+# ## 2b. Proyecciones locales aumentadas por rezagos (LA-LP) e integrales acumuladas
+#
+# Plagborg-Møller y Wolf (2021) proponen la **proyección local aumentada por rezagos**
+# (`puremacro.lp.la_lp`): incluye rezagos adicionales $p_{\text{aug}} \ge p + h$ para que
+# las proyecciones locales tengan una cobertura asintótica uniforme e invariante al horizonte,
+# usando errores estándar robustos de Eicker-Huber-White.
+#
+# Adicionalmente, en la literatura fiscal (Ramey y Zubairy 2018; Mountford y Uhlig 2009) el
+# objeto central para política no es solo la respuesta punto a punto, sino la
+# **integral acumulada del multiplicador**:
+# $$ \mathcal{I}_h = \sum_{j=0}^h \beta_j $$
+# que mide la pérdida acumulada de producto generada por el alza impositiva a lo largo de los
+# primeros $h$ trimestres. Exportamos la tabla comparativa en formatos de publicación
+# (Markdown y LaTeX) con `puremacro.reports`.
+
+# %% slideshow={"slide_type": "fragment"}
+from puremacro.lp import la_lp
+from puremacro.reports import df_to_markdown, df_to_latex
+
+la = la_lp(df, y="y", x="mtr_u", horizons=range(0, Htax + 1), n_lags=4).set_index("h")
+cum_ols = np.cumsum(ols["beta"])
+cum_iv = np.cumsum(iv["beta"])
+cum_la = np.cumsum(la["beta"])
+
+horizons_pub = [0, 2, 4, 8, 12]
+comp_lp_df = pd.DataFrame({
+    "h": horizons_pub,
+    "Beta OLS": [ols.loc[h, "beta"] for h in horizons_pub],
+    "Beta LP-IV": [iv.loc[h, "beta"] for h in horizons_pub],
+    "Beta LA-LP": [la.loc[h, "beta"] for h in horizons_pub],
+    "Integral OLS": [cum_ols.loc[h] for h in horizons_pub],
+    "Integral IV": [cum_iv.loc[h] for h in horizons_pub],
+})
+
+print("\n--- Tabla de multiplicadores impositivos e integrales acumuladas (Markdown) ---")
+print(df_to_markdown(comp_lp_df, digits=3))
+
+assert la["beta"].min() < 0.0          # contracción bajo LA-LP
+assert cum_iv.loc[12] < cum_ols.loc[12] # la contracción acumulada es mayor corrigiendo por atenuación
 
 # %% [markdown] slideshow={"slide_type": "slide"}
 # ## 3. Preguntas para pensar

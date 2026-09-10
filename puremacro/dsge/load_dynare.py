@@ -147,6 +147,16 @@ def _extract_name_list(raw_names: Any) -> list[str]:
     arr = np.asarray(raw_names)
     if arr.ndim == 2 and arr.dtype.kind in ("U", "S", "a"):
         return ["".join(row).strip() for row in arr]
+    # Squeeze or flatten 2D object/string arrays like (N, 1) or (1, N) from MATLAB
+    if arr.ndim == 2 and (arr.shape[0] == 1 or arr.shape[1] == 1):
+        out = []
+        for item in arr.ravel():
+            if isinstance(item, np.ndarray):
+                sub = item.ravel()
+                out.append("".join(str(c) for c in sub).strip() if len(sub) > 1 else str(sub[0]).strip())
+            else:
+                out.append(str(item).strip())
+        return out
     if arr.ndim == 1:
         out = []
         for item in arr:
@@ -273,7 +283,13 @@ def load_dynare_dr(
     if state_names is not None:
         s_names = tuple(state_names)
     elif "state_var" in M and M["state_var"] is not None and np.size(M["state_var"]) > 0:
-        s_idx = np.asarray(M["state_var"]).ravel().astype(int) - 1
+        sv_obj = M["state_var"]
+        if isinstance(sv_obj, dict) and "declaration_order" in sv_obj:
+            s_idx = np.asarray(sv_obj["declaration_order"]).ravel().astype(int) - 1
+        elif hasattr(sv_obj, "dtype") and sv_obj.dtype.names and "declaration_order" in sv_obj.dtype.names:
+            s_idx = np.asarray(sv_obj["declaration_order"]).ravel().astype(int) - 1
+        else:
+            s_idx = np.asarray(sv_obj).ravel().astype(int) - 1
         s_names = tuple(v_names[i] for i in s_idx if 0 <= i < len(v_names))
     else:
         s_names = tuple(f"y{i+1}" for i in range(n_x))

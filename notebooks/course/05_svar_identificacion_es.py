@@ -4,6 +4,8 @@
 #     text_representation:
 #       extension: .py
 #       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.5
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -35,12 +37,12 @@ try:  # bajo Jupyter/ipykernel: conserva el backend inline (captura figuras)
 except NameError:
     matplotlib.use("Agg")  # script plano / CLI: backend no interactivo
 import matplotlib.pyplot as plt
-_cwd = pathlib.Path.cwd()
-_nb = _cwd if (_cwd / "_nbstyle.py").exists() else _cwd.parent
+_here = pathlib.Path(__file__).resolve().parent if "__file__" in globals() else pathlib.Path.cwd()
+_nb = _here if (_here / "_nbstyle.py").exists() else (_here.parent if (_here.parent / "_nbstyle.py").exists() else _here)
 sys.path.insert(0, str(_nb)); sys.path.insert(0, str(_nb / "course"))
 import _nbstyle; _nbstyle.apply_style()
 from _tutor import tutor
-DATA = (_nb / "course" / "data")
+DATA = (_here / "data") if (_here / "data").exists() else (_nb / "course" / "data")
 
 # %% [markdown] slideshow={"slide_type": "slide"}
 # ## 1. El taller de identificación
@@ -326,7 +328,43 @@ print(f"   BQ        acumulado productividad<-choque1 = {lr_bq:+.4f}")
 # - Advertencia: la huella es *necesaria*, no *suficiente*. Un cero de impacto también
 #   aparece bajo restricciones de signo-y-cero o en un proxy-SVAR que imponga exclusiones
 #   contemporáneas. La huella descarta esquemas; para saber cuál se usó hay que leer el
-#   supuesto declarado.
+# %% [markdown] slideshow={"slide_type": "slide"}
+# ## 8b. Triangulación con restricciones de signo y tablas de publicación
+#
+# Una tercera familia de identificación impone **restricciones de signo** (Rubio-Ramírez,
+# Waggoner y Zha 2010; `puremacro.var.identify.sign.sign_restriction_svar`): en lugar de fijar
+# coeficientes exactos en cero, se restringe la dirección de la respuesta contemporánea o a
+# horizontes cortos.
+#
+# Para identificar el choque de tecnología imponemos únicamente que una innovación tecnológica
+# eleve la **productividad laboral** en el impacto ($h=0$, signo $+1$), dejando la respuesta de
+# las horas **libre** (signo $0$). Evaluamos si la caída de horas encontrada por Galí (1999)
+# sobrevive bajo este esquema agnóstico, y exportamos una tabla comparativa de publicación
+# con `puremacro.reports`.
+
+# %% slideshow={"slide_type": "fragment"}
+from puremacro.var.identify.sign import sign_restriction_svar
+from puremacro.reports import df_to_markdown, df_to_latex
+
+# Restricción: columna 0 (tecnología) eleva productividad (+1) en h=0; horas libre (0)
+res_sign = sign_restriction_svar(Y, p=p, horizon=H, restrictions={0: [1, 0]}, n_draws=1000, seed=7)
+sign_cum_hours = np.cumsum(res_sign.irf_median[:, 1, 0])
+
+horizons_tab = [0, 1, 4, 8, 12, 20]
+comp_df = pd.DataFrame({
+    "h": horizons_tab,
+    "Cholesky (Acum.)": [ch_cum[h, 1, 0] for h in horizons_tab],
+    "Blanchard-Quah": [bqr.irf_point[h, 1, 0] for h in horizons_tab],
+    "Sign (RRWZ 2010)": [sign_cum_hours[h] for h in horizons_tab],
+})
+
+print(f"Restricciones de signo aceptadas: {res_sign.n_accepted}/{res_sign.n_draws} sorteos Haar.")
+print("\n--- Tabla comparativa de la respuesta de horas al choque de tecnología (Markdown) ---")
+print(df_to_markdown(comp_df, digits=3))
+
+assert res_sign.n_accepted > 100
+assert res_sign.irf_median[0, 0, 0] > 0.0      # productividad sube por restricción
+assert res_sign.irf_median[0, 1, 0] < 0.0      # horas caen en el impacto aún bajo signo puro agnóstico
 
 # %% [markdown] slideshow={"slide_type": "slide"}
 # ## 9. Preguntas para pensar

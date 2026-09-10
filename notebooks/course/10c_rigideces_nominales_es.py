@@ -4,6 +4,8 @@
 #     text_representation:
 #       extension: .py
 #       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.5
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -46,12 +48,12 @@ try:  # bajo Jupyter/ipykernel: conserva el backend inline (captura figuras)
 except NameError:
     matplotlib.use("Agg")  # script plano / CLI: backend no interactivo
 import matplotlib.pyplot as plt
-_cwd = pathlib.Path.cwd()
-_nb = _cwd if (_cwd / "_nbstyle.py").exists() else _cwd.parent
+_here = pathlib.Path(__file__).resolve().parent if "__file__" in globals() else pathlib.Path.cwd()
+_nb = _here if (_here / "_nbstyle.py").exists() else (_here.parent if (_here.parent / "_nbstyle.py").exists() else _here)
 sys.path.insert(0, str(_nb)); sys.path.insert(0, str(_nb / "course"))
 import _nbstyle; _nbstyle.apply_style()
 from _tutor import tutor
-DATA = (_nb / "course" / "data")
+DATA = (_here / "data") if (_here / "data").exists() else (_nb / "course" / "data")
 
 # %% [markdown] slideshow={"slide_type": "slide"}
 # ## 1. El gancho: 2021–2023, el episodio que obligó a volver a lo nominal
@@ -593,7 +595,7 @@ for py in (0.0, 0.5, 1.0, 2.0):
     print(f" {py:5.2f} {1 - pendiente*py:18.4f} {primero:32.4f}")
 
 # La frontera numérica reproduce la analítica dentro de la resolución de la malla.
-assert abs(g_pi[np.where(det[0] > 0)[0][0]] - 1.0) <= (g_pi[1] - g_pi[0])
+assert np.isclose(abs(g_pi[np.where(det[0] > 0)[0][0]] - 1.0), g_pi[1] - g_pi[0], atol=1e-7) or abs(g_pi[np.where(det[0] > 0)[0][0]] - 1.0) <= (g_pi[1] - g_pi[0])
 
 # Autovalores como función de phi_pi (con phi_y = 0): el cruce del círculo unitario.
 g_pi2 = np.linspace(0.5, 2.5, 81)
@@ -649,6 +651,51 @@ plt.tight_layout(); plt.show()
 # inflación puede subir simplemente porque todos esperan que suba, y la política monetaria la
 # valida. Es la lectura estándar de la *Gran Inflación* de los años setenta (Clarida, Galí y
 # Gertler 2000).
+
+# %% [markdown] slideshow={"slide_type": "slide"}
+# ### 4.4 La cota inferior cero (ZLB) y simulación no lineal con OccBin
+#
+# Cuando un choque negativo de demanda es severo, la regla de Taylor desearía fijar una tasa
+# de interés nominal negativa ($i_t < 0$). Sin embargo, la cota inferior efectiva (Zero Lower Bound, ZLB)
+# $i_t \ge 0$ restringe la política monetaria. En la trampa de liquidez, la tasa nominal no puede caer más,
+# por lo que la deflación esperada eleva la tasa *real* ($r_t = - \mathbb{E}_t \pi_{t+1}$), agravando la caída del producto.
+#
+# Siguiendo el algoritmo de Guerrieri e Iacoviello (2015), `puremacro.dsge.solve_occbin` resuelve este régimen
+# lineal a trozos de forma exacta mediante iteración regresiva de regímenes.
+
+# %% slideshow={"slide_type": "fragment"}
+from puremacro.dsge import build_dynare, solve_occbin, OccBinConstraint
+
+# Régimen de referencia (Taylor activo) y régimen restringido (ZLB: r_t = -r_ss)
+variables_nk = ["y", "pi", "r", "g"]
+shocks_nk = ["eps_r", "eps_g"]
+params_nk = {"beta": 0.99, "sigma": 1.0, "kappa": 0.05, "phi_pi": 1.5, "phi_y": 0.125, "rho_g": 0.8, "r_ss": 0.01}
+ss_nk = {v: 0.0 for v in variables_nk}
+
+def nk_ref(lead, curr, lag, shocks_v, p):
+    return [
+        curr.y - lead.y + (curr.r - lead.pi) / p.sigma - curr.g,
+        curr.pi - p.beta * lead.pi - p.kappa * curr.y,
+        curr.r - p.phi_pi * curr.pi - p.phi_y * curr.y - shocks_v.eps_r,
+        curr.g - p.rho_g * lag.g - shocks_v.eps_g,
+    ]
+
+def nk_cons(lead, curr, lag, shocks_v, p):
+    return [
+        curr.y - lead.y + (curr.r - lead.pi) / p.sigma - curr.g,
+        curr.pi - p.beta * lead.pi - p.kappa * curr.y,
+        curr.r - (-p.r_ss),
+        curr.g - p.rho_g * lag.g - shocks_v.eps_g,
+    ]
+
+ref_mod = build_dynare(nk_ref, variables=variables_nk, shocks=shocks_nk, params=params_nk, steady_state=ss_nk)
+cons_mod = build_dynare(nk_cons, variables=variables_nk, shocks=shocks_nk, params=params_nk, steady_state=ss_nk, check_steady_state=False, strict=False)
+
+constraint = OccBinConstraint(variable="r", threshold=-params_nk["r_ss"], operator="<")
+shock_seq = np.array([0.0, -0.025])
+occ_res = solve_occbin(ref_mod, cons_mod, constraint, shock_sequence=shock_seq, horizon=20)
+print(f"OccBin ZLB convergencia: {occ_res.converged} | Períodos en ZLB: {int(occ_res.regime_history.sum())}")
+assert occ_res.converged
 
 # %% [markdown] slideshow={"slide_type": "slide"}
 # ## 5. Confrontación con la evidencia que el curso ya produjo

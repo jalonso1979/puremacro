@@ -80,6 +80,7 @@ nav:
           - DSGE Parity & Surface Area: dsge_parity_surface.md
           - DSGE Gradients, NUTS & HANK Bridge: dsge_v3.md
           - DSGE Frontier (Policy, DSGE-VAR & News): dsge_phase_c.md
+          - DSGE Non-linear Particle Filtering & Regime Switching: dsge_phase_d.md
       - Running Anywhere (iPad / browser): tablet.md
       - Performance & Benchmarks: benchmarks.md
       - Reference:
@@ -124,6 +125,7 @@ nav:
           - Paridad y superficie operativa DSGE: es/dsge_parity_surface.md
           - DSGE Gradientes, NUTS y Puente HANK: es/dsge_v3.md
           - Frontera DSGE (Política, DSGE-VAR y Noticias): es/dsge_phase_c.md
+          - DSGE Filtrado de Partículas No Lineal y Cambio de Régimen: es/dsge_phase_d.md
       - Ejecución en cualquier entorno (iPad / navegador): es/tablet.md
       - Rendimiento y pruebas comparativas: es/benchmarks.md
       - Referencia:

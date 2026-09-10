@@ -1,4 +1,19 @@
-# %% [markdown]
+# ---
+# jupyter:
+#   jupytext:
+#     cell_metadata_filter: slideshow,-all
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.5
+#   kernelspec:
+#     display_name: Python 3 (ipykernel)
+#     language: python
+#     name: python3
+# ---
+
+# %% [markdown] slideshow={"slide_type": "slide"}
 # # 25 — Benchmark de Programación Dinámica (VFI): Mac Apple Silicon vs. GPU vs. MATLAB / runmat
 # **Curso:** Macroeconomía Avanzada (MAV 2026) | **Profesor:** Jorge Alonso Ortiz (ITAM)
 #
@@ -70,10 +85,16 @@
 
 # %% slideshow={"slide_type": "fragment"}
 import os
+import pathlib
 import platform
 import subprocess
 import sys
 import time
+
+_here = pathlib.Path(__file__).resolve().parent if "__file__" in globals() else pathlib.Path.cwd()
+_nb = _here if (_here / "_nbstyle.py").exists() else (_here.parent if (_here.parent / "_nbstyle.py").exists() else _here)
+sys.path.insert(0, str(_nb)); sys.path.insert(0, str(_nb / "course"))
+from _tutor import tutor
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -584,7 +605,8 @@ else:
 # congele una máquina de 8 GB. En una laptop reciente la corrida completa toma unos pocos minutos.
 
 # %% slideshow={"slide_type": "fragment"}
-grid_sizes = [500, 1000, 2000, 4000]
+_is_headless = os.environ.get("MPLBACKEND", "").lower() == "agg" or "pytest" in sys.modules
+grid_sizes = [200, 400] if _is_headless else [500, 1000, 2000, 4000]
 
 # Presupuesto de memoria: R (float64) + obj (float64) + copias float32 del acelerador.
 FRACCION_RAM = 0.25
@@ -982,3 +1004,7 @@ print("Ninguna fila de MATLAB / gpuArray / runmat: este cuaderno no ejecuta MATL
 # > Explica brevemente por qué el backend que ganó es más rápido que los demás en esta
 # > máquina en particular. ¿Es por paralelismo, por memoria unificada, o por precisión
 # > (float32 vs float64)?
+
+# %% slideshow={"slide_type": "fragment"}
+print(tutor("En una frase: ¿por qué la memoria unificada (UMA) beneficia a la VFI frente a PCIe en GPUs discretas?"))
+

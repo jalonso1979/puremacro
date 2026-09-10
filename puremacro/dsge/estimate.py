@@ -741,7 +741,8 @@ def estimate_dsge(
 
     Supports standard linear Kalman filtering (method="kalman"),
     Piecewise Kalman Filtering (method="piecewise_kalman") for occasionally
-    binding constraints (Giovannini, Pfeiffer & Ratto 2021), and No-U-Turn
+    binding constraints (Giovannini, Pfeiffer & Ratto 2021), Sequential Monte
+    Carlo with particle filtering (method="particle_smc"), and No-U-Turn
     Sampler Hamiltonian Monte Carlo (method="nuts") with exact analytic
     likelihood gradients or differentiable OccBin smooth relaxation.
     """
@@ -751,7 +752,7 @@ def estimate_dsge(
         raise ValueError(f"data missing columns: {sorted(missing)}")
     if len(data) < 10:
         raise ValueError(f"data has only {len(data)} obs; need >= 10")
-    if method != "piecewise_kalman" and constraint is None and data[list(observed_vars)].isna().any().any():
+    if method not in ("piecewise_kalman", "particle_smc") and constraint is None and data[list(observed_vars)].isna().any().any():
         raise ValueError("data contains NaN in observed_vars")
     y = data[list(observed_vars)].to_numpy()
 
@@ -791,6 +792,65 @@ def estimate_dsge(
             priors, names, fixed, observed_vars,
             penalty=_OPT_PENALTY, failure=failure,
         )
+    elif method == "particle_smc":
+        from .particle_filter import particle_filter
+        from .smc import smc_estimate
+
+        target_model = m_unconstrained or model_template
+        if target_model is None and observation_eq is None:
+            raise ValueError(
+                "estimate_dsge: target model or observation_eq is required for method='particle_smc'."
+            )
+
+        n_particles_pf = int(kwargs.pop("n_particles_pf", 1000))
+        pf_method = kwargs.pop("pf_method", "bootstrap")
+        pf_resampling = kwargs.pop("resampling_method", "systematic")
+        stoch_vol = kwargs.pop("stochastic_volatility", None)
+        n_particles_smc = int(kwargs.pop("n_particles_smc", min(n_draws, 200)))
+        n_stages = int(kwargs.pop("n_stages", 15))
+
+        def pf_log_lik(theta_vec_or_dict):
+            try:
+                if isinstance(theta_vec_or_dict, (list, np.ndarray)):
+                    theta_d = _vec_to_dict(theta_vec_or_dict, names, fixed)
+                else:
+                    theta_d = dict(theta_vec_or_dict)
+                    theta_d.update(fixed)
+
+                if hasattr(target_model, "set_params"):
+                    solved_m = target_model.set_params(theta_d)
+                elif hasattr(target_model, "params") and hasattr(target_model, "first_order") and hasattr(target_model.first_order, "set_params"):
+                    solved_m = target_model.first_order.set_params(theta_d)
+                elif observation_eq is not None:
+                    solved_m = observation_eq(theta_d)
+                else:
+                    solved_m = target_model
+
+                res = particle_filter(
+                    solved_m,
+                    data,
+                    observed_vars,
+                    n_particles=n_particles_pf,
+                    method=pf_method,
+                    resampling_method=pf_resampling,
+                    stochastic_volatility=stoch_vol,
+                )
+                val = float(res.log_likelihood)
+                return val if np.isfinite(val) else -1e10
+            except Exception:
+                return -1e10
+
+        return smc_estimate(
+            pf_log_lik,
+            priors,
+            n_particles=n_particles_smc,
+            n_stages=n_stages,
+            seed=seed,
+            model_name=model_name or "dsge_particle_smc",
+            data_n_obs=len(data),
+            **kwargs,
+        )
+
     else:
         if observation_eq is None:
             raise ValueError("estimate_dsge: observation_eq is required when method='kalman'.")
@@ -1087,10 +1147,10 @@ def _linear_model_estimate_with_method(
     check_identification: bool | str = False,
     **kwargs,
 ):
-    """Bayesian estimation supporting method='kalman', 'piecewise_kalman', and 'nuts' with constraints."""
+    """Bayesian estimation supporting method='kalman', 'piecewise_kalman', 'particle_smc', and 'nuts' with constraints."""
     active_constraint = constraint or (constraints if isinstance(constraints, OccBinConstraint) else None)
 
-    if method == "piecewise_kalman" or (method == "nuts" and active_constraint is not None):
+    if method in ("piecewise_kalman", "particle_smc") or (method == "nuts" and active_constraint is not None):
         from ._estimated_params import EstimatedParams
         from .priors import ensure_prior
 
@@ -1210,7 +1270,7 @@ def estimate(
         List of observed variable names.
     priors : EstimatedParams | dict, optional
         Prior specifications.
-    method : {'nuts', 'kalman', 'piecewise_kalman'}, default 'nuts'
+    method : {'nuts', 'kalman', 'piecewise_kalman', 'particle_smc'}, default 'nuts'
         Estimation method.
     constraint : OccBinConstraint, optional
         Occasionally binding constraint (e.g. ZLB on nominal rate).

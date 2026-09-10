@@ -103,6 +103,15 @@ Twelve scripts that together span the methods catalogue. Read in this order if y
 | `gali_1999_hours` | 210 | Gali (1999 AER) technology shocks and the hours debate: BQ long-run SVAR on frozen FRED data; hours fall on impact in differences, flip in levels (CEV critique). |
 | `kilian_2009_oil` | 301 | Kilian (2009 AER) oil-market VAR on frozen FRED data: supply vs demand IRFs, real-price FEVD, and the stacked historical decomposition 1975-2007 (debut of `historical_decomp`). |
 
+### DSGE frontier & nonlinear structural modeling
+
+| Script | LOC | Headline |
+|---|---:|---|
+| `dsge_particle_filter_sv` | 203 | 2nd-order pruned DSGE with Stochastic Volatility solved via vectorized Bootstrap Particle Filter. |
+| `dsge_markov_switching` | 221 | Monetary policy regime-switching (Hawkish vs Dovish) solved via coupled quadratics with analytical GIRFs. |
+| `dsge_news_shocks` | 222 | Forward-looking New Keynesian DSGE news shocks and variance decomposition. |
+
+
 ### Volatility, connectedness & spillover
 
 | Script | LOC | Headline |
