@@ -56,14 +56,14 @@ Shimer, R. (2012). Reassessing the ins and outs of unemployment. RED 15.
 """
 from __future__ import annotations
 
+import itertools
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
 
 import numpy as np
 import pandas as pd
 from scipy import linalg as _spla
-
 
 STATES: tuple[str, str, str, str] = ("F", "I", "U", "N")
 
@@ -292,7 +292,7 @@ def _coerce_urban_filter(urban_filter) -> set | None:
         if urban_filter == "eneu_1992":
             return set(ENEU_1987_CITIES.keys()) | set(ENEU_1992_ADDITIONS.keys())
         raise ValueError(f"unknown urban_filter '{urban_filter}'.")
-    return set(int(c) for c in urban_filter)
+    return {int(c) for c in urban_filter}
 
 
 def _apply_urban_filter(df: pd.DataFrame, cities: set | None) -> pd.DataFrame:
@@ -371,8 +371,7 @@ _SDEM_COLS_WANTED = {
     # ENE/ENEU 2000-2004 renames: HOG -> N_HOG, PER -> N_REN
     "hog", "per",
     "cd_a", "a_met",  # city / metro area code (for urban_filter)
-    "eda", "sex", "clase1", "clase2", "n_ent",
-    "fac", "fac_tri", "fac_men", "fac_np",
+    "eda", "sex", "clase1", "clase2", "fac", "fac_tri", "fac_men", "fac_np",
     # Education
     "cs_p13_1", "cs_p13_2", "cs_p17", "niv_ins", "anios_esc",
     # Wages & hours
@@ -799,7 +798,7 @@ def transitions_from_enoe(
 
     pair_frames = []
     sorted_q = sorted(quarter_dfs.keys())
-    for (y1, q1), (y2, q2) in zip(sorted_q, sorted_q[1:]):
+    for (y1, q1), (y2, q2) in itertools.pairwise(sorted_q):
         months_apart = (y2 - y1) * 12 + 3 * (q2 - q1)
         if months_apart != 3:
             continue
@@ -815,8 +814,13 @@ def transitions_from_enoe(
         )
 
     monthly_rows = []
-    for ref_date, row in quarterly_observed.iterrows():
-        P_Q = np.array([[row[f"p_{a}{b}"] for b in STATES] for a in STATES])
+
+    # Precompute column index mapping for itertuples
+    col_idx = {col: i + 1 for i, col in enumerate(quarterly_observed.columns)}
+
+    for row in quarterly_observed.itertuples(name=None):
+        ref_date = row[0]
+        P_Q = np.array([[row[col_idx[f"p_{a}{b}"]] for b in STATES] for a in STATES])
         try:
             P_M = quarterly_to_monthly_matrix(P_Q)
         except Exception as e:
@@ -836,8 +840,12 @@ def transitions_from_enoe(
         )
 
     quarterly_chain_rows = []
-    for d, row in monthly.iterrows():
-        M = np.array([[row[f"p_{a}{b}"] for b in STATES] for a in STATES])
+
+    monthly_col_idx = {col: i + 1 for i, col in enumerate(monthly.columns)}
+
+    for row in monthly.itertuples(name=None):
+        d = row[0]
+        M = np.array([[row[monthly_col_idx[f"p_{a}{b}"]] for b in STATES] for a in STATES])
         P3 = M @ M @ M
         qd = d + pd.offsets.QuarterEnd(0)
         quarterly_chain_rows.append({
