@@ -1,0 +1,3 @@
+## 2024-05-17 - Inline HTML Accessibility in Jupyter Outputs
+**Learning:** Decorative elements (like 🚀 and ↗) in inline HTML strings rendered in Jupyter notebooks via `IPython.display.HTML` are read out by screen readers unless hidden with `aria-hidden="true"`. Furthermore, links with `target="_blank"` lack screen reader context that they open in a new tab without explicit `aria-label`s, and omit `rel="noopener noreferrer"`.
+**Action:** Always wrap decorative emojis/symbols in `<span aria-hidden="true">` and include `rel="noopener noreferrer"` with descriptive `aria-label`s for external `_blank` links, even in dynamically generated Python notebook outputs.
