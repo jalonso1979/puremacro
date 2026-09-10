@@ -21,8 +21,8 @@ generic shock series moves each transition rate.
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Sequence
 
 import numpy as np
 import pandas as pd
@@ -182,7 +182,6 @@ def transitions_from_shimer(urate: pd.Series) -> TransitionPanel:
     # s_t = 1 - exp(-S_t) with continuous-time hazards F_t and S_t such that
     # u_t evolves toward the steady-state u_ss = S_t / (S_t + F_t).
     # Following Elsby-Hobijn-Sahin, the simplest discrete estimator is:
-    F_t = -np.log(1 - (u.shift(-1) - (1 - u) * 0))  # placeholder until s known
     # Two-equation system. Use closed-form Shimer (2012) approximation:
     # f_t = 1 - u_{t+1} / u_t (if no inflows, which is exactly the unemp exit rate)
     # We approximate without the N-state by treating short-term changes as net.
@@ -215,19 +214,18 @@ def _quarterly_chain(p_monthly: pd.DataFrame) -> pd.DataFrame:
     p_monthly = p_monthly.sort_index()
     p_monthly["qdate"] = pd.to_datetime(p_monthly.index) + pd.offsets.QuarterEnd(0)
     out = []
-    for q, group in p_monthly.groupby("qdate"):
-        if len(group) < 3:
+
+    cols = ["p_EE", "p_EU", "p_EN", "p_UE", "p_UU", "p_UN", "p_NE", "p_NU", "p_NN"]
+    arr = p_monthly[cols].to_numpy().reshape(-1, 3, 3)
+
+    grouped = p_monthly.groupby("qdate")
+    for q, indices in grouped.indices.items():
+        if len(indices) < 3:
             continue
-        # Take first 3 months of the quarter to multiply
-        mats = [
-            np.array([
-                [row["p_EE"], row["p_EU"], row["p_EN"]],
-                [row["p_UE"], row["p_UU"], row["p_UN"]],
-                [row["p_NE"], row["p_NU"], row["p_NN"]],
-            ])
-            for _, row in group.iloc[:3].iterrows()
-        ]
+        idx = indices[:3]
+        mats = arr[idx]
         prod = mats[0] @ mats[1] @ mats[2]
+
         out.append({
             "qdate": q,
             "p_EE": prod[0, 0], "p_EU": prod[0, 1], "p_EN": prod[0, 2],
@@ -275,7 +273,7 @@ def supply_demand_decomposition(panel: TransitionPanel) -> pd.DataFrame:
 
 def transition_shock_response(
     panel: TransitionPanel, shock: pd.Series,
-    horizons: Sequence[int] = range(0, 13),
+    horizons: Sequence[int] = range(13),
     transitions: Sequence[str] = ("p_UE", "p_EU", "p_EN", "p_NE", "p_NU", "p_UN"),
 ) -> pd.DataFrame:
     """LP-style IRF: how does each transition rate respond to a shock?
@@ -307,7 +305,7 @@ def transition_shock_response(
                     "beta": float(m.params["shock"]),
                     "se":   float(m.bse["shock"]),
                     "t":    float(m.tvalues["shock"]),
-                    "n":    int(len(df)),
+                    "n":    len(df),
                 })
             except Exception:
                 rows.append({"transition": outcome, "h": h,
