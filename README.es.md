@@ -81,7 +81,73 @@ print(mom.summary())
 print(mom.to_latex())
 ```
 
-### 3. Descarga de Cómputo desde Juno / iPad hacia Google Colab
+### 3. Estimación Bayesiana de DSGE vía NUTS y Gradientes Analíticos Exactos (puremacro 3.0)
+Aplica Monte Carlo Hamiltoniano con el algoritmo No-U-Turn Sampler (NUTS) usando gradientes analíticos exactos del score de verosimilitud de Kalman ($\nabla_\theta \ln L$ mediante diferenciación implícita en espacio de estados y solución de la ecuación matricial generalizada de Sylvester):
+```python
+# requires: numpy scipy
+import numpy as np
+import pandas as pd
+from puremacro.dsge import load_mod, GammaPrior
+
+# Cargar modelo DSGE y preparar estimación
+mod_text = """
+var y pi i; varexo eps_d eps_m;
+parameters sigma kappa phi_pi rho_d;
+sigma = 1.0; kappa = 0.1; phi_pi = 1.5; rho_d = 0.5;
+model;
+  y = y(+1) - (1/sigma) * (i - pi(+1)) + eps_d;
+  pi = 0.99 * pi(+1) + kappa * y;
+  i = phi_pi * pi + eps_m;
+end;
+"""
+model = load_mod(mod_text)
+# Simulación de series observables sintéticas
+sim = model.stoch_simul(periods=100, seed=42)
+data = pd.DataFrame({"y": sim.paths["y"], "pi": sim.paths["pi"]})
+
+# Estimación bayesiana con NUTS y gradientes analíticos exactos
+res = model.estimate(
+    data,
+    varobs=["y", "pi"],
+    priors={"sigma": GammaPrior(1.0, 0.2), "kappa": GammaPrior(0.1, 0.05)},
+    method="nuts",
+    n_draws=200,
+    burn_in=100,
+    n_chains=2,
+    seed=42,
+)
+print(res.summary())
+```
+
+### 4. Puente Espacio-Secuencia para Agentes Heterogéneos (HANK) (puremacro 3.0)
+Acopla bloques microeconómicos de hogares con heterogeneidad (`hetagent_block; ... end;`) con el equilibrio macroeconómico general en archivos `.mod` de Dynare utilizando el método de Jacobianos en espacio-secuencia de Auclert et al. (2021):
+```python
+# requires: numpy scipy
+from puremacro.dsge import solve_hank_bridge
+
+hank_mod = """
+var Y C r pi i; varexo eps_m;
+parameters beta gamma r_ss phi_pi kappa;
+beta = 0.985; gamma = 1.0; r_ss = 0.01; phi_pi = 1.5; kappa = 0.1;
+
+hetagent_block;
+  model = one_asset_hank;
+  n_a = 50; a_max = 30.0; borrowing_limit = 0.0; grid = hyperbolic;
+end;
+
+model;
+  Y = C;
+  pi = beta * pi(+1) + kappa * Y;
+  i = r_ss + phi_pi * pi + eps_m;
+  r = i - pi(+1);
+end;
+"""
+# Simulación en una línea ante choque monetario expansivo (-25 pb)
+res = solve_hank_bridge(hank_mod, shock="eps_m", magnitude=-0.0025, horizon=40)
+print(res.summary())
+```
+
+### 5. Descarga de Cómputo desde Juno / iPad hacia Google Colab
 Cuando trabajes en un iPad o en sesiones cliente de Pyodide con límites de memoria o CPU, descarga tareas intensivas a Google Colab sin fricción:
 ```python
 from puremacro.runtime.colab import (

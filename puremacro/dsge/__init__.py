@@ -20,7 +20,7 @@ from .build import LinearModel, ModelError, SteadyStateError, build
 from .steady import StructuralSingularityError, steady
 from ._moments import one_sided_hp_filter
 from ._results import (
-    DSGEPosteriorResult, SW07PosteriorResult,
+    DSGEPosteriorResult, SW07PosteriorResult, NUTSResult, HANKResult,
     FertilitySolution,
     DynareDR, Dynare2ndDR, TheoreticalMomentsResult,
     StochSimulResult,
@@ -36,6 +36,7 @@ from ._results import (
     ModelParityResult,
     ParityDashboardResult,
 )
+from .hank import HANKModel, load_hank_mod, solve_hank_bridge
 from .parity import verify_dynare_parity, compare_model_to_dynare, run_parity_suite
 from .load_dynare import load_dynare_dr, load_dynare_moments, load_irfs, load_fevd
 from .conditional import conditional_forecast
@@ -45,6 +46,8 @@ from .diagnostics import check, resid, model_diagnostics
 from .identification import identification
 from .policy import osr, discretionary_policy, lq_commitment
 from .estimate import estimate_dsge
+from .nuts import nuts_sample
+from ._gradients import ScoreDiagnosticsResult
 from .bayesian import BayesianEstimationResult, estimate_dsge_bayesian
 from .sw07_estimate import estimate_sw07
 from .fertility_adj_costs import solve_bgp, solve_fertility
@@ -108,7 +111,8 @@ __all__ = [
     "klein_solve", "KleinSolution", "BlanchardKahnError",
     "build", "LinearModel", "ModelError", "SteadyStateError",
     "steady", "StructuralSingularityError",
-    "DSGEPosteriorResult", "SW07PosteriorResult", "BayesianEstimationResult", "FertilitySolution",
+    "DSGEPosteriorResult", "SW07PosteriorResult", "NUTSResult", "BayesianEstimationResult", "FertilitySolution",
+    "ScoreDiagnosticsResult", "nuts_sample",
     "DynareDR", "Dynare2ndDR", "TheoreticalMomentsResult", "StochSimulResult",
     "build_dynare", "parse_mod", "load_mod", "load_dynare_mod", "solve_dynare_2nd_order",
     "DynareFeatureError",
@@ -152,9 +156,13 @@ __all__ = [
     "load_dynare_dr", "load_dynare_moments", "load_irfs", "load_fevd",
     "ParityDashboardResult", "ModelParityResult",
     "load_dynare", "parity",
+    # --- 3.0.0: Sequence-Space HANK Bridge -------------------------------
+    "HANKModel", "HANKResult", "load_hank_mod", "solve_hank_bridge",
+    "hank",
 ]
 from . import smets_wouters  # re-export for back-compat with 0.50.0 callers
 from . import gertler_karadi
 from . import load_dynare, parity
+from . import hank
 
 

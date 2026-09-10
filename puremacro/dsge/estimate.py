@@ -569,18 +569,22 @@ def estimate_dsge(
     m_constrained_dict: Any = None,
     constraints: Any = None,
     occbin_regimes: Any = None,
+    model_template: Any = None,
     model_name: str = "unknown",
     mode_compute: str = "lbfgs",
     n_draws: int = 10_000,
     n_chains: int = 2,
     burn_in: int = 2_000,
     seed: int = 0,
-) -> DSGEPosteriorResult:
-    """Bayesian DSGE estimation via Random-Walk Metropolis-Hastings.
+    **kwargs,
+) -> DSGEPosteriorResult | NUTSResult:
+    """Bayesian DSGE estimation via Random-Walk Metropolis-Hastings or NUTS.
 
-    Supports standard linear Kalman filtering (method="kalman") and
+    Supports standard linear Kalman filtering (method="kalman"),
     Piecewise Kalman Filtering (method="piecewise_kalman") for occasionally
-    binding constraints (Giovannini, Pfeiffer & Ratto 2021).
+    binding constraints (Giovannini, Pfeiffer & Ratto 2021), and No-U-Turn
+    Sampler Hamiltonian Monte Carlo (method="nuts") with exact analytic
+    likelihood gradients.
     """
     # 1. Validate data.
     missing = set(observed_vars) - set(data.columns)
@@ -753,6 +757,61 @@ def estimate_dsge(
     if not use_hessian:
         stds = np.array([prior_stds(priors)[n] for n in names])
         inv_H = np.diag(stds ** 2)
+
+    if method == "nuts":
+        from puremacro.dsge.nuts import nuts_sample
+
+        # Build target evaluator returning log posterior and analytical gradient
+        if model_template is not None:
+            from puremacro.dsge._gradients import log_posterior_and_gradient
+
+            def target_fn(v):
+                return log_posterior_and_gradient(
+                    v, names, model_template, y, observed_vars, priors, fixed,
+                )
+        else:
+            def target_fn(v):
+                lp = float(-neg_log_post(v))
+                if not np.isfinite(lp):
+                    return -np.inf, np.zeros(len(v))
+                h = 1e-5
+                g = np.zeros(len(v))
+                for i in range(len(v)):
+                    v_p = v.copy()
+                    v_p[i] += h
+                    v_m = v.copy()
+                    v_m[i] -= h
+                    lp_p = float(-neg_log_post(v_p))
+                    lp_m = float(-neg_log_post(v_m))
+                    g[i] = (lp_p - lp_m) / (2.0 * h)
+                return lp, g
+
+        mode_dict = _vec_to_dict(mode_vec, names, fixed)
+        stds = np.array([prior_stds(priors)[n] for n in names])
+        init_M_inv = stds ** 2
+        if use_hessian and "inv_H" in locals():
+            init_M_inv = np.clip(np.diag(inv_H), 1e-6, 1e6)
+
+        return nuts_sample(
+            target_fn,
+            init_params=mode_vec,
+            n_draws=n_draws,
+            n_chains=n_chains,
+            warmup=burn_in,
+            target_accept=kwargs.get("target_accept", 0.80),
+            max_tree_depth=kwargs.get("max_tree_depth", 10),
+            step_size=kwargs.get("step_size", None),
+            adapt_step_size=kwargs.get("adapt_step_size", True),
+            adapt_mass_matrix=kwargs.get("adapt_mass_matrix", True),
+            mass_matrix_diag=init_M_inv,
+            param_names=names,
+            seed=seed,
+            model_name=model_name,
+            mode=mode_dict,
+            mode_hessian_inv=inv_H if use_hessian else None,
+            data_n_obs=len(data),
+            record_warmup=kwargs.get("record_warmup", False),
+        )
 
     # 5. Proposal scaling.
     n_params = len(names)
@@ -930,6 +989,7 @@ def _linear_model_estimate_with_method(
         seed=seed,
         model_name=model_name,
         check_identification=check_identification,
+        method=method,
         **kwargs,
     )
 

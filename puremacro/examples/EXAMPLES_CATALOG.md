@@ -181,9 +181,11 @@ Scripts that ship but have no entry above yet:
 - `dsge_ar1_demo`
 - `dsge_fertility_demo`
 - `dsge_nk_sketchpad`
+- `dsge_nuts_estimation`
 - `empirical_benchmark_replications`
 - `garch_midas_macro_volatility`
 - `hank_sequence_space`
+- `hank_sequence_space_bridge`
 - `narrative_bursts_and_transcripts`
 - `narrative_local_llm`
 - `nowcasting_gdp_news`

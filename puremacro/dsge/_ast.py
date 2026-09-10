@@ -48,6 +48,10 @@ class Node:
         """Symbolic differentiation with respect to dynamic coordinate (var_name, var_lead)."""
         raise NotImplementedError
 
+    def diff_param(self, param_name: str) -> Node:
+        """Symbolic differentiation with respect to structural parameter param_name."""
+        raise NotImplementedError
+
     def shift(self, offset: int) -> Node:
         """Shift time lead of all dynamic variables by offset."""
         raise NotImplementedError
@@ -132,6 +136,9 @@ class Const(Node):
     def diff(self, var_name: str, var_lead: int) -> Node:
         return Const(0)
 
+    def diff_param(self, param_name: str) -> Node:
+        return Const(0)
+
     def shift(self, offset: int) -> Node:
         return self
 
@@ -173,6 +180,11 @@ class Param(Node):
         return self
 
     def diff(self, var_name: str, var_lead: int) -> Node:
+        return Const(0)
+
+    def diff_param(self, param_name: str) -> Node:
+        if self.name == param_name:
+            return Const(1)
         return Const(0)
 
     def shift(self, offset: int) -> Node:
@@ -223,6 +235,9 @@ class Var(Node):
     def diff(self, var_name: str, var_lead: int) -> Node:
         if self.name == var_name and self.lead == var_lead:
             return Const(1)
+        return Const(0)
+
+    def diff_param(self, param_name: str) -> Node:
         return Const(0)
 
     def shift(self, offset: int) -> Node:
@@ -310,6 +325,14 @@ class UnaryOp(Node):
 
     def diff(self, var_name: str, var_lead: int) -> Node:
         d = self.expr.diff(var_name, var_lead)
+        if self.op == "+":
+            return d.simplify()
+        if self.op == "-":
+            return UnaryOp("-", d).simplify()
+        return UnaryOp(self.op, d).simplify()
+
+    def diff_param(self, param_name: str) -> Node:
+        d = self.expr.diff_param(param_name)
         if self.op == "+":
             return d.simplify()
         if self.op == "-":
@@ -464,10 +487,7 @@ class BinOp(Node):
 
         return BinOp(self.op, l, r)
 
-    def diff(self, var_name: str, var_lead: int) -> Node:
-        dl = self.left.diff(var_name, var_lead)
-        dr = self.right.diff(var_name, var_lead)
-
+    def _diff_with_derivatives(self, dl: Node, dr: Node) -> Node:
         if self.op == "+":
             return BinOp("+", dl, dr).simplify()
         if self.op == "-":
@@ -521,6 +541,16 @@ class BinOp(Node):
 
         # Comparisons and equality relations have zero derivative
         return Const(0)
+
+    def diff(self, var_name: str, var_lead: int) -> Node:
+        dl = self.left.diff(var_name, var_lead)
+        dr = self.right.diff(var_name, var_lead)
+        return self._diff_with_derivatives(dl, dr)
+
+    def diff_param(self, param_name: str) -> Node:
+        dl = self.left.diff_param(param_name)
+        dr = self.right.diff_param(param_name)
+        return self._diff_with_derivatives(dl, dr)
 
     def shift(self, offset: int) -> Node:
         return BinOp(self.op, self.left.shift(offset), self.right.shift(offset))
@@ -656,6 +686,73 @@ class Call(Node):
 
         return Call(self.func, s_args)
 
+    def _diff_fn(self, du: Node) -> Node:
+        fn = self.func.lower()
+        if isinstance(du, Const) and du.value == 0:
+            return Const(0)
+
+        u = self.args[0]
+        if fn == "exp":
+            return BinOp("*", Call("exp", (u,)), du).simplify()
+        if fn in ("log", "ln"):
+            return BinOp("/", du, u).simplify()
+        if fn == "log10":
+            den = BinOp("*", u, Const(math.log(10.0)))
+            return BinOp("/", du, den).simplify()
+        if fn == "sqrt":
+            den = BinOp("*", Const(2), Call("sqrt", (u,)))
+            return BinOp("/", du, den).simplify()
+        if fn == "cbrt":
+            den = BinOp("*", Const(3), BinOp("^", u, Const(2.0 / 3.0)))
+            return BinOp("/", du, den).simplify()
+        if fn == "sin":
+            return BinOp("*", Call("cos", (u,)), du).simplify()
+        if fn == "cos":
+            return BinOp("*", UnaryOp("-", Call("sin", (u,))), du).simplify()
+        if fn == "tan":
+            sec2 = BinOp("+", Const(1), BinOp("^", Call("tan", (u,)), Const(2)))
+            return BinOp("*", sec2, du).simplify()
+        if fn == "asin":
+            den = Call("sqrt", (BinOp("-", Const(1), BinOp("^", u, Const(2))),))
+            return BinOp("/", du, den).simplify()
+        if fn == "acos":
+            den = Call("sqrt", (BinOp("-", Const(1), BinOp("^", u, Const(2))),))
+            return BinOp("/", UnaryOp("-", du), den).simplify()
+        if fn == "atan":
+            den = BinOp("+", Const(1), BinOp("^", u, Const(2)))
+            return BinOp("/", du, den).simplify()
+        if fn == "sinh":
+            return BinOp("*", Call("cosh", (u,)), du).simplify()
+        if fn == "cosh":
+            return BinOp("*", Call("sinh", (u,)), du).simplify()
+        if fn == "tanh":
+            sech2 = BinOp("-", Const(1), BinOp("^", Call("tanh", (u,)), Const(2)))
+            return BinOp("*", sech2, du).simplify()
+        if fn == "normpdf":
+            # d/du normpdf(u) = -u * normpdf(u) * du
+            deriv = BinOp("*", UnaryOp("-", u), Call("normpdf", (u,)))
+            return BinOp("*", deriv, du).simplify()
+        if fn == "normcdf":
+            # d/du normcdf(u) = normpdf(u) * du
+            return BinOp("*", Call("normpdf", (u,)), du).simplify()
+        if fn == "erf":
+            # 2 / sqrt(pi) * exp(-u^2) * du
+            pre = Const(2.0 / math.sqrt(math.pi))
+            core = Call("exp", (UnaryOp("-", BinOp("^", u, Const(2))),))
+            return BinOp("*", BinOp("*", pre, core), du).simplify()
+        if fn == "erfc":
+            pre = Const(-2.0 / math.sqrt(math.pi))
+            core = Call("exp", (UnaryOp("-", BinOp("^", u, Const(2))),))
+            return BinOp("*", BinOp("*", pre, core), du).simplify()
+        if fn == "abs":
+            return BinOp("*", Call("sign", (u,)), du).simplify()
+        if fn == "sign":
+            return Const(0)
+
+        raise NotImplementedError(
+            f"Symbolic derivative not implemented for function: {self.func!r}"
+        )
+
     def diff(self, var_name: str, var_lead: int) -> Node:
         fn = self.func.lower()
 
@@ -666,73 +763,35 @@ class Call(Node):
         # Expectation operator: conditional expectation at current info set
         if fn == "expectation":
             if len(self.args) == 2:
-                # EXPECTATION(k, expr)
                 return self.args[1].diff(var_name, var_lead)
             if len(self.args) == 1:
                 return self.args[0].diff(var_name, var_lead)
 
         if len(self.args) == 1:
-            u = self.args[0]
-            du = u.diff(var_name, var_lead)
-            if isinstance(du, Const) and du.value == 0:
-                return Const(0)
+            du = self.args[0].diff(var_name, var_lead)
+            return self._diff_fn(du)
 
-            if fn == "exp":
-                return BinOp("*", Call("exp", (u,)), du).simplify()
-            if fn in ("log", "ln"):
-                return BinOp("/", du, u).simplify()
-            if fn == "log10":
-                den = BinOp("*", u, Const(math.log(10.0)))
-                return BinOp("/", du, den).simplify()
-            if fn == "sqrt":
-                den = BinOp("*", Const(2), Call("sqrt", (u,)))
-                return BinOp("/", du, den).simplify()
-            if fn == "cbrt":
-                den = BinOp("*", Const(3), BinOp("^", u, Const(2.0 / 3.0)))
-                return BinOp("/", du, den).simplify()
-            if fn == "sin":
-                return BinOp("*", Call("cos", (u,)), du).simplify()
-            if fn == "cos":
-                return BinOp("*", UnaryOp("-", Call("sin", (u,))), du).simplify()
-            if fn == "tan":
-                sec2 = BinOp("+", Const(1), BinOp("^", Call("tan", (u,)), Const(2)))
-                return BinOp("*", sec2, du).simplify()
-            if fn == "asin":
-                den = Call("sqrt", (BinOp("-", Const(1), BinOp("^", u, Const(2))),))
-                return BinOp("/", du, den).simplify()
-            if fn == "acos":
-                den = Call("sqrt", (BinOp("-", Const(1), BinOp("^", u, Const(2))),))
-                return BinOp("/", UnaryOp("-", du), den).simplify()
-            if fn == "atan":
-                den = BinOp("+", Const(1), BinOp("^", u, Const(2)))
-                return BinOp("/", du, den).simplify()
-            if fn == "sinh":
-                return BinOp("*", Call("cosh", (u,)), du).simplify()
-            if fn == "cosh":
-                return BinOp("*", Call("sinh", (u,)), du).simplify()
-            if fn == "tanh":
-                sech2 = BinOp("-", Const(1), BinOp("^", Call("tanh", (u,)), Const(2)))
-                return BinOp("*", sech2, du).simplify()
-            if fn == "normpdf":
-                # d/du normpdf(u) = -u * normpdf(u) * du
-                deriv = BinOp("*", UnaryOp("-", u), Call("normpdf", (u,)))
-                return BinOp("*", deriv, du).simplify()
-            if fn == "normcdf":
-                # d/du normcdf(u) = normpdf(u) * du
-                return BinOp("*", Call("normpdf", (u,)), du).simplify()
-            if fn == "erf":
-                # 2 / sqrt(pi) * exp(-u^2) * du
-                pre = Const(2.0 / math.sqrt(math.pi))
-                core = Call("exp", (UnaryOp("-", BinOp("^", u, Const(2))),))
-                return BinOp("*", BinOp("*", pre, core), du).simplify()
-            if fn == "erfc":
-                pre = Const(-2.0 / math.sqrt(math.pi))
-                core = Call("exp", (UnaryOp("-", BinOp("^", u, Const(2))),))
-                return BinOp("*", BinOp("*", pre, core), du).simplify()
-            if fn == "abs":
-                return BinOp("*", Call("sign", (u,)), du).simplify()
-            if fn == "sign":
-                return Const(0)
+        raise NotImplementedError(
+            f"Symbolic derivative not implemented for function: {self.func!r}"
+        )
+
+    def diff_param(self, param_name: str) -> Node:
+        fn = self.func.lower()
+
+        # Steady state operator: static derivative inside steady_state(expr)
+        if fn == "steady_state":
+            return self.args[0].diff_param(param_name)
+
+        # Expectation operator
+        if fn == "expectation":
+            if len(self.args) == 2:
+                return self.args[1].diff_param(param_name)
+            if len(self.args) == 1:
+                return self.args[0].diff_param(param_name)
+
+        if len(self.args) == 1:
+            du = self.args[0].diff_param(param_name)
+            return self._diff_fn(du)
 
         raise NotImplementedError(
             f"Symbolic derivative not implemented for function: {self.func!r}"

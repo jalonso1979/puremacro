@@ -2,6 +2,38 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## 3.0.0 (2026-09-09)
+
+### Milestone 3.0: Exact Analytic Likelihood Gradients, Pure-Python HMC/NUTS, & Heterogeneous Agents (HANK) Sequence-Space Bridge
+
+Major milestone release introducing production-grade gradient-based Bayesian estimation and heterogeneous-agent sequence-space macroeconomic modeling to puremacro under the strict Pyodide four-package contract (`numpy`, `scipy`, `pandas`, `matplotlib`):
+
+---
+
+### Added — Exact Analytic Likelihood Gradients (`puremacro.dsge._gradients`, `_ast`, `priors`)
+- **AST Parameter Sensitivities**: Dynamic differentiation of rational expectations equilibrium system matrices $\Gamma_0, \Gamma_1, \Gamma_2, \Psi$ with respect to model parameters $\theta$ via symbolic AST traversal (`diff_param`).
+- **Generalized Sylvester Solver**: Fast implicit rational expectations derivative solver (`solve_sylvester_generalized`) evaluating $(A - E \otimes T^\top) \text{vec}(\partial T / \partial \theta) = \text{vec}(Q)$ without finite differences or complex steps.
+- **Single-Pass Forward Score Recursion**: Simultaneous forward evaluation of state-space log-likelihood and exact score $\nabla_\theta \ln L$ alongside the Kalman filter with support for missing data.
+- **Exact Analytic Prior Gradients**: Analytical $\nabla_\theta \ln p(\theta)$ for `BetaPrior`, `GammaPrior`, `InvGammaPrior`, `NormalPrior`, and `UniformPrior` (`grad_log_prior`).
+- **Score Diagnostics**: `ScoreDiagnosticsResult` with verification against finite difference benchmarks (`.summary()`, `.compare_finite_difference()`, `.to_markdown()`, `.to_latex()`, `.to_typst()`).
+
+### Added — Pure-Python Hamiltonian Monte Carlo & No-U-Turn Sampler (`puremacro.dsge.nuts`, `estimate`)
+- **Symplectic Leapfrog Integrator**: Energy-conserving velocity Verlet integrator with diagonal inverse mass matrix $M^{-1}$.
+- **Betancourt (2017) Generalized U-Turn Condition**: Recursive binary tree trajectory builder with non-reversible stopping criteria and divergence detection.
+- **Stan Staged Dual Averaging**: Hoffman-Gelman (2014) step size adaptation targeting $\delta^* = 0.80$ with Welford online diagonal variance accumulation and Stan shrinkage regularization.
+- **MCMC Diagnostics**: Computation of rank-normalized split-$\hat{R}$, bulk ESS, tail ESS, and energy Bayesian Fraction of Missing Information (E-BFMI).
+- **DSGE Estimation Integration**: Native support for `method="nuts"` in `estimate_dsge` and `LinearModel.estimate`.
+- **Result Object**: `NUTSResult` providing trace plots, posterior marginals, autocorrelation plots, energy diagnostics, and summary tables.
+
+### Added — Heterogeneous Agents (HANK) Sequence-Space Bridge (`puremacro.dsge.hank`, `_parser`)
+- **`hetagent_block` .mod Grammar**: Parser support for `hetagent_block; ... end;` in Dynare `.mod` files, coupling microeconomic heterogeneous-household blocks with aggregate DSGE equilibrium.
+- **Stationary Micro Distributions**: Solution of stationary wealth distribution $\mathcal{D}^*(a)$ and marginal propensity to consume distribution $MPC(a)$ across asset states.
+- **Fake-News Sequence-Space Jacobians**: Direct computation of intertemporal consumption Jacobians $J_{C, r}$ and $J_{C, Y}$ via the Auclert, Bardóczy, Rognlie & Straub (2021) Fake-News Algorithm.
+- **Coupled General Equilibrium Transitions**: Linear sequence-space impulse response solver and nonlinear Broyden quasi-Newton solver with Sherman-Morrison rank-1 updates and monotone backtracking line search.
+- **High-Level APIs**: `load_hank_mod` and `solve_hank_bridge` returning `HANKResult` with transition path tables, distribution plots, and publication exports.
+
+---
+
 ## 2.9.0 (2026-09-09)
 
 ### Tier 3: Parity & Surface Area — stoch_simul Filtering & Simulation Surface, Extended Path (Fair & Taylor 1983), Advanced Forecasting & Shock Decompositions, Dynare Parity Dashboard & CLI

@@ -85,7 +85,73 @@ print(mom.summary())
 print(mom.to_latex())
 ```
 
-### 3. Juno / iPad / Pyodide to Google Colab Offloading
+### 3. Bayesian DSGE Estimation via NUTS & Exact Analytic Gradients (puremacro 3.0)
+Perform Hamiltonian Monte Carlo via the No-U-Turn Sampler (NUTS) using exact analytical Kalman likelihood score gradients ($\nabla_\theta \ln L$ via implicit state-space differentiation and generalized Sylvester solvers):
+```python
+# requires: numpy scipy
+import numpy as np
+import pandas as pd
+from puremacro.dsge import load_mod, GammaPrior
+
+# Load standard DSGE model and prepare estimation
+mod_text = """
+var y pi i; varexo eps_d eps_m;
+parameters sigma kappa phi_pi rho_d;
+sigma = 1.0; kappa = 0.1; phi_pi = 1.5; rho_d = 0.5;
+model;
+  y = y(+1) - (1/sigma) * (i - pi(+1)) + eps_d;
+  pi = 0.99 * pi(+1) + kappa * y;
+  i = phi_pi * pi + eps_m;
+end;
+"""
+model = load_mod(mod_text)
+# Simulate synthetic observables
+sim = model.stoch_simul(periods=100, seed=42)
+data = pd.DataFrame({"y": sim.paths["y"], "pi": sim.paths["pi"]})
+
+# Bayesian NUTS estimation with exact analytic likelihood gradients
+res = model.estimate(
+    data,
+    varobs=["y", "pi"],
+    priors={"sigma": GammaPrior(1.0, 0.2), "kappa": GammaPrior(0.1, 0.05)},
+    method="nuts",
+    n_draws=200,
+    burn_in=100,
+    n_chains=2,
+    seed=42,
+)
+print(res.summary())
+```
+
+### 4. Heterogeneous-Agent (HANK) Sequence-Space Bridge (puremacro 3.0)
+Couple microeconomic heterogeneous-agent household blocks (`hetagent_block; ... end;`) with aggregate general-equilibrium DSGE conditions in Dynare `.mod` files using the Auclert et al. (2021) Sequence-Space Jacobian method:
+```python
+# requires: numpy scipy
+from puremacro.dsge import solve_hank_bridge
+
+hank_mod = """
+var Y C r pi i; varexo eps_m;
+parameters beta gamma r_ss phi_pi kappa;
+beta = 0.985; gamma = 1.0; r_ss = 0.01; phi_pi = 1.5; kappa = 0.1;
+
+hetagent_block;
+  model = one_asset_hank;
+  n_a = 50; a_max = 30.0; borrowing_limit = 0.0; grid = hyperbolic;
+end;
+
+model;
+  Y = C;
+  pi = beta * pi(+1) + kappa * Y;
+  i = r_ss + phi_pi * pi + eps_m;
+  r = i - pi(+1);
+end;
+"""
+# One-line transition solve for an expansionary monetary policy shock (-25 bp)
+res = solve_hank_bridge(hank_mod, shock="eps_m", magnitude=-0.0025, horizon=40)
+print(res.summary())
+```
+
+### 5. Juno / iPad / Pyodide to Google Colab Offloading
 When working on an iPad or client-side Pyodide session with compute or memory constraints, seamlessly offload heavy tasks (e.g. 10,000-draw MCMC or large bootstrap SVARs) to Google Colab:
 ```python
 from puremacro.runtime.colab import (

@@ -229,6 +229,8 @@
       "GK2011_PARAMS",
       "GammaPrior",
       "GertlerKaradiResult",
+      "HANKModel",
+      "HANKResult",
       "HarmonicMeanResult",
       "IdentificationResult",
       "InvGammaPrior",
@@ -238,6 +240,7 @@
       "ModelDiagnosticsResult",
       "ModelError",
       "ModelParityResult",
+      "NUTSResult",
       "NormalPrior",
       "OSRResult",
       "OccBinConstraint",
@@ -250,6 +253,7 @@
       "PrunedDSGESolution",
       "PrunedSimulationResult",
       "SW07PosteriorResult",
+      "ScoreDiagnosticsResult",
       "ShockDecompResult",
       "ShockDecompositionResult",
       "SmootherResult",
@@ -279,6 +283,7 @@
       "fertility_adj_costs",
       "find_mode",
       "forecast_model",
+      "hank",
       "harmonic_mean_mdd",
       "identification",
       "klein_solve",
@@ -288,6 +293,7 @@
       "load_dynare_mod",
       "load_dynare_moments",
       "load_fevd",
+      "load_hank_mod",
       "load_irfs",
       "load_mod",
       "lq_commitment",
@@ -297,6 +303,7 @@
       "mode_check",
       "model_comparison",
       "model_diagnostics",
+      "nuts_sample",
       "observation",
       "one_sided_hp_filter",
       "osr",
@@ -316,6 +323,7 @@
       "solve_dynare_2nd_order",
       "solve_fertility",
       "solve_gertler_karadi",
+      "solve_hank_bridge",
       "solve_occbin",
       "solve_perfect_foresight",
       "solve_steady_state",
@@ -358,10 +366,12 @@
       "EigenvalueTable",
       "ExtendedPathResult",
       "FertilitySolution",
+      "HANKResult",
       "IdentificationResult",
       "ModeCheckResult",
       "ModelDiagnosticsResult",
       "ModelParityResult",
+      "NUTSResult",
       "OSRResult",
       "ParityDashboardResult",
       "PerfectForesightResult",
@@ -464,6 +474,12 @@
       "GensysSolution",
       "gensys"
     ],
+    "puremacro.dsge.hank": [
+      "HANKModel",
+      "HANKResult",
+      "load_hank_mod",
+      "solve_hank_bridge"
+    ],
     "puremacro.dsge.identification": [
       "identification"
     ],
@@ -485,6 +501,19 @@
       "csminwel",
       "find_mode",
       "mode_check"
+    ],
+    "puremacro.dsge.nuts": [
+      "DualAveraging",
+      "NUTSResult",
+      "WelfordVariance",
+      "compute_bulk_ess",
+      "compute_ebfmi",
+      "compute_split_rhat",
+      "compute_tail_ess",
+      "find_reasonable_step_size",
+      "leapfrog",
+      "nuts_sample",
+      "nuts_step"
     ],
     "puremacro.dsge.observation": [
       "make_state_space_from_varobs"
@@ -517,6 +546,7 @@
       "Prior",
       "UniformPrior",
       "ensure_prior",
+      "grad_log_prior",
       "log_prior",
       "param_bounds",
       "param_names",
@@ -3047,6 +3077,24 @@
     "puremacro.dsge._estimated_params.EstimatedParams": [
       "specs"
     ],
+    "puremacro.dsge._gradients.ScoreDiagnosticsResult": [
+      "elapsed_sec",
+      "gradient",
+      "loglik",
+      "param_names",
+      "verification_df"
+    ],
+    "puremacro.dsge._gradients.StateSpaceSensitivity": [
+      "dH",
+      "dP0",
+      "dQ",
+      "dR",
+      "dT",
+      "dZ",
+      "da0",
+      "dc",
+      "dd"
+    ],
     "puremacro.dsge._parser.ParsedModelDAG": [
       "auxiliary_variables",
       "deflators",
@@ -3059,6 +3107,7 @@
       "estimated_params_bounds",
       "estimated_params_init",
       "guess",
+      "hetagent_block",
       "histval",
       "histval_values",
       "initval",
@@ -3195,6 +3244,18 @@
       "ss",
       "var_names"
     ],
+    "puremacro.dsge._results.HANKResult": [
+      "asset_distribution",
+      "asset_grid",
+      "converged",
+      "horizon",
+      "jacobians",
+      "model_name",
+      "mpc_distribution",
+      "shock_name",
+      "steady_state",
+      "transition_paths"
+    ],
     "puremacro.dsge._results.IdentificationResult": [
       "is_identified",
       "j1_collinearity",
@@ -3256,6 +3317,25 @@
       "score",
       "status",
       "tolerances"
+    ],
+    "puremacro.dsge._results.NUTSResult": [
+      "accept_rates",
+      "data_n_obs",
+      "divergences",
+      "draws",
+      "energy_trace",
+      "log_post_mode",
+      "log_posterior_trace",
+      "mass_matrix_diag",
+      "mode",
+      "mode_hessian_inv",
+      "model_name",
+      "n_warmup",
+      "param_names",
+      "seed",
+      "step_sizes",
+      "tree_depths",
+      "warmup_draws"
     ],
     "puremacro.dsge._results.OSRResult": [
       "converged",

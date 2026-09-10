@@ -45,6 +45,7 @@ _USER_DOCS = [
     "dsge_estimation.md",
     "dsge_higher_order.md",
     "dsge_parity_surface.md",
+    "dsge_v3.md",
 ]
 
 

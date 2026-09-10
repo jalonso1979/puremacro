@@ -925,6 +925,114 @@ def log_prior(params: dict, priors: dict) -> float:
     return total
 
 
+def _grad_logpdf_for_spec(spec: dict | Prior, x: float) -> float:
+    """Analytical derivative d ln p(x) / dx for a single prior specification."""
+    lb = spec["lb"]
+    ub = spec["ub"]
+    if not (lb <= x <= ub):
+        return -math.inf
+    dist = spec["dist"]
+    if dist == "uniform":
+        return 0.0
+
+    shift = float(spec.get("shift") or 0.0)
+
+    if dist == "normal":
+        mean = float(spec["mean"])
+        std = float(spec["std"])
+        return -(x - mean) / (std ** 2)
+
+    if dist == "beta":
+        scale = spec.get("scale")
+        scale = 1.0 if scale is None else float(scale)
+        z = (x - shift) / scale
+        if not (0.0 < z < 1.0):
+            return -math.inf
+        mean_std_a, mean_std_b = _beta_ab(
+            (float(spec["mean"]) - shift) / scale, float(spec["std"]) / scale
+        )
+        return (1.0 / scale) * (
+            (mean_std_a - 1.0) / z - (mean_std_b - 1.0) / (1.0 - z)
+        )
+
+    if dist == "gamma":
+        z = x - shift
+        if z <= 0.0:
+            return -math.inf
+        mean = float(spec["mean"]) - shift
+        std = float(spec["std"])
+        k = (mean / std) ** 2
+        theta = (std ** 2) / mean
+        return (k - 1.0) / z - 1.0 / theta
+
+    if dist == "invgamma":
+        kind = spec.get("kind") or "type1"
+        s_val, nu_val = spec.get("s"), spec.get("nu")
+        if s_val is None or nu_val is None:
+            solve = _invgamma2_s_nu if kind == "type2" else _invgamma_s_nu
+            s_val, nu_val = solve(float(spec["mean"]), float(spec["std"]))
+        s, nu = float(s_val), float(nu_val)
+        if x <= 0.0:
+            return -math.inf
+        if kind == "type2":
+            return -(nu / 2.0 + 1.0) / x + s / (2.0 * x * x)
+        else:
+            return -(nu + 1.0) / x + s / (x ** 3)
+
+    if dist == "weibull":
+        z = x - shift
+        if z <= 0.0:
+            return -math.inf
+        shape, scale = _weibull_shape_scale(
+            float(spec["mean"]) - shift, float(spec["std"])
+        )
+        return (shape - 1.0) / z - (shape / scale) * ((z / scale) ** (shape - 1.0))
+
+    raise ValueError(f"grad_log_prior: unsupported prior distribution {dist!r}")
+
+
+def grad_log_prior(
+    params: dict | Sequence[float] | np.ndarray,
+    priors: dict,
+    names: Sequence[str] | None = None,
+) -> np.ndarray:
+    """Exact analytical gradient vector of log-prior density with respect to parameters.
+
+    Parameters
+    ----------
+    params : dict or array-like
+        Parameter values (either a mapping {name: val} or vector aligned with names/priors).
+    priors : dict
+        Prior specifications dict {name: spec}.
+    names : Sequence[str], optional
+        Parameter ordering if params is an array or to select subset. Defaults to priors.keys().
+
+    Returns
+    -------
+    grad : np.ndarray of shape (len(names),)
+        Analytical gradient vector d ln p(theta) / d theta.
+    """
+    if names is None:
+        names = tuple(priors.keys())
+    if isinstance(params, (list, tuple, np.ndarray)):
+        p_dict = {nm: float(val) for nm, val in zip(names, params)}
+    else:
+        p_dict = dict(params)
+
+    grad = np.zeros(len(names), dtype=float)
+    for i, nm in enumerate(names):
+        if nm not in priors or nm not in p_dict:
+            grad[i] = 0.0
+            continue
+        val = p_dict[nm]
+        if not math.isfinite(val):
+            grad[i] = 0.0
+            continue
+        g = _grad_logpdf_for_spec(priors[nm], val)
+        grad[i] = g if math.isfinite(g) else 0.0
+    return grad
+
+
 def prior_means(priors: dict) -> dict[str, float]:
     """Return ``{name: mean}`` in priors-dict insertion order."""
     return {name: spec["mean"] for name, spec in priors.items()}
@@ -957,6 +1065,7 @@ __all__ = [
     "UniformPrior",
     "ensure_prior",
     "log_prior",
+    "grad_log_prior",
     "prior_means",
     "prior_stds",
     "param_bounds",

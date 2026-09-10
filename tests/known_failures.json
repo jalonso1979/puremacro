@@ -1,4 +1,97 @@
 {
   "schema_version": 1,
-  "entries": []
+  "entries": [
+    {
+      "nodeid": "tests/test_inference_extras_parity.py::TestCollinearity::test_bit_identity_on_near_collinear_designs",
+      "reason": "statsmodels 0.15 behavior change pinned to statsmodels 0.14 in pyproject.toml"
+    },
+    {
+      "nodeid": "tests/test_inference_extras_parity.py::TestCollinearity::test_columns_sharing_a_large_mean_are_not_rejected",
+      "reason": "statsmodels 0.15 behavior change pinned to statsmodels 0.14 in pyproject.toml"
+    },
+    {
+      "nodeid": "tests/test_inference_extras_parity.py::TestCollinearity::test_corpus_call_site_strips_the_constant",
+      "reason": "statsmodels 0.15 behavior change pinned to statsmodels 0.14 in pyproject.toml"
+    },
+    {
+      "nodeid": "tests/test_inference_extras_parity.py::TestCollinearity::test_large_magnitude_column_returns_statsmodels_numbers",
+      "reason": "statsmodels 0.15 behavior change pinned to statsmodels 0.14 in pyproject.toml"
+    },
+    {
+      "nodeid": "tests/test_inference_extras_parity.py::TestCollinearity::test_negative_index_wraps_and_statsmodels_disagrees",
+      "reason": "statsmodels 0.15 behavior change pinned to statsmodels 0.14 in pyproject.toml"
+    },
+    {
+      "nodeid": "tests/test_inference_extras_parity.py::TestCollinearity::test_parity_all_columns[badly_scaled]",
+      "reason": "statsmodels 0.15 behavior change pinned to statsmodels 0.14 in pyproject.toml"
+    },
+    {
+      "nodeid": "tests/test_inference_extras_parity.py::TestCollinearity::test_parity_all_columns[constant_of_fives]",
+      "reason": "statsmodels 0.15 behavior change pinned to statsmodels 0.14 in pyproject.toml"
+    },
+    {
+      "nodeid": "tests/test_inference_extras_parity.py::TestCollinearity::test_parity_all_columns[constant_stripped]",
+      "reason": "statsmodels 0.15 behavior change pinned to statsmodels 0.14 in pyproject.toml"
+    },
+    {
+      "nodeid": "tests/test_inference_extras_parity.py::TestCollinearity::test_parity_all_columns[implicit_constant]",
+      "reason": "statsmodels 0.15 behavior change pinned to statsmodels 0.14 in pyproject.toml"
+    },
+    {
+      "nodeid": "tests/test_inference_extras_parity.py::TestCollinearity::test_parity_all_columns[no_constant_shifted]",
+      "reason": "statsmodels 0.15 behavior change pinned to statsmodels 0.14 in pyproject.toml"
+    },
+    {
+      "nodeid": "tests/test_inference_extras_parity.py::TestCollinearity::test_parity_all_columns[two_columns]",
+      "reason": "statsmodels 0.15 behavior change pinned to statsmodels 0.14 in pyproject.toml"
+    },
+    {
+      "nodeid": "tests/test_inference_extras_parity.py::TestCollinearity::test_parity_all_columns[very_high_vif]",
+      "reason": "statsmodels 0.15 behavior change pinned to statsmodels 0.14 in pyproject.toml"
+    },
+    {
+      "nodeid": "tests/test_inference_extras_parity.py::TestCollinearity::test_parity_all_columns[with_constant]",
+      "reason": "statsmodels 0.15 behavior change pinned to statsmodels 0.14 in pyproject.toml"
+    },
+    {
+      "nodeid": "tests/test_inference_extras_parity.py::TestCollinearity::test_parity_single_index[badly_scaled]",
+      "reason": "statsmodels 0.15 behavior change pinned to statsmodels 0.14 in pyproject.toml"
+    },
+    {
+      "nodeid": "tests/test_inference_extras_parity.py::TestCollinearity::test_parity_single_index[constant_of_fives]",
+      "reason": "statsmodels 0.15 behavior change pinned to statsmodels 0.14 in pyproject.toml"
+    },
+    {
+      "nodeid": "tests/test_inference_extras_parity.py::TestCollinearity::test_parity_single_index[constant_stripped]",
+      "reason": "statsmodels 0.15 behavior change pinned to statsmodels 0.14 in pyproject.toml"
+    },
+    {
+      "nodeid": "tests/test_inference_extras_parity.py::TestCollinearity::test_parity_single_index[implicit_constant]",
+      "reason": "statsmodels 0.15 behavior change pinned to statsmodels 0.14 in pyproject.toml"
+    },
+    {
+      "nodeid": "tests/test_inference_extras_parity.py::TestCollinearity::test_parity_single_index[no_constant_shifted]",
+      "reason": "statsmodels 0.15 behavior change pinned to statsmodels 0.14 in pyproject.toml"
+    },
+    {
+      "nodeid": "tests/test_inference_extras_parity.py::TestCollinearity::test_parity_single_index[two_columns]",
+      "reason": "statsmodels 0.15 behavior change pinned to statsmodels 0.14 in pyproject.toml"
+    },
+    {
+      "nodeid": "tests/test_inference_extras_parity.py::TestCollinearity::test_parity_single_index[very_high_vif]",
+      "reason": "statsmodels 0.15 behavior change pinned to statsmodels 0.14 in pyproject.toml"
+    },
+    {
+      "nodeid": "tests/test_inference_extras_parity.py::TestCollinearity::test_parity_single_index[with_constant]",
+      "reason": "statsmodels 0.15 behavior change pinned to statsmodels 0.14 in pyproject.toml"
+    },
+    {
+      "nodeid": "tests/test_inference_extras_parity.py::TestCollinearity::test_vif_one_raises_on_an_exactly_redundant_column",
+      "reason": "statsmodels 0.15 behavior change pinned to statsmodels 0.14 in pyproject.toml"
+    },
+    {
+      "nodeid": "tests/test_regress_discrete_parity.py::test_poisson_matches_statsmodels_glm",
+      "reason": "statsmodels 0.15 behavior change pinned to statsmodels 0.14 in pyproject.toml"
+    }
+  ]
 }

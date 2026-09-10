@@ -155,6 +155,7 @@ KEYWORDS = {
     "deflator",
     "log_deflator",
     "shock_groups",
+    "hetagent_block",
 }
 
 
@@ -489,6 +490,7 @@ class ParsedModelDAG:
     log_deflators: dict[str, str] = field(default_factory=dict)
     shock_groups: dict[str, list[str]] = field(default_factory=dict)
     named_shock_groups: dict[str, dict[str, list[str]]] = field(default_factory=dict)
+    hetagent_block: dict[str, Any] | None = None
 
     @property
     def varexo_det(self) -> list[str]:
@@ -603,6 +605,7 @@ class Parser:
         self.log_deflators: dict[str, str] = {}
         self.shock_groups: dict[str, list[str]] = {}
         self.named_shock_groups: dict[str, dict[str, list[str]]] = {}
+        self.hetagent_config: dict[str, Any] | None = None
 
     def _curr(self) -> Token:
         return self.tokens[self.pos]
@@ -1121,6 +1124,45 @@ class Parser:
         if group_set_name == "default" or not self.shock_groups:
             self.shock_groups.update(target_dict)
 
+    def _parse_hetagent_block(self) -> None:
+        """Parse hetagent_block; ... end; block."""
+        self._expect("KEYWORD", "hetagent_block")
+        self._expect("SEMI")
+        config: dict[str, Any] = {}
+        while self._curr().type != "EOF":
+            if self._curr().type == "KEYWORD" and self._curr().value == "end":
+                self._advance()
+                self._expect("SEMI")
+                break
+            if self._curr().type == "SEMI":
+                self._advance()
+                continue
+            if self._curr().type in ("IDENT", "KEYWORD"):
+                key_tok = self._advance()
+                key = str(key_tok.value)
+                self._expect("ASSIGN")
+                val_list = []
+                while self._curr().type not in ("SEMI", "EOF"):
+                    if self._curr().type == "COMMA":
+                        self._advance()
+                        continue
+                    val = self._advance().value
+                    val_list.append(val)
+                self._match("SEMI")
+                if len(val_list) == 1:
+                    v = val_list[0]
+                    v_str = str(v).strip("'\"")
+                    try:
+                        v_conv = float(v_str)
+                    except ValueError:
+                        v_conv = v_str
+                    config[key] = v_conv
+                else:
+                    config[key] = [str(x).strip("'\"") for x in val_list]
+            else:
+                self._advance()
+        self.hetagent_config = config
+
     def _skip_unrecognised_statement(self) -> None:
         """Safely skip MATLAB scripting or unhandled commands outside model blocks."""
         t = self._curr()
@@ -1252,6 +1294,8 @@ class Parser:
                     self._parse_stoch_simul()
                 elif t.value == "shock_groups":
                     self._parse_shock_groups_block()
+                elif t.value == "hetagent_block":
+                    self._parse_hetagent_block()
                 elif t.value in (
                     "estimated_params",
                     "estimated_params_init",
@@ -1609,6 +1653,7 @@ class Parser:
             log_deflators=self.log_deflators,
             shock_groups=self.shock_groups,
             named_shock_groups=self.named_shock_groups,
+            hetagent_block=self.hetagent_config,
         )
 
 

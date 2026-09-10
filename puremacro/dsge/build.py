@@ -824,7 +824,8 @@ class LinearModel:
                  observation_trends=None, ridge=0.0, mode_compute="lbfgs",
                  n_draws: int = 10_000, n_chains: int = 2,
                  burn_in: int = 2_000, seed: int = 0, model_name=None,
-                 check_identification: bool | str = False):
+                 check_identification: bool | str = False,
+                 method: str = "kalman", **kwargs):
         """Bayesian estimation of this model on ``data``.
 
         ``priors`` and ``varobs`` default to the ``estimated_params`` and
@@ -992,6 +993,9 @@ class LinearModel:
             model_name=model_name or "mod",
             mode_compute=mode_compute,
             n_draws=n_draws, n_chains=n_chains, burn_in=burn_in, seed=seed,
+            method=method,
+            model_template=self,
+            **kwargs,
         )
 
     # -- filtering and forecasting -------------------------------------

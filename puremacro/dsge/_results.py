@@ -123,6 +123,447 @@ SW07PosteriorResult = DSGEPosteriorResult
 
 
 @dataclass(frozen=True)
+class NUTSResult:
+    """Result of No-U-Turn Sampler (NUTS) Hamiltonian Monte Carlo estimation.
+
+    Attributes
+    ----------
+    draws : ndarray, shape (n_chains, n_draws, n_params)
+        Post-warmup MCMC draws.
+    param_names : Tuple[str, ...]
+        Names of parameters matching column order of draws.
+    log_posterior_trace : ndarray, shape (n_chains, n_draws)
+        Log-posterior at each retained draw.
+    accept_rates : Tuple[float, ...]
+        Mean acceptance statistic per chain.
+    step_sizes : Tuple[float, ...]
+        Adapted step size per chain.
+    tree_depths : ndarray, shape (n_chains, n_draws)
+        Tree depth reached at each step.
+    divergences : ndarray, shape (n_chains, n_draws)
+        Boolean divergence indicator mask.
+    energy_trace : ndarray, shape (n_chains, n_draws)
+        Hamiltonian energy at each retained draw.
+    mass_matrix_diag : np.ndarray
+        Adapted diagonal inverse mass matrix M^{-1} (or per-chain matrix).
+    mode : dict | None
+        Posterior mode dict (if mode optimization was performed).
+    mode_hessian_inv : np.ndarray | None
+        Inverse Hessian at mode (if computed).
+    n_warmup : int
+        Number of warmup iterations dropped.
+    data_n_obs : int
+        Number of observations in the data.
+    seed : int
+        Master random seed.
+    model_name : str = "unknown"
+        DSGE model name.
+    log_post_mode : float | None = None
+        Log-posterior at mode.
+    warmup_draws : np.ndarray | None = None
+        Warmup draws if recorded.
+    """
+    draws: np.ndarray
+    param_names: Tuple[str, ...]
+    log_posterior_trace: np.ndarray
+    accept_rates: Tuple[float, ...]
+    step_sizes: Tuple[float, ...]
+    tree_depths: np.ndarray
+    divergences: np.ndarray
+    energy_trace: np.ndarray
+    mass_matrix_diag: np.ndarray
+    mode: dict | None = None
+    mode_hessian_inv: np.ndarray | None = None
+    n_warmup: int = 0
+    data_n_obs: int = 0
+    seed: int = 0
+    model_name: str = "unknown"
+    log_post_mode: float | None = None
+    warmup_draws: np.ndarray | None = None
+
+    @property
+    def n_burn_in(self) -> int:
+        """Alias for n_warmup matching DSGEPosteriorResult."""
+        return self.n_warmup
+
+    @property
+    def diagnostics(self) -> dict[str, Any]:
+        """Summary dictionary of NUTS sampling diagnostics."""
+        from puremacro.dsge.nuts import compute_ebfmi
+        ebfmi_vals = tuple(compute_ebfmi(self.energy_trace[c]) for c in range(len(self.accept_rates)))
+        return {
+            "n_divergences": int(np.sum(self.divergences)),
+            "divergence_rate": float(np.mean(self.divergences)),
+            "mean_tree_depth": float(np.mean(self.tree_depths)),
+            "max_tree_depth_hit_rate": float(np.mean(self.tree_depths >= 10)),
+            "mean_accept_rate": float(np.mean(self.accept_rates)),
+            "step_sizes": self.step_sizes,
+            "ebfmi": ebfmi_vals,
+        }
+
+    def summary(self) -> pd.DataFrame:
+        """Per-parameter mean, std, quantiles, split-R_hat, and bulk/tail ESS."""
+        from puremacro.dsge.nuts import compute_split_rhat, compute_bulk_ess, compute_tail_ess
+
+        flat = self.draws.reshape(-1, len(self.param_names))
+        n_params = len(self.param_names)
+
+        r_hats = [compute_split_rhat(self.draws[:, :, i]) for i in range(n_params)]
+        ess_bulks = [compute_bulk_ess(self.draws[:, :, i]) for i in range(n_params)]
+        ess_tails = [compute_tail_ess(self.draws[:, :, i]) for i in range(n_params)]
+
+        data: dict[str, Any] = {
+            "mean": flat.mean(axis=0),
+            "std": flat.std(axis=0),
+            "q5": np.quantile(flat, 0.05, axis=0),
+            "q50": np.quantile(flat, 0.50, axis=0),
+            "q95": np.quantile(flat, 0.95, axis=0),
+            "r_hat": r_hats,
+            "ess_bulk": ess_bulks,
+            "ess_tail": ess_tails,
+        }
+        if self.mode is not None:
+            data["mode"] = [self.mode.get(n, float("nan")) for n in self.param_names]
+
+        return pd.DataFrame(data, index=list(self.param_names))
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return summary statistics as a DataFrame."""
+        return self.summary()
+
+    def to_markdown(self, **kwargs) -> str:
+        """Render summary table as Markdown."""
+        from puremacro.reports import _df_to_markdown
+        return _df_to_markdown(self.summary(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        """Render summary table as LaTeX tabular."""
+        from puremacro.reports import _df_to_latex
+        return _df_to_latex(self.summary(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        """Render summary table as Typst table."""
+        from puremacro.reports import _df_to_typst
+        return _df_to_typst(self.summary(), **kwargs)
+
+    def log_mdd(self, method: str = "harmonic") -> float:
+        """Compute log marginal data density log p(y)."""
+        from .marginal import harmonic_mean_mdd, laplace_mdd
+        if method == "laplace":
+            if self.log_post_mode is None or self.mode_hessian_inv is None:
+                raise ValueError("log_mdd(method='laplace') needs log_post_mode and mode_hessian_inv.")
+            return laplace_mdd(self.log_post_mode, self.mode_hessian_inv)
+        if method == "harmonic":
+            return harmonic_mean_mdd(self.draws, self.log_posterior_trace).estimate
+        raise ValueError(f"unknown method {method!r}; expected 'laplace' or 'harmonic'")
+
+    def plot_trace(self, fig: Any = None, axes: Any = None, figsize: tuple[float, float] | None = None) -> tuple[Any, Any]:
+        """Plot trace of parameter draws across chains with separate colors."""
+        import matplotlib.pyplot as plt
+
+        n_params = len(self.param_names)
+        n_chains = self.draws.shape[0]
+        n_plots = n_params + 1
+
+        if axes is None:
+            ncols = 2
+            nrows = int(np.ceil(n_plots / ncols))
+            if figsize is None:
+                figsize = (10.0, 2.2 * nrows)
+            fig, axes = plt.subplots(nrows, ncols, figsize=figsize)
+
+        ax_flat = axes.ravel() if hasattr(axes, "ravel") else [axes]
+        colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]
+
+        for i, name in enumerate(self.param_names):
+            if i < len(ax_flat):
+                ax = ax_flat[i]
+                for c in range(n_chains):
+                    col = colors[c % len(colors)]
+                    ax.plot(self.draws[c, :, i], color=col, alpha=0.75, lw=1.0, label=f"Chain {c+1}")
+                ax.set_title(name, fontsize=10, fontweight="bold")
+                ax.set_xlabel("Iteration")
+                ax.grid(True, alpha=0.3)
+
+        if n_params < len(ax_flat):
+            ax = ax_flat[n_params]
+            for c in range(n_chains):
+                col = colors[c % len(colors)]
+                ax.plot(self.log_posterior_trace[c], color=col, alpha=0.75, lw=1.0, label=f"Chain {c+1}")
+            ax.set_title("Log-Posterior", fontsize=10, fontweight="bold")
+            ax.set_xlabel("Iteration")
+            ax.grid(True, alpha=0.3)
+            ax.legend(loc="best", fontsize=8)
+
+        for k in range(n_plots, len(ax_flat)):
+            ax_flat[k].axis("off")
+
+        if fig is not None:
+            fig.tight_layout()
+        return fig, axes
+
+    def plot_posterior(self, fig: Any = None, axes: Any = None, bins: int = 30, figsize: tuple[float, float] | None = None) -> tuple[Any, Any]:
+        """Plot marginal posterior distributions for all parameters."""
+        import matplotlib.pyplot as plt
+
+        n_params = len(self.param_names)
+        if axes is None:
+            ncols = min(3, n_params)
+            nrows = int(np.ceil(n_params / ncols))
+            if figsize is None:
+                figsize = (3.5 * ncols, 2.5 * nrows)
+            fig, axes = plt.subplots(nrows, ncols, figsize=figsize)
+
+        ax_flat = axes.ravel() if hasattr(axes, "ravel") else [axes]
+        flat_draws = self.draws.reshape(-1, n_params)
+
+        for i, name in enumerate(self.param_names):
+            if i < len(ax_flat):
+                ax = ax_flat[i]
+                vals = flat_draws[:, i]
+                ax.hist(vals, bins=bins, density=True, alpha=0.65, color="#1f77b4", edgecolor="white")
+                if self.mode is not None and name in self.mode:
+                    ax.axvline(self.mode[name], color="red", linestyle="--", lw=1.5, label="Mode")
+                ax.set_title(name, fontsize=10, fontweight="bold")
+                ax.set_xlabel("Value")
+                ax.set_ylabel("Density")
+                ax.grid(True, alpha=0.3)
+
+        for k in range(n_params, len(ax_flat)):
+            ax_flat[k].axis("off")
+
+        if fig is not None:
+            fig.tight_layout()
+        return fig, axes
+
+    def plot_autocorr(self, fig: Any = None, axes: Any = None, max_lag: int = 40, figsize: tuple[float, float] | None = None) -> tuple[Any, Any]:
+        """Plot autocorrelation function for all parameters across chains."""
+        import matplotlib.pyplot as plt
+        from puremacro.mcmc import autocorrelations
+
+        n_params = len(self.param_names)
+        n_chains = self.draws.shape[0]
+
+        if axes is None:
+            ncols = min(3, n_params)
+            nrows = int(np.ceil(n_params / ncols))
+            if figsize is None:
+                figsize = (3.5 * ncols, 2.5 * nrows)
+            fig, axes = plt.subplots(nrows, ncols, figsize=figsize)
+
+        ax_flat = axes.ravel() if hasattr(axes, "ravel") else [axes]
+        colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b"]
+
+        for i, name in enumerate(self.param_names):
+            if i < len(ax_flat):
+                ax = ax_flat[i]
+                for c in range(n_chains):
+                    col = colors[c % len(colors)]
+                    acf = autocorrelations(self.draws[c, :, i], max_lag=max_lag)
+                    ax.plot(np.arange(len(acf)), acf, color=col, lw=1.2, alpha=0.8, label=f"Chain {c+1}")
+                ax.axhline(0.0, color="gray", linestyle="--", alpha=0.5)
+                ax.set_title(name, fontsize=10, fontweight="bold")
+                ax.set_xlabel("Lag")
+                ax.set_ylabel("Autocorrelation")
+                ax.set_ylim(-0.2, 1.05)
+                ax.grid(True, alpha=0.3)
+
+        for k in range(n_params, len(ax_flat)):
+            ax_flat[k].axis("off")
+
+        if fig is not None:
+            fig.tight_layout()
+        return fig, axes
+
+    def energy_diagnostics(self, fig: Any = None, ax: Any = None, bins: int = 30) -> tuple[dict[str, Any], Any, Any]:
+        """Betancourt (2016) Energy diagnostic and E-BFMI visualization."""
+        import matplotlib.pyplot as plt
+        from puremacro.dsge.nuts import compute_ebfmi
+
+        E_flat = self.energy_trace.ravel()
+        dE_flat = np.concatenate([np.diff(self.energy_trace[c]) for c in range(self.energy_trace.shape[0])])
+
+        ebfmi_vals = tuple(compute_ebfmi(self.energy_trace[c]) for c in range(self.energy_trace.shape[0]))
+        mean_ebfmi = float(np.mean(ebfmi_vals))
+
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(7, 4.5))
+
+        E_std = (E_flat - np.mean(E_flat)) / np.std(E_flat)
+        dE_std = (dE_flat - np.mean(dE_flat)) / np.std(dE_flat)
+
+        ax.hist(E_std, bins=bins, density=True, alpha=0.5, color="#1f77b4", edgecolor="white", label="Marginal Energy $\\pi(E)$")
+        ax.hist(dE_std, bins=bins, density=True, alpha=0.5, color="#2ca02c", edgecolor="white", label="Energy Transition $\\pi(\\Delta E)$")
+        ax.set_title(f"HMC Energy Diagnostics (Mean E-BFMI = {mean_ebfmi:.3f})", fontsize=11, fontweight="bold")
+        ax.set_xlabel("Standardized Energy")
+        ax.set_ylabel("Density")
+        ax.grid(True, alpha=0.3)
+        ax.legend(loc="upper right")
+
+        if fig is not None:
+            fig.tight_layout()
+
+        diag_dict = {
+            "ebfmi_per_chain": ebfmi_vals,
+            "mean_ebfmi": mean_ebfmi,
+            "passed": mean_ebfmi >= 0.3,
+        }
+        return diag_dict, fig, ax
+
+
+@dataclass(frozen=True)
+class HANKResult:
+    """Result of Heterogeneous-Agent New Keynesian (HANK) Sequence-Space solve.
+
+    Attributes
+    ----------
+    steady_state : dict[str, float]
+        Steady-state values of aggregate and microeconomic variables.
+    transition_paths : pd.DataFrame
+        Time series of variables across the transition horizon (Y, C, r, pi, etc.).
+    jacobians : dict[str, np.ndarray]
+        Sequence-space Jacobians (e.g. J_C_r, J_C_Y).
+    asset_distribution : np.ndarray
+        Stationary distribution over asset grid D^*(a).
+    asset_grid : np.ndarray
+        Asset grid points a.
+    mpc_distribution : np.ndarray | None
+        Marginal propensity to consume distribution across asset grid.
+    shock_name : str
+        Name of simulated exogenous shock.
+    horizon : int
+        Simulation horizon.
+    model_name : str
+        Model identifier.
+    converged : bool
+        Whether nonlinear transition / steady state converged.
+    """
+    steady_state: dict[str, float]
+    transition_paths: pd.DataFrame
+    jacobians: dict[str, np.ndarray]
+    asset_distribution: np.ndarray
+    asset_grid: np.ndarray
+    mpc_distribution: np.ndarray | None = None
+    shock_name: str = "eps_m"
+    horizon: int = 40
+    model_name: str = "hank_sequence_space"
+    converged: bool = True
+
+    def summary(self) -> pd.DataFrame:
+        """Summary table of peak and on-impact responses across variables."""
+        records = []
+        for col in self.transition_paths.columns:
+            series = self.transition_paths[col].to_numpy()
+            impact = float(series[0]) if len(series) > 0 else 0.0
+            peak_idx = int(np.argmax(np.abs(series))) if len(series) > 0 else 0
+            peak_val = float(series[peak_idx]) if len(series) > 0 else 0.0
+            ss_val = float(self.steady_state.get(col, np.nan))
+            records.append({
+                "variable": col,
+                "steady_state": ss_val,
+                "impact_response": impact,
+                "peak_response": peak_val,
+                "peak_period": peak_idx,
+            })
+        return pd.DataFrame(records).set_index("variable")
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return transition paths as DataFrame."""
+        return self.transition_paths
+
+    def to_markdown(self, **kwargs) -> str:
+        """Render summary table as Markdown."""
+        from puremacro.reports import _df_to_markdown
+        return _df_to_markdown(self.summary(), **kwargs)
+
+    def to_latex(self, **kwargs) -> str:
+        """Render summary table as LaTeX tabular."""
+        from puremacro.reports import _df_to_latex
+        return _df_to_latex(self.summary(), **kwargs)
+
+    def to_typst(self, **kwargs) -> str:
+        """Render summary table as Typst table."""
+        from puremacro.reports import _df_to_typst
+        return _df_to_typst(self.summary(), **kwargs)
+
+    def plot_transition(
+        self,
+        variables: Sequence[str] | None = None,
+        fig: Any = None,
+        axes: Any = None,
+        figsize: tuple[float, float] | None = None,
+    ) -> tuple[Any, Any]:
+        """Plot transition dynamics (IRFs) across variables."""
+        import matplotlib.pyplot as plt
+
+        vars_to_plot = list(variables) if variables is not None else list(self.transition_paths.columns)
+        n_vars = len(vars_to_plot)
+
+        if axes is None:
+            ncols = min(3, n_vars)
+            nrows = int(np.ceil(n_vars / ncols))
+            if figsize is None:
+                figsize = (3.5 * ncols, 2.5 * nrows)
+            fig, axes = plt.subplots(nrows, ncols, figsize=figsize)
+
+        ax_flat = axes.ravel() if hasattr(axes, "ravel") else [axes]
+        t_grid = np.arange(len(self.transition_paths))
+
+        for i, var in enumerate(vars_to_plot):
+            if i < len(ax_flat):
+                ax = ax_flat[i]
+                ax.plot(t_grid, self.transition_paths[var], color="#1f77b4", lw=2.0)
+                ax.axhline(0.0, color="gray", linestyle="--", alpha=0.6)
+                ax.set_title(var, fontsize=11, fontweight="bold")
+                ax.set_xlabel("Periods")
+                ax.grid(True, alpha=0.3)
+
+        for k in range(n_vars, len(ax_flat)):
+            ax_flat[k].axis("off")
+
+        if fig is not None:
+            fig.tight_layout()
+        return fig, axes
+
+    def plot_distribution(
+        self,
+        fig: Any = None,
+        axes: Any = None,
+        figsize: tuple[float, float] = (10.0, 4.0),
+    ) -> tuple[Any, Any]:
+        """Plot stationary asset distribution and MPC distribution."""
+        import matplotlib.pyplot as plt
+
+        if axes is None:
+            fig, axes = plt.subplots(1, 2, figsize=figsize)
+        ax_flat = axes.ravel() if hasattr(axes, "ravel") else [axes]
+
+        ax_flat[0].plot(self.asset_grid, self.asset_distribution, color="#1f77b4", lw=2.0)
+        ax_flat[0].set_title("Stationary Wealth Distribution $\\mathcal{D}^*(a)$", fontsize=11, fontweight="bold")
+        ax_flat[0].set_xlabel("Assets $a$")
+        ax_flat[0].set_ylabel("Density")
+        ax_flat[0].grid(True, alpha=0.3)
+
+        if self.mpc_distribution is not None:
+            ax_flat[1].plot(self.asset_grid, self.mpc_distribution, color="#d62728", lw=2.0)
+            ax_flat[1].set_title("Marginal Propensity to Consume $MPC(a)$", fontsize=11, fontweight="bold")
+            ax_flat[1].set_xlabel("Assets $a$")
+            ax_flat[1].set_ylabel("MPC")
+            ax_flat[1].grid(True, alpha=0.3)
+        else:
+            cdf = np.cumsum(self.asset_distribution) / np.sum(self.asset_distribution)
+            ax_flat[1].plot(self.asset_grid, cdf, color="#2ca02c", lw=2.0)
+            ax_flat[1].set_title("Cumulative Wealth Distribution", fontsize=11, fontweight="bold")
+            ax_flat[1].set_xlabel("Assets $a$")
+            ax_flat[1].set_ylabel("CDF")
+            ax_flat[1].grid(True, alpha=0.3)
+
+        if fig is not None:
+            fig.tight_layout()
+        return fig, axes
+
+
+@dataclass(frozen=True)
 class FertilitySolution:
     """Linear solution of the fertility DSGE around its BGP.
 
@@ -713,6 +1154,8 @@ from .perfect_foresight import PerfectForesightResult
 __all__ = [
     "DSGEPosteriorResult",
     "SW07PosteriorResult",
+    "NUTSResult",
+    "HANKResult",
     "FertilitySolution",
     "DynareDR",
     "Dynare2ndDR",
