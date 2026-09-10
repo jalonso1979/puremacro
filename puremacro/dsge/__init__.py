@@ -56,6 +56,8 @@ from .pruning import (
     PrunedSimulationResult,
     canonical_growth_2nd_order,
 )
+from .macro import DynareMacroError, Scope, preprocess_macro
+from .widgets import InteractiveIRFResult, interactive_irf
 from .dynare import (
     DynareFeatureError,
     build_dynare, parse_mod, load_mod, load_dynare_mod, solve_dynare_2nd_order,
@@ -159,10 +161,16 @@ __all__ = [
     # --- 3.0.0: Sequence-Space HANK Bridge -------------------------------
     "HANKModel", "HANKResult", "load_hank_mod", "solve_hank_bridge",
     "hank",
+    # --- Dynare Macro Processor & Interactive Widgets --------------------
+    "preprocess_macro", "DynareMacroError", "Scope",
+    "interactive_irf", "InteractiveIRFResult",
+    "macro", "widgets",
 ]
 from . import smets_wouters  # re-export for back-compat with 0.50.0 callers
 from . import gertler_karadi
 from . import load_dynare, parity
 from . import hank
+from . import macro, widgets
+
 
 

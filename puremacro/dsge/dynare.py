@@ -242,10 +242,10 @@ def _check_lead_lag_residual(
 
 
 def build_dynare(
-    equations: Callable,
+    equations: Callable | str | Path,
     *,
-    variables: Sequence[str],
-    shocks: Sequence[str],
+    variables: Sequence[str] | None = None,
+    shocks: Sequence[str] | None = None,
     params: Mapping[str, float] | None = None,
     steady_state: Mapping[str, float] | Sequence[float] | None = None,
     guess: Mapping[str, float] | Sequence[float] | None = None,
@@ -276,14 +276,14 @@ def build_dynare(
 
     Parameters
     ----------
-    equations : Callable
-        Function of five arguments: ``eqs(lead, curr, lag, shocks, params)``.
-        Each argument supports named attribute access (e.g. ``curr.c``, ``lead.c``,
-        ``lag.k``, ``shocks.eps``, ``params.alpha``).
-    variables : Sequence[str]
-        Names of all endogenous variables in model order.
-    shocks : Sequence[str]
-        Names of structural innovations.
+    equations : Callable | str | Path
+        Either a function of five arguments ``eqs(lead, curr, lag, shocks, params)``,
+        or a Dynare ``.mod`` file path / source string. When a string or Path is
+        passed, model loading delegates directly to :func:`load_mod`.
+    variables : Sequence[str], optional
+        Names of all endogenous variables in model order (required when equations is Callable).
+    shocks : Sequence[str], optional
+        Names of structural innovations (required when equations is Callable).
     params : Mapping[str, float], optional
         Parameter values.
     steady_state : Mapping[str, float] | Sequence[float], optional
@@ -293,8 +293,8 @@ def build_dynare(
     states : Sequence[str], optional
         Predetermined state variables. If None (default), **automatically
         detected** from the Jacobian columns with respect to ``lag``.
-    order : {1, 2}, default 1
-        Perturbation order. ``2`` returns the pruned second-order solution.
+    order : {1, 2, 3}, default 1
+        Perturbation order: 1 (linear), 2 (pruned quadratic), 3 (pruned cubic).
     shock_cov : np.ndarray, optional
         Innovation covariance Σ_u. Used as the default for theoretical
         moments, IRF sizes (one standard deviation) and simulations, and
@@ -323,6 +323,30 @@ def build_dynare(
         `.fevd()`, `.irf()`, and `.simulate()` (order 1), or the pruned
         second-order solution (order 2).
     """
+    if isinstance(equations, (str, Path)):
+        return load_mod(
+            equations,
+            params=params,
+            steady_state=steady_state,
+            guess=guess,
+            solve_algo=solve_algo,
+            homotopy=homotopy,
+            homotopy_steps=homotopy_steps,
+            states=states,
+            order=order,
+            shock_cov=shock_cov,
+            tol=tol,
+            method=method,
+            verify_derivatives=verify_derivatives,
+            strict=strict,
+            qz_criterium=qz_criterium,
+        )
+
+    if variables is None:
+        raise TypeError("build_dynare() missing required keyword-only argument: 'variables'")
+    if shocks is None:
+        raise TypeError("build_dynare() missing required keyword-only argument: 'shocks'")
+
     if method not in ("complex", "central"):
         raise ValueError(f"unknown method {method!r}; expected 'complex' or 'central'")
 
@@ -1689,12 +1713,12 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
     ValueError
         The file has no ``var``/``varexo`` declaration or no ``model;`` block.
     """
-    clean_text = _remove_comments(mod_text)
-
     # 0. Dynare macro processor pre-pass
-    if _MACRO_DIRECTIVE.search(clean_text) or _MACRO_INTERPOLATION.search(clean_text):
-        clean_text = preprocess_macro(clean_text, base_dir=base_dir)
-        _check_no_macro_directives(clean_text)
+    if _MACRO_DIRECTIVE.search(mod_text) or _MACRO_INTERPOLATION.search(mod_text):
+        mod_text = preprocess_macro(mod_text, base_dir=base_dir)
+
+    clean_text = _remove_comments(mod_text)
+    _check_no_macro_directives(clean_text)
 
     # 1. First attempt AST DAG parsing via puremacro.dsge._parser
     try:

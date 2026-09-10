@@ -1122,6 +1122,50 @@ class LinearModel:
         ax.legend(loc="best", frameon=False)
         return fig
 
+    def interactive_irf(
+        self,
+        parameters: Sequence[str] | Mapping[str, tuple[float, ...]] | None = None,
+        shocks: Sequence[str] | str | None = None,
+        variables: Sequence[str] | None = None,
+        horizon: int = 20,
+        *,
+        param_bounds: Mapping[str, tuple[float, float]] | None = None,
+        param_steps: Mapping[str, float] | None = None,
+        ncols: int = 2,
+        figsize: tuple[float, float] | None = None,
+        title: str = "",
+        size: float = 1.0,
+        show_baseline: bool = True,
+        show_reset: bool = True,
+        strict: bool = False,
+        qz_criterium: float = 1.0 + 1e-8,
+        **kwargs,
+    ):
+        """Spawn an interactive parameter exploration dashboard with Matplotlib Sliders.
+
+        Delegates to :func:`puremacro.dsge.widgets.interactive_irf`.
+        """
+        from puremacro.dsge.widgets import interactive_irf
+
+        return interactive_irf(
+            self,
+            parameters=parameters,
+            shocks=shocks,
+            variables=variables,
+            horizon=horizon,
+            param_bounds=param_bounds,
+            param_steps=param_steps,
+            ncols=ncols,
+            figsize=figsize,
+            title=title,
+            size=size,
+            show_baseline=show_baseline,
+            show_reset=show_reset,
+            strict=strict,
+            qz_criterium=qz_criterium,
+            **kwargs,
+        )
+
     def simulate(
         self,
         periods: int = 200,

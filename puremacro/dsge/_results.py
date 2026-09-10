@@ -1821,12 +1821,12 @@ class ModelDiagnosticsResult:
 
 @dataclass(frozen=True)
 class IdentificationResult:
-    """Frozen dataclass containing Iskrev (2010) parameter identification diagnostics.
+    """Frozen dataclass containing Iskrev (2010) and Komunjer & Ng (2011) parameter identification diagnostics.
 
     Attributes
     ----------
     is_identified : bool
-        True if both J1 (reduced-form solution) and J2 (theoretical moments) are full rank.
+        True if all four rank criteria (J1, J2, JH, JS) are full rank.
     j1_rank : int
         Numerical rank of state-space Jacobian J1 = d vec(T, R, Q, Z, H) / d theta.
     j1_n_params : int
@@ -1857,6 +1857,58 @@ class IdentificationResult:
         Autocovariance lags included in J2 moments.
     prior_mc_results : dict | None, default None
         Optional Monte Carlo identification results over prior distribution.
+    is_identified_solution : bool, default True
+        True if state-space solution Jacobian J1 is full rank.
+    is_identified_moments : bool, default True
+        True if theoretical moment Jacobian J2 is full rank.
+    is_identified_transfer : bool, default True
+        True if frequency-domain transfer function Jacobian JH is full rank.
+    is_identified_spectrum : bool, default True
+        True if frequency-domain power spectral density Jacobian JS is full rank.
+    j1_singular_values : np.ndarray
+        Singular values of J1.
+    j1_condition_number : float
+        Condition number kappa(J1) = s_1 / s_{n_theta}.
+    j2_singular_values : np.ndarray
+        Singular values of J2.
+    j2_condition_number : float
+        Condition number kappa(J2) = s_1 / s_{n_theta}.
+    jh_rank : int
+        Numerical rank of Komunjer & Ng (2011) transfer function Jacobian JH.
+    jh_n_params : int
+        Number of parameters tested in JH.
+    jh_singular_values : np.ndarray
+        Singular values of JH.
+    jh_condition_number : float
+        Condition number kappa(JH) = s_1 / s_{n_theta}.
+    jh_null_space : np.ndarray
+        Orthonormal basis of JH null space.
+    jh_null_combinations : tuple[str, ...]
+        Human-readable linear parameter combinations spanning JH null space.
+    jh_collinearity : pd.DataFrame
+        Pairwise and multi-way collinearity R^2 for JH columns.
+    js_rank : int
+        Numerical rank of Komunjer & Ng (2011) cross-spectral density Jacobian JS.
+    js_n_params : int
+        Number of parameters tested in JS.
+    js_singular_values : np.ndarray
+        Singular values of JS.
+    js_condition_number : float
+        Condition number kappa(JS) = s_1 / s_{n_theta}.
+    js_null_space : np.ndarray
+        Orthonormal basis of JS null space.
+    js_null_combinations : tuple[str, ...]
+        Human-readable linear parameter combinations spanning JS null space.
+    js_collinearity : pd.DataFrame
+        Pairwise and multi-way collinearity R^2 for JS columns.
+    collinear_pairs : tuple[tuple[str, str, float, str], ...]
+        Detected parameter pairs with pairwise R^2 > 0.95: (param1, param2, R^2, criterion).
+    warnings : tuple[str, ...]
+        Structured warnings for rank deficiencies, high condition numbers, and collinearities.
+    n_freq : int, default 16
+        Number of frequency grid points.
+    frequencies : np.ndarray | None, default None
+        Grid of frequency evaluation points omega in (0, pi).
     """
 
     is_identified: bool
@@ -1876,9 +1928,75 @@ class IdentificationResult:
     lags: int = 1
     prior_mc_results: dict | None = None
 
+    # Enhanced criteria fields (with defaults for full backward compatibility)
+    is_identified_solution: bool = True
+    is_identified_moments: bool = True
+    is_identified_transfer: bool = True
+    is_identified_spectrum: bool = True
+
+    j1_singular_values: np.ndarray = field(default_factory=lambda: np.zeros(0))
+    j1_condition_number: float = 1.0
+
+    j2_singular_values: np.ndarray = field(default_factory=lambda: np.zeros(0))
+    j2_condition_number: float = 1.0
+
+    jh_rank: int = 0
+    jh_n_params: int = 0
+    jh_singular_values: np.ndarray = field(default_factory=lambda: np.zeros(0))
+    jh_condition_number: float = 1.0
+    jh_null_space: np.ndarray = field(default_factory=lambda: np.zeros((0, 0)))
+    jh_null_combinations: tuple[str, ...] = ()
+    jh_collinearity: pd.DataFrame = field(default_factory=pd.DataFrame)
+
+    js_rank: int = 0
+    js_n_params: int = 0
+    js_singular_values: np.ndarray = field(default_factory=lambda: np.zeros(0))
+    js_condition_number: float = 1.0
+    js_null_space: np.ndarray = field(default_factory=lambda: np.zeros((0, 0)))
+    js_null_combinations: tuple[str, ...] = ()
+    js_collinearity: pd.DataFrame = field(default_factory=pd.DataFrame)
+
+    collinear_pairs: tuple[tuple[str, str, float, str], ...] = ()
+    warnings: tuple[str, ...] = ()
+    n_freq: int = 16
+    frequencies: np.ndarray | None = None
+
+    def __post_init__(self) -> None:
+        n_p = len(self.param_names)
+        if self.j1_n_params > 0 and (self.j1_rank < self.j1_n_params):
+            object.__setattr__(self, "is_identified_solution", False)
+        if self.j2_n_params > 0 and (self.j2_rank < self.j2_n_params):
+            object.__setattr__(self, "is_identified_moments", False)
+        if self.jh_n_params > 0 and (self.jh_rank < self.jh_n_params):
+            object.__setattr__(self, "is_identified_transfer", False)
+        if self.js_n_params > 0 and (self.js_rank < self.js_n_params):
+            object.__setattr__(self, "is_identified_spectrum", False)
+
+        if self.jh_n_params == 0 and n_p > 0:
+            object.__setattr__(self, "jh_n_params", n_p)
+            object.__setattr__(self, "jh_rank", self.j1_rank)
+            object.__setattr__(self, "is_identified_transfer", bool(self.j1_rank == n_p))
+        if self.js_n_params == 0 and n_p > 0:
+            object.__setattr__(self, "js_n_params", n_p)
+            object.__setattr__(self, "js_rank", self.j2_rank)
+            object.__setattr__(self, "is_identified_spectrum", bool(self.j2_rank == n_p))
+
+        if self.jh_collinearity.empty and n_p > 0:
+            object.__setattr__(
+                self,
+                "jh_collinearity",
+                self.j1_collinearity.copy() if not self.j1_collinearity.empty else pd.DataFrame(index=list(self.param_names)),
+            )
+        if self.js_collinearity.empty and n_p > 0:
+            object.__setattr__(
+                self,
+                "js_collinearity",
+                self.j2_collinearity.copy() if not self.j2_collinearity.empty else pd.DataFrame(index=list(self.param_names)),
+            )
+
     @property
     def rank_deficient(self) -> bool:
-        """True if either J1 or J2 is rank deficient."""
+        """True if any active identification criterion is rank deficient."""
         return not self.is_identified
 
     @property
@@ -1892,9 +2010,57 @@ class IdentificationResult:
         return self.j2_rank < self.j2_n_params
 
     @property
+    def jh_rank_deficient(self) -> bool:
+        """True if Komunjer-Ng transfer Jacobian JH is rank deficient."""
+        return self.jh_rank < self.jh_n_params
+
+    @property
+    def js_rank_deficient(self) -> bool:
+        """True if Komunjer-Ng spectrum Jacobian JS is rank deficient."""
+        return self.js_rank < self.js_n_params
+
+    @property
     def n_params(self) -> int:
         """Total number of parameters evaluated."""
         return len(self.param_names)
+
+    def rank_scorecard(self) -> pd.DataFrame:
+        """Return publication-ready rank scorecard comparing all 4 identification criteria."""
+        records = [
+            {
+                "criterion": "J1 (Iskrev Solution)",
+                "rank": self.j1_rank,
+                "total": self.j1_n_params,
+                "deficiency": self.j1_n_params - self.j1_rank,
+                "condition_number": self.j1_condition_number,
+                "status": "FULL RANK" if self.is_identified_solution else f"DEFICIENT by {self.j1_n_params - self.j1_rank}",
+            },
+            {
+                "criterion": f"J2 (Iskrev Moments, p={self.lags})",
+                "rank": self.j2_rank,
+                "total": self.j2_n_params,
+                "deficiency": self.j2_n_params - self.j2_rank,
+                "condition_number": self.j2_condition_number,
+                "status": "FULL RANK" if self.is_identified_moments else f"DEFICIENT by {self.j2_n_params - self.j2_rank}",
+            },
+            {
+                "criterion": "JH (Komunjer-Ng Transfer)",
+                "rank": self.jh_rank,
+                "total": self.jh_n_params,
+                "deficiency": self.jh_n_params - self.jh_rank,
+                "condition_number": self.jh_condition_number,
+                "status": "FULL RANK" if self.is_identified_transfer else f"DEFICIENT by {self.jh_n_params - self.jh_rank}",
+            },
+            {
+                "criterion": "JS (Komunjer-Ng Spectrum)",
+                "rank": self.js_rank,
+                "total": self.js_n_params,
+                "deficiency": self.js_n_params - self.js_rank,
+                "condition_number": self.js_condition_number,
+                "status": "FULL RANK" if self.is_identified_spectrum else f"DEFICIENT by {self.js_n_params - self.js_rank}",
+            },
+        ]
+        return pd.DataFrame(records, index=["J1", "J2", "JH", "JS"])
 
     def to_frame(self) -> pd.DataFrame:
         """Return parameter identification summary table as a DataFrame."""
@@ -1902,60 +2068,80 @@ class IdentificationResult:
         for p in self.param_names:
             j1_r2 = float(self.j1_collinearity.loc[p, "r2"]) if (p in self.j1_collinearity.index and "r2" in self.j1_collinearity.columns) else 0.0
             j2_r2 = float(self.j2_collinearity.loc[p, "r2"]) if (p in self.j2_collinearity.index and "r2" in self.j2_collinearity.columns) else 0.0
+            jh_r2 = float(self.jh_collinearity.loc[p, "r2"]) if (p in self.jh_collinearity.index and "r2" in self.jh_collinearity.columns) else 0.0
+            js_r2 = float(self.js_collinearity.loc[p, "r2"]) if (p in self.js_collinearity.index and "r2" in self.js_collinearity.columns) else 0.0
             sens = float(self.strength.loc[p, "sensitivity"]) if (p in self.strength.index and "sensitivity" in self.strength.columns) else 0.0
             st = float(self.strength.loc[p, "strength"]) if (p in self.strength.index and "strength" in self.strength.columns) else 0.0
             norm_st = float(self.strength.loc[p, "normalized_strength"]) if (p in self.strength.index and "normalized_strength" in self.strength.columns) else 0.0
-            is_ident = bool((j1_r2 < 0.999) and (j2_r2 < 0.999) and (sens > 1e-8))
+            worst_partner = str(self.j2_collinearity.loc[p, "worst_partner"]) if (p in self.j2_collinearity.index and "worst_partner" in self.j2_collinearity.columns) else "None"
+            is_ident = bool((j1_r2 < 0.999) and (j2_r2 < 0.999) and (jh_r2 < 0.999) and (js_r2 < 0.999) and (sens > 1e-8))
             rows.append({
                 "j1_collinearity": j1_r2,
                 "j2_collinearity": j2_r2,
+                "jh_collinearity": jh_r2,
+                "js_collinearity": js_r2,
                 "sensitivity": sens,
                 "strength": st,
                 "normalized_strength": norm_st,
+                "worst_partner": worst_partner,
                 "identified": is_ident,
             })
         return pd.DataFrame(rows, index=list(self.param_names))
 
     def summary(self) -> str:
-        """Render human-readable identification diagnostics summary."""
+        """Render publication-ready identification diagnostics summary."""
         status_str = "IDENTIFIED" if self.is_identified else "UNIDENTIFIED (RANK DEFICIENT)"
         lines = [
-            "PARAMETER IDENTIFICATION ANALYSIS (Iskrev 2010 / Ratto 2011)",
+            "PARAMETER IDENTIFICATION ANALYSIS (Iskrev 2010 / Komunjer-Ng 2011)",
             "=" * 72,
             f"Overall status         : {status_str}",
             f"Parameters evaluated   : {len(self.param_names)}",
             f"Observables (varobs)   : {', '.join(self.varobs)}",
             f"Autocovariance lags    : {self.lags}",
+            f"Frequency grid points  : {self.n_freq}",
             f"J1 (Solution) rank     : {self.j1_rank} / {self.j1_n_params} "
             f"({'FULL RANK' if not self.j1_rank_deficient else f'DEFICIENT by {self.j1_n_params - self.j1_rank}'})",
             f"J2 (Moments) rank      : {self.j2_rank} / {self.j2_n_params} "
             f"({'FULL RANK' if not self.j2_rank_deficient else f'DEFICIENT by {self.j2_n_params - self.j2_rank}'})",
+            f"JH (Transfer) rank     : {self.jh_rank} / {self.jh_n_params} "
+            f"({'FULL RANK' if not self.jh_rank_deficient else f'DEFICIENT by {self.jh_n_params - self.jh_rank}'})",
+            f"JS (Spectrum) rank     : {self.js_rank} / {self.js_n_params} "
+            f"({'FULL RANK' if not self.js_rank_deficient else f'DEFICIENT by {self.js_n_params - self.js_rank}'})",
+            "",
+            "RANK CRITERIA SCORECARD",
+            "-" * 72,
+            self.rank_scorecard().to_string(),
         ]
-        if self.j1_null_combinations:
-            lines.extend([
-                "",
-                "J1 NULL SPACE PARAMETER COMBINATIONS",
-                "-" * 72,
-            ])
-            for comb in self.j1_null_combinations:
-                lines.append(f"  {comb}")
 
-        if self.j2_null_combinations:
-            lines.extend([
-                "",
-                "J2 NULL SPACE PARAMETER COMBINATIONS",
-                "-" * 72,
-            ])
-            for comb in self.j2_null_combinations:
-                lines.append(f"  {comb}")
+        has_null = False
+        for name, combs in [
+            ("J1 NULL SPACE PARAMETER COMBINATIONS", self.j1_null_combinations),
+            ("J2 NULL SPACE PARAMETER COMBINATIONS", self.j2_null_combinations),
+            ("JH NULL SPACE PARAMETER COMBINATIONS", self.jh_null_combinations),
+            ("JS NULL SPACE PARAMETER COMBINATIONS", self.js_null_combinations),
+        ]:
+            if combs:
+                has_null = True
+                lines.extend(["", name, "-" * 72])
+                for comb in combs:
+                    lines.append(f"  {comb}")
 
-        if not self.j1_null_combinations and not self.j2_null_combinations:
+        if not has_null:
             lines.extend([
                 "",
                 "NULL SPACE DIRECTIONS",
                 "-" * 72,
                 "  None (All parameters locally identified)",
             ])
+
+        if self.warnings:
+            lines.extend([
+                "",
+                "WARNINGS & IDENTIFICATION DIAGNOSTICS",
+                "-" * 72,
+            ])
+            for w in self.warnings:
+                lines.append(f"  * {w}")
 
         lines.extend([
             "",
@@ -1979,11 +2165,16 @@ class IdentificationResult:
             return ax
 
         y_pos = np.arange(n_p)
-        height = 0.35
+        height = 0.25
 
-        r2_vals = (
+        r2_j2 = (
             self.j2_collinearity["r2"].to_numpy()
             if "r2" in self.j2_collinearity.columns
+            else np.zeros(n_p)
+        )
+        r2_js = (
+            self.js_collinearity["r2"].to_numpy()
+            if "r2" in self.js_collinearity.columns
             else np.zeros(n_p)
         )
         st_vals = (
@@ -1997,15 +2188,23 @@ class IdentificationResult:
         )
 
         ax.barh(
-            y_pos - height / 2,
-            r2_vals,
+            y_pos - height,
+            r2_j2,
             height=height,
             color="#4a7bb0",
             alpha=0.85,
             label="Collinearity $R^2$ (J2)",
         )
         ax.barh(
-            y_pos + height / 2,
+            y_pos,
+            r2_js,
+            height=height,
+            color="#9467bd",
+            alpha=0.85,
+            label="Collinearity $R^2$ (JS Spectrum)",
+        )
+        ax.barh(
+            y_pos + height,
             st_vals,
             height=height,
             color="#2ca02c",
@@ -2030,23 +2229,27 @@ class IdentificationResult:
 
         return ax
 
-    def to_markdown(self, **kwargs) -> str:
+    def to_markdown(self, table: str = "parameters", **kwargs) -> str:
         """Render summary table as Markdown."""
         from puremacro.reports import _df_to_markdown
 
-        return _df_to_markdown(self.to_frame(), **kwargs)
+        df = self.rank_scorecard() if table == "scorecard" else self.to_frame()
+        return _df_to_markdown(df, **kwargs)
 
-    def to_latex(self, **kwargs) -> str:
+    def to_latex(self, table: str = "parameters", **kwargs) -> str:
         """Render summary table as LaTeX tabular."""
         from puremacro.reports import _df_to_latex
 
-        return _df_to_latex(self.to_frame(), **kwargs)
+        df = self.rank_scorecard() if table == "scorecard" else self.to_frame()
+        return _df_to_latex(df, **kwargs)
 
-    def to_typst(self, **kwargs) -> str:
+    def to_typst(self, table: str = "parameters", **kwargs) -> str:
         """Render summary table as Typst table."""
         from puremacro.reports import _df_to_typst
 
-        return _df_to_typst(self.to_frame(), **kwargs)
+        df = self.rank_scorecard() if table == "scorecard" else self.to_frame()
+        return _df_to_typst(df, **kwargs)
+
 
 
 @dataclass(frozen=True)
