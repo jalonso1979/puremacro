@@ -21,8 +21,8 @@ generic shock series moves each transition rate.
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Sequence
 
 import numpy as np
 import pandas as pd
@@ -214,19 +214,22 @@ def _quarterly_chain(p_monthly: pd.DataFrame) -> pd.DataFrame:
     """
     p_monthly = p_monthly.sort_index()
     p_monthly["qdate"] = pd.to_datetime(p_monthly.index) + pd.offsets.QuarterEnd(0)
+
+    counts = p_monthly.groupby("qdate").size()
+    valid_qdates = counts[counts >= 3].index
+    if valid_qdates.empty:
+        return pd.DataFrame()
+
+    cols = ["p_EE", "p_EU", "p_EN", "p_UE", "p_UU", "p_UN", "p_NE", "p_NU", "p_NN"]
+    # get only valid quarters, first 3 months per quarter
+    valid_rows = p_monthly[p_monthly["qdate"].isin(valid_qdates)].groupby("qdate").head(3)
+
+    # shape (n_quarters, 3_months, 3_rows, 3_cols)
+    vals = valid_rows[cols].to_numpy(dtype=float).reshape(-1, 3, 3, 3)
+
     out = []
-    for q, group in p_monthly.groupby("qdate"):
-        if len(group) < 3:
-            continue
-        # Take first 3 months of the quarter to multiply
-        mats = [
-            np.array([
-                [row["p_EE"], row["p_EU"], row["p_EN"]],
-                [row["p_UE"], row["p_UU"], row["p_UN"]],
-                [row["p_NE"], row["p_NU"], row["p_NN"]],
-            ])
-            for _, row in group.iloc[:3].iterrows()
-        ]
+    for i, q in enumerate(valid_qdates):
+        mats = vals[i]
         prod = mats[0] @ mats[1] @ mats[2]
         out.append({
             "qdate": q,
@@ -234,7 +237,7 @@ def _quarterly_chain(p_monthly: pd.DataFrame) -> pd.DataFrame:
             "p_UE": prod[1, 0], "p_UU": prod[1, 1], "p_UN": prod[1, 2],
             "p_NE": prod[2, 0], "p_NU": prod[2, 1], "p_NN": prod[2, 2],
         })
-    return pd.DataFrame(out).set_index("qdate") if out else pd.DataFrame()
+    return pd.DataFrame(out).set_index("qdate")
 
 
 def supply_demand_decomposition(panel: TransitionPanel) -> pd.DataFrame:
@@ -275,7 +278,7 @@ def supply_demand_decomposition(panel: TransitionPanel) -> pd.DataFrame:
 
 def transition_shock_response(
     panel: TransitionPanel, shock: pd.Series,
-    horizons: Sequence[int] = range(0, 13),
+    horizons: Sequence[int] = range(13),
     transitions: Sequence[str] = ("p_UE", "p_EU", "p_EN", "p_NE", "p_NU", "p_UN"),
 ) -> pd.DataFrame:
     """LP-style IRF: how does each transition rate respond to a shock?
@@ -307,7 +310,7 @@ def transition_shock_response(
                     "beta": float(m.params["shock"]),
                     "se":   float(m.bse["shock"]),
                     "t":    float(m.tvalues["shock"]),
-                    "n":    int(len(df)),
+                    "n":    len(df),
                 })
             except Exception:
                 rows.append({"transition": outcome, "h": h,

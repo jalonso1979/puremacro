@@ -56,14 +56,13 @@ Shimer, R. (2012). Reassessing the ins and outs of unemployment. RED 15.
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
 
 import numpy as np
 import pandas as pd
 from scipy import linalg as _spla
-
 
 STATES: tuple[str, str, str, str] = ("F", "I", "U", "N")
 
@@ -371,8 +370,7 @@ _SDEM_COLS_WANTED = {
     # ENE/ENEU 2000-2004 renames: HOG -> N_HOG, PER -> N_REN
     "hog", "per",
     "cd_a", "a_met",  # city / metro area code (for urban_filter)
-    "eda", "sex", "clase1", "clase2", "n_ent",
-    "fac", "fac_tri", "fac_men", "fac_np",
+    "eda", "sex", "clase1", "clase2", "fac", "fac_tri", "fac_men", "fac_np",
     # Education
     "cs_p13_1", "cs_p13_2", "cs_p17", "niv_ins", "anios_esc",
     # Wages & hours
@@ -815,19 +813,22 @@ def transitions_from_enoe(
         )
 
     monthly_rows = []
-    for ref_date, row in quarterly_observed.iterrows():
-        P_Q = np.array([[row[f"p_{a}{b}"] for b in STATES] for a in STATES])
-        try:
-            P_M = quarterly_to_monthly_matrix(P_Q)
-        except Exception as e:
-            print(f"[warn] logm failed for {ref_date}: {e}")
-            continue
-        monthly_rows.append({
-            "date": ref_date,
-            **{f"p_{a}{b}": P_M[i, j]
-               for i, a in enumerate(STATES)
-               for j, b in enumerate(STATES)}
-        })
+    if not quarterly_observed.empty:
+        cols = [f"p_{a}{b}" for a in STATES for b in STATES]
+        qo_vals = quarterly_observed[cols].to_numpy(dtype=float).reshape(-1, len(STATES), len(STATES))
+        _qo_dates = quarterly_observed.index
+        for i, P_Q in enumerate(qo_vals):
+            try:
+                P_M = quarterly_to_monthly_matrix(P_Q)
+            except Exception as e:
+                print(f"[warn] logm failed for {_qo_dates[i]}: {e}")
+                continue
+            monthly_rows.append({
+                "date": _qo_dates[i],
+                **{f"p_{a}{b}": P_M[r, c]
+                   for r, a in enumerate(STATES)
+                   for c, b in enumerate(STATES)}
+            })
     if monthly_rows:
         monthly = pd.DataFrame(monthly_rows).set_index("date").sort_index()
     else:
@@ -836,16 +837,19 @@ def transitions_from_enoe(
         )
 
     quarterly_chain_rows = []
-    for d, row in monthly.iterrows():
-        M = np.array([[row[f"p_{a}{b}"] for b in STATES] for a in STATES])
-        P3 = M @ M @ M
-        qd = d + pd.offsets.QuarterEnd(0)
-        quarterly_chain_rows.append({
-            "qdate": qd,
-            **{f"p_{a}{b}": P3[i, j]
-               for i, a in enumerate(STATES)
-               for j, b in enumerate(STATES)}
-        })
+    if not monthly.empty:
+        cols = [f"p_{a}{b}" for a in STATES for b in STATES]
+        mo_vals = monthly[cols].to_numpy(dtype=float).reshape(-1, len(STATES), len(STATES))
+        _mo_dates = monthly.index
+        for i, M in enumerate(mo_vals):
+            P3 = M @ M @ M
+            qd = _mo_dates[i] + pd.offsets.QuarterEnd(0)
+            quarterly_chain_rows.append({
+                "qdate": qd,
+                **{f"p_{a}{b}": P3[r, c]
+                   for r, a in enumerate(STATES)
+                   for c, b in enumerate(STATES)}
+            })
     quarterly = (
         pd.DataFrame(quarterly_chain_rows).set_index("qdate")
         if quarterly_chain_rows else pd.DataFrame()
