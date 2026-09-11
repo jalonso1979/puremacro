@@ -52,6 +52,17 @@
 # $$ \text{smin}_\tau(a, b) = -\tau \ln\left( e^{-a/\tau} + e^{-b/\tau} \right) $$
 # As $\tau \to 0^+$, $\text{smin}_\tau(a, b) \to \min(a, b)$ with infinite-order differentiability ($C^\infty$). The continuous regime weight $w_t(\tau) \in (0, 1)$ interpolates the reference and constrained transition matrices, producing smooth analytical parameter gradients $\nabla_\theta \ln L$ for NUTS sampling.
 
+# %% [markdown]
+# ## Intuition
+#
+# **Intuition.** Nonlinear macroeconomic phenomena introduce severe computational breakdowns into standard linear DSGE toolkits.
+#
+# First, when an economy is subject to time-varying uncertainty—such as stochastic volatility in productivity or financial risk—agents demand precautionary wealth buffers and asset prices reflect time-varying risk premia. Because the conditional variance evolves stochastically, the state-space becomes fundamentally non-Gaussian, causing the Kalman filter to produce biased and misleading likelihood evaluations. Sequential Monte Carlo (particle filtering) overcomes this breakdown by propagating an empirical cloud of particles that tracks the complete, non-Gaussian posterior distribution across time.
+#
+# Second, economic policy is not immutable: central banks switch between aggressive inflation-fighting regimes and accommodative, growth-focused regimes. Standard rational expectations solvers cannot evaluate regimes where monetary policy violates the Taylor principle ($\phi_\pi < 1$). However, Foerster et al. (2016) show that if the public anticipates a sufficiently high probability of returning to an active regime in the future, the economy achieves global Mean-Square Stability despite temporary passages through locally indeterminate regimes.
+#
+# Third, occasionally binding constraints such as the Zero Lower Bound (ZLB) create non-differentiable kinks in policy functions. While discrete piecewise-linear algorithms (traditional OccBin) can simulate trajectories, their zero or infinite directional derivatives break modern gradient-based Bayesian samplers like NUTS (No-U-Turn Sampler). Differentiable OccBin solves this dilemma by smoothing the complementary slackness condition with a continuous temperature parameter $\tau$: as $\tau \to 0$, the smoothed path converges uniformly to the discrete boundary while preserving infinite-order differentiability ($C^\infty$) for Hamiltonian gradient evaluation.
+
 # %%
 import sys
 import time
@@ -461,4 +472,65 @@ print(ms_res.to_latex())
 print("--- Markdown Table Export: Particle Filter Performance ---")
 print(res_sv.to_markdown())
 
-print("\nNonlinear DSGE showcase notebook completed successfully.")
+# %% [markdown]
+# ## Read the output
+#
+# **Read the output.**
+# 1. **Differentiable OccBin Convergence ($\tau \to 0$)**: Under a massive deflationary demand shock ($\epsilon_g = -0.045$), the policy rate hits the $-1.0\%$ ZLB floor for 6 consecutive quarters. The smooth relaxation paths with temperature parameters $\tau = 0.020$ and $\tau = 0.005$ envelop the discrete piecewise-linear trajectory: the maximum absolute deviation shrinks from $6.89 \times 10^{-3}$ at $\tau=0.020$ down to $1.31 \times 10^{-3}$ at $\tau=0.005$, confirming monotonic uniform convergence toward the non-smooth boundary while retaining $C^\infty$ differentiability for gradient-based inference.
+# 2. **Two-Asset HANK Sequence-Space Bridge**: Incorporating household portfolio allocation between liquid cash deposits ($b$) and illiquid capital equity ($a$) with quadratic adjustment costs, the general equilibrium transition under a $-25$ bps monetary policy shock converges rapidly. Aggregate consumption jumps expansionary ($C_0 > 0$), reflecting the high marginal propensity to consume among liquid-constrained households.
+# 3. **Markov-Switching Global Mean-Square Stability**: Although the Dovish monetary regime fails the standard Taylor principle ($\phi_\pi = 0.80 < 1.0$, rendering it locally indeterminate in isolation), the coupled rational expectations system achieves global Mean-Square Stability ($\rho(M_2) = 0.6380 < 1.0$, $\rho(M_1) = 0.5729 < 1.0$). Because the ergodic probability of the Hawkish regime is $2/3$, the public's rational anticipation of eventual monetary tightening anchors expectations and stabilizes the aggregate economy.
+# 4. **Closed-Form Generalized Impulse Responses (GIRF)**: Following an unanticipated monetary tightening shock in the Hawkish regime, the nominal policy rate hikes on impact, inducing an immediate contraction in the output gap and decelerating inflation. The analytical GIRF computes exact intertemporal expectations across all future regime paths in closed form, eliminating Monte Carlo simulation noise.
+# 5. **Sequential Monte Carlo Particle Filter with Stochastic Volatility**: Propagating $N = 2,000$ particles across a nonlinear RBC model with an autoregressive log-volatility process, the Bootstrap Particle Filter maintains a healthy average Effective Sample Size ($ESS = 716.8 / 2,000$, with resampling triggered in $62.5\%$ of periods), preventing particle degeneracy and evaluating an exact nonlinear log-likelihood of $\ln \hat{L} = -15.15$.
+
+# %% [markdown]
+# ## Your turn
+#
+# **Prompts.**
+# 1. *Basic*: Modify the smoothing temperature parameter in Differentiable OccBin (`tau_yt = 0.010` vs `0.002`) and observe how the approximation error scales with temperature.
+# 2. *Intermediate*: Re-evaluate the closed-form MS-DSGE GIRF under an initial Dovish regime (`initial_regime_yt = 1` vs `0`) and contrast the resulting output contraction and interest rate hike against the Hawkish baseline.
+# 3. *Stretch*: Increase the number of particles in the Sequential Monte Carlo filter (`n_particles_yt = 5_000`) and test whether the estimated log-likelihood converges and the resampling frequency stabilizes.
+
+# %%
+# Your turn: customize smoothing temperature or MS-DSGE initial regime
+# ← change this: test OccBin smoothing temperature tau_yt = 0.010 (default), 0.015, or 0.002
+tau_yt = 0.010
+# ← change this: test MS-DSGE initial regime (0 = Hawkish, 1 = Dovish)
+initial_regime_yt = 1
+
+# 1. Re-solve Differentiable OccBin under custom smoothing temperature
+res_diff_yt = solve_differentiable_occbin(
+    m_ref, m_cons, zlb_constraint, shocks_mat, tau=tau_yt, horizon=len(shocks_mat)
+)
+r_smooth_yt = res_diff_yt.path["r"].to_numpy()
+err_yt = float(np.max(np.abs(r_disc - r_smooth_yt)))
+
+# 2. Re-solve MS-DSGE GIRF under custom starting regime
+girf_yt = ms_res.girf(shock=2, horizon=16, initial_regime=initial_regime_yt)
+regime_name_yt = regime_names[initial_regime_yt]
+
+print(f"Differentiable OccBin (tau = {tau_yt:.4f}):")
+print(f"  Max absolute deviation from discrete : {err_yt:.6e}")
+print(f"  Monotonic error bound (err_005 < err_yt < err_02) : {err_005 < err_yt < err_02}")
+print(f"MS-DSGE GIRF (Initial Regime = {regime_name_yt}):")
+print(f"  Impact policy rate (i_0) : {girf_yt['interest_rate'].iloc[0]:+.4f} (Baseline Hawkish: {girf_df['interest_rate'].iloc[0]:+.4f})")
+print(f"  Impact output gap  (y_0) : {girf_yt['output_gap'].iloc[0]:+.4f} (Baseline Hawkish: {girf_df['output_gap'].iloc[0]:+.4f})")
+print(f"  Impact inflation  (pi_0) : {girf_yt['inflation'].iloc[0]:+.4f}")
+
+# Downstream automated assertions
+assert res_diff_yt.converged
+assert err_yt < err_02, "Error at smaller tau must remain bounded by tau=0.020 error"
+if initial_regime_yt == 1:
+    assert girf_yt["output_gap"].iloc[0] < girf_df["output_gap"].iloc[0], "Dovish regime must exhibit deeper output contraction"
+    assert girf_yt["interest_rate"].iloc[0] > girf_df["interest_rate"].iloc[0]
+else:
+    np.testing.assert_allclose(girf_yt["output_gap"].iloc[0], girf_df["output_gap"].iloc[0], atol=1e-6)
+assert np.isclose(girf_yt["interest_rate"].iloc[-1], 0.0, atol=1e-3), "GIRF must mean-revert toward zero"
+
+# %% [markdown]
+# ## How comprehensive is this?
+#
+# `puremacro.dsge` unifies the advanced frontier of nonlinear and regime-switching macroeconomics in 100% pure Python:
+# - `solve_differentiable_occbin`: Smooth relaxation of occasionally binding inequality constraints using parameterized smooth operators ($\text{smin}_\tau, \text{smax}_\tau$), providing $C^\infty$ differentiable trajectories for gradient-based Bayesian estimation via NUTS HMC.
+# - `solve_ms_dsge`: Solves Markov-Switching DSGE models (Foerster et al. 2016) via coupled block Newton-Raphson iterations, checks first- and second-moment Mean-Square Stability ($\rho(M_1), \rho(M_2) < 1.0$), and evaluates closed-form analytical Generalized Impulse Responses (`girf`).
+# - `particle_filter`: Vectorized Bootstrap Particle Filter with systematic stratified resampling, effective sample size ($ESS$) monitoring, and support for Stochastic Volatility (`StochasticVolatilitySpec`).
+# - `solve_hank_bridge`: Bridges microeconomic household heterogeneity in liquid and illiquid assets (Kaplan, Moll & Violante 2018) with sequence-space general equilibrium transitions.

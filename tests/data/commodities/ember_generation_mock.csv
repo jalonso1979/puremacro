@@ -1,0 +1,271 @@
+Area,ISO 3 code,Year,Area type,Electricity source,Is aggregated source,Generation (TWh),Generation YoY change (TWh),Generation YoY change (%),Share of generation (%),Share of generation YoY change (% points),Emissions (MtCO2e),Emissions YoY change (MtCO2e),Emissions YoY change (%),Share of emissions (%),Emissions intensity (gCO2e/kWh),Continent,Ember region,EU member,OECD member,G20 member,G7 member,ASEAN member
+United States,USA,2015,Country or economy,Total generation,True,4200.0,,,100.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2015,Country or economy,Fossil,True,2520.0,,,60.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2015,Country or economy,Renewables,True,882.0,,,21.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2015,Country or economy,Hydro,False,273.0,,,6.5,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2015,Country or economy,Nuclear,False,777.0,,,18.5,,,,,,,Continent,Region,False,True,True,True,False
+Germany,DEU,2015,Country or economy,Total generation,True,550.0,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2015,Country or economy,Fossil,True,247.5,,,45.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2015,Country or economy,Renewables,True,264.0,,,48.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2015,Country or economy,Hydro,False,19.25,,,3.5,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2015,Country or economy,Nuclear,False,27.5,,,5.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2015,Country or economy,Total generation,True,520.0,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2015,Country or economy,Fossil,True,46.8,,,9.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2015,Country or economy,Renewables,True,124.8,,,24.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2015,Country or economy,Hydro,False,62.4,,,12.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2015,Country or economy,Nuclear,False,338.0,,,65.0,,,,,,,Continent,Region,False,True,True,False,False
+China,CHN,2015,Country or economy,Total generation,True,8500.0,,,100.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2015,Country or economy,Fossil,True,5525.0,,,65.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2015,Country or economy,Renewables,True,2550.0,,,30.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2015,Country or economy,Hydro,False,1275.0,,,15.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2015,Country or economy,Nuclear,False,425.0,,,5.0,,,,,,,Continent,Region,False,False,True,False,False
+World,WLD,2015,Region,Total generation,True,28000.0,,,100.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2015,Region,Fossil,True,17080.0,,,61.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2015,Region,Renewables,True,8120.0,,,29.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2015,Region,Hydro,False,4200.0,,,15.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2015,Region,Nuclear,False,2520.0,,,9.0,,,,,,,Continent,Region,False,False,False,False,False
+United States,USA,2016,Country or economy,Total generation,True,4263.0,,,100.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2016,Country or economy,Fossil,True,2523.7,,,59.2,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2016,Country or economy,Renewables,True,937.86,,,22.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2016,Country or economy,Hydro,False,277.1,,,6.5,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2016,Country or economy,Nuclear,False,788.65,,,18.5,,,,,,,Continent,Region,False,True,True,True,False
+Germany,DEU,2016,Country or economy,Total generation,True,558.25,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2016,Country or economy,Fossil,True,246.75,,,44.2,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2016,Country or economy,Renewables,True,273.54,,,49.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2016,Country or economy,Hydro,False,19.54,,,3.5,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2016,Country or economy,Nuclear,False,27.91,,,5.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2016,Country or economy,Total generation,True,527.8,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2016,Country or economy,Fossil,True,43.28,,,8.2,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2016,Country or economy,Renewables,True,131.95,,,25.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2016,Country or economy,Hydro,False,63.34,,,12.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2016,Country or economy,Nuclear,False,343.07,,,65.0,,,,,,,Continent,Region,False,True,True,False,False
+China,CHN,2016,Country or economy,Total generation,True,8627.5,,,100.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2016,Country or economy,Fossil,True,5538.85,,,64.2,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2016,Country or economy,Renewables,True,2674.53,,,31.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2016,Country or economy,Hydro,False,1294.12,,,15.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2016,Country or economy,Nuclear,False,431.38,,,5.0,,,,,,,Continent,Region,False,False,True,False,False
+World,WLD,2016,Region,Total generation,True,28420.0,,,100.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2016,Region,Fossil,True,17108.84,,,60.2,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2016,Region,Renewables,True,8526.0,,,30.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2016,Region,Hydro,False,4263.0,,,15.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2016,Region,Nuclear,False,2557.8,,,9.0,,,,,,,Continent,Region,False,False,False,False,False
+United States,USA,2017,Country or economy,Total generation,True,4326.0,,,100.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2017,Country or economy,Fossil,True,2526.38,,,58.4,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2017,Country or economy,Renewables,True,994.98,,,23.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2017,Country or economy,Hydro,False,281.19,,,6.5,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2017,Country or economy,Nuclear,False,800.31,,,18.5,,,,,,,Continent,Region,False,True,True,True,False
+Germany,DEU,2017,Country or economy,Total generation,True,566.5,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2017,Country or economy,Fossil,True,245.86,,,43.4,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2017,Country or economy,Renewables,True,283.25,,,50.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2017,Country or economy,Hydro,False,19.83,,,3.5,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2017,Country or economy,Nuclear,False,28.32,,,5.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2017,Country or economy,Total generation,True,535.6,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2017,Country or economy,Fossil,True,39.63,,,7.4,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2017,Country or economy,Renewables,True,139.26,,,26.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2017,Country or economy,Hydro,False,64.27,,,12.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2017,Country or economy,Nuclear,False,348.14,,,65.0,,,,,,,Continent,Region,False,True,True,False,False
+China,CHN,2017,Country or economy,Total generation,True,8755.0,,,100.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2017,Country or economy,Fossil,True,5550.67,,,63.4,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2017,Country or economy,Renewables,True,2801.6,,,32.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2017,Country or economy,Hydro,False,1313.25,,,15.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2017,Country or economy,Nuclear,False,437.75,,,5.0,,,,,,,Continent,Region,False,False,True,False,False
+World,WLD,2017,Region,Total generation,True,28840.0,,,100.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2017,Region,Fossil,True,17130.96,,,59.4,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2017,Region,Renewables,True,8940.4,,,31.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2017,Region,Hydro,False,4326.0,,,15.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2017,Region,Nuclear,False,2595.6,,,9.0,,,,,,,Continent,Region,False,False,False,False,False
+United States,USA,2018,Country or economy,Total generation,True,4389.0,,,100.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2018,Country or economy,Fossil,True,2528.06,,,57.6,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2018,Country or economy,Renewables,True,1053.36,,,24.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2018,Country or economy,Hydro,False,285.29,,,6.5,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2018,Country or economy,Nuclear,False,811.97,,,18.5,,,,,,,Continent,Region,False,True,True,True,False
+Germany,DEU,2018,Country or economy,Total generation,True,574.75,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2018,Country or economy,Fossil,True,244.84,,,42.6,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2018,Country or economy,Renewables,True,293.12,,,51.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2018,Country or economy,Hydro,False,20.12,,,3.5,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2018,Country or economy,Nuclear,False,28.74,,,5.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2018,Country or economy,Total generation,True,543.4,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2018,Country or economy,Fossil,True,35.86,,,6.6,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2018,Country or economy,Renewables,True,146.72,,,27.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2018,Country or economy,Hydro,False,65.21,,,12.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2018,Country or economy,Nuclear,False,353.21,,,65.0,,,,,,,Continent,Region,False,True,True,False,False
+China,CHN,2018,Country or economy,Total generation,True,8882.5,,,100.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2018,Country or economy,Fossil,True,5560.44,,,62.6,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2018,Country or economy,Renewables,True,2931.22,,,33.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2018,Country or economy,Hydro,False,1332.38,,,15.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2018,Country or economy,Nuclear,False,444.12,,,5.0,,,,,,,Continent,Region,False,False,True,False,False
+World,WLD,2018,Region,Total generation,True,29260.0,,,100.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2018,Region,Fossil,True,17146.36,,,58.6,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2018,Region,Renewables,True,9363.2,,,32.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2018,Region,Hydro,False,4389.0,,,15.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2018,Region,Nuclear,False,2633.4,,,9.0,,,,,,,Continent,Region,False,False,False,False,False
+United States,USA,2019,Country or economy,Total generation,True,4452.0,,,100.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2019,Country or economy,Fossil,True,2528.74,,,56.8,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2019,Country or economy,Renewables,True,1113.0,,,25.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2019,Country or economy,Hydro,False,289.38,,,6.5,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2019,Country or economy,Nuclear,False,823.62,,,18.5,,,,,,,Continent,Region,False,True,True,True,False
+Germany,DEU,2019,Country or economy,Total generation,True,583.0,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2019,Country or economy,Fossil,True,243.69,,,41.8,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2019,Country or economy,Renewables,True,303.16,,,52.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2019,Country or economy,Hydro,False,20.41,,,3.5,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2019,Country or economy,Nuclear,False,29.15,,,5.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2019,Country or economy,Total generation,True,551.2,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2019,Country or economy,Fossil,True,31.97,,,5.8,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2019,Country or economy,Renewables,True,154.34,,,28.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2019,Country or economy,Hydro,False,66.14,,,12.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2019,Country or economy,Nuclear,False,358.28,,,65.0,,,,,,,Continent,Region,False,True,True,False,False
+China,CHN,2019,Country or economy,Total generation,True,9010.0,,,100.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2019,Country or economy,Fossil,True,5568.18,,,61.8,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2019,Country or economy,Renewables,True,3063.4,,,34.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2019,Country or economy,Hydro,False,1351.5,,,15.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2019,Country or economy,Nuclear,False,450.5,,,5.0,,,,,,,Continent,Region,False,False,True,False,False
+World,WLD,2019,Region,Total generation,True,29680.0,,,100.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2019,Region,Fossil,True,17155.04,,,57.8,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2019,Region,Renewables,True,9794.4,,,33.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2019,Region,Hydro,False,4452.0,,,15.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2019,Region,Nuclear,False,2671.2,,,9.0,,,,,,,Continent,Region,False,False,False,False,False
+United States,USA,2020,Country or economy,Total generation,True,4515.0,,,100.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2020,Country or economy,Fossil,True,2528.4,,,56.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2020,Country or economy,Renewables,True,1173.9,,,26.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2020,Country or economy,Hydro,False,293.48,,,6.5,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2020,Country or economy,Nuclear,False,835.27,,,18.5,,,,,,,Continent,Region,False,True,True,True,False
+Germany,DEU,2020,Country or economy,Total generation,True,591.25,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2020,Country or economy,Fossil,True,242.41,,,41.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2020,Country or economy,Renewables,True,313.36,,,53.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2020,Country or economy,Hydro,False,20.69,,,3.5,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2020,Country or economy,Nuclear,False,29.56,,,5.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2020,Country or economy,Total generation,True,559.0,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2020,Country or economy,Fossil,True,27.95,,,5.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2020,Country or economy,Renewables,True,162.11,,,29.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2020,Country or economy,Hydro,False,67.08,,,12.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2020,Country or economy,Nuclear,False,363.35,,,65.0,,,,,,,Continent,Region,False,True,True,False,False
+China,CHN,2020,Country or economy,Total generation,True,9137.5,,,100.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2020,Country or economy,Fossil,True,5573.88,,,61.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2020,Country or economy,Renewables,True,3198.12,,,35.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2020,Country or economy,Hydro,False,1370.62,,,15.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2020,Country or economy,Nuclear,False,456.88,,,5.0,,,,,,,Continent,Region,False,False,True,False,False
+World,WLD,2020,Region,Total generation,True,30100.0,,,100.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2020,Region,Fossil,True,17157.0,,,57.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2020,Region,Renewables,True,10234.0,,,34.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2020,Region,Hydro,False,4515.0,,,15.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2020,Region,Nuclear,False,2709.0,,,9.0,,,,,,,Continent,Region,False,False,False,False,False
+United States,USA,2021,Country or economy,Total generation,True,4578.0,,,100.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2021,Country or economy,Fossil,True,2527.06,,,55.2,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2021,Country or economy,Renewables,True,1236.06,,,27.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2021,Country or economy,Hydro,False,297.57,,,6.5,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2021,Country or economy,Nuclear,False,846.93,,,18.5,,,,,,,Continent,Region,False,True,True,True,False
+Germany,DEU,2021,Country or economy,Total generation,True,599.5,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2021,Country or economy,Fossil,True,241.0,,,40.2,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2021,Country or economy,Renewables,True,323.73,,,54.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2021,Country or economy,Hydro,False,20.98,,,3.5,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2021,Country or economy,Nuclear,False,29.98,,,5.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2021,Country or economy,Total generation,True,566.8,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2021,Country or economy,Fossil,True,23.81,,,4.2,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2021,Country or economy,Renewables,True,170.04,,,30.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2021,Country or economy,Hydro,False,68.02,,,12.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2021,Country or economy,Nuclear,False,368.42,,,65.0,,,,,,,Continent,Region,False,True,True,False,False
+China,CHN,2021,Country or economy,Total generation,True,9265.0,,,100.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2021,Country or economy,Fossil,True,5577.53,,,60.2,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2021,Country or economy,Renewables,True,3335.4,,,36.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2021,Country or economy,Hydro,False,1389.75,,,15.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2021,Country or economy,Nuclear,False,463.25,,,5.0,,,,,,,Continent,Region,False,False,True,False,False
+World,WLD,2021,Region,Total generation,True,30520.0,,,100.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2021,Region,Fossil,True,17152.24,,,56.2,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2021,Region,Renewables,True,10682.0,,,35.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2021,Region,Hydro,False,4578.0,,,15.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2021,Region,Nuclear,False,2746.8,,,9.0,,,,,,,Continent,Region,False,False,False,False,False
+United States,USA,2022,Country or economy,Total generation,True,4641.0,,,100.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2022,Country or economy,Fossil,True,2524.7,,,54.4,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2022,Country or economy,Renewables,True,1299.48,,,28.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2022,Country or economy,Hydro,False,301.67,,,6.5,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2022,Country or economy,Nuclear,False,858.59,,,18.5,,,,,,,Continent,Region,False,True,True,True,False
+Germany,DEU,2022,Country or economy,Total generation,True,607.75,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2022,Country or economy,Fossil,True,239.45,,,39.4,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2022,Country or economy,Renewables,True,334.26,,,55.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2022,Country or economy,Hydro,False,21.27,,,3.5,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2022,Country or economy,Nuclear,False,30.39,,,5.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2022,Country or economy,Total generation,True,574.6,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2022,Country or economy,Fossil,True,19.54,,,3.4,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2022,Country or economy,Renewables,True,178.13,,,31.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2022,Country or economy,Hydro,False,68.95,,,12.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2022,Country or economy,Nuclear,False,373.49,,,65.0,,,,,,,Continent,Region,False,True,True,False,False
+China,CHN,2022,Country or economy,Total generation,True,9392.5,,,100.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2022,Country or economy,Fossil,True,5579.15,,,59.4,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2022,Country or economy,Renewables,True,3475.22,,,37.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2022,Country or economy,Hydro,False,1408.88,,,15.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2022,Country or economy,Nuclear,False,469.62,,,5.0,,,,,,,Continent,Region,False,False,True,False,False
+World,WLD,2022,Region,Total generation,True,30940.0,,,100.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2022,Region,Fossil,True,17140.76,,,55.4,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2022,Region,Renewables,True,11138.4,,,36.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2022,Region,Hydro,False,4641.0,,,15.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2022,Region,Nuclear,False,2784.6,,,9.0,,,,,,,Continent,Region,False,False,False,False,False
+United States,USA,2023,Country or economy,Total generation,True,4704.0,,,100.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2023,Country or economy,Fossil,True,2521.34,,,53.6,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2023,Country or economy,Renewables,True,1364.16,,,29.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2023,Country or economy,Hydro,False,305.76,,,6.5,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2023,Country or economy,Nuclear,False,870.24,,,18.5,,,,,,,Continent,Region,False,True,True,True,False
+Germany,DEU,2023,Country or economy,Total generation,True,616.0,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2023,Country or economy,Fossil,True,237.78,,,38.6,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2023,Country or economy,Renewables,True,344.96,,,56.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2023,Country or economy,Hydro,False,21.56,,,3.5,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2023,Country or economy,Nuclear,False,30.8,,,5.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2023,Country or economy,Total generation,True,582.4,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2023,Country or economy,Fossil,True,15.14,,,2.6,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2023,Country or economy,Renewables,True,186.37,,,32.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2023,Country or economy,Hydro,False,69.89,,,12.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2023,Country or economy,Nuclear,False,378.56,,,65.0,,,,,,,Continent,Region,False,True,True,False,False
+China,CHN,2023,Country or economy,Total generation,True,9520.0,,,100.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2023,Country or economy,Fossil,True,5578.72,,,58.6,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2023,Country or economy,Renewables,True,3617.6,,,38.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2023,Country or economy,Hydro,False,1428.0,,,15.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2023,Country or economy,Nuclear,False,476.0,,,5.0,,,,,,,Continent,Region,False,False,True,False,False
+World,WLD,2023,Region,Total generation,True,31360.0,,,100.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2023,Region,Fossil,True,17122.56,,,54.6,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2023,Region,Renewables,True,11603.2,,,37.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2023,Region,Hydro,False,4704.0,,,15.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2023,Region,Nuclear,False,2822.4,,,9.0,,,,,,,Continent,Region,False,False,False,False,False
+China,CHN,2015,Country or economy,Primary energy,True,1827500000.0,,,100.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2016,Country or economy,Primary energy,True,1854912500.0,,,100.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2017,Country or economy,Primary energy,True,1882325000.0,,,100.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2018,Country or economy,Primary energy,True,1909737500.0,,,100.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2019,Country or economy,Primary energy,True,1937150000.0,,,100.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2020,Country or economy,Primary energy,True,1964562500.0,,,100.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2021,Country or economy,Primary energy,True,1991975000.0,,,100.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2022,Country or economy,Primary energy,True,2019387500.0,,,100.0,,,,,,,Continent,Region,False,False,True,False,False
+China,CHN,2023,Country or economy,Primary energy,True,2046800000.0,,,100.0,,,,,,,Continent,Region,False,False,True,False,False
+France,FRA,2015,Country or economy,Primary energy,True,111800000.0,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2016,Country or economy,Primary energy,True,113476999.99999999,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2017,Country or economy,Primary energy,True,115154000.0,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2018,Country or economy,Primary energy,True,116831000.0,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2019,Country or economy,Primary energy,True,118508000.00000001,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2020,Country or economy,Primary energy,True,120185000.0,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2021,Country or economy,Primary energy,True,121861999.99999999,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2022,Country or economy,Primary energy,True,123539000.0,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+France,FRA,2023,Country or economy,Primary energy,True,125216000.0,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2015,Country or economy,Primary energy,True,118250000.0,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2016,Country or economy,Primary energy,True,120023750.0,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2017,Country or economy,Primary energy,True,121797500.0,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2018,Country or economy,Primary energy,True,123571250.0,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2019,Country or economy,Primary energy,True,125345000.0,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2020,Country or economy,Primary energy,True,127118750.0,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2021,Country or economy,Primary energy,True,128892500.0,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2022,Country or economy,Primary energy,True,130666250.0,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+Germany,DEU,2023,Country or economy,Primary energy,True,132440000.0,,,100.0,,,,,,,Continent,Region,False,True,True,False,False
+United States,USA,2015,Country or economy,Primary energy,True,903000000.0,,,100.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2016,Country or economy,Primary energy,True,916545000.0,,,100.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2017,Country or economy,Primary energy,True,930090000.0,,,100.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2018,Country or economy,Primary energy,True,943635000.0,,,100.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2019,Country or economy,Primary energy,True,957180000.0,,,100.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2020,Country or economy,Primary energy,True,970725000.0,,,100.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2021,Country or economy,Primary energy,True,984270000.0,,,100.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2022,Country or economy,Primary energy,True,997815000.0,,,100.0,,,,,,,Continent,Region,False,True,True,True,False
+United States,USA,2023,Country or economy,Primary energy,True,1011360000.0,,,100.0,,,,,,,Continent,Region,False,True,True,True,False
+World,WLD,2015,Region,Primary energy,True,6020000000.0,,,100.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2016,Region,Primary energy,True,6110300000.0,,,100.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2017,Region,Primary energy,True,6200600000.0,,,100.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2018,Region,Primary energy,True,6290900000.0,,,100.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2019,Region,Primary energy,True,6381200000.0,,,100.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2020,Region,Primary energy,True,6471500000.0,,,100.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2021,Region,Primary energy,True,6561800000.0,,,100.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2022,Region,Primary energy,True,6652100000.0,,,100.0,,,,,,,Continent,Region,False,False,False,False,False
+World,WLD,2023,Region,Primary energy,True,6742400000.0,,,100.0,,,,,,,Continent,Region,False,False,False,False,False

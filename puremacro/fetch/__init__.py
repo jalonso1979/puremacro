@@ -27,6 +27,16 @@ Public API
 - :func:`sdmx_get`          — generic SDMX-CSV (OECD, Eurostat, ECB, IMF SDMX Central)
 - :func:`oecd_sdmx_instrument` — convenience wrapper that returns
                                  :class:`puremacro.instruments.Instrument` directly
+- :func:`fetch_wdi_emissions` — World Bank WDI greenhouse gas emissions indicators
+- :func:`fetch_oecd_ghg`     — OECD SDMX Air Emissions Inventory sectoral breakdowns
+- :func:`fetch_emissions_panel` — unified cross-country emissions panel
+- :func:`fetch_energy_transition` — primary energy consumption and electricity by source
+- :func:`fetch_commodity_benchmarks` — standardized global commodity benchmark prices and indices
+- :func:`fetch_sovereign_yields` — sovereign bond yields (10Y, 2Y)
+- :func:`fetch_policy_rates` — central bank policy rates
+- :func:`fetch_bis_macroprudential` — BIS credit-to-GDP gap, total credit, and property prices
+- :func:`fetch_financial_conditions` — financial conditions indicators and credit risk spreads
+- :func:`compute_sovereign_spreads` — sovereign risk and term spreads
 
 For API-key-requiring FRED via the JSON endpoint, see
 :func:`puremacro.instruments.external.load_fred`.
@@ -109,6 +119,24 @@ from .realtime import (
     VintagePanel,
     VINTAGE_SEMANTICS,
 )
+from .emissions import (
+    fetch_wdi_emissions,
+    fetch_oecd_ghg,
+    fetch_emissions_panel,
+)
+from .energy_transition import (
+    fetch_energy_transition,
+)
+from .commodities import (
+    fetch_commodity_benchmarks,
+)
+from .financial import (
+    fetch_sovereign_yields,
+    fetch_policy_rates,
+    fetch_bis_macroprudential,
+    fetch_financial_conditions,
+    compute_sovereign_spreads,
+)
 
 __all__ = [
     "fetch_fred",
@@ -168,4 +196,14 @@ __all__ = [
     "fetch_sectoral_panel_union",
     "fetch_jolts",
     "fetch_eurostat_vacancies",
+    "fetch_wdi_emissions",
+    "fetch_oecd_ghg",
+    "fetch_emissions_panel",
+    "fetch_energy_transition",
+    "fetch_commodity_benchmarks",
+    "fetch_sovereign_yields",
+    "fetch_policy_rates",
+    "fetch_bis_macroprudential",
+    "fetch_financial_conditions",
+    "compute_sovereign_spreads",
 ]

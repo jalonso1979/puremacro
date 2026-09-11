@@ -1,4 +1,399 @@
 {
+  "api.worldbank.org/v2_country_DEU_FRA_indicator_EG.USE.PCAP.KG.OE_format_json_date_2015_2025_per_page_15000": {
+    "fetched_at": "2026-09-11T17:36:37.412169+00:00",
+    "size_bytes": 5270,
+    "url": "https://api.worldbank.org/v2/country/DEU;FRA/indicator/EG.USE.PCAP.KG.OE?format=json&date=2015:2025&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_DEU_FRA_indicator_SP.POP.TOTL_format_json_date_2015_2025_per_page_15000": {
+    "fetched_at": "2026-09-11T17:36:38.040501+00:00",
+    "size_bytes": 4395,
+    "url": "https://api.worldbank.org/v2/country/DEU;FRA/indicator/SP.POP.TOTL?format=json&date=2015:2025&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_DEU_USA_indicator_EN.GHG.ALL.MT.CE.AR5_format_json_date_2010_2026_per_page_15000": {
+    "fetched_at": "2026-09-11T18:07:31.360539+00:00",
+    "size_bytes": 8033,
+    "url": "https://api.worldbank.org/v2/country/DEU;USA/indicator/EN.GHG.ALL.MT.CE.AR5?format=json&date=2010:2026&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_DEU_USA_indicator_EN.GHG.ALL.MT.CE.AR5_format_json_date_2015_2020_per_page_15000": {
+    "fetched_at": "2026-09-11T18:05:09.389688+00:00",
+    "size_bytes": 3074,
+    "url": "https://api.worldbank.org/v2/country/DEU;USA/indicator/EN.GHG.ALL.MT.CE.AR5?format=json&date=2015:2020&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_DEU_USA_indicator_EN.GHG.ALL.MT.CE.AR5_format_json_date_2018_2020_per_page_15000": {
+    "fetched_at": "2026-09-11T18:05:30.640469+00:00",
+    "size_bytes": 1584,
+    "url": "https://api.worldbank.org/v2/country/DEU;USA/indicator/EN.GHG.ALL.MT.CE.AR5?format=json&date=2018:2020&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_DEU_USA_indicator_EN.GHG.CH4.MT.CE.AR5_format_json_date_2010_2026_per_page_15000": {
+    "fetched_at": "2026-09-11T18:07:31.727107+00:00",
+    "size_bytes": 8034,
+    "url": "https://api.worldbank.org/v2/country/DEU;USA/indicator/EN.GHG.CH4.MT.CE.AR5?format=json&date=2010:2026&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_DEU_USA_indicator_EN.GHG.CH4.MT.CE.AR5_format_json_date_2015_2020_per_page_15000": {
+    "fetched_at": "2026-09-11T18:05:09.806236+00:00",
+    "size_bytes": 3074,
+    "url": "https://api.worldbank.org/v2/country/DEU;USA/indicator/EN.GHG.CH4.MT.CE.AR5?format=json&date=2015:2020&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_DEU_USA_indicator_EN.GHG.CH4.MT.CE.AR5_format_json_date_2018_2020_per_page_15000": {
+    "fetched_at": "2026-09-11T18:05:31.000156+00:00",
+    "size_bytes": 1582,
+    "url": "https://api.worldbank.org/v2/country/DEU;USA/indicator/EN.GHG.CH4.MT.CE.AR5?format=json&date=2018:2020&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_DEU_USA_indicator_EN.GHG.CO2.MT.CE.AR5_format_json_date_2010_2026_per_page_15000": {
+    "fetched_at": "2026-09-11T18:07:30.977117+00:00",
+    "size_bytes": 8288,
+    "url": "https://api.worldbank.org/v2/country/DEU;USA/indicator/EN.GHG.CO2.MT.CE.AR5?format=json&date=2010:2026&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_DEU_USA_indicator_EN.GHG.CO2.MT.CE.AR5_format_json_date_2015_2020_per_page_15000": {
+    "fetched_at": "2026-09-11T18:05:09.032095+00:00",
+    "size_bytes": 3171,
+    "url": "https://api.worldbank.org/v2/country/DEU;USA/indicator/EN.GHG.CO2.MT.CE.AR5?format=json&date=2015:2020&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_DEU_USA_indicator_EN.GHG.CO2.MT.CE.AR5_format_json_date_2018_2020_per_page_15000": {
+    "fetched_at": "2026-09-11T18:05:30.254551+00:00",
+    "size_bytes": 1632,
+    "url": "https://api.worldbank.org/v2/country/DEU;USA/indicator/EN.GHG.CO2.MT.CE.AR5?format=json&date=2018:2020&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_DEU_USA_indicator_EN.GHG.CO2.PC.CE.AR5_format_json_date_2010_2026_per_page_15000": {
+    "fetched_at": "2026-09-11T18:07:30.568431+00:00",
+    "size_bytes": 8836,
+    "url": "https://api.worldbank.org/v2/country/DEU;USA/indicator/EN.GHG.CO2.PC.CE.AR5?format=json&date=2010:2026&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_DEU_USA_indicator_EN.GHG.CO2.PC.CE.AR5_format_json_date_2015_2020_per_page_15000": {
+    "fetched_at": "2026-09-11T18:05:08.642124+00:00",
+    "size_bytes": 3382,
+    "url": "https://api.worldbank.org/v2/country/DEU;USA/indicator/EN.GHG.CO2.PC.CE.AR5?format=json&date=2015:2020&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_DEU_USA_indicator_EN.GHG.CO2.PC.CE.AR5_format_json_date_2018_2020_per_page_15000": {
+    "fetched_at": "2026-09-11T18:05:29.895756+00:00",
+    "size_bytes": 1737,
+    "url": "https://api.worldbank.org/v2/country/DEU;USA/indicator/EN.GHG.CO2.PC.CE.AR5?format=json&date=2018:2020&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_DEU_USA_indicator_EN.GHG.N2O.MT.CE.AR5_format_json_date_2010_2026_per_page_15000": {
+    "fetched_at": "2026-09-11T18:07:32.104842+00:00",
+    "size_bytes": 8224,
+    "url": "https://api.worldbank.org/v2/country/DEU;USA/indicator/EN.GHG.N2O.MT.CE.AR5?format=json&date=2010:2026&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_DEU_USA_indicator_EN.GHG.N2O.MT.CE.AR5_format_json_date_2015_2020_per_page_15000": {
+    "fetched_at": "2026-09-11T18:05:10.332895+00:00",
+    "size_bytes": 3147,
+    "url": "https://api.worldbank.org/v2/country/DEU;USA/indicator/EN.GHG.N2O.MT.CE.AR5?format=json&date=2015:2020&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_DEU_USA_indicator_EN.GHG.N2O.MT.CE.AR5_format_json_date_2018_2020_per_page_15000": {
+    "fetched_at": "2026-09-11T18:05:31.710438+00:00",
+    "size_bytes": 1619,
+    "url": "https://api.worldbank.org/v2/country/DEU;USA/indicator/EN.GHG.N2O.MT.CE.AR5?format=json&date=2018:2020&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_DEU_indicator_EG.USE.PCAP.KG.OE_format_json_date_1990_2025_per_page_15000": {
+    "fetched_at": "2026-09-11T17:36:45.380513+00:00",
+    "size_bytes": 8608,
+    "url": "https://api.worldbank.org/v2/country/DEU/indicator/EG.USE.PCAP.KG.OE?format=json&date=1990:2025&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_DEU_indicator_EG.USE.PCAP.KG.OE_format_json_date_2015_2025_per_page_15000": {
+    "fetched_at": "2026-09-11T17:36:38.561999+00:00",
+    "size_bytes": 2688,
+    "url": "https://api.worldbank.org/v2/country/DEU/indicator/EG.USE.PCAP.KG.OE?format=json&date=2015:2025&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_DEU_indicator_SP.POP.TOTL_format_json_date_1990_2025_per_page_15000": {
+    "fetched_at": "2026-09-11T17:36:45.771685+00:00",
+    "size_bytes": 7150,
+    "url": "https://api.worldbank.org/v2/country/DEU/indicator/SP.POP.TOTL?format=json&date=1990:2025&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_DEU_indicator_SP.POP.TOTL_format_json_date_2015_2025_per_page_15000": {
+    "fetched_at": "2026-09-11T17:36:38.901026+00:00",
+    "size_bytes": 2250,
+    "url": "https://api.worldbank.org/v2/country/DEU/indicator/SP.POP.TOTL?format=json&date=2015:2025&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_NONEXISTENT_indicator_EG.USE.PCAP.KG.OE_format_json_date_1990_2025_per_page_15000": {
+    "fetched_at": "2026-09-11T18:06:26.700874+00:00",
+    "size_bytes": 102,
+    "url": "https://api.worldbank.org/v2/country/NONEXISTENT/indicator/EG.USE.PCAP.KG.OE?format=json&date=1990:2025&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_NONEXISTENT_indicator_EN.GHG.ALL.MT.CE.AR5_format_json_date_1990_2026_per_page_15000": {
+    "fetched_at": "2026-09-11T18:06:25.300614+00:00",
+    "size_bytes": 102,
+    "url": "https://api.worldbank.org/v2/country/NONEXISTENT/indicator/EN.GHG.ALL.MT.CE.AR5?format=json&date=1990:2026&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_NONEXISTENT_indicator_EN.GHG.CH4.MT.CE.AR5_format_json_date_1990_2026_per_page_15000": {
+    "fetched_at": "2026-09-11T18:06:25.940811+00:00",
+    "size_bytes": 102,
+    "url": "https://api.worldbank.org/v2/country/NONEXISTENT/indicator/EN.GHG.CH4.MT.CE.AR5?format=json&date=1990:2026&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_NONEXISTENT_indicator_EN.GHG.CO2.MT.CE.AR5_format_json_date_1990_2026_per_page_15000": {
+    "fetched_at": "2026-09-11T18:06:24.976531+00:00",
+    "size_bytes": 102,
+    "url": "https://api.worldbank.org/v2/country/NONEXISTENT/indicator/EN.GHG.CO2.MT.CE.AR5?format=json&date=1990:2026&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_NONEXISTENT_indicator_EN.GHG.CO2.PC.CE.AR5_format_json_date_1990_2026_per_page_15000": {
+    "fetched_at": "2026-09-11T18:06:24.639752+00:00",
+    "size_bytes": 102,
+    "url": "https://api.worldbank.org/v2/country/NONEXISTENT/indicator/EN.GHG.CO2.PC.CE.AR5?format=json&date=1990:2026&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_NONEXISTENT_indicator_EN.GHG.N2O.MT.CE.AR5_format_json_date_1990_2026_per_page_15000": {
+    "fetched_at": "2026-09-11T18:06:26.351689+00:00",
+    "size_bytes": 102,
+    "url": "https://api.worldbank.org/v2/country/NONEXISTENT/indicator/EN.GHG.N2O.MT.CE.AR5?format=json&date=1990:2026&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EG.USE.PCAP.KG.OE_format_json_date_2010_2025_per_page_15000": {
+    "fetched_at": "2026-09-11T17:36:35.564077+00:00",
+    "size_bytes": 3967,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EG.USE.PCAP.KG.OE?format=json&date=2010:2025&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EG.USE.PCAP.KG.OE_format_json_date_2015_2025_per_page_15000": {
+    "fetched_at": "2026-09-11T17:36:36.499593+00:00",
+    "size_bytes": 2752,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EG.USE.PCAP.KG.OE?format=json&date=2015:2025&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EG.USE.PCAP.KG.OE_format_json_date_2018_2025_per_page_15000": {
+    "fetched_at": "2026-09-11T17:36:39.685119+00:00",
+    "size_bytes": 2023,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EG.USE.PCAP.KG.OE?format=json&date=2018:2025&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EG.USE.PCAP.KG.OE_format_json_date_2090_2025_per_page_15000": {
+    "fetched_at": "2026-09-11T18:08:37.420257+00:00",
+    "size_bytes": 15752,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EG.USE.PCAP.KG.OE?format=json&date=2090:2025&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EG.USE.PCAP.KG.OE_format_json_date_2099_2025_per_page_15000": {
+    "fetched_at": "2026-09-11T18:06:31.591575+00:00",
+    "size_bytes": 15752,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EG.USE.PCAP.KG.OE?format=json&date=2099:2025&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.ALL.MT.CE.AR5_format_json_date_1900_1910_per_page_15000": {
+    "fetched_at": "2026-09-11T18:08:31.760659+00:00",
+    "size_bytes": 16666,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.ALL.MT.CE.AR5?format=json&date=1900:1910&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.ALL.MT.CE.AR5_format_json_date_2015_2018_per_page_15000": {
+    "fetched_at": "2026-09-11T18:05:32.641756+00:00",
+    "size_bytes": 1100,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.ALL.MT.CE.AR5?format=json&date=2015:2018&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.ALL.MT.CE.AR5_format_json_date_2020_2010_per_page_15000": {
+    "fetched_at": "2026-09-11T18:08:39.779692+00:00",
+    "size_bytes": 2863,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.ALL.MT.CE.AR5?format=json&date=2020:2010&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.ALL.MT.CE.AR5_format_json_date_2025_2010_per_page_15000": {
+    "fetched_at": "2026-09-11T18:07:06.202776+00:00",
+    "size_bytes": 4118,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.ALL.MT.CE.AR5?format=json&date=2025:2010&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.ALL.MT.CE.AR5_format_json_date_2090_2100_per_page_15000": {
+    "fetched_at": "2026-09-11T18:08:35.697861+00:00",
+    "size_bytes": 16666,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.ALL.MT.CE.AR5?format=json&date=2090:2100&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.ALL.MT.CE.AR5_format_json_date_2099_2100_per_page_15000": {
+    "fetched_at": "2026-09-11T18:06:29.798210+00:00",
+    "size_bytes": 16666,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.ALL.MT.CE.AR5?format=json&date=2099:2100&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.CH4.MT.CE.AR5_format_json_date_1900_1910_per_page_15000": {
+    "fetched_at": "2026-09-11T18:08:32.173108+00:00",
+    "size_bytes": 16677,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.CH4.MT.CE.AR5?format=json&date=1900:1910&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.CH4.MT.CE.AR5_format_json_date_2015_2018_per_page_15000": {
+    "fetched_at": "2026-09-11T18:05:33.550066+00:00",
+    "size_bytes": 1100,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.CH4.MT.CE.AR5?format=json&date=2015:2018&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.CH4.MT.CE.AR5_format_json_date_2020_2010_per_page_15000": {
+    "fetched_at": "2026-09-11T18:08:40.047836+00:00",
+    "size_bytes": 2862,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.CH4.MT.CE.AR5?format=json&date=2020:2010&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.CH4.MT.CE.AR5_format_json_date_2025_2010_per_page_15000": {
+    "fetched_at": "2026-09-11T18:07:06.829995+00:00",
+    "size_bytes": 4118,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.CH4.MT.CE.AR5?format=json&date=2025:2010&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.CH4.MT.CE.AR5_format_json_date_2090_2100_per_page_15000": {
+    "fetched_at": "2026-09-11T18:08:36.377848+00:00",
+    "size_bytes": 16677,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.CH4.MT.CE.AR5?format=json&date=2090:2100&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.CH4.MT.CE.AR5_format_json_date_2099_2100_per_page_15000": {
+    "fetched_at": "2026-09-11T18:06:30.435157+00:00",
+    "size_bytes": 16677,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.CH4.MT.CE.AR5?format=json&date=2099:2100&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.CO2.MT.CE.AR5_format_json_date_1900_1910_per_page_15000": {
+    "fetched_at": "2026-09-11T18:08:31.205728+00:00",
+    "size_bytes": 17191,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.CO2.MT.CE.AR5?format=json&date=1900:1910&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.CO2.MT.CE.AR5_format_json_date_2015_2018_per_page_15000": {
+    "fetched_at": "2026-09-11T18:05:31.946858+00:00",
+    "size_bytes": 1132,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.CO2.MT.CE.AR5?format=json&date=2015:2018&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.CO2.MT.CE.AR5_format_json_date_2020_2010_per_page_15000": {
+    "fetched_at": "2026-09-11T18:08:39.389250+00:00",
+    "size_bytes": 2951,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.CO2.MT.CE.AR5?format=json&date=2020:2010&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.CO2.MT.CE.AR5_format_json_date_2025_2010_per_page_15000": {
+    "fetched_at": "2026-09-11T18:07:05.677404+00:00",
+    "size_bytes": 4246,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.CO2.MT.CE.AR5?format=json&date=2025:2010&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.CO2.MT.CE.AR5_format_json_date_2090_2100_per_page_15000": {
+    "fetched_at": "2026-09-11T18:08:35.340672+00:00",
+    "size_bytes": 17191,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.CO2.MT.CE.AR5?format=json&date=2090:2100&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.CO2.MT.CE.AR5_format_json_date_2099_2100_per_page_15000": {
+    "fetched_at": "2026-09-11T18:06:29.499135+00:00",
+    "size_bytes": 17191,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.CO2.MT.CE.AR5?format=json&date=2099:2100&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.CO2.PC.CE.AR5_format_json_date_1900_1910_per_page_15000": {
+    "fetched_at": "2026-09-11T18:08:30.793307+00:00",
+    "size_bytes": 18237,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.CO2.PC.CE.AR5?format=json&date=1900:1910&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.CO2.PC.CE.AR5_format_json_date_2015_2018_per_page_15000": {
+    "fetched_at": "2026-09-11T18:05:31.325853+00:00",
+    "size_bytes": 1201,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.CO2.PC.CE.AR5?format=json&date=2015:2018&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.CO2.PC.CE.AR5_format_json_date_2020_2010_per_page_15000": {
+    "fetched_at": "2026-09-11T18:08:39.062155+00:00",
+    "size_bytes": 3139,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.CO2.PC.CE.AR5?format=json&date=2020:2010&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.CO2.PC.CE.AR5_format_json_date_2025_2010_per_page_15000": {
+    "fetched_at": "2026-09-11T18:07:05.311493+00:00",
+    "size_bytes": 4512,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.CO2.PC.CE.AR5?format=json&date=2025:2010&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.CO2.PC.CE.AR5_format_json_date_2090_2100_per_page_15000": {
+    "fetched_at": "2026-09-11T18:08:34.941480+00:00",
+    "size_bytes": 18237,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.CO2.PC.CE.AR5?format=json&date=2090:2100&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.CO2.PC.CE.AR5_format_json_date_2099_2100_per_page_15000": {
+    "fetched_at": "2026-09-11T18:06:28.974124+00:00",
+    "size_bytes": 18237,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.CO2.PC.CE.AR5?format=json&date=2099:2100&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.N2O.MT.CE.AR5_format_json_date_1900_1910_per_page_15000": {
+    "fetched_at": "2026-09-11T18:08:32.488080+00:00",
+    "size_bytes": 17071,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.N2O.MT.CE.AR5?format=json&date=1900:1910&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.N2O.MT.CE.AR5_format_json_date_2015_2018_per_page_15000": {
+    "fetched_at": "2026-09-11T18:05:34.105629+00:00",
+    "size_bytes": 1124,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.N2O.MT.CE.AR5?format=json&date=2015:2018&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.N2O.MT.CE.AR5_format_json_date_2020_2010_per_page_15000": {
+    "fetched_at": "2026-09-11T18:08:40.339791+00:00",
+    "size_bytes": 2929,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.N2O.MT.CE.AR5?format=json&date=2020:2010&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.N2O.MT.CE.AR5_format_json_date_2025_2010_per_page_15000": {
+    "fetched_at": "2026-09-11T18:07:07.255402+00:00",
+    "size_bytes": 4214,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.N2O.MT.CE.AR5?format=json&date=2025:2010&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.N2O.MT.CE.AR5_format_json_date_2090_2100_per_page_15000": {
+    "fetched_at": "2026-09-11T18:08:36.700563+00:00",
+    "size_bytes": 17071,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.N2O.MT.CE.AR5?format=json&date=2090:2100&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.N2O.MT.CE.AR5_format_json_date_2099_2100_per_page_15000": {
+    "fetched_at": "2026-09-11T18:06:31.123958+00:00",
+    "size_bytes": 17071,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.N2O.MT.CE.AR5?format=json&date=2099:2100&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_SP.POP.TOTL_format_json_date_2010_2025_per_page_15000": {
+    "fetched_at": "2026-09-11T17:36:36.073416+00:00",
+    "size_bytes": 3342,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/SP.POP.TOTL?format=json&date=2010:2025&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_SP.POP.TOTL_format_json_date_2015_2025_per_page_15000": {
+    "fetched_at": "2026-09-11T17:36:36.867535+00:00",
+    "size_bytes": 2327,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/SP.POP.TOTL?format=json&date=2015:2025&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_SP.POP.TOTL_format_json_date_2018_2025_per_page_15000": {
+    "fetched_at": "2026-09-11T17:36:40.400545+00:00",
+    "size_bytes": 1717,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/SP.POP.TOTL?format=json&date=2018:2025&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_SP.POP.TOTL_format_json_date_2090_2025_per_page_15000": {
+    "fetched_at": "2026-09-11T18:08:37.723120+00:00",
+    "size_bytes": 13492,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/SP.POP.TOTL?format=json&date=2090:2025&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_SP.POP.TOTL_format_json_date_2099_2025_per_page_15000": {
+    "fetched_at": "2026-09-11T18:06:32.184077+00:00",
+    "size_bytes": 13492,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/SP.POP.TOTL?format=json&date=2099:2025&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_ZZZ_indicator_EG.USE.PCAP.KG.OE_format_json_date_1990_2025_per_page_15000": {
+    "fetched_at": "2026-09-11T17:49:15.879340+00:00",
+    "size_bytes": 102,
+    "url": "https://api.worldbank.org/v2/country/ZZZ/indicator/EG.USE.PCAP.KG.OE?format=json&date=1990:2025&per_page=15000"
+  },
+  "files.ember-energy.org/public-downloads_generation_outputs_release_generation_yearly_lower.csv": {
+    "fetched_at": "2026-09-11T17:36:33.390653+00:00",
+    "size_bytes": 4084307,
+    "url": "https://files.ember-energy.org/public-downloads/generation/outputs/release_generation_yearly_lower.csv"
+  },
+  "fred.stlouisfed.org/graph_fredgraph.csv_id_BAMLH0A0HYM2": {
+    "fetched_at": "2026-09-11T17:34:15.263233+00:00",
+    "size_bytes": 12718,
+    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=BAMLH0A0HYM2"
+  },
+  "fred.stlouisfed.org/graph_fredgraph.csv_id_BOERUKM": {
+    "fetched_at": "2026-09-11T17:34:07.285909+00:00",
+    "size_bytes": 62072,
+    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=BOERUKM"
+  },
+  "fred.stlouisfed.org/graph_fredgraph.csv_id_ECBDFR": {
+    "fetched_at": "2026-09-11T17:34:06.036422+00:00",
+    "size_bytes": 164848,
+    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=ECBDFR"
+  },
+  "fred.stlouisfed.org/graph_fredgraph.csv_id_FEDFUNDS": {
+    "fetched_at": "2026-09-11T17:34:04.161342+00:00",
+    "size_bytes": 13943,
+    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=FEDFUNDS"
+  },
+  "fred.stlouisfed.org/graph_fredgraph.csv_id_GS10": {
+    "fetched_at": "2026-09-11T17:34:02.346359+00:00",
+    "size_bytes": 14190,
+    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=GS10"
+  },
+  "fred.stlouisfed.org/graph_fredgraph.csv_id_GS2": {
+    "fetched_at": "2026-09-11T17:34:02.713275+00:00",
+    "size_bytes": 9726,
+    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=GS2"
+  },
+  "fred.stlouisfed.org/graph_fredgraph.csv_id_INTDSRJPM193N": {
+    "fetched_at": "2026-09-11T17:34:07.730871+00:00",
+    "size_bytes": 17787,
+    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=INTDSRJPM193N"
+  },
+  "fred.stlouisfed.org/graph_fredgraph.csv_id_IRLTLT01DEM156N": {
+    "fetched_at": "2026-09-11T17:34:02.912541+00:00",
+    "size_bytes": 20296,
+    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=IRLTLT01DEM156N"
+  },
+  "fred.stlouisfed.org/graph_fredgraph.csv_id_IRLTLT01FRM156N": {
+    "fetched_at": "2026-09-11T18:06:48.634683+00:00",
+    "size_bytes": 12969,
+    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=IRLTLT01FRM156N"
+  },
+  "fred.stlouisfed.org/graph_fredgraph.csv_id_IRLTLT01GBM156N": {
+    "fetched_at": "2026-09-11T17:34:03.203884+00:00",
+    "size_bytes": 14587,
+    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=IRLTLT01GBM156N"
+  },
   "fred.stlouisfed.org/graph_fredgraph.csv_id_JTS3000JOL": {
     "fetched_at": "2026-07-22T01:07:14.317407+00:00",
     "size_bytes": 4615,
@@ -49,6 +444,21 @@
     "size_bytes": 4614,
     "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=JTSQUR"
   },
+  "fred.stlouisfed.org/graph_fredgraph.csv_id_NFCI": {
+    "fetched_at": "2026-09-11T17:34:15.685835+00:00",
+    "size_bytes": 51457,
+    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=NFCI"
+  },
+  "fred.stlouisfed.org/graph_fredgraph.csv_id_T10Y2Y": {
+    "fetched_at": "2026-09-11T17:34:15.821466+00:00",
+    "size_bytes": 209753,
+    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=T10Y2Y"
+  },
+  "fred.stlouisfed.org/graph_fredgraph.csv_id_TEDRATE": {
+    "fetched_at": "2026-09-11T17:34:15.090878+00:00",
+    "size_bytes": 148321,
+    "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=TEDRATE"
+  },
   "fred.stlouisfed.org/graph_fredgraph.csv_id_UNEMPLOY": {
     "fetched_at": "2026-07-22T17:10:19.615883+00:00",
     "size_bytes": 15190,
@@ -68,6 +478,41 @@
     "fetched_at": "2026-08-20T19:41:07.608886+00:00",
     "size_bytes": 2622,
     "url": "https://sdmx.oecd.org/public/rest/availableconstraint/OECD.SDD.NAD,DSD_NAMAIN1@DF_QNA_EXPENDITURE_NATIO_CURR,1.0/Q............?mode=exact&format=jsondata"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.ENV.EPI_DSD_AIR_GHG_DF_AIR_GHG__DEU_USA.A.GHG.1A1_1A2_1A3_1A4b__T.T_CO2E_start_5e564ac3": {
+    "fetched_at": "2026-09-11T18:05:29.206307+00:00",
+    "size_bytes": 16894,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.ENV.EPI,DSD_AIR_GHG@DF_AIR_GHG,/DEU+USA.A.GHG.1A1+1A2+1A3+1A4b+_T.T_CO2E?startPeriod=2018&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.ENV.EPI_DSD_AIR_GHG_DF_AIR_GHG__DEU_USA.A.GHG.1A1_1A2_1A3_1A4b__T.T_CO2E_start_adff9388": {
+    "fetched_at": "2026-09-11T18:05:08.004180+00:00",
+    "size_bytes": 25165,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.ENV.EPI,DSD_AIR_GHG@DF_AIR_GHG,/DEU+USA.A.GHG.1A1+1A2+1A3+1A4b+_T.T_CO2E?startPeriod=2015&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.ENV.EPI_DSD_AIR_GHG_DF_AIR_GHG__DEU_USA.A.GHG.1A1_1A2_1A3_1A4b__T.T_CO2E_start_fce568f8": {
+    "fetched_at": "2026-09-11T18:07:30.167286+00:00",
+    "size_bytes": 38945,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.ENV.EPI,DSD_AIR_GHG@DF_AIR_GHG,/DEU+USA.A.GHG.1A1+1A2+1A3+1A4b+_T.T_CO2E?startPeriod=2010&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.ENV.EPI_DSD_AIR_GHG_DF_AIR_GHG__USA.A.GHG.1A1_1A2_1A3_1A4b__T.T_CO2E_startPeri_3367865f": {
+    "fetched_at": "2026-09-11T17:33:39.257738+00:00",
+    "size_bytes": 11432,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.ENV.EPI,DSD_AIR_GHG@DF_AIR_GHG,/USA.A.GHG.1A1+1A2+1A3+1A4b+_T.T_CO2E?startPeriod=2015&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.ENV.EPI_DSD_AIR_GHG_DF_AIR_GHG__USA.A.GHG.1A1_1A2_1A3_1A4b__T.T_CO2E_startPeri_e8678a10": {
+    "fetched_at": "2026-09-11T17:47:53.835522+00:00",
+    "size_bytes": 7282,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.ENV.EPI,DSD_AIR_GHG@DF_AIR_GHG,/USA.A.GHG.1A1+1A2+1A3+1A4b+_T.T_CO2E?startPeriod=2018&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.ENV.EPI_DSD_AIR_GHG_DF_AIR_GHG__USA.A.GHG.1A1_1A2_1A3_1A4b__T.T_CO2E_startPeri_ea0e9e7f": {
+    "fetched_at": "2026-09-11T18:08:38.689859+00:00",
+    "size_bytes": 4517,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.ENV.EPI,DSD_AIR_GHG@DF_AIR_GHG,/USA.A.GHG.1A1+1A2+1A3+1A4b+_T.T_CO2E?startPeriod=2020&format=csvfilewithlabels"
+  },
+  "sdmx.oecd.org/public_rest_data_OECD.ENV.EPI_DSD_AIR_GHG_DF_AIR_GHG__USA.A.GHG.1A1_1A2_1A3_1A4b__T.T_CO2E_startPeri_ead9d9b3": {
+    "fetched_at": "2026-09-11T18:08:30.084202+00:00",
+    "size_bytes": 46016,
+    "url": "https://sdmx.oecd.org/public/rest/data/OECD.ENV.EPI,DSD_AIR_GHG@DF_AIR_GHG,/USA.A.GHG.1A1+1A2+1A3+1A4b+_T.T_CO2E?startPeriod=1900&format=csvfilewithlabels"
   },
   "sdmx.oecd.org/public_rest_data_OECD.SDD.NAD_DSD_NAMAIN10_DF_TABLE3_EMPDC__A.ARG_AUS_AUT_BEL....._T_A_OTQ....._star_77b9c1f7": {
     "fetched_at": "2026-08-27T20:34:04.159106+00:00",
@@ -2094,6 +2539,11 @@
     "size_bytes": 765246,
     "url": "https://thedocs.worldbank.org/en/doc/5d903e848db1d1b83e0ec8f744e55570-0350012021/related/CMO-Historical-Data-Monthly.xlsx"
   },
+  "thedocs.worldbank.org/en_doc_74e8be41ceb20fa0da750cda2f6b9e4e-0050012026_related_CMO-Historical-Data-Monthly.xlsx": {
+    "fetched_at": "2026-09-11T17:36:40.881017+00:00",
+    "size_bytes": 586735,
+    "url": "https://thedocs.worldbank.org/en/doc/74e8be41ceb20fa0da750cda2f6b9e4e-0050012026/related/CMO-Historical-Data-Monthly.xlsx"
+  },
   "worlduncertaintyindex.com/wp-content_uploads_2024_10_WUI_Data.xlsx": {
     "fetched_at": "2026-05-16T22:09:49.804947+00:00",
     "size_bytes": 1449913,
@@ -2123,6 +2573,11 @@
     "fetched_at": "2026-05-16T22:09:48.273757+00:00",
     "size_bytes": 307093,
     "url": "https://www.sydneyludvigson.com/s/MacroFinanceUncertainty_202602Update-3klg.zip"
+  },
+  "www.worldbank.org/en_research_commodity-markets": {
+    "fetched_at": "2026-09-11T17:36:40.502099+00:00",
+    "size_bytes": 55840,
+    "url": "https://www.worldbank.org/en/research/commodity-markets"
   },
   "www2.census.gov/programs-surveys_popest_datasets_2000-2009_counties_totals_co-est2009-alldata.csv": {
     "fetched_at": "2026-05-14T15:18:21.626416+00:00",

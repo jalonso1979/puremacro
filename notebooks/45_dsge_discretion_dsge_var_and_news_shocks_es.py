@@ -50,6 +50,17 @@
 # $$ V_t = K_H V_{t-1} + \xi_t, \quad K_H = \begin{bmatrix} 0 & 1 & 0 & \dots & 0 \\ 0 & 0 & 1 & \dots & 0 \\ \vdots & \vdots & \vdots & \ddots & 1 \\ 0 & 0 & 0 & \dots & 0 \end{bmatrix} $$
 # Puesto que $K_H^H = \mathbf{0}$, todos los autovalores de la matriz de desplazamiento $K_H$ son idénticamente nulos ($\rho(K_H) = 0$), garantizando matemáticamente que la determinabilidad de Blanchard-Kahn del modelo original se preserva intacta.
 
+# %% [markdown]
+# ## Intuición
+#
+# **Intuición.** La conducción de la política macroeconómica enfrenta inherentemente tres desafíos prospectivos: la credibilidad de las políticas, la especificación errónea del modelo y los retardos informativos.
+#
+# En primer lugar, cuando un banco central carece de mecanismos institucionales de compromiso, no puede prometer de manera creíble mantener elevadas las tasas de interés futuras para anclar las expectativas de inflación. En su lugar, el público anticipa que la autoridad reoptimizará período tras período. Este déficit de credibilidad genera tanto un *sesgo inflacionario* (inflación promedio excesiva si las metas de producto superan la capacidad natural) como un *sesgo de estabilización* (incapacidad de utilizar la inercia de la orientación futura para amortiguar choques desfavorables de costos).
+#
+# En segundo lugar, si bien los modelos DSGE microfundamentados proporcionan contrafactuales estructurales, sus ecuaciones teóricas rígidamente parametrizadas están inevitablemente mal especificadas respecto a la complejidad de los datos agregados. El enfoque híbrido DSGE-VAR resuelve este dilema empleando la matriz de covarianza teórica del DSGE como distribución a priori empírica para un Vector Autorregresivo no restringido: calibrando el hiperparámetro $\lambda$, el econometrista permite que los datos seleccionen el grado óptimo de disciplina teórica.
+#
+# En tercer lugar, los mercados financieros y los consumidores con visión prospectiva no aguardan a que se materialicen los cambios regulatorios o los avances tecnológicos para ajustar sus decisiones. El anuncio de reformas fiscales futuras o de orientación prospectiva monetaria (choques de noticias anticipados) desencadena saltos inmediatos en los precios de los activos, el consumo y la inflación en la fecha $t=0$, aun cuando los fundamentos físicos subyacentes permanezcan inalterados hasta que el choque efectivamente se concreta.
+
 # %%
 import sys
 import time
@@ -456,10 +467,74 @@ print(fevd_shares.round(4))
 # Exportamos las tablas de comparación de política y descomposición de noticias a formatos LaTeX y Markdown:
 
 # %%
-print("--- Exportación de Tabla LaTeX: Comparación de Política ---")
+print("--- LaTeX Table Export: Policy Comparison ---")
 print(policy_res.to_latex())
 
-print("--- Exportación de Tabla Markdown: Descomposición de Noticias ---")
+print("--- Markdown Table Export: News Variance Decomposition ---")
 print(decomp.to_markdown())
 
-print("\nCuaderno demostrativo de Frontera DSGE completado exitosamente.")
+# %% [markdown]
+# ## Lectura de los resultados
+#
+# **Lectura de los resultados.**
+# 1. **Macroprocesamiento Dynare e Identificación de Rango**: El preprocesador macro recursivo evalúa bloques condicionales (`@#if USE_INDEXATION`) de manera transparente, estableciendo a `pi` como variable de estado predeterminada ($n_{\text{estados}} = 2$). Los criterios formales de identificación de rango de Iskrev (2010) y Komunjer & Ng (2011) confirman rango completo en el jacobiano de la solución de primer orden ($J_1$), las autocovarianzas teóricas ($J_2$) y la función de transferencia espectral ($J_H$), garantizando la identificabilidad estructural de los parámetros antes de la estimación.
+# 2. **Dilemas de Política Óptima (Discreción frente a Compromiso)**: Dado que el banco central persigue una meta ambiciosa de brecha del producto ($y^* = 0.05$), la optimización discrecional período a período genera un sesgo inflacionario estrictamente positivo ($\mathbb{E}[\pi^{\text{disc}}] = +0.0248$), mientras que el compromiso ancla de forma creíble la inflación promedio en cero. Tras un choque desfavorable de empuje de costos, el sesgo de estabilización se manifiesta como una recesión contemporánea excesiva bajo discreción, mientras que una autoridad con compromiso aprovecha la inercia de la orientación prospectiva para distribuir la desinflación suavemente en el tiempo, reduciendo la pérdida esperada de bienestar en más de un $40\%$.
+# 3. **Ponderación Óptima a Priori en DSGE-VAR ($\hat{\lambda}$)**: La curva de densidad marginal de los datos exhibe un máximo interior bien definido en $\hat{\lambda} \approx 1.00\text{--}1.50$. Esto demuestra que incorporar restricciones microfundamentadas de equilibrio general mejora sustancialmente la verosimilitud fuera de muestra respecto a un VAR no restringido ($\lambda \to \lambda_{\min}$), evitando al mismo tiempo las penalizaciones por error de especificación de un modelo DSGE dogmático ($\lambda \to \infty$).
+# 4. **Dinámica de Choques de Noticias e Invarianza Nilpotente**: Para una perturbación tecnológica anticipada anunciada con 4 trimestres de anticipación ($k=4$), la productividad física permanece exactamente en cero antes de la fecha $t=4$ ($\max_{t<4}|a_t| \le 10^{-12}$), mientras que la inflación y la brecha del producto prospectivas saltan inmediatamente en $t=0$. En $t=4$, el choque se concreta con desviación estándar unitaria ($a_4 = 1.000$). La matriz de desplazamiento nilpotente $K_H$ preserva los autovalores de Blanchard-Kahn originales sin introducir raíces espurias.
+
+# %% [markdown]
+# ## Tu turno
+#
+# **Consignas.**
+# 1. *Básica*: Modifique la meta de brecha del producto del banco central (`target_output_yt = 0.02` frente a `0.08`) y observe cómo el sesgo inflacionario responde de forma estrictamente monótona.
+# 2. *Intermedia*: Evalúe un horizonte de anticipación alternativo para el choque de noticias (`lead_yt = 2` frente a `8` trimestres) y examine cómo varía la magnitud del salto inicial en $t=0$ según la lejanía del anuncio.
+# 3. *Avanzada*: Estime el modelo DSGE-VAR con una malla de $\lambda$ más fina (`lambda_grid_yt = np.linspace(0.2, 3.0, 15)`) sobre datos sintéticos con mayor varianza de choques, y verifique si la ponderación a priori óptima $\hat{\lambda}$ se desplaza hacia el VAR empírico o hacia el DSGE estructural.
+
+# %%
+# Your turn: customize policy target or news shock anticipation lead
+# ← change this: test output target y_star_yt = 0.02, 0.05, or 0.08
+target_output_yt = 0.08
+# ← change this: test news shock lead_yt = 2, 4, or 8 quarters
+lead_yt = 2
+
+# 1. Re-solve optimal policy under custom output gap target
+policy_yt = optimal_policy(
+    model_nk,
+    loss=loss_weights,
+    rule="discretion",
+    instruments="r",
+    y_star=target_output_yt,
+    compare_commitment=True,
+    tol=1e-9,
+)
+
+# 2. Re-solve news IRF under custom anticipation horizon
+news_yt = news_irf(m_dsge_var, shock="eps_a", lead=lead_yt, horizon=16)
+
+print(f"Optimal Policy (y* = {target_output_yt:+.2f}):")
+print(f"  Inflation bias : {policy_yt.inflation_bias:+.6f} (Baseline y*=0.05: {policy_res.inflation_bias:+.6f})")
+print(f"  Excess loss    : {policy_yt.stabilization_bias:.6f}")
+print(f"News Shock (Lead = {lead_yt} quarters):")
+print(f"  Impact jump in output (t=0) : {news_yt.irf['y'].iloc[0]:+.4f}")
+print(f"  Impact jump in infl   (t=0) : {news_yt.irf['pi'].iloc[0]:+.4f}")
+print(f"  State at realization (t={lead_yt})  : {news_yt.irf['a'].iloc[lead_yt]:+.4f}")
+
+# Downstream automated assertions
+assert policy_yt.converged
+assert policy_yt.inflation_bias > 0.0
+if target_output_yt > target_output:
+    assert policy_yt.inflation_bias > policy_res.inflation_bias, "Larger y* must increase inflation bias"
+elif target_output_yt < target_output:
+    assert policy_yt.inflation_bias < policy_res.inflation_bias, "Smaller y* must decrease inflation bias"
+assert np.isclose(news_yt.irf['a'].iloc[lead_yt], 1.0, atol=1e-6)
+assert np.isclose(np.max(np.abs(news_yt.irf['a'].iloc[:lead_yt])), 0.0, atol=1e-12)
+
+# %% [markdown]
+# ## ¿Qué tan exhaustivo es esto?
+#
+# `puremacro.dsge` unifica la frontera avanzada del modelado estructural con expectativas racionales en Python 100% puro:
+# - `optimal_policy`: Resuelve la política discrecional Markov-perfecta (Dennis 2007; Oudiz & Sachs 1985) mediante iteración matricial de Riccati y compara contra el compromiso atemporal (Clarida, Gali & Gertler 1999), cuantificando los sesgos de inflación y estabilización.
+# - `estimate_dsge_var`: Implementa la estimación de DSGE-VAR($\lambda$) de Del Negro & Schorfheide (2004), vinculando momentos analíticos de ecuaciones cruzadas con distribuciones a priori Wishart invertidas para pruebas formales de error de especificación.
+# - `news_irf` y `decompose_news`: Proporciona la aumentación del espacio de estados con matrices compañeras nilpotentes para choques de noticias anticipados (Beaudry & Portier 2006; Schmitt-Grohé & Uribe 2012) y descomposiciones automatizadas de varianza entre noticias y sorpresas.
+# - `preprocess_macro`: Preprocesador macro Dynare en Python puro que resuelve directivas `@#define`, `@#for`, `@#if` e interpolación de variables antes de la compilación del AST.
+# - `identification`: Evalúa los criterios formales de rango de Iskrev (2010) y Komunjer & Ng (2011) sobre jacobianos dinámicos, matrices de autocovarianza y funciones de transferencia espectral.

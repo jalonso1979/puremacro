@@ -13,14 +13,7 @@
 # %% [markdown]
 # # Construir un índice de incertidumbre a partir de texto — sin clave API, sin LLM
 #
-# Medir la incertidumbre de política económica suele requerir un terminal Bloomberg
-# o un servicio de análisis de sentimiento de noticias de pago. `puremacro.narrative`
-# construye **índices de incertidumbre basados en texto** de calidad investigadora
-# a partir de cualquier corpus que se suministre, empleando únicamente puntuación
-# mediante diccionario en pure-numpy — sin red, sin clave API, sin modelo de
-# lenguaje. Aquí plantamos un choque de incertidumbre conocido en un corpus
-# sintético de noticias y lo recuperamos con los índices **EPU** de Baker-Bloom-Davis
-# y **MPU** de política monetaria.
+# **¿Cómo pueden los investigadores y las autoridades de política cuantificar la incertidumbre de política económica en tiempo real a partir de noticias en bruto sin depender de fuentes propietarias ni de costosos modelos de lenguaje de caja negra?** `puremacro.narrative` construye **índices de incertidumbre basados en texto** de calidad investigadora a partir de cualquier corpus que se suministre, empleando únicamente puntuación mediante diccionario en pure-numpy — sin red, sin clave API, sin modelo de lenguaje. Aquí plantamos un choque de incertidumbre conocido en un corpus sintético de noticias y lo recuperamos con los índices **EPU** de Baker-Bloom-Davis y **MPU** de política monetaria.
 
 # %% [markdown]
 # ## El índice en una ecuación
@@ -232,6 +225,28 @@ assert epu_in > epu_out + 30, (
 assert mpu_in > mpu_out + 0.40, (
     f"MPU: in-window z ({mpu_in:.2f}) should exceed out-window z ({mpu_out:.2f}) by >0.4"
 )
+ 
+# %% [markdown]
+# ## Lectura del resultado
+#
+# **Lectura del resultado.** Las estadísticas de resumen y las series temporales validan el
+# motor de puntuación por diccionario frente al proceso generador de datos plantado:
+#
+# 1. **Momentos de normalización BBD 100/50**: Sobre la muestra completa 2018–2023, la normalización
+# de Baker-Bloom-Davis escala la frecuencia bruta de co-ocurrencia para fijar una media de 100.0 y una
+# desviación estándar de 50.0 (`abs(mean - 100) < 5`). Esto establece una línea base estandarizada
+# donde los valores superiores a 100 reflejan una incertidumbre de política macroeconómica por encima del promedio.
+# 2. **Aumento durante la crisis de 2020 (brecha > +70 pts)**: Durante la ventana de crisis plantada de 2020,
+# el índice EPU se dispara hasta un promedio de ~160 puntos — más de 70 puntos por encima de la línea
+# base tranquila (~88 puntos) —, aislando limpiamente el choque. De forma similar, el puntaje z del MPU
+# salta más de +0.8 desviaciones estándar (`gap > 0.40`), demostrando una notable sensibilidad bajo esquemas
+# de ponderación diferenciados.
+# 3. **Densidad de palabras clave y eficacia en detección de eventos**: La densidad de palabras clave de
+# respaldo confirma la anatomía del índice. Los documentos que satisfacen la co-ocurrencia de los tres grupos
+# saltan de menos del 8% en períodos tranquilos a más del 75% durante la ventana de choque. Dado que puremacro
+# evalúa la co-ocurrencia mediante intersecciones booleanas en pure-NumPy en lugar de simples recuentos de
+# palabras clave no restringidos, el índice evita falsos positivos por menciones aisladas, logrando una
+# detección de eventos de alta fidelidad sin llamadas a API externas ni modelos de lenguaje pesados.
 
 # %% [markdown]
 # ### Figura principal — serie temporal EPU con la ventana de incertidumbre inyectada sombreada

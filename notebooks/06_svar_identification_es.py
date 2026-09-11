@@ -13,11 +13,7 @@
 # %% [markdown]
 # # Identificación de choques estructurales: SVAR
 #
-# Un VAR en forma reducida captura la dinámica pero no la estructura *causal*.
-# Aquí plantamos un choque monetario contractivo conocido en un VAR(2) sintético
-# y lo recuperamos de dos formas — identificación recursiva por **Cholesky** y
-# **restricciones de signo** — usando `puremacro.var.identify`. Todo se ejecuta
-# en el navegador con datos sintéticos.
+# **¿Cómo se propaga un ajuste monetario imprevisto sobre la producción y la inflación, y por qué la conclusión causal depende de si la política reacciona dentro del trimestre?** Un VAR en forma reducida captura la dinámica pero no la estructura *causal*. Aquí plantamos un choque monetario contractivo conocido en un VAR(2) sintético y lo recuperamos de dos formas — identificación recursiva por **Cholesky** y **restricciones de signo** — usando `puremacro.var.identify`. Todo se ejecuta en el navegador con datos sintéticos.
 
 # %% [markdown]
 # ## De la forma reducida a la estructura
@@ -153,6 +149,30 @@ assert np.all(s_lower <= s_med + 1e-9)
 assert np.all(s_med <= s_upper + 1e-9)
 # Both schemes agree the policy rate rises on impact
 assert c_point[0, RATE] > 0 and s_med[0, RATE] > 0
+ 
+# %% [markdown]
+# ## Lectura del resultado
+#
+# **Lectura del resultado.** Las tablas de resumen impresas y los vectores de impacto revelan
+# cómo los dos esquemas de identificación recuperan el choque monetario contractivo plantado:
+#
+# 1. **Ordenamiento recursivo de Cholesky (`chol.summary()`)**: Con la tasa de política ordenada
+# al final, la retroalimentación contemporánea de la política hacia la producción y los precios
+# se restringe a cero por construcción. La tasa de política salta +0.40 en el impacto y empuja
+# tanto la producción como los precios a la baja con un decaimiento suave y sin joroba. Debido a
+# que los ceros recursivos identifican puntualmente la matriz de impacto $B$, las iteraciones de
+# bootstrap de residuos producen intervalos de confianza estrechamente acotados.
+# 2. **Restricciones de signo (`sgn.summary()`)**: Imponer únicamente direcciones cualitativas
+# (producción $\le 0$, precios $\le 0$, tasa $\ge 0$ en $h=0$) acepta ~15–20% de las rotaciones
+# de Haar aleatorias que satisfacen la prior. Dado que las restricciones de signo producen
+# identificación de conjunto en lugar de identificación puntual, no existe un único vector de
+# impacto estructural $B$, sino un conjunto de modelos admisibles.
+# 3. **Bandas de respuesta al impulso de la figura principal**: En la figura principal que sigue,
+# normalizar la respuesta de la tasa de cada esquema a un impacto de +1 sitúa ambas trayectorias
+# en la misma escala. Aunque la respuesta mediana con restricciones de signo sigue de cerca la
+# trayectoria de Cholesky, las bandas de credibilidad al 90% entre las rotaciones admisibles son
+# sustancialmente más amplias, reflejando la incertidumbre estructural honesta que persiste cuando
+# nos negamos a asumir una reacción contemporánea nula.
 
 # %% [markdown]
 # ### Figura principal — un choque, dos identificaciones

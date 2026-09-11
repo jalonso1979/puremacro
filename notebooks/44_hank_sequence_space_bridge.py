@@ -48,6 +48,13 @@
 # $$ (\mathbf{I} - \mathcal{J}_{C, Y} - \mathcal{J}_{C, r} \mathbf{M}_{r, Y}) d\mathbf{Y} = \mathcal{J}_{C, r} \mathbf{M}_{r, \varepsilon} d\mathbf{\varepsilon}^m $$
 # where $\mathbf{M}_{r, Y}$ and $\mathbf{M}_{r, \varepsilon}$ map output and shocks into real interest rates through the aggregate block. Inverting this $T \times T$ matrix yields the exact general equilibrium transition paths in milliseconds.
 
+# %% [markdown]
+# ## Intuition
+#
+# **Intuition.** In representative-agent macroeconomics, aggregate consumption is governed by a single unconstrained Euler equation, meaning households smooth temporary fluctuations across their entire lifetimes and exhibit minimal Marginal Propensities to Consume (MPC $\approx r \approx 1\%$). In contrast, microeconomic survey data shows that a large mass of households holds near-zero liquid assets and is borrowing-constrained ("hand-to-mouth"). For these households, the MPC out of unexpected income is enormous—often exceeding $50\%$ per quarter.
+#
+# When monetary policy shifts, its general equilibrium effect in HANK is not primarily direct intertemporal substitution (inducing wealthy households to delay consumption), but rather an indirect general equilibrium income channel: rate cuts stimulate output and labor demand, transferring wage income to constrained households who spend it immediately. The Sequence-Space Jacobian (SSJ) framework and the Fake-News Algorithm solve this infinite-dimensional microeconomic distribution problem with extraordinary speed: by computing intertemporal consumption Jacobians directly in sequence space, general equilibrium transitions under both linear and nonlinear Broyden algorithms solve in milliseconds without simulating millions of Monte Carlo agents.
+
 # %%
 import sys
 from pathlib import Path
@@ -356,9 +363,57 @@ fig_trans, axes_trans = res_lin.plot_transition(
 plt.show()
 
 # %% [markdown]
-# ## 6. Key Takeaways and Policy Implications
+# ## Read the output
 #
-# 1. **Micro Heterogeneity Drives Macro Transmission:** Incomplete markets and borrowing constraints create a mass of hand-to-mouth households with high marginal propensities to consume ($MPC \approx 50\%$). When monetary policy lowers real rates, aggregate demand is strongly amplified by indirect disposable income channels rather than pure intertemporal substitution.
-# 2. **Sequence-Space Efficiency:** The Sequence-Space Jacobian (SSJ) methodology and Fake-News Algorithm reduce the computational complexity of solving HANK models from hours of value-function iterations to milliseconds of linear algebra.
-# 3. **Dynare `.mod` Compatibility:** With puremacro's `hetagent_block` syntax, researchers can declare heterogeneous-agent models with the exact syntax familiar from standard DSGE modeling.
-# 4. **Pure Python Architecture:** The entire pipeline—from `.mod` parsing, EGM steady-state solve, Fake-News Jacobians, to Broyden nonlinear simulations—runs in 100% pure Python without MATLAB, Octave, or C++ compilers.
+# **Read the output.**
+# 1. **Microeconomic Stationary Distribution & MPCs**: Total probability mass over the 50-point wealth grid sums strictly to $1.0$. The Marginal Propensity to Consume exhibits stark cross-sectional variation: constrained households at the borrowing limit ($a=0$) display a quarterly MPC exceeding $50\%$, whereas unconstrained wealthy households at the upper asset boundary ($a=30$) exhibit an MPC below $1.5\%$, confirming the empirical hand-to-mouth distribution.
+# 2. **Intertemporal Consumption Jacobians ($\mathcal{J}_{C, Y}, \mathcal{J}_{C, r}$)**: The Fake-News Algorithm computes exact $30 \times 30$ sequence Jacobians in a single forward-backward sweep. The contemporaneous intertemporal substitution derivative ($\partial C_0 / \partial r_0 < 0$) confirms that real interest rate increases dampen consumer spending, while the Keynesian income multiplier ($\partial C_0 / \partial Y_0 > 0$) demonstrates substantial contemporaneous general equilibrium demand feedback.
+# 3. **Linear vs. Nonlinear Broyden Transitions**: Both the linear sequence solve and the non-linear Broyden quasi-Newton solver achieve full convergence under a $-25\text{ bps}$ monetary policy shock ($\|\mathcal{H}\|_\infty < 10^{-6}$). The linear SSJ approximation matches the exact non-linear trajectory to within less than $0.1$ basis points across output, real rates, and inflation, verifying the accuracy of sequence-space linearization for macroeconomic business-cycle shocks.
+# 4. **Policy Reporting via `HANKResult`**: The standardized presentation interface exports cleanly to LaTeX tables, Markdown memos, and multi-panel dashboards, facilitating central bank policy communication.
+
+# %% [markdown]
+# ## Your turn
+#
+# **Prompts.**
+# 1. *Basic*: Alter the monetary policy shock persistence (`shock_rho_yt = 0.3` vs `0.7`) or magnitude (`-0.0050` vs `-0.0010`) and observe how the output boom and disinflation speed change.
+# 2. *Intermediate*: Run the non-linear Broyden transition (`nonlinear=True`) with a larger shock (e.g. `-0.0100`, a 100 bps rate cut) and quantify the percentage divergence between the linear SSJ approximation and the exact non-linear solution.
+# 3. *Stretch*: Modify the Taylor rule feedback parameter `phi_pi` in `hank_ssj.mod` and recalculate the general equilibrium consumption Jacobians $\mathcal{J}_{C, Y}$ and $\mathcal{J}_{C, r}$ to determine how monetary policy stance alters general equilibrium amplification.
+
+# %%
+# Your turn: customize monetary policy shock magnitude and persistence
+# ← change this: test shock_magnitude_yt = -0.0010, -0.0025, or -0.0050 (-50 bps cut)
+shock_magnitude_yt = -0.0050
+# ← change this: test persistence shock_rho_yt = 0.3, 0.5, or 0.7
+shock_rho_yt = 0.70
+
+res_yt = model.simulate(
+    shock="eps_m",
+    magnitude=shock_magnitude_yt,
+    rho=shock_rho_yt,
+    horizon=30,
+    nonlinear=False,
+)
+
+impact_Y_bps = float(res_yt.transition_paths["Y"].iloc[0] * 10000)
+impact_r_bps = float(res_yt.transition_paths["r"].iloc[0] * 10000)
+terminal_Y = float(res_yt.transition_paths["Y"].iloc[-1])
+
+print(f"Custom Simulation: Shock = {shock_magnitude_yt*10000:.0f} bps | Rho = {shock_rho_yt:.2f}")
+print(f"Impact Output Deviation (Y_0)    : {impact_Y_bps:+.2f} bps")
+print(f"Impact Real Rate Deviation (r_0) : {impact_r_bps:+.2f} bps")
+print(f"Terminal Output (t=30)           : {terminal_Y:.6f}")
+
+# Downstream automated assertions
+assert res_yt.converged
+assert res_yt.transition_paths["Y"].iloc[0] > 0.0, "Expansionary rate cut must expand output"
+assert res_yt.transition_paths["r"].iloc[0] < 0.0, "Rate cut must reduce initial real rate"
+assert np.isclose(terminal_Y, 0.0, atol=1e-3)
+
+# %% [markdown]
+# ## How comprehensive is this?
+#
+# `puremacro` provides an end-to-end Sequence-Space Jacobian architecture for heterogeneous-agent macroeconomics in 100% pure Python:
+# - `load_hank_mod` and `HANKModel`: Parses Dynare-style `.mod` specifications with declared `hetagent_block` syntax, automating grid discretization, Endogenous Grid Method (EGM) policy iteration, and stationary wealth distribution solving.
+# - `compute_jacobians`: Implements the Auclert, Bardóczy, Rognlie & Straub (2021) Fake-News Algorithm, decomposing high-dimensional intertemporal response matrices into single-pass forward and backward recursions.
+# - `solve_hank_bridge` and `model.simulate`: Simulates general equilibrium transition dynamics under both linear matrix inversion and non-linear Broyden quasi-Newton root-finding.
+# - `solve_nonlinear_transition`: Extended sequence-space solver supporting arbitrary MIT shocks, fiscal stimulus experiments, and occasionally binding borrowing constraints.

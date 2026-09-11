@@ -13,10 +13,7 @@
 # %% [markdown]
 # # Identifying structural shocks: SVAR
 #
-# A reduced-form VAR captures dynamics but not *causal* structure. We plant a
-# known contractionary monetary shock in a synthetic VAR(2) and recover it two
-# ways — recursive **Cholesky** identification and **sign restrictions** — using
-# `puremacro.var.identify`. Everything runs in the browser on synthetic data.
+# **How does an unanticipated monetary tightening propagate through output and inflation, and why does the causal conclusion depend on whether policy reacts within the quarter?** A reduced-form VAR captures dynamics but not *causal* structure. We plant a known contractionary monetary shock in a synthetic VAR(2) and recover it two ways — recursive **Cholesky** identification and **sign restrictions** — using `puremacro.var.identify`. Everything runs in the browser on synthetic data.
 
 # %% [markdown]
 # ## From reduced form to structure
@@ -148,6 +145,28 @@ assert np.all(s_lower <= s_med + 1e-9)
 assert np.all(s_med <= s_upper + 1e-9)
 # Both schemes agree the policy rate rises on impact
 assert c_point[0, RATE] > 0 and s_med[0, RATE] > 0
+ 
+# %% [markdown]
+# ## Read the output
+#
+# **Read the output.** The printed summary tables and impact vectors reveal how the
+# two identification schemes recover the planted contractionary monetary shock:
+#
+# 1. **Recursive Cholesky ordering (`chol.summary()`)**: With the policy rate ordered last,
+# contemporaneous feedback from monetary policy to output and prices is restricted to zero
+# by construction. The policy rate jumps by +0.40 on impact and drives both output and prices
+# down with a smooth, hump-free decay. Because the recursive zeros point-identify the impact
+# matrix $B$, residual bootstrap iterations yield tightly bounded confidence intervals.
+# 2. **Sign restrictions (`sgn.summary()`)**: Imposing only qualitative directions
+# (output $\le 0$, prices $\le 0$, rate $\ge 0$ at $h=0$) accepts ~15–20% of random Haar
+# rotations that satisfy the prior. Because sign restrictions yield set identification rather
+# than point identification, there is no single structural impact vector $B$ but rather a set
+# of admissible models.
+# 3. **Hero impulse response bands**: In the hero figure below, normalizing each scheme's
+# policy-rate response to a +1 impact puts both trajectories on the same scale. While the median
+# sign-restricted response closely traces the Cholesky trajectory, the 90% credible bands across
+# admissible rotations are substantially wider — reflecting the honest structural uncertainty
+# that remains when we refuse to assume a zero contemporaneous impact.
 
 # %% [markdown]
 # ### Hero figure — one shock, two identifications

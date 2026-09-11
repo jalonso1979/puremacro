@@ -2,6 +2,42 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## 3.2.0 (2026-09-11)
+
+### Milestone 3.2: Applied Macroeconomist Showcase Suite & Global Climate, Energy, Commodity, and Financial Data Ecosystem
+
+Feature release: Introducing a comprehensive applied macroeconomist notebook showcase suite (Notebooks 47–50) with deep pedagogical exposition across all showcases, alongside complete cross-country data collectors and modular panel builders for emissions, energy transitions, global commodity benchmark prices, and international financial stability under the strict Pyodide contract:
+
+---
+
+### Added — Applied Macroeconomic Frontier Showcases (`notebooks/`)
+- **Central Bank Policy & Monetary Stance Suite** (`47_applied_central_bank_policy_suite.py` & `.ipynb`, EN & ES): Real-time monetary policy stance evaluation, Taylor rule reaction counterfactuals, fan chart projection bands under parameter and shock uncertainty, and central bank statement sentiment extraction.
+- **Real-Time Nowcasting & News Release Decomposition** (`48_applied_realtime_nowcasting_and_news.py` & `.ipynb`, EN & ES): Dynamic Factor Model (DFM) nowcasting of quarterly GDP, handling asynchronous ragged-edge real-time data vintages, and decomposing forecast updates into surprise news across macro releases.
+- **Macroprudential Risk & Financial Stability Monitor** (`49_applied_macroprudential_gar_and_stress.py` & `.ipynb`, EN & ES): Growth-at-Risk (GaR) conditional quantile densities (Azzalini skew-t), Diebold-Yilmaz systemic connectedness networks (GFEVD), and macroprudential capital buffer stress testing.
+- **Fiscal Policy Multipliers & Sovereign Debt Stress Testing** (`50_applied_fiscal_multipliers_and_debt_sustainability.py` & `.ipynb`, EN & ES): Multi-method fiscal multiplier estimation (SVAR vs LP vs Narrative LP-IV) and stochastic sovereign Debt Sustainability Analysis (DSA) fan charts under joint macro-climate stress scenarios.
+- **Showcase Pedagogical Overhaul**: Standardized 15 existing empirical and DSGE/HANK notebooks (`06`–`11`, `14`–`16`, `41`–`46`) to the canonical 7-section pedagogical architecture in `_TEMPLATE.md` with governing LaTeX equations, `**Intuition.**` bridges, and detailed `## Read the output` interpretations.
+
+### Added — International Greenhouse Gas & Emissions Collectors (`puremacro.fetch.emissions`)
+- **World Bank WDI Emissions**: Keyless collectors for total CO2 emissions, per-capita emissions, total greenhouse gases, and methane/nitrous oxide flows across 200+ countries (`fetch_wdi_emissions`).
+- **OECD SDMX Sectoral Emissions**: Ingestion of `OECD.ENV.EPI,DSD_AIR_GHG@DF_AIR_GHG,` providing greenhouse gas emissions broken down by economic sector (energy industries, manufacturing, transport, residential) (`fetch_oecd_ghg_emissions`).
+- **Unified Emissions Interface**: Long-form schema (`code, date, variable, value, source`) with ISO-3 country codes and caching (`fetch_emissions_panel`).
+
+### Added — Energy Balances, Transitions & Commodity Suites (`puremacro.fetch.energy_transition`, `commodities`, `wb_pink_sheet`)
+- **Energy Transition Mix**: Collectors for cross-country primary energy consumption, power generation shares (renewables, nuclear, fossil, hydro), and clean energy intensity metrics (`fetch_energy_transition_panel`).
+- **Standardized Commodity Benchmark Suites**: Expanded World Bank Pink Sheet integration and unified commodity indices spanning energy (Brent, WTI, natural gas EU/US, coal), industrial metals (copper, aluminum, iron ore), precious metals (gold, silver), and agricultural staples/fertilizers with standard USD quantity conversions (`fetch_commodity_prices`, `fetch_commodity_indices`).
+
+### Added — International Financial Stability & Macroprudential Collectors (`puremacro.fetch.financial`)
+- **Sovereign Yield Curves & Policy Rates**: Standardized 10Y and 2Y sovereign benchmark yields, yield curve term spreads (10Y–2Y), and central bank policy rates across advanced and emerging economies (`fetch_sovereign_yields`, `fetch_policy_rates`).
+- **Credit & Real Estate Markets**: Bank for International Settlements (BIS) credit-to-GDP gaps, total private non-financial credit flows, and real residential property price indices (`fetch_credit_gap_panel`, `fetch_property_prices`).
+- **Financial Conditions & Spreads**: High-yield credit spreads, TED spreads, and national financial conditions indices (`fetch_financial_conditions`).
+
+### Added — Modular Panel Builders (`puremacro.climate_panel`, `financial_panel`, `build_panel`)
+- **Climate & Energy Panel**: One-call constructor `build_climate_panel` combining emissions, energy consumption, and renewable shares with national macro aggregates (GDP, population) with automated frequency harmonization (M→Q, A→Q).
+- **Financial & Macroprudential Panel**: One-call constructor `build_financial_panel` combining sovereign yield curves, credit gaps, and commodity price benchmarks with imputation tracking and alignment flags.
+- **Top-Level Re-Exports**: Directly accessible from `puremacro.build_climate_panel` and `puremacro.build_financial_panel`.
+
+---
+
 ## 3.1.0 (2026-09-10)
 
 ### Milestone 3.1: Optimal Policy (Discretion vs Commitment), DSGE-VAR, News Shocks, Nonlinear Particle Filtering, & Markov-Switching DSGE

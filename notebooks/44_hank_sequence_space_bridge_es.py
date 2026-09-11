@@ -48,6 +48,13 @@
 # $$ (\mathbf{I} - \mathcal{J}_{C, Y} - \mathcal{J}_{C, r} \mathbf{M}_{r, Y}) d\mathbf{Y} = \mathcal{J}_{C, r} \mathbf{M}_{r, \varepsilon} d\mathbf{\varepsilon}^m $$
 # donde $\mathbf{M}_{r, Y}$ y $\mathbf{M}_{r, \varepsilon}$ proyectan producto y choques hacia la tasa de interés real a través del bloque agregado. La inversión de esta matriz de dimensión $T \times T$ produce las trayectorias exactas de transición en milisegundos.
 
+# %% [markdown]
+# ## Intuición
+#
+# **Intuición.** En los modelos macroeconómicos de agente representativo, el consumo agregado está regido por una única ecuación de Euler sin restricciones de liquidez, lo que implica que las familias suavizan las fluctuaciones transitorias a lo largo de todo su ciclo de vida y presentan propensiones marginales a consumir mínimas (PMyC $\approx r \approx 1\%$). Por el contrario, la evidencia microeconómica revela que una fracción sustancial de los hogares posee activos líquidos prácticamente nulos y enfrenta restricciones de endeudamiento ("familias de subsistencia" o *hand-to-mouth*). Para estos hogares, la propensión marginal a consumir ante ingresos imprevistos es enorme, superando con frecuencia el $50\%$ por trimestre.
+#
+# Ante un cambio en la política monetaria, la transmisión en economías HANK no opera primordialmente mediante la sustitución intertemporal directa (inducir a ahorradores acaudalados a postergar consumo), sino a través de un canal indirecto de ingreso en equilibrio general: la reducción de tasas estimula el producto y la demanda laboral, transfiriendo ingresos a hogares con alta PMyC que los consumen inmediatamente. El marco del Jacobiano en el Espacio de Secuencias (SSJ) y el Algoritmo de *Fake-News* resuelven este problema distributivo de dimensión infinita con rapidez excepcional: al calcular los jacobianos de consumo directamente en el espacio de secuencias, las transiciones de equilibrio general lineales y no lineales mediante Broyden se resuelven en milisegundos sin necesidad de simular millones de agentes por Monte Carlo.
+
 # %%
 import sys
 from pathlib import Path
@@ -356,9 +363,57 @@ fig_trans, axes_trans = res_lin.plot_transition(
 plt.show()
 
 # %% [markdown]
-# ## 6. Conclusiones y Reflexiones para el Diseño de Política Económica
+# ## Lectura de los resultados
 #
-# 1. **La Heterogeneidad Microeconómica Transforma la Transmisión:** La presencia de mercados incompletos y restricciones de endeudamiento genera una masa significativa de hogares con alta propensión marginal al consumo ($MPC \approx 50\%$). Al recortar la tasa de interés, la demanda agregada se expande con fuerza debido a los efectos indirectos de equilibrio general sobre el ingreso disponible, superando al canal clásico de sustitución intertemporal.
-# 2. **Eficiencia en el Espacio de Secuencias:** El marco del Jacobiano en el Espacio de Secuencias (SSJ) y el Algoritmo de Noticias Falsas eliminan la maldición de la dimensionalidad, reduciendo horas de iteración de funciones de valor a milisegundos de álgebra lineal matricial.
-# 3. **Compatibilidad con Archivos `.mod` de Dynare:** La sintaxis `hetagent_block` en puremacro permite formular modelos HANK utilizando la sintaxis estándar y familiar para la comunidad macroeconómica internacional.
-# 4. **Ecosistema en Python Puro:** Toda la cadena—desde el análisis léxico de `.mod`, la solución EGM del estado estacionario, los Jacobianos por Fake-News, hasta las simulaciones no lineales de Broyden—opera íntegramente en Python puro sin dependencias de MATLAB, Octave ni compiladores externos de C++.
+# **Lectura de los resultados.**
+# 1. **Distribución estacionaria microeconómica y PMyC**: La masa de probabilidad total sobre la grilla de 50 puntos de riqueza suma estrictamente $1.0$. La propensión marginal al consumo exhibe una profunda dispersión transversal: los hogares con restricciones de endeudamiento en el límite ($a=0$) presentan una PMyC trimestral superior al $50\%$, mientras que las familias acaudaladas en el extremo superior ($a=30$) registran una PMyC inferior al $1.5\%$, validando la existencia empírica de hogares de subsistencia.
+# 2. **Jacobianos intertemporales de consumo ($\mathcal{J}_{C, Y}, \mathcal{J}_{C, r}$)**: El Algoritmo de *Fake-News* evalúa matrices jacobianas exactas de dimensión $30 \times 30$ mediante un único barrido hacia adelante y hacia atrás. La derivada contemporánea de sustitución intertemporal ($\partial C_0 / \partial r_0 < 0$) ratifica que los aumentos en la tasa de interés deprimen el gasto, mientras que el multiplicador keynesiano de ingreso ($\partial C_0 / \partial Y_0 > 0$) refleja una potente retroalimentación de demanda en equilibrio general.
+# 3. **Transiciones lineales frente a no lineales con Broyden**: Tanto la solución lineal en el espacio de secuencias como el método cuasi-Newton de Broyden alcanzan convergencia plena ante un choque monetario de $-25\text{ pbs}$ ($\|\mathcal{H}\|_\infty < 10^{-6}$). La aproximación lineal del SSJ reproduce la trayectoria no lineal exacta con discrepancias inferiores a $0.1$ puntos básicos en producto, tasa real e inflación, verificando la precisión de la linealización en el espacio de secuencias para fluctuaciones de ciclo económico.
+# 4. **Reporte de políticas vía `HANKResult`**: La interfaz estandarizada de presentación genera directamente tablas en LaTeX, memorandos en Markdown y paneles gráficos comparativos para facilitar la comunicación de política económica en bancos centrales.
+
+# %% [markdown]
+# ## Tu turno
+#
+# **Consignas.**
+# 1. *Básica*: Modifique la persistencia del choque de política monetaria (`shock_rho_yt = 0.3` frente a `0.7`) o su magnitud (`-0.0050` frente a `-0.0010`) y examine cómo responden la expansión del producto y la velocidad de desinflación.
+# 2. *Intermedia*: Ejecute la transición no lineal de Broyden (`nonlinear=True`) con un choque de mayor escala (por ejemplo, `-0.0100`, un recorte de 100 pbs) y cuantifique la divergencia porcentual entre la aproximación lineal y la solución exacta no lineal.
+# 3. *Avanzada*: Ajuste el parámetro de respuesta a la inflación $\phi_\pi$ de la regla de Taylor en `hank_ssj.mod` y vuelva a calcular los jacobianos de equilibrio general $\mathcal{J}_{C, Y}$ y $\mathcal{J}_{C, r}$ para verificar cómo la postura monetaria altera la amplificación macroeconómica.
+
+# %%
+# Your turn: customize monetary policy shock magnitude and persistence
+# ← change this: test shock_magnitude_yt = -0.0010, -0.0025, or -0.0050 (-50 bps cut)
+shock_magnitude_yt = -0.0050
+# ← change this: test persistence shock_rho_yt = 0.3, 0.5, or 0.7
+shock_rho_yt = 0.70
+
+res_yt = model.simulate(
+    shock="eps_m",
+    magnitude=shock_magnitude_yt,
+    rho=shock_rho_yt,
+    horizon=30,
+    nonlinear=False,
+)
+
+impact_Y_bps = float(res_yt.transition_paths["Y"].iloc[0] * 10000)
+impact_r_bps = float(res_yt.transition_paths["r"].iloc[0] * 10000)
+terminal_Y = float(res_yt.transition_paths["Y"].iloc[-1])
+
+print(f"Custom Simulation: Shock = {shock_magnitude_yt*10000:.0f} bps | Rho = {shock_rho_yt:.2f}")
+print(f"Impact Output Deviation (Y_0)    : {impact_Y_bps:+.2f} bps")
+print(f"Impact Real Rate Deviation (r_0) : {impact_r_bps:+.2f} bps")
+print(f"Terminal Output (t=30)           : {terminal_Y:.6f}")
+
+# Downstream automated assertions
+assert res_yt.converged
+assert res_yt.transition_paths["Y"].iloc[0] > 0.0, "Expansionary rate cut must expand output"
+assert res_yt.transition_paths["r"].iloc[0] < 0.0, "Rate cut must reduce initial real rate"
+assert np.isclose(terminal_Y, 0.0, atol=1e-3)
+
+# %% [markdown]
+# ## ¿Qué tan exhaustivo es esto?
+#
+# `puremacro` ofrece una arquitectura completa para modelos con agentes heterogéneos en el espacio de secuencias (SSJ) en Python 100% puro:
+# - `load_hank_mod` y `HANKModel`: Analiza y compila especificaciones `.mod` con sintaxis `hetagent_block`, automatizando la discretización de grillas, la iteración de políticas mediante el Método de Grilla Endógena (EGM) y el cálculo de distribuciones estacionarias de riqueza.
+# - `compute_jacobians`: Implementa el Algoritmo de *Fake-News* (Auclert, Bardóczy, Rognlie y Straub, 2021), evaluando matrices de respuesta intertemporal mediante recursiones rápidas hacia adelante y hacia atrás.
+# - `solve_hank_bridge` y `model.simulate`: Simula dinámicas de transición de equilibrio general tanto con inversión matricial lineal como con el solucionador cuasi-Newton no lineal de Broyden.
+# - `solve_nonlinear_transition`: Motor avanzado en el espacio de secuencias para choques MIT arbitrarios, experimentos de estímulo fiscal y restricciones de endeudamiento activas.

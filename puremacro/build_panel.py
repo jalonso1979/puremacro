@@ -20,6 +20,9 @@ from .fetch import (wui, wui_extras, epu, gpr, jln, lmn, fernald, fred,
                     oecd_qna_expenditure)
 from ._codes import drop_aggregates as _drop_aggregates, is_country
 from .uncertainty import build_backbone, build_composite, build_innovation
+from .climate_panel import build_climate_panel
+from .financial_panel import build_financial_panel
+
 
 
 def _drop_aggregates_in_panel(panel: pd.DataFrame) -> pd.DataFrame:

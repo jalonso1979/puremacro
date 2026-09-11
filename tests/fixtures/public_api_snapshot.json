@@ -91,6 +91,9 @@
       "make_dl_lags",
       "monthly_dl"
     ],
+    "puremacro.climate_panel": [
+      "build_climate_panel"
+    ],
     "puremacro.cointegration_modern": [
       "DOLSResult",
       "FMOLSResult",
@@ -718,18 +721,28 @@
       "ana_meta",
       "available_providers",
       "chain_volume",
+      "compute_sovereign_spreads",
       "drop_unadjusted_editions",
+      "fetch_bis_macroprudential",
+      "fetch_commodity_benchmarks",
+      "fetch_emissions_panel",
+      "fetch_energy_transition",
       "fetch_eurostat_lfs_panel",
       "fetch_eurostat_vacancies",
+      "fetch_financial_conditions",
       "fetch_fred",
       "fetch_fred_alfred",
       "fetch_ilostat_lfs_panel",
       "fetch_ilostat_sectoral_panel",
       "fetch_jolts",
       "fetch_labor_panel_union",
+      "fetch_oecd_ghg",
       "fetch_oecd_lfs_panel",
+      "fetch_policy_rates",
       "fetch_qna_vintages",
       "fetch_sectoral_panel_union",
+      "fetch_sovereign_yields",
+      "fetch_wdi_emissions",
       "fetch_xrate_monthly",
       "get_qna_vintage_catalog",
       "long_panel_residual",
@@ -762,6 +775,38 @@
       "iter_state_participation_a",
       "iter_state_participation_q",
       "iter_state_urate_q"
+    ],
+    "puremacro.fetch.commodities": [
+      "COMMODITY_CATEGORIES",
+      "fetch_agriculture_benchmarks",
+      "fetch_commodity_benchmarks",
+      "fetch_commodity_indices",
+      "fetch_energy_benchmarks",
+      "fetch_indices",
+      "fetch_metal_benchmarks",
+      "fetch_prices"
+    ],
+    "puremacro.fetch.emissions": [
+      "fetch_emissions_panel",
+      "fetch_oecd_ghg",
+      "fetch_wdi_emissions"
+    ],
+    "puremacro.fetch.energy_transition": [
+      "VARIABLES",
+      "fetch_energy_transition"
+    ],
+    "puremacro.fetch.financial": [
+      "_BIS_TO_ISO3",
+      "_EUROZONE_ISO3",
+      "_ISO3_TO_BIS",
+      "compute_sovereign_spreads",
+      "fetch_bis_credit_gap",
+      "fetch_bis_macroprudential",
+      "fetch_bis_property_prices",
+      "fetch_bis_total_credit",
+      "fetch_financial_conditions",
+      "fetch_policy_rates",
+      "fetch_sovereign_yields"
     ],
     "puremacro.fetch.hrs_mpu": [
       "fetch"
@@ -1022,13 +1067,20 @@
       "fetch_eurostat_vacancies"
     ],
     "puremacro.fetch.wb_pink_sheet": [
-      "fetch"
+      "COMMODITY_CATEGORIES",
+      "fetch",
+      "fetch_commodity_benchmarks",
+      "fetch_indices",
+      "fetch_prices"
     ],
     "puremacro.fetch.wui_extras": [
       "fetch_extras_m",
       "fetch_wpui_m",
       "fetch_wtui_m",
       "fetch_wui_m_full"
+    ],
+    "puremacro.financial_panel": [
+      "build_financial_panel"
     ],
     "puremacro.forecast": [
       "PenalizedForecastResult",

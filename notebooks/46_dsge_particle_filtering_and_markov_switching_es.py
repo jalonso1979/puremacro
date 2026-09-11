@@ -52,6 +52,17 @@
 # $$ \text{smin}_\tau(a, b) = -\tau \ln\left( e^{-a/\tau} + e^{-b/\tau} \right) $$
 # Cuando $\tau \to 0^+$, $\text{smin}_\tau(a, b) \to \min(a, b)$ con derivabilidad infinita ($C^\infty$). El peso continuo de régimen $w_t(\tau) \in (0, 1)$ interpola suavemente entre matrices de transición de referencia y restringidas, generando gradientes exactos $\nabla_\theta \ln L$ para inferencia HMC con NUTS.
 
+# %% [markdown]
+# ## Intuición
+#
+# **Intuición.** Los fenómenos macroeconómicos no lineales introducen severas rupturas computacionales en las herramientas convencionales de modelos DSGE lineales.
+#
+# En primer lugar, cuando la economía está sujeta a incertidumbre fluctuante en el tiempo —como volatilidad estocástica en la productividad o en el riesgo financiero—, los agentes demandan colchones de ahorro precautorio y los precios de los activos incorporan primas de riesgo variables. Debido a que la varianza condicional evoluciona estocásticamente, el espacio de estados se vuelve fundamentalmente no gaussiano, provocando que el filtro de Kalman genere evaluaciones sesgadas y erróneas de la verosimilitud. El filtrado de partículas (Monte Carlo Secuencial) supera este colapso propagando una nube empírica de partículas que rastrea con precisión la distribución posterior no gaussiana completa a lo largo del tiempo.
+#
+# En segundo lugar, las reglas de política económica no son inmutables: los bancos centrales alternan entre regímenes contractivos con fuerte disciplina antiinflacionaria y regímenes acomodaticios orientados al crecimiento. Los solucionadores estándar de expectativas racionales no pueden resolver regímenes donde la política monetaria viola el principio de Taylor ($\phi_\pi < 1$). Sin embargo, Foerster et al. (2016) demuestran que si el público anticipa una probabilidad suficientemente alta de retornar a un régimen activo en el futuro, la economía alcanza estabilidad global en media cuadrática (MSS), a pesar de transitar temporalmente por regímenes localmente indeterminados.
+#
+# En tercer lugar, las restricciones que se activan ocasionalmente, como el límite inferior cero (ZLB), generan quiebres no diferenciables en las funciones de política. Aunque los algoritmos lineales por tramos (OccBin tradicional) simulan trayectorias, sus derivadas direccionales nulas o infinitas impiden el funcionamiento de muestreadores bayesianos modernos basados en gradientes como NUTS. El algoritmo de OccBin diferenciable resuelve este dilema suavizando la condición de complementariedad con un parámetro continuo de temperatura $\tau$: conforme $\tau \to 0$, la trayectoria suavizada converge uniformemente hacia la frontera discreta mientras preserva diferenciabilidad de orden infinito ($C^\infty$) para la evaluación de gradientes hamiltonianos.
+
 # %%
 import sys
 import time
@@ -446,10 +457,71 @@ assert np.isfinite(res_sv.log_likelihood), "La verosimilitud debe ser finita"
 # Exportamos las tablas de diagnóstico de regímenes con cambio de Markov y de desempeño del filtro de partículas a formatos LaTeX y Markdown:
 
 # %%
-print("--- Exportación de Tabla LaTeX: Regímenes MS-DSGE ---")
+print("--- LaTeX Table Export: Markov-Switching DSGE Regimes ---")
 print(ms_res.to_latex())
 
-print("--- Exportación de Tabla Markdown: Desempeño del Filtro de Partículas ---")
+print("--- Markdown Table Export: Particle Filter Performance ---")
 print(res_sv.to_markdown())
 
-print("\nCuaderno demostrativo de Frontera DSGE No Lineal completado exitosamente.")
+# %% [markdown]
+# ## Lectura de los resultados
+#
+# **Lectura de los resultados.**
+# 1. **Convergencia de OccBin Diferenciable ($\tau \to 0$)**: Ante un choque deflacionario severo de demanda ($\epsilon_g = -0.045$), la tasa de política monetaria alcanza el piso del ZLB de $-1.0\%$ durante 6 trimestres consecutivos. Las trayectorias de relajación suave con parámetros de temperatura $\tau = 0.020$ y $\tau = 0.005$ envuelven la trayectoria discreta lineal por tramos: la desviación absoluta máxima se reduce de $6.89 \times 10^{-3}$ con $\tau=0.020$ a $1.31 \times 10^{-3}$ con $\tau=0.005$, confirmando la convergencia uniforme monótona hacia la frontera no diferenciable preservando al mismo tiempo regularidad $C^\infty$ para inferencia basada en gradientes.
+# 2. **Puente HANK de Dos Activos en el Espacio de Secuencias**: Al incorporar la asignación de portafolio de los hogares entre depósitos líquidos ($b$) y activos ilíquidos de capital ($a$) con costos de ajuste cuadráticos, la transición de equilibrio general ante un choque monetario expansivo de $-25\text{ pbs}$ converge con rapidez. El consumo agregado salta expansivamente ($C_0 > 0$), reflejando la alta propensión marginal al consumo de los hogares con restricciones de liquidez.
+# 3. **Estabilidad Global en Media Cuadrática (MSS) con Cambio de Régimen**: Aunque el régimen monetario moderado viola el principio de Taylor estándar ($\phi_\pi = 0.80 < 1.0$, siendo localmente indeterminado de forma aislada), el sistema acoplado de expectativas racionales alcanza estabilidad global en media cuadrática ($\rho(M_2) = 0.6380 < 1.0$, $\rho(M_1) = 0.5729 < 1.0$). Puesto que la probabilidad ergódica del régimen estricto es de $2/3$, la anticipación racional del endurecimiento monetario futuro ancla las expectativas e induce estabilidad macroeconómica agregada.
+# 4. **Funciones de Respuesta al Impulso Generalizadas en Forma Cerrada (GIRF)**: Tras un choque monetario contractivo no anticipado en el régimen estricto, la tasa de interés de política sube en el impacto, induciendo una contracción inmediata de la brecha del producto y desacelerando la inflación. La GIRF analítica calcula las expectativas intertemporales exactas sobre todas las trayectorias futuras de regímenes en forma analítica cerrada, eliminando el ruido de simulación por Monte Carlo.
+# 5. **Filtro de Partículas Monte Carlo Secuencial con Volatilidad Estocástica**: Propagando $N = 2,000$ partículas a través de un modelo RBC no lineal con proceso autorregresivo de log-volatilidad, el filtro de partículas *Bootstrap* mantiene un elevado Tamaño Muestral Efectivo ($ESS = 716.8 / 2,000$, con remuestreo activado en el $62.5\%$ de los períodos), evitando la degeneración de partículas y evaluando una log-verosimilitud no lineal exacta de $\ln \hat{L} = -15.15$.
+
+# %% [markdown]
+# ## Tu turno
+#
+# **Consignas.**
+# 1. *Básica*: Modifique el parámetro de temperatura en OccBin diferenciable (`tau_yt = 0.010` frente a `0.002`) y observe cómo escala el error de aproximación con respecto a la temperatura.
+# 2. *Intermedia*: Vuelva a evaluar la GIRF analítica de MS-DSGE bajo un régimen inicial moderado (`initial_regime_yt = 1` frente a `0`) y contraste la contracción del producto y el alza de tasas resultante con la referencia del régimen estricto.
+# 3. *Avanzada*: Incremente el número de partículas en el filtro Monte Carlo Secuencial (`n_particles_yt = 5_000`) y verifique si la log-verosimilitud estimada converge y la frecuencia de remuestreo se estabiliza.
+
+# %%
+# Your turn: customize smoothing temperature or MS-DSGE initial regime
+# ← change this: test OccBin smoothing temperature tau_yt = 0.010 (default), 0.015, or 0.002
+tau_yt = 0.010
+# ← change this: test MS-DSGE initial regime (0 = Hawkish, 1 = Dovish)
+initial_regime_yt = 1
+
+# 1. Re-solve Differentiable OccBin under custom smoothing temperature
+res_diff_yt = solve_differentiable_occbin(
+    m_ref, m_cons, zlb_constraint, shocks_mat, tau=tau_yt, horizon=len(shocks_mat)
+)
+r_smooth_yt = res_diff_yt.path["r"].to_numpy()
+err_yt = float(np.max(np.abs(r_disc - r_smooth_yt)))
+
+# 2. Re-solve MS-DSGE GIRF under custom starting regime
+girf_yt = ms_res.girf(shock=2, horizon=16, initial_regime=initial_regime_yt)
+regime_name_yt = regime_names[initial_regime_yt]
+
+print(f"Differentiable OccBin (tau = {tau_yt:.4f}):")
+print(f"  Max absolute deviation from discrete : {err_yt:.6e}")
+print(f"  Monotonic error bound (err_005 < err_yt < err_02) : {err_005 < err_yt < err_02}")
+print(f"MS-DSGE GIRF (Initial Regime = {regime_name_yt}):")
+print(f"  Impact policy rate (i_0) : {girf_yt['interest_rate'].iloc[0]:+.4f} (Baseline Hawkish: {girf_df['interest_rate'].iloc[0]:+.4f})")
+print(f"  Impact output gap  (y_0) : {girf_yt['output_gap'].iloc[0]:+.4f} (Baseline Hawkish: {girf_df['output_gap'].iloc[0]:+.4f})")
+print(f"  Impact inflation  (pi_0) : {girf_yt['inflation'].iloc[0]:+.4f}")
+
+# Downstream automated assertions
+assert res_diff_yt.converged
+assert err_yt < err_02, "Error at smaller tau must remain bounded by tau=0.020 error"
+if initial_regime_yt == 1:
+    assert girf_yt["output_gap"].iloc[0] < girf_df["output_gap"].iloc[0], "Dovish regime must exhibit deeper output contraction"
+    assert girf_yt["interest_rate"].iloc[0] > girf_df["interest_rate"].iloc[0]
+else:
+    np.testing.assert_allclose(girf_yt["output_gap"].iloc[0], girf_df["output_gap"].iloc[0], atol=1e-6)
+assert np.isclose(girf_yt["interest_rate"].iloc[-1], 0.0, atol=1e-3), "GIRF must mean-revert toward zero"
+
+# %% [markdown]
+# ## ¿Qué tan exhaustivo es esto?
+#
+# `puremacro.dsge` unifica la frontera avanzada de la macroeconomía no lineal y con cambio de régimen en Python 100% puro:
+# - `solve_differentiable_occbin`: Relajación suave de restricciones de desigualdad que se activan ocasionalmente mediante operadores suaves parametrizados ($\text{smin}_\tau, \text{smax}_\tau$), proporcionando trayectorias diferenciables $C^\infty$ para estimación bayesiana basada en gradientes mediante NUTS HMC.
+# - `solve_ms_dsge`: Resuelve modelos DSGE con cambio de régimen de Markov (Foerster et al. 2016) mediante iteraciones de Newton-Raphson por bloques acoplados, verifica la estabilidad en media cuadrática de primer y segundo momento ($\rho(M_1), \rho(M_2) < 1.0$) y evalúa respuestas al impulso generalizadas en forma analítica cerrada (`girf`).
+# - `particle_filter`: Filtro de partículas *Bootstrap* vectorizado con remuestreo sistemático estratificado, monitoreo de Tamaño Muestral Efectivo ($ESS$) y soporte para volatilidad estocástica (`StochasticVolatilitySpec`).
+# - `solve_hank_bridge`: Conecta la heterogeneidad microeconómica de los hogares con activos líquidos e ilíquidos (Kaplan, Moll & Violante 2018) con transiciones de equilibrio general en el espacio de secuencias.

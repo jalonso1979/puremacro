@@ -1,0 +1,160 @@
+[
+  {
+    "page": 1,
+    "pages": 1,
+    "per_page": 15000,
+    "total": 20
+  },
+  [
+    {
+      "indicator": {"id": "EN.GHG.CO2.PC.CE.AR5", "value": "CO2 per capita"},
+      "country": {"id": "US", "value": "United States"},
+      "countryiso3code": "USA",
+      "date": "2020",
+      "value": 13.68,
+      "unit": "",
+      "obs_status": "",
+      "decimal": 2
+    },
+    {
+      "indicator": {"id": "EN.GHG.CO2.PC.CE.AR5", "value": "CO2 per capita"},
+      "country": {"id": "US", "value": "United States"},
+      "countryiso3code": "USA",
+      "date": "2019",
+      "value": 14.72,
+      "unit": "",
+      "obs_status": "",
+      "decimal": 2
+    },
+    {
+      "indicator": {"id": "EN.GHG.CO2.MT.CE.AR5", "value": "CO2 total Mt"},
+      "country": {"id": "US", "value": "United States"},
+      "countryiso3code": "USA",
+      "date": "2020",
+      "value": 4535.38,
+      "unit": "",
+      "obs_status": "",
+      "decimal": 2
+    },
+    {
+      "indicator": {"id": "EN.GHG.ALL.MT.CE.AR5", "value": "Total GHG Mt"},
+      "country": {"id": "US", "value": "United States"},
+      "countryiso3code": "USA",
+      "date": "2020",
+      "value": 5711.23,
+      "unit": "",
+      "obs_status": "",
+      "decimal": 2
+    },
+    {
+      "indicator": {"id": "EN.GHG.CH4.MT.CE.AR5", "value": "Methane Mt"},
+      "country": {"id": "US", "value": "United States"},
+      "countryiso3code": "USA",
+      "date": "2020",
+      "value": 621.45,
+      "unit": "",
+      "obs_status": "",
+      "decimal": 2
+    },
+    {
+      "indicator": {"id": "EN.GHG.N2O.MT.CE.AR5", "value": "Nitrous oxide Mt"},
+      "country": {"id": "US", "value": "United States"},
+      "countryiso3code": "USA",
+      "date": "2020",
+      "value": 398.12,
+      "unit": "",
+      "obs_status": "",
+      "decimal": 2
+    },
+    {
+      "indicator": {"id": "EN.GHG.CO2.PC.CE.AR5", "value": "CO2 per capita"},
+      "country": {"id": "DE", "value": "Germany"},
+      "countryiso3code": "DEU",
+      "date": "2020",
+      "value": 7.69,
+      "unit": "",
+      "obs_status": "",
+      "decimal": 2
+    },
+    {
+      "indicator": {"id": "EN.GHG.CO2.MT.CE.AR5", "value": "CO2 total Mt"},
+      "country": {"id": "DE", "value": "Germany"},
+      "countryiso3code": "DEU",
+      "date": "2020",
+      "value": 639.42,
+      "unit": "",
+      "obs_status": "",
+      "decimal": 2
+    },
+    {
+      "indicator": {"id": "EN.GHG.ALL.MT.CE.AR5", "value": "Total GHG Mt"},
+      "country": {"id": "DE", "value": "Germany"},
+      "countryiso3code": "DEU",
+      "date": "2020",
+      "value": 728.65,
+      "unit": "",
+      "obs_status": "",
+      "decimal": 2
+    },
+    {
+      "indicator": {"id": "EN.GHG.CH4.MT.CE.AR5", "value": "Methane Mt"},
+      "country": {"id": "DE", "value": "Germany"},
+      "countryiso3code": "DEU",
+      "date": "2020",
+      "value": 49.31,
+      "unit": "",
+      "obs_status": "",
+      "decimal": 2
+    },
+    {
+      "indicator": {"id": "EN.GHG.N2O.MT.CE.AR5", "value": "Nitrous oxide Mt"},
+      "country": {"id": "DE", "value": "Germany"},
+      "countryiso3code": "DEU",
+      "date": "2020",
+      "value": 31.84,
+      "unit": "",
+      "obs_status": "",
+      "decimal": 2
+    },
+    {
+      "indicator": {"id": "EN.GHG.CO2.PC.CE.AR5", "value": "CO2 per capita"},
+      "country": {"id": "1W", "value": "World"},
+      "countryiso3code": "WLD",
+      "date": "2020",
+      "value": 4.47,
+      "unit": "",
+      "obs_status": "",
+      "decimal": 2
+    },
+    {
+      "indicator": {"id": "EN.GHG.CO2.PC.CE.AR5", "value": "CO2 per capita"},
+      "country": {"id": "US", "value": "United States"},
+      "countryiso3code": "USA",
+      "date": "2021",
+      "value": null,
+      "unit": "",
+      "obs_status": "",
+      "decimal": 2
+    },
+    {
+      "indicator": {"id": "EN.ATM.CO2E.PC", "value": "Legacy CO2 per capita"},
+      "country": {"id": "GB", "value": "United Kingdom"},
+      "countryiso3code": "GBR",
+      "date": "2018",
+      "value": 5.41,
+      "unit": "",
+      "obs_status": "",
+      "decimal": 2
+    },
+    {
+      "indicator": {"id": "EN.ATM.CO2E.KT", "value": "Legacy CO2 total kt"},
+      "country": {"id": "GB", "value": "United Kingdom"},
+      "countryiso3code": "GBR",
+      "date": "2018",
+      "value": 361540.0,
+      "unit": "",
+      "obs_status": "",
+      "decimal": 1
+    }
+  ]
+]
