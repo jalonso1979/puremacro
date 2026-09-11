@@ -42,7 +42,7 @@ jobs:
           pip install "jupyterlite-core==0.8.3" "jupyterlite-pyodide-kernel==0.8.4" \
                       jupyter-server mkdocs-material
 
-      - name: Build JupyterLite Playground
+      - name: Build JupyterLite Playground & Docs
         run: |
           bash playground/build_playground.sh
           touch playground/dist/.nojekyll

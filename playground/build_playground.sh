@@ -75,6 +75,9 @@ rm -rf ./dist
 # jupyter lite reads jupyter_lite_config.json (PipliteAddon) from this dir.
 jupyter lite build --contents ./content --output-dir ./dist
 
+echo "==> 4.5/5 build documentation site"
+python -m mkdocs build --strict -d "$PG/dist/docs"
+
 echo "==> 5/5 done"
 echo "    serve locally:  python -m http.server -d \"$PG/dist\" 8000"
 echo "    then open:      http://localhost:8000/lab/index.html"

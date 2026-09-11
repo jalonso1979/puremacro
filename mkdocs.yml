@@ -1,7 +1,7 @@
 site_name: puremacro
 site_description: Production-grade Macroeconometric and Heterogeneous-Agent Structural Modeling Engine in Pure Python
 site_author: puremacro contributors
-site_url: https://jalonso1979.github.io/puremacro/
+site_url: https://jalonso1979.github.io/puremacro/docs/
 
 repo_name: jalonso1979/puremacro
 repo_url: https://github.com/jalonso1979/puremacro

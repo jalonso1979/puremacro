@@ -405,6 +405,7 @@ class SMCResult:
 
     def to_markdown(self, **kwargs: Any) -> str:
         """Export posterior parameter table and MDD to Markdown format."""
+        from puremacro.reports import _df_to_markdown
         lines = [
             "### Sequential Monte Carlo (SMC) Estimation Results",
             "",
@@ -412,7 +413,7 @@ class SMCResult:
             f"- **Number of Particles**: `{len(self.particles)}`",
             f"- **Number of Stages**: `{len(self.stage_tempering)}`",
             "",
-            self.posterior_summary.to_markdown(),
+            _df_to_markdown(self.posterior_summary, index=True, **kwargs),
         ]
         return "\n".join(lines)
 

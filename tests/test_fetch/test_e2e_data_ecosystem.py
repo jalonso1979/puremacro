@@ -553,15 +553,19 @@ class TestArchitecturalAndPurityGate:
 
     def test_architectural_offline_and_pyodide_invariants(self):
         """Puremacro and puremacro.fetch must strictly adhere to the 4-package Pyodide contract."""
-        forbidden = ("statsmodels", "linearmodels", "arch", "bs4", "pdfplumber", "pypdf")
-        for mod in forbidden:
-            assert mod not in sys.modules, f"Forbidden non-Pyodide module {mod} loaded"
-
-        # Verify puremacro public surface can be imported
-        import puremacro
-        import puremacro.fetch
-        assert hasattr(puremacro, "__version__")
-        assert hasattr(puremacro.fetch, "_http")
+        code = (
+            "import sys\n"
+            "import puremacro\n"
+            "import puremacro.fetch\n"
+            "forbidden = ('statsmodels', 'linearmodels', 'arch', 'bs4', 'pdfplumber', 'pypdf')\n"
+            "leaked = [mod for mod in forbidden if mod in sys.modules]\n"
+            "assert not leaked, f'Forbidden non-Pyodide module leaked: {leaked}'\n"
+            "assert hasattr(puremacro, '__version__')\n"
+            "assert hasattr(puremacro.fetch, '_http')\n"
+        )
+        import subprocess
+        proc = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+        assert proc.returncode == 0, f"Purity gate failed:\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}"
 
 
 # ===========================================================================

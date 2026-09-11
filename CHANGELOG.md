@@ -2,6 +2,23 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## 3.2.1 (2026-09-11)
+
+### Patch Release: Documentation Overhaul, Live Pages Site & PyPI Alignment
+
+- **Live Documentation Deployment**:
+  - Live deployment of interactive MkDocs documentation suite to GitHub Pages under `https://jalonso1979.github.io/puremacro/docs/`.
+  - Added build step in `playground/build_playground.sh` and `.github/workflows/pages.yml` to compile the documentation site alongside the JupyterLite playground.
+  - Updated `mkdocs.yml` navigation to register `data_ecosystem.md`, `notebooks.md`, and `replication.md` across both English and Spanish navigation trees.
+  - Verified strict MkDocs compilation (`mkdocs build --strict`) with zero broken links and 100% user documentation coverage.
+- **Bilingual Documentation Parity**:
+  - Verified 100% English and native Spanish documentation parity across all 54 user guides (`tests/test_bilingual_docs.py`).
+- **Packaging & PyPI Metadata**:
+  - Updated `[project.urls]` in `pyproject.toml` with direct links to the live documentation, playground, changelog, and issues tracker.
+- **Inference & Presentation Invariants**:
+  - Replaced pandas `df.to_markdown()` with puremacro's zero-dependency `_df_to_markdown` in `SMCResult.to_markdown()` (`puremacro/dsge/smc.py`), eliminating optional external `tabulate` dependency in headless/Pyodide environments.
+  - Isolated Pyodide architectural purity assertions in `tests/test_fetch/test_e2e_data_ecosystem.py` from pytest process-level module pollution.
+
 ## 3.2.0 (2026-09-11)
 
 ### Milestone 3.2: Applied Macroeconomist Showcase Suite & Global Climate, Energy, Commodity, and Financial Data Ecosystem
