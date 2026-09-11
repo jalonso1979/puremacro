@@ -1,0 +1,101 @@
+residuals at the port's linearisation point (should be 0 at a true SS):
+  production     0.000000e+00
+  invest LoM     2.775558e-17
+  resource       4.594125e-02
+  children LoM  -2.850000e-03
+  time           2.220446e-16
+  leisure FOC   -5.637286e-09
+  capital eff   -7.383382e-03
+  cons Euler     6.661338e-16
+  fert Euler    -1.482967e+00
+  AR a           0.000000e+00
+  AR mun         0.000000e+00
+  AR ph          0.000000e+00
+  ||resid||_2 = 1.483700e+00
+
+singular values of A (lead Jacobian):
+  [6.11  2.505 0.    0.    0.    0.    0.    0.    0.    0.    0.    0.   ]
+numerical rank(A) = 2  (nonzero rows: cons Euler, fert Euler)
+singular values of C (lag Jacobian):
+  [2.801 1.861 0.9   0.781 0.5   0.    0.    0.    0.    0.    0.    0.   ]
+numerical rank(C) = 5  (lag columns: a, mun, ph, k, n)
+prediction: deg det(A mu^2+B mu+C) = n + rank(A) = 14, zeros at origin = n - rank(C) = 7, infinite companion eigenvalues = 10
+
+companion QZ (package rule, |beta| > 1e-12 <=> finite):
+    abs_alpha    abs_beta  modulus     class
+0           0           1        0    stable
+1           0           1        0    stable
+2           0           1        0    stable
+3           0           1        0    stable
+4           0           1        0    stable
+5           0           1        0    stable
+6           0           1        0    stable
+7    0.447214    0.894427      0.5    stable
+8    0.462995     0.77811 0.595025    stable
+9    0.695952     0.89139 0.780749    stable
+10   0.691334    0.768148      0.9    stable
+11    1.12402     1.05198  1.06848  unstable
+12   0.681502    0.588736  1.15757  unstable
+13    2.41773     1.22894  1.96733  unstable
+14    1.34372           0      inf  infinite
+15    1.38026 3.75659e-17      inf  infinite
+16    1.11803 8.12402e-18      inf  infinite
+17    1.47343 1.32843e-31      inf  infinite
+18    2.36931 1.54074e-33      inf  infinite
+19    1.66033  3.1005e-18      inf  infinite
+20    2.30156 1.50963e-20      inf  infinite
+21    1.45408 7.61845e-19      inf  infinite
+22    1.65192 4.54777e-19      inf  infinite
+23    0.52476 3.57258e-18      inf  infinite
+
+n_stable = 11 (package expects 12) -> BK FAILS
+
+|beta| clusters: finite cluster min = 5.887e-01, infinite cluster max = 3.757e-17, threshold = 1e-12
+gap ratio (finite min / infinite max) = 1.567e+16
+borderline pairs with 1e-16 < |beta| < 1e-8: 0
+
+n_stable under 200 random 1e-13-relative pencil perturbations (emulating build-dependent arithmetic):
+  counts: {11: 200}
+
+determinant interpolation: effective degree = 14 (predicted 14)
+finite roots (moduli): [0.       0.       0.       0.       0.       0.       0.       0.5      0.595025 0.780749 0.9
+ 1.068479 1.157568 1.967333]
+  zeros           : 7
+  shock-rho roots : [0.780749 0.5      0.9     ]
+  endogenous      : [0.595025 1.068479 1.157568 1.967333]
+
+QZ vs det-interpolation (sorted moduli):
+    qz_modulus  det_modulus   abs_diff
+0   0.00000000   0.00000000 0.00000000
+1   0.00000000   0.00000000 0.00000000
+2   0.00000000   0.00000000 0.00000000
+3   0.00000000   0.00000000 0.00000000
+4   0.00000000   0.00000000 0.00000000
+5   0.00000000   0.00000000 0.00000000
+6   0.00000000   0.00000000 0.00000000
+7   0.50000000   0.50000000 0.00000000
+8   0.59502539   0.59502539 0.00000000
+9   0.78074896   0.78074896 0.00000000
+10  0.90000000   0.90000000 0.00000000
+11  1.06847887   1.06847887 0.00000000
+12  1.15756756   1.15756756 0.00000000
+13  1.96733310   1.96733310 0.00000000
+
+companion-pencil per-eigenvalue sensitivity (|dlam| per unit relative pencil perturbation):
+      eig  modulus  sensitivity
+     0+0j        0        7.967
+     0+0j        0        15.56
+     0+0j        0        9.744
+     0+0j        0        20.02
+     0+0j        0        13.21
+     0+0j        0        12.37
+     0+0j        0        14.51
+   0.5+0j      0.5        15.06
+ 0.595+0j    0.595        62.33
+0.7807+0j   0.7807        87.87
+   0.9+0j      0.9        23.15
+ 1.068+0j    1.068        152.2
+ 1.158+0j    1.158        106.9
+ 1.967+0j    1.967        141.2
+
+figures written to /Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples/puremacro/docs/research/fertility_bk_diagnosis/figures

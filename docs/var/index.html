@@ -1,0 +1,4648 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Production-grade Macroeconometric and Heterogeneous-Agent Structural Modeling Engine in Pure Python">
+      
+      
+        <meta name="author" content="puremacro contributors">
+      
+      
+        <link rel="canonical" href="https://jalonso1979.github.io/puremacro/docs/var/">
+      
+      
+        <link rel="prev" href="../data_ecosystem/">
+      
+      
+        <link rel="next" href="../narrative_sign_svar/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>VAR & FAVAR - puremacro</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#var-favar" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="puremacro" class="md-header__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            puremacro
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              VAR & FAVAR
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href=".." class="md-tabs__link">
+          
+  
+  
+  English Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../es/" class="md-tabs__link">
+          
+  
+  
+  Documentación en Español
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="puremacro" class="md-nav__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    puremacro
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    English Documentation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    English Documentation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Showcase Notebooks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Correctness advisories
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quarterly National Accounts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-time data (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Long national accounts panel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global Macro Data Ecosystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_1_6" id="__nav_1_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometric Engines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Econometric Engines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR & FAVAR
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR & FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-reduced-form" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The reduced form
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#h1-n-n-say-it-out-loud-once" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        (H+1, n, n) — say it out loud once
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-identification-schemes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The identification schemes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The identification schemes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cholesky" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cholesky
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#blanchardquah" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Blanchard–Quah
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sign-restrictions-and-the-four-different-formats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sign restrictions, and the four different formats
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative-sign-restrictions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Narrative sign restrictions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#proxy-external-instrument" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Proxy / external instrument
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#max-share" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Max-share
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#heteroskedasticity-rigobon-and-magnussonmavroeidis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Heteroskedasticity: Rigobon and Magnusson–Mavroeidis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#non-gaussian" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Non-Gaussian
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#giacominikitagawa-robust-bands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Giacomini–Kitagawa robust bands
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-result-dataclasses" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The result dataclasses
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bootstrap-bands-and-what-happens-to-a-draw-that-fails" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bootstrap bands, and what happens to a draw that fails
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Bootstrap bands, and what happens to a draw that fails">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bootstrap_bands-bands-for-an-impact-matrix-of-your-own" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bootstrap_bands — bands for an impact matrix of your own
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#favar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FAVAR
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#panel-var" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Panel VAR
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#not-on-this-page" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Not on this page
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Narrative Sign Restrictions SVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR with Stochastic Volatility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Smooth Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modern Difference-in-Differences
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Honest DiD Sensitivity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Econometrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global VAR (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Estimation & Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GDP Nowcasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Penalized Forecasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_7" id="__nav_1_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publication & Reporting
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publication & Reporting
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manuscript Tables & Exports
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_8" id="__nav_1_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structural Models
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Structural Models
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sequence-Space HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Non-Linear HANK Transitions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gertler-Karadi (2011) DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Climate Macro (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Sketchpad & Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Higher-Order & Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Parity & Surface Area
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradients, NUTS & HANK Bridge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Frontier (Policy, DSGE-VAR & News)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Non-linear Particle Filtering & Regime Switching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running Anywhere (iPad / browser)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance & Benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_11" id="__nav_1_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replication gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation & goldens
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Connector health
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credentials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cache database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signal contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lexicon review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path to 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentación en Español
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Documentación en Español
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio rápido
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuadernos de demostración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avisos de corrección
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuentas nacionales trimestrales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos en tiempo real (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panel largo de cuentas nacionales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ecosistema de datos macro globales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motores econométricos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Motores econométricos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR y FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SVAR con restricciones narrativas de signo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR con volatilidad estocástica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales suavizadas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias en diferencias modernas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sensibilidad en DiD honesto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometría espacial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR global (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estimación y diagnósticos DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nowcasting del PIB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pronóstico penalizado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publicación e informes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publicación e informes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tablas y exportación de manuscritos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_8" id="__nav_2_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos estructurales
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Modelos estructurales
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HANK en el espacio de secuencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transiciones no lineales en HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de Gertler-Karadi (2011)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomía del clima (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuaderno de bocetos DSGE y Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de orden superior y restricciones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Paridad y superficie operativa DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradientes, NUTS y Puente HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontera DSGE (Política, DSGE-VAR y Noticias)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Filtrado de Partículas No Lineal y Cambio de Régimen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ejecución en cualquier entorno (iPad / navegador)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendimiento y pruebas comparativas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_11" id="__nav_2_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de replicación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validación y referencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estado de conectores
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credenciales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos de caché
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato de señales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de ejemplos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Revisión de léxico
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ruta a 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-reduced-form" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The reduced form
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#h1-n-n-say-it-out-loud-once" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        (H+1, n, n) — say it out loud once
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-identification-schemes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The identification schemes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The identification schemes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cholesky" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cholesky
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#blanchardquah" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Blanchard–Quah
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sign-restrictions-and-the-four-different-formats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sign restrictions, and the four different formats
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#narrative-sign-restrictions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Narrative sign restrictions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#proxy-external-instrument" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Proxy / external instrument
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#max-share" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Max-share
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#heteroskedasticity-rigobon-and-magnussonmavroeidis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Heteroskedasticity: Rigobon and Magnusson–Mavroeidis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#non-gaussian" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Non-Gaussian
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#giacominikitagawa-robust-bands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Giacomini–Kitagawa robust bands
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-result-dataclasses" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The result dataclasses
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bootstrap-bands-and-what-happens-to-a-draw-that-fails" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bootstrap bands, and what happens to a draw that fails
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Bootstrap bands, and what happens to a draw that fails">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bootstrap_bands-bands-for-an-impact-matrix-of-your-own" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        bootstrap_bands — bands for an impact matrix of your own
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#favar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FAVAR
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#panel-var" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Panel VAR
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#not-on-this-page" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Not on this page
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<blockquote>
+<p>🇬🇧 English · 🇪🇸 <a href="../es/var/">Español</a></p>
+</blockquote>
+<h1 id="var-favar">VAR &amp; FAVAR</h1>
+<p><code>puremacro.var</code> fits a reduced-form VAR and then answers the only question a
+reduced form cannot: <em>which</em> of the correlated innovations was the shock. Every
+identification scheme in <code>puremacro.var.identify</code> takes the same reduced form
+and differs only in what it is willing to assume — a recursive ordering, a
+long-run neutrality, a sign pattern, an external instrument, a variance break.
+Picking between them is the modelling decision; the code deliberately makes them
+interchangeable so the choice can be made on economics rather than on which one
+was easiest to wire up.</p>
+<p>Nothing on this page touches the network. Everything takes an ndarray; <code>favar</code>
+also accepts a DataFrame and keeps its column names.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.var</span><span class="w"> </span><span class="kn">import</span> <span class="n">lag_select</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.var.identify</span><span class="w"> </span><span class="kn">import</span> <span class="n">cholesky</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">Y</span> <span class="o">=</span> <span class="o">...</span>                                   <span class="c1"># (T, n) ndarray, rows time-ordered</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">p</span> <span class="o">=</span> <span class="n">lag_select</span><span class="p">(</span><span class="n">Y</span><span class="p">,</span> <span class="n">maxlags</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">ic</span><span class="o">=</span><span class="s2">"bic"</span><span class="p">)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">res</span> <span class="o">=</span> <span class="n">cholesky</span><span class="p">(</span><span class="n">Y</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">n_boot</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">ci</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">res</span><span class="o">.</span><span class="n">irf_point</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>                    <span class="c1"># variable 1 at h=4 to shock 0</span>
+</code></pre></div>
+<h2 id="the-reduced-form">The reduced form</h2>
+<p><code>fit_var(Y, p)</code> is OLS with a constant. It returns a frozen
+<code>VarEstimateResult</code>:</p>
+<table>
+<thead>
+<tr>
+<th>attribute</th>
+<th>shape</th>
+<th>what it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>A_list</code></td>
+<td>list of <code>p</code> arrays, each <code>(n, n)</code></td>
+<td><code>A_1 … A_p</code>, lag 1 first</td>
+</tr>
+<tr>
+<td><code>c</code></td>
+<td><code>(n,)</code></td>
+<td>intercept</td>
+</tr>
+<tr>
+<td><code>Sigma</code></td>
+<td><code>(n, n)</code></td>
+<td>residual covariance, denominator <code>T − p − 1 − np</code></td>
+</tr>
+<tr>
+<td><code>resid</code></td>
+<td><code>(T − p, n)</code></td>
+<td>reduced-form residuals</td>
+</tr>
+<tr>
+<td><code>X</code></td>
+<td><code>(T − p, 1 + np)</code></td>
+<td>design matrix, constant in column 0</td>
+</tr>
+</tbody>
+</table>
+<p><code>Sigma</code> carries the full degrees-of-freedom correction, not <code>T − p</code>. The
+dataclass is iterable and indexable, so the five-tuple unpack every internal
+caller uses still works:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.var</span><span class="w"> </span><span class="kn">import</span> <span class="n">fit_var</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">A_list</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">Sigma</span><span class="p">,</span> <span class="n">resid</span><span class="p">,</span> <span class="n">X</span> <span class="o">=</span> <span class="n">fit_var</span><span class="p">(</span><span class="n">Y</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>     <span class="c1"># equivalent</span>
+</code></pre></div>
+<p><code>lag_select(Y, maxlags=8, ic="bic")</code> returns an int; <code>ic</code> accepts <code>"aic"</code>,
+<code>"hq"</code> or <code>"bic"</code>, and anything else falls through to BIC rather than raising.
+It minimises <code>log|Σ_p|</code> plus the usual penalty in the coefficient count <code>n²p</code>
+(intercepts excluded), each candidate evaluated on its own effective sample
+<code>T − p</code>, and skips any <code>p</code> that fails to estimate.
+<code>companion(A_list)</code> returns the <code>(np, np)</code> companion matrix and
+<code>is_stable(A_list)</code> tests <code>max |eig| &lt; 1.0</code> on it.</p>
+<p><code>irf</code>, <code>fevd</code> and <code>historical_decomp</code> in <code>puremacro.var.irf</code> work off
+<code>(A_list, B0)</code> directly — <code>historical_decomp</code> wants the residuals as well — for
+when you have an impact matrix from somewhere else. <code>gfevd</code> takes
+<code>(A_list, Sigma)</code> instead and needs no impact matrix at all: it is the
+Pesaran–Shin generalised decomposition — order-invariant, rows that do not
+naturally sum to one, rescaled to sum to one under the default <code>normalize=True</code>
+(the Diebold–Yılmaz convention).</p>
+<h2 id="h1-n-n-say-it-out-loud-once"><code>(H+1, n, n)</code> — say it out loud once</h2>
+<p><strong>Every IRF, FEVD and band array in this package is <code>(horizon, response,
+shock)</code>.</strong> <code>irf_point[h, i, j]</code> is the response of variable <code>i</code> at horizon <code>h</code>
+to a one-standard-deviation shock in structural equation <code>j</code>. Horizon <code>0</code> is
+impact, so an array with <code>horizon=20</code> has 21 rows.</p>
+<p>This is worth stating because the two axes that are not the horizon are both
+length <code>n</code> and a transposition is silent: it produces plausible-looking impulse
+responses with the roles of response and shock swapped. <code>ProxySVARResult</code>
+shipped as <code>(n, n, H+1)</code> until 0.47.0 flipped it to match the other result
+dataclasses. The inference layer still uses the other convention —
+<code>inference.wild_bootstrap.wild_bootstrap_var</code> returns <code>(n, n, H+1)</code> and
+<code>proxy_svar</code> transposes it back on the way out — so if you write your own
+<code>impact_fn</code> and call that layer directly, you must transpose yourself.</p>
+<p>The exceptions are the results that have no <code>n</code> shocks to report.
+<code>GKRobustBandsResult</code>'s arrays are <code>(H+1, n)</code> — it describes a single named
+shock, so the shock axis is gone rather than degenerate — <code>FAVARResult</code>'s panel
+frames are <code>(H+1, N)</code> for the same reason, and the regime GIRFs in
+<code>puremacro.var.regime</code> carry a regime axis instead (last section).</p>
+<h2 id="the-identification-schemes">The identification schemes</h2>
+<p>Everything in the table is importable from <code>puremacro.var.identify</code>. The
+"needs" column names the argument that carries the assumption — what you decide
+beyond <code>Y</code>, <code>p</code> and <code>horizon</code>. Several of them have a default
+(<code>permanent_var_idx=0</code>, <code>target_idx=0</code>, <code>max_fev_at=1</code>, <code>shock_idx=0</code>);
+defaulting is still choosing.</p>
+<table>
+<thead>
+<tr>
+<th>call</th>
+<th>assumption</th>
+<th>needs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cholesky</code></td>
+<td>recursive contemporaneous ordering</td>
+<td><code>ordering</code> (optional)</td>
+</tr>
+<tr>
+<td><code>bq</code></td>
+<td>one shock has all the long-run effect on one variable</td>
+<td><code>permanent_var_idx</code></td>
+</tr>
+<tr>
+<td><code>sign_restrictions</code></td>
+<td>IRF signs at named horizons</td>
+<td><code>restrictions</code></td>
+</tr>
+<tr>
+<td><code>sign_zero</code></td>
+<td>signs <strong>and</strong> exact zeros on the impact matrix</td>
+<td><code>zero_constraints</code>, <code>sign_constraints</code></td>
+</tr>
+<tr>
+<td><code>narrative_sign_svar</code></td>
+<td>signs plus the sign or dominance of a shock on named dates</td>
+<td><code>sign_matrix</code>, <code>restrictions</code></td>
+</tr>
+<tr>
+<td><code>proxy</code></td>
+<td>an observable correlated with one shock, orthogonal to the rest</td>
+<td><code>instrument_series</code></td>
+</tr>
+<tr>
+<td><code>identify_maxshare</code></td>
+<td>the shock is the one that explains most of a variable's FEV</td>
+<td><code>target_idx</code>, <code>max_fev_at</code></td>
+</tr>
+<tr>
+<td><code>hetero</code></td>
+<td>shock variances shift across two known regimes</td>
+<td><code>regime_indicator</code></td>
+</tr>
+<tr>
+<td><code>magmav_svar</code></td>
+<td>shock variances shift at dates the estimator finds itself</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>non_gaussian_svar</code></td>
+<td>at most one shock is Gaussian</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>gk_robust_bands</code></td>
+<td>signs, but reported as an identified <em>set</em></td>
+<td><code>restrictions</code>, <code>shock_idx</code></td>
+</tr>
+</tbody>
+</table>
+<p>Two naming traps. <code>puremacro.var.identify.cholesky</code> is the <strong>function</strong>
+<code>cholesky_svar</code>, not the submodule — the package <code>__init__</code> shadows it, as it
+does for <code>bq</code>, <code>proxy</code>, <code>hetero</code>, <code>maxshare</code> and <code>sign_zero</code>. And <strong>the
+identified shock is column 0</strong> of <code>B</code> in <code>proxy</code> (whatever <code>shock_target_idx</code>
+you passed), in <code>identify_maxshare</code> and in <code>sign_restrictions</code>, and column 0 is
+the most non-Gaussian shock in <code>non_gaussian_svar</code>. The two schemes that let you
+name the shock instead are <code>narrative_sign_svar</code> (per restriction, and per
+column of <code>sign_matrix</code>) and <code>gk_robust_bands</code> (<code>shock_idx</code>).</p>
+<h3 id="cholesky">Cholesky</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.var.identify</span><span class="w"> </span><span class="kn">import</span> <span class="n">cholesky</span><span class="p">,</span> <span class="n">compute_chol_shocks</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">res</span> <span class="o">=</span> <span class="n">cholesky</span><span class="p">(</span><span class="n">Y</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">ordering</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">n_boot</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">ci</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">t_index</span><span class="p">,</span> <span class="n">eps</span> <span class="o">=</span> <span class="n">compute_chol_shocks</span><span class="p">(</span><span class="n">Y</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">ordering</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>   <span class="c1"># (T-p,), (T-p, n)</span>
+</code></pre></div>
+<p><code>ordering</code> permutes the variables before the factorisation and then <strong>un-permutes
+both axes on the way out</strong>, so <code>irf_point[h, i, j]</code> always means "variable <code>i</code>
+responding to the shock attached to variable <code>j</code>" in your original column order,
+no matter what ordering you passed. Reorder the variables and the numbers change;
+the axis labels do not. <code>compute_chol_shocks</code> follows the same rule and returns
+the shocks themselves — <code>ε_t = L⁻¹ u_t</code> — with <code>t_index</code> giving the row offsets
+into <code>Y</code> so you can map them back to dates for an LP-IV or a narrative check.</p>
+<h3 id="blanchardquah">Blanchard–Quah</h3>
+<p><code>bq(Y, p=..., horizon=..., permanent_var_idx=0)</code> imposes that only the shock in
+column <code>permanent_var_idx</code> has a non-zero long-run effect on that variable.
+<strong>The IRFs come back cumulated</strong> along the horizon axis, so <code>irf_point[h]</code> is a
+<em>level</em> response and not a difference — the whole point, since the VAR is
+normally run on growth rates. Do not <code>cumsum</code> them again. If <code>(I − ΣA_i)</code> is
+singular the call raises a <code>LinAlgError</code> naming the near-unit-root, rather than
+returning an inverse of a singular matrix.</p>
+<h3 id="sign-restrictions-and-the-four-different-formats">Sign restrictions, and the four different formats</h3>
+<p>The sign-restriction family does not share one argument format, because the
+schemes restrict different objects. This is the table to check before typing:</p>
+<table>
+<thead>
+<tr>
+<th>call</th>
+<th>argument</th>
+<th>format</th>
+<th>restricts</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sign_restrictions</code></td>
+<td><code>restrictions</code></td>
+<td><code>{h: [s₀ … s_{n−1}]}</code></td>
+<td>responses to <strong>shock column 0</strong> at horizon <code>h</code></td>
+</tr>
+<tr>
+<td><code>gk_robust_bands</code></td>
+<td><code>restrictions</code></td>
+<td><code>{h: [s₀ … s_{n−1}]}</code></td>
+<td>responses to shock <code>shock_idx</code></td>
+</tr>
+<tr>
+<td><code>narrative_sign_svar</code></td>
+<td><code>sign_matrix</code></td>
+<td><code>{h: S}</code>, <code>S</code> shape <code>(n, n)</code> or <code>(n,)</code>; a bare array means <code>{0: S}</code></td>
+<td><code>S[i, j]</code> restricts variable <code>i</code> to shock <code>j</code>; an <code>(n,)</code> vector restricts shock 0</td>
+</tr>
+<tr>
+<td><code>sign_zero</code></td>
+<td><code>sign_constraints</code>, <code>zero_constraints</code></td>
+<td><code>{(i, j): ±1}</code>, <code>[(i, j)]</code></td>
+<td>entries of <code>B0</code> — impact only, horizon 0</td>
+</tr>
+</tbody>
+</table>
+<p><code>0</code> always means unrestricted. <code>sign_restrictions</code> draws <code>n_draws=2000</code>
+Haar-uniform rotations by default and raises <code>RuntimeError</code> if none is
+admissible; <code>n_accepted / n_draws</code> is in the <code>summary()</code> and is the number to
+look at before believing the bands, since a 1% acceptance rate means the median
+is a median over twenty draws.</p>
+<p><code>sign_zero</code> is the odd one out in the whole subpackage: it takes <code>A_list</code> and
+<code>Sigma</code> rather than <code>Y</code>, it returns only <code>B0</code> and <code>Q</code> (no IRFs), and a failed
+search does not raise — inspect <code>success</code>, which is <code>False</code> with <code>B0=None</code> when
+no draw satisfied everything within <code>n_draws=1000</code>.</p>
+<h3 id="narrative-sign-restrictions">Narrative sign restrictions</h3>
+<p>Antolín-Díaz &amp; Rubio-Ramírez (2018), with Ludvigson–Ma–Ng magnitude bounds
+attached. Three kinds of <code>NarrativeRestriction</code>:</p>
+<table>
+<thead>
+<tr>
+<th><code>kind</code></th>
+<th>says</th>
+<th>extra fields</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"shock_sign"</code></td>
+<td>shock <code>j</code> had this sign on this date (AD-RR Type I)</td>
+<td><code>sign</code></td>
+</tr>
+<tr>
+<td><code>"hd_dominance"</code></td>
+<td>shock <code>j</code> was the most (<code>"most"</code>, Type II) or overwhelmingly the most (<code>"overwhelming"</code>, Type III) important driver of variable <code>i</code> over a window</td>
+<td><code>variable</code>, <code>window</code>, <code>dominance</code></td>
+</tr>
+<tr>
+<td><code>"shock_bound"</code></td>
+<td>the absolute magnitude of shock <code>j</code> on this date lies in a stated range (LMN 2021)</td>
+<td><code>min_magnitude</code>, <code>max_magnitude</code></td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.var.identify</span><span class="w"> </span><span class="kn">import</span> <span class="n">narrative_sign_svar</span><span class="p">,</span> <span class="n">NarrativeRestriction</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">res</span> <span class="o">=</span> <span class="n">narrative_sign_svar</span><span class="p">(</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">Y</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">sign_matrix</span><span class="o">=</span><span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="p">[</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]},</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">restrictions</span><span class="o">=</span><span class="p">[</span><span class="n">NarrativeRestriction</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">"shock_sign"</span><span class="p">,</span> <span class="n">date</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">shock</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">sign</span><span class="o">=+</span><span class="mi">1</span><span class="p">)],</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">n_draws</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span> <span class="n">ci</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="p">)</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="n">res</span><span class="o">.</span><span class="n">ess</span><span class="p">,</span> <span class="n">res</span><span class="o">.</span><span class="n">n_narrative_accepted</span><span class="p">,</span> <span class="n">res</span><span class="o">.</span><span class="n">restriction_fail_counts</span>
+</code></pre></div>
+<p><code>date</code> is a row index into <code>Y</code> when <code>dates=None</code>, and a timestamp located in
+<code>dates</code> otherwise. A bare <code>(date, shock, sign)</code> tuple is accepted as Type I
+shorthand, and a <code>puremacro.narrative.NarrativeEvent</code> is adapted to one using its
+announcement date and sign, targeting shock 0.</p>
+<p>Two diagnostics carry the weight of the method. <code>restriction_fail_counts</code> gives,
+per restriction, how many of the traditionally-accepted draws it killed — a
+count of zero means the restriction did nothing and a count equal to
+<code>n_traditional_accepted</code> means it killed everything. And <code>ess</code> is the Kish
+effective sample size of the AD-RR importance weights: when <code>ess</code> is far below
+<code>n_narrative_accepted</code>, a handful of draws are carrying the bands and the
+percentiles are not describing what they appear to describe. Reduced-form
+parameters are fixed at OLS unless <code>bayes_draws=True</code>, which samples them from
+the conjugate Normal-Inverse-Wishart posterior instead.</p>
+<h3 id="proxy-external-instrument">Proxy / external instrument</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.var.identify</span><span class="w"> </span><span class="kn">import</span> <span class="n">proxy</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">res</span> <span class="o">=</span> <span class="n">proxy</span><span class="p">(</span><span class="n">Y</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">instrument_series</span><span class="o">=</span><span class="n">z</span><span class="p">,</span> <span class="n">n_boot</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">ci</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">res</span><span class="o">.</span><span class="n">first_stage_F</span>        <span class="c1"># Olea-Pflueger effective F</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">res</span><span class="o">.</span><span class="n">B</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>              <span class="c1"># the identified impact vector</span>
+</code></pre></div>
+<p>The instrument is aligned to the residuals by its <strong>last</strong> <code>T − p</code> observations
+(<code>z[-T_eff:]</code>) and demeaned. Under the Mertens–Ravn / Stock–Watson assumptions
+<code>Π = Cov(u, z)/Var(z)</code> <strong>is</strong> the impact column up to scale, and the
+normalisation that pins the scale is <code>b₁′ Σ⁻¹ b₁ = 1</code>, which follows from
+<code>Σ = BB′</code>. So the impact vector is</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>b₁ = Π / sqrt(Π′ Σ⁻¹ Π)
+</code></pre></div>
+<p>computed through a Cholesky solve rather than an explicit inverse. This is worth
+spelling out because the obvious-looking alternative, <code>(Σ Π)/sqrt(Π′ Σ Π)</code>, is
+what this package shipped from 0.92.0 to 1.8.0 and is wrong: it is proportional
+to <code>Σ b₁</code> rather than to <code>b₁</code>, correct only when <code>Σ</code> is a multiple of the
+identity. It still satisfies <code>b′ Σ⁻¹ b = 1</code> exactly and the SVD completion still
+returned <code>BB′ = Σ</code> to machine precision, so no internal consistency check could
+see it. On a DGP with true <code>b₁ = [1, 0.8, −0.5]</code> it converged, at T = 400,000, to
+<code>[0.919, 1.049, −0.608]</code>. <strong>If you published a proxy-SVAR IRF from a release
+before this fix, re-run it.</strong></p>
+<p><code>shock_target_idx</code> does <em>not</em> change the identification — it only selects which
+residual column the first-stage F is computed on. The identified shock is
+column 0 of <code>B</code> regardless.</p>
+<p><code>first_stage_F</code> is the Olea–Pflueger effective F, not a Wald F. <code>summary()</code>
+labels it <code>WEAK</code> at or below 23.0 — the published 5%-worst-case-bias cutoff for
+a single instrument is 23.1, rounded down in the flag — and below it the
+bootstrap bands understate the uncertainty and weak-IV-robust inference is the
+honest answer.</p>
+<h3 id="max-share">Max-share</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.var.identify</span><span class="w"> </span><span class="kn">import</span> <span class="n">identify_maxshare</span><span class="p">,</span> <span class="n">maxshare</span><span class="p">,</span> <span class="n">news_maxshare</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">res</span> <span class="o">=</span> <span class="n">identify_maxshare</span><span class="p">(</span><span class="n">Y</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">target_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_fev_at</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>                        <span class="n">horizon</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">n_bootstrap</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">ci</span><span class="o">=</span><span class="mf">0.68</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</code></pre></div>
+<p>The optimisation is closed form: the impact vector is <code>chol(Σ) q</code> where <code>q</code> is
+the top eigenvector of a symmetric PSD matrix, so there is no search and no
+starting value. <code>max_fev_at</code> accumulates horizons <code>0 … max_fev_at − 1</code>, so
+<code>max_fev_at=1</code> is impact and a large value is the Barsky–Sims news shock.
+<code>news_maxshare(A_list, Sigma, target_var=..., horizon=40)</code> is the same engine
+with that horizon baked in.</p>
+<p>Note the two argument-name breaks from the rest of the subpackage:
+<code>identify_maxshare</code> uses <code>n_bootstrap</code> (not <code>n_boot</code>) and defaults to <code>ci=0.68</code>
+(not <code>0.9</code>).</p>
+<p><strong><code>MaxShareResult.B</code> is not a valid structural impact matrix beyond column 0.</strong>
+<code>_complete_B</code> orthonormalises the remaining columns in the Euclidean metric, so
+<code>B B′ ≠ Σ</code>. Column 0 is exactly right — it is <code>chol(Σ) q</code> — but <code>fevd</code> and
+<code>fev_share_at_target</code> are normalised by <code>B B′</code> rather than by <code>Σ</code> and are
+therefore not the forecast-error variance decomposition of the estimated system.
+At <code>max_fev_at=1</code> the max-share shock is by construction the whole impact
+forecast error of the target variable, so the share is analytically exactly 1.0
+— and <code>fev_share_at_target</code> reports visibly less. The low-level helper does not
+have the problem: it returns <code>chol(Σ) Q</code> with a genuinely orthogonal <code>Q</code>, so
+<code>B B′ = Σ</code> to machine precision and the impact share comes back at 1.0. For
+shares, go through it:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.var</span><span class="w"> </span><span class="kn">import</span> <span class="n">fit_var</span><span class="p">,</span> <span class="n">fevd</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.var.identify</span><span class="w"> </span><span class="kn">import</span> <span class="n">maxshare</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">r</span> <span class="o">=</span> <span class="n">fit_var</span><span class="p">(</span><span class="n">Y</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">B</span> <span class="o">=</span> <span class="n">maxshare</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">A_list</span><span class="p">,</span> <span class="n">r</span><span class="o">.</span><span class="n">Sigma</span><span class="p">,</span> <span class="n">target_var</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>   <span class="c1"># == max_fev_at=8</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="n">share</span> <span class="o">=</span> <span class="n">fevd</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">A_list</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="mi">24</span><span class="p">)[</span><span class="mi">7</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+</code></pre></div>
+<p><code>maxshare(..., horizon=h)</code> and <code>identify_maxshare(..., max_fev_at=h+1)</code> return
+the same impact column up to its sign — one calls <code>numpy.linalg.eigh</code> and the
+other <code>scipy.linalg.eigh</code>, and the sign of an eigenvector is arbitrary — but the
+off-by-one is real.</p>
+<h3 id="heteroskedasticity-rigobon-and-magnussonmavroeidis">Heteroskedasticity: Rigobon and Magnusson–Mavroeidis</h3>
+<p><code>hetero</code> (Rigobon 2003) takes a binary <code>regime_indicator</code> of length <code>T</code> or
+<code>T − p</code> — it slices off the first <code>p</code> itself when you give it <code>T</code> — and
+eigendecomposes <code>L₀⁻¹ Σ₁ L₀⁻ᵀ</code>. <code>variance_ratios</code> are those eigenvalues, the
+across-regime variance ratio of each shock; a ratio near 1 is a shock the regime
+break does not separate, and the column is then only as identified as the
+neighbouring eigenvalues are distinct. Each regime needs at least <code>n + 1</code>
+observations or the call raises. Bands come from a moving-block bootstrap with
+<code>block_len</code> defaulting to <code>round((T − p)^(1/3))</code>; <code>n_boot=0</code> returns
+<code>lower=upper=None</code>.</p>
+<p><code>magmav_svar</code> (Magnusson–Mavroeidis 2014) finds the break dates itself by
+sup-Wald plus BIC over <code>{0, 1, 2, 3, 4}</code> breaks. When BIC picks zero breaks
+there is no heteroskedasticity to identify from, and the function <strong>warns and
+falls back to a plain Cholesky</strong> rather than failing — so check <code>k_breaks</code> and
+<code>eu</code> before reading the IRFs. <code>eu == (1, 1)</code> means the impact-matrix optimiser
+converged; <code>(0, 0)</code> means either zero breaks or non-convergence. It is a
+convergence proxy, not the paper's existence-and-uniqueness test, and the
+dataclass docstring says so.</p>
+<h3 id="non-gaussian">Non-Gaussian</h3>
+<p><code>non_gaussian_svar(Y, p=..., horizon=..., seed=0)</code> runs FastICA on the whitened
+residuals (Lanne–Meitz–Saikkonen 2017) and orders the columns by descending
+absolute excess kurtosis, so the most non-Gaussian shock is column 0. It ships
+its own falsification: <code>lr_test</code> is a likelihood-ratio test against the Gaussian
+baseline (keys <code>stat</code>, <code>df</code>, <code>p_value</code>) and <code>consistency_check</code> reports
+<code>max_abs_diff</code> of <code>B0 B0′</code> against <code>Σ_u</code>. A <code>p_value</code> that does not reject
+Gaussianity means the identifying assumption is not in the data and the column
+ordering is noise. It takes no bootstrap arguments and returns no bands.</p>
+<h3 id="giacominikitagawa-robust-bands">Giacomini–Kitagawa robust bands</h3>
+<p>Standard sign-restriction output is a posterior under a uniform prior on <code>Q</code>,
+not the identified set. <code>gk_robust_bands</code> separates the two: for each of
+<code>n_var_draws</code> bootstrap VAR estimates it maps the set with <code>n_q_per_draw</code> Haar
+draws and takes the min, max and within-set median, then aggregates across VAR
+draws. <code>irf_lower</code> and <code>irf_upper</code> are the <em>set</em> endpoints, not a confidence
+interval, and are <code>(H+1, n)</code> — one named shock. <code>n_accepted_per_draw</code> is the
+per-VAR-draw acceptance count; VAR draws where nothing was admissible become
+NaN rows and drop out of the <code>nanpercentile</code>.</p>
+<p><code>n_var_draws=1</code> skips VAR uncertainty and gives the point identified set.
+<code>gk_robust_bands_from_gibbs</code> takes posterior draws instead of the bootstrap, and
+the shapes line up with <code>minnesota_gibbs</code> exactly:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.var</span><span class="w"> </span><span class="kn">import</span> <span class="n">minnesota_gibbs</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.var.identify</span><span class="w"> </span><span class="kn">import</span> <span class="n">gk_robust_bands_from_gibbs</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="n">post</span> <span class="o">=</span> <span class="n">minnesota_gibbs</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">n_draws</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">burn</span><span class="o">=</span><span class="mi">500</span><span class="p">)</span>     <span class="c1"># A_draws (D, p, n, n)</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="n">res</span> <span class="o">=</span> <span class="n">gk_robust_bands_from_gibbs</span><span class="p">(</span><span class="n">post</span><span class="p">[</span><span class="s2">"A_draws"</span><span class="p">],</span> <span class="n">post</span><span class="p">[</span><span class="s2">"Sigma_draws"</span><span class="p">],</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>                                 <span class="n">horizon</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">restrictions</span><span class="o">=</span><span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]},</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>                                 <span class="n">shock_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_q_per_draw</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">ci</span><span class="o">=</span><span class="mf">0.9</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="the-result-dataclasses">The result dataclasses</h2>
+<p>All frozen; all but <code>HeteroResult</code> carry a <code>summary()</code>. The central estimate is
+not called the same thing everywhere, because it is not the same thing
+everywhere — a median over rotation draws is not a point estimate:</p>
+<table>
+<thead>
+<tr>
+<th>function</th>
+<th>class</th>
+<th>central</th>
+<th>bands</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cholesky</code></td>
+<td><code>CholeskySVARResult</code></td>
+<td><code>irf_point</code></td>
+<td><code>irf_lower</code>, <code>irf_upper</code></td>
+<td><code>n_boot</code>, <code>n_fail</code>, <code>ci</code></td>
+</tr>
+<tr>
+<td><code>bq</code></td>
+<td><code>BQSVARResult</code></td>
+<td><code>irf_point</code></td>
+<td><code>irf_lower</code>, <code>irf_upper</code></td>
+<td><strong>cumulated</strong></td>
+</tr>
+<tr>
+<td><code>sign_restrictions</code></td>
+<td><code>SignRestrictionResult</code></td>
+<td><code>irf_median</code></td>
+<td><code>irf_lower</code>, <code>irf_upper</code></td>
+<td><code>n_draws</code>, <code>n_accepted</code></td>
+</tr>
+<tr>
+<td><code>narrative_sign_svar</code></td>
+<td><code>NarrativeSignSVARResult</code></td>
+<td><code>irf_median</code> (weighted)</td>
+<td><code>irf_lower</code>, <code>irf_upper</code></td>
+<td><code>weights</code>, <code>ess</code>, <code>restriction_fail_counts</code></td>
+</tr>
+<tr>
+<td><code>proxy</code></td>
+<td><code>ProxySVARResult</code></td>
+<td><code>irf_point</code></td>
+<td><code>irf_lower</code>, <code>irf_upper</code></td>
+<td><code>B</code>, <code>first_stage_F</code></td>
+</tr>
+<tr>
+<td><code>hetero</code></td>
+<td><code>HeteroResult</code></td>
+<td><code>irfs</code> (= <code>point</code>)</td>
+<td><code>lower</code>, <code>upper</code> (or <code>None</code>)</td>
+<td><code>B</code>, <code>variance_ratios</code>, <code>fevd</code></td>
+</tr>
+<tr>
+<td><code>identify_maxshare</code></td>
+<td><code>MaxShareResult</code></td>
+<td><code>irfs</code></td>
+<td><code>irf_lower</code>, <code>irf_upper</code> (or <code>None</code>)</td>
+<td><code>B</code>, <code>q</code>, <code>fevd</code>, <code>fev_share_at_target</code></td>
+</tr>
+<tr>
+<td><code>magmav_svar</code></td>
+<td><code>MagMavSVARResult</code></td>
+<td><code>irf_point</code></td>
+<td><code>irf_lower</code>, <code>irf_upper</code></td>
+<td><code>variance_change_dates</code>, <code>k_breaks</code>, <code>eu</code></td>
+</tr>
+<tr>
+<td><code>non_gaussian_svar</code></td>
+<td><code>NonGaussianSVARResult</code></td>
+<td><code>irf</code></td>
+<td>—</td>
+<td><code>B0</code>, <code>Q</code>, <code>kurtosis</code>, <code>lr_test</code></td>
+</tr>
+<tr>
+<td><code>sign_zero</code></td>
+<td><code>SignZeroResult</code></td>
+<td>—</td>
+<td>—</td>
+<td><code>success</code>, <code>B0</code>, <code>Q</code>, <code>n_draws_used</code></td>
+</tr>
+<tr>
+<td><code>gk_robust_bands</code></td>
+<td><code>GKRobustBandsResult</code></td>
+<td><code>irf_median</code></td>
+<td><code>irf_lower</code>, <code>irf_upper</code></td>
+<td>all <code>(H+1, n)</code></td>
+</tr>
+<tr>
+<td><code>mean_group_svar</code></td>
+<td><code>PanelSVARResult</code></td>
+<td><code>irf_mean</code></td>
+<td><code>irf_lower</code>, <code>irf_upper</code></td>
+<td><code>country_irfs</code> is <code>(N, H+1, n, n)</code></td>
+</tr>
+<tr>
+<td><code>favar</code></td>
+<td><code>FAVARResult</code></td>
+<td><code>irf_panel</code></td>
+<td><code>irf_lower_panel</code>, <code>irf_upper_panel</code></td>
+<td>DataFrames, <code>(H+1, N)</code></td>
+</tr>
+</tbody>
+</table>
+<p>Everything not marked otherwise is <code>(H+1, n, n)</code>. <code>HeteroResult</code> lives in
+<code>identify/hetero.py</code>, not <code>identify/_results.py</code>, and carries <code>irfs</code> and <code>point</code>
+as two names for the same array.</p>
+<h2 id="bootstrap-bands-and-what-happens-to-a-draw-that-fails">Bootstrap bands, and what happens to a draw that fails</h2>
+<p>A bootstrap draw of a VAR can produce a <code>Σ_b</code> that is not positive definite, or
+a long-run matrix that is singular, or an optimiser that will not converge.
+There is no correct answer to what to do with such a draw, and the schemes here
+do not all do the same thing. Three conventions are in use, and only one of them
+tells you it happened.</p>
+<table>
+<thead>
+<tr>
+<th>scheme</th>
+<th>resampling</th>
+<th>a failed draw</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cholesky</code>, <code>bq</code>, <code>identify_maxshare</code></td>
+<td>recursive residual</td>
+<td><strong>dropped</strong>; warns above 5%; raises if all fail</td>
+</tr>
+<tr>
+<td><code>magmav_svar</code></td>
+<td>regime-preserving residual</td>
+<td>dropped; warns above 5%; NaN bands if all fail</td>
+</tr>
+<tr>
+<td><code>proxy</code></td>
+<td>Rademacher wild (residuals <em>and</em> proxy re-signed together)</td>
+<td>dropped; warning above 5% failures; <code>n_fail</code> reported</td>
+</tr>
+<tr>
+<td><code>hetero</code></td>
+<td>moving block</td>
+<td>replaced by the point IRF, silently</td>
+</tr>
+<tr>
+<td><code>favar</code></td>
+<td>recursive residual</td>
+<td>replaced by the point IRF, silently</td>
+</tr>
+<tr>
+<td><code>gk_robust_bands</code></td>
+<td>recursive residual</td>
+<td>NaN row, excluded by <code>nanpercentile</code></td>
+</tr>
+<tr>
+<td><code>bootstrap_bands</code></td>
+<td>your choice</td>
+<td>NaN draw, excluded by <code>nanpercentile</code></td>
+</tr>
+</tbody>
+</table>
+<p>The drop-and-warn path is the one to trust, and it is stricter than it looks. A
+bootstrap <code>Σ_b</code> is rejected when the smallest Cholesky pivot falls below <code>1e-4</code>
+times the largest — roughly <code>cond(Σ_b) &gt; 1e8</code> — which is far stricter than
+<code>puremacro._linalg.safe_cholesky</code>'s general threshold of <code>1e-7</code> (<code>cond &gt; 1e14</code>).
+The reason is stated in <code>cholesky.py</code> and is worth repeating: an estimator that
+returns wide bands is honest, one that returns narrow bands built on
+ill-conditioned draws is silent garbage. LAPACK's <code>potrf</code> does not raise on an
+ultra-degenerate <code>Σ_b</code>; it returns NaN diagonals, so those are caught explicitly
+too. <code>n_fail</code> is on the result, and <code>summary()</code> prints it as a rate.</p>
+<p>Where the failed draw is replaced by the point estimate instead, <code>n_fail</code> does
+not exist and cannot: the bands look fine and are too narrow by however many
+draws failed.</p>
+<h3 id="bootstrap_bands-bands-for-an-impact-matrix-of-your-own"><code>bootstrap_bands</code> — bands for an impact matrix of your own</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.var</span><span class="w"> </span><span class="kn">import</span> <span class="n">bootstrap_bands</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.var.identify.cholesky</span><span class="w"> </span><span class="kn">import</span> <span class="n">cholesky_factor</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="n">out</span> <span class="o">=</span> <span class="n">bootstrap_bands</span><span class="p">(</span><span class="n">Y</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">A_list</span><span class="p">,</span> <span class="n">Sigma</span><span class="p">:</span> <span class="n">cholesky_factor</span><span class="p">(</span><span class="n">Sigma</span><span class="p">),</span> <span class="mi">20</span><span class="p">,</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>                      <span class="n">n_boot</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.10</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">"recursive"</span><span class="p">,</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>                      <span class="n">band</span><span class="o">=</span><span class="s2">"pointwise"</span><span class="p">)</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="n">out</span><span class="p">[</span><span class="s2">"point"</span><span class="p">],</span> <span class="n">out</span><span class="p">[</span><span class="s2">"lower"</span><span class="p">],</span> <span class="n">out</span><span class="p">[</span><span class="s2">"upper"</span><span class="p">],</span> <span class="n">out</span><span class="p">[</span><span class="s2">"draws"</span><span class="p">]</span>
+</code></pre></div>
+<p><code>identify_fn(A_list, Sigma, **id_kwargs) -&gt; B0</code>. <code>method</code> is <code>"recursive"</code>,
+<code>"wild"</code> (Rademacher) or <code>"block"</code> (block length <code>round(T^(1/3))</code>).
+<code>bias_correct=True</code> runs the Kilian (1998) pilot stage — <code>n_pilot=100</code> draws to
+estimate the finite-sample bias of the coefficients, subtracted and then shrunk
+in steps of 0.01 until the corrected companion has <code>max |eig| &lt; 0.999</code>.</p>
+<p>Two things about this function differ from the rest of the page and will bite:</p>
+<ul>
+<li><strong>It takes <code>alpha</code>, not <code>ci</code>.</strong> <code>alpha=0.10</code> is a 90% band. Everything else in
+  <code>puremacro.var</code> takes <code>ci=0.9</code> for the same thing.</li>
+<li><strong><code>out["point"]</code> is the bootstrap median, not the OLS estimate.</strong> It is
+  <code>nanpercentile(draws, 50)</code>. If you want the point estimate, compute it
+  yourself from <code>fit_var</code> and your <code>identify_fn</code>.</li>
+</ul>
+<p><code>band="sup-t"</code> returns simultaneous bands instead (Montiel Olea &amp;
+Plagborg-Møller 2019), computed per <code>(response, shock)</code> pair across horizons,
+and adds <code>band</code> and <code>crit_value</code> (an <code>(n, n)</code> array of per-pair critical values,
+NaN where every horizon was degenerate) to the returned dict. Horizons whose
+draws are exactly degenerate — the structural zeros a Cholesky impact matrix has
+in every draw — collapse to the point rather than studentising <code>0/0</code>. It raises
+if fewer than 20 draws came back fully finite, since a sup-t critical value
+estimated from a handful of draws is not a critical value. The band is centred
+on the bootstrap median, a documented simplification of the paper's Algorithm 2,
+which centres on the original-sample estimate.</p>
+<h2 id="favar">FAVAR</h2>
+<p>Bernanke, Boivin &amp; Eliasz (2005), for when the three variables that fit in a VAR
+are not the three variables you care about. Principal components summarise a wide
+informational panel, the VAR is run on <code>[policy, factors]</code>, and the responses are
+projected back onto every series in the panel through the loadings.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.var</span><span class="w"> </span><span class="kn">import</span> <span class="n">favar</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">res</span> <span class="o">=</span> <span class="n">favar</span><span class="p">(</span><span class="n">panel_df</span><span class="p">,</span> <span class="n">policy_series</span><span class="p">,</span> <span class="n">n_factors</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>            <span class="n">n_boot</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">ci</span><span class="o">=</span><span class="mf">0.90</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="n">res</span><span class="o">.</span><span class="n">irf_panel</span><span class="p">[</span><span class="s2">"unemployment"</span><span class="p">]</span>        <span class="c1"># (H+1,) response in the series' own units</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="n">res</span><span class="o">.</span><span class="n">explained_variance_ratio</span>         <span class="c1"># (K,) share of panel variance per factor</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+</code></pre></div>
+<p><code>panel_data</code> is <code>(T, N)</code> — a DataFrame keeps its column names, an ndarray gets
+<code>Var_1 … Var_N</code>. The panel is standardised, factors are extracted by SVD and
+scaled by <code>sqrt(T)</code>, then orthogonalised against the policy series; the state
+vector is <code>Z = [Y, F̃]</code> of dimension <code>1 + K</code> and the policy shock is shock 0 of a
+Cholesky on <code>Z</code>, which is what makes ordering the policy variable first the
+identifying assumption. <code>irf_panel</code> is returned in the <strong>original units</strong> of each
+series — the normalised responses are multiplied back by each column's standard
+deviation — so the columns are directly readable and directly plottable.</p>
+<p>Three limits worth knowing before quoting a FAVAR number:</p>
+<ul>
+<li><strong>Demean the policy series before passing it.</strong> Both the factor
+  orthogonalisation and the loading regression run through the origin with no
+  intercept, while the panel has been standardised to mean zero, so the mean you
+  leave in changes both. The VAR on <code>Z</code> does carry a constant, so the policy
+  variable's <em>own</em> response is unaffected to machine precision — which is
+  exactly why this is easy to miss. On a synthetic 20-series panel, adding a
+  constant 4.0 to a unit-standard-deviation policy series moved panel impulse
+  responses by as much as the largest response itself and left <code>irf_policy</code>
+  unchanged.</li>
+<li><strong>Failed bootstrap draws are replaced by the point IRF</strong>, so <code>irf_lower_panel</code>
+  and <code>irf_upper_panel</code> are too narrow by however many draws failed, with
+  nothing recording how many.</li>
+<li>The factors are principal components of the <strong>whole</strong> panel, not of the
+  slow-moving block. BBE's identification uses the slow/fast split; this is the
+  simpler variant, and the orthogonalisation against <code>Y</code> is doing all the work of
+  separating the policy instrument from the factors.</li>
+</ul>
+<h2 id="panel-var">Panel VAR</h2>
+<p>Canova–Ciccarelli mean-group: one SVAR per country, IRFs averaged across
+countries, bands from the <strong>cross-country</strong> distribution rather than from any
+bootstrap. The bands therefore describe heterogeneity across countries, not
+sampling uncertainty within one — which is the right object for "does this shock
+do the same thing everywhere" and the wrong one for "is this response
+significant".</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.var.identify</span><span class="w"> </span><span class="kn">import</span> <span class="n">mean_group_svar</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">res</span> <span class="o">=</span> <span class="n">mean_group_svar</span><span class="p">({</span><span class="s2">"USA"</span><span class="p">:</span> <span class="n">Y_us</span><span class="p">,</span> <span class="s2">"DEU"</span><span class="p">:</span> <span class="n">Y_de</span><span class="p">,</span> <span class="s2">"ESP"</span><span class="p">:</span> <span class="n">Y_es</span><span class="p">},</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>                      <span class="n">p</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">identification</span><span class="o">=</span><span class="s2">"cholesky"</span><span class="p">,</span> <span class="n">ci</span><span class="o">=</span><span class="mf">0.9</span><span class="p">)</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="n">res</span><span class="o">.</span><span class="n">irf_mean</span>                 <span class="c1"># (H+1, n, n)</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="n">res</span><span class="o">.</span><span class="n">country_irfs</span>             <span class="c1"># (N, H+1, n, n)</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="n">res</span><span class="o">.</span><span class="n">country_ids</span>              <span class="c1"># ('DEU', 'ESP', 'USA') — SORTED, not insertion order</span>
+</code></pre></div>
+<p><strong><code>country_ids</code> is <code>tuple(sorted(panel_data))</code>.</strong> <code>country_irfs[i]</code> is the
+country at <code>country_ids[i]</code>, which is not the order you passed the dict in.
+Always index through <code>country_ids</code>.</p>
+<p>The canonical version supports <code>identification="cholesky"</code> and <code>"bq"</code> only, and
+raises <code>ValueError</code> naming the alternatives for anything else — schemes that
+need per-country bootstrap kwargs are better run per country against their own
+module. All countries must share <code>n</code>; <code>T_i</code> may differ.</p>
+<p>There is a second, older <code>mean_group_svar</code> in <code>puremacro.var.panel</code>. It accepts
+<code>"proxy"</code> and <code>"rigobon"</code> as well, substitutes a zero IRF with a warning when a
+country fails instead of raising, returns <code>country_ids</code> as a <strong>list in insertion
+order</strong>, and names its band fields <code>irf_lo</code> / <code>irf_hi</code> rather than
+<code>irf_lower</code> / <code>irf_upper</code>. Two things its docstrings claim and its code does not:
+the dataclass says <code>(n, n, H+1)</code> where the code returns <code>(H+1, n, n)</code> like
+everything else, and the module header advertises a <code>"maxshare"</code> scheme the
+dispatch table has no entry for (it raises <code>KeyError</code>). Prefer the <code>identify</code>
+version unless you need <code>proxy</code> or <code>rigobon</code> across a panel.</p>
+<p><code>peak_summary</code> and <code>peak_distribution</code> turn a dict of per-country
+<code>{"point", "lo", "hi", "n_obs"}</code> into one row per country — peak horizon and
+value, <code>irf_4</code> / <code>irf_8</code> / <code>irf_16</code>, and the accumulated response at h=16 — for
+forest plots across countries. <code>peak_lo</code> and <code>peak_hi</code> are the band bounds <em>at</em>
+the peak horizon and are explicitly <strong>not</strong> a confidence interval on the argmax,
+which has a non-standard sampling distribution.</p>
+<h2 id="not-on-this-page">Not on this page</h2>
+<p><code>puremacro.var</code> also ships <code>bvar</code> (Minnesota prior as dummy observations, NIW
+Gibbs), <code>vecm</code>, <code>tvp</code> (time-varying parameters), <code>regime</code> (Markov-switching,
+threshold, TVECM, generalised IRFs) and <code>diagnostics</code> (<code>granger_causality</code>,
+<code>block_exogeneity</code>). Check their shapes rather than assuming: <code>regime.girf</code>
+shocks one equation at a time, so <code>girf_by_regime</code> is <code>(K, S, H+1, n)</code> — <code>K</code>
+starting regimes by <code>S</code> shock sizes — and <code>girf_pooled</code> is <code>(S, H+1, n)</code>, not
+<code>(H+1, n, n)</code>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

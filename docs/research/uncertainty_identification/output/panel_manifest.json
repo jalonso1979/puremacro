@@ -1,0 +1,52 @@
+{
+  "created_utc": "2026-07-19T19:40:59.391458+00:00",
+  "sha256_panel_monthly_csv": "69ef5499ae373ab331362f4f08e428a776d5fa57a9e302cb5bb0aca8868126a7",
+  "n_rows": 1519,
+  "columns": {
+    "epu": {
+      "source": [
+        "data/raw/www.policyuncertainty.com/media_All_Country_Data.xlsx (US col)",
+        "data/raw/www.policyuncertainty.com/media_US_Historical_EPU_data.xlsx"
+      ],
+      "transform": "ratio-splice (factor 0.7379 over 358-month overlap), then z-score",
+      "span": "1900-01-01 -> 2025-11-01"
+    },
+    "wui": {
+      "source": "data/raw/worlduncertaintyindex.com/wp-content_uploads_2024_10_WUI_Data.xlsx sheet T2 col USA",
+      "transform": "quarterly -> monthly forward-fill, z-score",
+      "span": "1952-01-01 -> 2024-07-01"
+    },
+    "jln": {
+      "source": "data/raw/www.sydneyludvigson.com/s_MacroFinanceUncertainty_202602Update-3klg.zip :: MacroUncertaintyToCirculate.xlsx h=1",
+      "transform": "z-score",
+      "span": "1960-07-01 -> 2025-12-01"
+    },
+    "vix": {
+      "source": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=VIXCLS",
+      "transform": "monthly mean of daily closes, z-score",
+      "span": "1990-01-01 -> 2026-07-01"
+    },
+    "ip": {
+      "source": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=INDPRO",
+      "transform": "100*log",
+      "span": "1919-01-01 -> 2026-06-01"
+    },
+    "emp": {
+      "source": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=PAYEMS",
+      "transform": "100*log",
+      "span": "1939-01-01 -> 2026-06-01"
+    },
+    "ffr": {
+      "source": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=FEDFUNDS",
+      "transform": "level",
+      "span": "1954-07-01 -> 2026-06-01"
+    }
+  },
+  "conventions": {
+    "frequency": "monthly (MS)",
+    "proxies_z_scored": "each on its full available history at assembly time",
+    "activity": "100*log(INDPRO)",
+    "employment": "100*log(PAYEMS)",
+    "ffr": "FEDFUNDS level (percent)"
+  }
+}

@@ -1,0 +1,4364 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Production-grade Macroeconometric and Heterogeneous-Agent Structural Modeling Engine in Pure Python">
+      
+      
+        <meta name="author" content="puremacro contributors">
+      
+      
+        <link rel="canonical" href="https://jalonso1979.github.io/puremacro/docs/plans/2026-05-18-puremacro-044-lp-retirement-plan/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>puremacro 0.44.0 — LP Retirement + Notebook Re-Execution Implementation Plan - puremacro</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#puremacro-0440-lp-retirement-notebook-re-execution-implementation-plan" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="puremacro" class="md-header__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            puremacro
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              puremacro 0.44.0 — LP Retirement + Notebook Re-Execution Implementation Plan
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  
+  English Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../es/" class="md-tabs__link">
+          
+  
+  
+  Documentación en Español
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="puremacro" class="md-nav__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    puremacro
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    English Documentation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    English Documentation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Showcase Notebooks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Correctness advisories
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quarterly National Accounts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-time data (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Long national accounts panel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global Macro Data Ecosystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_6" id="__nav_1_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometric Engines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Econometric Engines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR & FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Narrative Sign Restrictions SVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR with Stochastic Volatility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Smooth Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modern Difference-in-Differences
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Honest DiD Sensitivity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Econometrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global VAR (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Estimation & Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GDP Nowcasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Penalized Forecasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_7" id="__nav_1_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publication & Reporting
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publication & Reporting
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manuscript Tables & Exports
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_8" id="__nav_1_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structural Models
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Structural Models
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sequence-Space HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Non-Linear HANK Transitions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gertler-Karadi (2011) DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Climate Macro (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Sketchpad & Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Higher-Order & Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Parity & Surface Area
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradients, NUTS & HANK Bridge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Frontier (Policy, DSGE-VAR & News)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Non-linear Particle Filtering & Regime Switching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running Anywhere (iPad / browser)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance & Benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_11" id="__nav_1_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replication gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation & goldens
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Connector health
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credentials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cache database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signal contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lexicon review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path to 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentación en Español
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Documentación en Español
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio rápido
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuadernos de demostración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avisos de corrección
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuentas nacionales trimestrales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos en tiempo real (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panel largo de cuentas nacionales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ecosistema de datos macro globales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motores econométricos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Motores econométricos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR y FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SVAR con restricciones narrativas de signo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR con volatilidad estocástica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales suavizadas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias en diferencias modernas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sensibilidad en DiD honesto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometría espacial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR global (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estimación y diagnósticos DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nowcasting del PIB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pronóstico penalizado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publicación e informes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publicación e informes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tablas y exportación de manuscritos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_8" id="__nav_2_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos estructurales
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Modelos estructurales
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HANK en el espacio de secuencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transiciones no lineales en HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de Gertler-Karadi (2011)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomía del clima (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuaderno de bocetos DSGE y Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de orden superior y restricciones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Paridad y superficie operativa DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradientes, NUTS y Puente HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontera DSGE (Política, DSGE-VAR y Noticias)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Filtrado de Partículas No Lineal y Cambio de Régimen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ejecución en cualquier entorno (iPad / navegador)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendimiento y pruebas comparativas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_11" id="__nav_2_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de replicación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validación y referencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estado de conectores
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credenciales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos de caché
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato de señales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de ejemplos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Revisión de léxico
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ruta a 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#file-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-0-per-cell-audit-of-r1_02-r1_03-r1_05" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 0: Per-cell audit of R1_02 / R1_03 / R1_05
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-1-body-rewrite-r1_02_lp_menuipynb-builder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 1: Body-rewrite R1_02_lp_menu.ipynb + builder
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-2-body-rewrite-r1_03_cross_countryipynb-builder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 2: Body-rewrite R1_03_cross_country.ipynb + builder
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-3-body-rewrite-r1_05_publicationipynb-builder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 3: Body-rewrite R1_05_publication.ipynb + builder
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-4-build-dataprocessedpanel_qparquet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 4: Build data/processed/panel_Q.parquet
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-5-re-execute-body-rewrite-notebooks-via-paired-builders" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 5: Re-execute body-rewrite notebooks via paired builders
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-6-delete-puremacrolplp_py" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 6: Delete puremacro/lp/lp_*.py
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-7-delete-puremacroinferencelegacy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 7: Delete puremacro/inference/legacy/
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-8-decide-puremacrolpgarch_utilspy-rename" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 8: Decide puremacro/lp/garch_utils.py rename
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-9-architecturemd-changelogmd-for-0440" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 9: ARCHITECTURE.md + CHANGELOG.md for 0.44.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-10-version-bump-to-0440" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 10: Version bump to 0.44.0
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-11-final-verification-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 11: Final verification gate
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#self-review" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Self-Review
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="puremacro-0440-lp-retirement-notebook-re-execution-implementation-plan">puremacro 0.44.0 — LP Retirement + Notebook Re-Execution Implementation Plan</h1>
+<blockquote>
+<p><strong>For agentic workers:</strong> REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (<code>- [ ]</code>) syntax for tracking.</p>
+</blockquote>
+<p><strong>Goal:</strong> Body-rewrite R1_02/R1_03/R1_05 to canonical lp/<em> APIs, build the data cache, re-execute body-rewrite notebooks against canonical, then delete <code>puremacro/lp/lp_*.py</code> + <code>puremacro/inference/legacy/</code>. Ship as </em><em>0.44.0</em>*.</p>
+<p><strong>Architecture:</strong> Three body-rewrite tasks update notebook cells AND paired builders simultaneously (notebooks↔builders memory pin). A data-build task populates <code>data/processed/panel_Q.parquet</code> so notebook re-execution can complete. A re-execution task runs paired builders to regenerate cell outputs (controller-only per long-nbconvert pin). Final deletion tasks retire the now-dead lp/lp_* and inference/legacy paths.</p>
+<p><strong>Tech Stack:</strong> Python ≥3.10, numpy/scipy/pandas/matplotlib, pytest, jupyter nbconvert.</p>
+<p><strong>Source spec:</strong> <code>docs/specs/2026-05-18-puremacro-044-lp-retirement-design.md</code> (commit <code>b03ef6a</code>).</p>
+<p><strong>Pre-execution state (HEAD <code>b03ef6a</code>):</strong>
+- 0.43.0 shipped at <code>1bae0b2</code>; merged to <code>main</code> + pushed.
+- Phase-2.5 deferrals alive: <code>puremacro/lp/lp_*.py</code> (8 files), <code>puremacro/inference/legacy/</code> (10 files).
+- Test baseline: 1277 passed, 10 pre-existing failed.
+- Canonical signatures verified (2026-05-18):
+  - <code>lp.jorda.lp_hac(df, y, x, horizons=range(0,21), n_lags=2, controls=None, alpha=0.10) -&gt; pd.DataFrame</code>
+  - <code>lp.iv.lp_iv(df, y, x, z, horizons=range(0,21), n_lags=2, controls=None, alpha=0.10) -&gt; pd.DataFrame</code>
+  - <code>lp.panel.panel_lp(...) -&gt; pd.DataFrame</code>
+  - <code>lp.smooth.lp_smooth(...) -&gt; pd.DataFrame</code>
+  - <code>lp.state_dep.lp_state_dep(...) -&gt; pd.DataFrame</code>
+  - <code>lp.garch_state.lp_garch_state(...) -&gt; pd.DataFrame</code>
+  - <code>lp.garch_in_mean.lp_garch_in_mean(...) -&gt; pd.DataFrame</code>
+  - <code>build_panel.build_all(countries=None, *, fast=False, refresh=False) -&gt; (panel_Q, panel_M)</code>
+- Legacy signatures use <code>target=/shock=/horizon=/lags=/ci=</code> and return <code>LPResult</code>/<code>LPIVResult</code>/<code>PanelLPResult</code>/<code>LPSmoothResult</code>/<code>LPStateDepResult</code> dataclasses with <code>.beta</code>/<code>.se</code>/<code>.lower</code>/<code>.upper</code>/<code>.ci</code> attributes.</p>
+<hr />
+<h2 id="file-structure">File structure</h2>
+<p><strong>Notebooks rewritten + their builders (paired commits):</strong>
+- <code>notebooks/R1_methods/R1_02_lp_menu.ipynb</code> + <code>tools/make_notebook_R1_02.py</code> (Task 1; biggest, ~7 sections)
+- <code>notebooks/R1_methods/R1_03_cross_country.ipynb</code> + <code>tools/make_notebook_R1_03.py</code> (Task 2; small, 2 legacy imports)
+- <code>notebooks/R1_methods/R1_05_publication.ipynb</code> + <code>tools/make_notebook_R1_05.py</code> (Task 3; small, 1 legacy import)</p>
+<p><strong>Deleted files:</strong>
+- <code>puremacro/lp/lp_jorda.py</code>, <code>lp_iv.py</code>, <code>lp_panel.py</code>, <code>lp_panel_dk.py</code>, <code>lp_state_dep.py</code>, <code>lp_smooth.py</code>, <code>lp_garch_state.py</code>, <code>lp_garch_in_mean.py</code> (8 files, Task 6)
+- <code>puremacro/inference/legacy/</code> (entire directory, 10 files, Task 7)
+- <code>puremacro/lp/garch_utils.py</code> → rename to <code>_garch_utils.py</code> if no external callers (Task 8)</p>
+<p><strong>Docs:</strong>
+- <code>ARCHITECTURE.md</code> (Task 9) — remove Phase-2.5 consolidation entries; update stability tier table.
+- <code>CHANGELOG.md</code> (Task 9) — prepend 0.44.0 entry.
+- <code>puremacro/__init__.py</code>, <code>pyproject.toml</code>, <code>tests/test_import.py</code>, <code>tests/fixtures/public_api_snapshot.json</code> (Task 10).</p>
+<hr />
+<h2 id="task-0-per-cell-audit-of-r1_02-r1_03-r1_05">Task 0: Per-cell audit of R1_02 / R1_03 / R1_05</h2>
+<p>Read-only mapping of every legacy LP call site + result-access pattern in the three body-rewrite notebooks. Produces a per-cell rewrite map that Tasks 1-3 follow exactly.</p>
+<ul>
+<li>[ ] <strong>Step 1: Confirm pre-task pytest baseline</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples/puremacro"</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/test_var/<span class="w"> </span>tests/test_lp/<span class="w"> </span>tests/test_cholesky_shocks.py<span class="w"> </span>tests/test_robustness.py<span class="w"> </span>tests/test_pyodide_compat.py<span class="w"> </span>-q<span class="w"> </span>--tb<span class="o">=</span>no<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-5
+</code></pre></div>
+<p>Expected: 122 passed (per 0.43.0 final).</p>
+<ul>
+<li>[ ] <strong>Step 2: Inventory R1_02's legacy LP call sites</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples"</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>grep<span class="w"> </span>-nE<span class="w"> </span><span class="s2">"lp_irf\(|lp_iv_irf\(|lp_panel_irf\(|lp_smooth_irf\(|lp_state_dep_irf\(|LPResult|LPIVResult|PanelLPResult|LPSmoothResult|LPStateDepResult|LPGARCHStateResult|LPGIMResult|WeakInstrumentWarning"</span><span class="w"> </span>tools/make_notebook_R1_02.py<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-60
+</code></pre></div>
+<p>Capture every line that calls a legacy LP function or references a legacy result class.</p>
+<ul>
+<li>[ ] <strong>Step 3: Inventory R1_03's legacy LP call sites</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>grep<span class="w"> </span>-nE<span class="w"> </span><span class="s2">"lp_irf\(|lp_panel_irf\(|RegimeInteractionLPResult|LPResult"</span><span class="w"> </span>tools/make_notebook_R1_03.py<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 4: Inventory R1_05's legacy LP call sites</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>grep<span class="w"> </span>-nE<span class="w"> </span><span class="s2">"lp_irf\(|LPResult"</span><span class="w"> </span>tools/make_notebook_R1_05.py<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-10
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 5: Write audit notes</strong></li>
+</ul>
+<p>Create <code>docs/plans/_044_audit_notes.md</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="gh"># 0.44.0 audit notes — 2026-05-18</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="gu">## Baseline</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="k">-</span><span class="w"> </span>pytest (targeted): &lt;N&gt; passed.
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="gu">## R1_02 legacy LP call sites</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>&lt;paste step 2 output with one-line notes per call site&gt;
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="gu">## R1_03 legacy LP call sites</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>&lt;paste step 3&gt;
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="gu">## R1_05 legacy LP call sites</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>&lt;paste step 4&gt;
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="gu">## Legacy → canonical mapping (verified 2026-05-18)</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>| Legacy fn | Canonical fn | Kwarg renames | Return type change |
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>|---|---|---|---|
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>| lp_irf | lp_hac | target→y, shock→x, horizon→horizons (int→iter), lags→n_lags, ci→alpha (flip), B (bootstrap reps)→dropped | LPResult → pd.DataFrame |
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>| lp_iv_irf | lp_iv | target→y, shock_variable→x, instrument→z, horizon→horizons, lags→n_lags, ci→alpha, ar_grid_points→dropped | LPIVResult → pd.DataFrame |
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>| lp_panel_irf | panel_lp | target→y, shock→x, horizon→horizons, lags→n_lags, entity_col→entity_level, time_col→time_level, ci→alpha | PanelLPResult → pd.DataFrame |
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>| lp_smooth_irf | lp_smooth | target→y, shock→x, horizon→horizons, lags→n_lags, ci→alpha, n<span class="ge">_knots+lambda_</span>*+plus → verify canonical kwargs | LPSmoothResult → pd.DataFrame |
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>| lp_state_dep_irf | lp_state_dep | target→y, shock→x, horizon→horizons, lags→n_lags, state_col→state_var, ci→alpha, B (bootstrap)→dropped | LPStateDepResult → pd.DataFrame |
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 6: Commit audit notes</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples/puremacro"</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>git<span class="w"> </span>add<span class="w"> </span>docs/plans/_044_audit_notes.md
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="s">docs(0.44.0): pre-rewrite audit of R1_02/R1_03/R1_05 LP call sites</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="s">Co-Authored-By: Claude Opus 4.7 (1M context) &lt;noreply@anthropic.com&gt;</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="s">EOF</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="k">)</span><span class="s2">"</span>
+</code></pre></div>
+<hr />
+<h2 id="task-1-body-rewrite-r1_02_lp_menuipynb-builder">Task 1: Body-rewrite R1_02_lp_menu.ipynb + builder</h2>
+<p><strong>Files:</strong>
+- Modify: <code>tools/make_notebook_R1_02.py</code> (the builder; defines the .ipynb cell content).
+- Modify: <code>notebooks/R1_methods/R1_02_lp_menu.ipynb</code> (the executed .ipynb; outputs preserved at this task — re-execution in Task 5).</p>
+<p><strong>Approach:</strong> R1_02 has ~7 sections each with its own legacy LP demo. Rewrite the BUILDER's cell content (Python source strings) — that's the source of truth. Then apply the same edits to the .ipynb's source cells (without re-executing — outputs stay until Task 5).</p>
+<p>The notebook has an internal helper function (legacy line 182) that duck-types over LPResult/PanelLPResult/LPSmoothResult. After rewrite, all canonical functions return DataFrames; the helper becomes a column-access helper.</p>
+<ul>
+<li>[ ] <strong>Step 1: Rewrite the builder's import cell</strong></li>
+</ul>
+<p>Open <code>tools/make_notebook_R1_02.py</code>. Find the import-cell block (around line 108) and replace the legacy imports:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Before (the literal string content in the builder):</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="s2">"from puremacro.lp.lp_jorda import lp_irf, LPResult                          # §1</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="s2">"from puremacro.lp.lp_panel import lp_panel_irf, PanelLPResult               # §2</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="s2">"from puremacro.lp.lp_iv import lp_iv_irf, LPIVResult, WeakInstrumentWarning # §3</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="s2">"from puremacro.lp.lp_smooth import lp_smooth_irf, LPSmoothResult            # §4</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="s2">"from puremacro.lp.lp_state_dep import lp_state_dep_irf                    # §5</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="s2">"from puremacro.lp.lp_garch_state import LPGARCHStateResult                 # §6 result type</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="s2">"from puremacro.lp.lp_garch_in_mean import LPGIMResult                      # §7 result type</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="c1"># After:</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="s2">"from puremacro.lp.jorda import lp_hac           # §1</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="s2">"from puremacro.lp.panel import panel_lp         # §2</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="s2">"from puremacro.lp.iv import lp_iv               # §3</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="s2">"from puremacro.lp.smooth import lp_smooth       # §4</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="s2">"from puremacro.lp.state_dep import lp_state_dep # §5</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="s2">"from puremacro.lp.garch_state import lp_garch_state    # §6</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="s2">"from puremacro.lp.garch_in_mean import lp_garch_in_mean # §7</span><span class="se">\n</span><span class="s2">"</span>
+</code></pre></div>
+<p>If <code>WeakInstrumentWarning</code> is actually referenced in the notebook (not just imported), find its canonical home:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>grep<span class="w"> </span>-rn<span class="w"> </span><span class="s2">"class WeakInstrumentWarning\|WeakInstrumentWarning ="</span><span class="w"> </span>puremacro/<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-5
+</code></pre></div>
+<p>If it's in <code>puremacro.inference.weak_iv</code>, add <code>from puremacro.inference.weak_iv import WeakInstrumentWarning</code>. If it's not anywhere canonical, drop the reference + downstream <code>try/except WeakInstrumentWarning:</code> clauses.</p>
+<ul>
+<li>[ ] <strong>Step 2: Rewrite each section's LP call site</strong></li>
+</ul>
+<p>For §1 Jordà LP (around line 187 in the builder):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Before:</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="s2">"    return lp_irf(</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="s2">"        df, target=TARGET, shock=shock,</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="s2">"        horizon=HORIZON, lags=LAGS, ci=CI,</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="s2">"    )</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="c1"># After:</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="s2">"    return lp_hac(</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="s2">"        df, y=TARGET, x=shock,</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="s2">"        horizons=range(0, HORIZON + 1), n_lags=LAGS, alpha=1.0 - CI,</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="s2">"    )</span><span class="se">\n</span><span class="s2">"</span>
+</code></pre></div>
+<p>Apply the same pattern to §2 (<code>lp_panel_irf</code> → <code>panel_lp</code> at line 411), §3 (<code>lp_iv_irf</code> → <code>lp_iv</code> at lines 510, 562), §4 (<code>lp_smooth_irf</code> → <code>lp_smooth</code> at lines 628, 673, 693), §5 (<code>lp_state_dep_irf</code> → <code>lp_state_dep</code> at line 835).</p>
+<p>For §3 LP-IV, the legacy <code>instrument=</code> kwarg becomes canonical <code>z=</code>.</p>
+<p>For §5 lp_state_dep, the legacy <code>state_col=</code> becomes canonical <code>state_var=</code> (Task 4 of 0.43.0 confirmed this naming).</p>
+<p>For §6/§7 GARCH variants: the legacy notebook only imported the *Result classes, didn't call functions. After rewrite, drop these unused result-class imports — the canonical functions return DataFrames that downstream code can use directly.</p>
+<ul>
+<li>[ ] <strong>Step 3: Rewrite the internal duck-typed helper</strong></li>
+</ul>
+<p>Around line 201 in the builder, the duck-typed helper:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Before (paraphrased — read the actual content):</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="s2">"def _plot_band(result, ax, label=None):</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="s2">"    </span><span class="se">\"\"\"</span><span class="s2">Duck-typed over LPResult / PanelLPResult / LPSmoothResult.</span><span class="se">\"\"\"\n</span><span class="s2">"</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="s2">"    h = np.arange(len(result.beta))</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="s2">"    ax.plot(h, result.beta, label=label)</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="s2">"    ax.fill_between(h, result.lower, result.upper, alpha=0.2)</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="c1"># After (DataFrame-based):</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="s2">"def _plot_band(result, ax, label=None):</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="s2">"    </span><span class="se">\"\"\"</span><span class="s2">Plot a long-form LP result DataFrame's IRF + bands.</span><span class="se">\"\"\"\n</span><span class="s2">"</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="s2">"    ax.plot(result['h'], result['beta'], label=label)</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="s2">"    ax.fill_between(result['h'], result['lo'], result['hi'], alpha=0.2)</span><span class="se">\n</span><span class="s2">"</span>
+</code></pre></div>
+<p>Verify the canonical DataFrames have columns <code>h</code>/<code>beta</code>/<code>lo</code>/<code>hi</code> (lp_hac/lp_iv/lp_smooth/lp_state_dep return these per their signatures verified above). If any has different column names, adapt the helper.</p>
+<ul>
+<li>[ ] <strong>Step 4: Rewrite the wrapper helper (line 182 region)</strong></li>
+</ul>
+<p>If R1_02 has a <code>lp_irf</code>-returning wrapper function that wraps lp_irf and adds extra fields, rewrite to call <code>lp_hac</code> and return its DataFrame.</p>
+<ul>
+<li>[ ] <strong>Step 5: Mirror edits to the .ipynb cells</strong></li>
+</ul>
+<p>The .ipynb has its own copy of the cell source strings (independent of the builder). The notebooks↔builders memory pin requires editing BOTH together.</p>
+<p>Use <code>jupyter nbconvert --to script notebooks/R1_methods/R1_02_lp_menu.ipynb --stdout</code> to view current source, then apply identical edits to each affected cell via Read + Edit on the .ipynb file. The .ipynb is JSON; cell source content lives under <code>cells[i].source</code> (list of strings).</p>
+<p>A reliable approach: edit the .ipynb in place using Edit tool, finding each legacy import string and replacing with the canonical equivalent.</p>
+<p>Do NOT run <code>python tools/make_notebook_R1_02.py</code> — running the builder would regenerate the .ipynb and CLOBBER its current outputs (per memory pin <code>feedback_builder_clobbers_outputs</code>). Task 5 handles re-execution explicitly.</p>
+<ul>
+<li>[ ] <strong>Step 6: Verify .ipynb is still valid JSON</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>jupyter<span class="w"> </span>nbconvert<span class="w"> </span>--to<span class="w"> </span>script<span class="w"> </span><span class="s2">"notebooks/R1_methods/R1_02_lp_menu.ipynb"</span><span class="w"> </span>--stdout<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
+</code></pre></div>
+<p>Expected: prints script body, no errors.</p>
+<ul>
+<li>[ ] <strong>Step 7: Verify no remaining legacy imports in R1_02</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>grep<span class="w"> </span>-nE<span class="w"> </span><span class="s2">"lp_jorda|lp_iv|lp_panel|lp_smooth|lp_state_dep|lp_garch_state|lp_garch_in_mean|LPResult|LPIVResult|PanelLPResult|LPSmoothResult|LPGARCHStateResult|LPGIMResult|lp_irf\(|lp_iv_irf\(|lp_panel_irf\(|lp_smooth_irf\(|lp_state_dep_irf\("</span><span class="w"> </span>tools/make_notebook_R1_02.py<span class="w"> </span>notebooks/R1_methods/R1_02_lp_menu.ipynb<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-10
+</code></pre></div>
+<p>Expected: zero hits. (Legacy module names may appear in markdown text mentioning "the lp_irf API" historically — that's fine if it's narrative, but if it's a code reference, it needs rewrite.)</p>
+<ul>
+<li>[ ] <strong>Step 8: Commit the pair</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>git<span class="w"> </span>add<span class="w"> </span>tools/make_notebook_R1_02.py<span class="w"> </span>notebooks/R1_methods/R1_02_lp_menu.ipynb
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="s">refactor(R1_02): body-rewrite lp menu to canonical lp/* APIs — 0.44.0</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="s">R1_02 was the legacy lp_* API demo. Rewritten to demo canonical lp/*:</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="s">lp_hac/lp_iv/panel_lp/lp_smooth/lp_state_dep/lp_garch_state/</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="s">lp_garch_in_mean. Section structure preserved. Outputs unchanged at</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="s">this commit; Task 5 re-executes via the paired builder.</span>
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="s">Co-Authored-By: Claude Opus 4.7 (1M context) &lt;noreply@anthropic.com&gt;</span>
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="s">EOF</span>
+<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="k">)</span><span class="s2">"</span>
+</code></pre></div>
+<hr />
+<h2 id="task-2-body-rewrite-r1_03_cross_countryipynb-builder">Task 2: Body-rewrite R1_03_cross_country.ipynb + builder</h2>
+<p><strong>Files:</strong> <code>tools/make_notebook_R1_03.py</code>, <code>notebooks/R1_methods/R1_03_cross_country.ipynb</code>.</p>
+<p>Per Task 0 audit, R1_03 has 2 legacy LP imports to address.</p>
+<ul>
+<li>[ ] <strong>Step 1: Locate the two legacy import lines in the builder</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples"</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>grep<span class="w"> </span>-nE<span class="w"> </span><span class="s2">"lp_jorda|lp_panel.*RegimeInteractionLPResult|RegimeInteractionLPResult"</span><span class="w"> </span>tools/make_notebook_R1_03.py<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-5
+</code></pre></div>
+<p>Expected: two hits (one <code>from puremacro.lp.lp_jorda import lp_irf</code>, one <code>from puremacro.lp.lp_panel import RegimeInteractionLPResult  # legacy result type</code>).</p>
+<ul>
+<li>[ ] <strong>Step 2: Rewrite imports</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1"># Before:</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="s2">"from puremacro.lp.lp_jorda import lp_irf</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="s2">"from puremacro.lp.lp_panel import RegimeInteractionLPResult  # legacy result type</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="c1"># After:</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="s2">"from puremacro.lp.jorda import lp_hac</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="c1"># Drop the RegimeInteractionLPResult import — canonical lp_panel_regime_interaction</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="c1"># returns DataFrame, no result-class needed.</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 3: Rewrite call sites of <code>lp_irf</code> and any references to <code>RegimeInteractionLPResult</code></strong></li>
+</ul>
+<p>Find each <code>lp_irf(...)</code> call and rewrite to <code>lp_hac(df, y=..., x=..., horizons=range(0, HORIZON + 1), n_lags=..., alpha=1.0 - ci_legacy)</code>.</p>
+<p>Find any <code>isinstance(result, RegimeInteractionLPResult)</code> checks or <code>result.beta</code>-style attribute access — rewrite to DataFrame column access.</p>
+<ul>
+<li>[ ] <strong>Step 4: Mirror to .ipynb</strong></li>
+</ul>
+<p>Apply identical edits to <code>notebooks/R1_methods/R1_03_cross_country.ipynb</code>. Do NOT run the builder.</p>
+<ul>
+<li>[ ] <strong>Step 5: Verify .ipynb is valid + no remaining legacy lp_ imports</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>jupyter<span class="w"> </span>nbconvert<span class="w"> </span>--to<span class="w"> </span>script<span class="w"> </span><span class="s2">"notebooks/R1_methods/R1_03_cross_country.ipynb"</span><span class="w"> </span>--stdout<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-3
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>grep<span class="w"> </span>-nE<span class="w"> </span><span class="s2">"lp_jorda|lp_panel.*Result|lp_irf\(|RegimeInteractionLPResult"</span><span class="w"> </span>tools/make_notebook_R1_03.py<span class="w"> </span>notebooks/R1_methods/R1_03_cross_country.ipynb<span class="w"> </span><span class="m">2</span>&gt;/dev/null
+</code></pre></div>
+<p>Expected: zero legacy hits.</p>
+<ul>
+<li>[ ] <strong>Step 6: Commit</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>git<span class="w"> </span>add<span class="w"> </span>tools/make_notebook_R1_03.py<span class="w"> </span>notebooks/R1_methods/R1_03_cross_country.ipynb
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="s">refactor(R1_03): drop lp_jorda + RegimeInteractionLPResult imports — 0.44.0</span>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="s">Last two legacy LP holdovers in R1_03. Outputs unchanged; Task 5 re-execs.</span>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="s">Co-Authored-By: Claude Opus 4.7 (1M context) &lt;noreply@anthropic.com&gt;</span>
+<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="s">EOF</span>
+<a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="k">)</span><span class="s2">"</span>
+</code></pre></div>
+<hr />
+<h2 id="task-3-body-rewrite-r1_05_publicationipynb-builder">Task 3: Body-rewrite R1_05_publication.ipynb + builder</h2>
+<p><strong>Files:</strong> <code>tools/make_notebook_R1_05.py</code>, <code>notebooks/R1_methods/R1_05_publication.ipynb</code>.</p>
+<p>Per Task 0 audit, R1_05 has 1 legacy LP import (<code>from puremacro.lp.lp_jorda import lp_irf</code>).</p>
+<ul>
+<li>[ ] <strong>Step 1: Locate the legacy import</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples"</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>grep<span class="w"> </span>-nE<span class="w"> </span><span class="s2">"lp_jorda|lp_irf"</span><span class="w"> </span>tools/make_notebook_R1_05.py<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-5
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Rewrite the import + call site</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="c1"># Before:</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="s2">"from puremacro.lp.lp_jorda import lp_irf</span><span class="se">\n</span><span class="s2">"</span>
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>
+<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="c1"># After:</span>
+<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="s2">"from puremacro.lp.jorda import lp_hac</span><span class="se">\n</span><span class="s2">"</span>
+</code></pre></div>
+<p>Find each <code>lp_irf(...)</code> call and rewrite to <code>lp_hac(...)</code> with canonical kwargs. Update any <code>result.beta</code>/<code>result.se</code>/<code>result.lower</code>/<code>result.upper</code> to DataFrame column access (<code>result['beta']</code> etc.).</p>
+<ul>
+<li>[ ] <strong>Step 3: Mirror to .ipynb</strong></li>
+</ul>
+<p>Apply identical edits. Do NOT run the builder.</p>
+<ul>
+<li>[ ] <strong>Step 4: Verify + commit</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples/puremacro"</span>
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>grep<span class="w"> </span>-nE<span class="w"> </span><span class="s2">"lp_jorda|lp_irf\("</span><span class="w"> </span>../tools/make_notebook_R1_05.py<span class="w"> </span>../notebooks/R1_methods/R1_05_publication.ipynb<span class="w"> </span><span class="m">2</span>&gt;/dev/null
+<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>git<span class="w"> </span>add<span class="w"> </span>../tools/make_notebook_R1_05.py<span class="w"> </span>../notebooks/R1_methods/R1_05_publication.ipynb
+<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="s">refactor(R1_05): canonical lp_hac — 0.44.0</span>
+<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>
+<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="s">Last legacy LP holdover in R1_05. Outputs unchanged; Task 5 re-execs.</span>
+<a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>
+<a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a><span class="s">Co-Authored-By: Claude Opus 4.7 (1M context) &lt;noreply@anthropic.com&gt;</span>
+<a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a><span class="s">EOF</span>
+<a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a><span class="k">)</span><span class="s2">"</span>
+</code></pre></div>
+<hr />
+<h2 id="task-4-build-dataprocessedpanel_qparquet">Task 4: Build <code>data/processed/panel_Q.parquet</code></h2>
+<p><strong>Files:</strong> none modified; this populates the data cache.</p>
+<p>R1_01 (already migrated in 0.43.0) and the cross-country notebooks need <code>panel_Q.parquet</code> to load country data. Without it, Task 5's re-execution of R1_01 fails immediately with a FileNotFoundError (as observed in 0.43.0 final smoke test).</p>
+<ul>
+<li>[ ] <strong>Step 1: Check if file already exists</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>ls<span class="w"> </span>-la<span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples/data/processed/panel_Q.parquet"</span><span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span>
+</code></pre></div>
+<p>If it exists, skip to Step 4. Otherwise:</p>
+<ul>
+<li>[ ] <strong>Step 2: Run <code>build_all</code> (controller-only, may take 10-30 min)</strong></li>
+</ul>
+<p>Per memory pin <code>feedback_long_nbconvert_no_subagent</code>, this should NOT be delegated to a subagent. Run from the controller's background:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples"</span>
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span>
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="s2">from puremacro.build_panel import build_all</span>
+<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="s2">panel_Q, panel_M = build_all(fast=True, refresh=False)</span>
+<a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a><span class="s2">print(f'panel_Q rows: {len(panel_Q)}; panel_M rows: {len(panel_M)}')</span>
+<a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a><span class="s2">"</span>
+</code></pre></div>
+<p><code>fast=True</code> keeps the 6-country filter for a quick build. <code>refresh=False</code> uses the existing disk cache (under <code>~/.cache/puremacro/</code>) where available.</p>
+<ul>
+<li>[ ] <strong>Step 3: Verify the cache file landed</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>ls<span class="w"> </span>-la<span class="w"> </span>data/processed/panel_Q.parquet<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span>
+</code></pre></div>
+<p>Expected: file exists, non-trivial size (&gt; 100 KB).</p>
+<p>If the build fails (network unreachable, no FRED API key, etc.), STOP and report. Re-executing R1_01 in Task 5 will be skipped + documented; the rest of Task 5 can proceed for notebooks that don't depend on <code>panel_Q.parquet</code>.</p>
+<ul>
+<li>[ ] <strong>Step 4: No commit — <code>data/processed/panel_Q.parquet</code> is gitignored / not staged</strong></li>
+</ul>
+<p>Verify with <code>git status data/processed/panel_Q.parquet</code> — if it's gitignored or absent from the index, no commit needed.</p>
+<hr />
+<h2 id="task-5-re-execute-body-rewrite-notebooks-via-paired-builders">Task 5: Re-execute body-rewrite notebooks via paired builders</h2>
+<p><strong>Controller-only task per memory pin <code>feedback_long_nbconvert_no_subagent</code>.</strong> Each builder run regenerates a notebook's outputs (and clobbers the prior outputs per <code>feedback_builder_clobbers_outputs</code> — that's the goal here).</p>
+<p>The 6 body-rewrite notebooks to re-execute (5 from 0.43.0 + 1 new in 0.44.0; R1_02 is the only new one because R1_03 and R1_05 were in both releases' lists but only get re-executed once with the latest edits):</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Notebook</th>
+<th>Builder</th>
+<th>Source changes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>R1_methods/R1_01_svar_menu.ipynb</td>
+<td>tools/make_notebook_R1_01.py</td>
+<td>0.43.0 (svar canonical)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>R1_methods/R1_02_lp_menu.ipynb</td>
+<td>tools/make_notebook_R1_02.py</td>
+<td>0.44.0 Task 1 (lp canonical)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>R1_methods/R1_03_cross_country.ipynb</td>
+<td>tools/make_notebook_R1_03.py</td>
+<td>0.43.0 + 0.44.0 Task 2</td>
+</tr>
+<tr>
+<td>4</td>
+<td>R1_methods/R1_04_dsge_compare.ipynb</td>
+<td>tools/make_notebook_R1_04.py</td>
+<td>0.43.0 (svar canonical)</td>
+</tr>
+<tr>
+<td>5</td>
+<td>R1_methods/R1_05_publication.ipynb</td>
+<td>tools/make_notebook_R1_05.py</td>
+<td>0.43.0 + 0.44.0 Task 3</td>
+</tr>
+<tr>
+<td>6</td>
+<td>T_us_national.ipynb</td>
+<td>(no builder — direct nbconvert)</td>
+<td>0.43.0 (cholesky_svar canonical)</td>
+</tr>
+</tbody>
+</table>
+<p>Per notebook: re-execute via the builder, inspect diff, commit per notebook.</p>
+<ul>
+<li>[ ] <strong>Step 1: Re-execute R1_01</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples"</span>
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>python<span class="w"> </span>tools/make_notebook_R1_01.py<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-10
+</code></pre></div>
+<p>Expected: builds + executes. If <code>panel_Q.parquet</code> missing (Task 4 failed), this will FileNotFoundError on the data-load cell. Skip + document if so.</p>
+<ul>
+<li>[ ] <strong>Step 2: Inspect R1_01 diff</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>git<span class="w"> </span>diff<span class="w"> </span>--<span class="w"> </span>notebooks/R1_methods/R1_01_svar_menu.ipynb<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-80
+</code></pre></div>
+<p>Outputs (cell results) will have changed because the canonical SVAR uses <code>safe_cholesky</code> with different conditioning. Source cells should match what was committed in 0.43.0. Sanity-check that no cell raises an exception in its outputs (look for <code>"output_type": "error"</code> in the diff).</p>
+<ul>
+<li>[ ] <strong>Step 3: Commit R1_01 re-execution</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>git<span class="w"> </span>add<span class="w"> </span>notebooks/R1_methods/R1_01_svar_menu.ipynb
+<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+<a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a><span class="s">nb(R1_01): re-execute against canonical SVAR — 0.44.0</span>
+<a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>
+<a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a><span class="s">Outputs regenerated post-0.43.0 svar migration. Sanity-checked</span>
+<a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a><span class="s">against committed source edits; no cell exceptions.</span>
+<a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a>
+<a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a><span class="s">Co-Authored-By: Claude Opus 4.7 (1M context) &lt;noreply@anthropic.com&gt;</span>
+<a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a><span class="s">EOF</span>
+<a id="__codelineno-25-10" name="__codelineno-25-10" href="#__codelineno-25-10"></a><span class="k">)</span><span class="s2">"</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 4-15: Repeat Steps 1-3 for R1_02, R1_03, R1_04, R1_05</strong></li>
+</ul>
+<p>Same pattern: <code>python tools/make_notebook_&lt;X&gt;.py</code>, inspect diff, commit. One commit per notebook so any individual regression can be reverted in isolation.</p>
+<p>For each notebook, the commit message is <code>nb(R&lt;X&gt;): re-execute against canonical — 0.44.0</code> with a one-line note about which canonical paths the re-execution exercises.</p>
+<ul>
+<li>[ ] <strong>Step 16: Re-execute T_us_national (no builder — direct nbconvert)</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples"</span>
+<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>jupyter<span class="w"> </span>nbconvert<span class="w"> </span>--to<span class="w"> </span>notebook<span class="w"> </span>--execute<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="w">  </span>notebooks/T_us_national.ipynb<span class="w"> </span>--inplace<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="w">  </span>--ExecutePreprocessor.timeout<span class="o">=</span><span class="m">900</span><span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-5
+</code></pre></div>
+<p>Inspect diff + commit. If <code>panel_Q.parquet</code> is missing, this may fail too — skip + document.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>git<span class="w"> </span>add<span class="w"> </span>notebooks/T_us_national.ipynb
+<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+<a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a><span class="s">nb(T_us_national): re-execute against canonical cholesky_svar — 0.44.0</span>
+<a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>
+<a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a><span class="s">Co-Authored-By: Claude Opus 4.7 (1M context) &lt;noreply@anthropic.com&gt;</span>
+<a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a><span class="s">EOF</span>
+<a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a><span class="k">)</span><span class="s2">"</span>
+</code></pre></div>
+<hr />
+<h2 id="task-6-delete-puremacrolplp_py">Task 6: Delete <code>puremacro/lp/lp_*.py</code></h2>
+<p><strong>Files (deletions):</strong> all 8 <code>puremacro/lp/lp_*.py</code> files.</p>
+<ul>
+<li>[ ] <strong>Step 1: Pre-deletion gate — no remaining callers</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples"</span>
+<a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>git<span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s2">"from puremacro\.lp\.lp_|import puremacro\.lp\.lp_"</span><span class="w"> </span>--<span class="w"> </span><span class="s1">':!docs/'</span><span class="w"> </span><span class="s1">':!CHANGELOG.md'</span><span class="w"> </span><span class="s1">':!*.bak'</span>
+</code></pre></div>
+<p>Expected: zero hits OUTSIDE the lp/lp_*.py files themselves and the legacy notebook strings in any prior pickle/JSON cache. If a real Python caller hits, STOP and migrate it first.</p>
+<ul>
+<li>[ ] <strong>Step 2: Delete the 8 files</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples/puremacro"</span>
+<a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>git<span class="w"> </span>rm<span class="w"> </span>puremacro/lp/lp_jorda.py<span class="w"> </span>puremacro/lp/lp_iv.py<span class="w"> </span>puremacro/lp/lp_panel.py<span class="w"> </span>puremacro/lp/lp_panel_dk.py<span class="w"> </span>puremacro/lp/lp_state_dep.py<span class="w"> </span>puremacro/lp/lp_smooth.py<span class="w"> </span>puremacro/lp/lp_garch_state.py<span class="w"> </span>puremacro/lp/lp_garch_in_mean.py
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 3: Run tests</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>-q<span class="w"> </span>--tb<span class="o">=</span>line<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-10
+</code></pre></div>
+<p>Expected: same pre-existing 10 failures. Total count drops by however many tests were exercising the lp_* legacy modules (likely none — those tests were in <code>tests/test_lp/</code> exercising canonical paths).</p>
+<ul>
+<li>[ ] <strong>Step 4: Strict DeprecationWarning gate</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>-q<span class="w"> </span>-W<span class="w"> </span><span class="s2">"error::DeprecationWarning"</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="w">  </span>--ignore<span class="w"> </span>tests/test_pyodide_compat.py<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="w">  </span>--ignore<span class="w"> </span>tests/test_public_api.py<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-10
+</code></pre></div>
+<p>Expected: same pre-existing failures.</p>
+<ul>
+<li>[ ] <strong>Step 5: Commit</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>git<span class="w"> </span>add<span class="w"> </span>-A
+<a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+<a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a><span class="s">chore(0.44.0): delete puremacro/lp/lp_*.py (8 files)</span>
+<a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a>
+<a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="s">All callers (tools/, notebooks/, teaching/, in-package) migrated to</span>
+<a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a><span class="s">canonical lp/* APIs in 0.43.0 + 0.44.0 Tasks 1-3. The 8 Phase-2.5</span>
+<a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a><span class="s">banner files now have zero callers and are removed.</span>
+<a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a>
+<a id="__codelineno-32-9" name="__codelineno-32-9" href="#__codelineno-32-9"></a><span class="s">Removed:</span>
+<a id="__codelineno-32-10" name="__codelineno-32-10" href="#__codelineno-32-10"></a><span class="s">- puremacro/lp/lp_jorda.py</span>
+<a id="__codelineno-32-11" name="__codelineno-32-11" href="#__codelineno-32-11"></a><span class="s">- puremacro/lp/lp_iv.py</span>
+<a id="__codelineno-32-12" name="__codelineno-32-12" href="#__codelineno-32-12"></a><span class="s">- puremacro/lp/lp_panel.py</span>
+<a id="__codelineno-32-13" name="__codelineno-32-13" href="#__codelineno-32-13"></a><span class="s">- puremacro/lp/lp_panel_dk.py</span>
+<a id="__codelineno-32-14" name="__codelineno-32-14" href="#__codelineno-32-14"></a><span class="s">- puremacro/lp/lp_state_dep.py</span>
+<a id="__codelineno-32-15" name="__codelineno-32-15" href="#__codelineno-32-15"></a><span class="s">- puremacro/lp/lp_smooth.py</span>
+<a id="__codelineno-32-16" name="__codelineno-32-16" href="#__codelineno-32-16"></a><span class="s">- puremacro/lp/lp_garch_state.py</span>
+<a id="__codelineno-32-17" name="__codelineno-32-17" href="#__codelineno-32-17"></a><span class="s">- puremacro/lp/lp_garch_in_mean.py</span>
+<a id="__codelineno-32-18" name="__codelineno-32-18" href="#__codelineno-32-18"></a>
+<a id="__codelineno-32-19" name="__codelineno-32-19" href="#__codelineno-32-19"></a><span class="s">Co-Authored-By: Claude Opus 4.7 (1M context) &lt;noreply@anthropic.com&gt;</span>
+<a id="__codelineno-32-20" name="__codelineno-32-20" href="#__codelineno-32-20"></a><span class="s">EOF</span>
+<a id="__codelineno-32-21" name="__codelineno-32-21" href="#__codelineno-32-21"></a><span class="k">)</span><span class="s2">"</span>
+</code></pre></div>
+<hr />
+<h2 id="task-7-delete-puremacroinferencelegacy">Task 7: Delete <code>puremacro/inference/legacy/</code></h2>
+<p><strong>Files (deletion):</strong> entire <code>puremacro/inference/legacy/</code> directory (10 files).</p>
+<ul>
+<li>[ ] <strong>Step 1: Pre-deletion gate — no remaining callers</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples"</span>
+<a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>git<span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s2">"from puremacro\.inference\.legacy|import puremacro\.inference\.legacy"</span><span class="w"> </span>--<span class="w"> </span><span class="s1">':!docs/'</span><span class="w"> </span><span class="s1">':!CHANGELOG.md'</span><span class="w"> </span><span class="s1">':!*.bak'</span>
+</code></pre></div>
+<p>Expected: zero hits (after Task 6 deleted lp/lp_state_dep.py + lp/lp_smooth.py, the only remaining <code>inference.legacy</code> callers should be gone).</p>
+<ul>
+<li>[ ] <strong>Step 2: Delete the directory</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples/puremacro"</span>
+<a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>git<span class="w"> </span>rm<span class="w"> </span>-r<span class="w"> </span>puremacro/inference/legacy/
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 3: Run tests</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>-q<span class="w"> </span>--tb<span class="o">=</span>line<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-10
+</code></pre></div>
+<p>Expected: same pre-existing failures, no new ones.</p>
+<ul>
+<li>[ ] <strong>Step 4: Commit</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>git<span class="w"> </span>add<span class="w"> </span>-A
+<a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+<a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a><span class="s">chore(0.44.0): delete puremacro/inference/legacy/</span>
+<a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a>
+<a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a><span class="s">The 4 distinct files (bootstrap, wild_bootstrap, block_bootstrap,</span>
+<a id="__codelineno-36-6" name="__codelineno-36-6" href="#__codelineno-36-6"></a><span class="s">weak_iv) and 6 byte-identical shim files in inference/legacy/ are</span>
+<a id="__codelineno-36-7" name="__codelineno-36-7" href="#__codelineno-36-7"></a><span class="s">gone now that lp/lp_state_dep.py and lp/lp_smooth.py (their only</span>
+<a id="__codelineno-36-8" name="__codelineno-36-8" href="#__codelineno-36-8"></a><span class="s">remaining callers) are deleted in Task 6.</span>
+<a id="__codelineno-36-9" name="__codelineno-36-9" href="#__codelineno-36-9"></a>
+<a id="__codelineno-36-10" name="__codelineno-36-10" href="#__codelineno-36-10"></a><span class="s">Co-Authored-By: Claude Opus 4.7 (1M context) &lt;noreply@anthropic.com&gt;</span>
+<a id="__codelineno-36-11" name="__codelineno-36-11" href="#__codelineno-36-11"></a><span class="s">EOF</span>
+<a id="__codelineno-36-12" name="__codelineno-36-12" href="#__codelineno-36-12"></a><span class="k">)</span><span class="s2">"</span>
+</code></pre></div>
+<hr />
+<h2 id="task-8-decide-puremacrolpgarch_utilspy-rename">Task 8: Decide <code>puremacro/lp/garch_utils.py</code> rename</h2>
+<p><strong>Files:</strong> <code>puremacro/lp/garch_utils.py</code> (rename or leave).</p>
+<p>The canonical <code>lp/garch_state.py</code> and <code>lp/garch_in_mean.py</code> import from <code>garch_utils.py</code>. After Task 6 deleted <code>lp/lp_garch_state.py</code> and <code>lp/lp_garch_in_mean.py</code>, there might still be external callers using the public name.</p>
+<ul>
+<li>[ ] <strong>Step 1: Check for external callers</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples"</span>
+<a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>git<span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s2">"from puremacro\.lp\.garch_utils|import puremacro\.lp\.garch_utils"</span><span class="w"> </span>--<span class="w"> </span><span class="s1">':!docs/'</span><span class="w"> </span><span class="s1">':!CHANGELOG.md'</span><span class="w"> </span><span class="s1">':!*.bak'</span><span class="w"> </span><span class="s1">':!puremacro/puremacro/lp/'</span>
+</code></pre></div>
+<p>Expected: zero hits if only <code>lp/garch_state.py</code> + <code>lp/garch_in_mean.py</code> use it.</p>
+<ul>
+<li>[ ] <strong>Step 2: If zero external callers, rename to private</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples/puremacro"</span>
+<a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a>git<span class="w"> </span>mv<span class="w"> </span>puremacro/lp/garch_utils.py<span class="w"> </span>puremacro/lp/_garch_utils.py
+</code></pre></div>
+<p>Update internal callers:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a>sed<span class="w"> </span>-i.bak<span class="w"> </span><span class="s1">'s|from puremacro\.lp\.garch_utils|from puremacro.lp._garch_utils|g; s|from \.garch_utils|from ._garch_utils|g'</span><span class="w"> </span>puremacro/lp/garch_state.py<span class="w"> </span>puremacro/lp/garch_in_mean.py
+<a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>rm<span class="w"> </span>puremacro/lp/garch_state.py.bak<span class="w"> </span>puremacro/lp/garch_in_mean.py.bak
+</code></pre></div>
+<p>(macOS <code>sed -i</code> requires the extension; clean up the <code>.bak</code> files.)</p>
+<p>If Step 1 found external callers, SKIP this step and leave <code>garch_utils.py</code> as a public name. Document in audit notes.</p>
+<ul>
+<li>[ ] <strong>Step 3: Run tests</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/test_lp/<span class="w"> </span>tests/test_pyodide_compat.py<span class="w"> </span>-q<span class="w"> </span>--tb<span class="o">=</span>line<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-5
+</code></pre></div>
+<p>Expected: green.</p>
+<ul>
+<li>[ ] <strong>Step 4: Commit</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>git<span class="w"> </span>add<span class="w"> </span>-A
+<a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+<a id="__codelineno-41-3" name="__codelineno-41-3" href="#__codelineno-41-3"></a><span class="s">refactor(lp): rename garch_utils.py → _garch_utils.py (private) — 0.44.0</span>
+<a id="__codelineno-41-4" name="__codelineno-41-4" href="#__codelineno-41-4"></a>
+<a id="__codelineno-41-5" name="__codelineno-41-5" href="#__codelineno-41-5"></a><span class="s">Helper module is now used only by lp/garch_state.py and</span>
+<a id="__codelineno-41-6" name="__codelineno-41-6" href="#__codelineno-41-6"></a><span class="s">lp/garch_in_mean.py. The public name was only needed for the deleted</span>
+<a id="__codelineno-41-7" name="__codelineno-41-7" href="#__codelineno-41-7"></a><span class="s">lp/lp_garch_state.py + lp/lp_garch_in_mean.py.</span>
+<a id="__codelineno-41-8" name="__codelineno-41-8" href="#__codelineno-41-8"></a>
+<a id="__codelineno-41-9" name="__codelineno-41-9" href="#__codelineno-41-9"></a><span class="s">Co-Authored-By: Claude Opus 4.7 (1M context) &lt;noreply@anthropic.com&gt;</span>
+<a id="__codelineno-41-10" name="__codelineno-41-10" href="#__codelineno-41-10"></a><span class="s">EOF</span>
+<a id="__codelineno-41-11" name="__codelineno-41-11" href="#__codelineno-41-11"></a><span class="k">)</span><span class="s2">"</span>
+</code></pre></div>
+<p>If Step 1 found external callers and Step 2 was skipped, no commit — document the deferral in CHANGELOG (Task 9).</p>
+<hr />
+<h2 id="task-9-architecturemd-changelogmd-for-0440">Task 9: ARCHITECTURE.md + CHANGELOG.md for 0.44.0</h2>
+<p><strong>Files:</strong> <code>ARCHITECTURE.md</code>, <code>CHANGELOG.md</code>.</p>
+<ul>
+<li>[ ] <strong>Step 1: Update ARCHITECTURE.md</strong></li>
+</ul>
+<p>Find the "Known consolidation candidates" section. Remove the Phase-2.5 entries for <code>lp/lp_*.py</code> and <code>inference/legacy/</code>. The remaining entry is <code>regress/lp.py</code> (independent implementation, its own future release).</p>
+<p>Update the stability tier table:
+- REMOVE rows for all 8 <code>puremacro/lp/lp_*</code> files.
+- REMOVE rows for <code>puremacro/inference/legacy/*</code>.
+- If Task 8 renamed garch_utils, update its row to <code>lp/_garch_utils.py (private)</code>.</p>
+<ul>
+<li>[ ] <strong>Step 2: Prepend 0.44.0 to CHANGELOG.md</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="gu">## 0.44.0 — 2026-05-18</span>
+<a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a>
+<a id="__codelineno-42-3" name="__codelineno-42-3" href="#__codelineno-42-3"></a>LP shim retirement + notebook re-execution. The <span class="sb">`lp/lp_*.py`</span> and
+<a id="__codelineno-42-4" name="__codelineno-42-4" href="#__codelineno-42-4"></a><span class="sb">`inference/legacy/`</span> paths deferred in 0.43.0 are deleted. Three
+<a id="__codelineno-42-5" name="__codelineno-42-5" href="#__codelineno-42-5"></a>body-rewrite notebooks (R1_02, R1_03, R1_05) migrated to canonical
+<a id="__codelineno-42-6" name="__codelineno-42-6" href="#__codelineno-42-6"></a><span class="sb">`lp/*`</span> APIs. Six body-rewrite notebooks (R1_01, R1_02, R1_03, R1_04,
+<a id="__codelineno-42-7" name="__codelineno-42-7" href="#__codelineno-42-7"></a>R1_05, T<span class="ge">_us_</span>national) re-executed against canonical.
+<a id="__codelineno-42-8" name="__codelineno-42-8" href="#__codelineno-42-8"></a>
+<a id="__codelineno-42-9" name="__codelineno-42-9" href="#__codelineno-42-9"></a><span class="gu">### Removed (breaking)</span>
+<a id="__codelineno-42-10" name="__codelineno-42-10" href="#__codelineno-42-10"></a><span class="k">-</span><span class="w"> </span><span class="sb">`puremacro.lp.lp_*`</span> — all 8 files (<span class="sb">`lp_jorda`</span>, <span class="sb">`lp_iv`</span>, <span class="sb">`lp_panel`</span>,
+<a id="__codelineno-42-11" name="__codelineno-42-11" href="#__codelineno-42-11"></a>  <span class="sb">`lp_panel_dk`</span>, <span class="sb">`lp_state_dep`</span>, <span class="sb">`lp_smooth`</span>, <span class="sb">`lp_garch_state`</span>,
+<a id="__codelineno-42-12" name="__codelineno-42-12" href="#__codelineno-42-12"></a>  <span class="sb">`lp_garch_in_mean`</span>).
+<a id="__codelineno-42-13" name="__codelineno-42-13" href="#__codelineno-42-13"></a><span class="k">-</span><span class="w"> </span><span class="sb">`puremacro.inference.legacy`</span> — entire directory (10 files).
+<a id="__codelineno-42-14" name="__codelineno-42-14" href="#__codelineno-42-14"></a><span class="k">-</span><span class="w"> </span><span class="sb">`puremacro.lp.garch_utils`</span> (if Task 8 succeeded) → renamed to
+<a id="__codelineno-42-15" name="__codelineno-42-15" href="#__codelineno-42-15"></a>  private <span class="sb">`_garch_utils`</span>.
+<a id="__codelineno-42-16" name="__codelineno-42-16" href="#__codelineno-42-16"></a>
+<a id="__codelineno-42-17" name="__codelineno-42-17" href="#__codelineno-42-17"></a><span class="gu">### Changed</span>
+<a id="__codelineno-42-18" name="__codelineno-42-18" href="#__codelineno-42-18"></a><span class="k">-</span><span class="w"> </span><span class="sb">`R1_02_lp_menu.ipynb`</span> body-rewritten as canonical <span class="sb">`lp/*`</span> menu.
+<a id="__codelineno-42-19" name="__codelineno-42-19" href="#__codelineno-42-19"></a>  Preserves chapter's pedagogical role on the new API.
+<a id="__codelineno-42-20" name="__codelineno-42-20" href="#__codelineno-42-20"></a><span class="k">-</span><span class="w"> </span><span class="sb">`R1_03_cross_country.ipynb`</span> and <span class="sb">`R1_05_publication.ipynb`</span> last
+<a id="__codelineno-42-21" name="__codelineno-42-21" href="#__codelineno-42-21"></a>  legacy lp_jorda + RegimeInteractionLPResult imports removed.
+<a id="__codelineno-42-22" name="__codelineno-42-22" href="#__codelineno-42-22"></a><span class="k">-</span><span class="w"> </span>6 body-rewrite notebooks re-executed against canonical paths
+<a id="__codelineno-42-23" name="__codelineno-42-23" href="#__codelineno-42-23"></a>  (R1_01 svar, R1_02 lp, R1_03 cross-country, R1_04 dsge, R1_05
+<a id="__codelineno-42-24" name="__codelineno-42-24" href="#__codelineno-42-24"></a>  publication, T<span class="ge">_us_</span>national).
+<a id="__codelineno-42-25" name="__codelineno-42-25" href="#__codelineno-42-25"></a>
+<a id="__codelineno-42-26" name="__codelineno-42-26" href="#__codelineno-42-26"></a><span class="gu">### Internal</span>
+<a id="__codelineno-42-27" name="__codelineno-42-27" href="#__codelineno-42-27"></a><span class="k">-</span><span class="w"> </span><span class="sb">`tests/test_lp/`</span> no longer needs to gate any shim contract.
+<a id="__codelineno-42-28" name="__codelineno-42-28" href="#__codelineno-42-28"></a><span class="k">-</span><span class="w"> </span><span class="sb">`ARCHITECTURE.md`</span> cleaned of all Phase-2.5 consolidation entries.
+<a id="__codelineno-42-29" name="__codelineno-42-29" href="#__codelineno-42-29"></a>
+<a id="__codelineno-42-30" name="__codelineno-42-30" href="#__codelineno-42-30"></a><span class="gu">### Pre-existing failures (unchanged from 0.43.0)</span>
+<a id="__codelineno-42-31" name="__codelineno-42-31" href="#__codelineno-42-31"></a><span class="k">-</span><span class="w"> </span>Same 10 orthogonal failures: 7 × <span class="sb">`test_qar_skewt_fci`</span>, 2 ×
+<a id="__codelineno-42-32" name="__codelineno-42-32" href="#__codelineno-42-32"></a>  <span class="sb">`test_narrative_body_extractor_coverage`</span>, 1 ×
+<a id="__codelineno-42-33" name="__codelineno-42-33" href="#__codelineno-42-33"></a>  <span class="sb">`test_narrative_indices`</span>.
+<a id="__codelineno-42-34" name="__codelineno-42-34" href="#__codelineno-42-34"></a>
+<a id="__codelineno-42-35" name="__codelineno-42-35" href="#__codelineno-42-35"></a><span class="gu">### Still deferred</span>
+<a id="__codelineno-42-36" name="__codelineno-42-36" href="#__codelineno-42-36"></a><span class="k">-</span><span class="w"> </span><span class="sb">`puremacro/regress/lp.py`</span> — independent implementation, NOT a thin
+<a id="__codelineno-42-37" name="__codelineno-42-37" href="#__codelineno-42-37"></a>  re-export of <span class="sb">`lp.panel`</span>. 2 active callers in
+<a id="__codelineno-42-38" name="__codelineno-42-38" href="#__codelineno-42-38"></a>  <span class="sb">`tools/run_logurate_revision.py`</span> + <span class="sb">`tools/run_paper_extensions.py`</span>.
+<a id="__codelineno-42-39" name="__codelineno-42-39" href="#__codelineno-42-39"></a>  Its own follow-up release once a canonical equivalent with the
+<a id="__codelineno-42-40" name="__codelineno-42-40" href="#__codelineno-42-40"></a>  same signature ships.
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 3: Run tests + commit</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples/puremacro"</span>
+<a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/test_var/<span class="w"> </span>tests/test_lp/<span class="w"> </span>tests/test_cholesky_shocks.py<span class="w"> </span>tests/test_robustness.py<span class="w"> </span>tests/test_pyodide_compat.py<span class="w"> </span>-q<span class="w"> </span>--tb<span class="o">=</span>line<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-5
+<a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a>git<span class="w"> </span>add<span class="w"> </span>ARCHITECTURE.md<span class="w"> </span>CHANGELOG.md
+<a id="__codelineno-43-4" name="__codelineno-43-4" href="#__codelineno-43-4"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+<a id="__codelineno-43-5" name="__codelineno-43-5" href="#__codelineno-43-5"></a><span class="s">docs(0.44.0): ARCHITECTURE + CHANGELOG — lp shim retirement complete</span>
+<a id="__codelineno-43-6" name="__codelineno-43-6" href="#__codelineno-43-6"></a>
+<a id="__codelineno-43-7" name="__codelineno-43-7" href="#__codelineno-43-7"></a><span class="s">The Phase-2.5 lp/lp_*.py + inference/legacy/ entries are gone. The</span>
+<a id="__codelineno-43-8" name="__codelineno-43-8" href="#__codelineno-43-8"></a><span class="s">remaining stayer is regress/lp.py (independent implementation,</span>
+<a id="__codelineno-43-9" name="__codelineno-43-9" href="#__codelineno-43-9"></a><span class="s">separate follow-up).</span>
+<a id="__codelineno-43-10" name="__codelineno-43-10" href="#__codelineno-43-10"></a>
+<a id="__codelineno-43-11" name="__codelineno-43-11" href="#__codelineno-43-11"></a><span class="s">Co-Authored-By: Claude Opus 4.7 (1M context) &lt;noreply@anthropic.com&gt;</span>
+<a id="__codelineno-43-12" name="__codelineno-43-12" href="#__codelineno-43-12"></a><span class="s">EOF</span>
+<a id="__codelineno-43-13" name="__codelineno-43-13" href="#__codelineno-43-13"></a><span class="k">)</span><span class="s2">"</span>
+</code></pre></div>
+<hr />
+<h2 id="task-10-version-bump-to-0440">Task 10: Version bump to 0.44.0</h2>
+<p><strong>Files:</strong> <code>puremacro/__init__.py</code>, <code>pyproject.toml</code>, <code>tests/test_import.py</code>, <code>tests/fixtures/public_api_snapshot.json</code>.</p>
+<ul>
+<li>[ ] <strong>Step 1: Bump version literals</strong></li>
+</ul>
+<p>Edit <code>puremacro/__init__.py</code>: <code>__version__ = "0.43.0"</code> → <code>"0.44.0"</code>.</p>
+<p>Edit <code>pyproject.toml</code>: <code>version = "0.43.0"</code> → <code>"0.44.0"</code>.</p>
+<p>Edit <code>tests/test_import.py</code>: any assertion of <code>"0.43.0"</code> → <code>"0.44.0"</code>.</p>
+<ul>
+<li>[ ] <strong>Step 2: Regenerate public-API snapshot</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples/puremacro"</span>
+<a id="__codelineno-44-2" name="__codelineno-44-2" href="#__codelineno-44-2"></a>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span>
+<a id="__codelineno-44-3" name="__codelineno-44-3" href="#__codelineno-44-3"></a><span class="s2">import importlib, dataclasses, json, sys</span>
+<a id="__codelineno-44-4" name="__codelineno-44-4" href="#__codelineno-44-4"></a><span class="s2"># Use the same _collect_current_api helper as tests/test_public_api.py</span>
+<a id="__codelineno-44-5" name="__codelineno-44-5" href="#__codelineno-44-5"></a><span class="s2">sys.path.insert(0, 'tests')</span>
+<a id="__codelineno-44-6" name="__codelineno-44-6" href="#__codelineno-44-6"></a><span class="s2">from test_public_api import _collect_current_api</span>
+<a id="__codelineno-44-7" name="__codelineno-44-7" href="#__codelineno-44-7"></a><span class="s2">snapshot = _collect_current_api()</span>
+<a id="__codelineno-44-8" name="__codelineno-44-8" href="#__codelineno-44-8"></a><span class="s2">with open('tests/fixtures/public_api_snapshot.json', 'w') as f:</span>
+<a id="__codelineno-44-9" name="__codelineno-44-9" href="#__codelineno-44-9"></a><span class="s2">    json.dump(snapshot, f, indent=2, sort_keys=True)</span>
+<a id="__codelineno-44-10" name="__codelineno-44-10" href="#__codelineno-44-10"></a><span class="s2">print(f'snapshot keys: {len(snapshot)}')</span>
+<a id="__codelineno-44-11" name="__codelineno-44-11" href="#__codelineno-44-11"></a><span class="s2">"</span>
+</code></pre></div>
+<p>If the test file's helper has a different name or signature, inspect first:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a>grep<span class="w"> </span>-nE<span class="w"> </span><span class="s2">"def _collect_current_api\|def.*snapshot"</span><span class="w"> </span>tests/test_public_api.py<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-5
+</code></pre></div>
+<p>Adapt the regeneration script to match. The snapshot should LOSE all entries under <code>puremacro.lp.lp_*</code> and <code>puremacro.inference.legacy</code>.</p>
+<ul>
+<li>[ ] <strong>Step 3: Run import + public API tests</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/test_import.py<span class="w"> </span>tests/test_public_api.py<span class="w"> </span>-v
+</code></pre></div>
+<p>Expected: both pass.</p>
+<ul>
+<li>[ ] <strong>Step 4: Commit</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a>git<span class="w"> </span>add<span class="w"> </span>puremacro/__init__.py<span class="w"> </span>pyproject.toml<span class="w"> </span>tests/test_import.py<span class="w"> </span>tests/fixtures/public_api_snapshot.json
+<a id="__codelineno-47-2" name="__codelineno-47-2" href="#__codelineno-47-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+<a id="__codelineno-47-3" name="__codelineno-47-3" href="#__codelineno-47-3"></a><span class="s">chore(release): bump version to 0.44.0</span>
+<a id="__codelineno-47-4" name="__codelineno-47-4" href="#__codelineno-47-4"></a>
+<a id="__codelineno-47-5" name="__codelineno-47-5" href="#__codelineno-47-5"></a><span class="s">Co-Authored-By: Claude Opus 4.7 (1M context) &lt;noreply@anthropic.com&gt;</span>
+<a id="__codelineno-47-6" name="__codelineno-47-6" href="#__codelineno-47-6"></a><span class="s">EOF</span>
+<a id="__codelineno-47-7" name="__codelineno-47-7" href="#__codelineno-47-7"></a><span class="k">)</span><span class="s2">"</span>
+</code></pre></div>
+<hr />
+<h2 id="task-11-final-verification-gate">Task 11: Final verification gate</h2>
+<ul>
+<li>[ ] <strong>Step 1: Full pytest run (12+ min)</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples/puremacro"</span>
+<a id="__codelineno-48-2" name="__codelineno-48-2" href="#__codelineno-48-2"></a>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>-q<span class="w"> </span>--tb<span class="o">=</span>line<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-15
+</code></pre></div>
+<p>Expected: ~1277 - any small count from removed lp/lp_* test coverage. 10 pre-existing failed unchanged.</p>
+<ul>
+<li>[ ] <strong>Step 2: Strongest gate — no legacy paths anywhere</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples"</span>
+<a id="__codelineno-49-2" name="__codelineno-49-2" href="#__codelineno-49-2"></a>git<span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s2">"puremacro\.lp\.lp_|puremacro\.inference\.legacy"</span><span class="w"> </span>--<span class="w"> </span><span class="s1">':!docs/'</span><span class="w"> </span><span class="s1">':!CHANGELOG.md'</span><span class="w"> </span><span class="s1">':!*.bak'</span>
+</code></pre></div>
+<p>Expected: ZERO hits.</p>
+<ul>
+<li>[ ] <strong>Step 3: Strict DeprecationWarning gate</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples/puremacro"</span>
+<a id="__codelineno-50-2" name="__codelineno-50-2" href="#__codelineno-50-2"></a>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w"> </span>-q<span class="w"> </span>-W<span class="w"> </span><span class="s2">"error::DeprecationWarning"</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-50-3" name="__codelineno-50-3" href="#__codelineno-50-3"></a><span class="w">  </span>--ignore<span class="w"> </span>tests/test_pyodide_compat.py<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-50-4" name="__codelineno-50-4" href="#__codelineno-50-4"></a><span class="w">  </span>--ignore<span class="w"> </span>tests/test_public_api.py<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-10
+</code></pre></div>
+<p>Expected: only the same pre-existing 21 failures (skewt + narrative utcnow).</p>
+<ul>
+<li>[ ] <strong>Step 4: Pyodide compat</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/test_pyodide_compat.py<span class="w"> </span>-v
+</code></pre></div>
+<p>Expected: 2 passed.</p>
+<ul>
+<li>[ ] <strong>Step 5: Git log + branch state</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples"</span>
+<a id="__codelineno-52-2" name="__codelineno-52-2" href="#__codelineno-52-2"></a>git<span class="w"> </span>log<span class="w"> </span>--oneline<span class="w"> </span>b03ef6a^..HEAD<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-25
+<a id="__codelineno-52-3" name="__codelineno-52-3" href="#__codelineno-52-3"></a>git<span class="w"> </span>status<span class="w"> </span>--short<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-5
+</code></pre></div>
+<p>Expected: 0.44.0 commit chain present from <code>b03ef6a</code> (spec) through the version-bump commit. No 0.44.0 source files left staged or unstaged.</p>
+<hr />
+<h2 id="self-review">Self-Review</h2>
+<ul>
+<li>
+<p>[ ] <strong>Spec coverage:</strong> Phase A → Tasks 1-3 (body-rewrites). Phase B → Tasks 4-5 (data build + re-execution). Phase C → Tasks 6-8 (deletions + garch_utils decision). Phase D → Tasks 9-11 (docs + version + final gate).</p>
+</li>
+<li>
+<p>[ ] <strong>Placeholder scan:</strong> No "TBD", no "implement later". The <code>_collect_current_api</code> regeneration script in Task 10 assumes a specific helper-function name; if it's different, the step instructs adapting — explicit fallback, not a placeholder.</p>
+</li>
+<li>
+<p>[ ] <strong>Type consistency:</strong> Canonical lp DataFrame columns assumed are <code>h</code>, <code>beta</code>, <code>se</code>, <code>lo</code>, <code>hi</code>. Verify this matches <code>lp_hac</code> / <code>lp_iv</code> / <code>panel_lp</code> / <code>lp_smooth</code> / <code>lp_state_dep</code> by reading each canonical function's return shape during Task 1. If a function uses different column names (e.g. <code>ci_lo</code>/<code>ci_hi</code>), adapt the rewrites accordingly.</p>
+</li>
+<li>
+<p>[ ] <strong>Memory pin compliance:</strong> Task 1/2/3 explicitly cite <code>feedback_notebook_builders_paired</code> (edit both files in same commit, do NOT run the builder). Task 4 and 5 explicitly cite <code>feedback_long_nbconvert_no_subagent</code> (controller-only background). Task 8's sed-rename has a macOS-specific <code>-i.bak</code> pattern that's portable.</p>
+</li>
+<li>
+<p>[ ] <strong>Signature verification:</strong> Every canonical lp function signature in this plan was verified against live code on 2026-05-18 (see plan's pre-execution state section). Every legacy function signature was verified against legacy lp/lp_*.py at the same time.</p>
+</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

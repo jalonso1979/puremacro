@@ -1,0 +1,10 @@
+{
+  "district": "Dallas",
+  "source_urls": [
+    "https://www.dallasfed.org/fed/counties",
+    "https://www.federalreserve.gov/aboutthefed/federal-reserve-system-dallas.htm"
+  ],
+  "notes": "From the Dallas Fed's 'Counties in the Eleventh District' page (dallasfed.org/fed/counties): 26 northern-LA parishes + 18 southern-NM counties, matching federalreserve.gov's stated counts. Source abbreviations 'E. Carroll'/'W. Carroll' expanded to Census 'East Carroll'/'West Carroll'; 'Dona Ana' appears untilded on the source and matches Census 'Dona Ana' after accent-stripping. Complements: LA remainder (38 southern parishes) -> Atlanta; NM remainder (15 northern counties) -> Kansas City.",
+  "LA": ["Bienville", "Bossier", "Caddo", "Caldwell", "Catahoula", "Claiborne", "Concordia", "De Soto", "East Carroll", "Franklin", "Grant", "Jackson", "La Salle", "Lincoln", "Madison", "Morehouse", "Natchitoches", "Ouachita", "Red River", "Richland", "Sabine", "Tensas", "Union", "Webster", "West Carroll", "Winn"],
+  "NM": ["Catron", "Chaves", "Curry", "De Baca", "Dona Ana", "Eddy", "Grant", "Guadalupe", "Hidalgo", "Lea", "Lincoln", "Luna", "Otero", "Quay", "Roosevelt", "Sierra", "Socorro", "Torrance"]
+}

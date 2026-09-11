@@ -1,0 +1,4338 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Production-grade Macroeconometric and Heterogeneous-Agent Structural Modeling Engine in Pure Python">
+      
+      
+        <meta name="author" content="puremacro contributors">
+      
+      
+        <link rel="canonical" href="https://jalonso1979.github.io/puremacro/docs/superpowers/plans/2026-06-01-puremacro-notebook-pedagogy/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Notebook Pedagogy: Enriched Showcases + Build-Your-Own-Index Lab — Implementation Plan - puremacro</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#notebook-pedagogy-enriched-showcases-build-your-own-index-lab-implementation-plan" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="puremacro" class="md-header__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            puremacro
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Notebook Pedagogy: Enriched Showcases + Build-Your-Own-Index Lab — Implementation Plan
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../.." class="md-tabs__link">
+          
+  
+  
+  English Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../es/" class="md-tabs__link">
+          
+  
+  
+  Documentación en Español
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="puremacro" class="md-nav__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    puremacro
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    English Documentation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    English Documentation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Showcase Notebooks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Correctness advisories
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quarterly National Accounts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-time data (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Long national accounts panel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global Macro Data Ecosystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_6" id="__nav_1_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometric Engines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Econometric Engines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR & FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Narrative Sign Restrictions SVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR with Stochastic Volatility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Smooth Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modern Difference-in-Differences
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Honest DiD Sensitivity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Econometrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global VAR (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Estimation & Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GDP Nowcasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Penalized Forecasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_7" id="__nav_1_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publication & Reporting
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publication & Reporting
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manuscript Tables & Exports
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_8" id="__nav_1_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structural Models
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Structural Models
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sequence-Space HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Non-Linear HANK Transitions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gertler-Karadi (2011) DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Climate Macro (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Sketchpad & Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Higher-Order & Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Parity & Surface Area
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradients, NUTS & HANK Bridge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Frontier (Policy, DSGE-VAR & News)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Non-linear Particle Filtering & Regime Switching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running Anywhere (iPad / browser)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance & Benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_11" id="__nav_1_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replication gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation & goldens
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Connector health
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credentials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cache database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signal contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lexicon review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path to 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentación en Español
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Documentación en Español
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio rápido
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuadernos de demostración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avisos de corrección
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuentas nacionales trimestrales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos en tiempo real (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panel largo de cuentas nacionales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ecosistema de datos macro globales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motores econométricos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Motores econométricos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR y FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SVAR con restricciones narrativas de signo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR con volatilidad estocástica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales suavizadas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias en diferencias modernas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sensibilidad en DiD honesto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometría espacial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR global (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estimación y diagnósticos DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nowcasting del PIB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pronóstico penalizado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publicación e informes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publicación e informes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tablas y exportación de manuscritos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_8" id="__nav_2_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos estructurales
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Modelos estructurales
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HANK en el espacio de secuencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transiciones no lineales en HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de Gertler-Karadi (2011)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomía del clima (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuaderno de bocetos DSGE y Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de orden superior y restricciones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Paridad y superficie operativa DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradientes, NUTS y Puente HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontera DSGE (Política, DSGE-VAR y Noticias)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Filtrado de Partículas No Lineal y Cambio de Régimen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ejecución en cualquier entorno (iPad / navegador)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendimiento y pruebas comparativas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_11" id="__nav_2_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de replicación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validación y referencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estado de conectores
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credenciales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos de caché
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato de señales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de ejemplos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Revisión de léxico
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ruta a 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#conventions-verified-apis-read-once-every-task-relies-on-this" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conventions &amp; verified APIs (read once; every task relies on this)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Conventions &amp; verified APIs (read once; every task relies on this)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#build-verify-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build / verify commands
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bilingual-rule-hard-gate-teststest_bilingual_docspytest_notebooks_have_spanish_sibling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bilingual rule (hard gate: tests/test_bilingual_docs.py::test_notebooks_have_spanish_sibling)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fill-in-the-blank-pattern-must-execute-green" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fill-in-the-blank pattern (must execute green)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#commit-hygiene-drive-tree-avoid-sibling-churn-see-memory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Commit hygiene (Drive tree; avoid sibling churn — see memory)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#verified-api-reference-dumped-this-session-write-against-these-not-memory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verified API reference (dumped this session — write against these, not memory)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-enriched-showcase-template-the-7-parts-in-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The enriched-showcase template (the 7 parts, in order)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-0-write-the-enriched-showcase-template-doc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 0: Write the enriched-showcase template doc
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-1-deepen-11_narrative_uncertainty-start-here-seeds-the-lab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 1: Deepen 11_narrative_uncertainty (start here — seeds the lab)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-2-deepen-06_svar_identification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 2: Deepen 06_svar_identification
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-3-deepen-01_wealth_inequality-slowest-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 3: Deepen 01_wealth_inequality (slowest build)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-4-prototype-the-four-nb13-recipes-to-green-lock-the-assert-thresholds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 4: Prototype the four NB13 recipes to green (lock the assert thresholds)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-5-write-the-new-13_build_your_own_index-lab-en-es" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 5: Write the new 13_build_your_own_index lab (EN + ES)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-6-bump-the-gates-update-the-readme-full-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 6: Bump the gates, update the README, full verification
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#self-review-completed-by-plan-author" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Self-review (completed by plan author)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="notebook-pedagogy-enriched-showcases-build-your-own-index-lab-implementation-plan">Notebook Pedagogy: Enriched Showcases + Build-Your-Own-Index Lab — Implementation Plan</h1>
+<blockquote>
+<p><strong>For agentic workers:</strong> REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (<code>- [ ]</code>) syntax for tracking.</p>
+</blockquote>
+<p><strong>Goal:</strong> Deepen three showcase notebooks (<code>01_wealth_inequality</code>, <code>06_svar_identification</code>, <code>11_narrative_uncertainty</code>) with equations + intuition + fill-in exercises, and add a new <code>13_build_your_own_index</code> lab that builds four uncertainty indices from one toolkit — all bilingual, all executing green.</p>
+<p><strong>Architecture:</strong> Notebooks are jupytext <em>percent</em> <code>.py</code> sources (source of truth) compiled to executed <code>.ipynb</code> by <code>tools/build_notebooks.py</code>. We edit only the <code>.py</code>, rebuild, and the build executes inline <code>assert</code>s as the test. Every English <code>.py</code> has a code-byte-identical Spanish <code>_es.py</code> twin (prose translated). No library code changes.</p>
+<p><strong>Tech Stack:</strong> Python 3.11+, jupytext/nbconvert, pure-numpy puremacro (<code>vfi</code>, <code>var.identify</code>, <code>narrative.indices</code>, <code>factor</code>, <code>garch</code>, <code>gar</code>, <code>sigma</code>), matplotlib, pytest.</p>
+<hr />
+<h2 id="conventions-verified-apis-read-once-every-task-relies-on-this">Conventions &amp; verified APIs (read once; every task relies on this)</h2>
+<h3 id="build-verify-commands">Build / verify commands</h3>
+<ul>
+<li>Build + execute one notebook (writes the committed <code>.ipynb</code> WITH outputs):
+  <code>python tools/build_notebooks.py &lt;stem&gt;</code> (e.g. <code>python tools/build_notebooks.py 11_narrative_uncertainty</code>). Exit code 0 ⇒ it executed top-to-bottom and <strong>all inline <code>assert</code>s passed</strong>. A failed assert ⇒ non-zero exit.</li>
+<li>Edit the <strong><code>.py</code> only</strong>. Never hand-edit the <code>.ipynb</code> (the builder regenerates it and would clobber hand edits). Patch <code>.py</code> + rebuild together.</li>
+<li>Run from the package root: <code>cd puremacro</code> (the dir containing <code>notebooks/</code>, <code>tools/</code>, <code>pyproject.toml</code>).</li>
+</ul>
+<h3 id="bilingual-rule-hard-gate-teststest_bilingual_docspytest_notebooks_have_spanish_sibling">Bilingual rule (hard gate: <code>tests/test_bilingual_docs.py::test_notebooks_have_spanish_sibling</code>)</h3>
+<ul>
+<li>Every <code>notebooks/&lt;stem&gt;.py</code> needs <code>notebooks/&lt;stem&gt;_es.py</code>. When editing an EN source, apply the <strong>identical code</strong> edits to its <code>_es</code> twin and translate only the prose (markdown + comments) to <strong>native academic Spanish</strong>.</li>
+<li>Register exemplar to match: <code>notebooks/11_narrative_uncertainty_es.py</code> (already exists). Read it before translating.</li>
+<li>Do not translate code identifiers, API names, or LaTeX math.</li>
+</ul>
+<h3 id="fill-in-the-blank-pattern-must-execute-green">Fill-in-the-blank pattern (must execute green)</h3>
+<p>A <em>Your turn</em> cell ships a <strong>working default</strong> the student overwrites. Mark the line with <code># ← change this …</code>, and follow with an <code>assert</code> that holds for the default. The committed notebook runs; the "blank" is conceptual.</p>
+<h3 id="commit-hygiene-drive-tree-avoid-sibling-churn-see-memory">Commit hygiene (Drive tree; avoid sibling churn — see memory)</h3>
+<p>Building one notebook can leave <em>other</em> notebooks' <code>.ipynb</code> with id/timestamp churn. Before each commit, <code>git add</code> only the specific paths you changed (the <code>.py</code> + its <code>.ipynb</code>, and the <code>_es</code> pair). If a sibling <code>.ipynb</code> shows spurious diffs, <code>git restore</code> it first.</p>
+<h3 id="verified-api-reference-dumped-this-session-write-against-these-not-memory">Verified API reference (dumped this session — write against these, not memory)</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a># puremacro.vfi  (notebooks/01)
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>aiyagari_steady_state(*, alpha=0.36, delta=0.08, beta=0.96, gamma=1.0,
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>                      rho=0.9, sigma=0.2, n_z=5, n_a=150, a_max=80.0,
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>                      r_bracket=None, backend="numpy", solve_options=None)
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>   -&gt; dict: 'equilibrium','r','w','K','L','Y','wealth_gini'
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>huggett_steady_state(n_z=7, n_a=150, ...) -&gt; dict: 'equilibrium','r','mean_assets','frac_borrowing'
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>lorenz_and_gini(mu, wealth) -&gt; (pop_share, value_share, gini)
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>solve_permanent_types(build_type_fn, weights) -&gt; obj with .mixture_distribution()
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>VFIProblem(a_grid, z_grid, P_z, return_fn, beta, options)
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a># puremacro.var.identify  (notebooks/06)
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>cholesky_svar(Y, p, horizon, n_boot, ci, seed) -&gt; .irf_point/.irf_lower/.irf_upper (H+1,n,n), .summary()
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>sign_restriction_svar(Y, p, horizon, restrictions={h:[+1/-1,...]}, n_draws, ci, seed)
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>   -&gt; .irf_median/.irf_lower/.irf_upper, .n_accepted, .summary()
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a># irf arrays indexed [horizon, response_var, shock_var]
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a># puremacro.narrative.indices  (notebooks/11 and 13)
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>epu(text_iter, *, country, language="en", lexicon=None, normalize="bbd_100",
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    base_period=None, agg="mean", with_quality=False) -&gt; RiskIndex (has .series)
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>#   records are (date, text, source_url, metadata) 4-tuples
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>#   lexicon override = {"economy": frozenset, "policy": frozenset, "uncertainty": frozenset}
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>mpu(text_iter, *, country, language, normalize) -&gt; RiskIndex
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>LEXICONS["epu"]["en"]["economy"|"policy"|"uncertainty"]; LEXICONS["mpu"]["en"]
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a># puremacro.factor / garch / gar / sigma  (notebooks/13)
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>factor.pca_factors(X, k=1, *, demean=True, standardize=True)
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>   -&gt; dict: 'factors'(T,k),'loadings'(n,k),'eigvals','variance_share','cumulative_share'
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>garch.garch11_fit(returns, mean="zero") -&gt; GARCH11Result(.sigma=pd.Series cond-vol, .loglik, .converged, .persistence)
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>gar.fci(df, *, tightening_columns=None, handle_nan="drop") -&gt; dict: 'index'(T,),'loadings'(n,),'var_explained'
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>sigma.SigmaObject(sigma, R, labels, country="", period="")
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>   -&gt; .var(w), .var_no_cov(w), .cov_premium_var(w), .mean_corr(), .diag_contrib(w)
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a># notebooks/_nbstyle.py
+<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>apply_style(); palette(n)-&gt;list[str]; styles(n)-&gt;list
+</code></pre></div>
+<h3 id="the-enriched-showcase-template-the-7-parts-in-order">The enriched-showcase template (the 7 parts, in order)</h3>
+<ol>
+<li>Motivating question (keep existing opener) · 2. <strong>The method in math</strong> (LaTeX) · 3. <code>**Intuition.**</code> paragraph · 4. Worked code (existing + 1-2 "why" comments) · 5. <strong>Read the output</strong> · 6. <strong>Your turn</strong> (fill-in + assert + 2-3 prompts) · 7. <strong>How comprehensive is this?</strong> (cross-references).</li>
+</ol>
+<hr />
+<h2 id="task-0-write-the-enriched-showcase-template-doc">Task 0: Write the enriched-showcase template doc</h2>
+<p><strong>Files:</strong>
+- Create: <code>notebooks/_TEMPLATE.md</code></p>
+<ul>
+<li>[ ] <strong>Step 1: Create <code>notebooks/_TEMPLATE.md</code></strong> with this content:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="gh"># Enriched showcase template</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>The structure every showcase notebook (<span class="sb">`NN_topic.py`</span>) follows. Edit the <span class="sb">`.py`</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>(jupytext percent), then <span class="sb">`python tools/build_notebooks.py NN_topic`</span>. Keep the
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>Spanish twin <span class="sb">`NN_topic_es.py`</span> code-identical (translate prose only).
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>Cells, in order:
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="k">1.</span> <span class="gs">**Motivating question**</span> — 1-2 sentences. What economic question does this answer?
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="k">2.</span> <span class="gs">**The method in math**</span> — one <span class="sb">`# %% [markdown]`</span> cell, the governing equations in
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>   LaTeX ($...$ / $$...$$), compact (~4-8 lines).
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="k">3.</span> <span class="gs">**Intuition**</span> — a <span class="sb">`**Intuition.**`</span> lead-in paragraph mapping the math to economics.
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>   No emoji; bold used sparingly.
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="k">4.</span> <span class="gs">**Worked code**</span> — the runnable example; 1-2 inline comments per block say <span class="ge">*why*</span>.
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>   Pure-numpy, fixed seed, inline <span class="sb">`assert`</span>s on headline numbers.
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="k">5.</span> <span class="gs">**Read the output**</span> — a <span class="sb">`# %% [markdown]`</span> cell interpreting the printed numbers and
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>   the hero figure explicitly.
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="k">6.</span> <span class="gs">**Your turn**</span> — a fill-in cell: a working default marked <span class="sb">`# ← change this`</span>, a
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>   downstream <span class="sb">`assert`</span> that holds for the default, then 2-3 graded prompts
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>   (basic → stretch). The committed notebook must execute green.
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="k">7.</span> <span class="gs">**How comprehensive is this?**</span> — 2-3 lines pointing to the other puremacro entry
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>   points that use the same machinery.
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>Constraints: numpy-only / Pyodide-safe (no statsmodels/linearmodels/arch/bs4), the
+<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="sb">`_nbstyle`</span> preamble (<span class="sb">`apply_style()`</span>, <span class="sb">`palette(n)`</span>), deterministic seeds.
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Commit</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>git<span class="w"> </span>add<span class="w"> </span>notebooks/_TEMPLATE.md
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"docs(notebooks): enriched-showcase template"</span>
+</code></pre></div>
+<hr />
+<h2 id="task-1-deepen-11_narrative_uncertainty-start-here-seeds-the-lab">Task 1: Deepen <code>11_narrative_uncertainty</code> (start here — seeds the lab)</h2>
+<p><strong>Files:</strong>
+- Modify: <code>notebooks/11_narrative_uncertainty.py</code>
+- Modify: <code>notebooks/11_narrative_uncertainty_es.py</code></p>
+<ul>
+<li>[ ] <strong>Step 1: Insert the "method in math" cell.</strong> In <code>11_narrative_uncertainty.py</code>, after the title/intro markdown cell (the one ending "...recover it with the Baker-Bloom-Davis <strong>EPU</strong> and the monetary-policy <strong>MPU</strong> indices.") and <strong>before</strong> the <code>## Setup — imports and style</code> cell, insert:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># %% [markdown]</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="c1"># ## The index in one equation</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1">#</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># Baker-Bloom-Davis EPU flags a document $d$ as *uncertain* only when it hits all</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># **three** term groups at once:</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1">#</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># $$ \mathrm{flag}(d) = \mathbb{1}\!\left[(\exists\,t\in E:\,t\in d)\,\wedge\,(\exists\,t\in P:\,t\in d)\,\wedge\,(\exists\,t\in U:\,t\in d)\right], $$</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="c1">#</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="c1"># where $E,P,U$ are the **economy**, **policy**, and **uncertainty** lexicons. The raw</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="c1"># index in period $\tau$ is the share of flagged documents,</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="c1"># $\mathrm{EPU}^{\mathrm{raw}}_\tau = \frac{1}{N_\tau}\sum_{d\in\tau}\mathrm{flag}(d)$,</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="c1"># and `normalize="bbd_100"` rescales it to the published units (sample mean 100, sd 50):</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="c1"># $\mathrm{EPU}_\tau = 100 + 50\cdot(\mathrm{EPU}^{\mathrm{raw}}_\tau - \overline{\mathrm{EPU}^{\mathrm{raw}}})/\mathrm{sd}(\mathrm{EPU}^{\mathrm{raw}})$.</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="c1">#</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="c1"># **Intuition.** The *co-occurrence* of all three groups is what makes the index specific.</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="c1"># A piece about "economic growth" (no policy, no uncertainty) or a sports story that</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="c1"># happens to say "uncertain" never fires; only documents simultaneously about the economy,</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="c1"># about policy, and about uncertainty count. MPU drops the co-occurrence requirement and</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="c1"># just counts monetary-policy keywords, then z-scores — looser, but enough when the</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="c1"># vocabulary is already narrow.</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Add the fill-in <em>Your turn</em> cell + comprehensive pointer.</strong> Replace the final markdown cell (<code># **What this shows / Try it** ...</code>, the last cell of the file) with the following three cells:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># %% [markdown]</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1"># ## Your turn — build a *climate*-policy uncertainty index</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="c1">#</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># `epu()` takes a `lexicon=` override of the form</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="c1"># `{"economy": frozenset(...), "policy": frozenset(...), "uncertainty": frozenset(...)}`.</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="c1"># Swap the "economy" group for a **climate** vocabulary and you have a climate-policy</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1"># uncertainty index — with no new library code. Change the three frozensets (and the</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="c1"># injected signal phrases) below to your own domain and re-run.</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="c1"># %%</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="c1"># ← Replace these three groups with your own domain vocabulary.</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="n">my_lexicon</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>    <span class="s2">"economy"</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">"climate"</span><span class="p">,</span> <span class="s2">"emissions"</span><span class="p">,</span> <span class="s2">"carbon"</span><span class="p">,</span> <span class="s2">"warming"</span><span class="p">,</span> <span class="s2">"greenhouse"</span><span class="p">}),</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>    <span class="s2">"policy"</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">"policy"</span><span class="p">,</span> <span class="s2">"regulation"</span><span class="p">,</span> <span class="s2">"treaty"</span><span class="p">,</span> <span class="s2">"tax"</span><span class="p">,</span> <span class="s2">"subsidy"</span><span class="p">,</span> <span class="s2">"mandate"</span><span class="p">}),</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>    <span class="s2">"uncertainty"</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">"uncertain"</span><span class="p">,</span> <span class="s2">"uncertainty"</span><span class="p">,</span> <span class="s2">"unclear"</span><span class="p">,</span> <span class="s2">"ambiguous"</span><span class="p">}),</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="p">}</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="c1"># ← And the phrases injected into the 2020 window (must hit all three groups).</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="n">CLIMATE_HIGH</span> <span class="o">=</span> <span class="p">[</span>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>    <span class="s2">"Climate policy uncertainty is high as the carbon tax treaty remains unclear."</span><span class="p">,</span>
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>    <span class="s2">"Uncertain emissions regulation and ambiguous subsidy mandates rattle planners."</span><span class="p">,</span>
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>    <span class="s2">"Greenhouse policy is uncertain amid an ambiguous warming-target treaty."</span><span class="p">,</span>
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="p">]</span>
+<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a>
+<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="n">clim_records</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="k">for</span> <span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">meta</span><span class="p">)</span> <span class="ow">in</span> <span class="n">records</span><span class="p">:</span>
+<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a>    <span class="n">in_w</span> <span class="o">=</span> <span class="n">HIGH_START</span> <span class="o">&lt;=</span> <span class="n">date</span> <span class="o">&lt;=</span> <span class="n">HIGH_END</span>
+<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a>    <span class="n">add</span> <span class="o">=</span> <span class="n">CLIMATE_HIGH</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">RNG</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">CLIMATE_HIGH</span><span class="p">)))]</span> <span class="k">if</span> <span class="p">(</span><span class="n">in_w</span> <span class="ow">and</span> <span class="n">RNG</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mf">0.70</span><span class="p">)</span> <span class="k">else</span> <span class="s2">""</span>
+<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a>    <span class="n">clim_records</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">date</span><span class="p">,</span> <span class="p">(</span><span class="n">text</span> <span class="o">+</span> <span class="s2">" "</span> <span class="o">+</span> <span class="n">add</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="n">url</span><span class="p">,</span> <span class="n">meta</span><span class="p">))</span>
+<a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a>
+<a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a><span class="n">clim_s</span> <span class="o">=</span> <span class="n">epu</span><span class="p">(</span><span class="n">clim_records</span><span class="p">,</span> <span class="n">country</span><span class="o">=</span><span class="s2">"SYN"</span><span class="p">,</span> <span class="n">language</span><span class="o">=</span><span class="s2">"en"</span><span class="p">,</span>
+<a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a>             <span class="n">lexicon</span><span class="o">=</span><span class="n">my_lexicon</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="s2">"bbd_100"</span><span class="p">)</span><span class="o">.</span><span class="n">series</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+<a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a><span class="n">in_w</span> <span class="o">=</span> <span class="p">(</span><span class="n">clim_s</span><span class="o">.</span><span class="n">index</span> <span class="o">&gt;=</span> <span class="n">HIGH_START</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">clim_s</span><span class="o">.</span><span class="n">index</span> <span class="o">&lt;=</span> <span class="n">HIGH_END</span><span class="p">)</span>
+<a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a><span class="n">clim_gap</span> <span class="o">=</span> <span class="n">clim_s</span><span class="p">[</span><span class="n">in_w</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">-</span> <span class="n">clim_s</span><span class="p">[</span><span class="o">~</span><span class="n">in_w</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"climate-EPU  in-window = </span><span class="si">{</span><span class="n">clim_s</span><span class="p">[</span><span class="n">in_w</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">  "</span>
+<a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a>      <span class="sa">f</span><span class="s2">"out-window = </span><span class="si">{</span><span class="n">clim_s</span><span class="p">[</span><span class="o">~</span><span class="n">in_w</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">  gap = </span><span class="si">{</span><span class="n">clim_gap</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> pts"</span><span class="p">)</span>
+<a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a><span class="k">assert</span> <span class="n">clim_gap</span> <span class="o">&gt;</span> <span class="mi">20</span><span class="p">,</span> <span class="s2">"your climate lexicon should fire in the injected window"</span>
+<a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a>
+<a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a><span class="c1"># %% [markdown]</span>
+<a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a><span class="c1"># **Prompts.** (1) Add a fourth term group by *prepending* a sector word to every phrase and</span>
+<a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a><span class="c1"># extending `my_lexicon` — does precision improve? (2) Set `normalize="zscore"` and compare</span>
+<a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a><span class="c1"># the in/out gap in z-units. (3) Build the same index in another language by translating the</span>
+<a id="__codelineno-4-42" name="__codelineno-4-42" href="#__codelineno-4-42"></a><span class="c1"># three frozensets and passing `language="es"`.</span>
+<a id="__codelineno-4-43" name="__codelineno-4-43" href="#__codelineno-4-43"></a><span class="c1">#</span>
+<a id="__codelineno-4-44" name="__codelineno-4-44" href="#__codelineno-4-44"></a><span class="c1"># **How comprehensive is this?** The same `(date, text, url, metadata)` records feed every</span>
+<a id="__codelineno-4-45" name="__codelineno-4-45" href="#__codelineno-4-45"></a><span class="c1"># narrative index in puremacro: `mpu` (monetary-policy uncertainty), `lui`/`lwui`</span>
+<a id="__codelineno-4-46" name="__codelineno-4-46" href="#__codelineno-4-46"></a><span class="c1"># (labor-market and wage uncertainty), and `tone` (hawkish/dovish central-bank tone). The</span>
+<a id="__codelineno-4-47" name="__codelineno-4-47" href="#__codelineno-4-47"></a><span class="c1"># library ships ~70 free text connectors (central-bank speeches, Beige Book, EUR-Lex,</span>
+<a id="__codelineno-4-48" name="__codelineno-4-48" href="#__codelineno-4-48"></a><span class="c1"># Bluesky, …) and multilingual lexicons. **Notebook 13** generalizes the *idea* of an index</span>
+<a id="__codelineno-4-49" name="__codelineno-4-49" href="#__codelineno-4-49"></a><span class="c1"># beyond text — the same "define a kernel, apply it to data, normalize" recipe builds macro,</span>
+<a id="__codelineno-4-50" name="__codelineno-4-50" href="#__codelineno-4-50"></a><span class="c1"># financial, and cross-sectional uncertainty indices.</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 3: Build EN and verify it executes + asserts pass</strong></li>
+</ul>
+<p>Run: <code>python tools/build_notebooks.py 11_narrative_uncertainty</code>
+Expected: exit code 0, prints the climate-EPU gap line, no assertion error.</p>
+<ul>
+<li>
+<p>[ ] <strong>Step 4: Mirror to the Spanish twin.</strong> Open <code>notebooks/11_narrative_uncertainty_es.py</code>. Apply the <strong>same two structural edits</strong> (insert the math cell; replace the final cell with the three new cells). Keep all <strong>code byte-identical</strong>; translate every markdown line and comment to academic Spanish, matching the register already used in that file. (E.g. "## The index in one equation" → "## El índice en una ecuación"; "Your turn" → "Tu turno"; "How comprehensive is this?" → "¿Qué tan completa es la biblioteca?")</p>
+</li>
+<li>
+<p>[ ] <strong>Step 5: Build ES and verify</strong></p>
+</li>
+</ul>
+<p>Run: <code>python tools/build_notebooks.py 11_narrative_uncertainty_es</code>
+Expected: exit code 0, no assertion error.</p>
+<ul>
+<li>[ ] <strong>Step 6: Commit</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>git<span class="w"> </span>add<span class="w"> </span>notebooks/11_narrative_uncertainty.py<span class="w"> </span>notebooks/11_narrative_uncertainty.ipynb<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">        </span>notebooks/11_narrative_uncertainty_es.py<span class="w"> </span>notebooks/11_narrative_uncertainty_es.ipynb
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"docs(nb11): equations, intuition, climate fill-in (EN+ES)"</span>
+</code></pre></div>
+<hr />
+<h2 id="task-2-deepen-06_svar_identification">Task 2: Deepen <code>06_svar_identification</code></h2>
+<p><strong>Files:</strong>
+- Modify: <code>notebooks/06_svar_identification.py</code>
+- Modify: <code>notebooks/06_svar_identification_es.py</code></p>
+<ul>
+<li>[ ] <strong>Step 1: Insert the "method in math" cell.</strong> In <code>06_svar_identification.py</code>, after the title/intro cell (ending "...Everything runs in the browser on synthetic data.") and before the imports <code># %%</code> cell, insert:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># %% [markdown]</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="c1"># ## From reduced form to structure</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="c1">#</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># A reduced-form VAR($p$) projects each variable on the recent past of all variables:</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="c1"># $$ y_t = A_1 y_{t-1} + \cdots + A_p y_{t-p} + u_t, \qquad \mathbb{E}[u_t u_t'] = \Sigma_u. $$</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="c1"># The residuals $u_t$ are *forecast errors*, not economic shocks — they are correlated across</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="c1"># equations ($\Sigma_u$ is not diagonal). Structural shocks $\varepsilon_t$ are the</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="c1"># mutually-uncorrelated economic disturbances, related to the residuals by an impact matrix $B$:</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="c1"># $$ u_t = B\,\varepsilon_t,\qquad \mathbb{E}[\varepsilon_t\varepsilon_t']=I \;\Rightarrow\; \Sigma_u = BB'. $$</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="c1">#</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="c1"># **The identification problem.** $\Sigma_u$ is symmetric, so it pins down only $n(n+1)/2$</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="c1"># numbers, but $B$ has $n^2$ free elements. We are short $n(n-1)/2$ restrictions — for $n=3$,</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="c1"># three of them. *How* you supply those restrictions is the identification scheme:</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="c1">#</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="c1"># - **Cholesky** sets $B=\operatorname{chol}(\Sigma_u)$, the unique lower-triangular factor.</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="c1">#   Its $n(n-1)/2$ zeros above the diagonal *are* the restrictions: a recursive ordering in</span>
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="c1">#   which variable 1 reacts to no shock on impact, variable 2 only to shock 1, and so on.</span>
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="c1"># - **Sign restrictions** use that for *any* orthogonal $Q$ ($QQ'=I$), $\tilde B = BQ$ also</span>
+<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="c1">#   satisfies $\Sigma_u = \tilde B\tilde B'$. Instead of zeros we keep every rotation whose</span>
+<a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a><span class="c1">#   impact responses match a sign prior. Many $B$'s qualify, so the shock is</span>
+<a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a><span class="c1">#   **set-identified** — we report the median and a band across admissible rotations.</span>
+<a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a><span class="c1">#</span>
+<a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a><span class="c1"># **Intuition.** A recursive ordering is an *economic* assumption about what can move within</span>
+<a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a><span class="c1"># the period; reorder the variables and the "shock" changes. Sign restrictions assume less,</span>
+<a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a><span class="c1"># so they identify a *set* of responses — which is why their bands are wider.</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Add the fill-in <em>Your turn</em> + comprehensive pointer.</strong> Replace the final markdown cell (<code># **What this shows about</code>puremacro.var.identify<code>:** ...</code>) with these two cells:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># %% [markdown]</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="c1"># ## Your turn — the ordering is an assumption</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="c1">#</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># A Cholesky SVAR's recursive shock depends on the variable order: the contemporaneous</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="c1"># response of an *earlier* variable to a *later* variable's shock is zero by construction.</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="c1"># Re-order the columns of `Y` and watch a previously-zero impact response open up. Change</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="c1"># `order` below.</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="c1"># %%</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="c1"># ← Change this ordering (a permutation of 0=output, 1=prices, 2=rate).</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="n">order</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>                      <span class="c1"># rate FIRST → output/prices may now react on impact</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="n">Y_re</span> <span class="o">=</span> <span class="n">Y</span><span class="p">[:,</span> <span class="n">order</span><span class="p">]</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="n">chol_re</span> <span class="o">=</span> <span class="n">cholesky_svar</span><span class="p">(</span><span class="n">Y_re</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="n">H</span><span class="p">,</span> <span class="n">n_boot</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">ci</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="n">pos</span> <span class="o">=</span> <span class="p">{</span><span class="n">v</span><span class="p">:</span> <span class="n">order</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)}</span>            <span class="c1"># new position of each original var</span>
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="c1"># Output's contemporaneous response to the rate shock:</span>
+<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="n">out_to_rate</span> <span class="o">=</span> <span class="n">chol_re</span><span class="o">.</span><span class="n">irf_point</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">pos</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">pos</span><span class="p">[</span><span class="n">RATE</span><span class="p">]]</span>
+<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"order=</span><span class="si">{</span><span class="n">order</span><span class="si">}</span><span class="s2">: output's impact response to the rate shock = </span><span class="si">{</span><span class="n">out_to_rate</span><span class="si">:</span><span class="s2">+.3f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="c1"># With the rate ordered before output, this is no longer forced to zero (it was, originally).</span>
+<a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a><span class="k">assert</span> <span class="nb">abs</span><span class="p">(</span><span class="n">out_to_rate</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1e-8</span>
+<a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a>
+<a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a><span class="c1"># %% [markdown]</span>
+<a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a><span class="c1"># **Prompts.** (1) Flip a sign in `restrictions` above (e.g. make the rate negative) and</span>
+<a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a><span class="c1"># re-run the sign-restriction cell — the prior becomes unsatisfiable and you get an</span>
+<a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a><span class="c1"># informative `RuntimeError`. (2) Put the rate *last* (`order=[0,1,2]`) and confirm</span>
+<a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a><span class="c1"># `out_to_rate` returns to ≈0 (the original recursive zero). (3) Widen the bootstrap</span>
+<a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a><span class="c1"># (`n_boot=800`) and see how little the point IRF moves.</span>
+<a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a><span class="c1">#</span>
+<a id="__codelineno-7-28" name="__codelineno-7-28" href="#__codelineno-7-28"></a><span class="c1"># **How comprehensive is this?** `puremacro.var` / `puremacro.svar` go well beyond these two</span>
+<a id="__codelineno-7-29" name="__codelineno-7-29" href="#__codelineno-7-29"></a><span class="c1"># schemes: Blanchard-Quah long-run restrictions, proxy-SVAR / external-instrument</span>
+<a id="__codelineno-7-30" name="__codelineno-7-30" href="#__codelineno-7-30"></a><span class="c1"># identification (e.g. Mertens-Ravn narrative tax shocks), forecast-error variance</span>
+<a id="__codelineno-7-31" name="__codelineno-7-31" href="#__codelineno-7-31"></a><span class="c1"># decompositions, and historical decompositions. The `examples/` gallery (`bloom2009`,</span>
+<a id="__codelineno-7-32" name="__codelineno-7-32" href="#__codelineno-7-32"></a><span class="c1"># `sign_restrictions_uhlig`, `svariv_mertens_ravn`, `gk_robust_signs`) runs each end-to-end.</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 3: Build EN and verify</strong></li>
+</ul>
+<p>Run: <code>python tools/build_notebooks.py 06_svar_identification</code>
+Expected: exit code 0, prints the reordered output-to-rate impact, no assertion error.</p>
+<ul>
+<li>
+<p>[ ] <strong>Step 4: Mirror to the Spanish twin.</strong> Open <code>notebooks/06_svar_identification_es.py</code>; apply the same two edits, code byte-identical, prose in academic Spanish (e.g. "## From reduced form to structure" → "## De la forma reducida a la estructura").</p>
+</li>
+<li>
+<p>[ ] <strong>Step 5: Build ES and verify</strong></p>
+</li>
+</ul>
+<p>Run: <code>python tools/build_notebooks.py 06_svar_identification_es</code>
+Expected: exit code 0, no assertion error.</p>
+<ul>
+<li>[ ] <strong>Step 6: Commit</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>git<span class="w"> </span>add<span class="w"> </span>notebooks/06_svar_identification.py<span class="w"> </span>notebooks/06_svar_identification.ipynb<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">        </span>notebooks/06_svar_identification_es.py<span class="w"> </span>notebooks/06_svar_identification_es.ipynb
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"docs(nb06): identification math, ordering fill-in (EN+ES)"</span>
+</code></pre></div>
+<hr />
+<h2 id="task-3-deepen-01_wealth_inequality-slowest-build">Task 3: Deepen <code>01_wealth_inequality</code> (slowest build)</h2>
+<p><strong>Files:</strong>
+- Modify: <code>notebooks/01_wealth_inequality.py</code>
+- Modify: <code>notebooks/01_wealth_inequality_es.py</code></p>
+<ul>
+<li>[ ] <strong>Step 1: Insert the "model in math" cell.</strong> In <code>01_wealth_inequality.py</code>, after the title/intro cell (ending "...All with <code>puremacro.vfi</code>.") and before the imports <code># %%</code> cell, insert:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># %% [markdown]</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="c1"># ## The model in three equations</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="c1">#</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># **Households.** A continuum of households face idiosyncratic labor-productivity risk $z$</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="c1"># (an AR(1), discretized by Tauchen) and cannot borrow. They solve</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="c1"># $$ V(a,z) = \max_{a'\ge 0}\; u(c) + \beta\,\mathbb{E}\!\left[V(a',z')\mid z\right]</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="c1"># \quad\text{s.t.}\quad c = w\,e^{z} + (1+r)\,a - a', $$</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="c1"># with $u(c)=\log c$ here ($\gamma=1$). The constraint $a'\ge 0$ is the engine of the model.</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="c1">#</span>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="c1"># **Firms.** A representative Cobb-Douglas firm sets factor prices from aggregates:</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="c1"># $$ r = \alpha\,(K/L)^{\alpha-1} - \delta, \qquad w = (1-\alpha)\,(K/L)^{\alpha}. $$</span>
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="c1">#</span>
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="c1"># **Equilibrium.** Let $\mu$ be the stationary distribution induced by the saving policy.</span>
+<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a><span class="c1"># The interest rate clears the capital market, $K = \int a\, d\mu(a,z)$. In **Huggett** the</span>
+<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a><span class="c1"># asset is a bond in zero net supply, so clearing is $\int a\,d\mu = 0$ and the equilibrium</span>
+<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a><span class="c1"># rate sits strictly below $1/\beta-1$.</span>
+<a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a><span class="c1">#</span>
+<a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a><span class="c1"># **Intuition.** With no borrowing and uninsurable income risk, households self-insure by</span>
+<a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a><span class="c1"># holding a precautionary buffer of assets. That buffer is why a non-degenerate wealth</span>
+<a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a><span class="c1"># distribution emerges even though everyone is *ex-ante* identical — and why the clearing</span>
+<a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a><span class="c1"># rate is pushed below the complete-markets benchmark $1/\beta-1$: the extra desire to save</span>
+<a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a><span class="c1"># bids the return down. Permanent differences in patience $\beta$ then stretch the</span>
+<a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a><span class="c1"># distribution further — patient households climb the asset grid, impatient ones pile near</span>
+<a id="__codelineno-9-24" name="__codelineno-9-24" href="#__codelineno-9-24"></a><span class="c1"># the constraint.</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Insert a "Read the output" cell</strong> immediately after the Aiyagari solve cell (the one printing <code>Aiyagari:  r* = ...</code> and asserting the Gini), before the <code>## 2. Permanent β-heterogeneity</code> markdown:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># %% [markdown]</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="c1"># **Read the output.** The complete-markets benchmark is $1/\beta-1 = 1/0.96-1 \approx 0.042$.</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="c1"># The equilibrium $r^\*$ printed above sits *below* it: that gap is the precautionary wedge —</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c1"># households' self-insurance demand for assets bids the return down. The wealth Gini near</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="c1"># $0.6$ is produced entirely by idiosyncratic risk plus the borrowing constraint, with no</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="c1"># ex-ante heterogeneity yet.</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 3: Replace the final <em>Try it</em> line with a fill-in <em>Your turn</em> + comprehensive pointer.</strong> Replace the last markdown cell (<code># **What this shows about</code>puremacro.vfi<code>:** ... watch the Gini move.</code>) with these three cells:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># %% [markdown]</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="c1"># ## Your turn — how much does patience heterogeneity matter?</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="c1">#</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="c1"># The mixture above used `betas = [0.96, 0.93]`. Widen or narrow the spread — *keeping prices</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="c1"># fixed*, so this is cheap (no GE re-solve) — and watch the Gini respond. Change `betas_you`.</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="c1"># %%</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="c1"># ← Change this β spread (patient first, impatient second). Keep both &lt; 1.</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="n">betas_you</span><span class="p">,</span> <span class="n">weights_you</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.97</span><span class="p">,</span> <span class="mf">0.91</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">]</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="k">def</span><span class="w"> </span><span class="nf">build_type_you</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>    <span class="n">b</span> <span class="o">=</span> <span class="n">betas_you</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">rf</span><span class="p">(</span><span class="n">ap</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">xp</span><span class="o">=</span><span class="n">np</span><span class="p">):</span>
+<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>        <span class="n">c</span> <span class="o">=</span> <span class="n">w_star</span> <span class="o">*</span> <span class="n">xp</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">z</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">r_star</span><span class="p">)</span> <span class="o">*</span> <span class="n">a</span> <span class="o">-</span> <span class="n">ap</span>
+<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>        <span class="k">return</span> <span class="n">xp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">c</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">xp</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">xp</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="mf">1e-12</span><span class="p">)),</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span>
+<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>    <span class="k">return</span> <span class="n">VFIProblem</span><span class="p">(</span><span class="n">a_grid</span><span class="o">=</span><span class="n">a_grid</span><span class="p">,</span> <span class="n">z_grid</span><span class="o">=</span><span class="n">z_grid</span><span class="p">,</span> <span class="n">P_z</span><span class="o">=</span><span class="n">P_z</span><span class="p">,</span> <span class="n">return_fn</span><span class="o">=</span><span class="n">rf</span><span class="p">,</span>
+<a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a>                      <span class="n">beta</span><span class="o">=</span><span class="n">b</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">tol</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">n_howard</span><span class="o">=</span><span class="mi">40</span><span class="p">))</span>
+<a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a>
+<a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="n">pt_you</span> <span class="o">=</span> <span class="n">solve_permanent_types</span><span class="p">(</span><span class="n">build_type_you</span><span class="p">,</span> <span class="n">weights_you</span><span class="p">)</span>
+<a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a><span class="n">mu_you</span> <span class="o">=</span> <span class="n">pt_you</span><span class="o">.</span><span class="n">mixture_distribution</span><span class="p">()</span>
+<a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a><span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">gini_you</span> <span class="o">=</span> <span class="n">lorenz_and_gini</span><span class="p">(</span><span class="n">mu_you</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">a_grid</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">mu_you</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+<a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"β spread </span><span class="si">{</span><span class="n">betas_you</span><span class="si">}</span><span class="s2">: mixture Gini = </span><span class="si">{</span><span class="n">gini_you</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">  "</span>
+<a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a>      <span class="sa">f</span><span class="s2">"(baseline [0.96, 0.93] → </span><span class="si">{</span><span class="n">gini_mix</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">; homogeneous → </span><span class="si">{</span><span class="n">gini_ai</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
+<a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a><span class="k">assert</span> <span class="n">gini_you</span> <span class="o">&gt;</span> <span class="n">gini_ai</span>      <span class="c1"># any patience heterogeneity raises inequality vs the homogeneous economy</span>
+<a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a>
+<a id="__codelineno-11-26" name="__codelineno-11-26" href="#__codelineno-11-26"></a><span class="c1"># %% [markdown]</span>
+<a id="__codelineno-11-27" name="__codelineno-11-27" href="#__codelineno-11-27"></a><span class="c1"># **Prompts.** (1) Shrink the spread to `[0.955, 0.945]` — does the Gini fall toward the</span>
+<a id="__codelineno-11-28" name="__codelineno-11-28" href="#__codelineno-11-28"></a><span class="c1"># homogeneous value? (2) Make the weights asymmetric (`[0.8, 0.2]`). (3) *Stretch* (slow,</span>
+<a id="__codelineno-11-29" name="__codelineno-11-29" href="#__codelineno-11-29"></a><span class="c1"># re-solves GE): call `aiyagari_steady_state(..., sigma=0.30)` to raise income risk and</span>
+<a id="__codelineno-11-30" name="__codelineno-11-30" href="#__codelineno-11-30"></a><span class="c1"># compare `wealth_gini` to the baseline `sigma=0.2`.</span>
+<a id="__codelineno-11-31" name="__codelineno-11-31" href="#__codelineno-11-31"></a><span class="c1">#</span>
+<a id="__codelineno-11-32" name="__codelineno-11-32" href="#__codelineno-11-32"></a><span class="c1"># **How comprehensive is this?** `puremacro.vfi` is a full heterogeneous-agent toolkit. The</span>
+<a id="__codelineno-11-33" name="__codelineno-11-33" href="#__codelineno-11-33"></a><span class="c1"># same `VFIProblem` → solve → stationary-distribution → market-clearing stack powers the</span>
+<a id="__codelineno-11-34" name="__codelineno-11-34" href="#__codelineno-11-34"></a><span class="c1"># other showcase notebooks: **Krusell-Smith** aggregate risk and transition paths (NB02),</span>
+<a id="__codelineno-11-35" name="__codelineno-11-35" href="#__codelineno-11-35"></a><span class="c1"># **life-cycle / OLG** with mortality (NB03), **Hopenhayn** firm entry/exit (NB04), and</span>
+<a id="__codelineno-11-36" name="__codelineno-11-36" href="#__codelineno-11-36"></a><span class="c1"># **two-asset** portfolios with EGM and Epstein-Zin preferences (NB05). Endogenous grids,</span>
+<a id="__codelineno-11-37" name="__codelineno-11-37" href="#__codelineno-11-37"></a><span class="c1"># permanent types, and GE transitions are all first-class.</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 4: Build EN and verify</strong> (this is the slowest notebook; if it exceeds ~5 min, run it in the controller's background, not a subagent — see memory)</li>
+</ul>
+<p>Run: <code>python tools/build_notebooks.py 01_wealth_inequality</code>
+Expected: exit code 0, prints the β-spread Gini line, no assertion error.</p>
+<ul>
+<li>
+<p>[ ] <strong>Step 5: Mirror to the Spanish twin.</strong> Open <code>notebooks/01_wealth_inequality_es.py</code>; apply the same edits, code byte-identical, prose in academic Spanish.</p>
+</li>
+<li>
+<p>[ ] <strong>Step 6: Build ES and verify</strong></p>
+</li>
+</ul>
+<p>Run: <code>python tools/build_notebooks.py 01_wealth_inequality_es</code>
+Expected: exit code 0, no assertion error.</p>
+<ul>
+<li>[ ] <strong>Step 7: Commit</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>git<span class="w"> </span>add<span class="w"> </span>notebooks/01_wealth_inequality.py<span class="w"> </span>notebooks/01_wealth_inequality.ipynb<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">        </span>notebooks/01_wealth_inequality_es.py<span class="w"> </span>notebooks/01_wealth_inequality_es.ipynb
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"docs(nb01): model equations, precautionary intuition, β-spread fill-in (EN+ES)"</span>
+</code></pre></div>
+<hr />
+<h2 id="task-4-prototype-the-four-nb13-recipes-to-green-lock-the-assert-thresholds">Task 4: Prototype the four NB13 recipes to green (lock the assert thresholds)</h2>
+<p><strong>Files:</strong>
+- Create (temporary, NOT committed): <code>notebooks/_scratch_nb13.py</code></p>
+<ul>
+<li>
+<p>[ ] <strong>Step 1: Write the prototype</strong> combining all four recipes, with the exact code from Task 5 (preamble + recipes 1-4). Print every headline ratio/number that an <code>assert</code> will gate.</p>
+</li>
+<li>
+<p>[ ] <strong>Step 2: Run it</strong></p>
+</li>
+</ul>
+<p>Run: <code>python notebooks/_scratch_nb13.py</code>
+Expected: exit 0; prints the text-EPU gap, the JLN mid-vs-rest ratio, the FCI var-explained and corr-with-stress, and the covariance premium.</p>
+<ul>
+<li>
+<p>[ ] <strong>Step 3: Lock thresholds.</strong> Read the printed numbers. In Task 5, set each <code>assert</code> to a margin comfortably inside the observed value (rule: threshold = 0.8 × observed for "greater-than" gates). Record the observed numbers here as a comment so Task 5 uses them. If recipe 2's mid/rest ratio is &lt; 1.25, increase the factor-innovation volatility window contrast (<code>vol_hi</code>) until the ratio is ≥ 1.4, then set the assert to <code>&gt; 1.2</code>.</p>
+</li>
+<li>
+<p>[ ] <strong>Step 4: Delete the scratch file</strong> (do NOT commit it)</p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>rm<span class="w"> </span>notebooks/_scratch_nb13.py
+</code></pre></div>
+<hr />
+<h2 id="task-5-write-the-new-13_build_your_own_index-lab-en-es">Task 5: Write the new <code>13_build_your_own_index</code> lab (EN + ES)</h2>
+<p><strong>Files:</strong>
+- Create: <code>notebooks/13_build_your_own_index.py</code>
+- Create: <code>notebooks/13_build_your_own_index_es.py</code></p>
+<ul>
+<li>[ ] <strong>Step 1: Write <code>notebooks/13_build_your_own_index.py</code></strong> with exactly this content (adjust only the assert thresholds per Task 4):</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1"># ---</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="c1"># jupyter:</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="c1">#   jupytext:</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="c1">#     text_representation:</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="c1">#       extension: .py</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="c1">#       format_name: percent</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="c1">#   kernelspec:</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="c1">#     display_name: Python 3</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="c1">#     language: python</span>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="c1">#     name: python3</span>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="c1"># ---</span>
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a>
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a><span class="c1"># %% [markdown]</span>
+<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a><span class="c1"># # Build your own uncertainty index</span>
+<a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a><span class="c1">#</span>
+<a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a><span class="c1"># An "uncertainty index" sounds like proprietary infrastructure — a Bloomberg terminal, a</span>
+<a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a><span class="c1"># vendor feed. It is not. Almost every published uncertainty or financial-conditions index is</span>
+<a id="__codelineno-14-18" name="__codelineno-14-18" href="#__codelineno-14-18"></a><span class="c1"># one of **four** elementary operations on data you can assemble yourself. This lab builds one</span>
+<a id="__codelineno-14-19" name="__codelineno-14-19" href="#__codelineno-14-19"></a><span class="c1"># of each with `puremacro`, on synthetic data, entirely in the browser — and at each step you</span>
+<a id="__codelineno-14-20" name="__codelineno-14-20" href="#__codelineno-14-20"></a><span class="c1"># change the inputs to your own.</span>
+<a id="__codelineno-14-21" name="__codelineno-14-21" href="#__codelineno-14-21"></a>
+<a id="__codelineno-14-22" name="__codelineno-14-22" href="#__codelineno-14-22"></a><span class="c1"># %%</span>
+<a id="__codelineno-14-23" name="__codelineno-14-23" href="#__codelineno-14-23"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<a id="__codelineno-14-24" name="__codelineno-14-24" href="#__codelineno-14-24"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<a id="__codelineno-14-25" name="__codelineno-14-25" href="#__codelineno-14-25"></a>
+<a id="__codelineno-14-26" name="__codelineno-14-26" href="#__codelineno-14-26"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-14-27" name="__codelineno-14-27" href="#__codelineno-14-27"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<a id="__codelineno-14-28" name="__codelineno-14-28" href="#__codelineno-14-28"></a><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<a id="__codelineno-14-29" name="__codelineno-14-29" href="#__codelineno-14-29"></a>
+<a id="__codelineno-14-30" name="__codelineno-14-30" href="#__codelineno-14-30"></a><span class="n">_cwd</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span>
+<a id="__codelineno-14-31" name="__codelineno-14-31" href="#__codelineno-14-31"></a><span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">_cwd</span> <span class="k">if</span> <span class="p">(</span><span class="n">_cwd</span> <span class="o">/</span> <span class="s2">"_nbstyle.py"</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="k">else</span> <span class="n">_cwd</span> <span class="o">/</span> <span class="s2">"notebooks"</span><span class="p">))</span>
+<a id="__codelineno-14-32" name="__codelineno-14-32" href="#__codelineno-14-32"></a><span class="kn">import</span><span class="w"> </span><span class="nn">_nbstyle</span>
+<a id="__codelineno-14-33" name="__codelineno-14-33" href="#__codelineno-14-33"></a><span class="n">_nbstyle</span><span class="o">.</span><span class="n">apply_style</span><span class="p">()</span>
+<a id="__codelineno-14-34" name="__codelineno-14-34" href="#__codelineno-14-34"></a>
+<a id="__codelineno-14-35" name="__codelineno-14-35" href="#__codelineno-14-35"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.narrative.indices</span><span class="w"> </span><span class="kn">import</span> <span class="n">epu</span>
+<a id="__codelineno-14-36" name="__codelineno-14-36" href="#__codelineno-14-36"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.factor</span><span class="w"> </span><span class="kn">import</span> <span class="n">pca_factors</span>
+<a id="__codelineno-14-37" name="__codelineno-14-37" href="#__codelineno-14-37"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.garch</span><span class="w"> </span><span class="kn">import</span> <span class="n">garch11_fit</span>
+<a id="__codelineno-14-38" name="__codelineno-14-38" href="#__codelineno-14-38"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.gar</span><span class="w"> </span><span class="kn">import</span> <span class="n">fci</span>
+<a id="__codelineno-14-39" name="__codelineno-14-39" href="#__codelineno-14-39"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.sigma</span><span class="w"> </span><span class="kn">import</span> <span class="n">SigmaObject</span>
+<a id="__codelineno-14-40" name="__codelineno-14-40" href="#__codelineno-14-40"></a>
+<a id="__codelineno-14-41" name="__codelineno-14-41" href="#__codelineno-14-41"></a><span class="c1"># Pyodide-clean guard: none of these heavy/paid modules should have leaked.</span>
+<a id="__codelineno-14-42" name="__codelineno-14-42" href="#__codelineno-14-42"></a><span class="n">_bad</span> <span class="o">=</span> <span class="p">[</span><span class="n">m</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"bs4"</span><span class="p">,</span> <span class="s2">"requests"</span><span class="p">,</span> <span class="s2">"anthropic"</span><span class="p">,</span> <span class="s2">"sentence_transformers"</span><span class="p">,</span>
+<a id="__codelineno-14-43" name="__codelineno-14-43" href="#__codelineno-14-43"></a>                    <span class="s2">"statsmodels"</span><span class="p">,</span> <span class="s2">"linearmodels"</span><span class="p">,</span> <span class="s2">"arch"</span><span class="p">,</span> <span class="s2">"numba"</span><span class="p">)</span> <span class="k">if</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">]</span>
+<a id="__codelineno-14-44" name="__codelineno-14-44" href="#__codelineno-14-44"></a><span class="k">assert</span> <span class="n">_bad</span> <span class="o">==</span> <span class="p">[],</span> <span class="sa">f</span><span class="s2">"Unexpected module leak: </span><span class="si">{</span><span class="n">_bad</span><span class="si">}</span><span class="s2">"</span>
+<a id="__codelineno-14-45" name="__codelineno-14-45" href="#__codelineno-14-45"></a>
+<a id="__codelineno-14-46" name="__codelineno-14-46" href="#__codelineno-14-46"></a><span class="n">RNG</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span>
+<a id="__codelineno-14-47" name="__codelineno-14-47" href="#__codelineno-14-47"></a>
+<a id="__codelineno-14-48" name="__codelineno-14-48" href="#__codelineno-14-48"></a><span class="c1"># %% [markdown]</span>
+<a id="__codelineno-14-49" name="__codelineno-14-49" href="#__codelineno-14-49"></a><span class="c1"># ## Recipe 1 — text → an EPU index</span>
+<a id="__codelineno-14-50" name="__codelineno-14-50" href="#__codelineno-14-50"></a><span class="c1">#</span>
+<a id="__codelineno-14-51" name="__codelineno-14-51" href="#__codelineno-14-51"></a><span class="c1"># **Kernel: three-group co-occurrence.** A document counts as "uncertain" when it mentions</span>
+<a id="__codelineno-14-52" name="__codelineno-14-52" href="#__codelineno-14-52"></a><span class="c1"># the economy *and* policy *and* uncertainty. We plant a 2020 signal in a synthetic corpus</span>
+<a id="__codelineno-14-53" name="__codelineno-14-53" href="#__codelineno-14-53"></a><span class="c1"># and recover it. `epu()` takes `(date, text, url, metadata)` records and `normalize="bbd_100"`</span>
+<a id="__codelineno-14-54" name="__codelineno-14-54" href="#__codelineno-14-54"></a><span class="c1"># (mean 100, sd 50). Change `NEUTRAL`/`EPU_HIGH` to your own corpus.</span>
+<a id="__codelineno-14-55" name="__codelineno-14-55" href="#__codelineno-14-55"></a>
+<a id="__codelineno-14-56" name="__codelineno-14-56" href="#__codelineno-14-56"></a><span class="c1"># %%</span>
+<a id="__codelineno-14-57" name="__codelineno-14-57" href="#__codelineno-14-57"></a><span class="n">NEUTRAL</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"local sports results were mixed"</span><span class="p">,</span> <span class="s2">"the weather stayed mild"</span><span class="p">,</span>
+<a id="__codelineno-14-58" name="__codelineno-14-58" href="#__codelineno-14-58"></a>           <span class="s2">"a new museum opened downtown"</span><span class="p">,</span> <span class="s2">"rail service ran on schedule"</span><span class="p">]</span>
+<a id="__codelineno-14-59" name="__codelineno-14-59" href="#__codelineno-14-59"></a><span class="n">ECON</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"the economy expanded"</span><span class="p">,</span> <span class="s2">"gdp and output"</span><span class="p">,</span> <span class="s2">"economic growth"</span><span class="p">]</span>
+<a id="__codelineno-14-60" name="__codelineno-14-60" href="#__codelineno-14-60"></a><span class="n">EPU_HIGH</span> <span class="o">=</span> <span class="p">[</span>   <span class="c1"># ← swap in your own corpus; each phrase must hit economy ∧ policy ∧ uncertainty</span>
+<a id="__codelineno-14-61" name="__codelineno-14-61" href="#__codelineno-14-61"></a>    <span class="s2">"economic policy uncertainty is high amid uncertain fiscal regulation"</span><span class="p">,</span>
+<a id="__codelineno-14-62" name="__codelineno-14-62" href="#__codelineno-14-62"></a>    <span class="s2">"uncertain trade policy is weighing on the economy"</span><span class="p">,</span>
+<a id="__codelineno-14-63" name="__codelineno-14-63" href="#__codelineno-14-63"></a>    <span class="s2">"regulatory uncertainty clouds the economic policy outlook"</span><span class="p">,</span>
+<a id="__codelineno-14-64" name="__codelineno-14-64" href="#__codelineno-14-64"></a><span class="p">]</span>
+<a id="__codelineno-14-65" name="__codelineno-14-65" href="#__codelineno-14-65"></a><span class="n">HIGH_START</span><span class="p">,</span> <span class="n">HIGH_END</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s2">"2020-01-01"</span><span class="p">),</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s2">"2020-12-31"</span><span class="p">)</span>
+<a id="__codelineno-14-66" name="__codelineno-14-66" href="#__codelineno-14-66"></a>
+<a id="__codelineno-14-67" name="__codelineno-14-67" href="#__codelineno-14-67"></a><span class="n">records</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-14-68" name="__codelineno-14-68" href="#__codelineno-14-68"></a><span class="k">for</span> <span class="n">month</span> <span class="ow">in</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="s2">"2018-01-01"</span><span class="p">,</span> <span class="s2">"2022-12-01"</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="s2">"MS"</span><span class="p">):</span>
+<a id="__codelineno-14-69" name="__codelineno-14-69" href="#__codelineno-14-69"></a>    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
+<a id="__codelineno-14-70" name="__codelineno-14-70" href="#__codelineno-14-70"></a>        <span class="n">d</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">month</span> <span class="o">+</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">RNG</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">27</span><span class="p">))))</span>
+<a id="__codelineno-14-71" name="__codelineno-14-71" href="#__codelineno-14-71"></a>        <span class="n">in_w</span> <span class="o">=</span> <span class="n">HIGH_START</span> <span class="o">&lt;=</span> <span class="n">d</span> <span class="o">&lt;=</span> <span class="n">HIGH_END</span>
+<a id="__codelineno-14-72" name="__codelineno-14-72" href="#__codelineno-14-72"></a>        <span class="n">base</span> <span class="o">=</span> <span class="n">NEUTRAL</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">RNG</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">NEUTRAL</span><span class="p">)))]</span> <span class="o">+</span> <span class="s2">". "</span> <span class="o">+</span> <span class="n">ECON</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">RNG</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ECON</span><span class="p">)))]</span>
+<a id="__codelineno-14-73" name="__codelineno-14-73" href="#__codelineno-14-73"></a>        <span class="n">sig</span> <span class="o">=</span> <span class="n">EPU_HIGH</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">RNG</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">EPU_HIGH</span><span class="p">)))]</span> <span class="k">if</span> <span class="n">RNG</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">&lt;</span> <span class="p">(</span><span class="mf">0.75</span> <span class="k">if</span> <span class="n">in_w</span> <span class="k">else</span> <span class="mf">0.08</span><span class="p">)</span> <span class="k">else</span> <span class="s2">""</span>
+<a id="__codelineno-14-74" name="__codelineno-14-74" href="#__codelineno-14-74"></a>        <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">d</span><span class="p">,</span> <span class="p">(</span><span class="n">base</span> <span class="o">+</span> <span class="s2">". "</span> <span class="o">+</span> <span class="n">sig</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="s2">"syn://news"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"language"</span><span class="p">:</span> <span class="s2">"en"</span><span class="p">}))</span>
+<a id="__codelineno-14-75" name="__codelineno-14-75" href="#__codelineno-14-75"></a>
+<a id="__codelineno-14-76" name="__codelineno-14-76" href="#__codelineno-14-76"></a><span class="n">epu_s</span> <span class="o">=</span> <span class="n">epu</span><span class="p">(</span><span class="n">records</span><span class="p">,</span> <span class="n">country</span><span class="o">=</span><span class="s2">"SYN"</span><span class="p">,</span> <span class="n">language</span><span class="o">=</span><span class="s2">"en"</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="s2">"bbd_100"</span><span class="p">)</span><span class="o">.</span><span class="n">series</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+<a id="__codelineno-14-77" name="__codelineno-14-77" href="#__codelineno-14-77"></a><span class="n">_w</span> <span class="o">=</span> <span class="p">(</span><span class="n">epu_s</span><span class="o">.</span><span class="n">index</span> <span class="o">&gt;=</span> <span class="n">HIGH_START</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">epu_s</span><span class="o">.</span><span class="n">index</span> <span class="o">&lt;=</span> <span class="n">HIGH_END</span><span class="p">)</span>
+<a id="__codelineno-14-78" name="__codelineno-14-78" href="#__codelineno-14-78"></a><span class="n">epu_gap</span> <span class="o">=</span> <span class="n">epu_s</span><span class="p">[</span><span class="n">_w</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="o">-</span> <span class="n">epu_s</span><span class="p">[</span><span class="o">~</span><span class="n">_w</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<a id="__codelineno-14-79" name="__codelineno-14-79" href="#__codelineno-14-79"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[1] text EPU: in-minus-out-window gap = </span><span class="si">{</span><span class="n">epu_gap</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> bbd points"</span><span class="p">)</span>
+<a id="__codelineno-14-80" name="__codelineno-14-80" href="#__codelineno-14-80"></a><span class="k">assert</span> <span class="n">epu_gap</span> <span class="o">&gt;</span> <span class="mi">25</span>      <span class="c1"># Task 4: set to 0.8 × observed gap</span>
+<a id="__codelineno-14-81" name="__codelineno-14-81" href="#__codelineno-14-81"></a>
+<a id="__codelineno-14-82" name="__codelineno-14-82" href="#__codelineno-14-82"></a><span class="c1"># %% [markdown]</span>
+<a id="__codelineno-14-83" name="__codelineno-14-83" href="#__codelineno-14-83"></a><span class="c1"># ## Recipe 2 — a macro panel → a JLN-*style* uncertainty index</span>
+<a id="__codelineno-14-84" name="__codelineno-14-84" href="#__codelineno-14-84"></a><span class="c1">#</span>
+<a id="__codelineno-14-85" name="__codelineno-14-85" href="#__codelineno-14-85"></a><span class="c1"># **Kernel: common factors + conditional volatility.** Macro uncertainty is the *common,</span>
+<a id="__codelineno-14-86" name="__codelineno-14-86" href="#__codelineno-14-86"></a><span class="c1"># unpredictable* volatility across many series. Recipe: (1) extract common factors with</span>
+<a id="__codelineno-14-87" name="__codelineno-14-87" href="#__codelineno-14-87"></a><span class="c1"># `pca_factors`; (2) forecast each series from the *lagged* factor; (3) fit GARCH(1,1) to each</span>
+<a id="__codelineno-14-88" name="__codelineno-14-88" href="#__codelineno-14-88"></a><span class="c1"># one-step forecast error for its conditional-volatility path; (4) average across series.</span>
+<a id="__codelineno-14-89" name="__codelineno-14-89" href="#__codelineno-14-89"></a><span class="c1">#</span>
+<a id="__codelineno-14-90" name="__codelineno-14-90" href="#__codelineno-14-90"></a><span class="c1"># This is a deliberately *simplified* Jurado-Ludvigson-Ng — one horizon, factor-projection</span>
+<a id="__codelineno-14-91" name="__codelineno-14-91" href="#__codelineno-14-91"></a><span class="c1"># residuals, GARCH volatility — **not** the full multi-horizon stochastic-volatility machinery.</span>
+<a id="__codelineno-14-92" name="__codelineno-14-92" href="#__codelineno-14-92"></a><span class="c1"># For the published series, see `puremacro.fetch.jln`.</span>
+<a id="__codelineno-14-93" name="__codelineno-14-93" href="#__codelineno-14-93"></a>
+<a id="__codelineno-14-94" name="__codelineno-14-94" href="#__codelineno-14-94"></a><span class="c1"># %%</span>
+<a id="__codelineno-14-95" name="__codelineno-14-95" href="#__codelineno-14-95"></a><span class="n">T</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="mi">240</span><span class="p">,</span> <span class="mi">8</span>
+<a id="__codelineno-14-96" name="__codelineno-14-96" href="#__codelineno-14-96"></a><span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+<a id="__codelineno-14-97" name="__codelineno-14-97" href="#__codelineno-14-97"></a><span class="n">vol_hi</span><span class="p">,</span> <span class="n">win</span> <span class="o">=</span> <span class="mf">3.5</span><span class="p">,</span> <span class="mi">30</span>                                   <span class="c1"># ← injected high-volatility window</span>
+<a id="__codelineno-14-98" name="__codelineno-14-98" href="#__codelineno-14-98"></a><span class="n">sig_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">t</span> <span class="o">&gt;=</span> <span class="n">T</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">t</span> <span class="o">&lt;</span> <span class="n">T</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">win</span><span class="p">),</span> <span class="n">vol_hi</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+<a id="__codelineno-14-99" name="__codelineno-14-99" href="#__codelineno-14-99"></a><span class="n">f_true</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+<a id="__codelineno-14-100" name="__codelineno-14-100" href="#__codelineno-14-100"></a><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">T</span><span class="p">):</span>
+<a id="__codelineno-14-101" name="__codelineno-14-101" href="#__codelineno-14-101"></a>    <span class="n">f_true</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">f_true</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">sig_t</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">RNG</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">()</span>
+<a id="__codelineno-14-102" name="__codelineno-14-102" href="#__codelineno-14-102"></a><span class="n">loadings</span> <span class="o">=</span> <span class="n">RNG</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>
+<a id="__codelineno-14-103" name="__codelineno-14-103" href="#__codelineno-14-103"></a><span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">f_true</span><span class="p">,</span> <span class="n">loadings</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">RNG</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">((</span><span class="n">T</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>     <span class="c1"># (T, n) macro panel</span>
+<a id="__codelineno-14-104" name="__codelineno-14-104" href="#__codelineno-14-104"></a>
+<a id="__codelineno-14-105" name="__codelineno-14-105" href="#__codelineno-14-105"></a><span class="n">F</span> <span class="o">=</span> <span class="n">pca_factors</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="s2">"factors"</span><span class="p">]</span>                      <span class="c1"># (T, 1) common factor</span>
+<a id="__codelineno-14-106" name="__codelineno-14-106" href="#__codelineno-14-106"></a><span class="n">F_lag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">F</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>           <span class="c1"># F_{t-1}</span>
+<a id="__codelineno-14-107" name="__codelineno-14-107" href="#__codelineno-14-107"></a><span class="n">U</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+<a id="__codelineno-14-108" name="__codelineno-14-108" href="#__codelineno-14-108"></a><span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+<a id="__codelineno-14-109" name="__codelineno-14-109" href="#__codelineno-14-109"></a>    <span class="n">Z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">T</span><span class="p">),</span> <span class="n">F_lag</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]])</span>      <span class="c1"># forecast from a constant + lagged factor</span>
+<a id="__codelineno-14-110" name="__codelineno-14-110" href="#__codelineno-14-110"></a>    <span class="n">coef</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">lstsq</span><span class="p">(</span><span class="n">Z</span><span class="p">,</span> <span class="n">X</span><span class="p">[:,</span> <span class="n">j</span><span class="p">],</span> <span class="n">rcond</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<a id="__codelineno-14-111" name="__codelineno-14-111" href="#__codelineno-14-111"></a>    <span class="n">resid</span> <span class="o">=</span> <span class="n">X</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]</span> <span class="o">-</span> <span class="n">Z</span> <span class="o">@</span> <span class="n">coef</span>                          <span class="c1"># one-step forecast error</span>
+<a id="__codelineno-14-112" name="__codelineno-14-112" href="#__codelineno-14-112"></a>    <span class="n">U</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">garch11_fit</span><span class="p">(</span><span class="n">resid</span><span class="p">)</span><span class="o">.</span><span class="n">sigma</span><span class="p">)</span>           <span class="c1"># its conditional-volatility path</span>
+<a id="__codelineno-14-113" name="__codelineno-14-113" href="#__codelineno-14-113"></a><span class="n">U</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">U</span> <span class="o">/</span> <span class="n">n</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">RangeIndex</span><span class="p">(</span><span class="n">T</span><span class="p">))</span>            <span class="c1"># average across series</span>
+<a id="__codelineno-14-114" name="__codelineno-14-114" href="#__codelineno-14-114"></a>
+<a id="__codelineno-14-115" name="__codelineno-14-115" href="#__codelineno-14-115"></a><span class="n">mid</span> <span class="o">=</span> <span class="n">U</span><span class="p">[</span><span class="n">T</span> <span class="o">//</span> <span class="mi">2</span><span class="p">:</span><span class="n">T</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">win</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<a id="__codelineno-14-116" name="__codelineno-14-116" href="#__codelineno-14-116"></a><span class="n">rest</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">U</span><span class="p">[:</span><span class="n">T</span> <span class="o">//</span> <span class="mi">2</span><span class="p">],</span> <span class="n">U</span><span class="p">[</span><span class="n">T</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">win</span><span class="p">:]])</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<a id="__codelineno-14-117" name="__codelineno-14-117" href="#__codelineno-14-117"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[2] JLN-style macro uncertainty: window mean </span><span class="si">{</span><span class="n">mid</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> vs rest </span><span class="si">{</span><span class="n">rest</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> (ratio </span><span class="si">{</span><span class="n">mid</span><span class="o">/</span><span class="n">rest</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
+<a id="__codelineno-14-118" name="__codelineno-14-118" href="#__codelineno-14-118"></a><span class="k">assert</span> <span class="n">mid</span> <span class="o">&gt;</span> <span class="mf">1.2</span> <span class="o">*</span> <span class="n">rest</span>      <span class="c1"># Task 4: confirm ratio; raise vol_hi if &lt; 1.25</span>
+<a id="__codelineno-14-119" name="__codelineno-14-119" href="#__codelineno-14-119"></a>
+<a id="__codelineno-14-120" name="__codelineno-14-120" href="#__codelineno-14-120"></a><span class="c1"># %% [markdown]</span>
+<a id="__codelineno-14-121" name="__codelineno-14-121" href="#__codelineno-14-121"></a><span class="c1"># ## Recipe 3 — financial indicators → a Financial Conditions Index</span>
+<a id="__codelineno-14-122" name="__codelineno-14-122" href="#__codelineno-14-122"></a><span class="c1">#</span>
+<a id="__codelineno-14-123" name="__codelineno-14-123" href="#__codelineno-14-123"></a><span class="c1"># **Kernel: first principal component, sign-normalized.** An FCI compresses many financial</span>
+<a id="__codelineno-14-124" name="__codelineno-14-124" href="#__codelineno-14-124"></a><span class="c1"># indicators into one "tightness" factor. `gar.fci` standardizes the panel, takes the first PC,</span>
+<a id="__codelineno-14-125" name="__codelineno-14-125" href="#__codelineno-14-125"></a><span class="c1"># and orients it so the columns you name in `tightening_columns` load positively. Add your own</span>
+<a id="__codelineno-14-126" name="__codelineno-14-126" href="#__codelineno-14-126"></a><span class="c1"># indicator columns below.</span>
+<a id="__codelineno-14-127" name="__codelineno-14-127" href="#__codelineno-14-127"></a>
+<a id="__codelineno-14-128" name="__codelineno-14-128" href="#__codelineno-14-128"></a><span class="c1"># %%</span>
+<a id="__codelineno-14-129" name="__codelineno-14-129" href="#__codelineno-14-129"></a><span class="n">stress</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+<a id="__codelineno-14-130" name="__codelineno-14-130" href="#__codelineno-14-130"></a><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">T</span><span class="p">):</span>
+<a id="__codelineno-14-131" name="__codelineno-14-131" href="#__codelineno-14-131"></a>    <span class="n">stress</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.85</span> <span class="o">*</span> <span class="n">stress</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">RNG</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">()</span>        <span class="c1"># latent financial-stress factor</span>
+<a id="__codelineno-14-132" name="__codelineno-14-132" href="#__codelineno-14-132"></a><span class="n">fin</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+<a id="__codelineno-14-133" name="__codelineno-14-133" href="#__codelineno-14-133"></a>    <span class="s2">"credit_spread"</span><span class="p">:</span> <span class="mf">0.8</span> <span class="o">*</span> <span class="n">stress</span> <span class="o">+</span> <span class="mf">0.4</span> <span class="o">*</span> <span class="n">RNG</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">(</span><span class="n">T</span><span class="p">),</span>   <span class="c1"># higher = tighter</span>
+<a id="__codelineno-14-134" name="__codelineno-14-134" href="#__codelineno-14-134"></a>    <span class="s2">"equity_vol"</span><span class="p">:</span>    <span class="mf">0.7</span> <span class="o">*</span> <span class="n">stress</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">RNG</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">(</span><span class="n">T</span><span class="p">),</span>   <span class="c1"># higher = tighter</span>
+<a id="__codelineno-14-135" name="__codelineno-14-135" href="#__codelineno-14-135"></a>    <span class="s2">"term_spread"</span><span class="p">:</span>  <span class="o">-</span><span class="mf">0.6</span> <span class="o">*</span> <span class="n">stress</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">RNG</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">(</span><span class="n">T</span><span class="p">),</span>   <span class="c1"># higher = looser</span>
+<a id="__codelineno-14-136" name="__codelineno-14-136" href="#__codelineno-14-136"></a>    <span class="s2">"equity_price"</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.7</span> <span class="o">*</span> <span class="n">stress</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">RNG</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">(</span><span class="n">T</span><span class="p">),</span>   <span class="c1"># higher = looser</span>
+<a id="__codelineno-14-137" name="__codelineno-14-137" href="#__codelineno-14-137"></a><span class="p">},</span> <span class="n">index</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">RangeIndex</span><span class="p">(</span><span class="n">T</span><span class="p">))</span>
+<a id="__codelineno-14-138" name="__codelineno-14-138" href="#__codelineno-14-138"></a>
+<a id="__codelineno-14-139" name="__codelineno-14-139" href="#__codelineno-14-139"></a><span class="n">out</span> <span class="o">=</span> <span class="n">fci</span><span class="p">(</span><span class="n">fin</span><span class="p">,</span> <span class="n">tightening_columns</span><span class="o">=</span><span class="p">[</span><span class="s2">"credit_spread"</span><span class="p">,</span> <span class="s2">"equity_vol"</span><span class="p">])</span>  <span class="c1"># ← name your "tighter when high" cols</span>
+<a id="__codelineno-14-140" name="__codelineno-14-140" href="#__codelineno-14-140"></a><span class="n">fci_idx</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="s2">"index"</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="n">fin</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+<a id="__codelineno-14-141" name="__codelineno-14-141" href="#__codelineno-14-141"></a><span class="n">corr_stress</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">corrcoef</span><span class="p">(</span><span class="n">fci_idx</span><span class="p">,</span> <span class="n">stress</span><span class="p">)[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+<a id="__codelineno-14-142" name="__codelineno-14-142" href="#__codelineno-14-142"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[3] FCI: var explained by PC1 = </span><span class="si">{</span><span class="n">out</span><span class="p">[</span><span class="s1">'var_explained'</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">; corr(FCI, latent stress) = </span><span class="si">{</span><span class="n">corr_stress</span><span class="si">:</span><span class="s2">+.2f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-14-143" name="__codelineno-14-143" href="#__codelineno-14-143"></a><span class="k">assert</span> <span class="n">out</span><span class="p">[</span><span class="s2">"var_explained"</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.4</span> <span class="ow">and</span> <span class="n">corr_stress</span> <span class="o">&gt;</span> <span class="mf">0.7</span>      <span class="c1"># Task 4: confirm</span>
+<a id="__codelineno-14-144" name="__codelineno-14-144" href="#__codelineno-14-144"></a>
+<a id="__codelineno-14-145" name="__codelineno-14-145" href="#__codelineno-14-145"></a><span class="c1"># %% [markdown]</span>
+<a id="__codelineno-14-146" name="__codelineno-14-146" href="#__codelineno-14-146"></a><span class="c1"># ## Recipe 4 — a cross-section of volatilities → a comovement premium</span>
+<a id="__codelineno-14-147" name="__codelineno-14-147" href="#__codelineno-14-147"></a><span class="c1">#</span>
+<a id="__codelineno-14-148" name="__codelineno-14-148" href="#__codelineno-14-148"></a><span class="c1"># **Kernel: the $\sigma\!\cdot\! R$ quadratic form.** Aggregate volatility is</span>
+<a id="__codelineno-14-149" name="__codelineno-14-149" href="#__codelineno-14-149"></a><span class="c1"># $\mathrm{Var}(w'g) = w'\Sigma w$ with $\Sigma = \mathrm{diag}(\sigma)\,R\,\mathrm{diag}(\sigma)$.</span>
+<a id="__codelineno-14-150" name="__codelineno-14-150" href="#__codelineno-14-150"></a><span class="c1"># The *covariance premium* $(\mathrm{Var} - \mathrm{Var}_{\text{no-cov}})/\mathrm{Var}_{\text{no-cov}}$</span>
+<a id="__codelineno-14-151" name="__codelineno-14-151" href="#__codelineno-14-151"></a><span class="c1"># isolates how much cross-sector comovement inflates aggregate risk. Change `sig`, `rho`, or `w`.</span>
+<a id="__codelineno-14-152" name="__codelineno-14-152" href="#__codelineno-14-152"></a>
+<a id="__codelineno-14-153" name="__codelineno-14-153" href="#__codelineno-14-153"></a><span class="c1"># %%</span>
+<a id="__codelineno-14-154" name="__codelineno-14-154" href="#__codelineno-14-154"></a><span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"manuf"</span><span class="p">,</span> <span class="s2">"services"</span><span class="p">,</span> <span class="s2">"construction"</span><span class="p">,</span> <span class="s2">"retail"</span><span class="p">,</span> <span class="s2">"energy"</span><span class="p">]</span>
+<a id="__codelineno-14-155" name="__codelineno-14-155" href="#__codelineno-14-155"></a><span class="n">sig</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">2.0</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">])</span>               <span class="c1"># ← per-sector volatilities</span>
+<a id="__codelineno-14-156" name="__codelineno-14-156" href="#__codelineno-14-156"></a><span class="n">rho</span> <span class="o">=</span> <span class="mf">0.6</span>                                               <span class="c1"># ← common pairwise correlation</span>
+<a id="__codelineno-14-157" name="__codelineno-14-157" href="#__codelineno-14-157"></a><span class="n">R</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">rho</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sig</span><span class="p">))</span> <span class="o">+</span> <span class="n">rho</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">sig</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">sig</span><span class="p">)))</span>
+<a id="__codelineno-14-158" name="__codelineno-14-158" href="#__codelineno-14-158"></a><span class="n">w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sig</span><span class="p">),</span> <span class="mi">1</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">sig</span><span class="p">))</span>                     <span class="c1"># ← weights (equal here)</span>
+<a id="__codelineno-14-159" name="__codelineno-14-159" href="#__codelineno-14-159"></a>
+<a id="__codelineno-14-160" name="__codelineno-14-160" href="#__codelineno-14-160"></a><span class="n">S</span> <span class="o">=</span> <span class="n">SigmaObject</span><span class="p">(</span><span class="n">sig</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
+<a id="__codelineno-14-161" name="__codelineno-14-161" href="#__codelineno-14-161"></a><span class="n">premium</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">cov_premium_var</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
+<a id="__codelineno-14-162" name="__codelineno-14-162" href="#__codelineno-14-162"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[4] comovement: mean corr = </span><span class="si">{</span><span class="n">S</span><span class="o">.</span><span class="n">mean_corr</span><span class="p">()</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">; covariance premium = </span><span class="si">{</span><span class="n">premium</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-14-163" name="__codelineno-14-163" href="#__codelineno-14-163"></a><span class="k">assert</span> <span class="n">premium</span> <span class="o">&gt;</span> <span class="mi">0</span>      <span class="c1"># positive correlation inflates aggregate variance above the diagonal sum</span>
+<a id="__codelineno-14-164" name="__codelineno-14-164" href="#__codelineno-14-164"></a>
+<a id="__codelineno-14-165" name="__codelineno-14-165" href="#__codelineno-14-165"></a><span class="c1"># %% [markdown]</span>
+<a id="__codelineno-14-166" name="__codelineno-14-166" href="#__codelineno-14-166"></a><span class="c1"># ### Hero figure — four indices, four data types, one library</span>
+<a id="__codelineno-14-167" name="__codelineno-14-167" href="#__codelineno-14-167"></a>
+<a id="__codelineno-14-168" name="__codelineno-14-168" href="#__codelineno-14-168"></a><span class="c1"># %%</span>
+<a id="__codelineno-14-169" name="__codelineno-14-169" href="#__codelineno-14-169"></a><span class="n">cols</span> <span class="o">=</span> <span class="n">_nbstyle</span><span class="o">.</span><span class="n">palette</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+<a id="__codelineno-14-170" name="__codelineno-14-170" href="#__codelineno-14-170"></a><span class="k">def</span><span class="w"> </span><span class="nf">_z</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+<a id="__codelineno-14-171" name="__codelineno-14-171" href="#__codelineno-14-171"></a>    <span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+<a id="__codelineno-14-172" name="__codelineno-14-172" href="#__codelineno-14-172"></a>    <span class="k">return</span> <span class="p">(</span><span class="n">s</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">s</span><span class="p">))</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">nanstd</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+<a id="__codelineno-14-173" name="__codelineno-14-173" href="#__codelineno-14-173"></a>
+<a id="__codelineno-14-174" name="__codelineno-14-174" href="#__codelineno-14-174"></a><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">9.6</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">))</span>
+<a id="__codelineno-14-175" name="__codelineno-14-175" href="#__codelineno-14-175"></a><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">epu_s</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">_z</span><span class="p">(</span><span class="n">epu_s</span><span class="o">.</span><span class="n">values</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">cols</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span> <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">"1 · text → EPU"</span><span class="p">)</span>
+<a id="__codelineno-14-176" name="__codelineno-14-176" href="#__codelineno-14-176"></a><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">U</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">_z</span><span class="p">(</span><span class="n">U</span><span class="o">.</span><span class="n">values</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">cols</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span> <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">"2 · macro panel → JLN-style"</span><span class="p">)</span>
+<a id="__codelineno-14-177" name="__codelineno-14-177" href="#__codelineno-14-177"></a><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fci_idx</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">_z</span><span class="p">(</span><span class="n">fci_idx</span><span class="o">.</span><span class="n">values</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">cols</span><span class="p">[</span><span class="mi">2</span><span class="p">]);</span> <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">"3 · financial → FCI"</span><span class="p">)</span>
+<a id="__codelineno-14-178" name="__codelineno-14-178" href="#__codelineno-14-178"></a><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)),</span> <span class="n">S</span><span class="o">.</span><span class="n">diag_contrib</span><span class="p">(</span><span class="n">w</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">cols</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+<a id="__codelineno-14-179" name="__codelineno-14-179" href="#__codelineno-14-179"></a><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)));</span> <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s2">"right"</span><span class="p">)</span>
+<a id="__codelineno-14-180" name="__codelineno-14-180" href="#__codelineno-14-180"></a><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">"4 · cross-section → variance shares"</span><span class="p">)</span>
+<a id="__codelineno-14-181" name="__codelineno-14-181" href="#__codelineno-14-181"></a><span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">axes</span><span class="o">.</span><span class="n">flat</span><span class="p">[:</span><span class="mi">3</span><span class="p">]:</span>
+<a id="__codelineno-14-182" name="__codelineno-14-182" href="#__codelineno-14-182"></a>    <span class="n">ax</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"0.7"</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.6</span><span class="p">)</span>
+<a id="__codelineno-14-183" name="__codelineno-14-183" href="#__codelineno-14-183"></a><span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">"Four uncertainty indices from one toolkit (series standardized)"</span><span class="p">)</span>
+<a id="__codelineno-14-184" name="__codelineno-14-184" href="#__codelineno-14-184"></a><span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<a id="__codelineno-14-185" name="__codelineno-14-185" href="#__codelineno-14-185"></a><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<a id="__codelineno-14-186" name="__codelineno-14-186" href="#__codelineno-14-186"></a>
+<a id="__codelineno-14-187" name="__codelineno-14-187" href="#__codelineno-14-187"></a><span class="c1"># %% [markdown]</span>
+<a id="__codelineno-14-188" name="__codelineno-14-188" href="#__codelineno-14-188"></a><span class="c1"># ## One toolkit, four indices</span>
+<a id="__codelineno-14-189" name="__codelineno-14-189" href="#__codelineno-14-189"></a><span class="c1">#</span>
+<a id="__codelineno-14-190" name="__codelineno-14-190" href="#__codelineno-14-190"></a><span class="c1"># | You have… | The kernel | puremacro entry point |</span>
+<a id="__codelineno-14-191" name="__codelineno-14-191" href="#__codelineno-14-191"></a><span class="c1"># |---|---|---|</span>
+<a id="__codelineno-14-192" name="__codelineno-14-192" href="#__codelineno-14-192"></a><span class="c1"># | a text corpus | three-group co-occurrence | `narrative.indices.epu` (also `mpu`, `lui`, `tone`) |</span>
+<a id="__codelineno-14-193" name="__codelineno-14-193" href="#__codelineno-14-193"></a><span class="c1"># | a macro panel | common factors + conditional volatility | `factor.pca_factors` → `garch.garch11_fit` |</span>
+<a id="__codelineno-14-194" name="__codelineno-14-194" href="#__codelineno-14-194"></a><span class="c1"># | financial indicators | first principal component, sign-normalized | `gar.fci` |</span>
+<a id="__codelineno-14-195" name="__codelineno-14-195" href="#__codelineno-14-195"></a><span class="c1"># | a cross-section of volatilities | the $\sigma\!\cdot\! R$ quadratic form | `sigma.SigmaObject` |</span>
+<a id="__codelineno-14-196" name="__codelineno-14-196" href="#__codelineno-14-196"></a><span class="c1">#</span>
+<a id="__codelineno-14-197" name="__codelineno-14-197" href="#__codelineno-14-197"></a><span class="c1"># Every uncertainty index in the library is one of these moves. Pick the data you have, pick</span>
+<a id="__codelineno-14-198" name="__codelineno-14-198" href="#__codelineno-14-198"></a><span class="c1"># the matching kernel, normalize — and you have a research-grade index, in the browser, at \$0.</span>
+<a id="__codelineno-14-199" name="__codelineno-14-199" href="#__codelineno-14-199"></a><span class="c1"># To go deeper on the text kernel, see **Notebook 11**.</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Build EN and verify it executes + all four asserts pass</strong></li>
+</ul>
+<p>Run: <code>python tools/build_notebooks.py 13_build_your_own_index</code>
+Expected: exit 0; prints <code>[1]</code>…<code>[4]</code> lines; one 2×2 figure; no assertion error.</p>
+<ul>
+<li>
+<p>[ ] <strong>Step 3: Create the Spanish twin</strong> <code>notebooks/13_build_your_own_index_es.py</code>: copy the EN file, keep <strong>all code byte-identical</strong>, translate every markdown cell and comment to academic Spanish (title → "# Construye tu propio índice de incertidumbre"; match the register of <code>11_narrative_uncertainty_es.py</code>).</p>
+</li>
+<li>
+<p>[ ] <strong>Step 4: Build ES and verify</strong></p>
+</li>
+</ul>
+<p>Run: <code>python tools/build_notebooks.py 13_build_your_own_index_es</code>
+Expected: exit 0, no assertion error.</p>
+<ul>
+<li>[ ] <strong>Step 5: Commit</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>git<span class="w"> </span>add<span class="w"> </span>notebooks/13_build_your_own_index.py<span class="w"> </span>notebooks/13_build_your_own_index.ipynb<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">        </span>notebooks/13_build_your_own_index_es.py<span class="w"> </span>notebooks/13_build_your_own_index_es.ipynb
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"feat(nb13): build-your-own-index lab — four kernels, one toolkit (EN+ES)"</span>
+</code></pre></div>
+<hr />
+<h2 id="task-6-bump-the-gates-update-the-readme-full-verification">Task 6: Bump the gates, update the README, full verification</h2>
+<p><strong>Files:</strong>
+- Modify: <code>tests/test_notebooks/test_notebooks_execute.py:28</code>
+- Modify: <code>notebooks/README.md</code></p>
+<ul>
+<li>[ ] <strong>Step 1: Bump the source-count gate.</strong> In <code>tests/test_notebooks/test_notebooks_execute.py</code>, change line 28 from <code>assert len(srcs) == 30, ...</code> to:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">srcs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">32</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">srcs</span><span class="p">]</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Add the NB13 row + template note to <code>notebooks/README.md</code>.</strong> Add to the table (after the <code>11_narrative_uncertainty</code> row):</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>| <span class="sb">`13_build_your_own_index`</span> | Build four uncertainty indices from one toolkit — text→EPU, macro panel→JLN-style, financial→FCI, cross-section→comovement premium |
+</code></pre></div>
+<p>And after the table, add:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>The deepened showcases (<span class="sb">`01`</span>, <span class="sb">`06`</span>, <span class="sb">`11`</span>, and new ones) follow the structure in
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>[<span class="sb">`_TEMPLATE.md`</span>](./_TEMPLATE.md): motivating question → the method in math → intuition →
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>worked code → read the output → a fill-in <span class="ge">*Your turn*</span> → "how comprehensive is this?".
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 3: Run the bilingual parity test</strong></li>
+</ul>
+<p>Run: <code>python -m pytest tests/test_bilingual_docs.py -q</code>
+Expected: PASS (every EN notebook, including <code>13_build_your_own_index</code>, has an <code>_es</code> sibling).</p>
+<ul>
+<li>[ ] <strong>Step 4: Run the execute-all notebook gate</strong> (slow; runs all 32 sources). If the environment makes the full run too long for one call, run it in the controller's background.</li>
+</ul>
+<p>Run: <code>python -m pytest -m slow tests/test_notebooks/test_notebooks_execute.py -q</code>
+Expected: PASS (<code>len(srcs) == 32</code>; all sources execute without error).</p>
+<ul>
+<li>[ ] <strong>Step 5: Confirm no public-API drift</strong> (sanity — we changed no library code)</li>
+</ul>
+<p>Run: <code>python -m pytest tests/test_public_api.py -q</code>
+Expected: PASS (snapshot unchanged).</p>
+<ul>
+<li>[ ] <strong>Step 6: Commit</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>git<span class="w"> </span>add<span class="w"> </span>tests/test_notebooks/test_notebooks_execute.py<span class="w"> </span>notebooks/README.md
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"test(notebooks): source count 30-&gt;32; README row + template note for nb13"</span>
+</code></pre></div>
+<hr />
+<h2 id="self-review-completed-by-plan-author">Self-review (completed by plan author)</h2>
+<p><strong>Spec coverage.</strong> §3 template → Task 0. §4.1/4.2/4.3 flagship deepenings → Tasks 3/2/1 (each EN+ES, equations + intuition + read-output + fill-in + comprehensive pointer). §5 NB13 four recipes (incl. simplified-JLN honesty + recap table) → Tasks 4-5. §6 build/bilingual/fill-in guardrails → Conventions + per-task ES steps. §7 gate bump (+2 → 32), README, no API drift → Task 6. All sections mapped.</p>
+<p><strong>Placeholder scan.</strong> No TBD/TODO. Assert thresholds in NB13 are set to concrete starting values with an explicit Task-4 rule to confirm/tighten against observed prints (the TDD reality for numeric gates), not left blank. ES translation is a fully-specified task with a register exemplar, not a placeholder.</p>
+<p><strong>Type/name consistency.</strong> Function/field names match the verified API table: <code>aiyagari_steady_state(..., sigma=, rho=)</code>, <code>GARCH11Result.sigma</code>, <code>epu(..., lexicon=)</code>, <code>pca_factors(...)["factors"]</code>, <code>fci(...)["index"|"var_explained"]</code>, <code>SigmaObject(...).cov_premium_var/.mean_corr/.diag_contrib</code>, <code>cholesky_svar(...).irf_point[h, resp, shock]</code>. NB01 fill-in reuses variables defined earlier in that notebook (<code>w_star</code>, <code>r_star</code>, <code>a_grid</code>, <code>z_grid</code>, <code>P_z</code>, <code>gini_ai</code>, <code>gini_mix</code>). NB06 fill-in reuses <code>Y</code>, <code>H</code>, <code>RATE</code>. NB11 fill-in reuses <code>records</code>, <code>HIGH_START</code>, <code>HIGH_END</code>, <code>RNG</code>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

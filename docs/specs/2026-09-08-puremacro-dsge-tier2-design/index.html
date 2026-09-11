@@ -1,0 +1,4051 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Production-grade Macroeconometric and Heterogeneous-Agent Structural Modeling Engine in Pure Python">
+      
+      
+        <meta name="author" content="puremacro contributors">
+      
+      
+        <link rel="canonical" href="https://jalonso1979.github.io/puremacro/docs/specs/2026-09-08-puremacro-dsge-tier2-design/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>puremacro.dsge Tier 2 — Higher Order & Constraints - puremacro</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#puremacrodsge-tier-2-higher-order-constraints" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="puremacro" class="md-header__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            puremacro
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              puremacro.dsge Tier 2 — Higher Order &amp; Constraints
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  
+  English Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../es/" class="md-tabs__link">
+          
+  
+  
+  Documentación en Español
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="puremacro" class="md-nav__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    puremacro
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    English Documentation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    English Documentation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Showcase Notebooks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Correctness advisories
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quarterly National Accounts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-time data (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Long national accounts panel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global Macro Data Ecosystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_6" id="__nav_1_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometric Engines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Econometric Engines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR & FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Narrative Sign Restrictions SVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR with Stochastic Volatility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Smooth Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modern Difference-in-Differences
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Honest DiD Sensitivity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Econometrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global VAR (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Estimation & Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GDP Nowcasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Penalized Forecasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_7" id="__nav_1_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publication & Reporting
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publication & Reporting
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manuscript Tables & Exports
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_8" id="__nav_1_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structural Models
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Structural Models
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sequence-Space HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Non-Linear HANK Transitions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gertler-Karadi (2011) DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Climate Macro (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Sketchpad & Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Higher-Order & Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Parity & Surface Area
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradients, NUTS & HANK Bridge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Frontier (Policy, DSGE-VAR & News)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Non-linear Particle Filtering & Regime Switching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running Anywhere (iPad / browser)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance & Benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_11" id="__nav_1_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replication gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation & goldens
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Connector health
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credentials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cache database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signal contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lexicon review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path to 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentación en Español
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Documentación en Español
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio rápido
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuadernos de demostración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avisos de corrección
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuentas nacionales trimestrales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos en tiempo real (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panel largo de cuentas nacionales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ecosistema de datos macro globales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motores econométricos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Motores econométricos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR y FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SVAR con restricciones narrativas de signo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR con volatilidad estocástica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales suavizadas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias en diferencias modernas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sensibilidad en DiD honesto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometría espacial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR global (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estimación y diagnósticos DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nowcasting del PIB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pronóstico penalizado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publicación e informes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publicación e informes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tablas y exportación de manuscritos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_8" id="__nav_2_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos estructurales
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Modelos estructurales
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HANK en el espacio de secuencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transiciones no lineales en HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de Gertler-Karadi (2011)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomía del clima (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuaderno de bocetos DSGE y Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de orden superior y restricciones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Paridad y superficie operativa DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradientes, NUTS y Puente HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontera DSGE (Política, DSGE-VAR y Noticias)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Filtrado de Partículas No Lineal y Cambio de Régimen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ejecución en cualquier entorno (iPad / navegador)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendimiento y pruebas comparativas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_11" id="__nav_2_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de replicación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validación y referencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estado de conectores
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credenciales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos de caché
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato de señales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de ejemplos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Revisión de léxico
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ruta a 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-motivation-background" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Motivation &amp; Background
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-architecture-module-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Architecture &amp; Module Map
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-detailed-specification-by-phase" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Detailed Specification by Phase
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Detailed Specification by Phase">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-a-3rd-order-perturbation-with-pruning-andreasen-et-al-2018" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase A: 3rd-Order Perturbation with Pruning (Andreasen et al. 2018)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase A: 3rd-Order Perturbation with Pruning (Andreasen et al. 2018)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a1-symbolic-3rd-derivatives-tensor-representation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A1. Symbolic 3rd Derivatives &amp; Tensor Representation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a2-order-3-policy-function-schur-sylvester-recursion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A2. Order-3 Policy Function &amp; Schur Sylvester Recursion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a3-third-order-pruning-state-space" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A3. Third-Order Pruning State Space
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-b-perfect-foresight-boundary-conditions-mcp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase B: Perfect Foresight, Boundary Conditions &amp; MCP
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase B: Perfect Foresight, Boundary Conditions &amp; MCP">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#b1-histval-and-endval-transitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B1. histval and endval Transitions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b2-mixed-complementarity-problem-mcp-via-semismooth-newton" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B2. Mixed Complementarity Problem (MCP) via Semismooth Newton
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-c-multi-constraint-occbin-piecewise-kalman-filter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase C: Multi-Constraint OccBin &amp; Piecewise Kalman Filter
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase C: Multi-Constraint OccBin &amp; Piecewise Kalman Filter">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#c1-multi-constraint-occbin-2k-regimes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        C1. Multi-Constraint OccBin (\(2^K\) Regimes)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#c2-piecewise-kalman-filter-giovannini-pfeiffer-ratto-2021" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        C2. Piecewise Kalman Filter (Giovannini, Pfeiffer, Ratto 2021)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-d-sequential-monte-carlo-smc-particle-filtering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase D: Sequential Monte Carlo (SMC) &amp; Particle Filtering
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase D: Sequential Monte Carlo (SMC) &amp; Particle Filtering">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#d1-herbst-schorfheide-2014-2015-smc-algorithm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        D1. Herbst &amp; Schorfheide (2014, 2015) SMC Algorithm
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#d2-bootstrap-particle-filter-on-pruned-dsge-solutions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        D2. Bootstrap Particle Filter on Pruned DSGE Solutions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-e-nonlinear-ramsey-policy-bgp-detrending" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase E: Nonlinear Ramsey Policy &amp; BGP Detrending
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase E: Nonlinear Ramsey Policy &amp; BGP Detrending">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#e1-nonlinear-ramsey-optimal-policy-ramsey_model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        E1. Nonlinear Ramsey Optimal Policy (ramsey_model)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#e2-balanced-growth-path-bgp-detrending" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        E2. Balanced Growth Path (BGP) Detrending
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-presentation-contract-results-objects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Presentation Contract &amp; Results Objects
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-acceptance-criteria-verification-gates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Acceptance Criteria &amp; Verification Gates
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Acceptance Criteria &amp; Verification Gates">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-a-verification-order-3-pruning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase A Verification (Order 3 Pruning)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-b-verification-perfect-foresight-mcp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase B Verification (Perfect Foresight &amp; MCP)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-c-verification-occbin-piecewise-kalman" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase C Verification (OccBin &amp; Piecewise Kalman)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-d-verification-smc-particle-filter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase D Verification (SMC &amp; Particle Filter)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-e-verification-nonlinear-ramsey-bgp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase E Verification (Nonlinear Ramsey &amp; BGP)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#release-standards" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Release Standards
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="puremacrodsge-tier-2-higher-order-constraints"><code>puremacro.dsge</code> Tier 2 — Higher Order &amp; Constraints</h1>
+<p><strong>Status:</strong> Drafted 2026-09-08. Architectural specification for Tier 2 of the Dynare-parity roadmap (<code>docs/plans/2026-09-07-puremacro-dsge-dynare-parity-roadmap.md</code>).<br />
+<strong>Target release:</strong> 2.8.0 (Phases A, B, C, D, E).<br />
+<strong>Baseline:</strong> puremacro 2.7.0 (AST expression DAG, native macro preprocessor, analytical Jacobians and Hessians with CSE, Schur Sylvester solver).<br />
+<strong>Driving lens:</strong> Enable modern macroeconomists to solve, simulate, and estimate models with nonlinearities, risk premia, and structural constraints (such as the Zero Lower Bound and borrowing caps) under the strict Pyodide four-package contract (<code>numpy</code>, <code>scipy</code>, <code>pandas</code>, <code>matplotlib</code>).</p>
+<hr />
+<h2 id="1-motivation-background">1. Motivation &amp; Background</h2>
+<p>With <code>puremacro 2.7.0</code>, the DSGE engine acquired a production-grade front-end: an expression DAG, macro preprocessor, analytical symbolic differentiation with common-subexpression elimination (CSE), and a fast generalized Schur Sylvester solver delivering a 165x speedup on second-order perturbation.</p>
+<p>Higher-order perturbation and occasionally binding constraints represent the next frontier of macroeconomic modeling:</p>
+<ol>
+<li><strong>Risk Premia &amp; Asset Pricing Require Order 3</strong>:</li>
+<li>At first order, certainty equivalence holds (<span class="arithmatex">\(\sigma = 0\)</span>).</li>
+<li>At second order, uncertainty shifts ergodic means (<span class="arithmatex">\(g_{\sigma\sigma}\)</span>), but does not alter policy slopes or induce time-varying risk premia (<span class="arithmatex">\(g_{x\sigma\sigma} = 0\)</span>).</li>
+<li>At third order, cross-terms between states and shock variances (<span class="arithmatex">\(g_{x\sigma\sigma}\)</span>) appear, generating state-dependent risk premia, stochastic volatility spillovers, and precautionary asset market dynamics.</li>
+<li>
+<p>Unpruned higher-order simulations diverge exponentially outside a tight steady-state basin. The pruning algorithm of Andreasen, Fernández-Villaverde, and Rubio-Ramírez (2018) solves this, but requires exact 3rd-order tensor evaluations and recursive state decomposition.</p>
+</li>
+<li>
+<p><strong>Terminal Transitions &amp; ZLB in Deterministic Models</strong>:</p>
+</li>
+<li><code>puremacro.dsge.perfect_foresight</code> currently assumes a single steady-state terminal vector <span class="arithmatex">\(y_{ss}\)</span>. Real-world policy questions (e.g. permanent tax reforms, demographic shifts, sovereign debt resets) transition from an initial state <span class="arithmatex">\(y_{init}\)</span> to a <em>different</em> terminal steady state <span class="arithmatex">\(y_{end}\)</span> declared via <code>histval</code> and <code>endval</code>.</li>
+<li>
+<p>The Zero Lower Bound (ZLB) in deterministic simulations requires solving a Mixed Complementarity Problem (MCP):
+     $<span class="arithmatex">\(i_t \ge 0 \perp (i_t - i_t^{Taylor}) \ge 0\)</span>$
+     Dynare solves this via semismooth Newton using the Fischer-Burmeister operator. Stacked sparse Newton must be upgraded to support complementarity conditions directly.</p>
+</li>
+<li>
+<p><strong>OccBin Multi-Constraint &amp; Estimation</strong>:</p>
+</li>
+<li>Guerrieri &amp; Iacoviello (2015) piecewise-linear relaxation is currently limited to two regimes (unconstrained and one constrained).</li>
+<li>Real macroeconomic crises involve <em>simultaneous</em> constraints (e.g., ZLB on the policy rate <em>and</em> a collateral constraint on banks, creating <span class="arithmatex">\(2^2 = 4\)</span> distinct regimes).</li>
+<li>
+<p>Furthermore, estimating models with occasionally binding constraints historically required bespoke filters. The <strong>Piecewise Kalman Filter</strong> (Giovannini, Pfeiffer, Ratto 2021) enables likelihood-based estimation of OccBin models directly.</p>
+</li>
+<li>
+<p><strong>Sequential Monte Carlo (SMC)</strong>:</p>
+</li>
+<li>Random Walk Metropolis-Hastings (RWMH) struggles when the posterior is multimodal, irregular, or when parameters are weakly identified.</li>
+<li>
+<p>Herbst &amp; Schorfheide (2014, 2015) Sequential Monte Carlo bridges prior to posterior across tempering stages <span class="arithmatex">\(\phi_n \in [0, 1]\)</span>, mutates particles adaptively, and yields an unbiased estimator of the Marginal Data Density (MDD) as a natural product of normalizing constants.</p>
+</li>
+<li>
+<p><strong>Nonlinear Ramsey Optimal Policy</strong>:</p>
+</li>
+<li>Calculating optimal monetary or fiscal policy under commitment requires setting up the planner's Lagrangian and differentiating with respect to all endogenous variables and multipliers. The AST DAG from 2.7.0 provides the foundation to automate this symbolic expansion.</li>
+</ol>
+<hr />
+<h2 id="2-architecture-module-map">2. Architecture &amp; Module Map</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>puremacro/dsge/
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├── _ast.py                [ext]  Support 3rd-order differentiation, complementarity tags
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>├── _symbolic.py           [ext]  3rd-order dynamic tensor derivatives with CSE
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>├── _sylvester.py          [ext]  Schur-Sylvester extension for 3-fold Kronecker products
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>├── pruning.py             [ext]  3rd-order pruned perturbation state space (Andreasen et al. 2018)
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>├── perfect_foresight.py   [ext]  histval/endval terminal paths, MCP semismooth Newton
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>├── occbin.py              [ext]  Multi-constraint OccBin (2^K regimes), Piecewise Kalman Filter
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>├── smc.py                 [new]  Sequential Monte Carlo (Herbst &amp; Schorfheide) sampler
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>├── ramsey.py              [new]  Nonlinear Ramsey optimal policy Lagrangian constructor
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>├── detrending.py          [new]  Balanced Growth Path (BGP) detrending and stationarization
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>├── _results.py            [ext]  Order3PrunedSolution, SMCResult, MCPResult, RamseyResult
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>└── dynare.py              [ext]  Grammar parsing for histval, endval, varexo_det, mcp tags, occbin_constraints
+</code></pre></div>
+<hr />
+<h2 id="3-detailed-specification-by-phase">3. Detailed Specification by Phase</h2>
+<h3 id="phase-a-3rd-order-perturbation-with-pruning-andreasen-et-al-2018">Phase A: 3rd-Order Perturbation with Pruning (Andreasen et al. 2018)</h3>
+<h4 id="a1-symbolic-3rd-derivatives-tensor-representation">A1. Symbolic 3rd Derivatives &amp; Tensor Representation</h4>
+<p>Over the dynamic model <span class="arithmatex">\(f(y_{t+1}, y_t, y_{t-1}, u_t) = 0\)</span>, evaluate the 3rd derivative tensor <span class="arithmatex">\(\mathcal{T}_f\)</span>:
+$<span class="arithmatex">\(\mathcal{T}_{f, i, j, k, l} = \frac{\partial^3 f_i}{\partial z_j \partial z_k \partial z_l}\)</span>$
+where <span class="arithmatex">\(z = [y_{t+1}^\top, y_t^\top, y_{t-1}^\top, u_t^\top]^\top\)</span>.</p>
+<ul>
+<li><strong>Symmetry Exploitation</strong>: Permutations of <span class="arithmatex">\((j, k, l)\)</span> are identical. Evaluate only non-decreasing indices <span class="arithmatex">\(j \le k \le l\)</span>, reducing evaluations by a factor of 6.</li>
+<li><strong>Topological CSE</strong>: Extend CSE pass to identify shared subexpressions in 3rd-order Hessian derivatives.</li>
+<li><strong>Contracted Evaluation</strong>: Compute contractions with first-order decision vectors directly in compiled code to avoid storing dense <span class="arithmatex">\(N \times (3N + n_e)^3\)</span> arrays.</li>
+</ul>
+<h4 id="a2-order-3-policy-function-schur-sylvester-recursion">A2. Order-3 Policy Function &amp; Schur Sylvester Recursion</h4>
+<p>The third-order policy rule takes the form:
+$<span class="arithmatex">\(y_t = y_{ss} + g_x \hat{x}_{t-1} + g_u u_t + \frac{1}{2} g_{xx} (\hat{x}_{t-1} \otimes \hat{x}_{t-1}) + \dots + \frac{1}{6} g_{xxx} (\hat{x}_{t-1} \otimes \hat{x}_{t-1} \otimes \hat{x}_{t-1}) + \frac{1}{2} g_{x\sigma\sigma} \hat{x}_{t-1} \sigma^2 + \dots\)</span>$</p>
+<p>The state curvature tensor <span class="arithmatex">\(g_{xxx}\)</span> satisfies the generalized Sylvester equation:
+$<span class="arithmatex">\((A_0 + A_+ g_x P_s) g_{xxx} + A_+ g_{xxx} (h_x \otimes h_x \otimes h_x) = -K_{xxx}\)</span>$
+where <span class="arithmatex">\(K_{xxx}\)</span> collects known contractions of first- and second-order policy matrices with 3rd model derivatives.</p>
+<ul>
+<li><strong>Schur Decomposition</strong>: Since <span class="arithmatex">\(h_x = U_h T_h U_h^H\)</span> with upper-triangular <span class="arithmatex">\(T_h\)</span>, the 3-fold Kronecker product:
+  $<span class="arithmatex">\(h_x \otimes h_x \otimes h_x = (U_h \otimes U_h \otimes U_h) (T_h \otimes T_h \otimes T_h) (U_h \otimes U_h \otimes U_h)^H\)</span>$
+  is upper triangular with diagonal elements <span class="arithmatex">\(t_{ii} t_{jj} t_{kk}\)</span>.</li>
+<li><strong>Decoupled Column Substitution</strong>: Solve for column <span class="arithmatex">\((i, j, k)\)</span> by back-substitution with diagonal block LU factorizations, maintaining <span class="arithmatex">\(O(n_x^3 \cdot n)\)</span> complexity and <span class="arithmatex">\(&lt; 5\)</span> MB memory.</li>
+</ul>
+<h4 id="a3-third-order-pruning-state-space">A3. Third-Order Pruning State Space</h4>
+<p>The Andreasen, Fernández-Villaverde, and Rubio-Ramírez (2018) state space expands into three components:
+$<span class="arithmatex">\(x_t^{(1)} = G x_{t-1}^{(1)} + N u_t\)</span>$
+$<span class="arithmatex">\(x_t^{(2)} = G x_{t-1}^{(2)} + \frac{1}{2} H_{xx} (x_{t-1}^{(1)} \otimes x_{t-1}^{(1)}) + H_{xu} (x_{t-1}^{(1)} \otimes u_t) + \frac{1}{2} H_{uu} (u_t \otimes u_t) + \frac{1}{2} H_{\sigma\sigma} \sigma^2\)</span>$
+$<span class="arithmatex">\(x_t^{(3)} = G x_{t-1}^{(3)} + H_{xx} (x_{t-1}^{(1)} \otimes x_{t-1}^{(2)}) + \frac{1}{6} H_{xxx} (x_{t-1}^{(1)} \otimes x_{t-1}^{(1)} \otimes x_{t-1}^{(1)}) + \frac{1}{2} H_{x\sigma\sigma} x_{t-1}^{(1)} \sigma^2 + \dots\)</span>$</p>
+<ul>
+<li>Total state deviation: <span class="arithmatex">\(\hat{x}_t = x_t^{(1)} + x_t^{(2)} + x_t^{(3)}\)</span>.</li>
+<li><strong>Ergodic Stability</strong>: Evaluated strictly on lower-order components; completely suppresses explosive polynomial divergent paths.</li>
+<li><strong>Analytical Moments</strong>: Compute unconditional 1st, 2nd, 3rd, and 4th moments (mean, variance, skewness, kurtosis) under pruning analytically via Kronecker products of <span class="arithmatex">\(G\)</span>.</li>
+</ul>
+<hr />
+<h3 id="phase-b-perfect-foresight-boundary-conditions-mcp">Phase B: Perfect Foresight, Boundary Conditions &amp; MCP</h3>
+<h4 id="b1-histval-and-endval-transitions">B1. <code>histval</code> and <code>endval</code> Transitions</h4>
+<ul>
+<li><code>histval; ... end;</code>: Specifies initial conditions <span class="arithmatex">\(y_0, y_{-1}\)</span> distinct from the steady state.</li>
+<li><code>endval; ... end;</code>: Specifies permanent terminal conditions. If permanent shocks are present, the solver executes a numerical steady-state solve for the terminal steady state <span class="arithmatex">\(y_{end}\)</span> before setting up the stacked system:
+  $<span class="arithmatex">\(f(y_1, y_0, \dots) = 0, \quad \dots, \quad f(y_{end}, y_T, y_{T-1}) = 0\)</span>$</li>
+<li><code>varexo_det</code>: Tracks deterministic exogenous paths that are known to agents in advance across all <span class="arithmatex">\(t=1, \dots, T\)</span>.</li>
+<li><code>shocks(surprise)</code>: Unanticipated shock sequences where agents re-solve the perfect foresight path period-by-period from <span class="arithmatex">\(t=1\)</span> to <span class="arithmatex">\(T\)</span>.</li>
+</ul>
+<h4 id="b2-mixed-complementarity-problem-mcp-via-semismooth-newton">B2. Mixed Complementarity Problem (MCP) via Semismooth Newton</h4>
+<p>In models with constraints (e.g. ZLB <span class="arithmatex">\(i_t \ge 0\)</span>):
+$<span class="arithmatex">\(f_i(y_{t+1}, y_t, y_{t-1}) \le 0 \perp y_{i, t} \ge \underline{y}_i\)</span>$</p>
+<p>Reformulate as root-finding using the <strong>Fischer-Burmeister</strong> function:
+$<span class="arithmatex">\(\Phi(a, b) = a + b - \sqrt{a^2 + b^2} = 0 \iff a \ge 0, b \ge 0, ab = 0\)</span>$</p>
+<ul>
+<li><strong>Generalized Jacobian (Clarke Subdifferential)</strong>:
+  $<span class="arithmatex">\(\partial \Phi(a, b) = \left( 1 - \frac{a}{\sqrt{a^2 + b^2}}, 1 - \frac{b}{\sqrt{a^2 + b^2}} \right) \quad \text{for } (a, b) \ne (0, 0)\)</span>$
+  and <span class="arithmatex">\((1 - \xi_1, 1 - \xi_2)\)</span> with <span class="arithmatex">\(\xi_1^2 + \xi_2^2 \le 1\)</span> at <span class="arithmatex">\((0, 0)\)</span>.</li>
+<li><strong>Stacked Semismooth Newton</strong>: Directly augments the block-tridiagonal Jacobian matrix <span class="arithmatex">\(J_{stacked}\)</span> with the subdifferential weights, solved using <code>scipy.sparse.linalg.spsolve</code>.</li>
+</ul>
+<hr />
+<h3 id="phase-c-multi-constraint-occbin-piecewise-kalman-filter">Phase C: Multi-Constraint OccBin &amp; Piecewise Kalman Filter</h3>
+<h4 id="c1-multi-constraint-occbin-2k-regimes">C1. Multi-Constraint OccBin (<span class="arithmatex">\(2^K\)</span> Regimes)</h4>
+<p>Extend Guerrieri &amp; Iacoviello (2015) to <span class="arithmatex">\(K \ge 2\)</span> occasionally binding constraints:
+- Define boolean regime vector <span class="arithmatex">\(R_t \in \{0, 1\}^K\)</span> for each period <span class="arithmatex">\(t \in [1, T]\)</span>.
+- Pre-compute or dynamically solve the first-order Klein matrices <span class="arithmatex">\((A_0^r, A_+^r, A_-^r, B_u^r)\)</span> for all active regimes <span class="arithmatex">\(r \in \{0, \dots, 2^K - 1\}\)</span>.
+- Backward recursion updates the time-varying state-space matrices:
+  $<span class="arithmatex">\(P_t = - (A_0^{r_t} + A_+^{r_t} P_{t+1})^{-1} A_-^{r_t}\)</span>$
+  $<span class="arithmatex">\(D_t = - (A_0^{r_t} + A_+^{r_t} P_{t+1})^{-1} (A_+^{r_t} D_{t+1} + c^{r_t} + B_u^{r_t} u_t)\)</span>$
+- Iterate over the regime matrix until convergence across all <span class="arithmatex">\(K\)</span> constraints simultaneously.</p>
+<h4 id="c2-piecewise-kalman-filter-giovannini-pfeiffer-ratto-2021">C2. Piecewise Kalman Filter (Giovannini, Pfeiffer, Ratto 2021)</h4>
+<p>Enables estimation of models with occasionally binding constraints:
+1. At each observation date <span class="arithmatex">\(t\)</span>, given filtered state <span class="arithmatex">\(x_{t-1|t-1}\)</span>, determine the expected future regime sequence over horizon <span class="arithmatex">\(H\)</span>.
+2. Compute time-varying transition matrix <span class="arithmatex">\(T_t(R)\)</span> and constant <span class="arithmatex">\(C_t(R)\)</span> from the OccBin backward recursion.
+3. Compute forecast errors <span class="arithmatex">\(v_t = y_t^{obs} - Z x_{t|t-1} - d_t\)</span>.
+4. Update state <span class="arithmatex">\(x_{t|t}\)</span> and covariance <span class="arithmatex">\(P_{t|t}\)</span> using standard Kalman gain formulas evaluated on the piecewise matrices.
+5. Invert shocks to verify regime consistency; iterate until the expected regime matches the realized bound state.</p>
+<hr />
+<h3 id="phase-d-sequential-monte-carlo-smc-particle-filtering">Phase D: Sequential Monte Carlo (SMC) &amp; Particle Filtering</h3>
+<h4 id="d1-herbst-schorfheide-2014-2015-smc-algorithm">D1. Herbst &amp; Schorfheide (2014, 2015) SMC Algorithm</h4>
+<ul>
+<li><strong>Tempering Schedule</strong>: Define <span class="arithmatex">\(N_\phi\)</span> stages <span class="arithmatex">\(\phi_0 = 0 &lt; \phi_1 &lt; \dots &lt; \phi_{N_\phi} = 1\)</span>, where <span class="arithmatex">\(\phi_n = (n / N_\phi)^\lambda\)</span>.</li>
+<li><strong>Particles</strong>: Maintain <span class="arithmatex">\(N_{part}\)</span> parameter vectors <span class="arithmatex">\(\{\theta_i\}_{i=1}^{N_{part}}\)</span>.</li>
+<li><strong>Stage Progression</strong>:</li>
+<li><strong>Correction</strong>: Compute incremental weights:
+     $<span class="arithmatex">\(\tilde{w}_{i, n} = \exp\left( (\phi_n - \phi_{n-1}) \ln \mathcal{L}(Y | \theta_{i, n-1}) \right)\)</span>$
+     Normalize weights <span class="arithmatex">\(W_{i, n} = \tilde{w}_{i, n} / \sum_{j} \tilde{w}_{j, n}\)</span>.</li>
+<li><strong>Effective Sample Size (ESS)</strong>:
+     $<span class="arithmatex">\(ESS_n = \frac{N_{part}}{\sum_{i=1}^{N_{part}} W_{i, n}^2}\)</span>$
+     If <span class="arithmatex">\(ESS_n &lt; N_{part} / 2\)</span>, resample particles via systematic resampling.</li>
+<li><strong>Mutation</strong>: Mutate each particle via <span class="arithmatex">\(N_{steps}\)</span> Metropolis-Hastings steps using proposal covariance <span class="arithmatex">\(\Sigma_n = c_n^2 \sum_{i} W_{i, n} (\theta_i - \bar{\theta}_n)(\theta_i - \bar{\theta}_n)^\top\)</span>. Adapt scale <span class="arithmatex">\(c_n\)</span> to target an acceptance rate of ~25%–30%.</li>
+<li><strong>Marginal Data Density (MDD)</strong>:
+  $<span class="arithmatex">\(\ln \hat{p}(Y) = \sum_{n=1}^{N_\phi} \ln \left( \sum_{i=1}^{N_{part}} W_{i, n-1} \tilde{w}_{i, n} \right)\)</span>$
+  Computes MDD standard error via across-run variance or asymptotic variance formulas.</li>
+</ul>
+<h4 id="d2-bootstrap-particle-filter-on-pruned-dsge-solutions">D2. Bootstrap Particle Filter on Pruned DSGE Solutions</h4>
+<ul>
+<li>For nonlinear order-2 and order-3 pruned state spaces, evaluate likelihoods via the bootstrap particle filter:</li>
+<li>Propagate particles through the pruned recursion <span class="arithmatex">\(x_t = g(x_{t-1}, u_t)\)</span>.</li>
+<li>Weight particles by measurement density <span class="arithmatex">\(p(y_t^{obs} | x_t) \sim \mathcal{N}(H x_t, R)\)</span>.</li>
+<li>Systematic resampling on low ESS.</li>
+</ul>
+<hr />
+<h3 id="phase-e-nonlinear-ramsey-policy-bgp-detrending">Phase E: Nonlinear Ramsey Policy &amp; BGP Detrending</h3>
+<h4 id="e1-nonlinear-ramsey-optimal-policy-ramsey_model">E1. Nonlinear Ramsey Optimal Policy (<code>ramsey_model</code>)</h4>
+<ul>
+<li><strong>Planner Objective</strong>:
+  $<span class="arithmatex">\(\max_{\{y_t, u_t\}_{t=0}^\infty} \mathbb{E}_0 \sum_{t=0}^\infty \beta^t U(y_t, u_t)\)</span>$
+  subject to structural equilibrium conditions:
+  $<span class="arithmatex">\(f(y_{t+1}, y_t, y_{t-1}, u_t) = 0\)</span>$</li>
+<li><strong>Lagrangian Construction over AST</strong>:
+  $<span class="arithmatex">\(\mathcal{L} = \sum_{t=0}^\infty \beta^t \left[ U(y_t, u_t) + \lambda_t^\top f(y_{t+1}, y_t, y_{t-1}, u_t) \right]\)</span>$</li>
+<li><strong>Symbolic First-Order Conditions</strong>:
+  $<span class="arithmatex">\(\frac{\partial \mathcal{L}}{\partial y_t} = \frac{\partial U}{\partial y_t} + \lambda_t^\top \frac{\partial f_t}{\partial y_t} + \beta^{-1} \lambda_{t-1}^\top \frac{\partial f_{t-1}}{\partial y_{t+1}} + \beta \lambda_{t+1}^\top \frac{\partial f_{t+1}}{\partial y_{t-1}} = 0\)</span>$
+  $<span class="arithmatex">\(\frac{\partial \mathcal{L}}{\partial \lambda_t} = f(y_{t+1}, y_t, y_{t-1}, u_t) = 0\)</span>$</li>
+<li><strong>Augmented System</strong>: Automatically generates the combined model DAG of <span class="arithmatex">\(N\)</span> original equations plus <span class="arithmatex">\(N\)</span> multiplier FOCs, solved via the first-order Klein solver.</li>
+</ul>
+<h4 id="e2-balanced-growth-path-bgp-detrending">E2. Balanced Growth Path (BGP) Detrending</h4>
+<ul>
+<li>Parse <code>trend_var</code> and <code>log_trend_var</code> blocks.</li>
+<li>Associate growth factors with non-stationary variables:
+  $<span class="arithmatex">\(Y_t = y_t \cdot \prod_{s=1}^t \Gamma_s\)</span>$</li>
+<li>Automatically perform stationarizing substitutions into the AST DAG before differentiation and steady-state solution.</li>
+</ul>
+<hr />
+<h2 id="4-presentation-contract-results-objects">4. Presentation Contract &amp; Results Objects</h2>
+<p>All newly introduced result structures adhere strictly to puremacro's frozen dataclass presentation contract:</p>
+<table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Module</th>
+<th>Methods</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Order3PrunedSolution</code></td>
+<td><code>puremacro.dsge.pruning</code></td>
+<td><code>.summary()</code>, <code>.girf()</code>, <code>.stoch_simul()</code>, <code>.unconditional_moments()</code>, <code>.to_markdown()</code>, <code>.to_latex()</code>, <code>.to_typst()</code></td>
+</tr>
+<tr>
+<td><code>MCPResult</code></td>
+<td><code>puremacro.dsge.perfect_foresight</code></td>
+<td><code>.summary()</code>, <code>.plot()</code>, <code>.binding_periods()</code>, <code>.to_markdown()</code>, <code>.to_latex()</code>, <code>.to_typst()</code></td>
+</tr>
+<tr>
+<td><code>PiecewiseKalmanResult</code></td>
+<td><code>puremacro.dsge.occbin</code></td>
+<td><code>.summary()</code>, <code>.log_likelihood()</code>, <code>.filtered_states()</code>, <code>.regime_history()</code>, <code>.to_markdown()</code></td>
+</tr>
+<tr>
+<td><code>SMCResult</code></td>
+<td><code>puremacro.dsge.smc</code></td>
+<td><code>.summary()</code>, <code>.plot_stages()</code>, <code>.marginal_likelihood()</code>, <code>.posterior_table()</code>, <code>.to_markdown()</code>, <code>.to_latex()</code></td>
+</tr>
+<tr>
+<td><code>RamseyResult</code></td>
+<td><code>puremacro.dsge.ramsey</code></td>
+<td><code>.summary()</code>, <code>.planner_foc()</code>, <code>.multipliers()</code>, <code>.decision_rules()</code>, <code>.to_markdown()</code>, <code>.to_latex()</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-acceptance-criteria-verification-gates">5. Acceptance Criteria &amp; Verification Gates</h2>
+<h3 id="phase-a-verification-order-3-pruning">Phase A Verification (Order 3 Pruning)</h3>
+<ul>
+<li>[ ] 3rd-order analytical derivatives match numerical 6th-order central difference within <span class="arithmatex">\(10^{-9}\)</span> tolerance.</li>
+<li>[ ] Order-3 Schur Sylvester solver computes <span class="arithmatex">\(g_{xxx}\)</span> on SW07 in <span class="arithmatex">\(\le 0.8\)</span> seconds with <span class="arithmatex">\(&lt; 5\)</span> MB memory.</li>
+<li>[ ] Pruned order-3 simulation runs 10,000 periods with 0 explosive trajectories and verified stationary kurtosis.</li>
+</ul>
+<h3 id="phase-b-verification-perfect-foresight-mcp">Phase B Verification (Perfect Foresight &amp; MCP)</h3>
+<ul>
+<li>[ ] Transition between distinct initial and terminal steady states (<code>histval</code> <span class="arithmatex">\(\to\)</span> <code>endval</code>) converges to <span class="arithmatex">\(\le 10^{-10}\)</span> residual norm.</li>
+<li>[ ] Fischer-Burmeister semismooth Newton correctly enforces the ZLB (<span class="arithmatex">\(i_t \ge 0\)</span>) in an NK model with a large deflationary shock, perfectly matching Dynare's deterministic simulation path.</li>
+</ul>
+<h3 id="phase-c-verification-occbin-piecewise-kalman">Phase C Verification (OccBin &amp; Piecewise Kalman)</h3>
+<ul>
+<li>[ ] Multi-constraint OccBin correctly tracks 4 regimes in a model with simultaneous ZLB and borrowing constraints.</li>
+<li>[ ] Piecewise Kalman Filter estimates structural parameters on synthetic ZLB data, recovering true parameters within 95% confidence intervals.</li>
+</ul>
+<h3 id="phase-d-verification-smc-particle-filter">Phase D Verification (SMC &amp; Particle Filter)</h3>
+<ul>
+<li>[ ] SMC accurately explores a bimodal mixture posterior where standard RWMH gets trapped in a single mode.</li>
+<li>[ ] SMC marginal likelihood estimate matches analytical benchmark on linear-Gaussian DSGE within <span class="arithmatex">\(0.10\)</span> log-points.</li>
+</ul>
+<h3 id="phase-e-verification-nonlinear-ramsey-bgp">Phase E Verification (Nonlinear Ramsey &amp; BGP)</h3>
+<ul>
+<li>[ ] <code>ramsey_model</code> analytically derives the timeless-perspective Taylor principle and optimal price-stabilization commitment rules.</li>
+<li>[ ] Trended RBC model stationarizes automatically and reproduces stationary moments.</li>
+</ul>
+<h3 id="release-standards">Release Standards</h3>
+<ul>
+<li>[ ] 100% pure Python under the Pyodide four-package contract (<code>numpy</code>, <code>scipy</code>, <code>pandas</code>, <code>matplotlib</code> only).</li>
+<li>[ ] Full regression suite passes with 0 failures; <code>tools/release_check.py</code> gates clean.</li>
+<li>[ ] Bilingual documentation synced in <code>docs/</code> and <code>docs/es/</code>.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

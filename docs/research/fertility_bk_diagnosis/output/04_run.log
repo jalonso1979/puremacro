@@ -1,0 +1,19 @@
+influence ranking (range of the boundary-root modulus over sweep):
+  beta     boundary-root range = 0.0979   n_stable==12 at 16/16 points
+  psik     boundary-root range = 0.0765   n_stable==12 at 16/16 points
+  omega    boundary-root range = 0.0581   n_stable==12 at 16/16 points
+  rhon     boundary-root range = 0.0076   n_stable==12 at 16/16 points
+  delta_k  boundary-root range = 0.0037   n_stable==12 at 16/16 points
+  psin     boundary-root range = 0.0001   n_stable==12 at 16/16 points
+  rhoa     boundary-root range = 0.0000   n_stable==12 at 16/16 points
+  rhop     boundary-root range = 0.0000   n_stable==12 at 16/16 points
+
+two most influential: ['beta', 'psik']
+
+2-D grid beta x psik: 441/441 points ROBUSTLY determinate (n_stable=12, margin>1e-3, h-invariant)
+
+port-point rescue sweeps (no SS repair possible there):
+  beta  : n_stable==12 at 0/20 grid points
+  omega : n_stable==12 at 0/20 grid points
+  psik  : n_stable==12 at 0/20 grid points
+  psin  : n_stable==12 at 0/20 grid points

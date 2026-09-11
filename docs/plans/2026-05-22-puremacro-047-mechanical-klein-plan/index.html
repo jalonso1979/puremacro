@@ -1,0 +1,4389 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Production-grade Macroeconometric and Heterogeneous-Agent Structural Modeling Engine in Pure Python">
+      
+      
+        <meta name="author" content="puremacro contributors">
+      
+      
+        <link rel="canonical" href="https://jalonso1979.github.io/puremacro/docs/plans/2026-05-22-puremacro-047-mechanical-klein-plan/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>puremacro 0.47.0 — garch_utils rename + ProxySVAR axis flip + Klein hardening - puremacro</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#puremacro-0470-garch_utils-rename-proxysvar-axis-flip-klein-hardening" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="puremacro" class="md-header__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            puremacro
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              puremacro 0.47.0 — garch_utils rename + ProxySVAR axis flip + Klein hardening
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  
+  English Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../es/" class="md-tabs__link">
+          
+  
+  
+  Documentación en Español
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="puremacro" class="md-nav__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    puremacro
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    English Documentation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    English Documentation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Showcase Notebooks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Correctness advisories
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quarterly National Accounts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-time data (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Long national accounts panel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global Macro Data Ecosystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_6" id="__nav_1_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometric Engines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Econometric Engines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR & FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Narrative Sign Restrictions SVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR with Stochastic Volatility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Smooth Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modern Difference-in-Differences
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Honest DiD Sensitivity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Econometrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global VAR (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Estimation & Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GDP Nowcasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Penalized Forecasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_7" id="__nav_1_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publication & Reporting
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publication & Reporting
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manuscript Tables & Exports
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_8" id="__nav_1_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structural Models
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Structural Models
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sequence-Space HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Non-Linear HANK Transitions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gertler-Karadi (2011) DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Climate Macro (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Sketchpad & Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Higher-Order & Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Parity & Surface Area
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradients, NUTS & HANK Bridge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Frontier (Policy, DSGE-VAR & News)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Non-linear Particle Filtering & Regime Switching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running Anywhere (iPad / browser)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance & Benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_11" id="__nav_1_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replication gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation & goldens
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Connector health
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credentials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cache database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signal contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lexicon review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path to 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentación en Español
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Documentación en Español
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio rápido
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuadernos de demostración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avisos de corrección
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuentas nacionales trimestrales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos en tiempo real (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panel largo de cuentas nacionales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ecosistema de datos macro globales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motores econométricos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Motores econométricos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR y FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SVAR con restricciones narrativas de signo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR con volatilidad estocástica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales suavizadas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias en diferencias modernas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sensibilidad en DiD honesto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometría espacial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR global (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estimación y diagnósticos DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nowcasting del PIB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pronóstico penalizado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publicación e informes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publicación e informes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tablas y exportación de manuscritos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_8" id="__nav_2_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos estructurales
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Modelos estructurales
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HANK en el espacio de secuencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transiciones no lineales en HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de Gertler-Karadi (2011)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomía del clima (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuaderno de bocetos DSGE y Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de orden superior y restricciones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Paridad y superficie operativa DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradientes, NUTS y Puente HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontera DSGE (Política, DSGE-VAR y Noticias)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Filtrado de Partículas No Lineal y Cambio de Régimen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ejecución en cualquier entorno (iPad / navegador)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendimiento y pruebas comparativas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_11" id="__nav_2_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de replicación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validación y referencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estado de conectores
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credenciales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos de caché
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato de señales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de ejemplos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Revisión de léxico
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ruta a 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#file-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#working-directory-convention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Working-directory convention
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-0-pre-flight-branch-creation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 0: Pre-flight + branch creation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-1-a2-rename-lpgarch_utilspy-lp_garch_utilspy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 1: A2 — Rename lp/garch_utils.py → lp/_garch_utils.py
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-2-a3-proxysvarresult-axis-flip-in-_resultspy-proxypy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 2: A3 — ProxySVARResult axis flip in _results.py + proxy.py
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-3-a3-update-3-example-script-callers-examplesnarrative_ramey_2011-exampleshfi_gertler_karadi-examplessvariv_mertens_ravn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 3: A3 — Update 3 example-script callers (examples/narrative_ramey_2011, examples/hfi_gertler_karadi, examples/svariv_mertens_ravn)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-4-a3-update-r1_04-notebook-paired-builder-re-execute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 4: A3 — Update R1_04 notebook + paired builder + re-execute
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-5-c-port-_solve_f_sylvester-into-kleinpy-as-a-z-partition-fallback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 5: C — Port _solve_F_sylvester into klein.py as a Z-partition fallback
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-6-c-smets_wouterspy-retracts-its-local-workaround" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 6: C — smets_wouters.py retracts its local workaround
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-7-version-bump-changelog-final-gate-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 7: Version bump + CHANGELOG + final gate verification
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#self-review-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Self-review notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="puremacro-0470-garch_utils-rename-proxysvar-axis-flip-klein-hardening">puremacro 0.47.0 — garch_utils rename + ProxySVAR axis flip + Klein hardening</h1>
+<blockquote>
+<p><strong>For agentic workers:</strong> REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (<code>- [ ]</code>) syntax for tracking.</p>
+</blockquote>
+<p><strong>Goal:</strong> Close the three remaining items from the consolidate-and-finish spec that survived API verification: rename <code>lp/garch_utils.py</code> → <code>lp/_garch_utils.py</code> (A2), flip <code>ProxySVARResult.irf_point</code> from <code>(n, n, H+1)</code> to <code>(H+1, n, n)</code> to match the other six SVAR result dataclasses (A3), and lift <code>smets_wouters._solve_F_sylvester</code> into <code>dsge/klein.py</code> as a Z-partition-degenerate fallback so SW07 can stop carrying its local workaround (C). Tag as <strong>0.47.0</strong>, gated by <code>tools/release_check.py</code>.</p>
+<p><strong>Architecture:</strong> Three independent tracks land in one release. A2 is mechanical (one rename + three import updates, no behavior change, no notebook re-execution per <code>feedback_builder_clobbers_outputs</code>). A3 changes a public-API return shape; touches <code>_results.py</code>, <code>proxy.py</code>, five example/notebook call sites, R1_04 paired builder, and one new shape-locking unit test. C ports <code>_solve_F_sylvester</code> from SW07 into <code>klein.solve()</code> as a conditional fallback when the Z-partition is degenerate; SW07's local workaround is deleted; the existing 10 SW07 unit tests must remain byte-equal as the regression contract.</p>
+<p><strong>Tech Stack:</strong> Python ≥3.10, numpy/scipy/pandas/matplotlib, pytest, jupyter nbconvert.</p>
+<p><strong>Source spec:</strong> <code>docs/specs/2026-05-22-puremacro-046-047-consolidate-finish-design.md</code> § 0.47.0 (commit <code>a2065ff</code>). A1 (<code>regress/lp.py</code> retirement) is <strong>dropped</strong> from this release per the spec's own "pause and re-spec" clause — API verification confirmed <code>regress.lp_panel</code> and <code>lp.panel.panel_lp</code> differ in signature (<code>shock</code>/<code>unit</code>/<code>date</code> vs <code>x</code>/<code>entity_level</code>/<code>time_level</code>), return columns (<code>horizon</code>/<code>ci_lo</code>/<code>ci_hi</code> vs <code>h</code>/<code>lo</code>/<code>hi</code>), and SE method (Driscoll-Kraay vs cluster-by-entity), so the file is legitimately distinct, not a deferred shim.</p>
+<p><strong>Pre-execution state (HEAD <code>f66c00d</code>, on <code>feature/subnational-labor-uncertainty-us</code>):</strong>
+- 0.46.0 shipped, <code>tools/release_check.py</code> is the pre-tag gate.
+- Current versions: <code>pyproject.toml</code>, <code>puremacro/__init__.py::__version__</code>, <code>CHANGELOG.md</code> first heading all <code>0.46.0</code>.
+- <code>tests/known_failures.json</code> entries: <code>[]</code> (empty).
+- Full-suite test count: 1304 passed, 21 skipped, 31 deselected.
+- Verified API surfaces (2026-05-22):
+  - <code>puremacro.var.identify._results.ProxySVARResult.irf_point: shape (n, n, H+1)</code> — currently the lone outlier; other six <code>*Result</code> dataclasses use <code>(H+1, n, n)</code>.
+  - <code>puremacro.var.identify._results.ProxySVARResult.__post_init__</code> reads <code>H = self.irf_point.shape[2] - 1</code>.
+  - <code>puremacro.var.identify.proxy.proxy_svar</code> builds <code>point, lo, hi = wild_bootstrap_var(...)</code> (shape <code>(n, n, H+1)</code>) and passes them straight into <code>ProxySVARResult(...)</code>.
+  - <code>wild_bootstrap_var</code> lives at <code>puremacro/inference/wild_bootstrap.py:59</code>. Used by other identifications too — do NOT change its return shape; transpose in <code>proxy.py</code> only.
+  - <code>puremacro.lp.garch_utils</code> exports <code>fit_garch</code>, <code>make_regime_indicator</code>, <code>align_series_for_lp</code>.
+  - Active callers of <code>garch_utils</code> (3 sites, repo-wide grep verified): <code>tests/test_garch_utils.py:10</code>, <code>notebooks/R1_methods/R1_02_lp_menu.ipynb</code> (one cell), <code>tools/make_notebook_R1_02.py:114</code>.
+  - <code>puremacro.dsge.klein.klein_solve(A, B, n_pre, C=None, *, strict=False) -&gt; KleinSolution(G, F, N, L, eu, eigenvalues)</code>. Z-partition logic at <code>puremacro/dsge/klein.py:165-200</code>. The <code>G = Z11 @ inv(S11) @ T11 @ inv(Z11)</code> formula is verified at machine precision for SW07; the corruption is in <code>F</code>, not <code>G</code>.
+  - <code>puremacro.dsge.smets_wouters._solve_F_sylvester(G0, G1, G_x)</code> — 90 LOC private function at <code>puremacro/dsge/smets_wouters.py:683-770</code>, recovers <code>F</code> from the equilibrium Sylvester equation when Klein's closed-form F is corrupted by unit-eigenvalue lag states. Residual ~9e-15 per the existing docstring.
+  - SW07 has 10 regression tests in <code>tests/test_dsge_smets_wouters.py</code> (consumption-Euler coefficients, BK condition, qualitative IRFs, growth-rate IRFs, unit-sd impact values). These are the byte-equal regression contract for the C track.</p>
+<hr />
+<h2 id="file-structure">File structure</h2>
+<p><strong>Modified (rename + content):</strong>
+- <code>puremacro/lp/garch_utils.py</code> → <code>puremacro/lp/_garch_utils.py</code> (rename, no content change — Task 1).
+- <code>puremacro/var/identify/_results.py</code> — <code>ProxySVARResult</code> docstring shapes + <code>__post_init__</code> axis-extraction (Task 2).
+- <code>puremacro/var/identify/proxy.py</code> — transpose <code>point</code>, <code>lo</code>, <code>hi</code> from <code>(n, n, H+1)</code> to <code>(H+1, n, n)</code> before constructing <code>ProxySVARResult</code> (Task 2).
+- <code>puremacro/examples/narrative_ramey_2011.py</code> — 3 caller lines (Task 3).
+- <code>puremacro/examples/hfi_gertler_karadi.py</code> — 1 caller line (Task 3).
+- <code>puremacro/examples/svariv_mertens_ravn.py</code> — 2 caller lines (Task 3).
+- <code>puremacro/dsge/klein.py</code> — add condition-number check + <code>_solve_F_sylvester_fallback</code> (Task 5).
+- <code>puremacro/dsge/smets_wouters.py</code> — delete local <code>_solve_F_sylvester</code>; call <code>klein_solve</code> directly (Task 6).
+- <code>tests/test_garch_utils.py</code> — import-path update (Task 1).
+- <code>tools/make_notebook_R1_02.py</code> — import-path update (Task 1).
+- <code>tools/make_notebook_R1_04.py</code> — proxy_svar caller updates if any, paired with R1_04 notebook edits (Task 4).
+- <code>notebooks/R1_methods/R1_02_lp_menu.ipynb</code> — single import cell update via <code>NotebookEdit</code> (Task 1).
+- <code>notebooks/R1_methods/R1_04_dsge_compare.ipynb</code> — 10 mentions of proxy_svar/irf_point/ProxySVAR; cell edits + re-execution via paired builder (Task 4).</p>
+<p><strong>Created:</strong>
+- New test <code>tests/test_var/test_proxy_axis.py</code> — asserts <code>ProxySVARResult.irf_point.shape == (H+1, n, n)</code> (Task 2).
+- New test <code>tests/test_dsge/test_klein_unit_eigenvalue_fallback.py</code> — synthetic system with multiple unit-eigenvalue lag states verifies the Sylvester branch triggers + equilibrium residual ≤ 1e-13 (Task 5).</p>
+<p><strong>Untouched:</strong>
+- <code>puremacro/regress/lp.py</code> — A1 dropped from scope.
+- <code>puremacro/lp/garch_utils.py</code> content (only the filename changes; symbols stay public-by-existence).
+- Other VAR identification result classes (<code>CholeskySVARResult</code>, <code>BQSVARResult</code>, <code>SignSVARResult</code>, etc.) — already on the <code>(H+1, n, n)</code> convention.
+- <code>puremacro/inference/wild_bootstrap.py::wild_bootstrap_var</code> — shared by other identifications; do not change its return shape, transpose locally in <code>proxy.py</code>.</p>
+<hr />
+<h2 id="working-directory-convention">Working-directory convention</h2>
+<p>All paths below are relative to the <strong>repo root</strong>:</p>
+<p><code>/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples/</code></p>
+<p>Within that root: <code>puremacro/</code> is the package, <code>tests/</code>, <code>tools/</code>, <code>notebooks/</code> are the outer-repo siblings. Some tasks (Task 1's test, the gate run) operate against <code>puremacro/tests/test_pyodide_compat.py</code>; others (Task 1's notebook cell, Task 4's R1_04) operate against the outer <code>tests/test_garch_utils.py</code> and <code>notebooks/R1_methods/</code>. <strong>Pay attention to which <code>tests/</code> directory each step references.</strong></p>
+<hr />
+<h2 id="task-0-pre-flight-branch-creation">Task 0: Pre-flight + branch creation</h2>
+<ul>
+<li>[ ] <strong>Step 1: Verify clean state (puremacro subtree only)</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples"</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>git<span class="w"> </span>status<span class="w"> </span>--short<span class="w"> </span>puremacro/<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-10
+</code></pre></div>
+<p>Expected: empty (no modifications). The outer repo has many pre-existing <code>M</code> and <code>??</code> entries under <code>docs/paper/</code> and <code>notebooks/output_*/</code> — those are fine and pre-existing.</p>
+<ul>
+<li>[ ] <strong>Step 2: Confirm HEAD on feature/subnational-labor-uncertainty-us</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>git<span class="w"> </span>log<span class="w"> </span>--oneline<span class="w"> </span>-1
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>git<span class="w"> </span>branch<span class="w"> </span>--show-current
+</code></pre></div>
+<p>Expected: HEAD on <code>feature/subnational-labor-uncertainty-us</code>, top commit <code>f66c00d fix(0.46.0): CHANGELOG cosmetic — drop incidental test count</code>.</p>
+<ul>
+<li>[ ] <strong>Step 3: Confirm release-gate is green at this baseline</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>python<span class="w"> </span>puremacro/tools/release_check.py
+</code></pre></div>
+<p>Expected: exit 0, all 4 gates PASS. If not, <strong>stop and fix</strong> — 0.47.0 must start from a clean baseline.</p>
+<ul>
+<li>[ ] <strong>Step 4: Create the release branch</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>release/0.47.0
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>git<span class="w"> </span>branch<span class="w"> </span>--show-current
+</code></pre></div>
+<p>Expected: <code>release/0.47.0</code>.</p>
+<ul>
+<li>[ ] <strong>Step 5: No commit yet</strong> — Task 0 is verification only.</li>
+</ul>
+<hr />
+<h2 id="task-1-a2-rename-lpgarch_utilspy-lp_garch_utilspy">Task 1: A2 — Rename <code>lp/garch_utils.py</code> → <code>lp/_garch_utils.py</code></h2>
+<p>Mechanical rename. No content change. No notebook re-execution. Three import sites update in lockstep with the <code>git mv</code>.</p>
+<ul>
+<li>[ ] <strong>Step 1: <code>git mv</code> the file</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples"</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>git<span class="w"> </span>mv<span class="w"> </span>puremacro/puremacro/lp/garch_utils.py<span class="w"> </span>puremacro/puremacro/lp/_garch_utils.py
+</code></pre></div>
+<p>Verify:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>ls<span class="w"> </span>puremacro/puremacro/lp/garch_utils.py<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w">   </span><span class="c1"># should NOT exist</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>ls<span class="w"> </span>puremacro/puremacro/lp/_garch_utils.py<span class="w">        </span><span class="c1"># should exist</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Update <code>tests/test_garch_utils.py:10</code></strong></li>
+</ul>
+<p>Replace:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.lp.garch_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">fit_garch</span><span class="p">,</span> <span class="n">make_regime_indicator</span><span class="p">,</span> <span class="n">align_series_for_lp</span>
+</code></pre></div>
+<p>With:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.lp._garch_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">fit_garch</span><span class="p">,</span> <span class="n">make_regime_indicator</span><span class="p">,</span> <span class="n">align_series_for_lp</span>
+</code></pre></div>
+<p>Use <code>Edit</code> on <code>tests/test_garch_utils.py</code>. Do NOT rename the test file — the test name remains <code>test_garch_utils.py</code> (it tests the helpers; the underscore in the module is an internal-organization signal, not a test-name change).</p>
+<ul>
+<li>[ ] <strong>Step 3: Update <code>tools/make_notebook_R1_02.py:114</code></strong></li>
+</ul>
+<p>Find the line:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>        <span class="s2">"from puremacro.lp.garch_utils import fit_garch, make_regime_indicator        # §6/§7</span><span class="se">\n</span><span class="s2">"</span>
+</code></pre></div>
+<p>Replace with:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>        <span class="s2">"from puremacro.lp._garch_utils import fit_garch, make_regime_indicator        # §6/§7</span><span class="se">\n</span><span class="s2">"</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 4: Update <code>notebooks/R1_methods/R1_02_lp_menu.ipynb</code> — single import cell</strong></li>
+</ul>
+<p>There is exactly one cell whose source contains <code>from puremacro.lp.garch_utils import</code>. Use the <code>NotebookEdit</code> tool (deferred — load with <code>ToolSearch query="select:NotebookEdit"</code>). Patch that cell's source line to read <code>from puremacro.lp._garch_utils import …</code>. <strong>Do NOT re-execute the notebook.</strong> Per memory pin <code>feedback_builder_clobbers_outputs</code>: "Renames + path edits: do NOT run the builder; <code>git mv</code> is enough." The executed outputs in the <code>.ipynb</code> are preserved as-is; only the source-cell import line changes.</p>
+<ul>
+<li>[ ] <strong>Step 5: Run the test that uses the renamed module</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples/puremacro"</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>../tests/test_garch_utils.py<span class="w"> </span>-v
+</code></pre></div>
+<p>Expected: all tests in <code>test_garch_utils.py</code> pass (the test exercises <code>fit_garch</code>, <code>make_regime_indicator</code>, <code>align_series_for_lp</code>; behavior is unchanged).</p>
+<ul>
+<li>[ ] <strong>Step 6: Run the gate</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>python<span class="w"> </span>tools/release_check.py<span class="w"> </span>--no-tests
+</code></pre></div>
+<p>Expected: exit 0. (Gate 3 will diff the public-API snapshot — <code>garch_utils</code> was not in <code>__all__</code> of <code>lp/__init__.py</code>, so the snapshot is unaffected by the rename. If the snapshot diff fires unexpectedly, stop and investigate.)</p>
+<ul>
+<li>[ ] <strong>Step 7: Commit</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples"</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>git<span class="w"> </span>add<span class="w"> </span>puremacro/puremacro/lp/_garch_utils.py<span class="w"> </span>tests/test_garch_utils.py<span class="w"> </span>tools/make_notebook_R1_02.py<span class="w"> </span>notebooks/R1_methods/R1_02_lp_menu.ipynb
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="c1"># Note: the rename shows as a delete+add in `git status` until staged; `git mv` records it as a rename in `git diff --stat`.</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="s">refactor(0.47.0): rename lp/garch_utils.py → lp/_garch_utils.py</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="s">Signals "internal helper" via leading underscore. No content change.</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="s">3 import sites updated: tests/test_garch_utils.py, tools/make_notebook_R1_02.py,</span>
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="s">notebooks/R1_methods/R1_02_lp_menu.ipynb (source cell, no re-execution per</span>
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="s">feedback_builder_clobbers_outputs).</span>
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>
+<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="s">Co-Authored-By: Claude Opus 4.7 (1M context) &lt;noreply@anthropic.com&gt;</span>
+<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a><span class="s">EOF</span>
+<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a><span class="k">)</span><span class="s2">"</span>
+</code></pre></div>
+<hr />
+<h2 id="task-2-a3-proxysvarresult-axis-flip-in-_resultspy-proxypy">Task 2: A3 — <code>ProxySVARResult</code> axis flip in <code>_results.py</code> + <code>proxy.py</code></h2>
+<p>These two files MUST land in one atomic commit. Changing <code>_results.py::__post_init__</code>'s <code>shape[2]</code> → <code>shape[0]</code> without simultaneously transposing in <code>proxy.py</code> would crash every <code>ProxySVARResult</code> construction.</p>
+<ul>
+<li>[ ] <strong>Step 1: Write the failing shape-lock test</strong></li>
+</ul>
+<p>Create <code>tests/test_var/test_proxy_axis.py</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="sd">"""Axis-convention regression test for ProxySVARResult.</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="sd">Locks the contract: irf_point / irf_lower / irf_upper are shape (H+1, n, n),</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="sd">matching the other six *Result dataclasses in var/identify/_results.py.</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="sd">"""</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.var.identify.proxy</span><span class="w"> </span><span class="kn">import</span> <span class="n">proxy_svar</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>
+<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span>
+<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="k">def</span><span class="w"> </span><span class="nf">small_svar_inputs</span><span class="p">():</span>
+<a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a>    <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">2026</span><span class="p">)</span>
+<a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a>    <span class="n">n</span> <span class="o">=</span> <span class="mi">3</span>
+<a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a>    <span class="n">T</span> <span class="o">=</span> <span class="mi">200</span>
+<a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a>    <span class="c1"># Generate a small VAR(1) with a clean shock.</span>
+<a id="__codelineno-13-18" name="__codelineno-13-18" href="#__codelineno-13-18"></a>    <span class="n">A</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<a id="__codelineno-13-19" name="__codelineno-13-19" href="#__codelineno-13-19"></a>    <span class="n">eps</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">((</span><span class="n">T</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+<a id="__codelineno-13-20" name="__codelineno-13-20" href="#__codelineno-13-20"></a>    <span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">T</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+<a id="__codelineno-13-21" name="__codelineno-13-21" href="#__codelineno-13-21"></a>    <span class="n">Y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">eps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-13-22" name="__codelineno-13-22" href="#__codelineno-13-22"></a>    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">T</span><span class="p">):</span>
+<a id="__codelineno-13-23" name="__codelineno-13-23" href="#__codelineno-13-23"></a>        <span class="n">Y</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">A</span> <span class="o">@</span> <span class="n">Y</span><span class="p">[</span><span class="n">t</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">eps</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+<a id="__codelineno-13-24" name="__codelineno-13-24" href="#__codelineno-13-24"></a>    <span class="c1"># Proxy correlates with eps[:, 0].</span>
+<a id="__codelineno-13-25" name="__codelineno-13-25" href="#__codelineno-13-25"></a>    <span class="n">z</span> <span class="o">=</span> <span class="n">eps</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.2</span> <span class="o">*</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+<a id="__codelineno-13-26" name="__codelineno-13-26" href="#__codelineno-13-26"></a>    <span class="k">return</span> <span class="n">Y</span><span class="p">,</span> <span class="n">z</span>
+<a id="__codelineno-13-27" name="__codelineno-13-27" href="#__codelineno-13-27"></a>
+<a id="__codelineno-13-28" name="__codelineno-13-28" href="#__codelineno-13-28"></a>
+<a id="__codelineno-13-29" name="__codelineno-13-29" href="#__codelineno-13-29"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_proxy_svar_irf_point_shape</span><span class="p">(</span><span class="n">small_svar_inputs</span><span class="p">):</span>
+<a id="__codelineno-13-30" name="__codelineno-13-30" href="#__codelineno-13-30"></a>    <span class="n">Y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">small_svar_inputs</span>
+<a id="__codelineno-13-31" name="__codelineno-13-31" href="#__codelineno-13-31"></a>    <span class="n">H</span> <span class="o">=</span> <span class="mi">8</span>
+<a id="__codelineno-13-32" name="__codelineno-13-32" href="#__codelineno-13-32"></a>    <span class="n">res</span> <span class="o">=</span> <span class="n">proxy_svar</span><span class="p">(</span><span class="n">Y</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="n">H</span><span class="p">,</span> <span class="n">instrument_series</span><span class="o">=</span><span class="n">z</span><span class="p">,</span> <span class="n">n_boot</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">ci</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-13-33" name="__codelineno-13-33" href="#__codelineno-13-33"></a>    <span class="k">assert</span> <span class="n">res</span><span class="o">.</span><span class="n">irf_point</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">H</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">Y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">Y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<a id="__codelineno-13-34" name="__codelineno-13-34" href="#__codelineno-13-34"></a>    <span class="k">assert</span> <span class="n">res</span><span class="o">.</span><span class="n">irf_lower</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">H</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">Y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">Y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<a id="__codelineno-13-35" name="__codelineno-13-35" href="#__codelineno-13-35"></a>    <span class="k">assert</span> <span class="n">res</span><span class="o">.</span><span class="n">irf_upper</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">H</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">Y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">Y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+</code></pre></div>
+<p>If the <code>tests/test_var/</code> directory does not yet exist, create it with an empty <code>__init__.py</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>mkdir<span class="w"> </span>-p<span class="w"> </span>puremacro/tests/test_var
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>touch<span class="w"> </span>puremacro/tests/test_var/__init__.py<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+</code></pre></div>
+<p>(Check first: <code>ls puremacro/tests/test_var/</code> — if it exists already, skip the mkdir.)</p>
+<ul>
+<li>[ ] <strong>Step 2: Run the test to verify it fails</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples/puremacro"</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>puremacro/tests/test_var/test_proxy_axis.py<span class="w"> </span>-v
+</code></pre></div>
+<p>Expected: 1 FAILED with shape mismatch — current shape is <code>(n, n, H+1)</code> = <code>(3, 3, 9)</code>, not <code>(H+1, n, n)</code> = <code>(9, 3, 3)</code>.</p>
+<ul>
+<li>[ ] <strong>Step 3: Update <code>puremacro/var/identify/_results.py::ProxySVARResult</code></strong></li>
+</ul>
+<p>Change the three shape docstrings:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>    <span class="n">irf_point</span> <span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">shape</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">H</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>    <span class="n">irf_lower</span> <span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">shape</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">H</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>    <span class="n">irf_upper</span> <span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">shape</span> <span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">H</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+</code></pre></div>
+<p>To:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>    <span class="n">irf_point</span> <span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">shape</span> <span class="p">(</span><span class="n">H</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>    <span class="n">irf_lower</span> <span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">shape</span> <span class="p">(</span><span class="n">H</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>    <span class="n">irf_upper</span> <span class="p">:</span> <span class="n">ndarray</span><span class="p">,</span> <span class="n">shape</span> <span class="p">(</span><span class="n">H</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+</code></pre></div>
+<p>Update <code>__post_init__</code> shape extraction. Find:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">B</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>        <span class="n">H</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">irf_point</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+</code></pre></div>
+<p>Replace with:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>        <span class="n">H</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">irf_point</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">irf_point</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+</code></pre></div>
+<p>(Note: <code>self.B.shape[0]</code> is still <code>n</code>, but using <code>irf_point.shape[1]</code> keeps the shape-extraction logic uniform with the other six result classes. Verify by reading <code>CholeskySVARResult.__post_init__</code> for the pattern.)</p>
+<ul>
+<li>[ ] <strong>Step 4: Update <code>puremacro/var/identify/proxy.py</code> — transpose at the return</strong></li>
+</ul>
+<p>In <code>proxy_svar</code>, after the <code>wild_bootstrap_var</code> call returns <code>point, lo, hi</code>, transpose each from <code>(n, n, H+1)</code> to <code>(H+1, n, n)</code>. The existing call:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>    <span class="n">point</span><span class="p">,</span> <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span> <span class="o">=</span> <span class="n">wild_bootstrap_var</span><span class="p">(</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>        <span class="n">Y</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="n">horizon</span><span class="p">,</span> <span class="n">impact_fn</span><span class="o">=</span><span class="n">impact_fn</span><span class="p">,</span>
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>        <span class="n">n_boot</span><span class="o">=</span><span class="n">n_boot</span><span class="p">,</span> <span class="n">ci</span><span class="o">=</span><span class="n">ci</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>    <span class="p">)</span>
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>    <span class="k">return</span> <span class="n">ProxySVARResult</span><span class="p">(</span>
+<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>        <span class="n">irf_point</span><span class="o">=</span><span class="n">point</span><span class="p">,</span>
+<a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a>        <span class="n">irf_lower</span><span class="o">=</span><span class="n">lo</span><span class="p">,</span>
+<a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a>        <span class="n">irf_upper</span><span class="o">=</span><span class="n">hi</span><span class="p">,</span>
+<a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a>        <span class="o">...</span>
+<a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a>    <span class="p">)</span>
+</code></pre></div>
+<p>Becomes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>    <span class="n">point</span><span class="p">,</span> <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span> <span class="o">=</span> <span class="n">wild_bootstrap_var</span><span class="p">(</span>
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>        <span class="n">Y</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="n">horizon</span><span class="p">,</span> <span class="n">impact_fn</span><span class="o">=</span><span class="n">impact_fn</span><span class="p">,</span>
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>        <span class="n">n_boot</span><span class="o">=</span><span class="n">n_boot</span><span class="p">,</span> <span class="n">ci</span><span class="o">=</span><span class="n">ci</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>    <span class="p">)</span>
+<a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>    <span class="c1"># wild_bootstrap_var returns (n, n, H+1); canonical *Result convention is (H+1, n, n).</span>
+<a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>    <span class="c1"># See puremacro/var/identify/_results.py for the project-wide axis convention.</span>
+<a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a>    <span class="n">point</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">point</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a>    <span class="n">lo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">lo</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a>    <span class="n">hi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">hi</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a>    <span class="k">return</span> <span class="n">ProxySVARResult</span><span class="p">(</span>
+<a id="__codelineno-21-11" name="__codelineno-21-11" href="#__codelineno-21-11"></a>        <span class="n">irf_point</span><span class="o">=</span><span class="n">point</span><span class="p">,</span>
+<a id="__codelineno-21-12" name="__codelineno-21-12" href="#__codelineno-21-12"></a>        <span class="n">irf_lower</span><span class="o">=</span><span class="n">lo</span><span class="p">,</span>
+<a id="__codelineno-21-13" name="__codelineno-21-13" href="#__codelineno-21-13"></a>        <span class="n">irf_upper</span><span class="o">=</span><span class="n">hi</span><span class="p">,</span>
+<a id="__codelineno-21-14" name="__codelineno-21-14" href="#__codelineno-21-14"></a>        <span class="o">...</span>
+<a id="__codelineno-21-15" name="__codelineno-21-15" href="#__codelineno-21-15"></a>    <span class="p">)</span>
+</code></pre></div>
+<p><code>np</code> must be imported in <code>proxy.py</code> — it should already be (the file uses <code>np.asarray</code> and <code>np.zeros</code>). Verify with <code>grep "^import numpy" puremacro/puremacro/var/identify/proxy.py</code> first.</p>
+<ul>
+<li>[ ] <strong>Step 5: Verify the shape test now passes</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples/puremacro"</span>
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>puremacro/tests/test_var/test_proxy_axis.py<span class="w"> </span>-v
+</code></pre></div>
+<p>Expected: 1 PASSED.</p>
+<ul>
+<li>[ ] <strong>Step 6: Confirm no other test regressed</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>puremacro/tests/test_var/<span class="w"> </span>puremacro/tests/test_cholesky_shocks.py<span class="w"> </span>-v<span class="w"> </span>--tb<span class="o">=</span>short<span class="w"> </span>-q<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-10
+</code></pre></div>
+<p>Expected: all green. If anything regresses, root-cause it — likely an existing test indexed <code>irf_point[i, j, h]</code> and now needs <code>irf_point[h, i, j]</code>.</p>
+<ul>
+<li>[ ] <strong>Step 7: Commit (Task 2 atomic — <code>_results.py</code> + <code>proxy.py</code> + new test)</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples"</span>
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>git<span class="w"> </span>add<span class="w"> </span>puremacro/puremacro/var/identify/_results.py<span class="w"> </span>puremacro/puremacro/var/identify/proxy.py<span class="w"> </span>puremacro/puremacro/tests/test_var/__init__.py<span class="w"> </span>puremacro/puremacro/tests/test_var/test_proxy_axis.py
+<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="s">breaking(0.47.0): ProxySVARResult axis flip — (n,n,H+1) → (H+1,n,n)</span>
+<a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>
+<a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a><span class="s">Aligns with the other six *Result dataclasses in var/identify/_results.py.</span>
+<a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a><span class="s">proxy.py transposes wild_bootstrap_var's output before construction.</span>
+<a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a><span class="s">_results.py docstrings + __post_init__ updated. New shape-lock test under</span>
+<a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a><span class="s">tests/test_var/test_proxy_axis.py.</span>
+<a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a>
+<a id="__codelineno-24-11" name="__codelineno-24-11" href="#__codelineno-24-11"></a><span class="s">Caller updates (5 example/notebook files) land in the next commit.</span>
+<a id="__codelineno-24-12" name="__codelineno-24-12" href="#__codelineno-24-12"></a>
+<a id="__codelineno-24-13" name="__codelineno-24-13" href="#__codelineno-24-13"></a><span class="s">Co-Authored-By: Claude Opus 4.7 (1M context) &lt;noreply@anthropic.com&gt;</span>
+<a id="__codelineno-24-14" name="__codelineno-24-14" href="#__codelineno-24-14"></a><span class="s">EOF</span>
+<a id="__codelineno-24-15" name="__codelineno-24-15" href="#__codelineno-24-15"></a><span class="k">)</span><span class="s2">"</span>
+</code></pre></div>
+<hr />
+<h2 id="task-3-a3-update-3-example-script-callers-examplesnarrative_ramey_2011-exampleshfi_gertler_karadi-examplessvariv_mertens_ravn">Task 3: A3 — Update 3 example-script callers (<code>examples/narrative_ramey_2011</code>, <code>examples/hfi_gertler_karadi</code>, <code>examples/svariv_mertens_ravn</code>)</h2>
+<p>Three files, six lines total, all index <code>irf_point</code> with the old axis order.</p>
+<ul>
+<li>[ ] <strong>Step 1: Update <code>puremacro/examples/narrative_ramey_2011.py:126</code></strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>    <span class="c1"># proxy_svar returns shape (n, n, H+1): [response_var, shock_var, h]</span>
+</code></pre></div>
+<p>Becomes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>    <span class="c1"># proxy_svar returns shape (H+1, n, n): [h, response_var, shock_var]</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Update <code>puremacro/examples/narrative_ramey_2011.py:133</code></strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   h=</span><span class="si">{</span><span class="n">h</span><span class="si">:</span><span class="s2">&gt;2d</span><span class="si">}</span><span class="s2">q : </span><span class="si">{</span><span class="n">irf_point</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">h</span><span class="p">]</span><span class="si">:</span><span class="s2">+.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div>
+<p>Becomes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"   h=</span><span class="si">{</span><span class="n">h</span><span class="si">:</span><span class="s2">&gt;2d</span><span class="si">}</span><span class="s2">q : </span><span class="si">{</span><span class="n">irf_point</span><span class="p">[</span><span class="n">h</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">+.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 3: Update <code>puremacro/examples/narrative_ramey_2011.py:143</code></strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">h_arr</span><span class="p">,</span> <span class="n">irf_point</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:],</span> <span class="n">color</span><span class="o">=</span><span class="s2">"0.0"</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+</code></pre></div>
+<p>Becomes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">h_arr</span><span class="p">,</span> <span class="n">irf_point</span><span class="p">[:,</span> <span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">"0.0"</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 4: Update <code>puremacro/examples/hfi_gertler_karadi.py:59</code></strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">horizons</span><span class="p">,</span> <span class="n">res</span><span class="o">.</span><span class="n">irf_point</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:],</span> <span class="s2">"b-"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"point"</span><span class="p">)</span>
+</code></pre></div>
+<p>Becomes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">horizons</span><span class="p">,</span> <span class="n">res</span><span class="o">.</span><span class="n">irf_point</span><span class="p">[:,</span> <span class="n">j</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="s2">"b-"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"point"</span><span class="p">)</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 5: Update <code>puremacro/examples/svariv_mertens_ravn.py:113</code></strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>    <span class="o">-</span> <span class="err">``</span><span class="n">irf_point</span><span class="err">``</span> <span class="p">:</span> <span class="n">ndarray</span> <span class="err">``</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">H</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="err">``</span> <span class="kn">from</span><span class="w"> </span><span class="err">``</span><span class="n">proxy_svar</span><span class="err">``</span><span class="o">.</span>
+</code></pre></div>
+<p>Becomes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>    <span class="o">-</span> <span class="err">``</span><span class="n">irf_point</span><span class="err">``</span> <span class="p">:</span> <span class="n">ndarray</span> <span class="err">``</span><span class="p">(</span><span class="n">H</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span><span class="err">``</span> <span class="kn">from</span><span class="w"> </span><span class="err">``</span><span class="n">proxy_svar</span><span class="err">``</span><span class="o">.</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 6: Update <code>puremacro/examples/svariv_mertens_ravn.py:154</code></strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a>    <span class="n">recovered_path</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">irf_point</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span>
+</code></pre></div>
+<p>Becomes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a>    <span class="n">recovered_path</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">irf_point</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 7: Smoke-run one example to verify it doesn't blow up on import / docstring inconsistency</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples/puremacro"</span>
+<a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"import puremacro.examples.narrative_ramey_2011; import puremacro.examples.hfi_gertler_karadi; import puremacro.examples.svariv_mertens_ravn; print('imports OK')"</span>
+</code></pre></div>
+<p>Expected: <code>imports OK</code>. (We are NOT running the full examples — they fetch data and take minutes. Just verifying the modules import.)</p>
+<ul>
+<li>[ ] <strong>Step 8: Commit</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples"</span>
+<a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a>git<span class="w"> </span>add<span class="w"> </span>puremacro/puremacro/examples/narrative_ramey_2011.py<span class="w"> </span>puremacro/puremacro/examples/hfi_gertler_karadi.py<span class="w"> </span>puremacro/puremacro/examples/svariv_mertens_ravn.py
+<a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+<a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a><span class="s">breaking(0.47.0): update 3 example callers for ProxySVARResult axis flip</span>
+<a id="__codelineno-38-5" name="__codelineno-38-5" href="#__codelineno-38-5"></a>
+<a id="__codelineno-38-6" name="__codelineno-38-6" href="#__codelineno-38-6"></a><span class="s">narrative_ramey_2011 (3 sites), hfi_gertler_karadi (1), svariv_mertens_ravn</span>
+<a id="__codelineno-38-7" name="__codelineno-38-7" href="#__codelineno-38-7"></a><span class="s">(2) — all index irf_point with the new (H+1, n, n) axis order.</span>
+<a id="__codelineno-38-8" name="__codelineno-38-8" href="#__codelineno-38-8"></a>
+<a id="__codelineno-38-9" name="__codelineno-38-9" href="#__codelineno-38-9"></a><span class="s">Co-Authored-By: Claude Opus 4.7 (1M context) &lt;noreply@anthropic.com&gt;</span>
+<a id="__codelineno-38-10" name="__codelineno-38-10" href="#__codelineno-38-10"></a><span class="s">EOF</span>
+<a id="__codelineno-38-11" name="__codelineno-38-11" href="#__codelineno-38-11"></a><span class="k">)</span><span class="s2">"</span>
+</code></pre></div>
+<hr />
+<h2 id="task-4-a3-update-r1_04-notebook-paired-builder-re-execute">Task 4: A3 — Update R1_04 notebook + paired builder + re-execute</h2>
+<p>R1_04_dsge_compare.ipynb has 10 mentions of proxy_svar/irf_point/ProxySVAR. The paired builder is <code>tools/make_notebook_R1_04.py</code>. Per memory pins <code>feedback_notebook_builders_paired</code> and <code>feedback_builder_clobbers_outputs</code>: source-cell changes that alter behavior require re-execution; both the <code>.ipynb</code> and the builder must be patched in the same commit.</p>
+<ul>
+<li>[ ] <strong>Step 1: Audit which lines in the notebook use the old axis order</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples"</span>
+<a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a>grep<span class="w"> </span>-n<span class="w"> </span><span class="s2">"irf_point\|proxy_svar\|ProxySVAR"</span><span class="w"> </span>notebooks/R1_methods/R1_04_dsge_compare.ipynb<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20
+</code></pre></div>
+<p>Expected: 10 hits (verified pre-plan-write). Some are docstring/markdown mentions (no code change); some are slicing patterns like <code>[i, 0, :]</code> or <code>[:, j, k]</code> that need flipping.</p>
+<p>For each hit:
+- If it's a markdown / comment mentioning shape, update the shape annotation.
+- If it's <code>irf_point[i, j, h]</code> (positional indexing), flip to <code>irf_point[h, i, j]</code>.
+- If it's <code>irf_point[i, j, :]</code> (all horizons), flip to <code>irf_point[:, i, j]</code>.
+- If it's <code>irf_point[:, i, j]</code> (sweep over horizons under the OLD convention — meaning "for each response var, take fixed shock j at fixed h=j"), the meaning is genuinely different under the new convention. <strong>Pause and ask before changing.</strong> This is a semantic ambiguity, not a mechanical rewrite.</p>
+<p>Build a per-line rewrite map BEFORE editing.</p>
+<ul>
+<li>[ ] <strong>Step 2: Apply the rewrite map to both <code>notebooks/R1_methods/R1_04_dsge_compare.ipynb</code> (via <code>NotebookEdit</code>) and <code>tools/make_notebook_R1_04.py</code> (via <code>Edit</code>)</strong></li>
+</ul>
+<p>Both files must be updated in lockstep. The builder generates the notebook; if you patch only the <code>.ipynb</code>, the next builder run silently overwrites your edits (per <code>feedback_notebook_builders_paired</code>).</p>
+<p>For each cell containing changed <code>irf_point</code> indexing:
+- <code>NotebookEdit</code> on the live <code>.ipynb</code> to update the cell source.
+- <code>Edit</code> on <code>tools/make_notebook_R1_04.py</code> to update the corresponding source string that builder emits.</p>
+<ul>
+<li>[ ] <strong>Step 3: Re-execute R1_04 via the paired builder + nbconvert</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples"</span>
+<a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a><span class="c1"># Per feedback_long_nbconvert_no_subagent: run in the controller's background, not a subagent.</span>
+<a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a>jupyter<span class="w"> </span>nbconvert<span class="w"> </span>--to<span class="w"> </span>notebook<span class="w"> </span>--execute<span class="w"> </span>--inplace<span class="w"> </span>notebooks/R1_methods/R1_04_dsge_compare.ipynb<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-20
+</code></pre></div>
+<p>Expected: nbconvert completes without errors. Time: depends on R1_04's content; if it does bootstraps, could be 5-20 minutes. If &gt;5 min, run in background and wait for notification.</p>
+<p>If a cell errors out during execution, the rewrite map missed a site. Stop, root-cause, fix, re-execute.</p>
+<ul>
+<li>[ ] <strong>Step 4: Diff the executed notebook to confirm only intended cells changed</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a>git<span class="w"> </span>diff<span class="w"> </span>--stat<span class="w"> </span>notebooks/R1_methods/R1_04_dsge_compare.ipynb
+</code></pre></div>
+<p>Expected: source cell changes match the rewrite map; output cells changed only for cells that re-ran (numerical values may differ slightly within tolerance — pin seeds if the builder supports it).</p>
+<ul>
+<li>[ ] <strong>Step 5: Commit (paired)</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a>git<span class="w"> </span>add<span class="w"> </span>notebooks/R1_methods/R1_04_dsge_compare.ipynb<span class="w"> </span>tools/make_notebook_R1_04.py
+<a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+<a id="__codelineno-42-3" name="__codelineno-42-3" href="#__codelineno-42-3"></a><span class="s">breaking(0.47.0): R1_04 + paired builder migrated to ProxySVARResult (H+1,n,n)</span>
+<a id="__codelineno-42-4" name="__codelineno-42-4" href="#__codelineno-42-4"></a>
+<a id="__codelineno-42-5" name="__codelineno-42-5" href="#__codelineno-42-5"></a><span class="s">10 source-cell sites flipped from irf_point[i,j,h]-style to irf_point[h,i,j]-style.</span>
+<a id="__codelineno-42-6" name="__codelineno-42-6" href="#__codelineno-42-6"></a><span class="s">Notebook re-executed via jupyter nbconvert --execute. Builder updated in</span>
+<a id="__codelineno-42-7" name="__codelineno-42-7" href="#__codelineno-42-7"></a><span class="s">the same commit per feedback_notebook_builders_paired.</span>
+<a id="__codelineno-42-8" name="__codelineno-42-8" href="#__codelineno-42-8"></a>
+<a id="__codelineno-42-9" name="__codelineno-42-9" href="#__codelineno-42-9"></a><span class="s">Co-Authored-By: Claude Opus 4.7 (1M context) &lt;noreply@anthropic.com&gt;</span>
+<a id="__codelineno-42-10" name="__codelineno-42-10" href="#__codelineno-42-10"></a><span class="s">EOF</span>
+<a id="__codelineno-42-11" name="__codelineno-42-11" href="#__codelineno-42-11"></a><span class="k">)</span><span class="s2">"</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 6: Optional — check <code>notebooks/T_fiscal_channels.ipynb:666</code></strong></li>
+</ul>
+<p>The repo-wide grep found one more potential caller: <code>notebooks/T_fiscal_channels.ipynb:666</code> uses <code>r.irf_point[:, var_idx, shock_idx]</code>. <strong>Inspect whether <code>r</code> is a <code>ProxySVARResult</code> or a different result class.</strong> If yes (proxy), the slicing pattern <code>[:, var_idx, shock_idx]</code> under the OLD convention meant "all responses, fixed shock=var_idx, fixed h=shock_idx" — which is semantically odd; the variable names suggest the slice index meanings drifted. Under the NEW convention <code>[:, var_idx, shock_idx]</code> means "all horizons, response=var_idx, shock=shock_idx" — which IS semantically clean. So this slice may <strong>accidentally become correct</strong> under the new convention, OR it may break a previously-working sweep. <strong>Read the surrounding cell to disambiguate.</strong></p>
+<p>If T_fiscal_channels.ipynb is in <code>notebooks/_archive/</code> already, defer per the pattern in 0.44.0 (don't touch archived notebooks). If it's live, decide based on the surrounding context whether to edit + re-execute, or leave with a comment explaining the deferral.</p>
+<ul>
+<li>[ ] <strong>Step 7: Confirm gate is still green</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples/puremacro"</span>
+<a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a>python<span class="w"> </span>tools/release_check.py
+</code></pre></div>
+<p>Expected: all 4 gates PASS, exit 0.</p>
+<hr />
+<h2 id="task-5-c-port-_solve_f_sylvester-into-kleinpy-as-a-z-partition-fallback">Task 5: C — Port <code>_solve_F_sylvester</code> into <code>klein.py</code> as a Z-partition fallback</h2>
+<p>The most algorithmically substantive task. SW07's local workaround proves the math; this task lifts it into the canonical solver so SW07 can drop the local copy.</p>
+<ul>
+<li>[ ] <strong>Step 1: Re-read <code>puremacro/dsge/smets_wouters.py::_solve_F_sylvester</code></strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples/puremacro"</span>
+<a id="__codelineno-44-2" name="__codelineno-44-2" href="#__codelineno-44-2"></a>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">'683,770p'</span><span class="w"> </span>puremacro/dsge/smets_wouters.py
+</code></pre></div>
+<p>Read it end-to-end. It's ~90 LOC; understand the Sylvester equation it solves before porting. Key callers: only <code>solve_sw07</code> at line 769 calls it.</p>
+<ul>
+<li>[ ] <strong>Step 2: Write the failing fallback-trigger test</strong></li>
+</ul>
+<p>Create <code>tests/test_dsge/test_klein_unit_eigenvalue_fallback.py</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="sd">"""Klein-solver fallback test: when the Z-partition is degenerate due to</span>
+<a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a><span class="sd">multiple unit-eigenvalue lag states, klein_solve should detect the condition</span>
+<a id="__codelineno-45-3" name="__codelineno-45-3" href="#__codelineno-45-3"></a><span class="sd">and return a corrected F via the Sylvester equilibrium equation.</span>
+<a id="__codelineno-45-4" name="__codelineno-45-4" href="#__codelineno-45-4"></a><span class="sd">"""</span>
+<a id="__codelineno-45-5" name="__codelineno-45-5" href="#__codelineno-45-5"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-45-6" name="__codelineno-45-6" href="#__codelineno-45-6"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+<a id="__codelineno-45-7" name="__codelineno-45-7" href="#__codelineno-45-7"></a>
+<a id="__codelineno-45-8" name="__codelineno-45-8" href="#__codelineno-45-8"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.dsge.klein</span><span class="w"> </span><span class="kn">import</span> <span class="n">klein_solve</span>
+<a id="__codelineno-45-9" name="__codelineno-45-9" href="#__codelineno-45-9"></a>
+<a id="__codelineno-45-10" name="__codelineno-45-10" href="#__codelineno-45-10"></a>
+<a id="__codelineno-45-11" name="__codelineno-45-11" href="#__codelineno-45-11"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_klein_unit_eigenvalue_triggers_sylvester_fallback</span><span class="p">():</span>
+<a id="__codelineno-45-12" name="__codelineno-45-12" href="#__codelineno-45-12"></a><span class="w">    </span><span class="sd">"""Construct a small system with two unit-eigenvalue lag states; verify</span>
+<a id="__codelineno-45-13" name="__codelineno-45-13" href="#__codelineno-45-13"></a><span class="sd">    the fallback branch fires and the policy function F satisfies the</span>
+<a id="__codelineno-45-14" name="__codelineno-45-14" href="#__codelineno-45-14"></a><span class="sd">    equilibrium condition to ~1e-13.</span>
+<a id="__codelineno-45-15" name="__codelineno-45-15" href="#__codelineno-45-15"></a>
+<a id="__codelineno-45-16" name="__codelineno-45-16" href="#__codelineno-45-16"></a><span class="sd">    System:</span>
+<a id="__codelineno-45-17" name="__codelineno-45-17" href="#__codelineno-45-17"></a><span class="sd">        x_t = G x_{t-1}  with two unit eigenvalues + one stable eigenvalue</span>
+<a id="__codelineno-45-18" name="__codelineno-45-18" href="#__codelineno-45-18"></a><span class="sd">        y_t = F x_t      forward-looking control</span>
+<a id="__codelineno-45-19" name="__codelineno-45-19" href="#__codelineno-45-19"></a>
+<a id="__codelineno-45-20" name="__codelineno-45-20" href="#__codelineno-45-20"></a><span class="sd">    A z_{t+1} = B z_t  with z = [x, y]; expectation error eta on y.</span>
+<a id="__codelineno-45-21" name="__codelineno-45-21" href="#__codelineno-45-21"></a><span class="sd">    """</span>
+<a id="__codelineno-45-22" name="__codelineno-45-22" href="#__codelineno-45-22"></a>    <span class="n">n_pre</span> <span class="o">=</span> <span class="mi">3</span>
+<a id="__codelineno-45-23" name="__codelineno-45-23" href="#__codelineno-45-23"></a>    <span class="n">n_fwd</span> <span class="o">=</span> <span class="mi">1</span>
+<a id="__codelineno-45-24" name="__codelineno-45-24" href="#__codelineno-45-24"></a>    <span class="n">n</span> <span class="o">=</span> <span class="n">n_pre</span> <span class="o">+</span> <span class="n">n_fwd</span>
+<a id="__codelineno-45-25" name="__codelineno-45-25" href="#__codelineno-45-25"></a>
+<a id="__codelineno-45-26" name="__codelineno-45-26" href="#__codelineno-45-26"></a>    <span class="c1"># G_x has two unit eigenvalues + one stable.</span>
+<a id="__codelineno-45-27" name="__codelineno-45-27" href="#__codelineno-45-27"></a>    <span class="n">G_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+<a id="__codelineno-45-28" name="__codelineno-45-28" href="#__codelineno-45-28"></a>        <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>   <span class="c1"># unit</span>
+<a id="__codelineno-45-29" name="__codelineno-45-29" href="#__codelineno-45-29"></a>        <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>   <span class="c1"># unit</span>
+<a id="__codelineno-45-30" name="__codelineno-45-30" href="#__codelineno-45-30"></a>        <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>   <span class="c1"># stable</span>
+<a id="__codelineno-45-31" name="__codelineno-45-31" href="#__codelineno-45-31"></a>    <span class="p">])</span>
+<a id="__codelineno-45-32" name="__codelineno-45-32" href="#__codelineno-45-32"></a>    <span class="c1"># F: control loads on the third state with coefficient 1.5.</span>
+<a id="__codelineno-45-33" name="__codelineno-45-33" href="#__codelineno-45-33"></a>    <span class="n">F_true</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">]])</span>
+<a id="__codelineno-45-34" name="__codelineno-45-34" href="#__codelineno-45-34"></a>
+<a id="__codelineno-45-35" name="__codelineno-45-35" href="#__codelineno-45-35"></a>    <span class="c1"># Construct A, B for: y_{t+1} = F x_{t+1};  x_{t+1} = G_x x_t.</span>
+<a id="__codelineno-45-36" name="__codelineno-45-36" href="#__codelineno-45-36"></a>    <span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<a id="__codelineno-45-37" name="__codelineno-45-37" href="#__codelineno-45-37"></a>    <span class="n">B</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+<a id="__codelineno-45-38" name="__codelineno-45-38" href="#__codelineno-45-38"></a>    <span class="n">B</span><span class="p">[:</span><span class="n">n_pre</span><span class="p">,</span> <span class="p">:</span><span class="n">n_pre</span><span class="p">]</span> <span class="o">=</span> <span class="n">G_x</span>
+<a id="__codelineno-45-39" name="__codelineno-45-39" href="#__codelineno-45-39"></a>    <span class="n">B</span><span class="p">[</span><span class="n">n_pre</span><span class="p">:,</span> <span class="p">:</span><span class="n">n_pre</span><span class="p">]</span> <span class="o">=</span> <span class="n">F_true</span> <span class="o">@</span> <span class="n">G_x</span>
+<a id="__codelineno-45-40" name="__codelineno-45-40" href="#__codelineno-45-40"></a>
+<a id="__codelineno-45-41" name="__codelineno-45-41" href="#__codelineno-45-41"></a>    <span class="n">sol</span> <span class="o">=</span> <span class="n">klein_solve</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">n_pre</span><span class="o">=</span><span class="n">n_pre</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<a id="__codelineno-45-42" name="__codelineno-45-42" href="#__codelineno-45-42"></a>
+<a id="__codelineno-45-43" name="__codelineno-45-43" href="#__codelineno-45-43"></a>    <span class="c1"># eu must indicate a valid solution.</span>
+<a id="__codelineno-45-44" name="__codelineno-45-44" href="#__codelineno-45-44"></a>    <span class="k">assert</span> <span class="n">sol</span><span class="o">.</span><span class="n">eu</span> <span class="o">==</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="sa">f</span><span class="s2">"BK condition failed: eu=</span><span class="si">{</span><span class="n">sol</span><span class="o">.</span><span class="n">eu</span><span class="si">}</span><span class="s2">"</span>
+<a id="__codelineno-45-45" name="__codelineno-45-45" href="#__codelineno-45-45"></a>
+<a id="__codelineno-45-46" name="__codelineno-45-46" href="#__codelineno-45-46"></a>    <span class="c1"># G recovers G_x.</span>
+<a id="__codelineno-45-47" name="__codelineno-45-47" href="#__codelineno-45-47"></a>    <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">sol</span><span class="o">.</span><span class="n">G</span><span class="p">,</span> <span class="n">G_x</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">)</span>
+<a id="__codelineno-45-48" name="__codelineno-45-48" href="#__codelineno-45-48"></a>
+<a id="__codelineno-45-49" name="__codelineno-45-49" href="#__codelineno-45-49"></a>    <span class="c1"># F recovers F_true via the fallback. The closed-form Klein F is</span>
+<a id="__codelineno-45-50" name="__codelineno-45-50" href="#__codelineno-45-50"></a>    <span class="c1"># corrupted by the unit eigenvalues; the Sylvester fallback recovers</span>
+<a id="__codelineno-45-51" name="__codelineno-45-51" href="#__codelineno-45-51"></a>    <span class="c1"># the true F.</span>
+<a id="__codelineno-45-52" name="__codelineno-45-52" href="#__codelineno-45-52"></a>    <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">sol</span><span class="o">.</span><span class="n">F</span><span class="p">,</span> <span class="n">F_true</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span>
+<a id="__codelineno-45-53" name="__codelineno-45-53" href="#__codelineno-45-53"></a>
+<a id="__codelineno-45-54" name="__codelineno-45-54" href="#__codelineno-45-54"></a>
+<a id="__codelineno-45-55" name="__codelineno-45-55" href="#__codelineno-45-55"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_klein_stable_system_uses_closed_form_path</span><span class="p">():</span>
+<a id="__codelineno-45-56" name="__codelineno-45-56" href="#__codelineno-45-56"></a><span class="w">    </span><span class="sd">"""When the Z-partition is well-conditioned, klein_solve uses the</span>
+<a id="__codelineno-45-57" name="__codelineno-45-57" href="#__codelineno-45-57"></a><span class="sd">    closed-form F. Verify by constructing a well-conditioned system.</span>
+<a id="__codelineno-45-58" name="__codelineno-45-58" href="#__codelineno-45-58"></a><span class="sd">    """</span>
+<a id="__codelineno-45-59" name="__codelineno-45-59" href="#__codelineno-45-59"></a>    <span class="n">n_pre</span> <span class="o">=</span> <span class="mi">2</span>
+<a id="__codelineno-45-60" name="__codelineno-45-60" href="#__codelineno-45-60"></a>    <span class="n">n_fwd</span> <span class="o">=</span> <span class="mi">1</span>
+<a id="__codelineno-45-61" name="__codelineno-45-61" href="#__codelineno-45-61"></a>    <span class="n">G_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+<a id="__codelineno-45-62" name="__codelineno-45-62" href="#__codelineno-45-62"></a>        <span class="p">[</span><span class="mf">0.7</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">],</span>
+<a id="__codelineno-45-63" name="__codelineno-45-63" href="#__codelineno-45-63"></a>        <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>
+<a id="__codelineno-45-64" name="__codelineno-45-64" href="#__codelineno-45-64"></a>    <span class="p">])</span>
+<a id="__codelineno-45-65" name="__codelineno-45-65" href="#__codelineno-45-65"></a>    <span class="n">F_true</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.3</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.2</span><span class="p">]])</span>
+<a id="__codelineno-45-66" name="__codelineno-45-66" href="#__codelineno-45-66"></a>    <span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n_pre</span> <span class="o">+</span> <span class="n">n_fwd</span><span class="p">)</span>
+<a id="__codelineno-45-67" name="__codelineno-45-67" href="#__codelineno-45-67"></a>    <span class="n">B</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_pre</span> <span class="o">+</span> <span class="n">n_fwd</span><span class="p">,</span> <span class="n">n_pre</span> <span class="o">+</span> <span class="n">n_fwd</span><span class="p">))</span>
+<a id="__codelineno-45-68" name="__codelineno-45-68" href="#__codelineno-45-68"></a>    <span class="n">B</span><span class="p">[:</span><span class="n">n_pre</span><span class="p">,</span> <span class="p">:</span><span class="n">n_pre</span><span class="p">]</span> <span class="o">=</span> <span class="n">G_x</span>
+<a id="__codelineno-45-69" name="__codelineno-45-69" href="#__codelineno-45-69"></a>    <span class="n">B</span><span class="p">[</span><span class="n">n_pre</span><span class="p">:,</span> <span class="p">:</span><span class="n">n_pre</span><span class="p">]</span> <span class="o">=</span> <span class="n">F_true</span> <span class="o">@</span> <span class="n">G_x</span>
+<a id="__codelineno-45-70" name="__codelineno-45-70" href="#__codelineno-45-70"></a>
+<a id="__codelineno-45-71" name="__codelineno-45-71" href="#__codelineno-45-71"></a>    <span class="n">sol</span> <span class="o">=</span> <span class="n">klein_solve</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">n_pre</span><span class="o">=</span><span class="n">n_pre</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<a id="__codelineno-45-72" name="__codelineno-45-72" href="#__codelineno-45-72"></a>    <span class="k">assert</span> <span class="n">sol</span><span class="o">.</span><span class="n">eu</span> <span class="o">==</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-45-73" name="__codelineno-45-73" href="#__codelineno-45-73"></a>    <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">sol</span><span class="o">.</span><span class="n">G</span><span class="p">,</span> <span class="n">G_x</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">)</span>
+<a id="__codelineno-45-74" name="__codelineno-45-74" href="#__codelineno-45-74"></a>    <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">sol</span><span class="o">.</span><span class="n">F</span><span class="p">,</span> <span class="n">F_true</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span>
+</code></pre></div>
+<p>If <code>tests/test_dsge/</code> does not yet exist, create it with an <code>__init__.py</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a>mkdir<span class="w"> </span>-p<span class="w"> </span>puremacro/tests/test_dsge
+<a id="__codelineno-46-2" name="__codelineno-46-2" href="#__codelineno-46-2"></a>touch<span class="w"> </span>puremacro/tests/test_dsge/__init__.py<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 3: Run the test to verify failure modes</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples/puremacro"</span>
+<a id="__codelineno-47-2" name="__codelineno-47-2" href="#__codelineno-47-2"></a>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>puremacro/tests/test_dsge/test_klein_unit_eigenvalue_fallback.py<span class="w"> </span>-v
+</code></pre></div>
+<p>Expected: the unit-eigenvalue test FAILS (F mismatch — the closed-form formula is corrupted). The well-conditioned test PASSES (the closed-form is correct in that regime).</p>
+<ul>
+<li>[ ] <strong>Step 4: Port <code>_solve_F_sylvester</code> into <code>klein.py</code> as a private helper</strong></li>
+</ul>
+<p>In <code>puremacro/dsge/klein.py</code>, add (above <code>klein_solve</code>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">_solve_F_sylvester</span><span class="p">(</span><span class="n">A</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">B</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">G</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="__codelineno-48-2" name="__codelineno-48-2" href="#__codelineno-48-2"></a>                       <span class="n">n_pre</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-48-3" name="__codelineno-48-3" href="#__codelineno-48-3"></a><span class="w">    </span><span class="sd">"""Recover the forward-looking policy function F from the equilibrium</span>
+<a id="__codelineno-48-4" name="__codelineno-48-4" href="#__codelineno-48-4"></a><span class="sd">    Sylvester equation, bypassing the closed-form Klein formula.</span>
+<a id="__codelineno-48-5" name="__codelineno-48-5" href="#__codelineno-48-5"></a>
+<a id="__codelineno-48-6" name="__codelineno-48-6" href="#__codelineno-48-6"></a><span class="sd">    Used as a fallback when the Z-partition is degenerate (multiple</span>
+<a id="__codelineno-48-7" name="__codelineno-48-7" href="#__codelineno-48-7"></a><span class="sd">    unit-eigenvalue lag states corrupting Z11). Solves the linear system</span>
+<a id="__codelineno-48-8" name="__codelineno-48-8" href="#__codelineno-48-8"></a><span class="sd">    derived from substituting x_{t+1} = G x_t and y_{t+1} = F x_{t+1} into</span>
+<a id="__codelineno-48-9" name="__codelineno-48-9" href="#__codelineno-48-9"></a><span class="sd">    A z_{t+1} = B z_t.</span>
+<a id="__codelineno-48-10" name="__codelineno-48-10" href="#__codelineno-48-10"></a>
+<a id="__codelineno-48-11" name="__codelineno-48-11" href="#__codelineno-48-11"></a><span class="sd">    Parameters</span>
+<a id="__codelineno-48-12" name="__codelineno-48-12" href="#__codelineno-48-12"></a><span class="sd">    ----------</span>
+<a id="__codelineno-48-13" name="__codelineno-48-13" href="#__codelineno-48-13"></a><span class="sd">    A, B : (n, n) ndarrays — original system coefficients.</span>
+<a id="__codelineno-48-14" name="__codelineno-48-14" href="#__codelineno-48-14"></a><span class="sd">    G    : (n_pre, n_pre) — recovered state transition.</span>
+<a id="__codelineno-48-15" name="__codelineno-48-15" href="#__codelineno-48-15"></a><span class="sd">    n_pre : int — number of predetermined variables.</span>
+<a id="__codelineno-48-16" name="__codelineno-48-16" href="#__codelineno-48-16"></a>
+<a id="__codelineno-48-17" name="__codelineno-48-17" href="#__codelineno-48-17"></a><span class="sd">    Returns</span>
+<a id="__codelineno-48-18" name="__codelineno-48-18" href="#__codelineno-48-18"></a><span class="sd">    -------</span>
+<a id="__codelineno-48-19" name="__codelineno-48-19" href="#__codelineno-48-19"></a><span class="sd">    F : (n_fwd, n_pre) ndarray</span>
+<a id="__codelineno-48-20" name="__codelineno-48-20" href="#__codelineno-48-20"></a><span class="sd">    """</span>
+<a id="__codelineno-48-21" name="__codelineno-48-21" href="#__codelineno-48-21"></a>    <span class="c1"># [PORT THE BODY OF smets_wouters._solve_F_sylvester HERE]</span>
+<a id="__codelineno-48-22" name="__codelineno-48-22" href="#__codelineno-48-22"></a>    <span class="c1"># The existing implementation at puremacro/dsge/smets_wouters.py:683-770</span>
+<a id="__codelineno-48-23" name="__codelineno-48-23" href="#__codelineno-48-23"></a>    <span class="c1"># is the reference. Replace its smets_wouters-specific inputs (G0, G1, G_x)</span>
+<a id="__codelineno-48-24" name="__codelineno-48-24" href="#__codelineno-48-24"></a>    <span class="c1"># with the generic (A, B, G) names. Preserve the vectorized Sylvester</span>
+<a id="__codelineno-48-25" name="__codelineno-48-25" href="#__codelineno-48-25"></a>    <span class="c1"># solve and any numerical safeguards (rank checks, conditioning floors).</span>
+<a id="__codelineno-48-26" name="__codelineno-48-26" href="#__codelineno-48-26"></a>    <span class="c1"># Document any constants that come from smets_wouters and re-derive</span>
+<a id="__codelineno-48-27" name="__codelineno-48-27" href="#__codelineno-48-27"></a>    <span class="c1"># them generically here.</span>
+<a id="__codelineno-48-28" name="__codelineno-48-28" href="#__codelineno-48-28"></a>    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">"Port _solve_F_sylvester body from smets_wouters.py"</span><span class="p">)</span>
+</code></pre></div>
+<p>Then modify <code>klein_solve</code> to detect the degenerate case and route to the fallback. After the existing computation of <code>F</code> (closed-form, around line 200), add:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a>        <span class="c1"># Z-partition degeneracy check: if Z11 is severely ill-conditioned</span>
+<a id="__codelineno-49-2" name="__codelineno-49-2" href="#__codelineno-49-2"></a>        <span class="c1"># (typically due to multiple unit-eigenvalue lag states), the</span>
+<a id="__codelineno-49-3" name="__codelineno-49-3" href="#__codelineno-49-3"></a>        <span class="c1"># closed-form F via Klein's formula is corrupted. Route through</span>
+<a id="__codelineno-49-4" name="__codelineno-49-4" href="#__codelineno-49-4"></a>        <span class="c1"># the Sylvester equilibrium solve as a fallback.</span>
+<a id="__codelineno-49-5" name="__codelineno-49-5" href="#__codelineno-49-5"></a>        <span class="n">cond_Z11</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">Z11</span><span class="p">)</span> <span class="k">if</span> <span class="n">Z11</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">1.0</span>
+<a id="__codelineno-49-6" name="__codelineno-49-6" href="#__codelineno-49-6"></a>        <span class="k">if</span> <span class="n">cond_Z11</span> <span class="o">&gt;</span> <span class="mf">1e10</span><span class="p">:</span>
+<a id="__codelineno-49-7" name="__codelineno-49-7" href="#__codelineno-49-7"></a>            <span class="n">F</span> <span class="o">=</span> <span class="n">_solve_F_sylvester</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">n_pre</span><span class="o">=</span><span class="n">n_pre</span><span class="p">)</span>
+</code></pre></div>
+<p>(The condition-number threshold <code>1e10</code> is heuristic; calibrate against the SW07 case in Task 6. If <code>1e10</code> is too tight or too loose, adjust to the smallest value that triggers for SW07 and not for well-conditioned systems.)</p>
+<ul>
+<li>[ ] <strong>Step 5: Implement the body of <code>_solve_F_sylvester</code></strong></li>
+</ul>
+<p>Open <code>puremacro/dsge/smets_wouters.py:683-770</code> and port the function body. Translate:
+- <code>G0</code> → <code>A</code>
+- <code>G1</code> → <code>B</code>
+- <code>G_x</code> → <code>G</code>
+- Hard-coded <code>_N_PRE</code> (SW07's 20) → parameter <code>n_pre</code>
+- Hard-coded <code>_N_FWD</code> (SW07's 24) → derived as <code>A.shape[0] - n_pre</code></p>
+<p>The Sylvester solve uses <code>scipy.linalg.solve_sylvester</code> or an explicit vec-Kronecker form — preserve whichever the SW07 version uses.</p>
+<p>Replace the <code>raise NotImplementedError</code> with the ported body.</p>
+<ul>
+<li>[ ] <strong>Step 6: Run the new tests to verify both pass</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>puremacro/tests/test_dsge/test_klein_unit_eigenvalue_fallback.py<span class="w"> </span>-v
+</code></pre></div>
+<p>Expected: 2 PASSED.</p>
+<ul>
+<li>[ ] <strong>Step 7: Run the existing SW07 tests — they MUST stay green</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>puremacro/tests/test_dsge_smets_wouters.py<span class="w"> </span>-v<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-15
+</code></pre></div>
+<p>Expected: all 10 PASSED (consumption-Euler coefs, BK condition, qualitative IRFs, growth-rate IRFs, unit-sd impacts). <strong>Smets_wouters still calls its local <code>_solve_F_sylvester</code> at this point</strong> — both implementations should yield byte-equal results.</p>
+<p>If any SW07 test fails, the Sylvester port has a bug. Stop and root-cause before proceeding to Task 6.</p>
+<ul>
+<li>[ ] <strong>Step 8: Commit</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples"</span>
+<a id="__codelineno-52-2" name="__codelineno-52-2" href="#__codelineno-52-2"></a>git<span class="w"> </span>add<span class="w"> </span>puremacro/puremacro/dsge/klein.py<span class="w"> </span>puremacro/puremacro/tests/test_dsge/__init__.py<span class="w"> </span>puremacro/puremacro/tests/test_dsge/test_klein_unit_eigenvalue_fallback.py
+<a id="__codelineno-52-3" name="__codelineno-52-3" href="#__codelineno-52-3"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+<a id="__codelineno-52-4" name="__codelineno-52-4" href="#__codelineno-52-4"></a><span class="s">feat(0.47.0): klein_solve Sylvester fallback for degenerate Z-partition</span>
+<a id="__codelineno-52-5" name="__codelineno-52-5" href="#__codelineno-52-5"></a>
+<a id="__codelineno-52-6" name="__codelineno-52-6" href="#__codelineno-52-6"></a><span class="s">When Z11 is severely ill-conditioned (typically due to multiple</span>
+<a id="__codelineno-52-7" name="__codelineno-52-7" href="#__codelineno-52-7"></a><span class="s">unit-eigenvalue lag states), the closed-form Klein F is corrupted by</span>
+<a id="__codelineno-52-8" name="__codelineno-52-8" href="#__codelineno-52-8"></a><span class="s">the QZ stable-block mixing. New _solve_F_sylvester helper recovers F</span>
+<a id="__codelineno-52-9" name="__codelineno-52-9" href="#__codelineno-52-9"></a><span class="s">from the equilibrium Sylvester equation directly. SW07 tests stay</span>
+<a id="__codelineno-52-10" name="__codelineno-52-10" href="#__codelineno-52-10"></a><span class="s">green; smets_wouters' local _solve_F_sylvester is retired in the</span>
+<a id="__codelineno-52-11" name="__codelineno-52-11" href="#__codelineno-52-11"></a><span class="s">next commit.</span>
+<a id="__codelineno-52-12" name="__codelineno-52-12" href="#__codelineno-52-12"></a>
+<a id="__codelineno-52-13" name="__codelineno-52-13" href="#__codelineno-52-13"></a><span class="s">Co-Authored-By: Claude Opus 4.7 (1M context) &lt;noreply@anthropic.com&gt;</span>
+<a id="__codelineno-52-14" name="__codelineno-52-14" href="#__codelineno-52-14"></a><span class="s">EOF</span>
+<a id="__codelineno-52-15" name="__codelineno-52-15" href="#__codelineno-52-15"></a><span class="k">)</span><span class="s2">"</span>
+</code></pre></div>
+<hr />
+<h2 id="task-6-c-smets_wouterspy-retracts-its-local-workaround">Task 6: C — <code>smets_wouters.py</code> retracts its local workaround</h2>
+<p>With klein.py's fallback in place, SW07 can call <code>klein_solve</code> directly and drop its local <code>_solve_F_sylvester</code>.</p>
+<ul>
+<li>[ ] <strong>Step 1: Inspect the SW07 call site</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples/puremacro"</span>
+<a id="__codelineno-53-2" name="__codelineno-53-2" href="#__codelineno-53-2"></a>sed<span class="w"> </span>-n<span class="w"> </span><span class="s1">'760,790p'</span><span class="w"> </span>puremacro/dsge/smets_wouters.py
+</code></pre></div>
+<p>Verify <code>solve_sw07</code> currently calls <code>_solve_F_sylvester(G0, G1, G_x)</code> after <code>klein_solve(G0, G1, n_pre=_N_PRE, C=Psi, strict=False)</code>.</p>
+<ul>
+<li>[ ] <strong>Step 2: Replace the workaround with a <code>sol.F</code> read</strong></li>
+</ul>
+<p>In <code>solve_sw07</code>, remove the line:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a>    <span class="n">F</span>    <span class="o">=</span> <span class="n">_solve_F_sylvester</span><span class="p">(</span><span class="n">G0</span><span class="p">,</span> <span class="n">G1</span><span class="p">,</span> <span class="n">G_x</span><span class="p">)</span>     <span class="c1"># (24, 20) corrected policy function</span>
+</code></pre></div>
+<p>Replace with:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a>    <span class="n">F</span>    <span class="o">=</span> <span class="n">sol_klein</span><span class="o">.</span><span class="n">F</span>                          <span class="c1"># (24, 20) policy fn — Klein fallback handles unit eigenvalues</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 3: Delete the local <code>_solve_F_sylvester</code> function</strong></li>
+</ul>
+<p>In <code>puremacro/dsge/smets_wouters.py</code>, delete the <code>_solve_F_sylvester</code> function body (lines 683-770, or wherever it lives — locate via <code>grep -n "^def _solve_F_sylvester" puremacro/dsge/smets_wouters.py</code>).</p>
+<ul>
+<li>[ ] <strong>Step 4: Run SW07 tests</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>puremacro/tests/test_dsge_smets_wouters.py<span class="w"> </span>-v<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-15
+</code></pre></div>
+<p>Expected: 10 PASSED — byte-equal to pre-Task-5 state. The Sylvester fallback in klein.py is the same arithmetic as the SW07 local copy, so the IRF / BK / Euler / impact tests should be unchanged within numerical tolerance.</p>
+<p>If any test fails, the threshold <code>1e10</code> may be wrong, OR the port introduced a bug. Diagnose by:
+1. Print <code>cond_Z11</code> for the SW07 system to verify the fallback is being triggered.
+2. If not triggered, lower the threshold to match.
+3. If triggered but results differ, compare <code>_solve_F_sylvester</code>'s output between klein.py's port and the deleted smets_wouters copy on the same inputs.</p>
+<ul>
+<li>[ ] <strong>Step 5: Run the gate</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-57-1" name="__codelineno-57-1" href="#__codelineno-57-1"></a>python<span class="w"> </span>tools/release_check.py
+</code></pre></div>
+<p>Expected: all 4 gates PASS, exit 0.</p>
+<ul>
+<li>[ ] <strong>Step 6: Commit</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-58-1" name="__codelineno-58-1" href="#__codelineno-58-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples"</span>
+<a id="__codelineno-58-2" name="__codelineno-58-2" href="#__codelineno-58-2"></a>git<span class="w"> </span>add<span class="w"> </span>puremacro/puremacro/dsge/smets_wouters.py
+<a id="__codelineno-58-3" name="__codelineno-58-3" href="#__codelineno-58-3"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+<a id="__codelineno-58-4" name="__codelineno-58-4" href="#__codelineno-58-4"></a><span class="s">refactor(0.47.0): smets_wouters drops local _solve_F_sylvester workaround</span>
+<a id="__codelineno-58-5" name="__codelineno-58-5" href="#__codelineno-58-5"></a>
+<a id="__codelineno-58-6" name="__codelineno-58-6" href="#__codelineno-58-6"></a><span class="s">klein.solve()'s Sylvester fallback (added in the previous commit)</span>
+<a id="__codelineno-58-7" name="__codelineno-58-7" href="#__codelineno-58-7"></a><span class="s">replaces SW07's local workaround. solve_sw07 reads sol_klein.F</span>
+<a id="__codelineno-58-8" name="__codelineno-58-8" href="#__codelineno-58-8"></a><span class="s">directly. The 10 SW07 regression tests pass byte-equal.</span>
+<a id="__codelineno-58-9" name="__codelineno-58-9" href="#__codelineno-58-9"></a>
+<a id="__codelineno-58-10" name="__codelineno-58-10" href="#__codelineno-58-10"></a><span class="s">Co-Authored-By: Claude Opus 4.7 (1M context) &lt;noreply@anthropic.com&gt;</span>
+<a id="__codelineno-58-11" name="__codelineno-58-11" href="#__codelineno-58-11"></a><span class="s">EOF</span>
+<a id="__codelineno-58-12" name="__codelineno-58-12" href="#__codelineno-58-12"></a><span class="k">)</span><span class="s2">"</span>
+</code></pre></div>
+<hr />
+<h2 id="task-7-version-bump-changelog-final-gate-verification">Task 7: Version bump + CHANGELOG + final gate verification</h2>
+<ul>
+<li>[ ] <strong>Step 1: Bump <code>pyproject.toml</code></strong></li>
+</ul>
+<p>Edit <code>puremacro/pyproject.toml</code> line <code>version = "0.46.0"</code> → <code>version = "0.47.0"</code>.</p>
+<ul>
+<li>[ ] <strong>Step 2: Bump <code>puremacro/__init__.py</code></strong></li>
+</ul>
+<p>Edit <code>__version__ = "0.46.0"</code> → <code>__version__ = "0.47.0"</code>.</p>
+<ul>
+<li>[ ] <strong>Step 3: Bump <code>tests/test_import.py</code></strong></li>
+</ul>
+<p>Edit <code>assert puremacro.__version__ == "0.46.0"</code> → <code>assert puremacro.__version__ == "0.47.0"</code>.</p>
+<ul>
+<li>[ ] <strong>Step 4: Prepend CHANGELOG 0.47.0 entry</strong></li>
+</ul>
+<p>Edit <code>puremacro/CHANGELOG.md</code>, inserting after the <code># Changelog</code> preamble (before the <code>## 0.46.0</code> heading):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-59-1" name="__codelineno-59-1" href="#__codelineno-59-1"></a><span class="gu">## 0.47.0 — 2026-05-22</span>
+<a id="__codelineno-59-2" name="__codelineno-59-2" href="#__codelineno-59-2"></a>
+<a id="__codelineno-59-3" name="__codelineno-59-3" href="#__codelineno-59-3"></a>Mechanical cleanup + DSGE solver hardening.
+<a id="__codelineno-59-4" name="__codelineno-59-4" href="#__codelineno-59-4"></a>
+<a id="__codelineno-59-5" name="__codelineno-59-5" href="#__codelineno-59-5"></a>Three deferred items from the 0.43-0.45 cycle that survived API
+<a id="__codelineno-59-6" name="__codelineno-59-6" href="#__codelineno-59-6"></a>verification: <span class="sb">`lp/garch_utils.py`</span> renamed to <span class="sb">`_garch_utils.py`</span> (signal
+<a id="__codelineno-59-7" name="__codelineno-59-7" href="#__codelineno-59-7"></a>"internal helper"); <span class="sb">`ProxySVARResult.irf_point`</span> axis flipped from
+<a id="__codelineno-59-8" name="__codelineno-59-8" href="#__codelineno-59-8"></a><span class="sb">`(n, n, H+1)`</span> to <span class="sb">`(H+1, n, n)`</span> to match the other six SVAR result
+<a id="__codelineno-59-9" name="__codelineno-59-9" href="#__codelineno-59-9"></a>dataclasses; <span class="sb">`klein.solve()`</span> now detects degenerate Z-partitions and
+<a id="__codelineno-59-10" name="__codelineno-59-10" href="#__codelineno-59-10"></a>routes F-recovery through a Sylvester equilibrium fallback, retiring
+<a id="__codelineno-59-11" name="__codelineno-59-11" href="#__codelineno-59-11"></a>SW07's local workaround.
+<a id="__codelineno-59-12" name="__codelineno-59-12" href="#__codelineno-59-12"></a>
+<a id="__codelineno-59-13" name="__codelineno-59-13" href="#__codelineno-59-13"></a>Not in scope: <span class="sb">`regress/lp.py`</span> retirement (A1 from the original spec) —
+<a id="__codelineno-59-14" name="__codelineno-59-14" href="#__codelineno-59-14"></a>API verification confirmed the file is legitimately distinct
+<a id="__codelineno-59-15" name="__codelineno-59-15" href="#__codelineno-59-15"></a>(incompatible signature, return columns, and SE method) and not a
+<a id="__codelineno-59-16" name="__codelineno-59-16" href="#__codelineno-59-16"></a>deferred shim. The 0.43.0 deferral note was conditional on shipping a
+<a id="__codelineno-59-17" name="__codelineno-59-17" href="#__codelineno-59-17"></a>canonical equivalent with the same signature, which has not happened.
+<a id="__codelineno-59-18" name="__codelineno-59-18" href="#__codelineno-59-18"></a>
+<a id="__codelineno-59-19" name="__codelineno-59-19" href="#__codelineno-59-19"></a><span class="gu">### Breaking</span>
+<a id="__codelineno-59-20" name="__codelineno-59-20" href="#__codelineno-59-20"></a><span class="k">-</span><span class="w"> </span><span class="sb">`puremacro.var.identify.ProxySVARResult.irf_point`</span> / <span class="sb">`.irf_lower`</span> /
+<a id="__codelineno-59-21" name="__codelineno-59-21" href="#__codelineno-59-21"></a>  <span class="sb">`.irf_upper`</span> are now shape <span class="sb">`(H+1, n, n)`</span>, not <span class="sb">`(n, n, H+1)`</span>. Callers
+<a id="__codelineno-59-22" name="__codelineno-59-22" href="#__codelineno-59-22"></a>  must flip indexing from <span class="sb">`[i, j, h]`</span> to <span class="sb">`[h, i, j]`</span> (or <span class="sb">`[:, i, j]`</span> for
+<a id="__codelineno-59-23" name="__codelineno-59-23" href="#__codelineno-59-23"></a>  horizon sweeps).
+<a id="__codelineno-59-24" name="__codelineno-59-24" href="#__codelineno-59-24"></a>
+<a id="__codelineno-59-25" name="__codelineno-59-25" href="#__codelineno-59-25"></a><span class="gu">### Changed</span>
+<a id="__codelineno-59-26" name="__codelineno-59-26" href="#__codelineno-59-26"></a><span class="k">-</span><span class="w"> </span><span class="sb">`puremacro.lp.garch_utils`</span> → <span class="sb">`puremacro.lp._garch_utils`</span> (private name).
+<a id="__codelineno-59-27" name="__codelineno-59-27" href="#__codelineno-59-27"></a>  Three import sites updated in lockstep: <span class="sb">`tests/test_garch_utils.py`</span>,
+<a id="__codelineno-59-28" name="__codelineno-59-28" href="#__codelineno-59-28"></a>  <span class="sb">`tools/make_notebook_R1_02.py`</span>, <span class="sb">`notebooks/R1_methods/R1_02_lp_menu.ipynb`</span>.
+<a id="__codelineno-59-29" name="__codelineno-59-29" href="#__codelineno-59-29"></a><span class="k">-</span><span class="w"> </span><span class="sb">`puremacro.dsge.klein.klein_solve`</span> now detects Z11 condition number
+<a id="__codelineno-59-30" name="__codelineno-59-30" href="#__codelineno-59-30"></a><span class="k">  &gt; </span><span class="ge">1e10 and routes F-recovery through the new private</span>
+<a id="__codelineno-59-31" name="__codelineno-59-31" href="#__codelineno-59-31"></a>  <span class="sb">`_solve_F_sylvester`</span> helper. Well-conditioned systems are unchanged.
+<a id="__codelineno-59-32" name="__codelineno-59-32" href="#__codelineno-59-32"></a>
+<a id="__codelineno-59-33" name="__codelineno-59-33" href="#__codelineno-59-33"></a><span class="gu">### Removed</span>
+<a id="__codelineno-59-34" name="__codelineno-59-34" href="#__codelineno-59-34"></a><span class="k">-</span><span class="w"> </span><span class="sb">`puremacro.dsge.smets_wouters._solve_F_sylvester`</span> — the canonical
+<a id="__codelineno-59-35" name="__codelineno-59-35" href="#__codelineno-59-35"></a>  Sylvester fallback now lives in <span class="sb">`klein.py`</span>.
+<a id="__codelineno-59-36" name="__codelineno-59-36" href="#__codelineno-59-36"></a>
+<a id="__codelineno-59-37" name="__codelineno-59-37" href="#__codelineno-59-37"></a><span class="gu">### Added</span>
+<a id="__codelineno-59-38" name="__codelineno-59-38" href="#__codelineno-59-38"></a><span class="k">-</span><span class="w"> </span><span class="sb">`tests/test_var/test_proxy_axis.py`</span> — locks the <span class="sb">`(H+1, n, n)`</span> shape contract.
+<a id="__codelineno-59-39" name="__codelineno-59-39" href="#__codelineno-59-39"></a><span class="k">-</span><span class="w"> </span><span class="sb">`tests/test_dsge/test_klein_unit_eigenvalue_fallback.py`</span> — locks the
+<a id="__codelineno-59-40" name="__codelineno-59-40" href="#__codelineno-59-40"></a>  fallback trigger and the well-conditioned-path bypass.
+<a id="__codelineno-59-41" name="__codelineno-59-41" href="#__codelineno-59-41"></a>
+<a id="__codelineno-59-42" name="__codelineno-59-42" href="#__codelineno-59-42"></a><span class="gu">### Internal</span>
+<a id="__codelineno-59-43" name="__codelineno-59-43" href="#__codelineno-59-43"></a><span class="k">-</span><span class="w"> </span>Five example/notebook callers updated for the ProxySVAR axis flip:
+<a id="__codelineno-59-44" name="__codelineno-59-44" href="#__codelineno-59-44"></a>  <span class="sb">`narrative_ramey_2011.py`</span> (3 sites), <span class="sb">`hfi_gertler_karadi.py`</span> (1),
+<a id="__codelineno-59-45" name="__codelineno-59-45" href="#__codelineno-59-45"></a>  <span class="sb">`svariv_mertens_ravn.py`</span> (2), <span class="sb">`R1_04_dsge_compare.ipynb`</span> (10 sites,
+<a id="__codelineno-59-46" name="__codelineno-59-46" href="#__codelineno-59-46"></a>  re-executed via paired builder).
+<a id="__codelineno-59-47" name="__codelineno-59-47" href="#__codelineno-59-47"></a><span class="k">-</span><span class="w"> </span>SW07's 10 regression tests pass byte-equal through the klein.py
+<a id="__codelineno-59-48" name="__codelineno-59-48" href="#__codelineno-59-48"></a>  refactor (<span class="sb">`test_dsge_smets_wouters.py`</span>).
+<a id="__codelineno-59-49" name="__codelineno-59-49" href="#__codelineno-59-49"></a>
+<a id="__codelineno-59-50" name="__codelineno-59-50" href="#__codelineno-59-50"></a>---
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 5: Run the gate end-to-end on staged state</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-60-1" name="__codelineno-60-1" href="#__codelineno-60-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples/puremacro"</span>
+<a id="__codelineno-60-2" name="__codelineno-60-2" href="#__codelineno-60-2"></a>python<span class="w"> </span>tools/release_check.py
+</code></pre></div>
+<p>Expected: all 4 gates PASS, exit 0. Gate 3 (public API snapshot) will detect the <code>ProxySVARResult</code> docstring shape change indirectly only if the snapshot tracks docstrings — most likely it doesn't, but verify. The <code>garch_utils</code> rename does NOT show up in Gate 3 because the symbol isn't in <code>lp/__init__.py::__all__</code>.</p>
+<p>If Gate 3 flags new symbols (e.g., the new <code>_solve_F_sylvester</code> private in <code>klein.py</code>), regenerate the snapshot deliberately and commit it in the same release commit:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-61-1" name="__codelineno-61-1" href="#__codelineno-61-1"></a>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span>
+<a id="__codelineno-61-2" name="__codelineno-61-2" href="#__codelineno-61-2"></a><span class="s2">import sys; sys.path.insert(0, 'tests')</span>
+<a id="__codelineno-61-3" name="__codelineno-61-3" href="#__codelineno-61-3"></a><span class="s2">from test_public_api import collect_current_api</span>
+<a id="__codelineno-61-4" name="__codelineno-61-4" href="#__codelineno-61-4"></a><span class="s2">import json</span>
+<a id="__codelineno-61-5" name="__codelineno-61-5" href="#__codelineno-61-5"></a><span class="s2">with open('tests/fixtures/public_api_snapshot.json', 'w') as f:</span>
+<a id="__codelineno-61-6" name="__codelineno-61-6" href="#__codelineno-61-6"></a><span class="s2">    json.dump(collect_current_api(), f, indent=2, sort_keys=True)</span>
+<a id="__codelineno-61-7" name="__codelineno-61-7" href="#__codelineno-61-7"></a><span class="s2">"</span>
+<a id="__codelineno-61-8" name="__codelineno-61-8" href="#__codelineno-61-8"></a>git<span class="w"> </span>add<span class="w"> </span>puremacro/tests/fixtures/public_api_snapshot.json
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 6: Commit the bump</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-62-1" name="__codelineno-62-1" href="#__codelineno-62-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples"</span>
+<a id="__codelineno-62-2" name="__codelineno-62-2" href="#__codelineno-62-2"></a>git<span class="w"> </span>add<span class="w"> </span>puremacro/pyproject.toml<span class="w"> </span>puremacro/puremacro/__init__.py<span class="w"> </span>puremacro/tests/test_import.py<span class="w"> </span>puremacro/CHANGELOG.md
+<a id="__codelineno-62-3" name="__codelineno-62-3" href="#__codelineno-62-3"></a><span class="c1"># Also stage the snapshot fixture if Step 5 regenerated it.</span>
+<a id="__codelineno-62-4" name="__codelineno-62-4" href="#__codelineno-62-4"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+<a id="__codelineno-62-5" name="__codelineno-62-5" href="#__codelineno-62-5"></a><span class="s">chore(puremacro): bump 0.46.0 → 0.47.0 (garch_utils rename + ProxySVAR axis + Klein hardening)</span>
+<a id="__codelineno-62-6" name="__codelineno-62-6" href="#__codelineno-62-6"></a>
+<a id="__codelineno-62-7" name="__codelineno-62-7" href="#__codelineno-62-7"></a><span class="s">Three deferred-from-0.43 items closed out. Breaking change: ProxySVARResult</span>
+<a id="__codelineno-62-8" name="__codelineno-62-8" href="#__codelineno-62-8"></a><span class="s">axis flip aligns the lone outlier with the other six SVAR result classes.</span>
+<a id="__codelineno-62-9" name="__codelineno-62-9" href="#__codelineno-62-9"></a><span class="s">A1 (regress/lp.py retirement) explicitly dropped — file is legitimately</span>
+<a id="__codelineno-62-10" name="__codelineno-62-10" href="#__codelineno-62-10"></a><span class="s">distinct per API verification.</span>
+<a id="__codelineno-62-11" name="__codelineno-62-11" href="#__codelineno-62-11"></a>
+<a id="__codelineno-62-12" name="__codelineno-62-12" href="#__codelineno-62-12"></a><span class="s">Co-Authored-By: Claude Opus 4.7 (1M context) &lt;noreply@anthropic.com&gt;</span>
+<a id="__codelineno-62-13" name="__codelineno-62-13" href="#__codelineno-62-13"></a><span class="s">EOF</span>
+<a id="__codelineno-62-14" name="__codelineno-62-14" href="#__codelineno-62-14"></a><span class="k">)</span><span class="s2">"</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 7: Final gate run on the bump commit</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-63-1" name="__codelineno-63-1" href="#__codelineno-63-1"></a><span class="nb">cd</span><span class="w"> </span><span class="s2">"/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples/puremacro"</span>
+<a id="__codelineno-63-2" name="__codelineno-63-2" href="#__codelineno-63-2"></a>python<span class="w"> </span>tools/release_check.py
+</code></pre></div>
+<p>Expected: all 4 gates PASS at 0.47.0, exit 0.</p>
+<ul>
+<li>[ ] <strong>Step 8: Hand off to the controller for the merge decision</strong></li>
+</ul>
+<p>Do NOT auto-merge. Report back the final HEAD SHA and the gate output; the controller asks the user about tag + merge.</p>
+<hr />
+<h2 id="self-review-notes">Self-review notes</h2>
+<p><strong>Spec coverage</strong> (from <code>docs/specs/2026-05-22-puremacro-046-047-consolidate-finish-design.md</code> § 0.47.0):
+- A1 (regress/lp.py retirement) — DROPPED per spec's pause-and-re-spec clause; API verification confirmed legitimately distinct ✓
+- A2 (garch_utils rename) — Task 1 ✓
+- A3 (ProxySVAR axis flip) — Tasks 2-4 ✓
+- C (Klein many-unit-eigenvalue) — Tasks 5-6 ✓
+- Version bump + CHANGELOG — Task 7 ✓
+- Gate-gated throughout — Tasks 0/1/4/5/6/7 all run the gate ✓</p>
+<p><strong>Placeholder scan:</strong> Task 5 Step 4 has a single <code>[PORT THE BODY OF ...]</code> placeholder by design — the body must be transcribed from existing in-tree code, not invented. The instructions name the exact source file + line range, the renaming map (G0→A etc.), and the structural invariants. This is documenting where to copy from, not a TBD. Task 4 Step 6 has a "pause and ask" branch for the T_fiscal_channels disambiguation — explicit deferral on a real ambiguity, not a placeholder.</p>
+<p><strong>Type consistency:</strong>
+- <code>_solve_F_sylvester(A, B, G, n_pre)</code> signature consistent across Tasks 5 (klein.py port) and 6 (smets_wouters deletion).
+- <code>ProxySVARResult.irf_point.shape == (H+1, n, n)</code> used consistently in Tasks 2-4.
+- <code>klein_solve(A, B, n_pre, C, *, strict)</code> signature unchanged across the file modifications.
+- All gate runs use the same <code>python tools/release_check.py</code> command (no flag drift).</p>
+<p><strong>Risks pulled forward from the spec:</strong>
+- <strong>R3 (Klein refactor may shift SW07 IRFs):</strong> Tasks 5-6 require byte-equal SW07 results; if Task 6 Step 4 fails, the threshold or port has a bug — root-cause before continuing.
+- <strong>R1 (R1_04 re-execution introduces numerical churn):</strong> Task 4 Steps 3-4 explicitly check the diff before committing; pin seeds in the builder if churn is unrelated to the intentional axis flip.</p>
+<p><strong>Out of scope (deferred):</strong>
+- 0.46.1 (whitelist drain) — N/A: baseline is empty.
+- A1 (regress/lp.py retirement) — explicitly deferred; spec entry should be updated post-release to "kept by design."
+- The notebook <code>T_fiscal_channels.ipynb:666</code> decision — Task 4 Step 6 leaves it as "inspect and decide; OK to defer if ambiguous."</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

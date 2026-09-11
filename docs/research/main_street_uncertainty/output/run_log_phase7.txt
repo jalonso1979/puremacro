@@ -1,0 +1,14 @@
+[    0.0s] scoring corpus 1970-2025 (iter_beige_book) ...
+[  644.9s] corpus: 30449 records
+[  765.6s] scored [full]: 2676 district-quarters, n tone terms=49, n phrases=130
+[  797.7s] scored [unc]: 2676 district-quarters, n tone terms=11, n phrases=0
+[  917.9s] scored [sent]: 2676 district-quarters, n tone terms=38, n phrases=130
+[  918.0s] full-lexicon scoring gate PASSED (max |diff| vs frozen panel 9.89e-17, 2676 cells)
+[  918.0s] innovation gate: rebuilt full vs frozen bbui_innov max |diff| 7.11e-15 over 2399 cells (PASS)
+[  918.0s] innovation discriminant (1992+): corr(full,sent)=+0.983, corr(full,unc)=+0.251, corr(unc,sent)=+0.113
+[  918.0s] exposure panel: 6936 rows, 0 with a missing shock
+[  929.2s] peak[urate_full]: h=9 beta=+0.0415 (DK se 0.0193, WC p=0.158)
+[  929.2s] peak[urate_unc]: h=7 beta=+0.0240 (DK se 0.0189, WC p=0.069)
+[  929.2s] peak[urate_sent]: h=9 beta=+0.0437 (DK se 0.0190, WC p=0.194)
+[  929.2s] peak[urate_hr_unc]: h=7 beta=+0.0221 (DK se 0.0186, WC p=0.050)
+[  929.2s] peak[urate_hr_sent]: h=9 beta=+0.0432 (DK se 0.0188, WC p=0.166)

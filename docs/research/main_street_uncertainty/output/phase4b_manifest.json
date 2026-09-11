@@ -1,0 +1,18 @@
+{
+  "created_utc": "2026-07-23T17:12:45.904894+00:00",
+  "inputs": {
+    "county_district_crosswalk.csv": {
+      "sha256": "70a58dcd3db26cf7208f41e0a1214b1e27e344e80be54cdff9cb3835cd38c7cc",
+      "rows": 1009
+    },
+    "state_district_panel_quarterly.csv": {
+      "sha256": "d5070014b4509c1ff8d6f22e6c2eb5e48072394c44b265118feb1d00b9a033dd"
+    },
+    "laus": "FRED LAUCN{fips}0000000004/05 via on-disk HTTP cache; urate = U/(U+E)*100, monthly NSA -> quarterly mean",
+    "adjacency": "https://www2.census.gov/geo/docs/reference/county_adjacency.txt"
+  },
+  "estimator": "county LP; county FE + state-x-quarter FE; 4 lags of (district shock, outcome); LHS y(t+h)-y(t-1); district-level wild cluster (B=999, chunked) + Driscoll-Kraay",
+  "wc_draws": 999,
+  "seed": 42,
+  "estimation_start": "1992-01-01"
+}

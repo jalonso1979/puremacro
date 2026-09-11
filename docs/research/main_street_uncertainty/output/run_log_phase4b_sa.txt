@@ -1,0 +1,10 @@
+[    0.0s] crosswalk: 1009 counties in 14 split states, 11 districts
+[    0.2s] SA monthly panel reused from county_ue_monthly_sa.csv.gz (1009 counties; pass --refresh-sa to rebuild)
+[    0.3s] SA quarterly panel: 1009 counties, 147266 rows
+[    0.3s] border counties (same-state cross-district Census adjacency): 179 of 1009
+[    1.5s] chunked wild-cluster self-check passed
+[   32.0s] spec[border_all]: peak h=3 beta=+0.0108 (DK se 0.0093, WC p=0.264) n=130129, 1009 counties / 14 states / 11 districts
+[   37.4s] spec[border_all_leads]: peak h=-4 beta=+0.0067 (DK se 0.0131, WC p=0.434) n=133156, 1009 counties / 14 states / 11 districts
+[   44.6s] spec[border_only]: peak h=7 beta=-0.0109 (DK se 0.0179, WC p=0.162) n=22363, 179 counties / 14 states / 11 districts
+[   45.6s] spec[border_only_leads]: peak h=-4 beta=+0.0072 (DK se 0.0099, WC p=0.155) n=23616, 179 counties / 14 states / 11 districts
+[   46.0s] figure written

@@ -1,0 +1,4291 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Production-grade Macroeconometric and Heterogeneous-Agent Structural Modeling Engine in Pure Python">
+      
+      
+        <meta name="author" content="puremacro contributors">
+      
+      
+        <link rel="canonical" href="https://jalonso1979.github.io/puremacro/docs/spatial/">
+      
+      
+        <link rel="prev" href="../honest_did/">
+      
+      
+        <link rel="next" href="../gvar/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Spatial Econometrics - puremacro</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#spatial-econometrics-for-regional-macro" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="puremacro" class="md-header__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            puremacro
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Spatial Econometrics
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href=".." class="md-tabs__link">
+          
+  
+  
+  English Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../es/" class="md-tabs__link">
+          
+  
+  
+  Documentación en Español
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="puremacro" class="md-nav__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    puremacro
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    English Documentation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    English Documentation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Showcase Notebooks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Correctness advisories
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quarterly National Accounts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-time data (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Long national accounts panel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global Macro Data Ecosystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_1_6" id="__nav_1_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometric Engines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Econometric Engines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR & FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Narrative Sign Restrictions SVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR with Stochastic Volatility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Smooth Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modern Difference-in-Differences
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Honest DiD Sensitivity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Econometrics
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Econometrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-spatial-weights" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Spatial weights
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-spatial-autocorrelation-diagnostics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Spatial autocorrelation diagnostics
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-conley-spatial-hac-standard-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Conley spatial HAC standard errors
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Conley spatial HAC standard errors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-panel-local-projections-with-spatial-hac" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Panel local projections with spatial HAC
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-shift-share-iv-with-shock-level-standard-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Shift-share IV with shock-level standard errors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-choosing-a-specification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Choosing a specification
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-cross-section-spatial-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Cross-section spatial models
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-impacts-not-coefficients" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Impacts, not coefficients
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-spatial-panels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Spatial panels
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-spatial-local-projections" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Spatial local projections
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Spatial local projections">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-total-is-and-what-it-is-not" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What total is, and what it is not
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#inference-honestly" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inference, honestly
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-practical-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Practical checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global VAR (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Estimation & Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GDP Nowcasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Penalized Forecasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_7" id="__nav_1_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publication & Reporting
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publication & Reporting
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manuscript Tables & Exports
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_8" id="__nav_1_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structural Models
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Structural Models
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sequence-Space HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Non-Linear HANK Transitions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gertler-Karadi (2011) DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Climate Macro (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Sketchpad & Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Higher-Order & Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Parity & Surface Area
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradients, NUTS & HANK Bridge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Frontier (Policy, DSGE-VAR & News)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Non-linear Particle Filtering & Regime Switching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running Anywhere (iPad / browser)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance & Benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_11" id="__nav_1_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replication gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation & goldens
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Connector health
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credentials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cache database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signal contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lexicon review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path to 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentación en Español
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Documentación en Español
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio rápido
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuadernos de demostración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avisos de corrección
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuentas nacionales trimestrales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos en tiempo real (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panel largo de cuentas nacionales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ecosistema de datos macro globales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motores econométricos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Motores econométricos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR y FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SVAR con restricciones narrativas de signo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR con volatilidad estocástica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales suavizadas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias en diferencias modernas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sensibilidad en DiD honesto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometría espacial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR global (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estimación y diagnósticos DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nowcasting del PIB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pronóstico penalizado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publicación e informes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publicación e informes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tablas y exportación de manuscritos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_8" id="__nav_2_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos estructurales
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Modelos estructurales
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HANK en el espacio de secuencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transiciones no lineales en HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de Gertler-Karadi (2011)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomía del clima (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuaderno de bocetos DSGE y Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de orden superior y restricciones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Paridad y superficie operativa DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradientes, NUTS y Puente HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontera DSGE (Política, DSGE-VAR y Noticias)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Filtrado de Partículas No Lineal y Cambio de Régimen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ejecución en cualquier entorno (iPad / navegador)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendimiento y pruebas comparativas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_11" id="__nav_2_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de replicación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validación y referencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estado de conectores
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credenciales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos de caché
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato de señales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de ejemplos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Revisión de léxico
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ruta a 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-spatial-weights" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Spatial weights
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-spatial-autocorrelation-diagnostics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Spatial autocorrelation diagnostics
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-conley-spatial-hac-standard-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Conley spatial HAC standard errors
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Conley spatial HAC standard errors">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-panel-local-projections-with-spatial-hac" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Panel local projections with spatial HAC
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-shift-share-iv-with-shock-level-standard-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Shift-share IV with shock-level standard errors
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-choosing-a-specification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Choosing a specification
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-cross-section-spatial-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Cross-section spatial models
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-impacts-not-coefficients" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Impacts, not coefficients
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-spatial-panels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Spatial panels
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-spatial-local-projections" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Spatial local projections
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Spatial local projections">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-total-is-and-what-it-is-not" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What total is, and what it is not
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#inference-honestly" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inference, honestly
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-practical-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Practical checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<blockquote>
+<p>🇬🇧 English · 🇪🇸 <a href="../es/spatial/">Español</a></p>
+</blockquote>
+<h1 id="spatial-econometrics-for-regional-macro">Spatial Econometrics for Regional Macro</h1>
+<p><code>puremacro.spatial</code> brings the spatial toolkit that regional macro and applied trade work need most: spatial weights matrices, Moran's I / Geary's C autocorrelation diagnostics, and Conley spatial HAC standard errors for cross-sections and for the two-way-FE panel local projections in <code>puremacro.lp</code>. Its companion <code>puremacro.bartik.shift_share_iv</code> estimates shift-share (Bartik) instrumental-variable regressions with the Adão-Kolesár-Morales (2019) shock-level standard errors.</p>
+<p>Everything runs on the four-package Pyodide core (numpy, scipy, pandas, matplotlib). No GIS stack is needed: coordinates are plain latitude/longitude columns, neighbours are plain dictionaries, and economic proximity is a plain flow matrix.</p>
+<hr />
+<h2 id="1-spatial-weights">1. Spatial weights</h2>
+<p>A <code>SpatialWeights</code> object holds a sparse <code>n × n</code> matrix <code>W</code> with a zero diagonal and the unit labels <code>ids</code>. Four builders cover the usual cases:</p>
+<table>
+<thead>
+<tr>
+<th>Builder</th>
+<th>Input</th>
+<th>Weight</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>contiguity_weights(neighbours)</code></td>
+<td><code>{unit: [neighbour, ...]}</code></td>
+<td>1 for shared borders (symmetrised by default)</td>
+</tr>
+<tr>
+<td><code>knn_weights(coords, k)</code></td>
+<td>latitude/longitude (or planar) coordinates</td>
+<td>1 for the <code>k</code> nearest units</td>
+</tr>
+<tr>
+<td><code>distance_weights(coords, cutoff, decay=...)</code></td>
+<td>coordinates and a cutoff in km</td>
+<td>inverse-distance, uniform or Gaussian decay inside the cutoff</td>
+</tr>
+<tr>
+<td><code>economic_weights(flows)</code></td>
+<td>origin × destination flow matrix (trade, migration, input-output)</td>
+<td>row share of the flow, self-flows dropped</td>
+</tr>
+</tbody>
+</table>
+<p>All builders row-standardise by default so that <code>W.lag(x)</code> is the neighbour average of <code>x</code>. Units without neighbours are reported as islands (<code>W.n_islands</code>, <code>W.islands</code>) and <code>distance_weights</code> warns when the cutoff leaves some.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.spatial</span><span class="w"> </span><span class="kn">import</span> <span class="n">distance_weights</span><span class="p">,</span> <span class="n">knn_weights</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">capitals</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="p">{</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="s2">"lat"</span><span class="p">:</span> <span class="p">[</span><span class="mf">40.4168</span><span class="p">,</span> <span class="mf">41.3874</span><span class="p">,</span> <span class="mf">39.4699</span><span class="p">,</span> <span class="mf">37.3891</span><span class="p">,</span> <span class="mf">41.6488</span><span class="p">,</span> <span class="mf">36.7213</span><span class="p">,</span> <span class="mf">43.2630</span><span class="p">,</span> <span class="mf">43.3623</span><span class="p">],</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="s2">"lon"</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">3.7038</span><span class="p">,</span> <span class="mf">2.1686</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.3763</span><span class="p">,</span> <span class="o">-</span><span class="mf">5.9845</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.8891</span><span class="p">,</span> <span class="o">-</span><span class="mf">4.4214</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.9350</span><span class="p">,</span> <span class="o">-</span><span class="mf">8.4115</span><span class="p">],</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="p">},</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="s2">"Madrid"</span><span class="p">,</span> <span class="s2">"Barcelona"</span><span class="p">,</span> <span class="s2">"Valencia"</span><span class="p">,</span> <span class="s2">"Sevilla"</span><span class="p">,</span> <span class="s2">"Zaragoza"</span><span class="p">,</span> <span class="s2">"Malaga"</span><span class="p">,</span> <span class="s2">"Bilbao"</span><span class="p">,</span> <span class="s2">"A Coruna"</span><span class="p">],</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">)</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">W</span> <span class="o">=</span> <span class="n">distance_weights</span><span class="p">(</span><span class="n">capitals</span><span class="p">,</span> <span class="n">cutoff</span><span class="o">=</span><span class="mf">450.0</span><span class="p">,</span> <span class="n">decay</span><span class="o">=</span><span class="s2">"inverse"</span><span class="p">)</span>   <span class="c1"># haversine km by default</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="nb">print</span><span class="p">(</span><span class="n">W</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="nb">print</span><span class="p">(</span><span class="n">W</span><span class="o">.</span><span class="n">neighbors</span><span class="p">(</span><span class="s2">"Madrid"</span><span class="p">))</span>                                     <span class="c1"># {label: weight}</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="n">Wk</span> <span class="o">=</span> <span class="n">knn_weights</span><span class="p">(</span><span class="n">capitals</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="nb">print</span><span class="p">(</span><span class="n">Wk</span><span class="o">.</span><span class="n">to_frame</span><span class="p">()</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>                                      <span class="c1"># edge list: source, target, weight</span>
+</code></pre></div>
+<p><code>W.lag(series)</code> aligns a pandas Series or DataFrame by label, so the order of your data frame never has to match the order of the weights. <code>W.to_dense()</code> returns the numpy matrix when you need it in a solver.</p>
+<hr />
+<h2 id="2-spatial-autocorrelation-diagnostics">2. Spatial autocorrelation diagnostics</h2>
+<p>Moran's I and Geary's C summarise whether a variable is clustered (similar neighbours), dispersed (dissimilar neighbours) or random over the map. With <code>z = x − mean(x)</code> and <code>S₀ = Σᵢⱼ wᵢⱼ</code>:</p>
+<div class="arithmatex">\[I = \frac{n}{S_0}\,\frac{z' W z}{z' z}, \qquad C = \frac{(n-1)\sum_{ij} w_{ij}(x_i - x_j)^2}{2 S_0\, z'z}.\]</div>
+<p>Under no spatial autocorrelation <code>E[I] = −1/(n−1)</code> and <code>E[C] = 1</code>. Positive autocorrelation pushes <code>I</code> above its expectation and <code>C</code> below one. Both functions report the Cliff-Ord normality and randomisation variances with their z-scores and p-values, plus a permutation p-value that shuffles <code>x</code> across units (<code>n_perm</code>, default 999).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.spatial</span><span class="w"> </span><span class="kn">import</span> <span class="n">contiguity_weights</span><span class="p">,</span> <span class="n">gearys_c</span><span class="p">,</span> <span class="n">morans_i</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">side</span> <span class="o">=</span> <span class="mi">8</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">neighbours</span> <span class="o">=</span> <span class="p">{}</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">side</span><span class="p">):</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">side</span><span class="p">):</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>        <span class="n">u</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="n">side</span> <span class="o">+</span> <span class="n">j</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>        <span class="n">neighbours</span><span class="p">[</span><span class="n">u</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">u</span> <span class="o">-</span> <span class="n">side</span><span class="p">,</span> <span class="n">u</span> <span class="o">+</span> <span class="n">side</span><span class="p">,</span> <span class="n">u</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">u</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>                         <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">v</span> <span class="o">&lt;</span> <span class="n">side</span> <span class="o">*</span> <span class="n">side</span> <span class="ow">and</span> <span class="nb">abs</span><span class="p">((</span><span class="n">v</span> <span class="o">%</span> <span class="n">side</span><span class="p">)</span> <span class="o">-</span> <span class="n">j</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">]</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="n">W</span> <span class="o">=</span> <span class="n">contiguity_weights</span><span class="p">(</span><span class="n">neighbours</span><span class="p">)</span>              <span class="c1"># rook contiguity on an 8 x 8 lattice</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="n">rho</span> <span class="o">=</span> <span class="mf">0.6</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">W</span><span class="o">.</span><span class="n">n</span><span class="p">)</span> <span class="o">-</span> <span class="n">rho</span> <span class="o">*</span> <span class="n">W</span><span class="o">.</span><span class="n">to_dense</span><span class="p">(),</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">(</span><span class="n">W</span><span class="o">.</span><span class="n">n</span><span class="p">))</span>   <span class="c1"># SAR field</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="nb">print</span><span class="p">(</span><span class="n">morans_i</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">n_perm</span><span class="o">=</span><span class="mi">499</span><span class="p">)</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="nb">print</span><span class="p">(</span><span class="n">gearys_c</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">n_perm</span><span class="o">=</span><span class="mi">499</span><span class="p">)</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+</code></pre></div>
+<p><code>MoranResult.plot()</code> draws the Moran scatterplot (<code>z</code> against its spatial lag); the slope of the fitted line is Moran's I. The statistics are golden-tested against <code>esda</code> (PySAL) to 1e-10.</p>
+<hr />
+<h2 id="3-conley-spatial-hac-standard-errors">3. Conley spatial HAC standard errors</h2>
+<p>Regional shocks are correlated across nearby units. Clustering by administrative region assumes the correlation stops at the border; Conley (1999) instead lets the covariance of the scores decay with distance:</p>
+<div class="arithmatex">\[\hat V = (X'X)^{-1}\Big[\sum_i \sum_j K(d_{ij})\, u_i u_j\, x_i x_j'\Big](X'X)^{-1}, \qquad K(d) = \max\{0,\, 1 - d/\text{cutoff}\}\ \text{(Bartlett) or } \mathbf{1}\{d \le \text{cutoff}\}\ \text{(uniform)}.\]</div>
+<p>The cutoff is the bandwidth: at <code>cutoff=0</code> the estimator is exactly HC0, and with a uniform kernel and units grouped in far-apart blocks it is exactly the cluster-robust covariance. Report several cutoffs; the errors should stabilise once the cutoff exceeds the range of the spatial correlation.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.spatial</span><span class="w"> </span><span class="kn">import</span> <span class="n">conley_se</span><span class="p">,</span> <span class="n">pairwise_distances</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">n</span> <span class="o">=</span> <span class="mi">200</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">coords</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">([</span><span class="mf">36.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">9.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">43.5</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>      <span class="c1"># lat, lon over Spain</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">D</span> <span class="o">=</span> <span class="n">pairwise_distances</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="s2">"haversine"</span><span class="p">)</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">common</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">D</span> <span class="o">/</span> <span class="mf">150.0</span><span class="p">)</span> <span class="o">@</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>              <span class="c1"># shock correlated within ~150 km</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">x</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">common</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">y</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">+</span> <span class="n">common</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="n">x</span><span class="p">])</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="n">beta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">lstsq</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">rcond</span><span class="o">=</span><span class="kc">None</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="n">resid</span> <span class="o">=</span> <span class="n">y</span> <span class="o">-</span> <span class="n">X</span> <span class="o">@</span> <span class="n">beta</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="k">for</span> <span class="n">cutoff</span> <span class="ow">in</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">,</span> <span class="mf">300.0</span><span class="p">):</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"cutoff </span><span class="si">{</span><span class="n">cutoff</span><span class="si">:</span><span class="s2">5.0f</span><span class="si">}</span><span class="s2"> km  se(beta) = </span><span class="si">{</span><span class="n">conley_se</span><span class="p">(</span><span class="n">X</span><span class="p">,</span><span class="w"> </span><span class="n">resid</span><span class="p">,</span><span class="w"> </span><span class="n">coords</span><span class="p">,</span><span class="w"> </span><span class="n">cutoff</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="31-panel-local-projections-with-spatial-hac">3.1 Panel local projections with spatial HAC</h3>
+<p><code>panel_lp</code> accepts <code>cov_type="conley"</code>. The covariance is the Hsiang (2010) space-time HAC: a Conley kernel across units within each period, and a Bartlett kernel across periods up to <code>time_lags</code> (by default the Driscoll-Kraay bandwidth rule already used by <code>panel_lp_dk</code>). With a cutoff larger than every pairwise distance it collapses exactly to Driscoll-Kraay; with <code>time_lags=0</code> it is a per-period Conley covariance.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.lp</span><span class="w"> </span><span class="kn">import</span> <span class="n">panel_lp</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">regions</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Madrid"</span><span class="p">,</span> <span class="s2">"Barcelona"</span><span class="p">,</span> <span class="s2">"Valencia"</span><span class="p">,</span> <span class="s2">"Sevilla"</span><span class="p">,</span> <span class="s2">"Zaragoza"</span><span class="p">,</span> <span class="s2">"Malaga"</span><span class="p">,</span> <span class="s2">"Bilbao"</span><span class="p">,</span> <span class="s2">"A Coruna"</span><span class="p">]</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">coords</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="p">{</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>        <span class="s2">"lat"</span><span class="p">:</span> <span class="p">[</span><span class="mf">40.4168</span><span class="p">,</span> <span class="mf">41.3874</span><span class="p">,</span> <span class="mf">39.4699</span><span class="p">,</span> <span class="mf">37.3891</span><span class="p">,</span> <span class="mf">41.6488</span><span class="p">,</span> <span class="mf">36.7213</span><span class="p">,</span> <span class="mf">43.2630</span><span class="p">,</span> <span class="mf">43.3623</span><span class="p">],</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>        <span class="s2">"lon"</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">3.7038</span><span class="p">,</span> <span class="mf">2.1686</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.3763</span><span class="p">,</span> <span class="o">-</span><span class="mf">5.9845</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.8891</span><span class="p">,</span> <span class="o">-</span><span class="mf">4.4214</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.9350</span><span class="p">,</span> <span class="o">-</span><span class="mf">8.4115</span><span class="p">],</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="p">},</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>    <span class="n">index</span><span class="o">=</span><span class="n">regions</span><span class="p">,</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="p">)</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="n">T</span> <span class="o">=</span> <span class="mi">80</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="n">common</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">regions</span><span class="p">:</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>    <span class="n">shock</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="mf">0.3</span> <span class="o">*</span> <span class="n">shock</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">common</span> <span class="o">+</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">(</span><span class="n">T</span><span class="p">))</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>    <span class="n">rows</span> <span class="o">+=</span> <span class="p">[{</span><span class="s2">"code"</span><span class="p">:</span> <span class="n">r</span><span class="p">,</span> <span class="s2">"date"</span><span class="p">:</span> <span class="n">t</span><span class="p">,</span> <span class="s2">"y"</span><span class="p">:</span> <span class="n">y</span><span class="p">[</span><span class="n">t</span><span class="p">],</span> <span class="s2">"shock"</span><span class="p">:</span> <span class="n">shock</span><span class="p">[</span><span class="n">t</span><span class="p">]}</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">T</span><span class="p">)]</span>
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="n">panel</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">([</span><span class="s2">"code"</span><span class="p">,</span> <span class="s2">"date"</span><span class="p">])</span>
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="n">irf</span> <span class="o">=</span> <span class="n">panel_lp</span><span class="p">(</span><span class="n">panel</span><span class="p">,</span> <span class="s2">"y"</span><span class="p">,</span> <span class="s2">"shock"</span><span class="p">,</span> <span class="n">horizons</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">9</span><span class="p">),</span> <span class="n">n_lags</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a>               <span class="n">cov_type</span><span class="o">=</span><span class="s2">"conley"</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">,</span> <span class="n">cutoff_km</span><span class="o">=</span><span class="mf">400.0</span><span class="p">)</span>
+<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a><span class="nb">print</span><span class="p">(</span><span class="n">irf</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+</code></pre></div>
+<p><code>coords</code> must be indexed by the entity labels of the panel (missing entities raise <code>KeyError</code>). Use <code>kernel="uniform"</code> for a hard cutoff and <code>metric="euclidean"</code> when the coordinates are already planar (kilometres on a projected grid).</p>
+<hr />
+<h2 id="4-shift-share-iv-with-shock-level-standard-errors">4. Shift-share IV with shock-level standard errors</h2>
+<p>A shift-share instrument combines pre-period exposure shares <code>sᵢₖ</code> with sector-level shocks <code>gₖ</code>: <code>zᵢ = Σₖ sᵢₖ gₖ</code>. Adão, Kolesár and Morales (2019) show that units with similar share vectors have correlated residuals even when they are far apart, so heteroskedasticity-robust or geographically clustered errors under-cover. Their estimator aggregates the residuals to the sector level:</p>
+<div class="arithmatex">\[\widehat{\text{se}}_{\text{AKM}}(\hat\beta) = \frac{\sqrt{\sum_k \tilde g_k^2 \Big(\sum_i w_i s_{ik} \hat\varepsilon_i\Big)^2}}{\big|\sum_i w_i \tilde z_i \tilde x_i\big|},\]</div>
+<p>where tildes denote residuals from the controls (and, for the shocks, from the share-weighted <code>shock_controls</code>). <code>shift_share_iv</code> returns the 2SLS estimate, both standard errors, the robust first-stage F and the Rotemberg weights of Goldsmith-Pinkham, Sorkin and Swift (2020), which tell you which sectors drive the estimate.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.bartik</span><span class="w"> </span><span class="kn">import</span> <span class="n">shift_share_iv</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">n_regions</span><span class="p">,</span> <span class="n">n_industries</span> <span class="o">=</span> <span class="mi">300</span><span class="p">,</span> <span class="mi">25</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="n">shares</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">dirichlet</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">n_industries</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">n_regions</span><span class="p">),</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>                      <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="sa">f</span><span class="s2">"ind</span><span class="si">{</span><span class="n">k</span><span class="si">:</span><span class="s2">02d</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_industries</span><span class="p">)])</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="n">shocks</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">(</span><span class="n">n_industries</span><span class="p">),</span> <span class="n">index</span><span class="o">=</span><span class="n">shares</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>   <span class="c1"># national industry shocks</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="n">exposure</span> <span class="o">=</span> <span class="n">shares</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span> <span class="o">@</span> <span class="n">shocks</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="n">employment_growth</span> <span class="o">=</span> <span class="n">exposure</span> <span class="o">+</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">(</span><span class="n">n_regions</span><span class="p">)</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="n">industry_confounder</span> <span class="o">=</span> <span class="n">shares</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span> <span class="o">@</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">(</span><span class="n">n_industries</span><span class="p">)</span>    <span class="c1"># what breaks robust SEs</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="n">wage_growth</span> <span class="o">=</span> <span class="mf">0.8</span> <span class="o">*</span> <span class="n">employment_growth</span> <span class="o">+</span> <span class="n">industry_confounder</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">(</span><span class="n">n_regions</span><span class="p">)</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"wage_growth"</span><span class="p">:</span> <span class="n">wage_growth</span><span class="p">,</span> <span class="s2">"employment_growth"</span><span class="p">:</span> <span class="n">employment_growth</span><span class="p">})</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="n">res</span> <span class="o">=</span> <span class="n">shift_share_iv</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="s2">"wage_growth"</span><span class="p">,</span> <span class="s2">"employment_growth"</span><span class="p">,</span> <span class="n">shares</span><span class="p">,</span> <span class="n">shocks</span><span class="p">)</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="nb">print</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="nb">print</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">rotemberg_weights</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
+</code></pre></div>
+<p>Pass <code>se="robust"</code> to report the conventional error as the headline, <code>weights=</code> for population weights, and <code>controls=</code> for unit-level covariates. Shares must be non-negative and are aligned to <code>df</code> by index when given as a DataFrame.</p>
+<hr />
+<h2 id="5-choosing-a-specification">5. Choosing a specification</h2>
+<p>Four specifications sit on the same weights matrix, and they are not nested in a way that lets a single regression pick between them:</p>
+<table>
+<thead>
+<tr>
+<th>model</th>
+<th>equation</th>
+<th>estimator</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SLX</td>
+<td><code>y = X β + W X_d θ + ε</code></td>
+<td>OLS</td>
+</tr>
+<tr>
+<td>SAR</td>
+<td><code>y = ρ W y + X β + ε</code></td>
+<td>concentrated ML or Kelejian-Prucha GMM</td>
+</tr>
+<tr>
+<td>SEM</td>
+<td><code>y = X β + u</code>, <code>u = λ W u + ε</code></td>
+<td>concentrated ML or Kelejian-Prucha GMM</td>
+</tr>
+<tr>
+<td>SDM</td>
+<td><code>y = ρ W y + X β + W X_d θ + ε</code></td>
+<td>concentrated ML or Kelejian-Prucha GMM</td>
+</tr>
+</tbody>
+</table>
+<p><code>ols_spatial</code> is the entry point to call first. It is ordinary least squares with the Anselin-Bera-Florax-Yoon (1996) Lagrange-multiplier battery attached: five statistics computed entirely <strong>under the null of no spatial dependence</strong>, so nothing spatial has to be estimated to run them. With <code>e</code> the OLS residual, <code>σ̂² = e'e/n</code>, <code>T = tr(WW + W'W)</code>, <code>M = I − X(X'X)⁻¹X'</code> and <code>nJ = [(WXb)'M(WXb) + T σ̂²]/σ̂²</code>:</p>
+<div class="arithmatex">\[\text{LM}_{\text{lag}} = \frac{(e'Wy/\hat\sigma^2)^2}{nJ}, \qquad \text{LM}_{\text{err}} = \frac{(e'We/\hat\sigma^2)^2}{T},\]</div>
+<div class="arithmatex">\[\text{RLM}_{\text{lag}} = \frac{(d_\rho - d_\lambda)^2}{nJ - T}, \qquad \text{RLM}_{\text{err}} = \frac{(d_\lambda - T d_\rho/nJ)^2}{T\,(1 - T/nJ)},\]</div>
+<p>with <code>d_ρ = e'Wy/σ̂²</code> and <code>d_λ = e'We/σ̂²</code>. The robust versions are the point: on a genuine SAR the <em>error</em> statistic also rejects, and vice versa, so the plain pair almost always rejects twice. <code>RLM_lag</code> is robust to a locally misspecified error process and <code>RLM_err</code> to a locally misspecified lag, and the pair is what separates them.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_us_state_centroids</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.spatial</span><span class="w"> </span><span class="kn">import</span> <span class="n">contiguity_weights</span><span class="p">,</span> <span class="n">ols_spatial</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="n">states</span> <span class="o">=</span> <span class="n">load_us_state_centroids</span><span class="p">()</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="n">lower48</span> <span class="o">=</span> <span class="n">states</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="s2">"AK"</span><span class="p">,</span> <span class="s2">"HI"</span><span class="p">,</span> <span class="s2">"PR"</span><span class="p">])</span>                  <span class="c1"># 48 states + DC</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="n">neighbours</span> <span class="o">=</span> <span class="p">{</span><span class="n">s</span><span class="p">:</span> <span class="p">[</span><span class="n">nb</span> <span class="k">for</span> <span class="n">nb</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">split</span><span class="p">()</span> <span class="k">if</span> <span class="n">nb</span> <span class="ow">in</span> <span class="n">lower48</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>              <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">lower48</span><span class="p">[</span><span class="s2">"neighbors"</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="n">W</span> <span class="o">=</span> <span class="n">contiguity_weights</span><span class="p">(</span><span class="n">neighbours</span><span class="p">)</span>                               <span class="c1"># the real land-border graph</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="n">ids</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">W</span><span class="o">.</span><span class="n">ids</span><span class="p">)</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="n">coords</span> <span class="o">=</span> <span class="n">lower48</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ids</span><span class="p">,</span> <span class="p">[</span><span class="s2">"lat"</span><span class="p">,</span> <span class="s2">"lon"</span><span class="p">]]</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="nb">print</span><span class="p">(</span><span class="n">W</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">11</span><span class="p">)</span>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="n">n</span> <span class="o">=</span> <span class="n">W</span><span class="o">.</span><span class="n">n</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="n">log_area</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">lower48</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">ids</span><span class="p">,</span> <span class="s2">"land_sqmi"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">())</span>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="n">log_area</span> <span class="o">=</span> <span class="p">(</span><span class="n">log_area</span> <span class="o">-</span> <span class="n">log_area</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span> <span class="o">/</span> <span class="n">log_area</span><span class="o">.</span><span class="n">std</span><span class="p">()</span>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="n">X</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"log_area"</span><span class="p">:</span> <span class="n">log_area</span><span class="p">,</span> <span class="s2">"coastal"</span><span class="p">:</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">(</span><span class="n">n</span><span class="p">)},</span> <span class="n">index</span><span class="o">=</span><span class="n">ids</span><span class="p">)</span>
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a><span class="n">A_inv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">W</span><span class="o">.</span><span class="n">to_dense</span><span class="p">())</span>            <span class="c1"># a true SAR field, rho = 0.5</span>
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a><span class="n">y</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">A_inv</span> <span class="o">@</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="mf">0.8</span> <span class="o">*</span> <span class="n">X</span><span class="p">[</span><span class="s2">"log_area"</span><span class="p">]</span> <span class="o">-</span> <span class="mf">0.4</span> <span class="o">*</span> <span class="n">X</span><span class="p">[</span><span class="s2">"coastal"</span><span class="p">]</span>
+<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>                       <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">(</span><span class="n">n</span><span class="p">)),</span> <span class="n">index</span><span class="o">=</span><span class="n">ids</span><span class="p">)</span>
+<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>
+<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a><span class="n">fit_ols</span> <span class="o">=</span> <span class="n">ols_spatial</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span>
+<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a><span class="nb">print</span><span class="p">(</span><span class="n">fit_ols</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+<a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a><span class="nb">print</span><span class="p">(</span><span class="n">fit_ols</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">recommendation</span><span class="p">)</span>
+</code></pre></div>
+<p><code>recommendation</code> is a short string, and the whole decision rule is in it. Neither statistic rejects → <code>ols</code>. Only one rejects → that one's model. Both reject → the robust pair decides, and if <em>both</em> robust statistics reject the string is <code>sdm or sarar (both robust LM reject)</code>, because two rejections point at a model with two spatial processes, not at either simple one. If neither robust statistic rejects after both plain ones did, the answer is <code>inconclusive</code>, and that is the honest report.</p>
+<p>Three caveats travel with the battery. <code>summary()</code> prints the first one; all three are spelled out here:</p>
+<ul>
+<li>It is a <strong>local</strong> test. It says which alternative the OLS residuals point at, not that the indicated model is correct.</li>
+<li>Every statistic uses the ML variance <code>e'e/n</code>, as the Gaussian likelihood derivation requires. Substituting the degrees-of-freedom-corrected <code>e'e/(n−k)</code> would rescale <code>RLM_lag</code> by <code>(n−k)/n</code> and <code>LM_err</code> by <code>((n−k)/n)²</code>, and would rescale <code>LM_lag</code>, <code>RLM_err</code> and <code>LM_SARMA</code> by no constant at all, because <code>nJ</code> is <strong>affine</strong>, not linear, in <code>1/σ̂²</code>. (Measured on <code>n = 60</code>, <code>k = 3</code>, where <code>(n−k)/n = 0.95</code>: the five ratios are 0.902812, 0.902500, 0.950000, 0.934909 and 0.909873.) The <code>sigma2</code> that <code>ols_spatial</code> reports for its own standard errors <em>is</em> dof-corrected. The two scalings live side by side on purpose.</li>
+<li>The residual Moran's I here is the Cliff-Ord (1972) statistic with the <code>X</code>-dependent moments, and it differs from <code>morans_i</code> from §2, which uses the raw-variable moments. OLS residuals are not the raw variable.</li>
+</ul>
+<p><code>ols_spatial</code> takes <code>cov_type='nonrobust'</code> or <code>'hc1'</code> and deliberately offers <strong>no</strong> Conley option: the battery is derived under homoskedastic Gaussian OLS residuals, and pairing it with a spatial-HAC covariance would print two inconsistent assumptions in one table. Call <code>conley_cov</code> from §3 directly if that is what you want. The robust LM-lag is also undefined when <code>nJ − T</code> vanishes — <code>W X b</code> lying in the column space of <code>X</code>, for instance a single regressor that is an eigenvector of <code>W</code> — and <code>lm_spatial_tests</code> raises with that diagnosis rather than dividing by zero.</p>
+<hr />
+<h2 id="6-cross-section-spatial-models">6. Cross-section spatial models</h2>
+<p>The default estimator is Gaussian maximum likelihood through the <em>concentrated</em> log-likelihood of Ord (1975): <code>β</code> and <code>σ²</code> are profiled out, leaving a smooth one-dimensional problem in the spatial parameter,</p>
+<div class="arithmatex">\[\ln L_c(\rho) = -\tfrac{n}{2}\left(\ln 2\pi + 1\right) + \ln\lvert I - \rho W\rvert - \tfrac{n}{2}\ln\frac{\text{SSR}(\rho)}{n},\]</div>
+<p>maximised by a bounded scalar search over the admissible interval and cross-checked against the root of the analytic score. The Jacobian <code>ln|I − ρW|</code> is exact — dense eigenvalues for <code>n ≤ 1000</code>, a sparse LU factorisation above — and there is no stochastic log-determinant anywhere in the module, so the same data always give the same <code>ρ</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.spatial</span><span class="w"> </span><span class="kn">import</span> <span class="n">sar</span><span class="p">,</span> <span class="n">sdm</span><span class="p">,</span> <span class="n">sem</span><span class="p">,</span> <span class="n">slx</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">fit_sar</span> <span class="o">=</span> <span class="n">sar</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span>          <span class="c1"># concentrated Gaussian ML</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">fit_sem</span> <span class="o">=</span> <span class="n">sem</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">fit_sdm</span> <span class="o">=</span> <span class="n">sdm</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span>          <span class="c1"># SAR augmented with W X, plus the common-factor test</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="n">fit_slx</span> <span class="o">=</span> <span class="n">slx</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span>          <span class="c1"># plain OLS on [X, W X]</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="p">{</span><span class="s2">"spatial"</span><span class="p">:</span> <span class="p">[</span><span class="n">fit_sar</span><span class="o">.</span><span class="n">rho</span><span class="p">,</span> <span class="n">fit_sem</span><span class="o">.</span><span class="n">lam</span><span class="p">,</span> <span class="n">fit_sdm</span><span class="o">.</span><span class="n">rho</span><span class="p">],</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>     <span class="s2">"log_area"</span><span class="p">:</span> <span class="p">[</span><span class="n">fit_sar</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">"log_area"</span><span class="p">],</span> <span class="n">fit_sem</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">"log_area"</span><span class="p">],</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>                  <span class="n">fit_sdm</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">"log_area"</span><span class="p">]],</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>     <span class="s2">"loglik"</span><span class="p">:</span> <span class="p">[</span><span class="n">fit_sar</span><span class="o">.</span><span class="n">loglik</span><span class="p">,</span> <span class="n">fit_sem</span><span class="o">.</span><span class="n">loglik</span><span class="p">,</span> <span class="n">fit_sdm</span><span class="o">.</span><span class="n">loglik</span><span class="p">],</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>     <span class="s2">"aic"</span><span class="p">:</span> <span class="p">[</span><span class="n">fit_sar</span><span class="o">.</span><span class="n">aic</span><span class="p">,</span> <span class="n">fit_sem</span><span class="o">.</span><span class="n">aic</span><span class="p">,</span> <span class="n">fit_sdm</span><span class="o">.</span><span class="n">aic</span><span class="p">]},</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>    <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="s2">"sar"</span><span class="p">,</span> <span class="s2">"sem"</span><span class="p">,</span> <span class="s2">"sdm"</span><span class="p">])</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="nb">print</span><span class="p">(</span><span class="n">fit_sar</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+</code></pre></div>
+<p><strong>SDM against SEM: the common-factor test.</strong> An SDM collapses to an SEM exactly when <code>θ = −ρ β_d</code> — write the SEM in reduced form and the constraint falls out. <code>sdm</code> reports the Wald test of that restriction as <code>common_factor = (statistic, df, p-value)</code>; a non-rejection says the extra Durbin terms are the spatial error process in disguise, a rejection says they are not.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">stat</span><span class="p">,</span> <span class="n">dof</span><span class="p">,</span> <span class="n">pval</span> <span class="o">=</span> <span class="n">fit_sdm</span><span class="o">.</span><span class="n">common_factor</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"common factor: W = </span><span class="si">{</span><span class="n">stat</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">, df = </span><span class="si">{</span><span class="n">dof</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">, p = </span><span class="si">{</span><span class="n">pval</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"SEM is rejected"</span> <span class="k">if</span> <span class="n">pval</span> <span class="o">&lt;</span> <span class="mf">0.05</span> <span class="k">else</span> <span class="s2">"SEM is not rejected"</span><span class="p">)</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">fit_slx</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+</code></pre></div>
+<p>The test needs the <strong>full</strong> Durbin block: with <code>durbin=</code> selecting a strict subset the restriction does not nest SEM at all, and <code>common_factor=True</code> then raises rather than printing a claim about a model outside the parameter space being tested. The constant is always excluded from the Durbin block — for a row-standardised island-free <code>W</code>, <code>W1 = 1</code> makes the lagged constant exactly collinear with the constant. And the statistic is only <em>interpretable</em> where <code>sign(θ_r) = −sign(ρ β_r)</code> for every <code>r</code>; where that fails <code>summary()</code> appends the caveat rather than suppressing the number.</p>
+<p><strong>When to prefer <code>method='gmm'</code>.</strong> ML is the default and is efficient under its assumptions, but those assumptions bind hard. Under heteroskedasticity of unknown form the Gaussian SAR ML estimator of <code>ρ</code> is itself <strong>inconsistent</strong> (Lin &amp; Lee 2010) — no sandwich rescues a standard error for the wrong number, which is why <code>vcov='robust'</code> with <code>method='ml'</code> raises instead of quietly computing one. Kelejian-Prucha GMM is spatial two-stage least squares with <code>[X, WX, …, W^q X]</code> as instruments; it admits heteroskedasticity-robust errors, needs no log-determinant, and is the route to take when the residuals are plainly heteroskedastic or <code>n</code> is large enough that the Jacobian dominates.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">fit_gmm</span> <span class="o">=</span> <span class="n">sar</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">"gmm"</span><span class="p">,</span> <span class="n">vcov</span><span class="o">=</span><span class="s2">"robust"</span><span class="p">)</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">fit_gmm</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"rho admissible:"</span><span class="p">,</span> <span class="n">fit_gmm</span><span class="o">.</span><span class="n">rho_admissible</span><span class="p">,</span> <span class="s2">" interval:"</span><span class="p">,</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>      <span class="nb">tuple</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">fit_gmm</span><span class="o">.</span><span class="n">rho_bounds</span><span class="p">))</span>
+</code></pre></div>
+<p>Four things about the GMM path are deliberate limits rather than oversights:</p>
+<ul>
+<li><code>vcov='robust'</code> is a White sandwich around the <strong>homoskedastic</strong> Kelejian-Prucha moment conditions. It corrects the standard errors, not the moments, and it does not make the GMM <code>λ</code> heteroskedasticity-consistent. The Kelejian-Prucha (2010) heteroskedasticity-robust GMM is not implemented.</li>
+<li><code>sem(method='gmm')</code> reports <code>λ</code> with <code>bse['lambda'] = NaN</code>, because an honest standard error for it needs those same <code>Ψ</code> matrices. The <code>β</code> standard errors stay asymptotically valid: the feasible generalised spatial estimator has the limiting distribution of the one with <code>λ</code> known.</li>
+<li>Kelejian-Prucha 2SLS is unconstrained, so on a weakly identified design it can return a <code>ρ</code> <strong>outside</strong> the admissible interval. When it does, a <code>RuntimeWarning</code> fires, <code>rho_admissible</code> is <code>False</code>, <code>fitted</code> / <code>resid_reduced</code> / <code>pseudo_r2</code> are <code>NaN</code> rather than pushed through an explosive multiplier, and <code>.effects()</code> raises.</li>
+<li>There is no <strong>SARAR/SAC</strong> anywhere in the module — no <code>error_weights=</code> argument exists. Use <code>sdm</code>, which nests the SEM common-factor restriction and is testable against it.</li>
+</ul>
+<p>Two more warnings worth keeping in the front of your mind. A <code>ρ</code> estimated on a binary <code>W</code> is not comparable with one estimated on the row-standardised version: the normalisation changes the parameter's scale (on a 6×6 rook lattice a binary <code>W</code> restricts <code>ρ</code> to about <code>(−0.277, 0.277)</code>). And <code>logdet='chebyshev'</code> is an <em>approximation</em>, not an exact route: on a 20×20 rook lattice at order 5 its error is ~2e-4 at <code>ρ = 0.3</code> but ~0.66 at <code>ρ = 0.9</code>. Reach for it only on very large symmetrisable <code>W</code>, and never for a headline number.</p>
+<hr />
+<h2 id="7-impacts-not-coefficients">7. Impacts, not coefficients</h2>
+<p>This is the single most misread quantity in applied spatial work. <strong>A SAR <code>β</code> is not a marginal effect.</strong> In <code>y = ρWy + Xβ + ε</code> the outcome enters its own right-hand side, so raising <code>x_r</code> in one unit raises that unit's <code>y</code>, which raises its neighbours' <code>y</code>, which feeds back. The derivative matrix of the <code>r</code>-th regressor is</p>
+<div class="arithmatex">\[S_r(W) = (I - \rho W)^{-1}\left(I \beta_r + W \theta_r\right),\]</div>
+<p>and <code>β_r</code> is neither its diagonal nor its row sum. LeSage and Pace (2009, sec. 2.7) summarise it in three scalars: the <strong>direct</strong> impact <code>tr(S_r)/n</code> (own-unit, feedback loops included), the <strong>total</strong> impact <code>1'S_r 1/n</code> (the average row sum), and the <strong>indirect</strong> impact as their difference — the part that leaks to everyone else.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">imp</span> <span class="o">=</span> <span class="n">fit_sar</span><span class="o">.</span><span class="n">effects</span><span class="p">(</span><span class="n">n_sim</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">imp</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="nb">print</span><span class="p">(</span><span class="n">imp</span><span class="o">.</span><span class="n">to_frame</span><span class="p">()[[</span><span class="s2">"variable"</span><span class="p">,</span> <span class="s2">"direct"</span><span class="p">,</span> <span class="s2">"indirect"</span><span class="p">,</span> <span class="s2">"total"</span><span class="p">,</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>                      <span class="s2">"total_lo"</span><span class="p">,</span> <span class="s2">"total_hi"</span><span class="p">]]</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"true beta 0.800 | OLS"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">fit_ols</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">"log_area"</span><span class="p">]),</span> <span class="mi">3</span><span class="p">),</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>      <span class="s2">"| SAR beta"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">fit_sar</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="s2">"log_area"</span><span class="p">]),</span> <span class="mi">3</span><span class="p">),</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>      <span class="s2">"| direct"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">imp</span><span class="o">.</span><span class="n">direct</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="mi">3</span><span class="p">),</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>      <span class="s2">"| total"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">imp</span><span class="o">.</span><span class="n">total</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="mi">3</span><span class="p">))</span>
+</code></pre></div>
+<p>Read that line. The truth is <code>0.8</code>; OLS, which absorbs the whole spatial multiplier into the slope, reports about <code>1.31</code>; the SAR <code>β</code> is back near <code>0.84</code>; the <em>direct</em> impact is a little above it because the feedback loops through the neighbours and back are part of a unit's own response; and the <em>total</em> impact — what a policy applied everywhere would move on average — is roughly <code>1.93</code>. Report all three, or report the total and say so. Reporting <code>β</code> alone as "the effect" is the error.</p>
+<p><code>n_sim</code> draws <code>[β, θ, ρ]</code> from its estimated normal distribution and pushes each draw through the impact formula. The standard errors are therefore a normal approximation to the <strong>parameter</strong> distribution propagated through a non-linear map — not a bootstrap of the data — and the reported p-values are simulation quantile p-values, <code>2·min(share of draws &gt; 0, share &lt; 0)</code>, deliberately not <code>2Φ(−|effect|/se)</code>: with <code>ρ</code> near a bound the draw distribution is skewed and a normal p-value would contradict the interval printed beside it. Draws whose <code>ρ</code> falls outside the admissible interval are <strong>discarded, not clipped</strong> (above 5% discarded warns, above 50% raises). <code>n_sim=0</code>, the default, returns point estimates with <code>NaN</code> standard errors, so the plainest call always works.</p>
+<p>Four caveats:</p>
+<ul>
+<li><strong>An indirect effect is the <em>sum</em> of all <code>n(n−1)</code> off-diagonal cross-partials divided by <code>n</code></strong> — the average total spillover a unit sends, equivalently receives. It is not the effect on any one neighbour, not the effect on the first ring, and not the mean individual cross-partial — that mean is smaller by a factor of <code>n−1</code> (48 on the lower-48 graph, where an indirect impact of <code>0.737456</code> corresponds to a mean cross-partial of <code>0.015364</code>). Do not narrate it as "the spillover onto adjacent states".</li>
+<li><strong>The average total impact is not <code>1/(1−ρ)</code>.</strong> That shortcut equals <code>1'A⁻¹1/n</code> only for a row-standardised, island-free <code>W</code> — the first pair of numbers below, where the two agree to the last digit. Drop either condition and it breaks. Take the <em>binary</em> version of the very same land-border graph: its largest eigenvalue is <code>5.4154</code>, so <code>ρ</code> must stay below <code>0.1847</code>, and at <code>ρ = 0.15</code> the exact <code>1'A⁻¹1/n</code> is about <code>4.13</code> against the shortcut's <code>1.18</code> — the shortcut is off by a factor of three and a half, and understates rather than overstates. A single island breaks it too. This module always computes <code>1'A⁻¹1</code>.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"row-standardised, island-free W -- the shortcut does hold:"</span><span class="p">)</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"  1'A^-1 1/n ="</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">imp</span><span class="o">.</span><span class="n">s</span> <span class="o">/</span> <span class="n">imp</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>      <span class="s2">" vs the 1/(1-rho) shortcut ="</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">imp</span><span class="o">.</span><span class="n">rho</span><span class="p">),</span> <span class="mi">6</span><span class="p">))</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="n">Wb</span> <span class="o">=</span> <span class="n">W</span><span class="o">.</span><span class="n">binary</span><span class="p">()</span>                                   <span class="c1"># same graph, no row standardisation</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="n">rho_b</span> <span class="o">=</span> <span class="mf">0.15</span>                                      <span class="c1"># admissible: 1 / max eig(Wb) = 0.1847</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="n">Ab</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">Wb</span><span class="o">.</span><span class="n">n</span><span class="p">)</span> <span class="o">-</span> <span class="n">rho_b</span> <span class="o">*</span> <span class="n">Wb</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="n">exact_b</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">Wb</span><span class="o">.</span><span class="n">n</span><span class="p">)</span> <span class="o">@</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">Ab</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">Wb</span><span class="o">.</span><span class="n">n</span><span class="p">))</span> <span class="o">/</span> <span class="n">Wb</span><span class="o">.</span><span class="n">n</span><span class="p">)</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"binary W at rho = 0.15 -- the shortcut does not:"</span><span class="p">)</span>
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"  1'A^-1 1/n ="</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">exact_b</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span>
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>      <span class="s2">" vs the 1/(1-rho) shortcut ="</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">rho_b</span><span class="p">),</span> <span class="mi">6</span><span class="p">))</span>
+<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"SLX impacts are exact and local:"</span><span class="p">)</span>
+<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="nb">print</span><span class="p">(</span><span class="n">fit_slx</span><span class="o">.</span><span class="n">effects</span><span class="p">(</span><span class="n">n_sim</span><span class="o">=</span><span class="mi">500</span><span class="p">)</span><span class="o">.</span><span class="n">to_frame</span><span class="p">()[[</span><span class="s2">"variable"</span><span class="p">,</span> <span class="s2">"direct"</span><span class="p">,</span> <span class="s2">"indirect"</span><span class="p">,</span> <span class="s2">"total"</span><span class="p">]]</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+</code></pre></div>
+<ul>
+<li><strong>SEM has no impact decomposition at all</strong>, and <code>.effects()</code> raises for it: in <code>y = Xβ + u</code> the marginal effect of <code>x_r</code> is <code>β_r</code> on the diagonal and zero off it, whatever <code>λ</code> is. That is a feature of the model, not a gap in the software.</li>
+<li><strong>SLX impacts are exact and local</strong>: <code>direct = β</code>, <code>indirect = θ·S₀/n</code>, no spatial multiplier and no simulation needed for the point estimates. This is a real argument for SLX when the theory says spillovers are one ring deep.</li>
+</ul>
+<p>One divergence from <code>spreg</code>, deliberate and documented: <code>spat_impacts='full'</code> assigns every SLX term to the <em>indirect</em> column, dropping <code>θ_r tr(A⁻¹W)/n</code> from the direct effect; this module follows the textbook and keeps it there. The <strong>total</strong> is identical either way, and for a SAR (<code>θ = 0</code>) the two agree exactly.</p>
+<hr />
+<h2 id="8-spatial-panels">8. Spatial panels</h2>
+<p><code>spatial_panel</code> fits SAR, SDM and SEM on a <strong>balanced</strong> <code>(entity, time)</code> panel by quasi-maximum likelihood, with any combination of individual and time fixed effects:</p>
+<div class="arithmatex">\[y_{it} = \rho \sum_j w_{ij} y_{jt} + x_{it}'\beta + (Wx)_{it}'\theta + \mu_i + \xi_t + \varepsilon_{it}.\]</div>
+<p>The fixed effects are the problem. The <code>μ_i</code> are <code>n</code> incidental parameters each estimated from <code>T</code> observations and the <code>ξ_t</code> are <code>T</code> of them each estimated from <code>n</code>; concentrating them out of the Gaussian likelihood leaves a score that is not centred at the truth. With <code>G = W(I − ρW)⁻¹</code> and two-way effects, <code>E[∂L/∂ρ] = −tr(G) − (T−1)/(1−ρ)</code> and <code>E[∂L/∂σ²] = −(n+T−1)/(2σ²)</code>, which over the <code>O(nT)</code> information is an <code>O(1/T)</code> bias from the individual effects plus an <code>O(1/n)</code> bias from the time effects. <code>β</code> is unaffected; <code>ρ</code> and <code>σ²</code> are not.</p>
+<p>Lee and Yu (2010) remove both exactly. <code>method='transformation'</code> (the default) runs the likelihood on an orthonormal transformation whose score is centred <strong>by construction</strong>, so <code>bias_correction</code> reports <code>'none'</code> because the correction is provably zero, not because it was skipped. <code>method='direct'</code> concentrates the effects out and applies the analytic correction <code>θ̂ − I⁻¹a</code> instead; it is kept for comparability with software that does it that way, and because its Jacobian needs no assumption on the row sums of <code>W</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.spatial</span><span class="w"> </span><span class="kn">import</span> <span class="n">spatial_panel</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="n">T</span> <span class="o">=</span> <span class="mi">24</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="n">S_inv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.4</span> <span class="o">*</span> <span class="n">W</span><span class="o">.</span><span class="n">to_dense</span><span class="p">())</span>            <span class="c1"># true rho = 0.4</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="n">xs</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">T</span><span class="p">))</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="n">ys</span> <span class="o">=</span> <span class="n">S_inv</span> <span class="o">@</span> <span class="p">(</span><span class="mf">0.9</span> <span class="o">*</span> <span class="n">xs</span> <span class="o">+</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>             <span class="c1"># mu_i</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>              <span class="o">+</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">T</span><span class="p">))</span>                      <span class="c1"># xi_t</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>              <span class="o">+</span> <span class="mf">0.4</span> <span class="o">*</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">T</span><span class="p">)))</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="n">idx</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_product</span><span class="p">([</span><span class="n">ids</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="n">T</span><span class="p">)],</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">"code"</span><span class="p">,</span> <span class="s2">"date"</span><span class="p">])</span>
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="n">panel</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"gsp"</span><span class="p">:</span> <span class="n">ys</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="s2">"spend"</span><span class="p">:</span> <span class="n">xs</span><span class="o">.</span><span class="n">ravel</span><span class="p">()},</span> <span class="n">index</span><span class="o">=</span><span class="n">idx</span><span class="p">)</span>
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="n">fit_tr</span> <span class="o">=</span> <span class="n">spatial_panel</span><span class="p">(</span><span class="n">panel</span><span class="p">,</span> <span class="s2">"gsp"</span><span class="p">,</span> <span class="s2">"spend"</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">"sar"</span><span class="p">,</span> <span class="n">effects</span><span class="o">=</span><span class="s2">"two-way"</span><span class="p">)</span>
+<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="nb">print</span><span class="p">(</span><span class="n">fit_tr</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+</code></pre></div>
+<p>The impacts table <code>spatial_panel</code> prints is the same LeSage-Pace decomposition as §7 (its point estimates are pinned against <code>spatial_effects</code> to 1e-12), with one convention difference: the panel reports <code>point ± z·se</code> intervals rather than empirical simulation quantiles. <code>impacts=None</code> — the default — means "yes for SAR/SDM, no for SEM"; asking for <code>impacts=True</code> with <code>model='sem'</code> raises rather than silently returning <code>None</code>.</p>
+<p>Running the same data through <code>method='direct'</code> shows the correction that the transformation approach never needs:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">fit_dir</span> <span class="o">=</span> <span class="n">spatial_panel</span><span class="p">(</span><span class="n">panel</span><span class="p">,</span> <span class="s2">"gsp"</span><span class="p">,</span> <span class="s2">"spend"</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">"sar"</span><span class="p">,</span> <span class="n">effects</span><span class="o">=</span><span class="s2">"two-way"</span><span class="p">,</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>                        <span class="n">method</span><span class="o">=</span><span class="s2">"direct"</span><span class="p">,</span> <span class="n">impacts</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="nb">print</span><span class="p">(</span><span class="n">fit_dir</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>                    <span class="c1"># what Lee-Yu subtracted</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"transformation rho:"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">fit_tr</span><span class="o">.</span><span class="n">rho</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>      <span class="s2">" direct+Lee-Yu rho:"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">fit_dir</span><span class="o">.</span><span class="n">rho</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+</code></pre></div>
+<p><strong>What the standard errors are valid for.</strong> <code>vcov='oim'</code> (the default) is the inverse expected information: valid under iid Gaussian <code>ε</code>, extended by Lee (2004) to non-normal but still homoskedastic errors. <code>vcov='dk'</code> (Driscoll-Kraay) and <code>vcov='conley'</code> replace the <strong><code>β</code> block only</strong> — the <code>ρ</code>/<code>λ</code> and <code>σ²</code> rows and columns always come from the OIM.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">fit_conley</span> <span class="o">=</span> <span class="n">spatial_panel</span><span class="p">(</span><span class="n">panel</span><span class="p">,</span> <span class="s2">"gsp"</span><span class="p">,</span> <span class="s2">"spend"</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="s2">"sar"</span><span class="p">,</span> <span class="n">effects</span><span class="o">=</span><span class="s2">"two-way"</span><span class="p">,</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>                           <span class="n">vcov</span><span class="o">=</span><span class="s2">"conley"</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">,</span> <span class="n">cutoff_km</span><span class="o">=</span><span class="mf">800.0</span><span class="p">,</span> <span class="n">impacts</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="nb">print</span><span class="p">(</span><span class="n">fit_conley</span><span class="o">.</span><span class="n">vcov_note</span><span class="p">)</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"oim"</span><span class="p">:</span> <span class="n">fit_tr</span><span class="o">.</span><span class="n">se</span><span class="p">,</span> <span class="s2">"conley"</span><span class="p">:</span> <span class="n">fit_conley</span><span class="o">.</span><span class="n">se</span><span class="p">})</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
+</code></pre></div>
+<p>That restriction is deliberate, and there is no <code>vcov='qml'</code> or <code>vcov='cluster'</code> here at all — not merely unavailable, but <em>wrong</em> for this score. A per-cell outer product misstates the spatial parameter badly: <code>s_it^ρ</code> carries <code>(Wy)_it e_it</code>, and <code>Wy</code> loads on every neighbour's <code>ε</code>, so the omitted cross-<code>i</code> terms are large. On a 6×6 row-standardised rook lattice at <code>ρ = 0.5</code> with <code>T = 8</code> the outer-product meat is 163.9 against a true score variance of 303.5 — 54% of the truth, understating the <code>ρ</code> standard error by 27%.</p>
+<p>And no covariance of any kind is robust to a mis-specified <code>W</code>: if <code>W</code> is wrong, <code>ρ̂</code> is inconsistent. Under heteroskedastic <code>ε</code> the SAR QMLE <strong>point estimate</strong> is inconsistent (Lin &amp; Lee 2010), so no sandwich rescues it there either.</p>
+<p>Restrictions to plan around:</p>
+<ul>
+<li><strong>Balanced panels only.</strong> The transformation needs a common <code>T</code>; an unbalanced panel raises and names <code>puremacro.inference.balanced_panel.balanced_subpanel</code>.</li>
+<li><strong>Static only.</strong> Dynamic spatial panels (a time-lagged <code>y</code> or <code>W y_{t−1}</code>) are not implemented; Yu, de Jong and Lee (2008) is cited for the <code>n/T → c</code> asymptotics behind the bias term, not implemented.</li>
+<li><strong>No random effects</strong>, no Hausman test, <strong>no SARAR/SAC</strong>, and <strong>no SDEM</strong> (<code>model='sem'</code> with <code>durbin=</code> raises rather than fitting an equation the module does not define).</li>
+<li><strong>Dense spectrum.</strong> The information matrix, the bias vector and the impacts all need <code>tr(G)</code>, <code>tr(G²)</code>, <code>tr(G'G)</code> and <code>diag(G)</code>, which an LU factorisation does not provide and a stochastic probe would make irreproducible — so <code>logdet='lu'</code> raises, a <code>RuntimeWarning</code> fires above 2000 units and <code>dense_max = 5000</code> is a hard ceiling. A 3,143-county panel is near the ceiling; census tracts are past it.</li>
+<li>With a <strong>time-effects</strong> component and <code>method='transformation'</code>, every row of <code>W</code> must sum to one — that is what makes <code>1</code> an eigenvector and lets the time effects drop out of an exact <code>(n−1)</code>-unit SAR. The error message names <code>standardize()</code>.</li>
+</ul>
+<hr />
+<h2 id="9-spatial-local-projections">9. Spatial local projections</h2>
+<p><code>spatial_lp</code> is a two-way fixed-effects panel local projection (Jordà 2005) augmented with the spatially lagged shock, so a regional impulse response splits into a response to the unit's <strong>own</strong> shock and a response to the shock its <strong>neighbours</strong> receive. For every horizon <code>h</code>,</p>
+<div class="arithmatex">\[y_{i,t+h} - y_{i,t-1} = \mu_i^h + \tau_t^h + \beta_h x_{it} + \sum_p \gamma_{p,h}\,(W^{(p)}x)_{it} + (\text{lags}) + \varepsilon_{i,t+h},\]</div>
+<p>with <code>W^(p)</code> the <code>p</code>-th order neighbour matrix in the Anselin (1988) sense — the walks of exactly <code>p</code> steps, minus the diagonal and minus every lower order, so <code>γ₂</code> measures a second ring instead of double-counting the first.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.spatial</span><span class="w"> </span><span class="kn">import</span> <span class="n">spatial_lp</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="n">T</span> <span class="o">=</span> <span class="mi">70</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="n">shock</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">T</span><span class="p">))</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="n">dy</span> <span class="o">=</span> <span class="mf">0.6</span> <span class="o">*</span> <span class="n">shock</span> <span class="o">+</span> <span class="mf">0.35</span> <span class="o">*</span> <span class="p">(</span><span class="n">W</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span> <span class="o">@</span> <span class="n">shock</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.3</span> <span class="o">*</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="n">T</span><span class="p">))</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="n">idx</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_product</span><span class="p">([</span><span class="n">ids</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="n">T</span><span class="p">)],</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s2">"code"</span><span class="p">,</span> <span class="s2">"date"</span><span class="p">])</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="n">lp_panel</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"emp"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">dy</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>                         <span class="s2">"spend"</span><span class="p">:</span> <span class="n">shock</span><span class="o">.</span><span class="n">ravel</span><span class="p">()},</span> <span class="n">index</span><span class="o">=</span><span class="n">idx</span><span class="p">)</span>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="n">irf</span> <span class="o">=</span> <span class="n">spatial_lp</span><span class="p">(</span><span class="n">lp_panel</span><span class="p">,</span> <span class="s2">"emp"</span><span class="p">,</span> <span class="s2">"spend"</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">horizons</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">7</span><span class="p">),</span> <span class="n">n_lags</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a>                 <span class="n">cov_type</span><span class="o">=</span><span class="s2">"conley"</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">,</span> <span class="n">cutoff_km</span><span class="o">=</span><span class="mf">800.0</span><span class="p">)</span>
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a><span class="nb">print</span><span class="p">(</span><span class="n">irf</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+</code></pre></div>
+<h3 id="what-total-is-and-what-it-is-not">What <code>total</code> is, and what it is not</h3>
+<p><code>β_h</code> and <code>γ_{p,h}</code> are estimated <strong>after</strong> a two-way within transformation, so they are responses <em>relative to the period mean</em>. The time effect <code>τ_t^h</code> absorbs, by construction, every component of the response that is common to all units in a period — including the response to the aggregate part of the shock. So:</p>
+<ul>
+<li><code>direct</code> = <code>β_h</code>: the extra response of a unit whose own shock is one unit above the period average, holding its neighbourhood fixed;</li>
+<li><code>indirect</code> = <code>c₁ γ_{1,h}</code>: the extra response of a unit whose first-ring neighbours' shocks are <code>c₁</code> above the period average (one such column per order — <code>indirect2</code>, <code>indirect3</code>, … — plus <code>indirect_all</code> when there is more than one);</li>
+<li><code>total</code> = <code>direct + Σ_p c_p γ_{p,h}</code>: a <strong>cross-sectional contrast</strong>, the response of a unit whose own and neighbour shocks are both above the period average, relative to a unit at the period average.</li>
+</ul>
+<p><code>c_p</code> is the size of the neighbourhood contrast, and <code>total_scale=</code> sets it. Under the default <code>total_scale='row_sum'</code> it is the mean row sum of <code>W^(p)</code> — exactly <code>1</code> for a row-standardised island-free <code>W</code>, so <code>indirect = γ_{1,h}</code> in that case; <code>total_scale='unit'</code> forces every <code>c_p = 1</code>, and a float or one float per order sets them by hand. The vector actually used, <code>c = (1, c₁, …, c_P)</code>, is on <code>.total_scale</code>.</p>
+<p><strong><code>total</code> is not the response to a uniform unit shock hitting every unit, and this module never claims that it is.</strong> A uniform shock is exactly the variation <code>τ_t</code> removes: within-transformed, the predicted response to a uniform <code>+1</code> is <code>γ(s_i − s̄)</code>, whose cross-unit mean is zero. Adding an arbitrary aggregate component <code>κ·x̄_t</code> to the data-generating process leaves the estimates unchanged to 1e-16, so no aggregate multiplier is identified here at all. <code>total</code> equals the aggregate response only under the additional, untestable assumption that the common response is zero — which is the whole point of Chodorow-Reich (2019). Write it down that way in the paper.</p>
+<p>These are also reduced-form coefficients on own and neighbour <strong>shocks</strong>. They are <em>not</em> the LeSage-Pace partial derivatives of §7; there is no <code>(I − ρW)⁻¹</code> multiplier anywhere in this estimator.</p>
+<h3 id="inference-honestly">Inference, honestly</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="nb">print</span><span class="p">(</span><span class="n">irf</span><span class="o">.</span><span class="n">spillover</span><span class="p">[[</span><span class="s2">"h"</span><span class="p">,</span> <span class="s2">"order"</span><span class="p">,</span> <span class="s2">"gamma"</span><span class="p">,</span> <span class="s2">"se"</span><span class="p">,</span> <span class="s2">"corr_own"</span><span class="p">]]</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">irf</span><span class="o">.</span><span class="n">cumulative</span><span class="p">[[</span><span class="s2">"h"</span><span class="p">,</span> <span class="s2">"cum_direct"</span><span class="p">,</span> <span class="s2">"cum_indirect"</span><span class="p">,</span> <span class="s2">"cum_total"</span><span class="p">,</span> <span class="s2">"se_total"</span><span class="p">]]</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+</code></pre></div>
+<p>The cross-horizon covariance is retained in full (<code>.vcov</code>), so the standard error of <code>direct + indirect</code> carries the off-diagonal term and the cumulative bands are honest rather than a sum of per-horizon variances.</p>
+<p><strong>The joint cross-horizon spillover test is deliberately not shipped.</strong> A χ² reference for the stacked restriction <code>γ_{p,h} = 0 at every h</code> is grossly oversized in exactly the panels this module targets: a 150-replication Monte Carlo with <code>N = 20</code>, <code>T = 50</code>, <code>H = 6</code> and a true <code>γ = 0</code> rejected at <strong>0.313</strong> against a nominal 0.10 (0.187 at nominal 0.05). A many-restriction Wald with an estimated HAC covariance on <code>T ≈ 50</code> periods does not have its nominal size, so it does not ship. Test one horizon at a time, or build your own fixed-<em>b</em> reference from <code>.vcov</code>.</p>
+<p>The per-horizon z-test that <em>does</em> ship is not exact either, and the module reports its size rather than one favourable number. On the same design (<code>N = 20</code>, <code>T = 50</code>, <code>h = 0…5</code>, true <code>γ = 0</code>, 400 replications, Monte Carlo standard error 0.011 at nominal 0.05):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>cov_type            nominal 0.05              nominal 0.10
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>                  h = 0   worst over h      h = 0   worst over h
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>driscoll-kraay    0.083   0.110 (h = 3)     0.138   0.172 (h = 5)
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>conley 1000 km    0.068   0.100 (h = 3)     0.138   0.152 (h = 2)
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>cluster           0.090   0.090 (h = 0)     0.160   0.160 (h = 0)
+</code></pre></div>
+<p>So the honest contrast with the joint test's 0.313 is 0.08–0.11 at a nominal 0.05, and the size drifts up with the horizon as the overlapping-window MA(h) dependence grows. Doubling the cross-section to <code>N = 40</code> does not fix Driscoll-Kraay (it is consistent as <code>T → ∞</code>, not in <code>N</code>); Conley does improve. No finite-sample correction is applied anywhere — which is what makes <code>spillover_orders=()</code> reproduce <code>panel_lp</code> bit for bit — so every band here is asymptotic and measurably too narrow on a regional panel. <strong>Read a <code>γ</code> whose p-value sits near the threshold as undecided.</strong></p>
+<p>The default <code>cov_type</code> is <code>'driscoll-kraay'</code> rather than <code>panel_lp</code>'s <code>'cluster'</code>, deliberately: cluster-by-entity assumes independence across entities, which this regression denies by construction, since <code>(Wx)_i</code> is a function of other units' shocks. For the <code>T ≈ 40–100</code> regional panels this module targets, <code>'conley'</code> is the recommended choice.</p>
+<p>Two more identification notes. <code>γ</code> is identified purely off the cross-sectional variation in <code>Wx</code> given <code>x</code>, so a near-uniform shock, a dense <code>W</code>, or a <code>W</code> chosen after looking at the results all give weakly identified or specification-searched estimates; <code>spillover['corr_own']</code> reports the within-sample correlation of the two-way-demeaned own and spillover columns, and above 0.999 a <code>RuntimeWarning</code> fires. And <code>x</code> enters as <strong>exogenous</strong> conditional on the fixed effects and lags — no IV path ships, even though the designs this module supports (Chodorow-Reich 2019; Auerbach, Gorodnichenko and Murphy 2020; Dupor et al. 2023) instrument regional spending with military procurement or shift-share exposure. Build that instrument with <code>shift_share_iv</code> from §4 and treat it as the shock.</p>
+<hr />
+<h2 id="10-practical-checklist">10. Practical checklist</h2>
+<ul>
+<li><strong>Bandwidth.</strong> Report Conley errors at two or three cutoffs. If they keep growing with the cutoff, the spatial correlation is not local and Driscoll-Kraay (<code>panel_lp_dk</code>) or a larger cutoff is the honest choice.</li>
+<li><strong>Islands.</strong> A unit without neighbours has a zero spatial lag; check <code>W.n_islands</code> before Moran's I and use <code>distance_weights</code> with a larger cutoff or <code>knn_weights</code> if islands appear. An island also breaks the <code>1/(1−ρ)</code> shortcut for the average total impact — which is why §7 never uses it.</li>
+<li><strong>Coordinates.</strong> Latitude first, longitude second, in degrees. <code>metric="euclidean"</code> treats the columns as planar distances in the same unit as the cutoff.</li>
+<li><strong>Shift-share.</strong> The AKM error is valid when the shocks are as-good-as-random across sectors; when the identification comes from the shares instead, follow Goldsmith-Pinkham, Sorkin and Swift and inspect the Rotemberg weights.</li>
+<li><strong>Specify before you fit.</strong> Run <code>ols_spatial</code> first and read <code>lm.recommendation</code>. It is a local test under the null of no dependence: it says which alternative the residuals point at, not that the indicated model is right. Two robust rejections mean SDM or SARAR, not "pick the bigger statistic".</li>
+<li><strong>Never report a spatial-lag <code>β</code> as an effect.</strong> Report <code>.effects()</code> — direct, indirect and total — and say which one you are talking about. The indirect effect is the <em>sum</em> of all <code>n(n−1)</code> off-diagonal cross-partials divided by <code>n</code> — the average total spillover a unit sends, equivalently receives — not the effect on one neighbour, and not the mean individual cross-partial (which is smaller by a factor of <code>n−1</code>). SEM has no such decomposition, by construction.</li>
+<li><strong>Say which <code>W</code>, and show a second one.</strong> <code>ρ</code> on a binary <code>W</code> is not comparable with <code>ρ</code> on its row-standardised version, and no standard error of any kind is robust to a mis-specified <code>W</code>. Report contiguity, k-nearest-neighbour and economic weights side by side.</li>
+<li><strong>Heteroskedasticity is not a standard-error problem here.</strong> Under heteroskedasticity of unknown form the Gaussian SAR ML estimate of <code>ρ</code> is itself inconsistent, which is why <code>vcov='robust'</code> with <code>method='ml'</code> raises. Refit with <code>method='gmm'</code>.</li>
+<li><strong>Panels: check what you actually corrected.</strong> <code>spatial_panel</code> defaults to the Lee-Yu transformation, whose bias correction is provably zero — <code>bias_correction='none'</code> there is a statement, not a skip. Panels must be balanced, must be static, and must fit under <code>dense_max = 5000</code> units. <code>vcov='dk'</code>/<code>'conley'</code> replace the <code>β</code> block only.</li>
+<li><strong>Spatial local projections: <code>total</code> is a contrast, not a multiplier.</strong> The two-way time effect absorbs exactly the uniform-shock variation, so no aggregate multiplier is identified. Quote <code>total</code> as a cross-sectional contrast, use the per-horizon tests one at a time (the joint cross-horizon test is not shipped because its measured size was 0.31 against a nominal 0.10), and treat a marginal <code>γ</code> as undecided.</li>
+</ul>
+<h2 id="references">References</h2>
+<ul>
+<li>Adão, R., Kolesár, M. and Morales, E. (2019). Shift-share designs: theory and inference. <em>Quarterly Journal of Economics</em> 134(4), 1949–2010.</li>
+<li>Anselin, L. (1988). <em>Spatial Econometrics: Methods and Models</em>. Kluwer.</li>
+<li>Anselin, L., Bera, A. K., Florax, R. and Yoon, M. J. (1996). Simple diagnostic tests for spatial dependence. <em>Regional Science and Urban Economics</em> 26(1), 77–104.</li>
+<li>Auerbach, A. J., Gorodnichenko, Y. and Murphy, D. (2020). Local fiscal multipliers and fiscal spillovers in the USA. <em>IMF Economic Review</em> 68, 195–229.</li>
+<li>Chodorow-Reich, G. (2019). Geographic cross-sectional fiscal spending multipliers: what have we learned? <em>American Economic Journal: Economic Policy</em> 11(2), 1–34.</li>
+<li>Cliff, A. D. and Ord, J. K. (1972). Testing for spatial autocorrelation among regression residuals. <em>Geographical Analysis</em> 4(3), 267–284.</li>
+<li>Cliff, A. D. and Ord, J. K. (1981). <em>Spatial Processes: Models and Applications</em>. Pion.</li>
+<li>Conley, T. G. (1999). GMM estimation with cross sectional dependence. <em>Journal of Econometrics</em> 92(1), 1–45.</li>
+<li>Driscoll, J. C. and Kraay, A. C. (1998). Consistent covariance matrix estimation with spatially dependent panel data. <em>Review of Economics and Statistics</em> 80(4), 549–560.</li>
+<li>Dupor, B., Karabarbounis, M., Kudlyak, M. and Mehkari, M. S. (2023). Regional consumption responses and the aggregate fiscal multiplier. <em>Review of Economic Studies</em> 90(6), 2982–3021.</li>
+<li>Elhorst, J. P. (2014). <em>Spatial Econometrics: From Cross-Sectional Data to Spatial Panels</em>. Springer.</li>
+<li>Goldsmith-Pinkham, P., Sorkin, I. and Swift, H. (2020). Bartik instruments: what, when, why, and how. <em>American Economic Review</em> 110(8), 2586–2624.</li>
+<li>Hsiang, S. M. (2010). Temperatures and cyclones strongly associated with economic production in the Caribbean and Central America. <em>PNAS</em> 107(35), 15367–15372.</li>
+<li>Jordà, Ò. (2005). Estimation and inference of impulse responses by local projections. <em>American Economic Review</em> 95(1), 161–182.</li>
+<li>Kelejian, H. H. and Prucha, I. R. (1998). A generalized spatial two-stage least squares procedure for estimating a spatial autoregressive model with autoregressive disturbances. <em>Journal of Real Estate Finance and Economics</em> 17(1), 99–121.</li>
+<li>Kelejian, H. H. and Prucha, I. R. (1999). A generalized moments estimator for the autoregressive parameter in a spatial model. <em>International Economic Review</em> 40(2), 509–533.</li>
+<li>Kelejian, H. H. and Prucha, I. R. (2010). Specification and estimation of spatial autoregressive models with autoregressive and heteroskedastic disturbances. <em>Journal of Econometrics</em> 157(1), 53–67.</li>
+<li>Lee, L.-F. (2004). Asymptotic distributions of quasi-maximum likelihood estimators for spatial autoregressive models. <em>Econometrica</em> 72(6), 1899–1925.</li>
+<li>Lee, L.-F. and Yu, J. (2010). Estimation of spatial autoregressive panel data models with fixed effects. <em>Journal of Econometrics</em> 154(2), 165–185.</li>
+<li>LeSage, J. P. and Pace, R. K. (2009). <em>Introduction to Spatial Econometrics</em>. CRC Press.</li>
+<li>Lin, X. and Lee, L.-F. (2010). GMM estimation of spatial autoregressive models with unknown heteroskedasticity. <em>Journal of Econometrics</em> 157(1), 34–52.</li>
+<li>Ord, J. K. (1975). Estimation methods for models of spatial interaction. <em>Journal of the American Statistical Association</em> 70(349), 120–126.</li>
+<li>Pace, R. K. and LeSage, J. P. (2004). Chebyshev approximation of log-determinants of spatial weight matrices. <em>Computational Statistics &amp; Data Analysis</em> 45(2), 179–196.</li>
+<li>Yu, J., de Jong, R. and Lee, L.-F. (2008). Quasi-maximum likelihood estimators for spatial dynamic panel data models with fixed effects when both n and T are large. <em>Journal of Econometrics</em> 146(1), 118–134.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

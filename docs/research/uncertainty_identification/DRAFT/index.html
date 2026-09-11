@@ -1,0 +1,3996 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Production-grade Macroeconometric and Heterogeneous-Agent Structural Modeling Engine in Pure Python">
+      
+      
+        <meta name="author" content="puremacro contributors">
+      
+      
+        <link rel="canonical" href="https://jalonso1979.github.io/puremacro/docs/research/uncertainty_identification/DRAFT/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>How Much of the Uncertainty-Shock Literature Is Identification Choice? - puremacro</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#how-much-of-the-uncertainty-shock-literature-is-identification-choice" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="puremacro" class="md-header__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            puremacro
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              How Much of the Uncertainty-Shock Literature Is Identification Choice?
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../.." class="md-tabs__link">
+          
+  
+  
+  English Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../es/" class="md-tabs__link">
+          
+  
+  
+  Documentación en Español
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="puremacro" class="md-nav__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    puremacro
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    English Documentation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    English Documentation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Showcase Notebooks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Correctness advisories
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quarterly National Accounts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-time data (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Long national accounts panel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global Macro Data Ecosystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_6" id="__nav_1_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometric Engines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Econometric Engines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR & FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Narrative Sign Restrictions SVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR with Stochastic Volatility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Smooth Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modern Difference-in-Differences
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Honest DiD Sensitivity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Econometrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global VAR (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Estimation & Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GDP Nowcasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Penalized Forecasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_7" id="__nav_1_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publication & Reporting
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publication & Reporting
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manuscript Tables & Exports
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_8" id="__nav_1_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structural Models
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Structural Models
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sequence-Space HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Non-Linear HANK Transitions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gertler-Karadi (2011) DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Climate Macro (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Sketchpad & Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Higher-Order & Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Parity & Surface Area
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradients, NUTS & HANK Bridge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Frontier (Policy, DSGE-VAR & News)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Non-linear Particle Filtering & Regime Switching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running Anywhere (iPad / browser)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance & Benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_11" id="__nav_1_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replication gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation & goldens
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Connector health
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credentials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cache database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signal contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lexicon review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path to 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentación en Español
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Documentación en Español
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio rápido
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuadernos de demostración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avisos de corrección
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuentas nacionales trimestrales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos en tiempo real (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panel largo de cuentas nacionales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ecosistema de datos macro globales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motores econométricos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Motores econométricos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR y FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SVAR con restricciones narrativas de signo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR con volatilidad estocástica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales suavizadas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias en diferencias modernas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sensibilidad en DiD honesto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometría espacial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR global (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estimación y diagnósticos DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nowcasting del PIB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pronóstico penalizado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publicación e informes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publicación e informes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tablas y exportación de manuscritos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_8" id="__nav_2_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos estructurales
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Modelos estructurales
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HANK en el espacio de secuencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transiciones no lineales en HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de Gertler-Karadi (2011)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomía del clima (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuaderno de bocetos DSGE y Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de orden superior y restricciones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Paridad y superficie operativa DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradientes, NUTS y Puente HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontera DSGE (Política, DSGE-VAR y Noticias)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Filtrado de Partículas No Lineal y Cambio de Régimen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ejecución en cualquier entorno (iPad / navegador)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendimiento y pruebas comparativas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_11" id="__nav_2_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de replicación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validación y referencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estado de conectores
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credenciales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos de caché
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato de señales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de ejemplos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Revisión de léxico
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../es/1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ruta a 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#abstract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Abstract
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-introduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Introduction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-data-and-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Data and methods
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Results
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Limitations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="how-much-of-the-uncertainty-shock-literature-is-identification-choice">How Much of the Uncertainty-Shock Literature Is Identification Choice?</h1>
+<p><em>Draft skeleton — Phase 1 (2026-07-19); Phase 2 — narrative sign restrictions
+as a tenth scheme and the Giacomini-Kitagawa identified-set overlay — merged
+2026-07-19; Phase 3 — AD-RR Type II/III historical-decomposition dominance
+restrictions (<code>--narrative-hd</code>) and the event-set sweep (<code>--event-sweep</code>) —
+merged 2026-07-21 (all Phase-1/2 cells reproduce bit-for-bit; the flags are
+additive). Every number below is produced by
+<code>tools/run_uncertainty_ident_spec_curve.py</code> (full grid, seed-deterministic;
+outputs in <code>output/</code>). Nothing is quoted from the literature as if it were
+ours; nothing here is hand-computed.</em></p>
+<h2 id="abstract">Abstract</h2>
+<p>The negative response of real activity to an uncertainty shock is one of the
+most replicated findings in empirical macroeconomics, yet nearly every paper
+in the literature commits to a single identification scheme. We run eight
+identification families — recursive (both orderings), sign restrictions
+(traditional and, following Antolín-Díaz and Rubio-Ramírez 2018, sharpened
+with narrative restrictions on four dated events), external instruments,
+max-share, identification-through-heteroskedasticity (Rigobon and
+Magnusson-Mavroeidis), non-Gaussian ICA, and lag-augmented local
+projections — on the <em>same</em> reduced-form monthly US VAR (uncertainty proxy,
+industrial production, employment, federal funds rate; 1954–2025 at the
+longest), and then sweep proxy choice (EPU, WUI, JLN, VIX), sample window
+(full, post-1985, pre-2020) and detrending (linear trend vs. first
+differences) through a 288-cell specification curve. Identification choice
+alone moves the peak response of industrial production to a one-standard-
+deviation uncertainty shock from −3.3% to +1.4% on the identical baseline
+dataset — a spread wider than most published point-estimate differences.
+Across the 207 estimable specifications the median peak response is −2.1%
+(bootstrap p-value for a zero median: &lt; 0.001) and 95% of specifications
+are negative — though the pooled median is composition-dependent by
+construction: on the Phase-2 grid, before the two narrative-dominance
+variants were added, it was −1.4% (p = 0.012). The qualitative finding is
+robust; but the sign does <em>not</em> survive every scheme: every positive
+estimate comes from statistical identifications (heteroskedasticity and
+non-Gaussianity), and heteroskedasticity-identified responses on the
+baseline dataset are positive (+1.4% at five months). Magnitudes are even
+less stable than signs: family medians range from −0.9% (local
+projections) to −8.7% (external instruments), and the external-instrument
+median collapses from −9.7% to −2.0% once weak-instrument cells
+(Olea-Pflueger F &lt; 10) are set aside. Requiring the sign-identified shock
+to have been <em>positive</em> in October 1987, September 2001, September 2008
+and March 2020 moderates the sign family rather than amplifying it: the
+narrative variant is less negative than plain sign restrictions in 10 of
+11 matched cells and halves the family's spread (range 7.3 vs 13.2
+percentage points; medians −3.2% vs −3.9%). Adding Antolín-Díaz and
+Rubio-Ramírez <em>dominance</em> restrictions — the uncertainty shock was the
+most important driver of the proxy itself in September 2008 and March 2020
+(Type II), or overwhelming at COVID (Type III) — tightens the baseline
+h = 12 band by a further 31–38% (Type II: [−3.66, −1.20] vs Type I's
+[−4.13, −0.56]) and finally makes the importance weights informative: the
+Kish effective sample size falls to 45–48% of the surviving-draw count,
+against exactly 100% under Type-I restrictions alone. And the four event
+months themselves turn out not to drive the result: across all nine
+one-event and leave-one-out configurations the h = 12 band excludes zero,
+with October 1987 — not COVID — the single most informative event (its
+removal loosens the band most; dropping March 2020 slightly tightens it).
+Giacomini-Kitagawa robust bands cut the other way: at twelve months the
+sign scheme's 90% posterior percentile band excludes zero, but the
+identified set does not — its upper bound is positive at every horizon
+beyond two months — so the apparent significance of sign-restricted
+uncertainty IRFs at business-cycle horizons is a property of the Haar
+prior, not of the restrictions. In a variance-decomposition of the curve,
+identification-family dummies alone explain 25% of the cross-specification
+variance in peak estimates — two-fifths of the 62% that identification,
+proxy, sample and detrending explain jointly. Identification choice is not
+most of the story, but it is the single choice that can flip the answer.</p>
+<h2 id="1-introduction">1. Introduction</h2>
+<p>Since Bloom (2009, <em>Econometrica</em>) identified uncertainty shocks recursively
+in a monthly VAR — volatility ordered after the stock market and before the
+policy and activity block — the literature has accumulated a menu of
+alternatives: Baker, Bloom and Davis (2016, <em>QJE</em>) popularised the news-based
+EPU index inside small recursive VARs; Jurado, Ludvigson and Ng (2015, <em>AER</em>)
+replaced proxies with an estimated common factor of forecast-error
+volatility; Ludvigson, Ma and Ng (2021, <em>AEJ: Macro</em>) argued, using shock-
+based external constraints, that financial uncertainty is a plausibly
+exogenous impulse while macro uncertainty largely responds endogenously; and
+Carriero, Clark and Marcellino (2018, <em>REStat</em>) estimated uncertainty and its
+effects jointly in a large stochastic-volatility-in-mean VAR. Each paper
+reports one identification scheme (occasionally two) on one dataset. When
+estimates disagree — and published peak activity responses range over an
+order of magnitude — it is impossible to tell from the papers alone whether
+the disagreement comes from the proxy, the sample, the transformation, or the
+identifying assumptions themselves.</p>
+<p>This paper holds everything else fixed and varies exactly those four things.
+Our contribution is deliberately modest in econometrics and aggressive in
+bookkeeping: we implement the identification menu — two recursive orderings,
+Rubio-Ramirez-Waggoner-Zha sign restrictions, Antolín-Díaz &amp;
+Rubio-Ramírez (2018) narrative sign restrictions anchored to four famous
+uncertainty events, Mertens-Ravn external
+instruments, Faust-Uhlig max-share, Rigobon (2003) and Magnusson-Mavroeidis
+(2014) heteroskedasticity identification, Lanne-Meitz-Saikkonen (2017)
+non-Gaussian ICA, and Plagborg-Moller-Wolf (2021) lag-augmented local
+projections — as interchangeable estimators applied to the same reduced-form
+VAR, and read the distribution of estimates as a specification curve
+(Simonsohn, Simmons and Nelson 2020, <em>Nature Human Behaviour</em>). For the two
+rotation-based schemes we additionally confront the reported percentile
+bands with their Giacomini-Kitagawa (2021) identified sets. The exercise
+answers a question every referee of an uncertainty paper implicitly asks:
+<em>if this author had chosen a different identification, would the headline
+number have moved?</em> Our answer: the sign usually survives, the magnitude
+does not, and two specific choices — trusting a second uncertainty proxy as
+an external instrument, and trusting variance regimes to label shocks — are
+where the literature's disagreements concentrate.</p>
+<h2 id="2-data-and-methods">2. Data and methods</h2>
+<p><strong>Dataset.</strong> One frozen monthly US panel (<code>output/panel_monthly.csv</code>,
+sha256 in <code>output/panel_manifest.json</code>): an uncertainty proxy, 100·log
+industrial production (FRED INDPRO), 100·log nonfarm payrolls (PAYEMS) and
+the federal funds rate (FEDFUNDS), a reduced four-variable version of the
+Bloom (2009) / Baker-Bloom-Davis (2016) systems (no stock-price block; see
+the pipeline docstring for every simplification). Proxies: BBD news-based
+EPU (modern series ratio-spliced to the 1900 historical index over their
+1985–2014 overlap), the World Uncertainty Index for the USA (quarterly,
+forward-filled), JLN macro uncertainty at h=1, and the VIX (monthly mean,
+1990+). All proxies are z-scored on their full history.</p>
+<p><strong>Reduced form and normalisation.</strong> VAR(6), constant, horizon 24 months, on
+each dataset cell; every VAR-based scheme consumes the identical reduced
+form. IRFs are normalised to a shock that raises the uncertainty proxy by
+one (full-sample) standard deviation on impact; local projections estimate
+the same unit-effect quantity by construction. Statistical identifications
+(Rigobon, MagMav, ICA) do not name shocks, so the uncertainty shock is
+labelled as the column with the largest absolute impact loading on the
+proxy — a documented rule, applied uniformly.</p>
+<p><strong>The menu.</strong> Recursive with uncertainty first and last (90% residual-
+bootstrap bands); sign restrictions (uncertainty up, IP down, horizons 0–2;
+accepted-draw median and quantile bands); narrative sign restrictions
+(Antolín-Díaz &amp; Rubio-Ramírez 2018): the same traditional pattern plus four
+Type-I event restrictions — the identified uncertainty shock was <em>positive</em>
+in 1987-10 (Black Monday), 2001-09 (September 11), 2008-09 (Lehman) and
+2020-03 (COVID onset) — with events outside a cell's estimation window
+dropped and recorded, AD-RR importance-weighted percentile bands, and the
+Kish effective sample size (ESS) reported (with only Type-I restrictions
+the importance weights are constant, so ESS equals the surviving-draw
+count by construction); proxy-SVAR with AR(6) innovations
+of a <em>different</em> uncertainty proxy as the instrument (EPU↔JLN partner map,
+zero-filled outside availability per the censored-proxy convention of
+Stock-Watson 2018), reporting the Olea-Pflueger effective F; max-share
+(uncertainty's forecast-error variance over 12 months); Rigobon with the
+high-volatility regime defined as Great Recession + COVID months
+(<code>puremacro.regime_dates</code>); Magnusson-Mavroeidis with sup-Wald/BIC
+endogenous breaks; FastICA non-Gaussian identification; and lag-augmented LP
+with Eicker-Huber-White bands. Bands for Rigobon and ICA come from a
+regime-preserving residual-resimulation bootstrap implemented in the
+pipeline.</p>
+<p><strong>The identified-set overlay.</strong> For the sign and narrative schemes on the
+baseline dataset we also compute Giacomini-Kitagawa (2021) robust bands
+(<code>var.identify.gk_robust_bands</code>): the min/max of the IP response over <em>all</em>
+admissible rotations — the identified set — rather than percentiles across
+a Haar sample of them. Two conventions keep the comparison honest: the
+reduced form is fixed at the OLS estimate for both objects (<code>n_var_draws=1</code>;
+the percentile bands also condition on it), and the overlay is drawn on the
+raw structural scale (a one-standard-deviation structural shock) because
+set bounds are per-rotation extremes that cannot be unit-normalised after
+aggregation. <code>gk_robust_bands</code> imposes the traditional pattern only; the
+narrative-truncated identified set (weakly smaller) is discussed, not
+plotted (Figure <code>output/fig_gk_overlay.pdf</code>, data in <code>output/gk_overlay.csv</code>).</p>
+<p><strong>The grid.</strong> 4 proxies × 3 samples (full, post-1985, pre-2020) × 2
+detrendings (within-sample linear trend on log levels vs. log first
+differences with cumulated IRFs) × 10 schemes = 240 cells; 189 estimable
+(20 duplicate windows, 11 LP cells that are detrend-invariant by
+construction, 11 narrative cells outside the baseline detrending — a
+documented Phase-2 scope cap, skipped and logged — and 9 MagMav
+non-convergences). The curve, family
+medians and the bootstrap median test come from
+<code>puremacro.inference.spec_curve</code>.</p>
+<h2 id="3-results">3. Results</h2>
+<p><strong>The menu on one dataset</strong> (<code>output/headline_menu.csv</code>; EPU, 1954-07 to
+2025-11, linear-detrended, T=857). Identification choice alone spans
+−3.3% to +1.4%:</p>
+<table>
+<thead>
+<tr>
+<th>scheme</th>
+<th>peak (90% band)</th>
+<th>h=12</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cholesky, U first</td>
+<td>−1.23 [−1.78, −0.36]</td>
+<td>−0.87</td>
+</tr>
+<tr>
+<td>Cholesky, U last</td>
+<td>−1.11 [−1.51, −0.35]</td>
+<td>−0.74</td>
+</tr>
+<tr>
+<td>Sign restrictions</td>
+<td>−3.31 [−5.19, −0.41]</td>
+<td>−3.07</td>
+</tr>
+<tr>
+<td>Narrative sign (4 events; ESS 1087)</td>
+<td>−2.72 [−4.18, −0.69]</td>
+<td>−2.46</td>
+</tr>
+<tr>
+<td>Proxy (JLN-innovation IV, F=6.0)</td>
+<td>−3.12 [−2.28, +2.45]</td>
+<td>−2.95</td>
+</tr>
+<tr>
+<td>Max-share (FEV share 0.81)</td>
+<td>−1.37 [−1.83, −0.52]</td>
+<td>−1.03</td>
+</tr>
+<tr>
+<td>Rigobon (var-ratio 1.77)</td>
+<td><strong>+1.43</strong> [−2.91, +1.89]</td>
+<td>+0.93</td>
+</tr>
+<tr>
+<td>MagMav (4 breaks)</td>
+<td>−1.25 [−2.23, +1.61]</td>
+<td>−0.90</td>
+</tr>
+<tr>
+<td>Non-Gaussian ICA (kurt 25.1)</td>
+<td>−1.15 [−1.56, −0.42]</td>
+<td>−0.80</td>
+</tr>
+<tr>
+<td>Lag-augmented LP</td>
+<td>−0.80 [−1.48, −0.12]</td>
+<td>−0.66</td>
+</tr>
+</tbody>
+</table>
+<p>Recursive, max-share, ICA and LP agree on a peak decline of roughly 0.8–1.4%
+— the ordering (first vs. last) barely matters. Sign restrictions and the
+proxy scheme double-to-triple the magnitude; the proxy bands include zero
+(its first stage is weak, F=6). The narrative variant sits between the sign
+scheme and the agnostic block: requiring the shock to have been positive in
+the four event months discards 24% of the traditionally-accepted rotations
+(1,087 of 1,436 survive; all restrictions are Type I, so the importance
+weights are constant and ESS equals the surviving count) and shifts both
+the median and the band toward zero — peak −2.72 vs −3.31, with a band 27%
+narrower at the peak. Rigobon <em>flips the sign</em>: the shock loading
+most on EPU in the high-volatility regime raises IP by 1.4% at five months —
+an LMN-flavoured reminder that variance-regime identification can be picking
+up the endogenous-response component of measured uncertainty.</p>
+<p><strong>The curve</strong> (<code>output/fig_spec_curve.pdf</code>, data in
+<code>output/spec_curve_results.csv</code>). Across 189 specifications: median peak
+−1.44%, 94.7% negative, bootstrap p-value for a zero median 0.012 (B=2000).
+The h=12 response gives the same picture (median −1.21%, 96.8% negative).
+The full range is [−46.8, +3.4]; the 5th–95th percentile range is
+[−14.8, 0.0]. Only 28.6% of specifications peak at the h=24 boundary, so
+the peak statistic is not merely an end-of-horizon artifact.</p>
+<p><strong>Family medians</strong> (<code>output/table_family_medians.md</code>):</p>
+<table>
+<thead>
+<tr>
+<th>family</th>
+<th>n</th>
+<th>median peak</th>
+<th>share negative</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>local-projection</td>
+<td>11</td>
+<td>−0.90</td>
+<td>100%</td>
+</tr>
+<tr>
+<td>non-Gaussian</td>
+<td>22</td>
+<td>−1.04</td>
+<td>86%</td>
+</tr>
+<tr>
+<td>recursive</td>
+<td>44</td>
+<td>−1.05</td>
+<td>100%</td>
+</tr>
+<tr>
+<td>heteroskedasticity</td>
+<td>35</td>
+<td>−1.19</td>
+<td>80%</td>
+</tr>
+<tr>
+<td>max-share</td>
+<td>22</td>
+<td>−1.29</td>
+<td>100%</td>
+</tr>
+<tr>
+<td>narrative-sign</td>
+<td>11</td>
+<td>−3.18</td>
+<td>100%</td>
+</tr>
+<tr>
+<td>sign</td>
+<td>22</td>
+<td>−3.90</td>
+<td>100%</td>
+</tr>
+<tr>
+<td>proxy</td>
+<td>22</td>
+<td>−8.68</td>
+<td>100%</td>
+</tr>
+</tbody>
+</table>
+<p>Three regularities. First, the "agnostic-computation" families — LP,
+recursive, ICA, max-share — cluster tightly around −1%: for these, proxy,
+sample and detrending move the estimate far less than the literature's
+headline disagreements. Second, sign restrictions are systematically the
+most negative point-identified family (accepted-draw medians inherit the
+imposed sign at short horizons). Third, the proxy family's median (−8.7%) is
+an artifact of weak first stages: cells with Olea-Pflueger F ≥ 10 have a
+median of −2.0%, cells with F &lt; 10 a median of −9.7%, and every estimate
+below −20% comes from a proxy cell with effective F between 3.7 and 13.6 —
+all below the ≈23 threshold Montiel Olea and Pflueger recommend for 10%
+worst-case bias (the four clipped markers in the figure). Under
+unit-effect normalisation a weak first stage mechanically
+inflates the activity response — a spec-curve rendering of the Lewis /
+Montiel-Olea-Stock-Watson weak-proxy warnings. Finally, every one of the ten
+positive peak estimates belongs to a statistical identification (Rigobon 4,
+MagMav 3, ICA 3), concentrated in EPU-full/post-1985 and the short VIX and
+JLN pre-2020 windows.</p>
+<p><strong>Narrative restrictions tighten — and moderate — the sign family.</strong> The
+narrative scheme runs on the 11 linear-trend cells (events outside a cell's
+window are dropped: Black Monday for the VIX cells, the COVID onset for the
+pre-2020 ones). Compared with the plain sign scheme on the <em>same</em> 11 cells,
+the narrative estimate is less negative in 10 of 11 (mean shift +1.8
+percentage points), the family median moves from −3.9% to −3.2%, and the
+family's spread halves — range [−8.8, −1.5] (7.3pp) against the matched
+sign range [−15.2, −2.0] (13.2pp). The tightening is concentrated exactly
+where the sign family misbehaves: the three JLN cells that produce the sign
+family's −11.8 to −15.2 tail are pulled in to −8.7/−8.8. Between 23% and
+83% of traditionally-accepted rotations survive the event restrictions per
+cell (grid ESS 59–222 at 1,200 draws). Reading AD-RR through the spec-curve
+lens: dated event information does not amplify the uncertainty effect — it
+trims the rotations that made the sign family the most negative
+point-identified family, without ever flipping a cell positive.</p>
+<p><strong>The identified set versus the percentile band (GK).</strong>
+(<code>output/fig_gk_overlay.pdf</code>; raw structural scale, OLS reduced form for
+both objects.) At h=12 the sign scheme's 90% percentile band is
+[−1.26, −0.06] — zero excluded, the "significantly negative" reading —
+while the Giacomini-Kitagawa identified set is [−1.36, +0.26]: 1.35×
+wider, and it <em>includes</em> zero and mildly positive responses. The set's
+upper bound turns positive at h=3 and stays positive at every horizon
+thereafter (88% of horizons overall — impact horizons 0–2 are negative
+because the traditional restrictions directly impose the sign there).
+So the robust-Bayes critique bites in exactly one place, but the
+important one: nothing in the data plus the sign restrictions rules out
+a zero or slightly positive activity response beyond the restricted
+horizons; the percentile band's apparent significance is contributed by
+the uniform Haar prior over rotations. What the set does <em>not</em> do is
+overturn the magnitude ranking — even the robust lower bound (−1.36 at
+h=12) is far from the proxy family's −8 to −47 tail, and the posterior
+mass and the set both sit predominantly below zero. The narrative panel
+shows the AD-RR information working <em>within</em> an unchanged traditional
+set: the weighted band shrinks to 0.89× the sign band's width at h=12
+([−1.23, −0.17]) and its upper edge pulls away from zero. The
+narrative-truncated identified set itself would be weakly smaller than
+the plotted one (the event restrictions delete admissible rotations);
+computing it is flagged as package work in the plan.</p>
+<p><strong>Dominance restrictions (Phase 3: AD-RR Types II and III).</strong>
+(<code>--narrative-hd</code>; <code>output/headline_menu.csv</code> rows <code>narrative_t2</code>,
+<code>narrative_t3</code>.) Requiring in addition that the uncertainty shock was the
+<em>most important</em> contributor to the historical decomposition of the proxy
+itself in September 2008 and March 2020 (Type II), or Type II at Lehman
+plus <em>overwhelming</em> (Type III) at COVID, does two things on the baseline
+dataset. First, it tightens: the h = 12 band goes from Type I's
+[−4.13, −0.56] to [−3.66, −1.20] (Type II) and [−3.31, −1.10] (Type III)
+— 31% and 38% narrower, with the upper edge pulled well away from zero —
+while the medians barely move (−2.46 → −2.68 → −2.45), i.e. the dominance
+information trims tails rather than relocating the estimate. Second, it
+finally makes the AD-RR importance weights earn their keep: the Kish ESS
+is 206 on 463 surviving draws (Type II) and 181 on 380 (Type III) — 45%
+and 48% — against exactly 100% under Type-I restrictions, where the
+weights are constant by construction. In the grid, the dominance variants
+add 18 estimable cells (11 Type II, 7 Type III — Type III requires COVID
+in-window and is skipped, with a logged reason, on pre-2020 samples);
+their cell medians (−3.9%, −3.3%) sit at or below the plain narrative's
+−3.2%, and every cell is negative.</p>
+<p><strong>The event sweep (Phase 3).</strong> (<code>--event-sweep</code>;
+<code>output/event_sweep.csv</code>, <code>output/fig_event_sweep.pdf</code>.) The four event
+months are a specification choice, so we sweep all nine one-event and
+leave-one-out Type-I configurations on the baseline dataset. Every
+configuration excludes zero at h = 12 — the narrative scheme's
+zero-exclusion is not an artifact of any single dated judgment call. The
+informative event is October 1987, not the obvious candidates: alone it
+gives the tightest single-event band (width 3.95 of the four singles'
+3.95–4.59), and removing it loosens the all-events band more than any
+other deletion (3.57 → 4.11); dropping March 2020 actually <em>tightens</em> the
+band slightly (3.57 → 3.53). The intuition is the one AD-RR emphasize:
+an informative event is one where the shock's sign is unambiguous
+<em>conditional on the model</em>, and Black Monday — a huge uncertainty spike
+with no contemporaneous real-activity collapse — pins the rotation better
+than COVID, where every shock moved at once.</p>
+<p><strong>Answer to the title question.</strong> On the same data the identification menu
+spans −3.3% to +1.4% (menu) and family medians span −0.9% to −8.7% (curve).
+Regressing the 207 peak estimates on dummies (<code>summary.json</code>,
+<code>variance_decomposition</code>): identification family alone explains 24% of the
+variance, the data dimensions (proxy × sample × detrending) 38%, and all
+four jointly 62% (25/38/62 on the Phase-2 grid — the composition shift
+from 18 added narrative-dominance cells barely moves the decomposition).
+Identification is therefore not the largest single source
+of spread in magnitudes — but it is decisive for the <em>sign</em>: no choice of
+proxy, sample or detrending produces a positive peak under recursive,
+sign-restriction, narrative-sign, proxy, max-share or LP identification
+(those families are
+100% negative), while every positive estimate sits inside
+the heteroskedasticity and non-Gaussian families.</p>
+<h2 id="4-limitations">4. Limitations</h2>
+<p>Identification schemes we did not run, and why: stochastic-
+volatility-in-mean joint estimation (Carriero-Clark-Marcellino 2018) requires
+an MCMC budget outside this pipeline's Pyodide-pure runtime target; and
+Ludvigson-Ma-Ng's full shock-restriction machinery (inequality constraints
+on the shocks around events plus correlation bounds) remains out of scope,
+although the AD-RR Type-I event restrictions we now impose are a close
+cousin of its event-constraint component. Phase-2 additions carry their own
+caveats: the narrative scheme fixes the reduced form at the OLS estimate
+(only rotation uncertainty is sampled, matching the plain sign scheme) —
+this carries over to the Phase-3 dominance variants; in the grid the
+narrative schemes run only under the baseline linear-trend detrending
+(first-difference cells skipped and logged). Two Phase-2 caveats are now
+resolved rather than open: the ESS diagnostic is informative under the
+Type II/III restrictions (45–48% of the surviving-draw count, vs
+identically 100% under Type I), and the event-month specification choice
+has been swept (all nine configurations exclude zero at h = 12; § 3).
+What remains: the dominance events (Lehman, COVID) are themselves a
+judgment call we imposed rather than swept — a Type-II sweep would need
+a defensible dominance story per candidate month, which is exactly the
+judgment the sweep cannot automate; and the window is fixed at the single
+event month (window = 0), so persistence of dominance is untested. The GK overlay imposes the traditional sign pattern only (the
+narrative-truncated set is weakly smaller but not computable from the
+current <code>gk_robust_bands</code> API), switches off reduced-form uncertainty
+(<code>n_var_draws=1</code>), and lives on the raw structural scale — set bounds
+cannot be unit-normalised after aggregation, so its panel is not directly
+comparable to the unit-effect numbers elsewhere in the paper. Within the
+menu: MagMav failed to converge in 9 of its 11
+first-difference cells (its variance-break identification is fragile after
+differencing) and its estimates enter the curve only where its own
+convergence flags pass; proxy-SVAR exogeneity of a second uncertainty
+measure is assumed, not tested (the LMN critique applies with full force —
+we report first-stage strength, not validity); the unit-effect normalisation
+makes weak-loading schemes look explosive by construction (we flag rather
+than truncate them, and report the F-split); the four-variable system omits
+the stock-market block of Bloom (2009), so recursive cells are not exact
+replications. The lag order is no longer held fixed: the Phase-4 sweep
+(<code>--ph-sweep</code>; <code>output/ph_sweep.csv</code>, <code>fig_ph_sweep.pdf</code>) re-runs the
+recursive, sign, proxy and max-share schemes on the baseline dataset at
+p ∈ {3, 6, 12} and every one of the 15 cells stays negative, with
+per-scheme peak ranges of at most 0.72 pp (recursive orderings move by
+under 0.18) — the headline is insensitive to the lag-order choice. The
+IRF horizon remains fixed at H = 24 with the peak searched within it
+(peak_h is reported per cell, so a separate H truncation sweep would
+add nothing the peak search does not already reveal); monthly
+frequency is a maintained choice. The historical-EPU splice and the
+WUI forward-fill are documented data choices frozen in the panel manifest;
+rerunning <code>tools/run_uncertainty_ident_spec_curve.py</code> from the frozen CSV
+reproduces every number in this draft bit-for-bit (the pipeline asserts
+this on every run).</p>
+<h2 id="references">References</h2>
+<p><em>(Scheme-level citations live in the corresponding <code>puremacro</code> module
+docstrings; the positioning literature is cited in the text: Bloom 2009;
+Baker-Bloom-Davis 2016; Jurado-Ludvigson-Ng 2015; Ludvigson-Ma-Ng 2021;
+Carriero-Clark-Marcellino 2018; Rigobon 2003; Mertens-Ravn 2013;
+Stock-Watson 2018; Magnusson-Mavroeidis 2014; Lanne-Meitz-Saikkonen 2017;
+Plagborg-Moller-Wolf 2021; Antolín-Díaz &amp; Rubio-Ramírez 2018; Giacomini &amp;
+Kitagawa 2021; Simonsohn-Simmons-Nelson 2020.)</em></p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

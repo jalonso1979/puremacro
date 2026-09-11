@@ -1,0 +1,3949 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Production-grade Macroeconometric and Heterogeneous-Agent Structural Modeling Engine in Pure Python">
+      
+      
+        <meta name="author" content="puremacro contributors">
+      
+      
+        <link rel="canonical" href="https://jalonso1979.github.io/puremacro/docs/es/gvar/">
+      
+      
+        <link rel="prev" href="../spatial/">
+      
+      
+        <link rel="next" href="../dsge_estimation/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>VAR global (GVAR) - puremacro</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#var-global-gvar" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="puremacro" class="md-header__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            puremacro
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              VAR global (GVAR)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  
+  English Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+  Documentación en Español
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="puremacro" class="md-nav__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    puremacro
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    English Documentation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    English Documentation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Showcase Notebooks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Correctness advisories
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quarterly National Accounts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-time data (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Long national accounts panel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global Macro Data Ecosystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_6" id="__nav_1_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometric Engines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Econometric Engines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR & FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Narrative Sign Restrictions SVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR with Stochastic Volatility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Smooth Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modern Difference-in-Differences
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Honest DiD Sensitivity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Econometrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global VAR (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Estimation & Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GDP Nowcasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Penalized Forecasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_7" id="__nav_1_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publication & Reporting
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publication & Reporting
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manuscript Tables & Exports
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_8" id="__nav_1_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structural Models
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Structural Models
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sequence-Space HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Non-Linear HANK Transitions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gertler-Karadi (2011) DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Climate Macro (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Sketchpad & Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Higher-Order & Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Parity & Surface Area
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradients, NUTS & HANK Bridge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Frontier (Policy, DSGE-VAR & News)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Non-linear Particle Filtering & Regime Switching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running Anywhere (iPad / browser)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance & Benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_11" id="__nav_1_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replication gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation & goldens
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Connector health
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credentials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cache database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signal contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lexicon review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path to 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentación en Español
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Documentación en Español
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio rápido
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuadernos de demostración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avisos de corrección
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuentas nacionales trimestrales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos en tiempo real (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panel largo de cuentas nacionales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ecosistema de datos macro globales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motores econométricos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Motores econométricos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR y FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SVAR con restricciones narrativas de signo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR con volatilidad estocástica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales suavizadas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias en diferencias modernas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sensibilidad en DiD honesto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometría espacial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR global (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR global (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-el-modelo-de-cada-pais" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. El modelo de cada país
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. El modelo de cada país">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-construir-la-matriz-de-pesos-y-las-variables-estrella" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 Construir la matriz de pesos y las variables estrella
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-estimar-los-bloques-nacionales" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Estimar los bloques nacionales
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-resolver-el-sistema-global" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Resolver el sistema global
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-respuestas-al-impulso-generalizadas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Respuestas al impulso generalizadas
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-gfevd-perfiles-de-persistencia-y-pronosticos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. GFEVD, perfiles de persistencia y pronósticos
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-el-contraste-de-exogeneidad-debil-que-es-y-que-no" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. El contraste de exogeneidad débil: qué es y qué no
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-lista-de-comprobacion-practica" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Lista de comprobación práctica
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-deliberadamente-fuera-de-alcance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Deliberadamente fuera de alcance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#referencias" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Referencias
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estimación y diagnósticos DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nowcasting del PIB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pronóstico penalizado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publicación e informes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publicación e informes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tablas y exportación de manuscritos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_8" id="__nav_2_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos estructurales
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Modelos estructurales
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HANK en el espacio de secuencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transiciones no lineales en HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de Gertler-Karadi (2011)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomía del clima (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuaderno de bocetos DSGE y Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de orden superior y restricciones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Paridad y superficie operativa DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradientes, NUTS y Puente HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontera DSGE (Política, DSGE-VAR y Noticias)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Filtrado de Partículas No Lineal y Cambio de Régimen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ejecución en cualquier entorno (iPad / navegador)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendimiento y pruebas comparativas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_11" id="__nav_2_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de replicación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validación y referencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estado de conectores
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credenciales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos de caché
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato de señales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de ejemplos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Revisión de léxico
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ruta a 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-el-modelo-de-cada-pais" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. El modelo de cada país
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. El modelo de cada país">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-construir-la-matriz-de-pesos-y-las-variables-estrella" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 Construir la matriz de pesos y las variables estrella
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-estimar-los-bloques-nacionales" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Estimar los bloques nacionales
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-resolver-el-sistema-global" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Resolver el sistema global
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-respuestas-al-impulso-generalizadas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Respuestas al impulso generalizadas
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-gfevd-perfiles-de-persistencia-y-pronosticos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. GFEVD, perfiles de persistencia y pronósticos
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-el-contraste-de-exogeneidad-debil-que-es-y-que-no" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. El contraste de exogeneidad débil: qué es y qué no
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-lista-de-comprobacion-practica" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Lista de comprobación práctica
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-deliberadamente-fuera-de-alcance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Deliberadamente fuera de alcance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#referencias" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Referencias
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<blockquote>
+<p>🇬🇧 <a href="../../gvar/">English</a> · 🇪🇸 Español</p>
+</blockquote>
+<h1 id="var-global-gvar">VAR global (GVAR)</h1>
+<p>Treinta países con cuatro variables cada uno forman un sistema de 120 variables. Un VAR(2) sobre él tiene 28.800 coeficientes autorregresivos y quizá 150 observaciones trimestrales para estimarlos: el VAR global apilado no está mal estimado, es que no se puede estimar. El GVAR de Pesaran, Schuermann y Weiner (2004) recupera la interdependencia sin estimar nunca ese sistema. Cada país es un pequeño VARX* en sus propias variables más un agregado <em>extranjero</em> construido con pesos de comercio, cada país se estima por separado, y el modelo global se <strong>ensambla</strong> después a partir de los bloques nacionales mediante álgebra matricial exacta, en lugar de ajustarse.</p>
+<p><code>puremacro.var.gvar</code> implementa esa secuencia: <code>star_variables</code> construye el bloque extranjero, <code>gvar</code> estima los modelos nacionales y resuelve el sistema de enlace en una sola llamada, y <code>solve_gvar</code> expone el paso puramente algebraico por separado, para poder leerlo y probarlo sin estimación alguna. Solo numpy/scipy/pandas, así que corre bajo Pyodide.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>from puremacro.var import gvar
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>res = gvar(panel, W, p=2, q=1)          # panel: frame (country, date) o {país: frame}
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>res.summary()                           # bloques nacionales, cond(G), estabilidad, exogeneidad débil
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>res.girf("US", "r", horizon=24, n_boot=500)     # respuestas generalizadas, bandas puntuales
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>res.gfevd(horizon=24); res.pp(b); res.forecast(8)
+</code></pre></div>
+<hr />
+<h2 id="1-el-modelo-de-cada-pais">1. El modelo de cada país</h2>
+<p>El país <code>i</code> tiene <code>k_i</code> variables <code>x_it</code> y el agregado estrella <code>x*_it = Σ_j w_ij x_jt</code>, donde <code>w_ij</code> es la participación comercial de <code>i</code> con <code>j</code> (diagonal nula, filas que suman uno). Su VARX*(p_i, q_i) es</p>
+<div class="arithmatex">\[x_{it} = a_{i0} + a_{i1}t + \sum_{l=1}^{p_i}\Phi_{il}x_{i,t-l} + \Lambda_{i0}x^{*}_{it} + \sum_{l=1}^{q_i}\Lambda_{il}x^{*}_{i,t-l} + \sum_{l=0}^{q_d}\Psi_{il}d_{t-l} + u_{it},\]</div>
+<p>con <code>d_t</code> un bloque global estrictamente exógeno opcional (el caso canónico es el precio del petróleo). Todas las ecuaciones del país <code>i</code> comparten una misma matriz de regresores, de modo que la regresión aparentemente no relacionada colapsa a MCO ecuación por ecuación, y así lo hace <code>gvar</code>.</p>
+<p>Dos supuestos distintos autorizan ese MCO, y el módulo los mantiene separados porque fallan por separado:</p>
+<ul>
+<li><strong>Exogeneidad débil</strong> de <code>x*_it</code> para los parámetros del país <code>i</code> (Pesaran, Shin y Smith 2000): las innovaciones propias del país no deben retroalimentar su bloque extranjero dentro del periodo. <code>gvar</code> reporta un contraste aproximado para ello (§6).</li>
+<li><strong>Granularidad</strong>, <code>max_j w_ij → 0</code> cuando crece <code>N</code>. Con pocos países un solo socio concentra un peso grande, <code>x*_it</code> está correlacionado contemporáneamente con <code>u_it</code> y el MCO nacional es <em>inconsistente</em>. Nada en el código puede reparar esto, y todos los ejemplos pequeños de esta página —seis unidades, pesos de hasta 0,69— son econométricamente incorrectos exactamente por ese motivo. Son pedagogía, no una estimación.</li>
+</ul>
+<h3 id="11-construir-la-matriz-de-pesos-y-las-variables-estrella">1.1 Construir la matriz de pesos y las variables estrella</h3>
+<p>Los pesos de comercio no son más que una matriz de flujos estandarizada por filas con diagonal nula, que es justo lo que produce <code>puremacro.spatial.economic_weights</code>; <code>gvar</code> acepta un <code>SpatialWeights</code>, un <code>DataFrame</code> etiquetado o un array <code>(N, N)</code> (con <code>country_order</code>). Aquí los «países» son seis estados de EE. UU. y los flujos son una aproximación gravitacional construida con la geografía del Censo que se distribuye con el paquete: superficie terrestre dividida por la distancia de círculo máximo entre los puntos internos de cada estado.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_us_state_centroids</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.spatial</span><span class="w"> </span><span class="kn">import</span> <span class="n">economic_weights</span><span class="p">,</span> <span class="n">pairwise_distances</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">states</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"CA"</span><span class="p">,</span> <span class="s2">"TX"</span><span class="p">,</span> <span class="s2">"NY"</span><span class="p">,</span> <span class="s2">"FL"</span><span class="p">,</span> <span class="s2">"IL"</span><span class="p">,</span> <span class="s2">"PA"</span><span class="p">]</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">geo</span> <span class="o">=</span> <span class="n">load_us_state_centroids</span><span class="p">()</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">states</span><span class="p">]</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">D</span> <span class="o">=</span> <span class="n">pairwise_distances</span><span class="p">(</span><span class="n">geo</span><span class="p">[[</span><span class="s2">"lat"</span><span class="p">,</span> <span class="s2">"lon"</span><span class="p">]]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span> <span class="s2">"haversine"</span><span class="p">)</span>     <span class="c1"># km</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">size</span> <span class="o">=</span> <span class="n">geo</span><span class="p">[</span><span class="s2">"land_sqmi"</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="n">flows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">D</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>                <span class="c1"># flujos gravitacionales</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="n">np</span><span class="o">.</span><span class="n">fill_diagonal</span><span class="p">(</span><span class="n">flows</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="n">W</span> <span class="o">=</span> <span class="n">economic_weights</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">flows</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">states</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">states</span><span class="p">))</span> <span class="c1"># estandarizada por filas</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="n">Wf</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">W</span><span class="o">.</span><span class="n">to_dense</span><span class="p">(),</span> <span class="n">index</span><span class="o">=</span><span class="n">states</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">states</span><span class="p">)</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="nb">print</span><span class="p">(</span><span class="n">Wf</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"mayor peso individual por fila:"</span><span class="p">,</span> <span class="n">Wf</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">())</span>
+</code></pre></div>
+<p>Esos pesos máximos van de 0,38 a 0,69. En un GVAR real estarían por debajo de 0,2; imprímalos siempre, porque son la condición de granularidad hecha visible.</p>
+<p><code>star_variables</code> construye el panel extranjero por sí solo, de modo que se puede graficar o alimentar otro estimador sin ajustar nada. El peso estrella del país <code>i</code> para la variable <code>v</code> se renormaliza sobre los países que realmente tienen <code>v</code>,</p>
+<div class="arithmatex">\[\tilde w_{ij}^{(v)} = \frac{w_{ij}\,\mathbf 1\{v \in K_j\}}{\sum_{m \neq i,\ v \in K_m} w_{im}},\]</div>
+<p>de manera que la fila sigue sumando uno aunque algunos socios no tengan la variable.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.var.gvar</span><span class="w"> </span><span class="kn">import</span> <span class="n">star_variables</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">11</span><span class="p">)</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">T</span><span class="p">,</span> <span class="n">N</span> <span class="o">=</span> <span class="mi">160</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">states</span><span class="p">)</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">Wd</span> <span class="o">=</span> <span class="n">W</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">Y</span><span class="p">,</span> <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">T</span><span class="p">,</span> <span class="n">N</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">T</span><span class="p">,</span> <span class="n">N</span><span class="p">))</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">T</span><span class="p">):</span>                       <span class="c1"># un sistema VARX* estatal, por construcción</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="n">ystar</span><span class="p">,</span> <span class="n">rstar</span> <span class="o">=</span> <span class="n">Wd</span> <span class="o">@</span> <span class="n">Y</span><span class="p">[</span><span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">Wd</span> <span class="o">@</span> <span class="n">R</span><span class="p">[</span><span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="n">common</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">()</span>          <span class="c1"># un factor nacional en las innovaciones</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="n">Y</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.55</span> <span class="o">*</span> <span class="n">Y</span><span class="p">[</span><span class="n">t</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="n">ystar</span> <span class="o">-</span> <span class="mf">0.08</span> <span class="o">*</span> <span class="n">R</span><span class="p">[</span><span class="n">t</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">common</span> <span class="o">+</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="n">R</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.50</span> <span class="o">*</span> <span class="n">R</span><span class="p">[</span><span class="n">t</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.20</span> <span class="o">*</span> <span class="n">rstar</span> <span class="o">+</span> <span class="mf">0.10</span> <span class="o">*</span> <span class="n">Y</span><span class="p">[</span><span class="n">t</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.3</span> <span class="o">*</span> <span class="n">common</span> <span class="o">+</span> <span class="mf">0.7</span> <span class="o">*</span> <span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="n">dates</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">RangeIndex</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"date"</span><span class="p">)</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="n">panel</span> <span class="o">=</span> <span class="p">{</span><span class="n">s</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"y"</span><span class="p">:</span> <span class="n">Y</span><span class="p">[:,</span> <span class="n">i</span><span class="p">],</span> <span class="s2">"r"</span><span class="p">:</span> <span class="n">R</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]},</span> <span class="n">index</span><span class="o">=</span><span class="n">dates</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">states</span><span class="p">)}</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="n">xstar</span> <span class="o">=</span> <span class="n">star_variables</span><span class="p">(</span><span class="n">panel</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span>             <span class="c1"># frame (country, date), columnas y_star, r_star</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="nb">print</span><span class="p">(</span><span class="n">xstar</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="s2">"CA"</span><span class="p">]</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+</code></pre></div>
+<p>El panel puede ser un frame con MultiIndex <code>(country, date)</code> o un diccionario <code>país -&gt; frame</code>. Debe estar balanceado, sin huecos y ser numérico: un NaN interior siempre lanza error, y también lo hace una celda <code>(país, variable)</code> enteramente NaN salvo que se opte explícitamente por lo contrario (§8).</p>
+<hr />
+<h2 id="2-estimar-los-bloques-nacionales">2. Estimar los bloques nacionales</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.var</span><span class="w"> </span><span class="kn">import</span> <span class="n">gvar</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">res</span> <span class="o">=</span> <span class="n">gvar</span><span class="p">(</span><span class="n">panel</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">country_models</span><span class="p">[</span><span class="s2">"CA"</span><span class="p">]</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+</code></pre></div>
+<p><code>p</code> y <code>q</code> aceptan un entero o un diccionario por país; <code>ic="aic"</code>/<code>"bic"</code> selecciona <code>(p_i, q_i)</code> para cada país sobre una muestra de rejilla común. Todos los países se ajustan sobre la <em>misma</em> muestra efectiva <code>t = t0 … T-1</code>, con <code>t0 = max(s, q_d)</code> y <code>s = max_i max(p_i, q_i)</code>. Eso no es configurable a propósito: es lo que alinea por fecha los vectores de residuos, hace de <code>Sigma_eps</code> una covarianza contemporánea genuina y vuelve exacta en cada fecha la identidad de enlace de más abajo.</p>
+<p><code>res.country_models[c]</code> es un <code>CountryVARX</code> con <code>coef</code>, <code>se</code>, <code>tstat</code>, <code>pvalue</code> (indexados por regresor, con las variables propias del país en columnas), las matrices <code>Phi</code>, <code>Lambda</code>, <code>Psi</code> ya troceadas, <code>resid</code>, <code>fitted</code>, <code>r2</code>, <code>aic</code>/<code>bic</code> y <code>condition_number</code>. <code>res.coef_frame()</code> aplana todos los países en una única tabla larga.</p>
+<p>Dos advertencias que el resumen imprime y que no conviene saltarse. Los estadísticos <code>t</code> son condicionales a la exogeneidad débil y, con datos en niveles, <strong>no son asintóticamente normales</strong> (Sims, Stock y Watson 1990): con variables I(1) el coeficiente de un nivel rezagado tiene un límite no estándar. Y <code>trend='ct'</code> introduce una tendencia lineal irrestricta en un VARX* en niveles, lo que implica una tendencia <em>cuadrática</em> en los niveles del sistema global resuelto; los GVAR de tipo VECX* restringen la tendencia al espacio de cointegración, y este módulo no tiene espacio de cointegración al que restringirla.</p>
+<hr />
+<h2 id="3-resolver-el-sistema-global">3. Resolver el sistema global</h2>
+<p>Este es el paso que lo convierte en un modelo <em>global</em>, y es álgebra exacta, no estimación. Ordene el vector global <code>x_t = (x'_1t, …, x'_Nt)'</code>, <code>k = Σ_i k_i</code>. Sea <code>S_i</code> (<code>k_i × k</code>) la matriz que selecciona las variables propias del país <code>i</code> y <code>W*_i</code> (<code>k*_i × k</code>) la que construye sus variables estrella, de modo que</p>
+<div class="arithmatex">\[z_{it} = \begin{pmatrix}x_{it}\\ x^{*}_{it}\end{pmatrix} = W_i x_t, \qquad W_i = \begin{bmatrix}S_i\\ W^{*}_i\end{bmatrix}.\]</div>
+<p>Escribiendo <code>A_i0 = [I, −Λ_i0]</code> y <code>A_il = [Φ_il, Λ_il]</code>, rellenados con ceros hasta <code>s</code>, cada ecuación nacional es <code>A_i0 W_i x_t = a_i0 + a_i1 t + Σ_l A_il W_i x_{t−l} + u_it</code>, y apilando sobre <code>i</code> se obtiene un único sistema cuadrado</p>
+<div class="arithmatex">\[G x_t = a_0 + a_1 t + \sum_{l=1}^{s} H_l x_{t-l} + \sum_l \Upsilon_l d_{t-l} + \varepsilon_t,\]</div>
+<p>cuyo bloque de filas <code>i</code> es <code>G_i = S_i − Λ_i0 W*_i</code> y <code>H_{l,i} = Φ_il S_i + Λ_il W*_i</code>. Cuando <code>G</code> es no singular, <code>x_t = G^{-1}(...)</code> es un VAR(s) ordinario con matrices <code>F_l = G^{-1} H_l</code> e innovaciones en forma reducida <code>G^{-1} ε_t</code>. <code>res.G</code>, <code>res.H</code>, <code>res.F</code>, <code>res.G_inv</code>, <code>res.eigenvalues</code>, <code>res.max_eigenvalue</code> y <code>res.stable</code> están todos en el resultado.</p>
+<p><code>solve_gvar</code> expone el paso por separado. Dos países de una sola variable hacen visible todo el mecanismo, y también cómo falla:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.var.gvar</span><span class="w"> </span><span class="kn">import</span> <span class="n">solve_gvar</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">S</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"A"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]]),</span> <span class="s2">"B"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]])}</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">Wstar</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"A"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]]),</span> <span class="s2">"B"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]])}</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">link</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">S</span><span class="p">[</span><span class="n">c</span><span class="p">],</span> <span class="n">Wstar</span><span class="p">[</span><span class="n">c</span><span class="p">]])</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">)}</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">A0</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"A"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.3</span><span class="p">]]),</span> <span class="s2">"B"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.2</span><span class="p">]])}</span>       <span class="c1"># [I, -Lambda_0]</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="n">A_lags</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"A"</span><span class="p">:</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">]])],</span> <span class="s2">"B"</span><span class="p">:</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]])]}</span> <span class="c1"># [Phi_1, Lambda_1]</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">sol</span> <span class="o">=</span> <span class="n">solve_gvar</span><span class="p">(</span><span class="n">link</span><span class="p">,</span> <span class="n">A0</span><span class="p">,</span> <span class="n">A_lags</span><span class="p">,</span> <span class="n">country_order</span><span class="o">=</span><span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">],</span> <span class="n">block_sizes</span><span class="o">=</span><span class="p">{</span><span class="s2">"A"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">sol</span><span class="o">.</span><span class="n">G</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">sol</span><span class="o">.</span><span class="n">F</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">sep</span><span class="o">=</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"max |autovalor| ="</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigvals</span><span class="p">(</span><span class="n">sol</span><span class="o">.</span><span class="n">F</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span> <span class="mi">4</span><span class="p">))</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="n">A0_bad</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"A"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.0</span><span class="p">]]),</span> <span class="s2">"B"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">]])}</span>   <span class="c1"># l1 * l2 = 1</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>    <span class="n">solve_gvar</span><span class="p">(</span><span class="n">link</span><span class="p">,</span> <span class="n">A0_bad</span><span class="p">,</span> <span class="n">A_lags</span><span class="p">,</span> <span class="n">country_order</span><span class="o">=</span><span class="p">[</span><span class="s2">"A"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">],</span> <span class="n">block_sizes</span><span class="o">=</span><span class="p">{</span><span class="s2">"A"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="k">except</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">LinAlgError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>    <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">exc</span><span class="p">)[:</span><span class="mi">118</span><span class="p">],</span> <span class="s2">"..."</span><span class="p">)</span>
+</code></pre></div>
+<p>Con una variable por país, <code>G = [[1, −λ₁], [−λ₂, 1]]</code> es singular exactamente cuando <code>λ₁λ₂ = 1</code>: el sistema contemporáneo entre países <code>x_t = Λ_0 W* x_t + …</code> no tiene entonces solución única. El error nombra los bloques de filas y de columnas que más cargan sobre el espacio nulo, que es como se localiza al culpable en un modelo de 30 países.</p>
+<p><strong>Lea <code>condition_number</code>, nunca <code>condition_number_raw</code>.</strong> Bajo un reescalado diagonal de los datos, <code>G → D G D^{-1}</code>, una transformación de semejanza que deja intactos los autovalores y el determinante pero puede mover el número de condición bruto once órdenes de magnitud: exprese una serie en millones y un modelo bien planteado parecerá singular. Por eso <code>G</code> se equilibra (balanceo de LAPACK más barridos de Ruiz) antes de la comprobación de condicionamiento, <code>res.condition_number</code> es ese número invariante a las unidades y <code>condition_number_raw</code> se conserva solo como referencia. Las matrices de diseño nacionales se equilibran por columnas antes de su propia comprobación de singularidad, por la misma razón, y el escalado se deshace exactamente en los coeficientes, los errores estándar y <code>(Z'Z)^{-1}</code>.</p>
+<p><strong>La inestabilidad es un aviso, no un error.</strong> Un GVAR en niveles I(1) lleva raíces unitarias por construcción, así que <code>max |autovalor| ≥ 1</code> es lo esperado y <code>gvar</code> solo advierte (<code>stability_warn=False</code> lo silencia). Ahora bien, las bandas bootstrap extraídas de un sistema resuelto explosivo no son de fiar.</p>
+<hr />
+<h2 id="4-respuestas-al-impulso-generalizadas">4. Respuestas al impulso generalizadas</h2>
+<p>Con <code>Ψ_h</code> los coeficientes MA del VAR(s) resuelto y <code>R_h = Ψ_h G^{-1}</code>, la respuesta a una innovación de una desviación típica en la combinación <code>d</code> de las ecuaciones nacionales es</p>
+<div class="arithmatex">\[\mathrm{GIRF}_h(d) = \frac{R_h \Sigma_\varepsilon d}{\sqrt{d'\Sigma_\varepsilon d}}.\]</div>
+<p><em>Generalizadas</em>, no ortogonalizadas, y eso es una decisión, no una comodidad. Una factorización de Cholesky de <code>Σ_ε</code> exige un orden de las <code>k</code> variables país-variable; nadie puede defender uno, y la respuesta cambia con él. La respuesta generalizada es invariante al orden porque nunca impone ninguno, pero el precio es que se trata de una esperanza condicional dada una innovación con las demás en su media condicional, <strong>no</strong> del efecto de un shock estructural independiente. Las respuestas a distintos pares <code>(país, variable)</code> no descomponen nada. Este módulo no ofrece otra vía: ninguna identificación del sistema global por Cholesky, signos o restricciones narrativas.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">g</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">girf</span><span class="p">(</span><span class="s2">"TX"</span><span class="p">,</span> <span class="s2">"y"</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">n_boot</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">ci</span><span class="o">=</span><span class="mf">0.90</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">gc</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">girf_combination</span><span class="p">({(</span><span class="s2">"TX"</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">):</span> <span class="mf">1.0</span><span class="p">,</span> <span class="p">(</span><span class="s2">"CA"</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">):</span> <span class="mf">1.0</span><span class="p">},</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>                          <span class="n">label</span><span class="o">=</span><span class="s2">"innovación conjunta en la tasa de TX y CA"</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">gc</span><span class="o">.</span><span class="n">to_frame</span><span class="p">()</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">"h == 0"</span><span class="p">)</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
+</code></pre></div>
+<p><code>girf</code> golpea una variable de un país; <code>girf_combination</code> recibe un diccionario de <code>(país, variable)</code> (o <code>"país:variable"</code>) con pesos. Por la normalización <code>sqrt(d' Σ_ε d)</code>, la trayectoria es invariante a la escala positiva de <code>d</code>: <code>1.0</code> y <code>3.0</code> dan respuestas idénticas. <code>GVARGIRFResult</code> lleva <code>irf</code> <code>(H+1, k)</code>, <code>lower</code>/<code>upper</code>/<code>median</code>, <code>names</code>, <code>shock_sd</code>, y <code>plot(by_variable=True)</code> dibuja la figura estándar del GVAR: un panel por variable, una línea por país.</p>
+<p>Las bandas son <strong>bandas percentiles puntuales de un bootstrap recursivo de residuos</strong>: nunca conjuntas a lo largo de los horizontes, y sin corrección de sesgo, razón por la cual <code>median</code> (la mediana bootstrap) difiere de <code>irf</code> (la estimación puntual) en el sesgo de MCO. Cada réplica remuestrea filas completas de la matriz de residuos apilada (<code>bootstrap='iid'</code>) o les cambia el signo (<code>'wild'</code>), simula hacia adelante el sistema resuelto, reconstruye el panel estrella con los <em>mismos</em> pesos, reestima cada bloque nacional con los órdenes de rezago <strong>fijos</strong> y vuelve a resolver. Las réplicas que explotan o no se pueden estimar se descartan y se cuentan en <code>n_boot_failed</code>; si se pierde más del 10 % se emite una advertencia y la banda superviviente está sesgada hacia dentro.</p>
+<p>Una trampa de escala silenciosa: <code>sigma_ddof</code> (por defecto 0, el divisor MLE que usa la literatura GVAR) no es cosmético. La GIRF es homogénea de grado ½ en <code>Σ_ε</code>, así que cambiar el divisor multiplica todas las respuestas por <code>sqrt(T_eff / (T_eff − sigma_ddof))</code>.</p>
+<hr />
+<h2 id="5-gfevd-perfiles-de-persistencia-y-pronosticos">5. GFEVD, perfiles de persistencia y pronósticos</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">theta</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">gfevd</span><span class="p">(</span><span class="n">horizon</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>                       <span class="c1"># (H+1, k, k), filas que suman 1</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">raw</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">gfevd</span><span class="p">(</span><span class="n">horizon</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"sumas de fila sin normalizar, h = 0:"</span><span class="p">,</span> <span class="n">raw</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"sumas de fila sin normalizar, h = 8:"</span><span class="p">,</span> <span class="n">raw</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="n">pp</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">pp</span><span class="p">({(</span><span class="s2">"TX"</span><span class="p">,</span> <span class="s2">"y"</span><span class="p">):</span> <span class="mf">1.0</span><span class="p">,</span> <span class="p">(</span><span class="s2">"CA"</span><span class="p">,</span> <span class="s2">"y"</span><span class="p">):</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">},</span> <span class="n">horizon</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"perfil de persistencia:"</span><span class="p">,</span> <span class="n">pp</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="s2">"-&gt;"</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">pp</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="mi">4</span><span class="p">))</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">forecast</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">4</span><span class="p">])</span>
+</code></pre></div>
+<p><strong>La FEVD generalizada.</strong> <code>gfevd</code> es Pesaran-Shin (1998) con <code>Ψ_l</code> sustituido por <code>R_l</code> y <code>Σ</code> por <code>Σ_ε</code>. Las participaciones son no negativas y, con el valor por defecto <code>normalize=True</code> (convención de Diebold-Yılmaz), cada fila suma exactamente uno. Las filas sin normalizar son harina de otro costal, y el bloque anterior imprime valores por debajo de uno ya en el impacto:</p>
+<blockquote>
+<p><strong>La cota <code>≥ 1</code> de Pesaran-Shin sobre la suma de fila sin normalizar no se cumple en un GVAR, ni siquiera en <code>h = 0</code>.</strong> Su demostración necesita <code>Ψ_0 = I</code>, para que la fila <code>i</code> en el impacto sea <code>Σ_j r_ij² ≥ r_ii² = 1</code>. Un GVAR tiene en cambio <code>R_0 = G^{-1}</code>, y la suma de fila en el impacto es un cociente de Rayleigh de <code>C C'</code>, con <code>C</code> la matriz <code>Σ_ε^{1/2}</code> normalizada por columnas, de modo que lo único que puede afirmarse es</p>
+<div class="arithmatex">\[\lambda_{\min}(\mathrm{corr}(\Sigma_\varepsilon)) \le \mathrm{suma\ fila}_i(h=0) \le \lambda_{\max}(\mathrm{corr}(\Sigma_\varepsilon)).\]</div>
+<p>La cota <code>≥ 1</code> solo reaparece cuando <code>G = I</code>, es decir, sin bloque estrella contemporáneo en ningún país. No es un caso raro: en el propio DGP de prueba de tres países del módulo, variando únicamente la semilla, 50 de 59 ajustes tienen una suma de fila en el impacto inferior a uno, y para <code>h ≥ 1</code> aparecen valores cercanos a 0,28 en sistemas corrientes de tres variables. <strong>Nunca lea una suma de fila sin normalizar como una comprobación de completitud.</strong></p>
+</blockquote>
+<p><strong>Perfiles de persistencia.</strong> <code>pp(b, horizon=…)</code> es Pesaran y Shin (1996),</p>
+<div class="arithmatex">\[\mathrm{PP}(b, h) = \frac{b' R_h \Sigma_\varepsilon R_h' b}{b' R_0 \Sigma_\varepsilon R_0' b},\]</div>
+<p>exactamente 1 en <code>h = 0</code> por construcción. Un perfil que decae a cero señala una combinación asintóticamente estacionaria —cointegrante—; uno que converge a una constante positiva señala una combinación I(1). <code>b</code> puede darse como un array de longitud <code>k</code> o como un diccionario <code>(país, variable) -&gt; peso</code>.</p>
+<p><strong>Pronóstico.</strong> <code>forecast(steps)</code> itera hacia adelante la media condicional del sistema resuelto desde el final de la muestra; es una trayectoria puntual, no una densidad, y devuelve un frame indexado <code>1..steps</code>. Si el modelo se ajustó con <code>exog</code>, hace falta un <code>exog_future</code> acorde: el sistema resuelto <em>condiciona</em> sobre <code>d_t</code> y nunca lo golpea.</p>
+<p><strong>Vigile <code>T_eff</code> frente a <code>k</code>.</strong> <code>Σ_ε</code> es una matriz <code>k × k</code> estimada con <code>T_eff</code> observaciones, y el GVAR canónico tiene <code>k ≫ T_eff</code>, en cuyo caso es singular. <code>gvar</code> advierte en <code>T_eff &lt; 2k</code> y de nuevo en <code>T_eff &lt; k</code> en vez de regularizar en silencio: aquí no hay ningún estimador de encogimiento. Las GIRF se siguen evaluando con una <code>Σ_ε</code> singular, pero la GFEVD y las bandas bootstrap no significan gran cosa. El ejemplo de seis estados de arriba tiene <code>k = 12</code> y <code>T_eff = 159</code>, holgadamente a salvo.</p>
+<hr />
+<h2 id="6-el-contraste-de-exogeneidad-debil-que-es-y-que-no">6. El contraste de exogeneidad débil: qué es y qué no</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">we</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">weak_exogeneity</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">we</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="nb">print</span><span class="p">(</span><span class="n">we</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"p_value"</span><span class="p">)</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
+</code></pre></div>
+<p>Para cada variable estrella del país <code>i</code> se estima la regresión auxiliar (en primeras diferencias por defecto, porque las entradas canónicas de un GVAR son I(1) y el estadístico F necesita regresores estacionarios)</p>
+<div class="arithmatex">\[\Delta x^{*}_{il,t} = \mu + \sum_a \psi_a' \Delta x^{*}_{i,t-a} + \sum_a \phi_a' \Delta x_{i,t-a} + \gamma' \hat u_{i,t-1} + \eta_t\]</div>
+<p>y se contrasta <code>γ = 0</code> con <code>F(k_i, T_e − m)</code>. Entra el bloque estrella rezagado completo, como en Dees et al. (2007, ec. 15). Ahora las salvedades, que son el fondo de esta sección:</p>
+<ul>
+<li>Es un contraste <strong>aproximado en forma reducida</strong>, <strong>no</strong> el contraste de corrección de error de Dees et al. (2007, ec. 15). Aquel usa los términos cointegrantes estimados de un VECX*; este módulo no tiene capa de cointegración, de modo que el residuo rezagado del propio modelo nacional, <code>û_{i,t−1}</code>, hace las veces de ellos. La hipótesis nula aquí es la condición necesaria de que las innovaciones del modelo del país <code>i</code> no causen a la Granger su propio bloque extranjero.</li>
+<li><code>û_{i,t−1}</code> es un <strong>regresor generado y no se aplica ninguna corrección por regresor generado</strong>, así que la distribución F es aproximada en un segundo sentido, independiente del primero.</li>
+<li><strong>Tamaño medido, revelado en vez de omitido.</strong> Bajo la nula (tres países independientes, <code>p = q = 1</code>, 1000 réplicas, 6000 contrastes por celda) la tasa de rechazo no es la nominal. En niveles I(1) —la entrada canónica de un GVAR— es 0,027/0,109/0,178 a niveles nominales 0,01/0,05/0,10 con <code>T = 200</code>, y 0,035/0,114/0,182 con <code>T = 300</code>. La distorsión es <em>estable en T</em>, lo que la identifica como el problema no tratado del regresor generado y no como un artefacto de muestra pequeña. Con datos estacionarios (AR(1), ρ = 0,5, <code>T = 200</code>) resulta en cambio conservador: 0,002 a nivel nominal 0,05.</li>
+</ul>
+<p>Por eso el resultado se publica como una <strong>ordenación diagnóstica de p-valores, no como una regla de decisión calibrada</strong>. No hay atributo <code>expected_rejections</code>, y la columna booleana se llama <code>reject_nominal</code> para dejar claro que <code>alpha</code> es un umbral nominal y no el tamaño del contraste. Ordene por <code>p_value</code>, o por <code>p_holm</code> para una ordenación por familia, y tome un p-valor pequeño como motivo para mirar el bloque estrella de ese país. No cuente rechazos ni compare <code>n_reject_nominal</code> con <code>alpha × n_tests</code>.</p>
+<hr />
+<h2 id="7-lista-de-comprobacion-practica">7. Lista de comprobación práctica</h2>
+<ul>
+<li><strong>Construya los pesos a partir de flujos, no de la geografía, cuando pueda.</strong> <code>economic_weights(matriz_comercio)</code> estandariza por filas y anula la diagonal, que es exactamente lo que <code>gvar</code> valida: no negativos, diagonal nula, filas que suman uno con tolerancia 1e-8. Solo pesos fijos: un diccionario de frames o un array tridimensional lanzan error en vez de promediar en silencio.</li>
+<li><strong>Imprima el mayor peso de cada fila.</strong> Ese número <em>es</em> la condición de granularidad. Por encima de 0,2 aproximadamente, el MCO nacional es materialmente inconsistente y los errores estándar subestiman el daño.</li>
+<li><strong>¿Cuánto <code>T</code> hace falta?</strong> El país <code>i</code> necesita <code>T_eff − m_i ≥ k_i + 1</code> solo para tener una <code>Σ_i</code> no singular (por debajo, <code>gvar</code> lanza error nombrando al país); el resumen marca los casos con menos de <code>k_i + 5</code> grados de libertad residuales. Para los objetos <em>globales</em> la restricción que ata es <code>Σ_ε</code>: apunte a <code>T_eff &gt; 2k</code>, y sepa que el GVAR canónico con <code>k ≫ T_eff</code> reporta GFEVD y bandas a partir de una covarianza singular.</li>
+<li><strong>Cuando <code>G</code> está mal condicionada.</strong> Mire primero <code>condition_number</code> (equilibrado), no el bruto. Después restrinja el bloque estrella contemporáneo —<code>contemporaneous_star={"US": ("po",)}</code> es como el modelo canónico excluye la <code>y*</code> extranjera contemporánea de las ecuaciones de EE. UU.— y revise si alguna fila de pesos se concentra en un solo socio. <code>cond_tol</code> (por defecto 1e12) lanza error en vez de devolver un sistema resuelto inservible.</li>
+<li><strong>Órdenes de rezago.</strong> El valor por defecto <code>p = 2, q = 1</code> es la elección canónica del GVAR. <code>ic=</code> selecciona por país, pero los criterios son comparables <strong>solo dentro de una misma rejilla</strong>: cambiar <code>max_p</code> cambia la muestra de la rejilla y con ella la verosimilitud de cada candidato.</li>
+<li><strong>Nada se ignora en silencio.</strong> <code>max_p</code>/<code>max_q</code> sin <code>ic</code>, <code>exog_lags</code> sin <code>exog</code>, <code>we_lags</code>/<code>alpha</code> con <code>weak_exogeneity=False</code>, <code>ci</code>/<code>seed</code>/<code>bootstrap</code> con <code>n_boot=0</code>: cada uno lanza error en lugar de no hacer nada.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">res_ic</span> <span class="o">=</span> <span class="n">gvar</span><span class="p">(</span><span class="n">panel</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">ic</span><span class="o">=</span><span class="s2">"bic"</span><span class="p">,</span> <span class="n">max_p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">max_q</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>              <span class="n">contemporaneous_star</span><span class="o">=</span><span class="p">{</span><span class="s2">"CA"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"r"</span><span class="p">,),</span> <span class="s2">"TX"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"r"</span><span class="p">,)})</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="nb">print</span><span class="p">(</span><span class="n">res_ic</span><span class="o">.</span><span class="n">lag_orders</span><span class="p">)</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">res_ic</span><span class="o">.</span><span class="n">country_models</span><span class="p">[</span><span class="s2">"CA"</span><span class="p">]</span><span class="o">.</span><span class="n">contemporaneous_star</span><span class="p">,</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>      <span class="n">res_ic</span><span class="o">.</span><span class="n">country_models</span><span class="p">[</span><span class="s2">"NY"</span><span class="p">]</span><span class="o">.</span><span class="n">contemporaneous_star</span><span class="p">)</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"cond(G) = </span><span class="si">{</span><span class="n">res_ic</span><span class="o">.</span><span class="n">condition_number</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, max |autovalor| = </span><span class="si">{</span><span class="n">res_ic</span><span class="o">.</span><span class="n">max_eigenvalue</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="8-deliberadamente-fuera-de-alcance">8. Deliberadamente fuera de alcance</h2>
+<p>Todo lo que sigue es una decisión, no una carencia. Busque otra herramienta en vez de esperar una versión futura.</p>
+<ul>
+<li><strong>Sin capa VECX*/cointegración.</strong> Los modelos nacionales son VARX* irrestrictos en niveles: sin contraste de rango, sin tendencia restringida, sin términos de corrección de error; y, en consecuencia, el contraste de exogeneidad débil de la §6 no es el de Dees et al. (2007, ec. 15).</li>
+<li><strong>Sin conjuntos de variables por país, por defecto.</strong> Todos los países deben llevar todas las columnas de <code>data</code>; una celda <code>(país, variable)</code> enteramente NaN lanza error nombrando ambos, igual que un NaN interior, porque la causa más frecuente es una serie mal nombrada o eliminada por accidente, que si no estimaría en silencio un modelo distinto. La asimetría país petrolero / EE. UU. requiere optar explícitamente: <code>allow_missing_variables=True</code> restaura la lectura permisiva y emite un <code>RuntimeWarning</code> nombrando cada celda descartada. Un bloque <em>estrella</em> sí puede nombrar cualquier variable que tenga otro país, incluso una que el país <code>i</code> no tenga. Las <em>definiciones</em> genuinamente distintas por país quedan fuera de alcance.</li>
+<li><strong>Una variable endógena en un país no puede ser exógena en otro.</strong> Un nombre que aparezca en <code>data</code> y en <code>exog</code> lanza error: el sistema resuelto condicionaría sobre una variable endógena a uno de sus propios bloques.</li>
+<li><strong>Sin identificación estructural del sistema global</strong> más allá de la vía generalizada: ni Cholesky, ni restricciones de signo, ni narrativas sobre el GVAR.</li>
+<li><strong>Sin pesos de comercio variables en el tiempo (móviles) ni estimación con ventana móvil.</strong></li>
+<li><strong>Sin shocks al bloque exógeno global <code>d_t</code>;</strong> el sistema resuelto condiciona sobre él.</li>
+<li><strong>Sin GVAR con unidad dominante o aumentado por factores</strong> (Chudik y Pesaran 2011).</li>
+<li><strong>Sin contrastes de cambio estructural</strong> en las ecuaciones nacionales.</li>
+<li><strong>Sin encogimiento para <code>Σ_ε</code>.</strong> El módulo advierte en <code>T_eff &lt; 2k</code> y <code>T_eff &lt; k</code> en vez de regularizar en silencio una covarianza singular.</li>
+<li><strong>Las bandas bootstrap son bandas percentiles puntuales</strong>, nunca conjuntas a lo largo de los horizontes, y no llevan corrección de sesgo.</li>
+</ul>
+<h2 id="referencias">Referencias</h2>
+<ul>
+<li>Chudik, A. y Pesaran, M. H. (2011). Infinite-dimensional VARs and factor models. <em>Journal of Econometrics</em> 163(1), 4–22.</li>
+<li>Chudik, A. y Pesaran, M. H. (2016). Theory and practice of GVAR modelling. <em>Journal of Economic Surveys</em> 30(1), 165–197.</li>
+<li>Dees, S., di Mauro, F., Pesaran, M. H. y Smith, L. V. (2007). Exploring the international linkages of the euro area: a global VAR analysis. <em>Journal of Applied Econometrics</em> 22(1), 1–38.</li>
+<li>Pesaran, M. H., Schuermann, T. y Weiner, S. M. (2004). Modeling regional interdependencies using a global error-correcting macroeconometric model. <em>Journal of Business &amp; Economic Statistics</em> 22(2), 129–162.</li>
+<li>Pesaran, M. H. y Shin, Y. (1996). Cointegration and speed of convergence to equilibrium. <em>Journal of Econometrics</em> 71(1–2), 117–143.</li>
+<li>Pesaran, M. H. y Shin, Y. (1998). Generalized impulse response analysis in linear multivariate models. <em>Economics Letters</em> 58(1), 17–29.</li>
+<li>Pesaran, M. H., Shin, Y. y Smith, R. J. (2000). Structural analysis of vector error correction models with exogenous I(1) variables. <em>Journal of Econometrics</em> 97(2), 293–343.</li>
+<li>Sims, C. A., Stock, J. H. y Watson, M. W. (1990). Inference in linear time series models with some unit roots. <em>Econometrica</em> 58(1), 113–144.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

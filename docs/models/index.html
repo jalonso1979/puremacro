@@ -1,0 +1,4792 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Production-grade Macroeconometric and Heterogeneous-Agent Structural Modeling Engine in Pure Python">
+      
+      
+        <meta name="author" content="puremacro contributors">
+      
+      
+        <link rel="canonical" href="https://jalonso1979.github.io/puremacro/docs/models/">
+      
+      
+        <link rel="prev" href="../reporting/">
+      
+      
+        <link rel="next" href="../hank_nonlinear/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Sequence-Space HANK - puremacro</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#sequence-space-hank" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="puremacro" class="md-header__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            puremacro
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Sequence-Space HANK
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href=".." class="md-tabs__link">
+          
+  
+  
+  English Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../es/" class="md-tabs__link">
+          
+  
+  
+  Documentación en Español
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="puremacro" class="md-nav__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    puremacro
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    English Documentation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    English Documentation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Showcase Notebooks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Correctness advisories
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quarterly National Accounts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-time data (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Long national accounts panel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global Macro Data Ecosystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_6" id="__nav_1_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometric Engines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Econometric Engines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR & FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Narrative Sign Restrictions SVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR with Stochastic Volatility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Smooth Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modern Difference-in-Differences
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Honest DiD Sensitivity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Econometrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global VAR (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Estimation & Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GDP Nowcasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Penalized Forecasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_7" id="__nav_1_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publication & Reporting
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publication & Reporting
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manuscript Tables & Exports
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_8" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_1_8" id="__nav_1_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structural Models
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_8_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Structural Models
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sequence-Space HANK
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sequence-Space HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-package-ships" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the package ships
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-sequence-space-method-buys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the sequence-space method buys
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-exact-fake-news-algorithm-fake_news_algorithm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Exact Fake News Algorithm (fake_news_algorithm)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-targeted-fiscal-transfers-simulate_targeted_transfer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Targeted Fiscal Transfers (simulate_targeted_transfer)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-parametric-sequence-space-solver-solve_hank_sequence_space" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Parametric Sequence-Space Solver (solve_hank_sequence_space)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#solve_hank_sequence_space-arguments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        solve_hank_sequence_space — arguments
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-ge-block" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The GE block
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-comes-back" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What comes back
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#numerical-knobs-and-what-a-too-small-one-does" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Numerical knobs, and what a too-small one does
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Numerical knobs, and what a too-small one does">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#t-the-truncation-horizon" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        T — the truncation horizon
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#n_a-asset-grid-points" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        n_a — asset grid points
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a_max-the-top-of-the-grid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        a_max — the top of the grid
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beta-the-admissibility-bound-nothing-enforces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        beta — the admissibility bound nothing enforces
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-tolerances-you-cannot-reach" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The tolerances you cannot reach
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Non-Linear HANK Transitions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gertler-Karadi (2011) DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Climate Macro (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Sketchpad & Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Higher-Order & Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Parity & Surface Area
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradients, NUTS & HANK Bridge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Frontier (Policy, DSGE-VAR & News)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Non-linear Particle Filtering & Regime Switching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running Anywhere (iPad / browser)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance & Benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_11" id="__nav_1_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replication gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation & goldens
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Connector health
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credentials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cache database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signal contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lexicon review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path to 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentación en Español
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Documentación en Español
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio rápido
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuadernos de demostración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avisos de corrección
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuentas nacionales trimestrales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos en tiempo real (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panel largo de cuentas nacionales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ecosistema de datos macro globales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motores econométricos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Motores econométricos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR y FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SVAR con restricciones narrativas de signo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR con volatilidad estocástica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales suavizadas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias en diferencias modernas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sensibilidad en DiD honesto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometría espacial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR global (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estimación y diagnósticos DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nowcasting del PIB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pronóstico penalizado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publicación e informes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publicación e informes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tablas y exportación de manuscritos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_8" id="__nav_2_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos estructurales
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Modelos estructurales
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HANK en el espacio de secuencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transiciones no lineales en HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de Gertler-Karadi (2011)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomía del clima (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuaderno de bocetos DSGE y Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de orden superior y restricciones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Paridad y superficie operativa DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradientes, NUTS y Puente HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontera DSGE (Política, DSGE-VAR y Noticias)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Filtrado de Partículas No Lineal y Cambio de Régimen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ejecución en cualquier entorno (iPad / navegador)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendimiento y pruebas comparativas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_11" id="__nav_2_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de replicación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validación y referencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estado de conectores
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credenciales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos de caché
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato de señales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de ejemplos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Revisión de léxico
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ruta a 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-package-ships" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the package ships
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-sequence-space-method-buys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the sequence-space method buys
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-exact-fake-news-algorithm-fake_news_algorithm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Exact Fake News Algorithm (fake_news_algorithm)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-targeted-fiscal-transfers-simulate_targeted_transfer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Targeted Fiscal Transfers (simulate_targeted_transfer)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-parametric-sequence-space-solver-solve_hank_sequence_space" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Parametric Sequence-Space Solver (solve_hank_sequence_space)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#solve_hank_sequence_space-arguments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        solve_hank_sequence_space — arguments
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-ge-block" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The GE block
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-comes-back" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What comes back
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#numerical-knobs-and-what-a-too-small-one-does" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Numerical knobs, and what a too-small one does
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Numerical knobs, and what a too-small one does">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#t-the-truncation-horizon" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        T — the truncation horizon
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#n_a-asset-grid-points" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        n_a — asset grid points
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#a_max-the-top-of-the-grid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        a_max — the top of the grid
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beta-the-admissibility-bound-nothing-enforces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        beta — the admissibility bound nothing enforces
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-tolerances-you-cannot-reach" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The tolerances you cannot reach
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<blockquote>
+<p>🇬🇧 English · 🇪🇸 <a href="../es/models/">Español</a></p>
+</blockquote>
+<h1 id="sequence-space-hank">Sequence-Space HANK</h1>
+<p><code>puremacro.models</code> is the structural side of the package: models you solve for a
+steady state and then push along a transition path, with no compiler, no MEX
+toolchain and no Dynare in the loop. Everything on this page is offline — none
+of it touches the network.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">solve_hank_sequence_space</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">res</span> <span class="o">=</span> <span class="n">solve_hank_sequence_space</span><span class="p">(</span><span class="n">T</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">n_a</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">0.985</span><span class="p">,</span> <span class="n">r_ss</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>                                <span class="n">phi_pi</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">kappa</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>                                <span class="n">shock_magnitude</span><span class="o">=</span><span class="mf">0.0025</span><span class="p">,</span> <span class="n">shock_rho</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+</code></pre></div>
+<p>That is a 25bp contractionary monetary shock in a one-asset heterogeneous-agent
+New Keynesian economy, and it returns in <strong>0.21 s</strong>.</p>
+<h2 id="what-the-package-ships">What the package ships</h2>
+<table>
+<thead>
+<tr>
+<th>module</th>
+<th>import path</th>
+<th>what it solves</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hank_sequence_space</code></td>
+<td><code>puremacro.models</code></td>
+<td>one-asset HANK: EGM steady state, exact <span class="arithmatex">\(\mathcal{O}(T^2)\)</span> Fake News algorithm, targeted fiscal transfers, and GE transition by one <code>T x T</code> linear solve</td>
+</tr>
+<tr>
+<td><code>dmp_regime_dependent</code></td>
+<td><code>puremacro.models</code></td>
+<td>representative-firm DMP, Hall sticky wages, regime-dependent vacancy cost and TFP bump</td>
+</tr>
+<tr>
+<td><code>nested_dmp</code> (package)</td>
+<td><code>puremacro.models.nested_dmp</code></td>
+<td>heterogeneous-firm DMP with Bayesian beliefs about the policy rule: steady state, perfect-foresight IRF, IRF-matching estimation, recursive stochastic solve, welfare sweep</td>
+</tr>
+<tr>
+<td><code>smm</code></td>
+<td><code>puremacro.models.smm</code></td>
+<td>moment loader and objective for estimating <code>dmp_regime_dependent</code> against local-projection IRFs</td>
+</tr>
+</tbody>
+</table>
+<p><code>puremacro.models.__all__</code> re-exports:
+<code>DMPParameters</code>, <code>DMPState</code>, <code>dmp_steady_state</code>, <code>dmp_irf</code>,
+<code>SequenceSpaceHANKResult</code>, <code>solve_hank_sequence_space</code>,
+<code>FakeNewsResult</code>, <code>FiscalTransferResult</code>,
+<code>fake_news_algorithm</code>, and <code>simulate_targeted_transfer</code>. <code>nested_dmp</code> and <code>smm</code>
+are reached by their own paths.</p>
+<h2 id="what-the-sequence-space-method-buys">What the sequence-space method buys</h2>
+<p>A global solution of a heterogeneous-agent model carries the distribution as a
+state. You approximate it (Krusell-Smith moments, a projection basis, a neural
+net), you solve a Bellman equation on the joint (idiosyncratic, aggregate) space,
+and the cost grows with the aggregate state dimension. Auclert, Bardóczy,
+Rognlie &amp; Straub (2021) observe that if you only want the <strong>linear</strong> response to
+an aggregate shock, you never need that object. You need one <code>T x T</code> matrix per
+input — the Jacobian of aggregate consumption with respect to the date-<code>s</code> value
+of each price — and equilibrium is then a linear system in the <em>sequence</em> of
+aggregates, not in a state vector.</p>
+<p>Two consequences, both visible in the wall clock:</p>
+<ul>
+<li><strong>Horizon is cheap.</strong> At <code>n_a=20</code> the whole solve costs 0.056 s at <code>T=40</code>,
+  0.182 s at <code>T=600</code> and 0.415 s at <code>T=1000</code>. Twenty-five times the horizon for
+  7.4x the time: the <code>T x T</code> solve is BLAS-bound and the Jacobian fill is
+  <code>O(T^2)</code>.</li>
+<li><strong>The household side is priced separately.</strong> Its cost scales with <code>n_a</code>, not
+  <code>T</code> — 0.12 s at <code>n_a=50</code>, 0.92 s at <code>n_a=400</code> — because the stationary
+  distribution is a Python double loop over <code>(n_a, n_s)</code>. At any <code>n_a</code> above
+  ~100 the household block, not the equilibrium solve, is what you are paying
+  for.</li>
+</ul>
+<p>The price of the linearity is the usual one: this is a first-order response
+around a single steady state. It cannot tell you about a ZLB episode, a
+state-dependent multiplier, or anything where the size or sign of the shock
+changes the propagation.</p>
+<hr />
+<h2 id="1-exact-fake-news-algorithm-fake_news_algorithm">1. Exact Fake News Algorithm (<code>fake_news_algorithm</code>)</h2>
+<p>Auclert et al. (2021) showed that computing the <span class="arithmatex">\(T \times T\)</span> sequence-space Jacobian directly by brute-force numerical simulation requires <span class="arithmatex">\(T\)</span> separate forward simulations. The <strong>Fake News Algorithm</strong> reduces this computational complexity to <span class="arithmatex">\(\mathcal{O}(T^2)\)</span> using backward expectation iteration.</p>
+<p>The algorithm defines the <em>fake news matrix</em> <span class="arithmatex">\(\mathcal{F}\)</span> where <span class="arithmatex">\(\mathcal{F}_{t,s}\)</span> represents the revision in the agent's expectation of period-<span class="arithmatex">\(t\)</span> consumption upon receiving news at date 0 about an innovation occurring at date <span class="arithmatex">\(s\)</span>:
+$<span class="arithmatex">\(\mathcal{F}_{t,s} = (\mathbf{D}_{ss} \mathcal{E}_t)' \cdot d\mathbf{a}^*_s\)</span>$</p>
+<p>Once <span class="arithmatex">\(\mathcal{F}\)</span> is formed, the full sequence-space Jacobian <span class="arithmatex">\(\mathcal{J}\)</span> is recovered through the fundamental cumulation identity:
+$<span class="arithmatex">\(\mathcal{J}_{t,s} = \mathcal{J}_{t-1,s-1} + \mathcal{F}_{t,s}\)</span>$</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">fake_news_algorithm</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># Compute exact sequence-space consumption Jacobians</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">fn_res</span> <span class="o">=</span> <span class="n">fake_news_algorithm</span><span class="p">(</span><span class="n">T</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">n_a</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">0.985</span><span class="p">,</span> <span class="n">r_ss</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">fn_res</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># Access matrices as tidy DataFrames</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">df_jac</span> <span class="o">=</span> <span class="n">fn_res</span><span class="o">.</span><span class="n">to_frame</span><span class="p">(</span><span class="n">which</span><span class="o">=</span><span class="s2">"jacobian"</span><span class="p">)</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">df_f</span>   <span class="o">=</span> <span class="n">fn_res</span><span class="o">.</span><span class="n">to_frame</span><span class="p">(</span><span class="n">which</span><span class="o">=</span><span class="s2">"fake_news"</span><span class="p">)</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="c1"># 1-line publication visualization: heatmaps of F and J</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="n">fn_res</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="c1"># Export table to LaTeX or Typst</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="nb">print</span><span class="p">(</span><span class="n">fn_res</span><span class="o">.</span><span class="n">to_latex</span><span class="p">())</span>
+</code></pre></div>
+<hr />
+<h2 id="2-targeted-fiscal-transfers-simulate_targeted_transfer">2. Targeted Fiscal Transfers (<code>simulate_targeted_transfer</code>)</h2>
+<p>Heterogeneous-agent models allow realistic macro-policy simulations that representative-agent models cannot evaluate, such as the macroeconomic stimulus effects of targeted stimulus checks across income and wealth deciles.</p>
+<p><code>puremacro.models.simulate_targeted_transfer</code> simulates the aggregate and distributional consequences of an emergency fiscal transfer:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">simulate_targeted_transfer</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># Stimulus targeted to bottom 30% wealth constrained households</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">transfer_res</span> <span class="o">=</span> <span class="n">simulate_targeted_transfer</span><span class="p">(</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">ss_model</span><span class="o">=</span><span class="n">ss_res</span><span class="p">,</span>          <span class="c1"># solved steady state (distribution, policies, grid)</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">target</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>         <span class="c1"># wealth deciles 1-3 (poorest 30%)</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">amount</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>               <span class="c1"># total outlay, in units of mean quarterly labour income</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="n">T</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="p">)</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="nb">print</span><span class="p">(</span><span class="n">transfer_res</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"Aggregate impact MPC:"</span><span class="p">,</span> <span class="n">transfer_res</span><span class="o">.</span><span class="n">impact_mpc</span><span class="p">)</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"Cumulative fiscal multiplier:"</span><span class="p">,</span> <span class="n">transfer_res</span><span class="o">.</span><span class="n">cumulative_multiplier</span><span class="p">)</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="c1"># Dual-panel publication visualization: consumption IRF and wealth-decile incidence</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="n">transfer_res</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+</code></pre></div>
+<hr />
+<h2 id="3-parametric-sequence-space-solver-solve_hank_sequence_space">3. Parametric Sequence-Space Solver (<code>solve_hank_sequence_space</code>)</h2>
+<p>In addition to the exact Fake News engine, <code>solve_hank_sequence_space</code> provides an ultra-fast closed-form general equilibrium solver that ties steady-state EGM policy to analytical intertemporal Jacobians:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>decay = 1 - agg_mpc
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>t &gt;= s:   J_C_Y[t, s] = agg_mpc * decay**(t - s)
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>          J_C_r[t, s] = -(1/gamma) * beta**(t - s + 1) * 0.8**(t - s)
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>t &lt;  s:   J_C_Y[t, s] = agg_mpc * 0.5**(s - t)
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>          J_C_r[t, s] = -(1/gamma) * 0.5**(s - t)
+</code></pre></div>
+<p>The <code>0.8</code> and the <code>0.5</code> are constants in the source, not model objects. So:</p>
+<ul>
+<li>Every argument that touches the household problem — <code>n_a</code>, <code>a_max</code>, <code>r_ss</code>,
+  and the hardcoded income process — reaches the impulse responses <strong>only
+  through <code>agg_mpc</code></strong>. Raising <code>n_a</code> from 30 to 400 moves the MPC from 0.1040 to
+  0.1026 and the peak output response from −0.00255 to −0.00254.</li>
+<li>Two calibrations with the same aggregate MPC and different wealth
+  distributions return identical IRFs.</li>
+<li><code>mpc_distribution</code>, the decile profile, enters no equilibrium object. It is
+  reported, not used.</li>
+</ul>
+<p>The equilibrium block above the Jacobians is a genuine sequence-space solve, and
+the household block is a genuine Aiyagari-Bewley-Huggett solve. What is
+approximated is the bridge between them. Treat the IRFs as a calibrated
+two-parameter (<code>agg_mpc</code>, <code>gamma</code>) intertemporal-MPC model, and the wealth
+distribution and decile MPCs as the real heterogeneous-agent output.</p>
+<h2 id="solve_hank_sequence_space-arguments"><code>solve_hank_sequence_space</code> — arguments</h2>
+<p>Keyword-only, all of them.</p>
+<table>
+<thead>
+<tr>
+<th>argument</th>
+<th>default</th>
+<th>what it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>T</code></td>
+<td><code>40</code></td>
+<td>truncation horizon: length of every IRF, side of every Jacobian</td>
+</tr>
+<tr>
+<td><code>beta</code></td>
+<td><code>0.985</code></td>
+<td>household discount factor <strong>and</strong> the NKPC discount factor — one knob for both</td>
+</tr>
+<tr>
+<td><code>gamma</code></td>
+<td><code>1.0</code></td>
+<td>CRRA. Enters <code>J_C_r</code> as <code>1/gamma</code>, so it is the intertemporal-substitution elasticity</td>
+</tr>
+<tr>
+<td><code>r_ss</code></td>
+<td><code>0.01</code></td>
+<td>steady-state quarterly real rate. An input, not an equilibrium outcome</td>
+</tr>
+<tr>
+<td><code>phi_pi</code></td>
+<td><code>1.5</code></td>
+<td>Taylor-rule inflation coefficient</td>
+</tr>
+<tr>
+<td><code>kappa</code></td>
+<td><code>0.1</code></td>
+<td>NK Phillips curve slope</td>
+</tr>
+<tr>
+<td><code>shock_magnitude</code></td>
+<td><code>0.0025</code></td>
+<td>monetary shock at <code>t=0</code>. Positive = contraction</td>
+</tr>
+<tr>
+<td><code>shock_rho</code></td>
+<td><code>0.7</code></td>
+<td>AR(1) persistence of the shock, <code>eps_t = shock * rho**t</code></td>
+</tr>
+<tr>
+<td><code>n_a</code></td>
+<td><code>50</code></td>
+<td>asset grid points</td>
+</tr>
+<tr>
+<td><code>a_max</code></td>
+<td><code>30.0</code></td>
+<td>top of the asset grid</td>
+</tr>
+</tbody>
+</table>
+<p>What is <strong>not</strong> an argument, because it is fixed in the source: the income
+process (two states, <code>[0.5, 1.5]</code>, symmetric transition with 0.9 persistence),
+the steady-state wage (<code>w_ss = 1.0</code>), the borrowing limit (<code>a' &gt;= 0</code>), and every
+tolerance and iteration cap.</p>
+<p>There is no asset-market clearing condition. <code>r_ss</code> is imposed and the implied
+aggregate saving is whatever it is — at the defaults, mean assets of 7.02
+against mean labour income of 1.0. If you need a bond-supply-consistent <code>r</code>, you
+have to search over <code>r_ss</code> yourself.</p>
+<h2 id="the-ge-block">The GE block</h2>
+<p>Three equations, assembled as matrices and solved once.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>NKPC        pi = K_pi @ dY,            K_pi[t, s] = kappa * beta**(s - t) for s &gt;= t
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>Taylor      i_t = phi_pi * pi_t + eps_t,   r_t = i_t - pi_{t+1}
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>            M_r_Y = phi_pi * K_pi - shift(K_pi)
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>clearing    dY = dC = J_C_Y @ dY + J_C_r @ (M_r_Y @ dY + eps)
+</code></pre></div>
+<p>which rearranges to <code>(I - J_C_Y - J_C_r @ M_r_Y) dY = J_C_r @ eps</code> and goes
+straight into <code>np.linalg.solve</code>. Goods market clearing is <code>Y = C</code> with no
+investment, no government and no labour block, which means <strong><code>irf_consumption</code>
+is a bit-identical copy of <code>irf_output</code></strong>. Comparing them is not a check on
+anything.</p>
+<h2 id="what-comes-back">What comes back</h2>
+<p><code>SequenceSpaceHANKResult</code>, a frozen dataclass.</p>
+<table>
+<thead>
+<tr>
+<th>field</th>
+<th>shape</th>
+<th>what it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>irf_output</code></td>
+<td><code>(T,)</code></td>
+<td>GE output response <code>dY</code></td>
+</tr>
+<tr>
+<td><code>irf_consumption</code></td>
+<td><code>(T,)</code></td>
+<td>identical to <code>irf_output</code> (see above)</td>
+</tr>
+<tr>
+<td><code>irf_inflation</code></td>
+<td><code>(T,)</code></td>
+<td><code>K_pi @ dY</code></td>
+</tr>
+<tr>
+<td><code>irf_rate</code></td>
+<td><code>(T,)</code></td>
+<td>real rate <code>M_r_Y @ dY + eps</code></td>
+</tr>
+<tr>
+<td><code>jacobian_c_r</code></td>
+<td><code>(T, T)</code></td>
+<td>consumption Jacobian w.r.t. the real rate</td>
+</tr>
+<tr>
+<td><code>jacobian_c_y</code></td>
+<td><code>(T, T)</code></td>
+<td>consumption Jacobian w.r.t. aggregate income</td>
+</tr>
+<tr>
+<td><code>steady_state_mpc</code></td>
+<td>scalar</td>
+<td>aggregate quarterly MPC, <code>sum(mpc_grid * D)</code></td>
+</tr>
+<tr>
+<td><code>mpc_distribution</code></td>
+<td><code>pd.Series</code>, 10 rows</td>
+<td>average MPC by wealth decile, indexed <code>"Decile 1"</code>…<code>"Decile 10"</code></td>
+</tr>
+<tr>
+<td><code>asset_grid</code></td>
+<td><code>(n_a,)</code></td>
+<td>the geometric asset grid, <code>0</code> to <code>a_max</code></td>
+</tr>
+<tr>
+<td><code>steady_state_wealth_dist</code></td>
+<td><code>(n_a,)</code></td>
+<td>stationary marginal distribution over assets, sums to 1</td>
+</tr>
+</tbody>
+</table>
+<p><code>res.summary()</code> prints the horizon, the aggregate MPC, the peak output and
+inflation responses, and the ten deciles.</p>
+<p>At the shipped defaults: aggregate MPC 0.1026, bottom-decile MPC 0.672,
+top-decile 0.020, peak output response −0.00254 at <code>t=1</code>. (Read the <code>n_a</code>
+section before quoting the deciles — at <code>n_a=50</code> one of them is not real.)</p>
+<h2 id="numerical-knobs-and-what-a-too-small-one-does">Numerical knobs, and what a too-small one does</h2>
+<h3 id="t-the-truncation-horizon"><code>T</code> — the truncation horizon</h3>
+<p>The solve assumes the economy is back at the steady state at <code>T</code>, so <code>T</code> has to
+outlast the shock. Measured against a <code>T=400</code> reference at the default
+<code>shock_rho=0.7</code>:</p>
+<table>
+<thead>
+<tr>
+<th><code>T</code></th>
+<th>impact-response error</th>
+<th>size of the last IRF entry, <code>abs(dY[T-1])</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>8</td>
+<td>5.97%</td>
+<td>1.7e−3 (72% of that solve's own impact response)</td>
+</tr>
+<tr>
+<td>12</td>
+<td>1.22%</td>
+<td>8.0e−4</td>
+</tr>
+<tr>
+<td>20</td>
+<td>0.07%</td>
+<td>2.5e−4</td>
+</tr>
+<tr>
+<td>40 <em>(default)</em></td>
+<td>0.00%</td>
+<td>3.7e−5</td>
+</tr>
+<tr>
+<td>100</td>
+<td>0.00%</td>
+<td>1.7e−7</td>
+</tr>
+</tbody>
+</table>
+<p><code>abs(res.irf_output[-1])</code> is the diagnostic to check: if the last entry of the
+IRF is not small relative to the impact response, <code>T</code> is too short and the
+boundary condition is being imposed on a live path. Persistence moves the requirement —
+at <code>shock_rho=0.95</code>, <code>T=20</code> is off by 3.5% and <code>T=40</code> by 0.015%.</p>
+<p>A second, subtler bound comes from the Jacobian itself. Column <code>s</code> of <code>J_C_Y</code>
+sums to <code>1 + agg_mpc</code> ≈ 1.10 in the interior but falls to 0.205 — twice
+<code>agg_mpc</code> — in the last column: the income response is cut off before it has
+played out. The shortfall is <code>(1 - agg_mpc)**(T - s)</code>, a function of <code>T - s</code>
+alone, so <strong>the truncated band is the same width whatever <code>T</code> is</strong> — at the
+default MPC of 0.102 column <code>T-20</code> is still 10% short, and the trailing sums at
+<code>T=40</code> and at <code>T=100</code> are identical to machine precision. <code>T</code> has to leave a
+usable interior beyond that band:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">res</span> <span class="o">=</span> <span class="n">solve_hank_sequence_space</span><span class="p">()</span>          <span class="c1"># shipped defaults, T=40</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">col_sums</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">jacobian_c_y</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">col_sums</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span>    <span class="c1"># 0.987 1.037 1.061 1.072 1.076 — climbing toward 1.1026</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">col_sums</span><span class="p">[</span><span class="o">-</span><span class="mi">5</span><span class="p">:]</span>   <span class="c1"># 0.521 0.454 0.380 0.297 0.205 — truncated</span>
+</code></pre></div>
+<h3 id="n_a-asset-grid-points"><code>n_a</code> — asset grid points</h3>
+<p>The aggregate MPC is stable in <code>n_a</code> (0.115 at 10, 0.103 at 50, 0.102 at 100,
+0.103 at 400).
+The <strong>decile profile is not</strong>, and the failure is silent. <code>mpc_distribution</code> bins
+by cumulative mass with <code>np.searchsorted</code>; when two decile boundaries land on the
+same grid index, the bucket has zero mass and the code falls back to writing the
+<em>aggregate</em> MPC into that decile:</p>
+<table>
+<thead>
+<tr>
+<th><code>n_a</code></th>
+<th>deciles reading the aggregate MPC instead of their own</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>10</td>
+<td>6 of 10</td>
+</tr>
+<tr>
+<td>20</td>
+<td>3</td>
+</tr>
+<tr>
+<td>30</td>
+<td>2</td>
+</tr>
+<tr>
+<td>50 <em>(default)</em></td>
+<td>1 — decile 6 reads 0.1026, the aggregate</td>
+</tr>
+<tr>
+<td>100</td>
+<td>0</td>
+</tr>
+<tr>
+<td>200, 400</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>At the default <code>n_a=50</code>, one of the ten deciles you plot is not a decile MPC.</strong>
+Use <code>n_a &gt;= 100</code> whenever the decile profile is the output you care about; it
+costs 0.21 s instead of 0.12 s.</p>
+<h3 id="a_max-the-top-of-the-grid"><code>a_max</code> — the top of the grid</h3>
+<p>Assets are censored at <code>a_max</code>, and the censored mass piles on the last node:</p>
+<table>
+<thead>
+<tr>
+<th><code>a_max</code></th>
+<th>mass on the top grid point</th>
+<th>mean assets</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>5</td>
+<td>0.398</td>
+<td>3.18</td>
+</tr>
+<tr>
+<td>10</td>
+<td>0.231</td>
+<td>5.25</td>
+</tr>
+<tr>
+<td>30 <em>(default)</em></td>
+<td>0.0091</td>
+<td>7.02</td>
+</tr>
+<tr>
+<td>100</td>
+<td>0.0000</td>
+<td>7.16</td>
+</tr>
+</tbody>
+</table>
+<p>Check <code>res.steady_state_wealth_dist[-1]</code> after any change to <code>beta</code> or <code>r_ss</code>.
+The default already carries 0.9% of households censored at the top; anything
+appreciably above that means the grid is binding and the right tail of the
+wealth distribution is an artefact of where you cut it.</p>
+<h3 id="beta-the-admissibility-bound-nothing-enforces"><code>beta</code> — the admissibility bound nothing enforces</h3>
+<p>A stationary Aiyagari distribution needs <code>beta * (1 + r_ss) &lt; 1</code>. At the default
+<code>r_ss = 0.01</code> that is <code>beta &lt; 1/1.01 = 0.990099</code>. The solver does not check it:</p>
+<table>
+<thead>
+<tr>
+<th><code>beta</code></th>
+<th><code>beta(1+r)</code></th>
+<th>aggregate MPC</th>
+<th>mass at <code>a_max</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.985 <em>(default)</em></td>
+<td>0.994850</td>
+<td>0.1026</td>
+<td>0.009</td>
+</tr>
+<tr>
+<td>0.99</td>
+<td>0.999900</td>
+<td>0.0069</td>
+<td>0.561</td>
+</tr>
+<tr>
+<td>0.9901</td>
+<td>1.000001</td>
+<td>0.0053</td>
+<td>0.604</td>
+</tr>
+<tr>
+<td>0.995</td>
+<td>1.004950</td>
+<td>0.0000</td>
+<td><strong>1.000</strong></td>
+</tr>
+</tbody>
+</table>
+<p>At <code>beta=0.995</code> every household sits on the top grid point and the MPC is
+exactly zero, and the function returns without complaint. The IRFs barely move
+(impact −0.00210 against −0.00222) because, per the section above, the household
+block reaches them only through that one scalar — so a degenerate wealth
+distribution does not announce itself in the output either.</p>
+<h3 id="the-tolerances-you-cannot-reach">The tolerances you cannot reach</h3>
+<p>Both inner loops are hardcoded and neither reports failure:</p>
+<table>
+<thead>
+<tr>
+<th>loop</th>
+<th>tolerance</th>
+<th>cap</th>
+<th>behaviour at the defaults</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EGM policy iteration</td>
+<td><code>1e-6</code> sup-norm on <code>c</code></td>
+<td>300</td>
+<td><strong>exits on the cap, not the tolerance</strong> — the residual is still 9.7e−6 at iteration 299</td>
+</tr>
+<tr>
+<td>stationary distribution</td>
+<td><code>1e-8</code> sup-norm on <code>D</code></td>
+<td>500</td>
+<td>converges at iteration 467</td>
+</tr>
+</tbody>
+</table>
+<p>At the shipped calibration neither matters much (raising the caps tenfold moves
+the aggregate MPC from 0.102609 to 0.102619). At <code>beta=0.99</code> <strong>both</strong> loops
+exhaust their caps. There is no <code>converged</code> flag on the result to check, so if
+you move <code>beta</code> or <code>r_ss</code> far from the defaults, verify the wealth distribution
+by eye rather than trusting the return.</p>
+<hr />
+<h1 id="the-nested-heterogeneous-firm-dmp">The nested heterogeneous-firm DMP</h1>
+<p><code>puremacro.models.nested_dmp</code> is a different animal: a search-and-matching model
+with a productivity distribution over firms, a non-convex hiring cost, and firms
+that are <strong>Bayesian about the central bank's reaction function</strong>. The question it
+is built to answer is why an uncertainty shock raises unemployment in one
+monetary regime and lowers it in another.</p>
+<p>The mechanism is one line of <code>kernels.expected_discount</code>. Firms do not know
+whether the Fed is a dove (<code>phi_D &lt; 0</code>, cuts into uncertainty) or a hawk
+(<code>phi_H &gt; 0</code>, hikes). They discount at the belief-weighted rate</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>E[beta | pi, sigma] = pi/(1 + r_D) + (1 - pi)/(1 + r_H),
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    r_tau = r_star + (phi_tau - phi_sigma) * sigma
+</code></pre></div>
+<p>whose slope in uncertainty <code>sigma</code> flips sign at
+<code>pi* = phi_H / (phi_H - phi_D)</code> — <strong>0.319 at the default calibration</strong>. Above
+<code>pi*</code> more uncertainty makes firms more patient and job creation expands; below
+it, the reverse. At <code>sigma = 0</code> the two type-rates coincide, so beliefs are
+inert and every <code>pi</code> gives the same equilibrium. That is the whole model in a
+comparative static:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.models.nested_dmp</span><span class="w"> </span><span class="kn">import</span> <span class="n">comparative_statics</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.models.nested_dmp.estimation</span><span class="w"> </span><span class="kn">import</span> <span class="n">default_baseline</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">p</span>  <span class="o">=</span> <span class="n">default_baseline</span><span class="p">()</span>          <span class="c1"># see "Setting up a steady state" below</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="n">cs</span> <span class="o">=</span> <span class="n">comparative_statics</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">pi_grid</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">,</span> <span class="mi">7</span><span class="p">),</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>                         <span class="n">sigma_grid</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">]))</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="n">cs</span><span class="o">.</span><span class="n">pi_star</span>          <span class="c1"># 0.319</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="n">cs</span><span class="o">.</span><span class="n">theta</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>      <span class="c1"># sigma=0: flat at 3.5666 for every pi</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="n">cs</span><span class="o">.</span><span class="n">theta</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span>      <span class="c1"># sigma=0.5: 3.461 ... 3.867, crossing 3.5666 near pi*</span>
+</code></pre></div>
+<p>Because free entry means the cross-sectional distribution never feeds back into
+prices, the aggregate state is just the two-dimensional <code>(sigma, pi)</code>. There is
+no Krusell-Smith problem here, and the transition path is exact rather than
+approximated.</p>
+<h2 id="setting-up-a-steady-state">Setting up a steady state</h2>
+<p>The default <code>NestedDMPParameters</code> are a <em>theory</em> calibration, not a
+data-matched one, and they do not produce usable dynamics: at the defaults the
+job-finding rate is <code>f(theta_ss) = 2.07</code> — above 100% — which makes the forward
+unemployment law of motion divergent rather than a contraction. <code>simulate_irf</code>
+refuses to run on it:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>ValueError: f(theta_ss)=2.074 &gt;= 1: the forward unemployment law of motion
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>is unstable. Normalize mu via calibrate_mu for stable IRF dynamics.
+</code></pre></div>
+<p>Three normalizers are shipped. <code>calibrate_mu</code> pins <code>theta_ss = 1</code> (a stable
+anchor, but <code>f</code> lands at 0.035). <code>calibrate_mu_to_f(p, f_target=0.5)</code> pins the
+job-finding rate instead. <code>estimation.baseline_calibration</code> is the one to use:
+it wraps <code>calibrate_mu_to_f</code> in an outer root-find and solves jointly for
+<code>(mu, s_bar)</code> hitting a steady-state unemployment rate (<code>u_target=0.058</code>) and a
+job-finding rate (<code>f_target=0.7</code>), because the two are coupled — changing
+<code>s_bar</code> moves <code>theta_ss</code> and hence <code>f</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.models.nested_dmp</span><span class="w"> </span><span class="kn">import</span> <span class="n">solve_steady_state</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.models.nested_dmp.estimation</span><span class="w"> </span><span class="kn">import</span> <span class="n">default_baseline</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="n">p</span>  <span class="o">=</span> <span class="n">default_baseline</span><span class="p">()</span>          <span class="c1"># targets u = 0.058, f = 0.70; takes ~60 s</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>                                 <span class="c1"># mu -&gt; 0.3672, s_bar -&gt; 0.01412</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="n">ss</span> <span class="o">=</span> <span class="n">solve_steady_state</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="n">ss</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">ss</span><span class="o">.</span><span class="n">urate</span><span class="p">,</span> <span class="n">ss</span><span class="o">.</span><span class="n">beta_bar</span><span class="p">,</span> <span class="n">ss</span><span class="o">.</span><span class="n">free_entry_residual</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="c1"># 3.567, 0.0499, 0.9901, -1.7e-14</span>
+</code></pre></div>
+<p><code>default_baseline</code> and <code>baseline_calibration</code> live in <code>estimation.__all__</code> but
+are <strong>not</strong> re-exported by <code>puremacro.models.nested_dmp</code>, so they need the full
+module path.</p>
+<p><code>SteadyState</code> carries the state it was solved at (<code>sigma</code>, <code>pi</code>), the tightness
+<code>theta</code>, the belief-weighted discount <code>beta_bar</code>, the separation threshold
+<code>x_sep</code> and posting threshold <code>x_post</code>, levels <code>u</code>/<code>n</code>/<code>v</code>/<code>N</code> (with <code>.E</code> and
+<code>.U</code> as aliases of <code>n</code> and <code>u</code>), rates <code>urate</code>/<code>jf_rate</code>/<code>jd_rate</code>/<code>s_eff</code>,
+<code>lfpr</code>, <code>output</code>, the worker values <code>W_U</code>/<code>W_E</code>, and the arrays <code>grid</code>, <code>J</code>,
+<code>phi</code>. Note that <code>u</code> and <code>n</code> are <strong>levels</strong> — scaled by <code>lfpr</code> — while <code>urate</code>
+is the rate within the labour force; with <code>h_max=0</code> (the default) <code>lfpr</code> is 1
+and the two coincide. <code>free_entry_residual</code> is recomputed at the solution and
+should be ~1e−14; <code>converged</code> is set unconditionally to <code>True</code>, so it is not a
+check.</p>
+<h3 id="two-steady-states-that-do-not-agree">Two steady states that do not agree</h3>
+<p><code>equilibrium.solve_steady_state</code> discretizes the productivity process with
+<strong>Rouwenhorst</strong>; the dynamics, estimation and welfare code all run on a <strong>fixed
+Rouwenhorst grid with Tauchen transitions</strong> (<code>dynamics._fixed_grid</code> plus
+<code>_P_sigma</code>). The two do not give the same answer:</p>
+<table>
+<thead>
+<tr>
+<th>route</th>
+<th><code>theta</code></th>
+<th><code>u</code></th>
+<th><code>f</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dynamics._grid_steady_state</code> (what everything dynamic uses)</td>
+<td>3.634</td>
+<td>0.0586</td>
+<td>0.700</td>
+</tr>
+<tr>
+<td><code>equilibrium.solve_steady_state</code></td>
+<td>3.567</td>
+<td>0.0499</td>
+<td>0.694</td>
+</tr>
+</tbody>
+</table>
+<p><code>default_baseline</code> calibrates against the <em>first</em> row, and lands at 0.0586
+rather than exactly 0.058: the posting threshold <code>x_post</code> is read off the
+productivity grid, so <code>u</code> steps discontinuously in <code>s_bar</code> and the outer
+root-find brackets a jump rather than a crossing. Quoting
+<code>solve_steady_state(...).urate</code> as the calibrated unemployment rate is off by
+0.9pp. The design reason for the split is real — dynamics needs a grid that
+stays put while the innovation sd varies over a transition, which Rouwenhorst
+cannot give — but the two routes are not interchangeable.</p>
+<h2 id="taking-a-transition-path">Taking a transition path</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.models.nested_dmp</span><span class="w"> </span><span class="kn">import</span> <span class="n">simulate_irf</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">dove</span> <span class="o">=</span> <span class="n">simulate_irf</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">sigma0</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">fed_type</span><span class="o">=</span><span class="s2">"dove"</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">hawk</span> <span class="o">=</span> <span class="n">simulate_irf</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">sigma0</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">fed_type</span><span class="o">=</span><span class="s2">"hawk"</span><span class="p">,</span> <span class="n">horizon</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="n">dove</span><span class="o">.</span><span class="n">log_urate</span>   <span class="c1"># -0.036 -0.068 -0.083 -0.090 -0.093 -0.094 -0.096 -0.097 -0.098</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="n">hawk</span><span class="o">.</span><span class="n">log_urate</span>   <span class="c1"># +0.012 +0.011 +0.009 +0.006 +0.004 +0.003 +0.002 +0.002 +0.001</span>
+</code></pre></div>
+<p>That is the sign flip, and it takes 0.53 s for the pair.</p>
+<p>The mechanics: <code>sigma_t = sigma0 * rho_sigma**t</code>, zero at <code>T_simul</code>; beliefs
+follow <code>belief_path</code> from a regime-specific prior (<code>pi_loose=0.9</code>,
+<code>pi_hawk=0.1</code>, chosen to straddle <code>pi*</code>); <code>theta</code> and <code>J</code> come from a backward
+sweep with the terminal condition at the fixed-grid steady state; <code>u</code> and <code>phi</code>
+come from a forward simulation with <code>u</code> <strong>predetermined</strong>.</p>
+<p>Three alignment facts that will otherwise cost you an afternoon:</p>
+<ul>
+<li><strong>The <code>t=0</code> unemployment response is mechanically zero</strong>, because <code>u</code> is a
+  state. <code>IRFResult</code> therefore returns model periods <code>1 .. horizon+1</code> against
+  empirical horizons <code>0 .. horizon</code> — the standard <code>+1</code> DMP-vs-LP shift, applied
+  inside the function.</li>
+<li><strong>The base is a flat simulation at the <code>sigma=0</code> steady state</strong>, not the same
+  path with <code>sigma0=0</code>. With slow job finding <code>u</code> may not have returned by
+  <code>T_simul</code>, and differencing against a decaying base would put that residual in
+  the IRF.</li>
+<li><code>T_simul</code> (default 60) <strong>must exceed <code>horizon + 1</code></strong> or the call raises. It is
+  also where the terminal condition is imposed, so it plays the role <code>T</code> plays
+  in the HANK block: short <code>T_simul</code> pushes the steady-state boundary into a
+  live path.</li>
+</ul>
+<p><code>IRFResult</code> carries <code>fed_type</code>, <code>horizons</code>, and the log-deviation paths
+<code>log_urate</code>, <code>log_v</code>, <code>log_theta</code>, <code>log_lfpr</code>.</p>
+<h3 id="n_x-where-the-firm-grid-bites"><code>n_x</code> — where the firm grid bites</h3>
+<p><code>n_x</code> (default 25) is the productivity grid. The separation threshold <code>x_sep</code> is
+read off as the lowest grid point with <code>J &gt; 0</code>, so it can only move in grid
+steps, and the unemployment rate inherits that jitter:</p>
+<table>
+<thead>
+<tr>
+<th><code>n_x</code></th>
+<th><code>theta</code></th>
+<th><code>urate</code></th>
+<th><code>x_sep</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>5</td>
+<td>3.595</td>
+<td>0.0493</td>
+<td>0.000</td>
+</tr>
+<tr>
+<td>15</td>
+<td>3.590</td>
+<td>0.0665</td>
+<td>0.000</td>
+</tr>
+<tr>
+<td>25 <em>(default)</em></td>
+<td>3.567</td>
+<td>0.0499</td>
+<td>−0.131</td>
+</tr>
+<tr>
+<td>51</td>
+<td>3.581</td>
+<td>0.0650</td>
+<td>−0.091</td>
+</tr>
+<tr>
+<td>101</td>
+<td>3.576</td>
+<td>0.0591</td>
+<td>−0.128</td>
+</tr>
+<tr>
+<td>201</td>
+<td>3.576</td>
+<td>0.0608</td>
+<td>−0.136</td>
+</tr>
+</tbody>
+</table>
+<p><code>theta</code> is settled to within 1% by <code>n_x = 5</code>. The <strong>unemployment rate is not</strong> —
+the default <code>n_x = 25</code> reads 0.0499 against 0.0608 at <code>n_x = 201</code>, a 1.1pp
+(20% relative) gap that does not shrink monotonically. Any calibration target
+expressed in <code>u</code> is a target conditional on <code>n_x</code>. <code>n_x = 201</code> costs 0.11 s per
+steady state against 0.02 s, so there is no reason not to check.</p>
+<h2 id="estimation">Estimation</h2>
+<p><code>estimation</code> matches the model IRFs to state-dependent local projections in
+<strong>normalized-shape space</strong> — each curve divided by its own peak — with the
+magnitude gap reported rather than targeted, on the stated grounds that the lean
+free-entry model reproduces the sign flip but under-responds in level.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.models.nested_dmp.estimation</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    <span class="n">load_empirical_irf_targets</span><span class="p">,</span> <span class="n">fit_report</span><span class="p">,</span> <span class="n">estimate_shape_match</span><span class="p">,</span> <span class="n">ablate_beliefs</span><span class="p">,</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="p">)</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="n">targets</span> <span class="o">=</span> <span class="n">load_empirical_irf_targets</span><span class="p">(</span><span class="s2">"tests/fixtures/companion"</span><span class="p">)</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="n">rep</span> <span class="o">=</span> <span class="n">fit_report</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="n">rep</span><span class="o">.</span><span class="n">sign_match</span>        <span class="c1"># {"urate": bool, "v": ..., "theta": ...}</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="n">rep</span><span class="o">.</span><span class="n">shape_distance</span>    <span class="c1"># inverse-LP-variance-weighted SSE on peak-normalized curves</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="n">rep</span><span class="o">.</span><span class="n">magnitude_ratio</span>   <span class="c1"># |empirical peak| / |model peak|, per regime and outcome</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="n">rep</span><span class="o">.</span><span class="n">within_band</span>       <span class="c1"># fraction of horizons inside the empirical 90% band</span>
+</code></pre></div>
+<p><code>estimate_shape_match</code> minimizes <code>shape_distance</code> over <code>("signal_sd",
+"rho_sigma")</code> by bounded Nelder-Mead, clamping each draw into its admissible
+region and charging <code>1e12</code> for a non-converging one. <code>ablate_beliefs</code> is the
+identification check: run both regimes at one common belief (<code>pi_common=0.5</code>)
+and the sign flip disappears, because it was the two regimes sitting on opposite
+sides of <code>pi*</code> that produced it.</p>
+<p><code>load_empirical_irf_targets</code> reads <code>urate_lp_targets.csv</code> and
+<code>vacancies_lp_targets.csv</code> from the directory you hand it, converts the
+unemployment-rate coefficients from percentage points to log deviations by
+dividing by <code>MEAN_URATE_PP = 5.8</code>, and derives <code>theta = log V - log U</code>. The only
+copies of the two CSVs in the repository are the ones under
+<code>tests/fixtures/companion/</code>, which is why the example points there.</p>
+<h2 id="welfare-and-the-policy-lever">Welfare and the policy lever</h2>
+<p><code>welfare</code> adds the piece the perfect-foresight IRF cannot give: a genuine
+stochastic steady state, so you can rank policies by long-run average welfare.
+<code>phi_sigma</code> is the lever — a systematic "lean against uncertainty" term that
+cuts <em>both</em> type-rates by <code>phi_sigma * sigma</code>, raising <code>E[beta]</code> uniformly while
+leaving the type gap, and therefore <code>pi*</code>, untouched.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.models.nested_dmp</span><span class="w"> </span><span class="kn">import</span> <span class="n">solve_recursive</span><span class="p">,</span> <span class="n">ergodic_welfare</span><span class="p">,</span> <span class="n">optimal_phi_sigma</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="n">sol</span> <span class="o">=</span> <span class="n">solve_recursive</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">n_sigma</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span> <span class="n">n_pi</span><span class="o">=</span><span class="mi">21</span><span class="p">)</span>      <span class="c1"># 0.8 s</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="n">w</span>   <span class="o">=</span> <span class="n">ergodic_welfare</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">sol</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span> <span class="n">burn</span><span class="o">=</span><span class="mi">1_000</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="n">rep</span> <span class="o">=</span> <span class="n">optimal_phi_sigma</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">grid</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.005</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">]))</span>
+</code></pre></div>
+<p><code>solve_recursive</code> returns <code>RecursiveSolution</code> with <code>theta</code> of shape
+<code>(n_pi, n_sigma_kept)</code>, <code>J</code> of shape <code>(n_x, n_pi, n_sigma_kept)</code> — <code>(21, 4)</code> and
+<code>(25, 21, 4)</code> at the call above, because the sigma grid is clipped before it is
+allocated (first bullet below) — and every transition object it built —
+<code>Psig</code>, <code>Ppi_dove</code>, <code>Ppi_hawk</code> — so the simulator does not rebuild them.
+<code>ergodic_welfare</code> returns <code>welfare</code> (average utilitarian flow:
+output plus home production minus vacancy cost), <code>mean_urate</code>, <code>mean_theta</code>,
+<code>std_urate</code>. <code>optimal_phi_sigma</code> returns <code>WelfareReport</code> with the full
+<code>welfare_curve</code>, <code>phi_sigma_star</code>, <code>welfare_star</code>, <code>welfare_zero</code> and <code>cev_pct</code>.</p>
+<p>Six things to know before reading a number off any of them:</p>
+<ul>
+<li><strong>The sigma grid gets clipped hard, and the docstring understates it.</strong> The
+  Bellman map contracts only where <code>beta_bar * (1-delta) * (1-s_bar) &lt; 1</code>, and a
+  dovish belief at high <code>sigma</code> pushes <code>beta_bar</code> above 1. <code>solve_recursive</code>
+  therefore drops every node above <code>sigma_safe</code>, which is <strong>0.768</strong> at the
+  default calibration. The unclipped Tauchen grid spans <code>[0, 2.10]</code>, so <strong>4 of
+  11 nodes survive at <code>n_sigma=11</code></strong> (2 of 5 at <code>n_sigma=5</code>, 8 of 21 at
+  <code>n_sigma=21</code>). The source comment says this "clips off the top ~15-20%"; it
+  clips off 64% of the nodes. Raising <code>n_sigma</code> buys resolution inside
+  <code>[0, 0.768]</code>, not more coverage of the tail — the ceiling is <code>sigma_safe</code>
+  whatever <code>n_sigma</code> is.</li>
+<li>The clip bound is computed at <code>phi_sigma = 0</code> on purpose, so every point of a
+  <code>phi_sigma</code> sweep sits on the same grid and <code>(jp, js)</code> indices are comparable
+  across the sweep. <code>phi_sigma &gt; 0</code> raises <code>beta_bar</code>, and mild exceedances
+  (<code>disc</code> up to 1.05) are tolerated; past that it raises.</li>
+<li>The <code>sigma</code> transition is rebuilt by Tauchen on the <em>clipped</em> support, so all
+  the mass that would have gone above the top surviving node (0.63 at
+  <code>n_sigma=11</code>) lands on it instead. The simulated <code>sigma</code> process is not the
+  AR(1) you parameterized.</li>
+<li><code>ergodic_welfare</code> refuses to run when <code>f(theta_ss) &gt;= 1</code>, for the same reason
+  <code>simulate_irf</code> does — it will not mask an unstable law of motion by clipping
+  <code>phi</code> back into the simplex. Calibrate first.</li>
+<li><code>optimal_phi_sigma</code> re-solves and re-simulates at every grid point, uses the
+  <strong>same seed</strong> at each so the ranking reflects the lever rather than sampling
+  noise, requires <code>0.0</code> to be in the grid as the CEV reference, and records
+  infeasible points as <code>-inf</code> rather than aborting the sweep. Budget ~1.9 s per
+  point at <code>n_pi=25, T=2000</code>, ~6 s at the default <code>T=10_000</code>.</li>
+<li><code>cev_pct</code> is <code>100 * (welfare_star / welfare_zero - 1)</code> — a ratio of average
+  utilitarian <em>flows</em>, not a consumption-equivalent variation derived from a
+  utility function. On a 3-point sweep at the baseline it reads 0.004%.</li>
+</ul>
+<h2 id="the-parameter-object">The parameter object</h2>
+<p><code>NestedDMPParameters</code> is frozen and validates in <code>__post_init__</code>; every bound
+below raises rather than clipping. Seven layers:</p>
+<table>
+<thead>
+<tr>
+<th>layer</th>
+<th>parameters</th>
+<th>notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>matching / DMP core</td>
+<td><code>beta=0.99</code>, <code>alpha=0.5</code>, <code>mu=1.0</code>, <code>s_bar=0.03</code>, <code>b=0.4</code></td>
+<td>Hosios is the baseline: bargaining share = matching elasticity = <code>alpha</code></td>
+</tr>
+<tr>
+<td>heterogeneous firms</td>
+<td><code>rho_x=0.95</code>, <code>sigma_x=0.10</code>, <code>n_x=25</code>, <code>sigma_x_loading=0.0</code></td>
+<td><code>sigma_x_loading=0</code> turns the Bloom mean-preserving-spread channel <strong>off</strong>, so <code>sigma</code> reaches the model through beliefs alone; set <code>1.0</code> to restore it</td>
+</tr>
+<tr>
+<td>non-convex hiring</td>
+<td><code>f_fixed=0.05</code>, <code>c_convex=0.20</code></td>
+<td><code>f_fixed</code> is the entry hurdle that creates the posting threshold <code>x_post</code></td>
+</tr>
+<tr>
+<td>wage rigidity</td>
+<td><code>psi_down=0.0</code></td>
+<td>asymmetric downward rigidity; an appendix lever, not the baseline (see below)</td>
+</tr>
+<tr>
+<td>information / beliefs</td>
+<td><code>r_star=0.01</code>, <code>phi_D=-0.0320</code>, <code>phi_H=0.015</code>, <code>signal_sd=1.0</code>, <code>prior_pi0=0.5</code></td>
+<td><code>phi_D</code>/<code>phi_H</code> are <strong>decimal rate units</strong>, not percentage points: −320bp and +150bp</td>
+</tr>
+<tr>
+<td>policy lever + shock</td>
+<td><code>phi_sigma=0.0</code>, <code>rho_sigma=0.7</code>, <code>delta=0.0</code>, <code>h_max=0.0</code></td>
+<td><code>h_max=0</code> turns participation off and collapses to the two-state <code>{E, U}</code> core</td>
+</tr>
+<tr>
+<td>exogenous sigma process</td>
+<td><code>sigma_bar=0.0</code>, <code>sigma_innov_sd=0.5</code>, <code>p_regime=0.9</code></td>
+<td>the welfare backbone</td>
+</tr>
+</tbody>
+</table>
+<p>Two validations are worth calling out because they encode economics rather than
+type-checking. <code>phi_D &gt;= 0</code> and <code>phi_H &lt;= 0</code> both raise — the sign convention
+"dove cuts, hawk hikes" is enforced, not assumed. And the constructor checks
+that the perceived rate at the dovish extreme (<code>sigma = 2</code>) stays above <code>-1</code>, or
+<code>beta(r) = 1/(1+r)</code> crosses its pole.</p>
+<p><code>psi_down &gt; 0</code> is documented in the source as a robustness lever rather than a
+baseline: because separation is a hard threshold in <code>x</code>, a sticky wage that
+stays high as the dove expansion fades can dump a dense mass of firms across the
+threshold in one step and produce a spurious one-period unemployment spike.
+<code>default_baseline</code> keeps it at 0.</p>
+<h2 id="backends">Backends</h2>
+<p><code>nested_dmp.backend</code> is a shim onto <code>puremacro._backend</code>, whose <code>SUPPORTED</code>
+tiers are <code>("numpy", "numba", "mlx", "cupy")</code>. Three of them are array
+namespaces <code>get_array_namespace</code> can hand back; <code>"numba"</code> is not — it is
+compiled kernels, and asking for its namespace raises.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.models.nested_dmp</span><span class="w"> </span><span class="kn">import</span> <span class="n">available_backends</span><span class="p">,</span> <span class="n">backend_available</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="n">available_backends</span><span class="p">()</span>      <span class="c1"># ('numpy', 'numba') on a machine without MLX or CuPy</span>
+</code></pre></div>
+<p>Only the Bellman VFI has a compiled counterpart —
+<code>kernels_numba.bellman_iterate_numba</code> and a <code>prange</code> batch version — and it
+mirrors <code>kernels.bellman_iterate</code> exactly, validated against the NumPy oracle in
+the cross-backend tests. <code>rouwenhorst</code> and <code>tauchen_transition</code> are NumPy-only
+by design: one-time setup, in-place matrix assembly, never on a hot path.
+Importing the Numba kernels needs the optional <code>[backend]</code> extra.</p>
+<hr />
+<h1 id="the-representative-firm-dmp">The representative-firm DMP</h1>
+<p><code>dmp_regime_dependent</code> is the single-firm counterpart, and the model the SMM
+machinery in <code>models/smm.py</code> estimates. Cobb-Douglas matching, free entry, Hall
+(2005) sticky wages, and two regime channels: a precautionary vacancy-cost bump
+under a tight regime (<code>c_eff = c(1 + eta*sigma)</code> when <code>R = H</code>) and a TFP bump
+under a loose one (<code>y_eff = y_bar + kappa*sigma</code> when <code>R = L</code>).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">DMPParameters</span><span class="p">,</span> <span class="n">dmp_steady_state</span><span class="p">,</span> <span class="n">dmp_irf</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="n">p</span> <span class="o">=</span> <span class="n">DMPParameters</span><span class="p">(</span><span class="n">beta_bar</span><span class="o">=</span><span class="mf">0.996</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">eta_b</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mf">0.034</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mf">0.51</span><span class="p">,</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>                  <span class="n">y_bar</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">mu</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="mf">0.067</span><span class="p">,</span> <span class="n">kappa</span><span class="o">=</span><span class="mf">0.040</span><span class="p">,</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>                  <span class="n">rho_sigma</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">psi</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="n">ss</span> <span class="o">=</span> <span class="n">dmp_steady_state</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">regime</span><span class="o">=</span><span class="s2">"H"</span><span class="p">)</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="c1"># theta 0.841, u 0.069, v 0.058, J 0.921, w 0.965</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="n">dmp_irf</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">sigma_shock</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">regime</span><span class="o">=</span><span class="s2">"H"</span><span class="p">)</span><span class="o">.</span><span class="n">log_u</span>   <span class="c1"># +0.024 +0.027 +0.024 ...</span>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="n">dmp_irf</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">sigma_shock</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">regime</span><span class="o">=</span><span class="s2">"L"</span><span class="p">)</span><span class="o">.</span><span class="n">log_u</span>   <span class="c1"># -0.033 -0.029 -0.020 ...</span>
+</code></pre></div>
+<p>The regime effect is a sign flip in the unemployment response, arrived at by a
+different route from the nested model's: here it is two separate exogenous
+channels, there it is one belief that crosses a threshold.</p>
+<p>Solution is a damped fixed point on the wage path — backward sweep for <code>J</code> and
+<code>theta</code> given wages, forward sweep for <code>u</code> and the Nash wage, then
+<code>w_{k+1} = (1-lam) w_k + lam * w_tilde</code> with <code>fp_damping=0.3</code>. The damping is
+not cosmetic: the composed map has Jacobian modulus above 1 through the <code>c_eff</code>
+channel, and <code>lam = 1</code> oscillates. Damping changes the approach, never the fixed
+point.</p>
+<p>Two structural notes from the source worth carrying into any read of the output:</p>
+<ul>
+<li><strong>Even at <code>psi = 0</code> there is one period of wage rigidity</strong>, because <code>w_0</code> is
+  pinned at <code>w_ss</code> — the wage was set at <code>t = -1</code>, before the shock. That is the
+  explicit lagged-wage state of the Hall construction. An earlier brentq solver
+  without that boundary produced larger same-period <code>theta</code> responses; the
+  fixed-point solver is the structurally correct one.</li>
+<li><strong>The <code>+1</code> alignment is the same as the nested model's.</strong> <code>u</code> is
+  predetermined, so model <code>t = h + 1</code> maps to empirical horizon <code>h</code>, and
+  <code>T_simul</code> (default 60) must exceed <code>horizon + 1</code> or the call raises.</li>
+</ul>
+<p>The extra channels are all off by default and each is a single scalar:
+<code>phi_AD</code> (aggregate-demand feedback, fires under <code>L</code> only), <code>alpha_k</code> and
+<code>lambda_k</code> (capital), <code>alpha_N</code> and <code>lambda_N</code> (firm mass, fires under <code>H</code>
+only), <code>lambda_mu</code> (regime-asymmetric matching efficiency — the structural
+counterpart of the Beveridge-curve sign reversal), <code>phi_v</code> (quadratic
+vacancy-adjustment cost, which leaves the steady state invariant but gives the
+IRF a hump), <code>alpha_react</code> (lagged-<code>u</code> search friction) and <code>nu_lfpr</code>
+(participation, populating <code>DMPIRF.log_lfpr</code> only when non-zero).</p>
+<h2 id="smm">SMM</h2>
+<p><code>models/smm.py</code> builds the moment vector from the local-projection output
+tables and scores <code>dmp_regime_dependent</code> against it.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.models.smm</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>    <span class="n">load_empirical_moments</span><span class="p">,</span> <span class="n">theoretical_moments</span><span class="p">,</span> <span class="n">smm_objective</span><span class="p">,</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="p">)</span>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="n">emp</span> <span class="o">=</span> <span class="n">load_empirical_moments</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">"."</span><span class="p">))</span>     <span class="c1"># reads &lt;root&gt;/notebooks/output_tables/*.csv</span>
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="n">smm_objective</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">emp</span><span class="p">)</span>                       <span class="c1"># sum_i w_i (model_i - data_i)^2</span>
+</code></pre></div>
+<p><code>notebooks/output_tables/</code> is a generated directory and is not in the
+repository, so on a fresh checkout that loader returns 36 <code>NaN</code>s with 36 zero
+weights and the objective is <code>0.0</code>. That is by design — see the first bullet
+below — but it is not a fit.</p>
+<p><code>MomentVector</code> is two blocks: <strong>36 time-series moments</strong> (9 horizons x 2 regimes
+x <code>{log u, log v}</code>) and <strong>6 cross-section moments</strong> (3 horizons x 2 regimes,
+<code>Q4 − Q1</code> AIOE-quartile differences), each with inverse-variance weights.
+<code>load_empirical_moments_monthly</code> builds the same shape from
+<code>paper_monthly_lp.csv</code> at quarterly-spaced monthly horizons instead.</p>
+<p>Three behaviours to know:</p>
+<ul>
+<li><strong>Missing CSVs are not an error.</strong> The moments become <code>NaN</code> with <strong>zero
+  weight</strong>, so the objective ignores them and the loader runs before every
+  upstream LP has been built. When a fit looks suspiciously good, count the
+  non-zero entries of <code>weights_time_series</code> before reading the objective.</li>
+<li><strong>The cross-section maps months onto quarters</strong> — 6m to 2q, 12m to
+  4q, 18m to 6q — and generates the quartile spread by scaling the shock itself
+  by <code>aioe_quartile_scaling</code>, default <code>(-1.5, +1.5)</code> standard deviations. The
+  AIOE quartile is a shock size in the model, not a separate parameter.</li>
+<li><strong><code>smm_objective</code> swallows every exception and returns <code>1e10</code></strong> for a
+  parameter draw that violates DMP admissibility, so an optimizer walks away
+  from the boundary rather than crashing on it. A returned <code>1e10</code> means
+  infeasible, not merely a bad fit.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
