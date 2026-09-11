@@ -146,7 +146,8 @@ puremacro/
 │                            FRED-states, EPU / GPR / WUI / JLN /
 │                            Fernald, OECD-MEI / OECD-QNA / OECD-energy
 │                            / OECD-FX / OECD-QNA-labor, WB pink-sheet,
-│                            ILOSTAT, Yahoo, plus a STL/X-13 seasonal
+│                            emissions, energy_transition, commodities,
+│                            financial, ILOSTAT, Yahoo, plus a STL/X-13 seasonal
 │                            helper (_seasonal.py — statsmodels lazy).
 ├── build_panel.py         ← Orchestrates panel_Q + panel_M from fetch/*.
 │                            Public entry: build_all(countries, fast,
@@ -154,6 +155,12 @@ puremacro/
 ├── build_subnational_panel.py
 │                          ← US state/county panel (QCEW / LAUS / CES);
 │                            ships a build_all entrypoint of its own.
+├── climate_panel.py       ← High-level multi-country climate panel builder
+│                            merging emissions, energy balances, transition shares,
+│                            and macro aggregates (public: build_climate_panel).
+├── financial_panel.py     ← Macroprudential & international financial stability
+│                            panel builder (yields, credit gap, property prices,
+│                            financial conditions, commodities; build_financial_panel).
 ├── bartik/                ← Shift-share construction + sensitivity
 │                            (statsmodels lazy in sensitivity.py).
 ├── klems.py               ← EU-KLEMS 2023 loader (labor/capital, skills).
@@ -278,7 +285,7 @@ These are the load-bearing imports. If you change one of these arrows, double-ch
 | `bartik/*` | **Stable** | Shift-share construction + sensitivity. `sensitivity.py` lazy-imports statsmodels (Phase 0). |
 | `klems`, `bis_neer`, `long_panel`, `vintages`, `realized_vol`, `labor_share` | **Stable** | Single-file data utilities. |
 | `fetch/*` | **Best-effort** | Network-dependent. Each fetcher has an offline path / cache layer; live calls smoke-tested where reachable. `fetch/_seasonal.py` and `fetch/fred_states.py` lazy-import statsmodels / arch (Phase 0). |
-| `build_panel`, `build_subnational_panel` | **Stable** | Orchestrators on top of `fetch/*`; idempotent against the disk cache. `build_panel` lazy-imports arch for the GARCH-σ derivation. |
+| `build_panel`, `build_subnational_panel`, `climate_panel`, `financial_panel` | **Stable** | Orchestrators on top of `fetch/*`; idempotent against the disk cache. `build_panel` lazy-imports arch for the GARCH-σ derivation. `climate_panel` and `financial_panel` provide modular multi-country panels for decarbonization, energy transition, and macroprudential stability. |
 | `sa/{stl, x13}` | **Stable** | STL fallback when X-13 is unavailable. Both lazy-import statsmodels (Phase 0). |
 | `plotting/*` vs `plot.py` | **Stable / Stable** | Two co-existing presentation paths — see "Legitimate distinctions" below. |
 | `cache`, `_http`, `_codes`, `regime_dates`, `regimes`, `scale` | **Stable** | Cross-cutting utilities. |

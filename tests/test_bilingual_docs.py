@@ -48,6 +48,9 @@ _USER_DOCS = [
     "dsge_v3.md",
     "dsge_phase_c.md",
     "dsge_phase_d.md",
+    "data_ecosystem.md",
+    "notebooks.md",
+    "replication.md",
 ]
 
 

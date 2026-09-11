@@ -235,7 +235,8 @@ Los conectores bloqueados por WAF / protección anti-bot (EUR-Lex, Parlamento Eu
   ni un trimestre, y el motivo queda registrado en `LONG_PANEL_KNOWN_GAPS`.
   Véase `docs/long_panel.md`.
 - **Datos en tiempo real** (`fetch.vintage_panel`, `fetch.realtime.*`) — las *ediciones* publicadas de una serie, con seis proveedores tras una sola llamada: el archivo de revisiones OCDE-STES (42 economías, ediciones mensuales desde 1999), ALFRED, la base Gerda del Bundesbank, el libro de tiempo real del ONS (746 ediciones desde 1961), las tablas de vintages de Statistics Canada y la base del BCE/EABCN. Incluye el instrumental de revisiones: triángulos de revisión, primera y última estimación, `r_t = y_f - y_p`, y el contraste de noticia frente a ruido de Mankiw-Shapiro (`vintages.mankiw_shapiro`). Cada proveedor documenta qué significa exactamente su fecha de edición, porque no coinciden entre sí. Véase `docs/real_time_data.md`.
-- **Constructores de panel** (`build_panel`, `build_subnational_panel`) — puntos de entrada únicos que materializan paneles trimestrales y mensuales de países y estados de EE. UU. a partir de los captadores, con etiquetado de regímenes, ajuste estacional (X-13 / STL como alternativa) y una pipeline de σ-GARCH derivada.
+- **Constructores modulares de panel** (`build_panel`, `build_subnational_panel`, `build_climate_panel`, `build_financial_panel`) — puntos de entrada únicos que materializan paneles trimestrales y mensuales de países, estados de EE. UU., clima/energía y macrofinancieros a partir de los captadores, con agregaciones automáticas de frecuencia (M→Q, A→Q), etiquetado de regímenes, ajuste estacional (X-13 / STL como alternativa) y seguimiento de datos faltantes.
+- **Ecosistema de datos macro globales** (`fetch.emissions`, `fetch.energy_transition`, `fetch.commodities`, `fetch.financial`) — captadores sin clave y en caché para emisiones de gases de efecto invernadero del Banco Mundial WDI y OCDE SDMX por sector; generación eléctrica por fuente y cuotas de transición limpia; conjuntos ampliados de precios de referencia de materias primas del Banco Mundial Pink Sheet y FMI (energía, metales, agricultura, fertilizantes); e indicadores de estabilidad financiera internacional (rendimientos soberanos, tasas de política monetaria, brechas crédito/PIB del BIS, precios de vivienda y condiciones financieras). Véase `docs/es/data_ecosystem.md`.
 - **Instrumentos** (`instruments.*`) — registro de instrumentos, composición y cargadores externos (ruta de clave API de FRED); columna vertebral de la maquinaria LP-IV.
 - **Bartik / shift-share** (`bartik.*`) — participaciones, sensibilidades, pesos de Rotemberg, exposición EPU a nivel de condado.
 - **Econometría espacial** (`spatial.*`) — matrices de pesos espaciales (contigüidad, k-NN, decaimiento por distancia, flujos económicos), I de Moran / C de Geary, HAC espacial de Conley y el HAC espacio-temporal de Hsiang detrás de `panel_lp(cov_type="conley")`, los modelos de corte transversal (`sar`, `sem`, `sdm`, `slx`) con la batería de especificación `lm_spatial_tests` y los impactos directo / indirecto / total de LeSage-Pace (`spatial_effects`), paneles espaciales (`spatial_panel`) y proyecciones locales espaciales (`spatial_lp`); además del DiD robusto a desbordamientos por anillos de distancia (`did.spatial_did`) y el VAR Global de Pesaran (`var.gvar`). Véanse `docs/es/spatial.md` y `docs/es/gvar.md`.
@@ -500,11 +501,17 @@ Si proviene de Stata, MATLAB/Dynare o statsmodels:
 | **Raíz unitaria GLS (DF-GLS)** | `dfgls y, maxlag(4)` | Código ERS (1996) | `adfuller` | `unit_root.dfgls_test(y, regression="ct")` |
 | **Ajuste estacional** | `x13 y` | Wrapper X-13 | `STL` / `x13` | `sa.stl_sa(y)` / `sa.x11_sa(y)` |
 
-Las replicaciones de extremo a extremo de artículos canónicos se encuentran en `puremacro/examples/` — Bloom 2009 (`bloom2009.py`), SVAR narrativo de Mertens-Ravn (`svariv_mertens_ravn.py`), narrativa monetaria de Romer-Romer (`romer_romer_*.py`), escaparate de frontera de Smets-Wouters 2007 (`41_dynare_frontier_showcase.py`) y aproximadamente 75 más. La mayoría (como el ejemplo de Uhlig anterior) son completamente sintéticos y no requieren datos ni claves; algunos leen datos incluidos en el paquete o descargados en línea.
+Las replicaciones de extremo a extremo de artículos canónicos y cuadernos pedagógicos se encuentran en `notebooks/` y `puremacro/examples/`:
+- **Escaparates de política aplicada**: Postura de política monetaria de bancos centrales y abanicos de proyección (`47`), nowcasting DFM en tiempo real y descomposición de noticias (`48`), GaR macroprudencial y conectividad sistémica (`49`), y multiplicadores fiscales trimétodo con DSA soberano (`50`).
+- **Frontera DSGE y HANK**: Recursión exacta del gradiente analítico de Kalman (`43`), puente espacio-secuencial HANK desde `.mod` (`44`), política discrecional óptima vs compromiso y shocks de noticias (`45`), y filtrado de partículas con MS-DSGE (`46`).
+- **Replicaciones canónicas**: Smets-Wouters 2007 (`41`, `42`), Bloom 2009 (`bloom2009.py`), SVAR narrativo de Mertens-Ravn (`svariv_mertens_ravn.py`), narrativa monetaria de Romer-Romer (`romer_romer_*.py`) y aproximadamente 75 más.
+Todos los cuadernos cumplen estrictamente el contrato con Pyodide y la arquitectura pedagógica de 7 secciones de `notebooks/_TEMPLATE.md`.
 
 ## Documentación
 
 - **`docs/es/quickstart.md`** — Guía de inicio rápido en 2 minutos cubriendo estimadores principales y exportación para publicaciones.
+- **`docs/es/data_ecosystem.md`** — Ecosistema de datos macro globales: emisiones, transición energética, materias primas, estabilidad financiera internacional y constructores modulares de panel (`build_climate_panel`, `build_financial_panel`).
+- **`docs/es/notebooks.md`** — Catálogo completo de cuadernos (00–50), arquitectura pedagógica de 7 secciones y suites de política aplicada.
 - **`docs/es/dsge_build.md`** — Modelos DSGE desde ecuaciones, cargador de archivos `.mod`, poda de 2do orden, CLI `puremacro-dynare`, OccBin ZLB, relajación no lineal y MCMC bayesiano.
 - **`docs/es/models.md`** — Modelos estructurales: HANK en el espacio de secuencias, algoritmo Fake News, transferencias focalizadas y búsqueda y emparejamiento DMP.
 - **`docs/es/narrative_sign_svar.md`**, **`docs/es/honest_did.md`**, **`docs/es/smooth_lp.md`**, **`docs/es/hank_nonlinear.md`**, **`docs/es/gertler_karadi.md`**, **`docs/es/bvar_sv.md`** — las seis guías de las funciones 2.3.
@@ -530,13 +537,13 @@ Las replicaciones de extremo a extremo de artículos canónicos se encuentran en
 
 ## Convenciones
 
-- **API pública por subpaquete** curada mediante `__init__.py::__all__`; el paquete de nivel superior `puremacro` solo reexporta `__version__`.
+- **API pública por subpaquete** curada mediante `__init__.py::__all__`; el paquete de nivel superior `puremacro` reexporta `__version__`, `build_climate_panel` y `build_financial_panel`.
 - **Objetos de resultado como dataclass congelado** para cualquier estimador que devuelva 3 o más campos o diagnósticos no triviales (véase `ARCHITECTURE.md` § Result-object standard). Los DataFrames con columnas nombradas quedan exentos.
 - **Errores de diagnóstico en lugar de resultados silenciosos incorrectos** — `X'X` singular, Σ no definida positiva, violaciones de la condición de Blanchard-Kahn y replicaciones bootstrap mal condicionadas generan excepciones o advertencias que identifican la función invocante y la causa probable.
 
 ## Estado
 
-Versión de producción, distribuyendo **2.5.0**. `docs/1.0_path.md` § 5 enumera qué subpaquetes están dentro de la promesa del gate de publicación y cuáles son experimentales.
+Versión de producción, distribuyendo **3.2.0**. `docs/1.0_path.md` § 5 enumera qué subpaquetes están dentro de la promesa del gate de publicación y cuáles son experimentales.
 
 La CI está activa y corre en cada push: la suite sobre tres sistemas operativos y tres versiones de Python, el contrato con Pyodide, mypy, la guardia de deriva contra referencias, `mkdocs build --strict`, el despliegue del playground y una publicación en PyPI disparada por etiqueta mediante trusted publishing. Véase `.github/workflows/`. Aun así ejecute `python tools/release_check.py` localmente antes de etiquetar: los gates 5 y 6 son opcionales y la CI no los corre.
 

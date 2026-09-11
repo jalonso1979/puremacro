@@ -2,37 +2,85 @@
 
 # Showcase Notebooks
 
-`puremacro` ships interactive, publication-quality showcase notebooks covering the major heterogeneous-agent macro paradigms, empirical macroeconometrics, Bayesian estimation, and specialized climate/historical applications.
+`puremacro` ships interactive, publication-quality showcase notebooks covering the major heterogeneous-agent macro paradigms, empirical macroeconometrics, Bayesian estimation, specialized climate/historical applications, and frontier applied macroeconomic policy suites.
 
 Every notebook is written in Jupytext percent format (`.py`), executes deterministically with fixed seeds, adheres to the Pyodide 4-package contract (`numpy`, `scipy`, `pandas`, `matplotlib`), and is available with a paired Spanish edition (`_es.py`).
 
-## Flagship Bayesian DSGE Showcase
+---
 
-### `42_dsge_bayesian_estimation_and_diagnostics`
-- **Source**: `notebooks/42_dsge_bayesian_estimation_and_diagnostics.py`
-- **Spanish Edition**: `notebooks/42_dsge_bayesian_estimation_and_diagnostics_es.py`
-- **Benchmark Model**: Smets & Wouters (2007, AER 97(3):586–606) 7-observable, 7-shock US economy.
-- **Core Capabilities Demonstrated**:
-  1. **Model Specification & Data Ingestion**: Parsing Dynare `.mod` files (`sw07_pfeifer.mod`) with declared `varobs` and `estimated_params`, ingesting 156 quarters of real US macroeconomic data (`_sw07_data.csv`).
-  2. **Multi-Algorithm Mode Search**: Comparing `"lbfgs"`, `"csminwel"` (Chris Sims' line-search with gradient-directed non-convex steps), and `"cmaes"` (Covariance Matrix Adaptation Evolution Strategy) to robustly locate posterior modes.
-  3. **Visual Mode Diagnostics (`mode_check`)**: Curvature slice profiling across all parameter coordinates to ensure genuine local concavity and diagnose weak identification.
-  4. **Bayesian MCMC Estimation**: Random-walk Metropolis-Hastings sampling with scale adaptation, split-$\hat{R}$ Gelman-Rubin convergence diagnostics, and prior-versus-posterior distribution plots.
-  5. **Kalman Smoother & Structural Shock Decomposition**: Extracting smoothed unobserved states and structural innovations, validating the historical shock accounting decomposition across GDP growth, inflation, and policy rate.
-  6. **Forecasting & Fan Charts**: Dynamic multi-period out-of-sample and conditional forecasting with 90% confidence fan charts.
-  7. **Marginal Data Density & Model Comparison**: Computing marginal data densities via Laplace asymptotic approximation and Geweke (1999) modified harmonic mean across multiple truncation thresholds, coupled with formal Bayes factor model comparison.
+## The 7-Section Pedagogical Architecture
+
+Following `notebooks/_TEMPLATE.md`, deepened and frontier showcase notebooks adhere to a consistent 7-cell structural flow:
+
+1. **Motivating Question**: 1–2 sentences defining the economic problem.
+2. **The Method in Math**: Governing structural and econometric equations in compact, rigorous LaTeX ($...$ / $$...$$).
+3. **Intuition**: An explicit `**Intuition.**` section translating algebraic equations into intuitive economic mechanisms and identification logic.
+4. **Worked Code**: Self-contained, pure-NumPy runnable code blocks with explanatory comments on *why* choices are made.
+5. **Read the Output**: Dedicated markdown analysis directly interpreting headline numerical outputs, parameter estimates, and generated figures.
+6. **Your Turn**: An interactive exploratory exercise with `# ← change this` knobs, runnable defaults with assertions, and graded challenge prompts.
+7. **How Comprehensive Is This?**: Contextual cross-references connecting the showcase to related `puremacro` entry points and literature.
 
 ---
 
-## 2.6.0 Modernized Showcases
+## Applied Macroeconomic Policy Showcases (puremacro 3.2)
 
-### `41_dynare_frontier_showcase`
-- **Source**: `notebooks/41_dynare_frontier_showcase.py`
-- **Spanish Edition**: `notebooks/41_dynare_frontier_showcase_es.py`
-- **2.6.0 Upgrades**: Modernized to use puremacro's native `.smoother(data)` and `.estimate(data)` methods on `sw07_pfeifer.mod` with bundled quarterly US data, eliminating legacy toy likelihood wrappers. Demonstrates forecast error variance decompositions (FEVD), OccBin piecewise-linear zero lower bound (ZLB) regimes, and deterministic perfect-foresight Ramsey transitions.
+Showcases `47` through `50` bridge theoretical macroeconometrics with applied central banking, treasury, and financial market policy practice.
 
-### `macro_history_and_climate/N12_paleoclimate_eiv_and_simex`
-- **Source**: `notebooks/macro_history_and_climate/N12_paleoclimate_eiv_and_simex.py`
-- **2.6.0 Upgrades**: Completely purged external `statsmodels` dependencies in favor of `puremacro.regress.ols` with heteroskedasticity-consistent standard errors (`HC1`). Implements simulation extrapolation (SIMEX) and errors-in-variables (EIV) adjustments for paleoclimate proxy temperature reconstructions in pure NumPy.
+### `47_applied_central_bank_policy_suite`
+- **Source**: `notebooks/47_applied_central_bank_policy_suite.py` (Spanish: `_es.py`)
+- **Key Capabilities**:
+  - Real-time monetary policy stance evaluation against Taylor rules (1993, 1999) and inertia specifications.
+  - Counterfactual policy simulation: evaluating macro trajectories under alternative policy paths.
+  - Multi-period fan chart projection bands accounting for shock uncertainty and parameter posterior dispersion.
+  - Textual sentiment and tone extraction from central bank statements (FOMC, ECB) via dictionary-based sentiment scoring.
+
+### `48_applied_realtime_nowcasting_and_news`
+- **Source**: `notebooks/48_applied_realtime_nowcasting_and_news.py` (Spanish: `_es.py`)
+- **Key Capabilities**:
+  - Dynamic Factor Model (DFM) nowcasting of quarterly GDP following Giannone, Reichlin & Small (2008).
+  - Ragged-edge asynchronous data vintage ingestion handling mixed-frequency monthly and quarterly releases.
+  - Release-day **news decomposition**: decomposing forecast revisions into surprise news components by data category (labor, output, surveys).
+  - Mankiw-Shapiro (1986) news-versus-noise orthogonality tests on real-time data revisions.
+
+### `49_applied_macroprudential_gar_and_stress`
+- **Source**: `notebooks/49_applied_macroprudential_gar_and_stress.py` (Spanish: `_es.py`)
+- **Key Capabilities**:
+  - Growth-at-Risk (GaR) conditional quantile regression following Adrian, Boyarchenko & Giannone (2019).
+  - Fitting parametric Azzalini skew-$t$ density distributions over predictive horizons to capture asymmetric downside tail risk.
+  - Systemic risk connectedness networks via generalized forecast error variance decomposition (GFEVD) (Diebold & Yílmaz 2014).
+  - Macroprudential capital buffer stress scenarios and probability-of-recession fan charts.
+
+### `50_applied_fiscal_multipliers_and_debt_sustainability`
+- **Source**: `notebooks/50_applied_fiscal_multipliers_and_debt_sustainability.py` (Spanish: `_es.py`)
+- **Key Capabilities**:
+  - Tri-method fiscal multiplier estimation on frozen datasets: Blanchard-Perotti SVAR, Romer-Romer narrative Local Projections, and Mertens-Ravn narrative LP-IV with effective first-stage $F$-statistics.
+  - Stochastic sovereign Debt Sustainability Analysis (DSA) fan charts modeling joint growth, inflation, and interest-rate $(r - g)$ shocks.
+  - Stress testing sovereign debt ratios under physical and transition climate risk scenarios.
+
+---
+
+## Bayesian DSGE & HANK Frontier Showcases (puremacro 3.0 & 3.1)
+
+### `42_dsge_bayesian_estimation_and_diagnostics` (Flagship)
+- **Source**: `notebooks/42_dsge_bayesian_estimation_and_diagnostics.py` (Spanish: `_es.py`)
+- **Model**: Smets & Wouters (2007, AER) 7-observable, 7-shock US economy.
+- **Key Capabilities**: Multi-algorithm mode search (`lbfgs`, `csminwel`, `cmaes`), `mode_check` curvature slices, MCMC sampling with Gelman-Rubin $\hat{R}$ diagnostics, Kalman smoother historical shock decomposition, fan chart dynamic forecasting, and Laplace / Geweke marginal data density comparison.
+
+### `43_dsge_nuts_and_analytic_gradients`
+- **Source**: `notebooks/43_dsge_nuts_and_analytic_gradients.py` (Spanish: `_es.py`)
+- **Key Capabilities**: Exact analytic Kalman score recursion ($\nabla_\theta \ln L$) via generalized Sylvester solvers, No-U-Turn Sampler (NUTS) with dual averaging step-size adaptation, and energy BFMI diagnostics.
+
+### `44_hank_sequence_space_bridge`
+- **Source**: `notebooks/44_hank_sequence_space_bridge.py` (Spanish: `_es.py`)
+- **Key Capabilities**: Heterogeneous-Agent Sequence-Space bridge parsed from Dynare `.mod` files (`hetagent_block`), stationary wealth distribution $\mathcal{D}^*(a)$, Fake-News Jacobians ($J_{C,r}, J_{C,Y}$), and nonlinear Broyden MIT transitions.
+
+### `45_dsge_discretion_dsge_var_and_news_shocks`
+- **Source**: `notebooks/45_dsge_discretion_dsge_var_and_news_shocks.py` (Spanish: `_es.py`)
+- **Key Capabilities**: Optimal discretionary policy vs commitment (inflation/stabilization bias decomposition), Del Negro & Schorfheide (2004) DSGE-VAR($\lambda$) prior optimization, and anticipated news shock companion state-space augmentation.
+
+### `46_dsge_particle_filtering_and_markov_switching`
+- **Source**: `notebooks/46_dsge_particle_filtering_and_markov_switching.py` (Spanish: `_es.py`)
+- **Key Capabilities**: Differentiable OccBin for NUTS, Foerster et al. (2016) Markov-Switching DSGE with closed-form analytical GIRFs, and vectorized sequential Monte Carlo particle filtering with stochastic volatility.
 
 ---
 
@@ -40,9 +88,11 @@ Every notebook is written in Jupytext percent format (`.py`), executes determini
 
 | Notebook | Topic & Methodology | Spanish Twin |
 |---|---|---|
-| `01_wealth_inequality` | Aiyagari & Huggett incomplete markets, permanent $\beta$-heterogeneity, Lorenz curves & Gini indices | `01_wealth_inequality_es` |
+| `00_whats_new_in_puremacro_3_0` | Milestone 3.0: Analytic Kalman gradients, NUTS HMC, and HANK Sequence-Space bridge | `00_whats_new_in_puremacro_3_0_es` |
+| `00_whats_new_in_puremacro_2_0` | Milestone 2.0: Unified API (`lags`, `horizon`, `ci`), result objects, and exporters | `00_whats_new_in_puremacro_2_0_es` |
+| `01_wealth_inequality` | Aiyagari & Huggett incomplete markets, permanent $\beta$-heterogeneity, Lorenz & Gini | `01_wealth_inequality_es` |
 | `02_aggregate_shocks` | Krusell–Smith approximate aggregation, transition dynamics, representative-agent benchmark | `02_aggregate_shocks_es` |
-| `03_life_cycle_and_demographics` | Finite-horizon life-cycle consumption-saving, cohort wealth by age, mortality hazard weighting | `03_life_cycle_and_demographics_es` |
+| `03_life_cycle_and_demographics` | Finite-horizon life-cycle consumption-saving, cohort wealth by age, mortality weighting | `03_life_cycle_and_demographics_es` |
 | `04_firm_dynamics` | Hopenhayn industry equilibrium with endogenous entry/exit and selection | `04_firm_dynamics_es` |
 | `05_portfolios_and_preferences` | Two-asset portfolio choice, Epstein–Zin recursive utility, EGM vs VFI | `05_portfolios_and_preferences_es` |
 | `06_svar_identification` | Structural VAR identification: Cholesky recursive ordering vs sign restrictions | `06_svar_identification_es` |
@@ -80,9 +130,16 @@ Every notebook is written in Jupytext percent format (`.py`), executes determini
 | `38_real_time_vintages_and_revisions` | Real-time QNA vintages across 45+ countries & news vs. noise revision tests | `38_real_time_vintages_and_revisions_es` |
 | `39_multilingual_narrative_harvesting` | Multi-source narrative harvesting (50+ connectors) and multilingual macro scoring | `39_multilingual_narrative_harvesting_es` |
 | `40_quarterly_national_accounts` | Three approaches to GDP accounting: rebasing, identities, and growth contributions | `40_quarterly_national_accounts_es` |
-| `41_dynare_frontier_showcase` | Smets-Wouters (2007) native 2.6.0 smoother & estimation, OccBin ZLB, Ramsey transitions | `41_dynare_frontier_showcase_es` |
+| `41_dynare_frontier_showcase` | Smets-Wouters (2007) native smoother & estimation, OccBin ZLB, Ramsey transitions | `41_dynare_frontier_showcase_es` |
 | `42_dsge_bayesian_estimation_and_diagnostics` | Flagship Smets-Wouters Bayesian estimation, mode_check, MCMC, fan charts, MDD | `42_dsge_bayesian_estimation_and_diagnostics_es` |
-| `00_whats_new_in_puremacro_2_0` | Overview of puremacro unified API, result classes, and publication exporters | `00_whats_new_in_puremacro_2_0_es` |
+| `43_dsge_nuts_and_analytic_gradients` | Bayesian DSGE via NUTS with exact analytic Kalman score recursion | `43_dsge_nuts_and_analytic_gradients_es` |
+| `44_hank_sequence_space_bridge` | HANK Sequence-Space bridge from `.mod` files, Fake-News Jacobians, MIT transitions | `44_hank_sequence_space_bridge_es` |
+| `45_dsge_discretion_dsge_var_and_news_shocks` | Discretionary policy vs commitment, DSGE-VAR prior optimization, news shocks | `45_dsge_discretion_dsge_var_and_news_shocks_es` |
+| `46_dsge_particle_filtering_and_markov_switching` | Differentiable OccBin for NUTS, Markov-switching DSGE, particle filtering | `46_dsge_particle_filtering_and_markov_switching_es` |
+| `47_applied_central_bank_policy_suite` | Monetary policy stance, counterfactual Taylor rules, fan charts, sentiment | `47_applied_central_bank_policy_suite_es` |
+| `48_applied_realtime_nowcasting_and_news` | DFM nowcasting with ragged-edge vintages, release-day news decomposition | `48_applied_realtime_nowcasting_and_news_es` |
+| `49_applied_macroprudential_gar_and_stress` | Growth-at-Risk quantile densities (skew-$t$), systemic connectedness networks | `49_applied_macroprudential_gar_and_stress_es` |
+| `50_applied_fiscal_multipliers_and_debt_sustainability` | Multi-method fiscal multipliers, stochastic sovereign DSA under climate stress | `50_applied_fiscal_multipliers_and_debt_sustainability_es` |
 
 ---
 
@@ -95,7 +152,7 @@ Showcase notebooks can be executed and compiled to pre-rendered `.ipynb` artifac
 python tools/build_notebooks.py
 
 # Build a single notebook
-python tools/build_notebooks.py 42_dsge_bayesian_estimation_and_diagnostics
+python tools/build_notebooks.py 47_applied_central_bank_policy_suite
 
 # Execute without modifying files (fails if any notebook raises an exception)
 python tools/build_notebooks.py --check

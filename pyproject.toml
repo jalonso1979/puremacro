@@ -63,6 +63,14 @@ dependencies = [
   "openpyxl>=3.1",
 ]
 
+[project.urls]
+Homepage = "https://jorgealonsoortiz.work/puremacro/"
+Playground = "https://jalonso1979.github.io/puremacro/lab/index.html"
+Documentation = "https://github.com/jalonso1979/puremacro/tree/main/docs"
+Source = "https://github.com/jalonso1979/puremacro"
+Changelog = "https://github.com/jalonso1979/puremacro/blob/main/CHANGELOG.md"
+Issues = "https://github.com/jalonso1979/puremacro/issues"
+
 [project.scripts]
 puremacro-dynare = "puremacro.dsge.cli:main"
 

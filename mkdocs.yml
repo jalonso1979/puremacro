@@ -50,11 +50,13 @@ nav:
   - English Documentation:
       - Overview: index.md
       - Quickstart: quickstart.md
+      - Showcase Notebooks: notebooks.md
       - Correctness advisories: ADVISORY.md
       - Data:
           - Quarterly National Accounts: national_accounts.md
           - Real-time data (vintages): real_time_data.md
           - Long national accounts panel: long_panel.md
+          - Global Macro Data Ecosystem: data_ecosystem.md
       - Econometric Engines:
           - VAR & FAVAR: var.md
           - Narrative Sign Restrictions SVAR: narrative_sign_svar.md
@@ -84,6 +86,7 @@ nav:
       - Running Anywhere (iPad / browser): tablet.md
       - Performance & Benchmarks: benchmarks.md
       - Reference:
+          - Replication gallery: replication.md
           - Validation & goldens: VALIDATION.md
           - Connector health: CONNECTOR_HEALTH.md
           - Credentials: CREDENTIALS.md
@@ -95,11 +98,13 @@ nav:
   - Documentación en Español:
       - Inicio: es/index.md
       - Inicio rápido: es/quickstart.md
+      - Cuadernos de demostración: es/notebooks.md
       - Avisos de corrección: es/ADVISORY.md
       - Datos:
           - Cuentas nacionales trimestrales: es/national_accounts.md
           - Datos en tiempo real (vintages): es/real_time_data.md
           - Panel largo de cuentas nacionales: es/long_panel.md
+          - Ecosistema de datos macro globales: es/data_ecosystem.md
       - Motores econométricos:
           - VAR y FAVAR: es/var.md
           - SVAR con restricciones narrativas de signo: es/narrative_sign_svar.md
@@ -129,6 +134,7 @@ nav:
       - Ejecución en cualquier entorno (iPad / navegador): es/tablet.md
       - Rendimiento y pruebas comparativas: es/benchmarks.md
       - Referencia:
+          - Galería de replicación: es/replication.md
           - Validación y referencias: es/VALIDATION.md
           - Estado de conectores: es/CONNECTOR_HEALTH.md
           - Credenciales: es/CREDENTIALS.md

@@ -318,10 +318,18 @@ helper. Coverage is constrained by what Wayback has snapshotted.
   `r_t = y_f - y_p`, and the Mankiw-Shapiro news-vs-noise test
   (`vintages.mankiw_shapiro`). Each provider documents what its vintage date
   actually means, because they disagree. See `docs/real_time_data.md`.
-- **Panel builders** (`build_panel`, `build_subnational_panel`) — single
-  entry points that materialise quarterly / monthly cross-country and
-  US-state panels from the fetchers, with regime tagging, SA
-  (X-13 / STL fallback), and a derived GARCH-σ pipeline.
+- **Modular panel builders** (`build_panel`, `build_subnational_panel`, `build_climate_panel`, `build_financial_panel`) — single
+  entry points that materialise quarterly / monthly cross-country,
+  US-state, climate/energy, and macro-financial panels from the fetchers,
+  with automated frequency rollups (M→Q, A→Q), regime tagging, SA
+  (X-13 / STL fallback), and missing-data tracking.
+- **Global macro data ecosystem** (`fetch.emissions`, `fetch.energy_transition`, `fetch.commodities`, `fetch.financial`) — keyless,
+  cached collectors for World Bank WDI and OECD SDMX greenhouse gas emissions
+  by sector; electricity generation by source and clean transition shares;
+  expanded World Bank Pink Sheet / IMF commodity benchmark price suites
+  (energy, metals, agriculture, fertilizers); and international financial
+  stability metrics (sovereign yields, policy rates, BIS credit-to-GDP gaps,
+  property prices, and financial conditions). See `docs/data_ecosystem.md`.
 - **Instruments** (`instruments.*`) — instrument registry +
   composition + external loaders (FRED API key path); backbone of the
   LP-IV machinery.
@@ -728,16 +736,18 @@ If you are transitioning from Stata, MATLAB/Dynare, or statsmodels:
 | **GLS Unit Root (DF-GLS)** | `dfgls y, maxlag(4)` | ERS (1996) code | `adfuller` | `unit_root.dfgls_test(y, regression="ct")` |
 | **Seasonal Adjustment** | `x13 y` | X-13 wrapper | `STL` / `x13` | `sa.stl_sa(y)` / `sa.x11_sa(y)` |
 
-End-to-end replications of canonical papers live under `puremacro/examples/`
-— Bloom 2009 (`bloom2009.py`), Mertens-Ravn narrative SVAR
-(`svariv_mertens_ravn.py`), Romer-Romer monetary narrative
-(`romer_romer_*.py`), Smets-Wouters 2007 frontier showcase (`41_dynare_frontier_showcase.py`),
-and ~75 more. Most (like the Uhlig example above) are
-fully synthetic and need no data or keys; a few read bundled or fetched data.
+End-to-end replications of canonical papers and pedagogical showcases live under `notebooks/`
+and `puremacro/examples/`:
+- **Applied Policy Showcases**: Central bank policy stance & fan charts (`47`), real-time DFM nowcasting & news decomposition (`48`), macroprudential GaR & systemic connectedness (`49`), and tri-method fiscal multipliers & sovereign DSA (`50`).
+- **Frontier DSGE & HANK**: Exact analytic Kalman score recursion (`43`), HANK sequence-space bridge from `.mod` (`44`), optimal discretionary policy vs commitment & news shocks (`45`), and particle filtering with MS-DSGE (`46`).
+- **Canonical Replications**: Smets-Wouters 2007 (`41`, `42`), Bloom 2009 (`bloom2009.py`), Mertens-Ravn narrative SVAR (`svariv_mertens_ravn.py`), Romer-Romer monetary narrative (`romer_romer_*.py`), and ~75 more.
+All notebooks strictly adhere to the Pyodide contract and the 7-section pedagogical architecture in `notebooks/_TEMPLATE.md`.
 
 ## Documentation
 
 - **`docs/quickstart.md`** — 2-minute quickstart covering core estimators and publication workflows.
+- **`docs/data_ecosystem.md`** — Global macro data ecosystem: emissions, energy transitions, commodity benchmark suites, international financial stability, and modular panel builders (`build_climate_panel`, `build_financial_panel`).
+- **`docs/notebooks.md`** — Complete showcase catalog (notebooks 00–50), pedagogical 7-section architecture, and applied policy suites.
 - **`docs/dsge_build.md`** — DSGE models from equations, native Dynare `.mod` loader, 2nd-order pruning, `puremacro-dynare` CLI, OccBin ZLB, non-linear relaxation, and Bayesian MCMC.
 - **`docs/models.md`** — Structural models: Sequence-Space HANK, Fake News algorithm, targeted transfers, and DMP search-and-matching.
 - **`docs/narrative_sign_svar.md`**, **`docs/honest_did.md`**, **`docs/smooth_lp.md`**, **`docs/hank_nonlinear.md`**, **`docs/gertler_karadi.md`**, **`docs/bvar_sv.md`** — the six 2.3 feature guides (each with a Spanish twin under `docs/es/`).
@@ -764,7 +774,7 @@ fully synthetic and need no data or keys; a few read bundled or fetched data.
 ## Conventions
 
 - **Public API per subpackage** is curated via `__init__.py::__all__`;
-  the top-level `puremacro` package only re-exports `__version__`.
+  the top-level `puremacro` package re-exports `__version__`, `build_climate_panel`, and `build_financial_panel`.
 - **Frozen-dataclass result objects** for any estimator returning 3+
   fields or non-trivial diagnostics (see `ARCHITECTURE.md` § Result-
   object standard). DataFrames returning named columns are exempt.
@@ -774,7 +784,7 @@ fully synthetic and need no data or keys; a few read bundled or fetched data.
 
 ## Status
 
-Production release, shipping **2.5.0**. `docs/1.0_path.md` § 5 lists which
+Production release, shipping **3.2.0**. `docs/1.0_path.md` § 5 lists which
 subpackages are inside the release-gate promise and which are
 research-experimental.
 

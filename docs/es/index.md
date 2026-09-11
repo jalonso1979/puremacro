@@ -1,58 +1,62 @@
-> 🇬🇧 [English](../index.md) · 🇪🇸 Español
+> 🇪🇸 Español · 🇬🇧 [English](../index.md)
 
 # puremacro
 
-**Modelización macroeconométrica y estructural de agentes heterogéneos de nivel de producción, en Python puro y con cero extensiones en C.**
+**Modelado macroeconométrico y estructural con agentes heterogéneos en Python puro, listo para producción y sin extensiones en C.**
 
 [![Versión en PyPI](https://img.shields.io/pypi/v/puremacro.svg)](https://pypi.org/project/puremacro/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Playground JupyterLite](https://img.shields.io/badge/JupyterLite-Live%20IDE-orange.svg)](https://jalonso1979.github.io/puremacro/)
+[![Entorno JupyterLite](https://img.shields.io/badge/JupyterLite-Live%20IDE-orange.svg)](https://jalonso1979.github.io/puremacro/)
 [![Licencia: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
 ## ¿Qué es puremacro?
 
-`puremacro` es una librería unificada de computación macroeconómica construida completamente en Python puro y NumPy. Elimina cadenas de compilación complejas en Fortran, C++ y archivos MEX, permitiendo que los modelos econométricos se ejecuten en cualquier entorno: portátiles locales, clústeres de alto rendimiento, Google Colab y **directamente en el navegador web mediante Pyodide / WebAssembly**.
+`puremacro` es una biblioteca unificada de computación macroeconómica desarrollada íntegramente en Python puro y NumPy. Elimina cadenas de compilación complejas en Fortran, C++ o MEX, permitiendo que los modelos econométricos se ejecuten en cualquier entorno: computadoras portátiles, clústeres de alto rendimiento, Google Colab y **directamente dentro del navegador web mediante Pyodide / WebAssembly**.
 
-### Subsistemas principales
+### Subsistemas Clave
 
-1. **Modelos DSGE estructurales y paridad con Dynare**:
-   - **Analizador de archivos `.mod` de Dynare y CLI `puremacro-dynare`**: Analiza y resuelve archivos `.mod` directamente desde terminal o scripts de Python.
-   - **Perturbación de segundo orden con poda (*pruning*)**: Términos cruzados ($g_{xu}, g_{uu}$) y correcciones por riesgo ($g_{\sigma\sigma}$) de Schmitt-Grohé y Uribe (2004) con poda de Kim et al. (2008) y paridad completa con las reglas de decisión `oo_.dr` de Dynare.
-   - **OccBin (restricciones ocasionalmente activas)**: Algoritmo lineal por tramos de Guerrieri e Iacoviello (2015) para la cota inferior de tasa cero (ZLB) y restricciones de endeudamiento.
-   - **Previsión perfecta no lineal**: Solver de relajación de Newton-Raphson apilado de Boucekkine-Juillard para transiciones deterministas de gran escala.
-   - **Estimación bayesiana de DSGE por MCMC**: Búsqueda de moda vía L-BFGS-B / Nelder-Mead, matriz de covarianza hessiana de Laplace y algoritmo adaptativo de Random-Walk Metropolis-Hastings.
-   - **Momentos teóricos y descomposición de choques**: Momentos analíticos de Lyapunov, descomposición de varianza del error de pronóstico (FEVD) y descomposición histórica exacta de choques suavizada por Kalman.
+1. **Modelos DSGE Estructurales y Paridad con Dynare (3.0 – 3.2)**:
+   - **Analizador Nativo de Archivos `.mod` de Dynare y CLI `puremacro-dynare`**: Carga y resolución de archivos `.mod` estándar directamente en Python puro.
+   - **Recursiones Analíticas Exactas del Gradiente (Score)**: Diferenciación simbólica sobre el AST y solucionador generalizado de Sylvester que evalúa $\nabla_\theta \ln L$ en una sola pasada hacia adelante sin diferencias finitas.
+   - **HMC y NUTS en Python Puro**: Monte Carlo Hamiltoniano con adaptación dual averaging de tamaño de paso, adaptación de masa diagonal y diagnósticos de convergencia $\hat{R}$ normalizados por rangos.
+   - **Política Discrecional Óptima vs Compromiso**: Iteraciones matriciales de Riccati de Dennis (2007) para política discrecional perfecta en el sentido de Markov frente a compromiso en perspectiva atemporal, descomponiendo los sesgos de inflación y estabilización.
+   - **Modelado Híbrido DSGE-VAR**: Optimización de previas e identificación estructural DSGE-VAR($\lambda$) de Del Negro y Schorfheide (2004).
+   - **Choques Anticipados de Noticias**: Aumento del espacio de estados con operadores nilpotentes que preservan la determinancia de Blanchard-Kahn.
+   - **Filtrado No Lineal de Partículas y MS-DSGE**: Filtros de partículas bootstrap y auxiliares con volatilidad estocástica, OccBin diferenciable para NUTS y soluciones racionales con cambio de régimen de Markov de Foerster et al. (2016) con GIRFs analíticas cerradas.
+   - **Perturbación Podada de Segundo Orden y OccBin**: Derivadas cruzadas de Schmitt-Grohé y Uribe (2004) con poda de Kim et al. (2008), y algoritmo lineal por partes de Guerrieri e Iacoviello (2015) para límites inferiores cero (ZLB).
 
-2. **Modelos de agentes heterogéneos (HANK y VFI)**:
-   - **HANK en el espacio de secuencias** (Auclert, Bardóczy, Rognlie y Straub 2021, *Econometrica*): Modelos de equilibrio general con mercados incompletos resueltos en tiempo $\mathcal{O}(T^3)$.
-   - **Algoritmo Fake News**: Cálculo rápido en $\mathcal{O}(T^2)$ de los jacobianos de consumo intertemporal mediante vectores de esperanza e identidades de acumulación.
-   - **Transferencias fiscales focalizadas**: Trayectorias dinámicas de consumo y multiplicadores fiscales acumulados entre deciles de riqueza.
-   - **Búsqueda y emparejamiento DMP** (Mortensen-Pissarides): Transiciones del mercado laboral, salarios rígidos y dinámica de la curva de Beveridge.
+2. **Modelos de Agentes Heterogéneos (HANK y VFI)**:
+   - **HANK en el Espacio de Secuencias** (Auclert, Bardóczy, Rognlie y Straub 2021, *Econometrica*): Modelos de equilibrio general con mercados incompletos resueltos en $\mathcal{O}(T^3)$.
+   - **Algoritmo de Noticias Falsas (Fake News)**: Cálculo acelerado $\mathcal{O}(T^2)$ de jacobianos de consumo en el espacio de secuencias mediante vectores de expectativa e identidades de acumulación.
+   - **Puente HANK en Espacio de Secuencias**: Declaración directa del bloque `hetagent_block` en archivos `.mod` estándar de Dynare.
+   - **Transferencias Fiscales Focalizadas**: Respuestas dinámicas de consumo y multiplicadores acumulados por deciles de riqueza.
+   - **HJB en Tiempo Continuo**: Esquemas upwind en diferencias finitas de Achdou et al. (2022) para modelos de agentes heterogéneos en tiempo continuo.
 
-3. **Motores econométricos y proyecciones locales**:
-   - **`LPResult` unificado**: Proyecciones locales estandarizadas (`lp_hac`, `lp_iv`, `lp_state_dep`, `panel_lp`) con errores estándar HAC de Newey-West y Driscoll-Kraay para paneles.
-   - **SVAR y FAVAR**: Cholesky, Blanchard-Quah, restricciones de signo, variables instrumentales externas/proxy, máxima participación de varianza (*news*) y VAR aumentado con factores.
-   - **Diferencias en diferencias modernas**: Estimadores robustos a la heterogeneidad temporal y de cohortes (Callaway y Sant'Anna, Sun y Abraham, Borusyak-Jaravel-Spiess y DiD sintético).
+3. **Motores Econométricos y Proyecciones Locales**:
+   - **`LPResult` Unificado**: Proyecciones locales estandarizadas (`lp_hac`, `lp_iv`, `lp_state_dep`, `panel_lp`) con errores estándar Newey-West HAC, fixed-$b$ y Driscoll-Kraay.
+   - **SVAR y FAVAR**: Cholesky, Blanchard-Quah, restricciones de signo, restricciones narrativas de signo, instrumentos externos/proxy, max-share/noticias y VAR aumentado por factores.
+   - **Diferencias en Diferencias Modernas**: Estimadores con adopción escalonada robustos a heterogeneidad en el tratamiento (Callaway y Sant'Anna, Sun y Abraham, Borusyak-Jaravel-Spiess, SDID, Honest DiD).
+   - **Econometría Espacial y VAR Global**: Errores estándar Conley HAC, modelos autorregresivos espaciales (`sar`, `sem`, `sdm`), proyecciones locales espaciales y VAR Global de Pesaran (`var.gvar`).
 
-4. **Nowcasting y aprendizaje automático**:
-   - **Modelos de factores dinámicos de frecuencias mixtas (DFM)** (Giannone, Reichlin y Small 2008): Seguimiento del PIB en tiempo real con bordes irregulares y descomposición de noticias.
-   - **Pronóstico macroeconómico penalizado**: Elastic Net y Lasso Adaptativo (Zou 2006) mediante descenso por coordenadas para selección de predictores de alta dimensión.
+4. **Suites de Política Macroeconómica Aplicada (puremacro 3.2)**:
+   - **Postura Monetaria y Gráficos de Abanico**: Evaluación de la postura monetaria en tiempo real frente a reglas de Taylor contrafactuales, proyecciones en abanico y sentimiento textual en comunicados de bancos centrales ([Guía](notebooks.md)).
+   - **Nowcasting en Tiempo Real y Descomposición de Noticias**: Modelos de factores dinámicos (DFM) de frecuencia mixta (Giannone, Reichlin y Small), tratamiento de extremos irregulares (ragged edges) y atribución de sorpresas de datos ([Guía](nowcast.md)).
+   - **Riesgo Macroprudencial y Estabilidad Financiera**: Densidades condicionales skew-$t$ de Growth-at-Risk (GaR) y redes de desbordamiento de riesgo sistémico de Diebold-Yilmaz ([Guía](notebooks.md)).
+   - **Política Fiscal y DSA Soberano**: Multiplicadores fiscales trimétodo y análisis estocástico de sostenibilidad de la deuda pública ante escenarios de estrés macroeconómico y climático.
 
-5. **Macroeconomía del clima**:
-   - **DICE (Dynamic Integrated Climate-Economy)** (Nordhaus 2018): Modelo de 3 reservorios del ciclo de carbono, calentamiento global y contabilidad del coste social del carbono (SCC).
+5. **Ecosistema de Datos Globales y Paneles Modulares (puremacro 3.2)**:
+   - **Emisiones y Datos Climáticos**: Cuentas de emisiones y gases de efecto invernadero del Banco Mundial WDI y la OCDE SDMX a nivel internacional y sectorial ([Guía](data_ecosystem.md)).
+   - **Balances Energéticos y Materias Primas**: Consumo de energía primaria, cuotas de generación limpia y suites ampliadas de precios de materias primas del Pink Sheet del Banco Mundial ([Guía](data_ecosystem.md)).
+   - **Estabilidad Financiera Internacional**: Curvas de rendimiento soberano (10Y/2Y), tasas de política monetaria, brechas de crédito del BPI (BIS) y precios reales de vivienda ([Guía](data_ecosystem.md)).
+   - **Constructores Modulares de Paneles**: Funciones de alto nivel `build_climate_panel` y `build_financial_panel` con armonización temporal automatizada (M$\to$Q, A$\to$Q).
 
-6. **Informes y exportación para publicaciones**:
-   - Exportación directa de tablas listas para publicar en **LaTeX** (`.to_latex()`), **Typst** (`.to_typst()`) y **Markdown** (`.to_markdown()`), con estrellas de significancia y errores estándar.
+6. **Generación de Informes y Publicación**:
+   - Exportación de tablas con calidad de imprenta directamente a **LaTeX** (`.to_latex()`), **Typst** (`.to_typst()`) y **Markdown** (`.to_markdown()`), con errores estándar y estrellas de significancia ([Guía](reporting.md)).
 
-7. **Ejecución en cualquier entorno**:
-   - Compatibilidad completa con Pyodide/WebAssembly para tabletas e iPad, con descarga automática a Google Colab (`runtime.colab`), ejecución fragmentada resistente a suspensiones (`longrun`) y cartuchos portátiles `.pmz` (`pocket`).
-
-8. **Métodos de frontera (2.3)**:
-   - **Restricciones narrativas de signo** ([guía](narrative_sign_svar.md)), **DiD honesto** ([guía](honest_did.md)), **Proyecciones locales suavizadas** ([guía](smooth_lp.md)), **HANK no lineal en el espacio de secuencias** ([guía](hank_nonlinear.md)), **DSGE de Gertler-Karadi (2011)** ([guía](gertler_karadi.md)) y **BVAR con volatilidad estocástica** ([guía](bvar_sv.md)).
-   - **Econometría espacial** ([guía](spatial.md)): matrices de pesos espaciales, I de Moran / C de Geary, HAC espacial de Conley en cortes transversales y proyecciones locales de panel, los modelos de corte transversal `sar` / `sem` / `sdm` / `slx` con la batería de especificación `lm_spatial_tests` e impactos de LeSage-Pace, paneles espaciales (`spatial_panel`), proyecciones locales espaciales (`spatial_lp`), DiD robusto a desbordamientos (`did.spatial_did`) y VI shift-share con errores de Adão-Kolesár-Morales.
-   - **VAR global** ([guía](gvar.md)) (Pesaran, Schuermann y Weiner 2004): bloques VARX\* por país con variables estrella ponderadas por comercio, solución apilada exacta, IRF generalizadas y FEVD, y contrastes de exogeneidad débil (`var.gvar`).
+7. **Ejecución en Cualquier Dispositivo**:
+   - Compatibilidad completa con Pyodide/WebAssembly para tabletas y navegadores ([Guía](tablet.md)), descarga de cómputo a Google Colab (`runtime.colab`), ejecución segmentada (`longrun`) y cartuchos portátiles `.pmz` (`pocket`).
 
 ---
 
@@ -62,7 +66,7 @@
 pip install puremacro
 ```
 
-O instale con herramientas completas de cuadernos:
+O con herramientas completas para cuadernos interactivos:
 
 ```bash
 pip install "puremacro[notebooks]"
