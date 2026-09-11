@@ -594,8 +594,8 @@ def _warn_family_losses(before: pd.DataFrame, after: pd.DataFrame,
     lost = (before[~before.set_index(keys).index.isin(after.set_index(keys).index)]
             .drop_duplicates(subset=keys))
     if not lost.empty:
-        names = ", ".join(sorted({f"{r['code']}/{r['name']}"
-                                  for _, r in lost.iterrows()})[:12])
+        names = ", ".join(sorted({f"{r.code}/{r.name}"
+                                  for r in lost.itertuples()})[:12])
         warnings.warn(
             f"seasonal-adjustment family rule dropped {len(lost)} series that "
             f"publish no unadjusted edition: {names}. A family takes one "
@@ -807,11 +807,15 @@ def _pick_volume_base(tidy: pd.DataFrame) -> dict[str, str]:
     """Per country: 'L' (chain-linked) when published, else 'Q' (fixed base)."""
     out: dict[str, str] = {}
     have = tidy.groupby(["code", "PRICE_BASE"]).size().unstack(fill_value=0)
-    for code, row in have.iterrows():
-        if row.get("L", 0) > 0:
-            out[code] = "L"
-        elif row.get("Q", 0) > 0:
-            out[code] = "Q"
+    has_l = "L" in have
+    has_q = "Q" in have
+    if not has_l and not has_q:
+        return out
+    for row in have.itertuples():
+        if has_l and getattr(row, "L", 0) > 0:
+            out[row.Index] = "L"
+        elif has_q and getattr(row, "Q", 0) > 0:
+            out[row.Index] = "Q"
     return out
 
 
