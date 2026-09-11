@@ -76,7 +76,7 @@ rm -rf ./dist
 jupyter lite build --contents ./content --output-dir ./dist
 
 echo "==> 4.5/5 build documentation site"
-python -m mkdocs build --strict -d "$PG/dist/docs"
+python -m mkdocs build --strict -f "$ROOT/mkdocs.yml" -d "$PG/dist/docs"
 
 echo "==> 5/5 done"
 echo "    serve locally:  python -m http.server -d \"$PG/dist\" 8000"
