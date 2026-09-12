@@ -1,0 +1,3 @@
+## 2024-09-12 - Accessibility in Jupyter Notebook Outputs
+**Learning:** When generating inline HTML for Jupyter notebook outputs (e.g., using `IPython.display.HTML`), external links (`target="_blank"`) must include `rel="noopener noreferrer"` alongside explicit `aria-label`s. Decorative elements like emojis or text-based arrows must be wrapped in `<span aria-hidden="true">`. This applies even in backend/utility code that outputs HTML.
+**Action:** Always review string templates containing HTML, especially in integration tools (like the Colab bridge), to ensure they meet the same accessibility standards as frontend code.
