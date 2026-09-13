@@ -66,6 +66,12 @@
 pip install puremacro
 ```
 
+Los lectores de parquet y Excel (las lecciones ENOE del curso, `build_all`, el atlas de choques) necesitan los motores opcionales de formato de archivo:
+
+```bash
+pip install "puremacro[io]"
+```
+
 O con herramientas completas para cuadernos interactivos:
 
 ```bash

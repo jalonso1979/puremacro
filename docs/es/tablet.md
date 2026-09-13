@@ -45,9 +45,9 @@ Para revertir al modo tradicional, ejecute `runtime.disable_browser_network()`.
 
 ---
 
-## 2. Sin motor Parquet (`pyarrow`)
+## 2. Puede no haber motor Parquet (`pyarrow`)
 
-Dado que `pyarrow` no dispone de binarios compilados para WebAssembly, `puremacro.pocket` empaqueta los datos en cartuchos portátiles `.pmz` autoverificables con firma SHA-256 que llevan consigo su propia procedencia histórica:
+Como `pyarrow` es un extra opcional (`puremacro[io]`) y sólo las distribuciones recientes de Pyodide (314.x) lo incluyen, `puremacro.pocket` empaqueta los datos en cartuchos portátiles `.pmz` autoverificables con firma SHA-256 que llevan consigo su propia procedencia histórica:
 
 ```python
 import numpy as np

@@ -34,7 +34,7 @@
 #    resultado exige **cautela**.
 #
 # Todo corre en Python puro sobre tu **instalación local** de `puremacro`
-# (`pip install puremacro`), con los datos congelados del *bundle*: sin conexión y sin costo.
+# (`pip install "puremacro[io]"`, porque lee dos archivos parquet), con los datos congelados del *bundle*: sin conexión y sin costo.
 
 # %% slideshow={"slide_type": "skip"}
 import sys, pathlib

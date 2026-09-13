@@ -2,6 +2,82 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## 3.3.0 (2026-09-13)
+
+### Milestone 3.3: Continuous Dynamic Programming, Deep Macro PINNs & Quantitative Spatial and Trade General Equilibrium
+
+Major milestone release introducing continuous state-space dynamic programming, deep macro physics-informed machine learning, and quantitative spatial/trade general equilibrium, all implemented under the strict Pyodide 4-package contract (`numpy`, `scipy`, `pandas`, `matplotlib`):
+
+---
+
+### Changed — `pyarrow` and `openpyxl` moved to the new `io` extra (breaking for bare installs)
+- The base install is now the four-package numerical core plus `requests`, every one of which ships with Pyodide. `pyarrow` (parquet) and `openpyxl` (`.xlsx`) moved to the new `[io]` extra; `[data]` and `[dev]` include both. **Migration:** if you read parquet or Excel files (the ENOE datasets of course lessons 08 and 24, `build_all`, the shock atlas, the `fetch.labor*` caches, the EPU / WUI / JLN / LMN / Fernald / GPR / Pink Sheet fetchers), run `pip install "puremacro[io]"`. The course syllabus and lessons 08 and 24 now say so.
+- A missing engine fails loudly instead of silently. `build_all`, `shock_atlas.load_all_shocks` and `build_climate_panel` check for the engines they need before doing any work and raise `MissingEngineError` (an `ImportError`) that names the extra. Before, `build_all` and the shock atlas swallowed each producer's failure into a `print`, and the climate panel dropped the macro series without a word, which is why `openpyxl` had been promoted to a base dependency in the first place. Direct `read_parquet` / `read_excel` calls already failed loudly with pandas' own error, and `cache` still falls back to the pyarrow-free `.pmz` store.
+
+### Fixed — JupyterLite playground install
+- `%pip install puremacro`, the first cell of every notebook on the live playground, failed: the 3.2.1 wheel required `openpyxl`, which no Pyodide distribution ships, and the playground disables PyPI fallback. With the base install now resolvable from the Pyodide distribution it succeeds; the course lessons that read parquet (08, 24) also install `pyarrow`, which the playground's Pyodide 314.0.5 distributes.
+- Guarded twice. `tests/test_pyodide_compat.py::test_runtime_deps_ship_with_pyodide` fails if a base dependency outside the Pyodide distribution is added again, and the opt-in Pyodide gate (`tools/pyodide/runner.js`) now performs the same dependency-resolving install as the playground and fails if anything comes from PyPI; it used `deps=False` before, which is how the breakage went unnoticed. The subprocess import sweep also blocks `pyarrow` and `openpyxl`, so every shippable module must import without the `io` extra.
+- The `playground` extra now pins the JupyterLite versions the Pages workflow uses (core 0.8.3, pyodide-kernel 0.8.4), so a local build runs the deployed site's Pyodide.
+
+### Added — Continuous Projection Dynamic Programming (`puremacro.vfi.collocation`, `puremacro.vfi.fem`)
+- **Chebyshev Polynomial Collocation** (`CollocationProblem`, `solve_collocation`): Orthogonal Chebyshev polynomials of the first kind on canonical domain $[-1, 1]$ with Gauss-Chebyshev roots and Gauss-Chebyshev-Lobatto extrema nodes. Exact analytical benchmark against Brock-Mirman closed-form neoclassical growth.
+- **Finite Element Galerkin Projection** (`FEMProblem`, `solve_fem`): Localized piecewise-linear tent/hat basis functions $\phi_i(k)$ with compact support $\text{supp}(\phi_i) = [k_{i-1}, k_{i+1}]$ and Gauss-Legendre quadrature integration.
+- **Fischer-Burmeister Non-Smooth Complementarity**: Formulation of borrowing constraints ($k' \ge \bar{k}$) and inequality kinks using the smoothed Fischer-Burmeister NCP operator $\Psi_{\text{FB}}^\epsilon(a, b) = a + b - \sqrt{a^2 + b^2 + 2\epsilon} = 0$, eliminating combinatorial Kuhn-Tucker regime-switching loops and guaranteeing smooth Newton convergence.
+
+### Added — Shape-Preserving Splines & Smolyak Sparse Grids (`puremacro.vfi.splines`, `puremacro.vfi.smolyak`)
+- **Cubic B-Splines** (`CubicBSpline`): Stable Cox-De Boor recurrence with tridiagonal linear systems for $C^2$ smooth function approximation.
+- **Schumaker Quadratic Splines** (`SchumakerSpline`): Schumaker (1983) shape-preserving $C^1$ quadratic splines with adaptive knot insertion that strictly preserve monotonicity ($\partial g / \partial k \ge 0$) and concavity ($\partial^2 g / \partial k^2 \le 0$), eliminating spurious Runge oscillations near borrowing kinks.
+- **Smolyak Multidimensional Sparse Grids** (`SmolyakGrid`): Resolves the curse of dimensionality for models with $d \in [2, 6]$ continuous states using nested Clenshaw-Curtis extrema nodes and multi-index selection $\sum (i_j - 1) \le \mu$, reducing grid size from $\mathcal{O}(N^d)$ to $\mathcal{O}(N (\log N)^{d-1})$.
+
+### Added — Discrete Choice EGM & Fast Upper Envelope Filtering (`puremacro.vfi.dcegm`)
+- **DC-EGM Framework** (`DCEGMProblem`, `solve_dcegm`): Extension of Carroll (2006) Endogenous Grid Method to non-convex dynamic programming with discrete choices (e.g. retirement, labor participation) and continuous savings (Iskhakov, Jørgensen, Rust & Schjerning 2017).
+- **Fast Upper Envelope Algorithm**: Scans endogenous asset grids, detects backward-bending multi-valued branches, evaluates candidate values along branches, and prunes sub-optimal points to extract the true upper envelope $V_t(M) = \max_d \{ v_t(M, d) \}$.
+- **Extreme Value Taste Shocks**: Closed-form choice probabilities and smooth value function aggregation via log-sum-exp softmax transformations.
+
+### Added — Young (2010) Continuous Stationary Distributions & General Equilibrium (`puremacro.vfi.continuous_distribution`)
+- **Non-Stochastic Density Simulation** (`young_distribution_step`, `solve_continuous_stationary_distribution`): Projects point mass $(k_i, z_j)$ through continuous policy rules $g(k, z)$ onto fine continuous grids using linear interpolation lottery weights.
+- **Machine-Precision Mass Conservation**: Forward transition operator $T^*$ preserves total probability mass to floating-point precision ($\sum \mu^* = 1.0 \pm 10^{-15}$) via sparse power iteration and direct sparse linear solves.
+- **Aiyagari Continuous General Equilibrium** (`solve_aiyagari_continuous_ge`): Outer root-finding clearing continuous capital supply $K^s(r^*) = \sum k_i \mu^*(k_i, z_j; r^*)$ against Cobb-Douglas aggregate capital demand $K^d(r^*)$.
+
+### Added — Continuous Transition Dynamics Under MIT Shocks (`puremacro.vfi.continuous_transition`)
+- **Sequence-Space Transition Formulation** (`solve_continuous_transition`): Solves non-linear deterministic transition paths over horizon $t \in [0, T]$ following unexpected aggregate shocks.
+- **Coupled Backward-Forward Iteration**: Backward continuous Euler equation solves for time-varying policies $g_t(k, z)$ coupled with forward propagation of wealth distributions $\mu_{t+1} = T_t^*(g_t) \mu_t$.
+- **Broyden Quasi-Newton Solver**: Rapidly clears markets $\mathcal{H}_t(\{K_s\}) = 0$ along the dynamic trajectory without computing full $T \times T$ Jacobians per iteration.
+
+### Added — Exact Analytic IFT Gradients & Structural Estimation (`puremacro.vfi.analytic_gradients`)
+- **Exact Machine-Precision Sensitivities** (`compute_analytic_policy_gradient`): Evaluates parameter derivatives $\nabla_\theta c^*$ via the Implicit Function Theorem on continuous Euler residuals:
+  $$\nabla_\theta c^* = - \left[ \frac{\partial \mathcal{R}}{\partial c^*} \right]^{-1} \frac{\partial \mathcal{R}}{\partial \theta}$$
+  in a single sparse linear solve per parameter.
+- **Structural Estimation Acceleration** (`estimate_continuous_model_gmm`): Achieves $60\times+$ speedups over numerical finite differences for structural GMM/SMM estimation by propagating analytic gradients directly into moment Jacobians.
+
+### Added — Deep Macro & Physics-Informed Neural Networks (`puremacro.vfi.deep_macro`)
+- **Pure NumPy MLP Architecture** (`DeepMacroModel`, `solve_deep_macro`): Multi-Layer Perceptrons for continuous macroeconomic policy approximation in pure NumPy with zero external deep learning dependencies (no PyTorch, no TensorFlow), running natively under Pyodide and WebAssembly.
+- **Feasibility-Constrained Output Activations**: Enforces physical resource constraints directly in the network head ($c = \text{softplus}(z_c) \cdot W, k' = \text{sigmoid}(z_k) \cdot W$), guaranteeing $c > 0, k' > 0, c + k' \le W$ everywhere in state space.
+- **Ergodic Trajectory Sampling**: Samples training batches along simulated equilibrium trajectories (Maliar, Maliar & Winant 2021), breaking the curse of dimensionality for models with 10+ continuous states (multi-country neoclassical growth).
+
+### Added — Quantitative Trade General Equilibrium: Caliendo-Parro (2015) (`puremacro.trade.caliendo_parro`, `spatial.caliendo_parro`)
+- **Exact Hat Algebra** (`CaliendoParroModel`, `solve_caliendo_parro`): Multi-country ($N$), multi-sector ($J$) trade general equilibrium with input-output linkages, intermediate goods, and tariffs solved in relative changes without estimating unobserved fundamentals.
+- **Counterfactual Policy Evaluation**: Solves counterfactual tariff shocks, trade wars, and sectoral frictions, providing exact welfare decompositions into terms-of-trade and volume-of-trade components.
+
+### Added — Quantitative Spatial Economics: Allen-Arkolakis (2014) (`puremacro.spatial.allen_arkolakis`, `trade.allen_arkolakis`)
+- **Continuous Economic Geography Gravity GE** (`AllenArkolakisModel`, `solve_allen_arkolakis`): General equilibrium across discrete spatial locations on a continuous geographic plane with bilateral iceberg transport costs $\tau_{i,j}$, labor mobility, Marshallian agglomeration ($\alpha$), and amenity congestion ($\beta$).
+- **Infrastructure Shock Counterfactuals** (`simulate_infrastructure_shock`): Evaluates bilateral transport cost reductions $\tau_{i,j}' < \tau_{i,j}$, computing spatial population reallocations $\hat{L}_i$, wage impacts $\hat{w}_i$, and aggregate welfare changes $\Delta \ln W$.
+
+### Added — Showcase & Pedagogical Notebooks (`notebooks/`)
+- **Notebook 51** (`51_continuous_projection_dp_chebyshev_and_fem.py` & `.ipynb`, EN & ES): Continuous Projection Dynamic Programming — Chebyshev orthogonal polynomial collocation vs Finite Element Galerkin projection with Fischer-Burmeister complementarity.
+- **Notebook 52** (`52_continuous_vfi_transition_dynamics_mit_shock.py` & `.ipynb`, EN & ES): Continuous Transition Dynamics Under MIT Shocks — Non-linear transition paths coupling backward EGM with forward Young operators via sequence-space Broyden.
+- **Notebook 53** (`53_continuous_vfi_analytic_gradients_and_estimation.py` & `.ipynb`, EN & ES): Exact Analytic IFT Gradients & Structural Estimation — Machine-precision parameter sensitivities and structural GMM estimation.
+- **Notebook 54** (`54_deep_macro_pinns_high_dimensional_vfi.py` & `.ipynb`, EN & ES): Deep Macro & Physics-Informed Neural Networks — 10-state multi-country growth solved via pure-NumPy PINNs and ergodic sampling.
+- **Notebook 55** (`55_quantitative_spatial_and_trade_ge.py` & `.ipynb`, EN & ES): Quantitative Spatial Economics & Trade General Equilibrium — Caliendo-Parro exact hat algebra and Allen-Arkolakis spatial gravity GE with infrastructure counterfactuals.
+
+### Added — Bilingual Documentation Overhaul
+- 8 new comprehensive English user guides (`docs/vfi_continuous_projection.md`, `docs/vfi_splines_and_sparse_grids.md`, `docs/dcegm.md`, `docs/vfi_continuous_equilibrium.md`, `docs/vfi_continuous_transition.md`, `docs/vfi_analytic_gradients.md`, `docs/deep_macro.md`, `docs/spatial_and_trade_ge.md`).
+- 8 exact parallel Spanish user guides under `docs/es/`.
+- Full pedagogical update to `docs/notebooks.md` and `docs/es/notebooks.md` detailing notebooks 00 through 55.
+- Synchronized `README.md`, `README.es.md`, and `ARCHITECTURE.md` registering all 3.3.0 modules, quickstarts, and stability tiers under **Stable**.
+
+---
+
 ## 3.2.1 (2026-09-11)
 
 ### Patch Release: Documentation Overhaul, Live Pages Site & PyPI Alignment

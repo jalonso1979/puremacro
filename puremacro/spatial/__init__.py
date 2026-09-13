@@ -62,6 +62,8 @@ from .models import (
 )
 from .panel import spatial_panel, SpatialPanelResult
 from .lp import spatial_lp, SpatialLPResult, higher_order_weights, spatial_lag_panel
+from .allen_arkolakis import AllenArkolakisModel, AllenArkolakisResult
+from puremacro.trade.caliendo_parro import CaliendoParroModel, CaliendoParroResult
 
 __all__ = [
     # weights
@@ -103,4 +105,9 @@ __all__ = [
     # local projections
     "spatial_lp",
     "SpatialLPResult",
+    # quantitative spatial general equilibrium & trade
+    "AllenArkolakisModel",
+    "AllenArkolakisResult",
+    "CaliendoParroModel",
+    "CaliendoParroResult",
 ]

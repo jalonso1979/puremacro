@@ -14,29 +14,30 @@ python -m http.server -d playground/dist 8000   # then open http://localhost:800
 
 `build_playground.sh` builds the `puremacro` wheel, pins it via
 `PipliteAddon.piplite_urls` (so `%pip install puremacro` resolves offline in the
-browser), copies the showcase notebooks (`notebooks/00..19_*.ipynb`) **and** the
+browser), copies the showcase notebooks (`notebooks/NN_*.ipynb`) **and** the
 course lessons (`notebooks/course/*.ipynb`) plus `_nbstyle.py` / `_tutor.py`
 into `content/`, injects a `%pip install puremacro` bootstrap cell into **every**
-`NN…`-prefixed notebook it copied, and runs `jupyter lite build` → `dist/`.
+`NN…`-prefixed notebook it copied (`%pip install puremacro pyarrow` in the ones
+whose code reads parquet), and runs `jupyter lite build` → `dist/`.
 
-## Deploy — NOT DEPLOYED (this is a course blocker, not a nicety)
+## Deploy
 
-**There is no public URL today.** `dist/` is built locally and nothing publishes
-it: the repo has no remote and no commits, so the Pages workflow has never run.
-Anything that promises students a browser-only, zero-install path ("Forma A" in
-the course's Software page) is promising this playground, and it does not exist
-at any address yet.
+`.github/workflows/pages.yml` runs `build_playground.sh` on every push to `main`
+and publishes `playground/dist/` to GitHub Pages:
+<https://jalonso1979.github.io/puremacro/lab/index.html>.
 
-To publish on GitHub Pages: push the branch, enable Pages, and add a workflow at
-the **repo root** that runs `build_playground.sh` and uploads `playground/dist/`.
+The browser install works only because every base dependency of `puremacro`
+ships with the Pyodide distribution: the playground disables PyPI fallback
+(`content_static/jupyter-lite.json`), so a base dependency that Pyodide lacks
+makes the first cell of every notebook fail. Through 3.2.1 that is exactly what
+happened (the wheel required `openpyxl` and `pyarrow`).
+`tests/test_pyodide_compat.py::test_runtime_deps_ship_with_pyodide` now guards
+it, and the opt-in Pyodide gate (`tools/pyodide/runner.js`) performs the same
+dependency-resolving install. After a deploy, run the first cells of one
+showcase notebook and of one parquet lesson (08 or 24) to confirm.
 
-TODO(profesor): dos decisiones que sólo tú puedes tomar, y hasta que se tomen la
-"Forma A" del curso no puede anunciarse.
-  1. Camino de publicación del repo (repo aparte / PyPI desde subdirectorio /
-     sólo GitHub) y cuenta bajo la que se publica.
-  2. Si el playground NO se despliega antes del inicio del curso: hay que
-     retirar la "Forma A" de la página de Software y de los enunciados, y dejar
-     la instalación local (Forma B) como único camino.
+Whether the course offers the browser path ("Forma A" in the course's Software
+page) is a teaching decision; the build no longer blocks it.
 
 The showcase notebooks are fully synthetic and offline (Pyodide blocks network
 sockets), so they run without any data files or API keys. The **course lessons**

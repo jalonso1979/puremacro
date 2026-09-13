@@ -6,10 +6,11 @@ juno.sh). That promise is **load-bearing** — if a contributor adds a
 top-level ``import statsmodels`` (or ``linearmodels`` / ``arch``) the
 package silently stops working on the intended deployment target.
 
-Note the distinction the last test in this file makes explicit: the
+Note the distinction the last tests in this file make explicit: the
 *import* contract (four packages) is narrower than the set of *declared*
-runtime dependencies (six — ``requests`` and ``pyarrow`` are also
-required to install, and are documented in ``ARCHITECTURE.md``).
+runtime dependencies (five — ``requests`` is also required to install, and
+is documented in ``ARCHITECTURE.md``). All five ship with Pyodide, which the
+JupyterLite playground's install depends on.
 
 This test imports every shippable submodule and asserts none of the
 dev-only optional dependencies leaked into ``sys.modules``. The
@@ -47,6 +48,12 @@ import puremacro
 # numba VFI kernels import them at module level by design; the narrative-path
 # requests-cleanliness is covered by tests/test_pyodide/test_narrative_importable.
 _FORBIDDEN = ("statsmodels", "linearmodels", "arch", "bs4", "pdfplumber", "pypdf")
+# The `io` extra's file-format engines. Not forbidden (pandas itself imports
+# pyarrow at import time wherever it is installed, so the in-process sweep could
+# not tell a puremacro import from a pandas one), but optional: every shippable
+# module must import without them, so the subprocess sweep blocks them too.
+_IO_ENGINES = ("pyarrow", "openpyxl")
+_ABSENT_IN_BROWSER = _FORBIDDEN + _IO_ENGINES
 _SKIP_PREFIXES = (
     "puremacro.examples",
     "puremacro.teaching",
@@ -164,7 +171,8 @@ print(json.dumps(fails))
 def test_shippable_modules_import_with_forbidden_deps_absent():
     """The strong Pyodide guarantee: every shippable (non-skip-listed) module
     imports even when the forbidden deps are ABSENT — exactly the browser, where
-    statsmodels/linearmodels/arch/bs4/pdfplumber/pypdf are simply not installed.
+    statsmodels/linearmodels/arch/bs4/pdfplumber/pypdf are simply not installed —
+    and when the optional `io` engines (pyarrow/openpyxl) are absent too.
 
     Complements the in-process membership sweep above, which only proves the deps
     don't enter ``sys.modules`` on a host where they ARE installed; here we prove
@@ -174,7 +182,7 @@ def test_shippable_modules_import_with_forbidden_deps_absent():
     """
     mods = _shippable_modules()
     r = subprocess.run(
-        [sys.executable, "-c", _ABSENT_SWEEP, json.dumps(list(_FORBIDDEN)),
+        [sys.executable, "-c", _ABSENT_SWEEP, json.dumps(list(_ABSENT_IN_BROWSER)),
          json.dumps(mods)],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
@@ -235,12 +243,12 @@ def test_pyproject_runtime_deps_match_documentation():
 
     1. The declared set equals the documented set (no silent drift either way).
     2. The Pyodide import core (numpy/scipy/pandas/matplotlib) is still declared.
-       Extra declared deps beyond it are allowed — `requests` (imported at module
-       level by ``fetch/*`` by design) and `pyarrow` (pandas' parquet engine,
-       imported lazily by pandas) are documented cases. What they may NOT do is
-       enter ``sys.modules`` through an estimator import chain; that is what the
-       two sweeps above enforce, and it is the invariant that actually protects
-       the browser target.
+       Extra declared deps beyond it are allowed if documented — `requests`
+       (imported at module level by ``fetch/*`` by design) is the one case. What
+       it may NOT do is enter ``sys.modules`` through an estimator import chain;
+       that is what the two sweeps above enforce, and it is the invariant that
+       actually protects the browser target. Whether a declared dep can be
+       *installed* in the browser is the next test's job.
     """
     import tomllib
     from pathlib import Path
@@ -269,6 +277,36 @@ def test_pyproject_runtime_deps_match_documentation():
     )
 
 
+# Packages in the Pyodide distribution itself (pyodide-lock.json) that puremacro
+# may declare as base dependencies. The JupyterLite playground installs with
+# `%pip install puremacro` and PyPI fallback disabled
+# (playground/content_static/jupyter-lite.json), so every base dependency has to
+# resolve from the distribution: one that Pyodide lacks makes the first cell of
+# every notebook fail, as openpyxl and pyarrow did through 3.2.1. All five have
+# been in the distribution since before 0.28; add a package here only after
+# checking the pyodide-lock.json of the kernel pinned in
+# .github/workflows/pages.yml -- and remember older kernels (juno.sh) too.
+_SHIPS_WITH_PYODIDE = frozenset({"numpy", "scipy", "pandas", "matplotlib", "requests"})
+
+
+def test_runtime_deps_ship_with_pyodide():
+    """Every `[project.dependencies]` entry must be installable in the browser
+    without PyPI, or the playground's `%pip install puremacro` cannot resolve."""
+    import tomllib
+    from pathlib import Path
+
+    pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+    with pyproject.open("rb") as fh:
+        declared = {_dep_name(d) for d in tomllib.load(fh)["project"]["dependencies"]}
+    not_in_pyodide = sorted(declared - _SHIPS_WITH_PYODIDE)
+    assert not not_in_pyodide, (
+        f"Base dependencies that the Pyodide distribution does not ship: {not_in_pyodide}. "
+        "The playground installs with PyPI fallback disabled, so these would break "
+        "`%pip install puremacro` in every notebook. Put them in an extra (see `io` in "
+        "pyproject.toml) and make the code that needs them fail loudly without them."
+    )
+
+
 @pytest.mark.mechanism_control
 def test_the_absent_dep_blocker_actually_blocks():
     """Positive control for `_ABSENT_SWEEP`.
@@ -281,11 +319,11 @@ def test_the_absent_dep_blocker_actually_blocks():
     """
     proc = subprocess.run(
         [sys.executable, "-c", _ABSENT_SWEEP,
-         json.dumps(list(_FORBIDDEN)), json.dumps(list(_FORBIDDEN))],
+         json.dumps(list(_ABSENT_IN_BROWSER)), json.dumps(list(_ABSENT_IN_BROWSER))],
         capture_output=True, text=True, timeout=300,
     )
     assert proc.returncode == 0, proc.stderr[-2000:]
     blocked = {name for name, _ in json.loads(proc.stdout)}
-    assert blocked == set(_FORBIDDEN), (
+    assert blocked == set(_ABSENT_IN_BROWSER), (
         "the meta_path blocker did not stop every forbidden dep — the absent-deps "
         f"sweep is not testing what it claims. Blocked: {sorted(blocked)}")

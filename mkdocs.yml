@@ -83,6 +83,16 @@ nav:
           - DSGE Gradients, NUTS & HANK Bridge: dsge_v3.md
           - DSGE Frontier (Policy, DSGE-VAR & News): dsge_phase_c.md
           - DSGE Non-linear Particle Filtering & Regime Switching: dsge_phase_d.md
+      - Continuous Dynamic Programming & Projection Solvers:
+          - Continuous Projection Solvers: vfi_continuous_projection.md
+          - Splines & Sparse Grids: vfi_splines_and_sparse_grids.md
+          - Discrete Choice EGM (DC-EGM): dcegm.md
+          - Continuous Distributions & General Equilibrium: vfi_continuous_equilibrium.md
+          - Continuous Transition Dynamics: vfi_continuous_transition.md
+          - Exact Analytic Gradients (IFT): vfi_analytic_gradients.md
+      - Frontier Macro & Spatial Economics:
+          - Deep Macro & Neural Networks: deep_macro.md
+          - Quantitative Spatial & Trade General Equilibrium: spatial_and_trade_ge.md
       - Running Anywhere (iPad / browser): tablet.md
       - Performance & Benchmarks: benchmarks.md
       - Reference:
@@ -129,8 +139,18 @@ nav:
           - DSGE de orden superior y restricciones: es/dsge_higher_order.md
           - Paridad y superficie operativa DSGE: es/dsge_parity_surface.md
           - DSGE Gradientes, NUTS y Puente HANK: es/dsge_v3.md
-          - Frontera DSGE (Política, DSGE-VAR y Noticias): es/dsge_phase_c.md
+          - DSGE Frontera (Política, DSGE-VAR y Noticias): es/dsge_phase_c.md
           - DSGE Filtrado de Partículas No Lineal y Cambio de Régimen: es/dsge_phase_d.md
+      - Programación dinámica continua y solucionadores de proyección:
+          - Solucionadores de proyección continua: es/vfi_continuous_projection.md
+          - Splines y mallas dispersas: es/vfi_splines_and_sparse_grids.md
+          - DC-EGM de elección discreta: es/dcegm.md
+          - Distribuciones continuas y equilibrio general: es/vfi_continuous_equilibrium.md
+          - Dinámica de transición continua: es/vfi_continuous_transition.md
+          - Gradientes analíticos exactos (TFI): es/vfi_analytic_gradients.md
+      - Macroeconomía de frontera y economía espacial:
+          - Deep Macro y redes neuronales: es/deep_macro.md
+          - Economía espacial cuantitativa y equilibrio general de comercio: es/spatial_and_trade_ge.md
       - Ejecución en cualquier entorno (iPad / navegador): es/tablet.md
       - Rendimiento y pruebas comparativas: es/benchmarks.md
       - Referencia:

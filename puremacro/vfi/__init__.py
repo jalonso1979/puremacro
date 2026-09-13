@@ -1,9 +1,28 @@
-"""puremacro.vfi -- general discrete value-function-iteration engine.
+"""puremacro.vfi -- dynamic programming and continuous projection engine.
 
-A reusable, multi-backend (numpy/numba/mlx/cupy) solver for infinite-horizon
-discrete-choice dynamic programs of VFIToolkit's "Case 1" form: define an
-endogenous-state grid, an exogenous Markov state, an optional decision, and a
-return function, then call .solve().
+A reusable, multi-backend (numpy/numba/mlx/cupy) solver for dynamic economic models:
+- Infinite-horizon discrete-choice dynamic programs of VFIToolkit's "Case 1" form:
+  define an endogenous-state grid, an exogenous Markov state, an optional decision,
+  and a return function, then call .solve().
+- Continuous state-space polynomial collocation (orthogonal Chebyshev polynomials
+  with continuous Bellman collocation and Euler equation residual projection).
+- Finite element method (FEM / Galerkin projection with piecewise linear hat shape
+  functions, local curvature, and borrowing constraint handling).
+- Continuous stationary distribution & general equilibrium (Young 2010 non-stochastic
+  simulation, sparse Markov transition operators, invariant distribution solving,
+  and continuous Aiyagari market-clearing equilibrium).
+- Shape-preserving cubic B-splines and Schumaker (1983) quadratic splines with
+  monotonicity and concavity preservation.
+- Smolyak sparse grid collocation for multi-dimensional continuous state spaces
+  with nested Clenshaw-Curtis nodes and Chebyshev basis polynomials.
+- Discrete Choice Endogenous Grid Method (DC-EGM) and Upper Envelope filtering for
+  dynamic models with continuous consumption/savings and discrete choices.
+- Continuous-state transition dynamics and unexpected MIT shocks (backward EGM
+  and forward Young 2010 distribution push with Broyden and shooting solvers).
+- Exact analytic sensitivity and parameter Jacobians via the Implicit Function
+  Theorem (IFT) on continuous collocation, FEM, and spline residual systems.
+- Deep Macro Physics-Informed Neural Networks (PINNs) in pure NumPy for high-
+  dimensional dynamic models (10+ continuous states).
 """
 from __future__ import annotations
 
@@ -71,6 +90,77 @@ from puremacro.vfi.krusell_smith import (
     ks_exog_transition,
     ks_simulate,
 )
+from puremacro.vfi.collocation import (
+    CollocationBasis,
+    CollocationProblem,
+    CollocationSolution,
+    solve_collocation,
+)
+from puremacro.vfi.fem import (
+    FEMMesh,
+    FEMProblem,
+    FEMSolution,
+    solve_fem,
+)
+from puremacro.vfi.continuous_distribution import (
+    AiyagariContinuousEquilibrium,
+    AiyagariContinuousModel,
+    ContinuousDistributionResult,
+    ContinuousEquilibriumResult,
+    ContinuousStationaryDistribution,
+    build_continuous_transition_matrix,
+    continuous_push_distribution,
+    continuous_stationary_distribution,
+    continuous_stationary_equilibrium,
+    solve_aiyagari_continuous,
+    young_lottery_weights,
+    young_stationary_distribution,
+    young_step,
+    young_transition_matrix,
+)
+from puremacro.vfi.splines import (
+    CubicBSplineBasis,
+    SchumakerSpline,
+    SplineBasis,
+    SplineCollocationProblem,
+    SplineCollocationSolution,
+    solve_spline_collocation,
+)
+from puremacro.vfi.smolyak import (
+    SmolyakBasis,
+    SmolyakGrid,
+    SmolyakProblem,
+    SmolyakSolution,
+    solve_smolyak,
+)
+from puremacro.vfi.dcegm import (
+    ChoiceMapping,
+    DCEGMProblem,
+    DCEGMSolution,
+    UpperEnvelopeResult,
+    solve_dcegm,
+    upper_envelope,
+)
+from puremacro.vfi.continuous_transition import (
+    ContinuousTransitionResult,
+    TransitionShock,
+    continuous_mit_shock,
+    solve_continuous_transition,
+)
+from puremacro.vfi.analytic_gradients import (
+    AnalyticGradientResult,
+    compute_ift_gradients,
+    equilibrium_parameter_jacobian,
+    gmm_objective_and_gradient,
+    policy_parameter_jacobian,
+)
+from puremacro.vfi.deep_macro import (
+    AdamOptimizer,
+    DeepMacroMLP,
+    DeepMacroModel,
+    DeepMacroSolution,
+    solve_deep_macro,
+)
 
 __all__ = [
     "VFIProblem", "VFISolution", "tauchen", "rouwenhorst", "farmer_toda",
@@ -97,4 +187,22 @@ __all__ = [
     "free_entry_price", "FirmEntryExitEquilibrium",
     "ks_exog_transition", "ks_simulate", "krusell_smith", "KSEquilibrium",
     "Model",
+    "CollocationBasis", "CollocationProblem", "CollocationSolution", "solve_collocation",
+    "FEMMesh", "FEMProblem", "FEMSolution", "solve_fem",
+    "ContinuousStationaryDistribution", "ContinuousDistributionResult",
+    "AiyagariContinuousEquilibrium", "ContinuousEquilibriumResult",
+    "AiyagariContinuousModel", "solve_aiyagari_continuous",
+    "continuous_push_distribution", "young_step",
+    "continuous_stationary_distribution", "young_stationary_distribution",
+    "continuous_stationary_equilibrium", "young_lottery_weights",
+    "build_continuous_transition_matrix", "young_transition_matrix",
+    "CubicBSplineBasis", "SplineBasis", "SchumakerSpline",
+    "SplineCollocationProblem", "SplineCollocationSolution", "solve_spline_collocation",
+    "SmolyakGrid", "SmolyakBasis", "SmolyakProblem", "SmolyakSolution", "solve_smolyak",
+    "upper_envelope", "UpperEnvelopeResult", "ChoiceMapping",
+    "DCEGMProblem", "DCEGMSolution", "solve_dcegm",
+    "ContinuousTransitionResult", "solve_continuous_transition", "continuous_mit_shock", "TransitionShock",
+    "AnalyticGradientResult", "compute_ift_gradients", "policy_parameter_jacobian", "equilibrium_parameter_jacobian", "gmm_objective_and_gradient",
+    "DeepMacroModel", "DeepMacroMLP", "DeepMacroSolution", "solve_deep_macro", "AdamOptimizer",
 ]
+

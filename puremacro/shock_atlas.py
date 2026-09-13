@@ -309,6 +309,11 @@ SHOCK_REGISTRY: list[ShockSpec] = [
 
 def load_all_shocks(root: Path) -> dict[str, pd.Series]:
     """Attempt to load each registered shock; skip those that fail."""
+    # The loaders read parquet caches and .xlsx workbooks, and the loop below
+    # prints and moves on when one fails; check the engines first so a missing
+    # one cannot pass for a handful of unavailable shocks.
+    from ._optional import require_engines
+    require_engines("parquet", "excel", feature="shock_atlas.load_all_shocks")
     out: dict[str, pd.Series] = {}
     for spec in SHOCK_REGISTRY:
         try:

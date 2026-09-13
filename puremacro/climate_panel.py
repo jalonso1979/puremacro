@@ -272,9 +272,13 @@ def build_climate_panel(
         pass
 
     # 3. National macro output (real GDP, population) if available
+    from ._optional import MissingEngineError, require_engines
     try:
         from .build_panel import PANEL_Q_PATH
         if PANEL_Q_PATH.exists():
+            # An existing macro panel must not vanish into the `except` below
+            # just because no parquet engine is installed.
+            require_engines("parquet", feature="build_climate_panel (reading the macro panel)")
             macro_q = pd.read_parquet(PANEL_Q_PATH)
             macro_vars = {"log_gdp_real", "gdp_real", "pop", "population"}
             macro_sub = macro_q[macro_q["variable"].isin(macro_vars)].copy()
@@ -284,6 +288,8 @@ def build_climate_panel(
                 if "is_imputed" not in macro_sub.columns:
                     macro_sub["is_imputed"] = False
                 quarterly_frames.append(macro_sub)
+    except MissingEngineError:
+        raise
     except Exception:
         pass
 

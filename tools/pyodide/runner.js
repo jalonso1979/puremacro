@@ -54,9 +54,11 @@ async function main() {
     const loaded_at = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
     console.error(`Pyodide ${pyodide_version} loaded`);
 
-    console.error("loading numpy / scipy / pandas / matplotlib / pytest / micropip ...");
+    // Only the test runner and the installer are preloaded; puremacro's own
+    // dependencies must arrive through its install below, as in the playground.
+    console.error("loading pytest / micropip ...");
     await pyodide.loadPackage(
-        ["numpy", "scipy", "pandas", "matplotlib", "pytest", "micropip"],
+        ["pytest", "micropip"],
         { messageCallback: (msg) => console.error("[pkg]", msg) }
     );
 
@@ -64,8 +66,14 @@ async function main() {
     console.error(`mounting ${tests_dir} -> /mnt/tests`);
     pyodide.mountNodeFS("/mnt/tests", tests_dir);
 
-    // Copy the wheel bytes into Pyodide's FS, then install via micropip.
-    console.error("installing puremacro wheel via micropip ...");
+    // Copy the wheel bytes into Pyodide's FS, then install it exactly as the
+    // JupyterLite playground does: a dependency-resolving `%pip install
+    // puremacro` with PyPI fallback disabled, so every dependency has to come
+    // from the Pyodide distribution itself. Through 3.2.1 this gate had to use
+    // deps=False because the base install required pyarrow and openpyxl -- which
+    // is precisely what broke the playground unnoticed. The gate now exercises
+    // the real install path and fails if anything resolves from PyPI.
+    console.error("installing puremacro wheel via micropip (resolving dependencies) ...");
     const wheel_basename = path.basename(wheel);
     const wheel_bytes = fs.readFileSync(wheel);
     pyodide.FS.writeFile(`/tmp/${wheel_basename}`, wheel_bytes);
@@ -74,33 +82,22 @@ async function main() {
     try {
         await pyodide.runPythonAsync(`
 import micropip
-# deps=False is mandatory here: since 0.94.0 puremacro declares six base
-# dependencies, and one of them (pyarrow) has no Pyodide wheel, so a
-# dependency-resolving install can never succeed under Pyodide and would leave
-# this gate reporting wheel_installed=false. numpy / scipy / pandas /
-# matplotlib are already provided by the loadPackage() call above.
-await micropip.install("emfs:/tmp/${wheel_basename}", deps=False)
+await micropip.install("emfs:/tmp/${wheel_basename}")
+_from_pypi = sorted(
+    name for name, pkg in micropip.list().items()
+    if str(getattr(pkg, "source", "")).lower() == "pypi"
+)
+if _from_pypi:
+    raise RuntimeError(
+        "dependencies resolved from PyPI, which the playground cannot reach: "
+        + ", ".join(_from_pypi)
+    )
 import puremacro
 _ = puremacro.__version__  # touch the attribute to confirm import worked
         `);
         wheel_installed = true;
     } catch (e) {
         console.error("wheel install failed:", e.message);
-    }
-
-    // `requests` is the other base dependency skipped by deps=False. It is pure
-    // Python and does install under Pyodide, and puremacro.fetch.* / the
-    // narrative sources import it at module level. Best-effort: it needs
-    // network access, and a failure here must not flip wheel_installed.
-    if (wheel_installed) {
-        try {
-            await pyodide.runPythonAsync(`
-import micropip
-await micropip.install("requests")
-            `);
-        } catch (e) {
-            console.error("optional 'requests' install skipped:", e.message);
-        }
     }
 
     // Run the marked pytest subset.

@@ -559,6 +559,13 @@ def build_all(
     fast: bool = False,
     refresh: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    # Check the file-format engines before any network or disk work. Every
+    # producer below runs inside `try/except Exception: print(...)`, so a
+    # missing openpyxl or pyarrow would otherwise come back as a panel quietly
+    # missing most of its series (the reason both were once base dependencies).
+    from ._optional import require_engines
+    require_engines("parquet", "excel", feature="build_all")
+
     # countries=None means "all countries any fetcher returns" (sparse
     # panel). fast=True keeps the legacy 6-country filter for quick local
     # builds. An explicit countries=[...] forces a subset.

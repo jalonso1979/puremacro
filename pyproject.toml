@@ -8,7 +8,7 @@ name = "puremacro"
 # defined by the project release contract: `version = "X.Y.Z"` in pyproject.toml,
 # puremacro/__init__.py (`__version__`), the top `## X.Y.Z` heading in
 # CHANGELOG.md, and `version:` in CITATION.cff.
-version = "3.2.1"
+version = "3.3.0"
 description = "Pyodide-compatible empirical macro toolbox: SVAR + LP + GARCH + inference"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -30,37 +30,26 @@ dependencies = [
   "matplotlib>=3.7",
   # --- Beyond the four-package numerical core -------------------------------
   # The four above are the "Pyodide import core": the only third-party modules a
-  # shippable estimator module may import at top level. The two below widen the
-  # INSTALL contract (not the import contract) because the wheel cannot function
-  # without them. Documented in ARCHITECTURE.md -> "Pyodide-compatibility
-  # contract" and README.md -> "Pyodide compatibility"; the exact set is asserted
-  # by tests/test_pyodide_compat.py::test_pyproject_runtime_deps_match_documentation,
+  # shippable estimator module may import at top level. The one below widens the
+  # INSTALL contract (not the import contract). Documented in ARCHITECTURE.md ->
+  # "Pyodide-compatibility contract" and README.md -> "Pyodide compatibility"; the
+  # exact set is asserted by
+  # tests/test_pyodide_compat.py::test_pyproject_runtime_deps_match_documentation,
   # which parses that ARCHITECTURE.md block. Change all three together.
+  #
+  # Every base dependency must also ship with the Pyodide distribution itself: the
+  # JupyterLite playground runs `%pip install puremacro` with PyPI fallback
+  # disabled, so one that Pyodide lacks breaks the first cell of every notebook.
+  # Through 3.2.1 openpyxl and pyarrow did exactly that; they now live in the `io`
+  # extra below. tests/test_pyodide_compat.py::test_runtime_deps_ship_with_pyodide
+  # keeps it that way.
   #
   # The whole `puremacro.fetch` layer (OECD/SDMX, EPU, FRED-CSV, IMF, BEA) and
   # the narrative sources do `import requests` at module level. Without this line
   # a clean `pip install puremacro` dies with ModuleNotFoundError on the first
-  # fetch call. Pure Python; installs under Pyodide (no sockets there, but the
-  # offline CSV paths never touch it).
+  # fetch call. Pure Python and part of the Pyodide distribution (no sockets
+  # there, but the offline CSV paths never touch it).
   "requests>=2.31",
-  # Parquet engine for `pandas.read_parquet`: cache.py, fetch/labor*.py,
-  # shock_atlas.py, build_panel / build_subnational_panel, and the parquet
-  # datasets shipped with the teaching material (ENOE stocks + transitions) all
-  # need it. pandas imports it lazily, so it never lands in sys.modules during an
-  # import sweep -- but the documented student install is a bare
-  # `pip install puremacro`, so it cannot live in an extra. No Pyodide wheel
-  # exists: in the browser use `micropip.install("puremacro", deps=False)`.
-  "pyarrow>=15",
-  # Excel engine for `pandas.read_excel`. Eighteen shipped modules read .xlsx --
-  # the EPU / WUI / JLN / LMN / Fernald / GPR / Pink Sheet fetchers, the ONS
-  # real-time reader, the Spanish long-panel workbook, shock_atlas and
-  # long_panel. It used to sit in the `dev` extra, which meant the documented
-  # student install (`pip install puremacro`) could not read any of them:
-  # `build_all` swallows each failure into a `print`, so the panel came back
-  # silently missing most of its uncertainty proxies. Pure Python; installs
-  # under Pyodide. Note `xlrd` (in the `data` extra) is a different engine, for
-  # the legacy .xls GPR workbook, and is not a substitute.
-  "openpyxl>=3.1",
 ]
 
 [project.urls]
@@ -75,8 +64,19 @@ Issues = "https://github.com/jalonso1979/puremacro/issues"
 puremacro-dynare = "puremacro.dsge.cli:main"
 
 [project.optional-dependencies]
-# pyarrow is now a base dependency (see [project.dependencies]) -- do not re-add it here.
-# openpyxl is now a base dependency (see [project.dependencies]) -- do not re-add it here.
+# File-format engines. pyarrow is the parquet engine behind pandas.read_parquet /
+# to_parquet (cache.py, fetch/labor*.py, shock_atlas.py, build_panel /
+# build_subnational_panel, climate_panel, and the ENOE parquet data of course
+# lessons 08 and 24); openpyxl is the .xlsx engine behind pandas.read_excel
+# (eighteen modules, the EPU / WUI / JLN / LMN / Fernald / GPR / Pink Sheet
+# fetchers among them; `xlrd` in `data` is a different engine, for the legacy .xls
+# GPR workbook). Both were base dependencies until 3.3.0 and moved here because
+# neither ships with every Pyodide distribution (see [project.dependencies]). The
+# panel builders that need them check up front and name this extra, rather than
+# swallowing the ImportError into a print -- which is how a bare install once
+# returned panels silently missing most of their uncertainty proxies. `data` and
+# `dev` include both, so the data layer and the test suite keep them.
+io = ["pyarrow>=15", "openpyxl>=3.1"]
 # statsmodels is upper-bounded because the parity suites pin its 0.14 behaviour: 0.15.0
 # special-cases the constant column in variance_inflation_factor (1.016445 -> 1.0),
 # completes the GLMResults.bic deviance -> log-likelihood migration that 0.14 announces
@@ -84,7 +84,7 @@ puremacro-dynare = "puremacro.dsge.cli:main"
 # 25 parity tests assert the 0.14 answers. See CHANGELOG 2.6.0 "Known issues — statsmodels
 # 0.15". This is a TEST-time bound only: statsmodels is not a runtime dependency and every
 # import of it inside puremacro/ is lazy, so the shipped wheel is unaffected.
-dev = ["pytest>=8", "statsmodels>=0.14,<0.15", "linearmodels>=5", "arch>=6", "mypy>=1.10", "pytest-cov>=5", "pyyaml>=6", "hypothesis>=6"]
+dev = ["pytest>=8", "statsmodels>=0.14,<0.15", "linearmodels>=5", "arch>=6", "mypy>=1.10", "pytest-cov>=5", "pyyaml>=6", "hypothesis>=6", "pyarrow>=15", "openpyxl>=3.1"]
 narrative = ["pypdf>=4.0", "beautifulsoup4>=4.12", "pdfplumber>=0.11"]
 accel = [
   "numba>=0.59",
@@ -107,6 +107,8 @@ data = [
   "fredapi>=0.5",       # fetch.fred (FRED API-key path; the keyless CSV path needs nothing)
   "xlrd>=2.0.1",        # fetch.gpr (reads the GPR .xls workbook)
   "python-dotenv>=1.0", # fetch.frb_phil_coincident lazy-imports it beside fredapi
+  "pyarrow>=15",        # parquet engine (the `io` extra)
+  "openpyxl>=3.1",      # .xlsx engine (the `io` extra)
 ]
 llm = [
   "anthropic>=0.40",    # narrative.indices LLM scoring (opt-in; default scoring is key-free)
@@ -118,11 +120,14 @@ local-llm = [
   "llama-cpp-python>=0.3",                      # cross-platform GGUF (CPU/Metal/CUDA)
   "mlx-lm>=0.20; sys_platform == 'darwin'",     # Apple-Silicon GPU
 ]
+# Same JupyterLite versions as .github/workflows/pages.yml, so a local build runs
+# the deployed site's Pyodide (314.0.5 with pyodide-kernel 0.8.4), whose
+# distribution includes the pyarrow the parquet lessons install.
 playground = [
   "build>=1.0",
   "jupyter-server>=2",
-  "jupyterlite-core>=0.7,<0.8",
-  "jupyterlite-pyodide-kernel>=0.7,<0.8",
+  "jupyterlite-core>=0.8.3,<0.9",
+  "jupyterlite-pyodide-kernel>=0.8.4,<0.9",
 ]
 
 [tool.setuptools]
@@ -147,7 +152,7 @@ files = ["puremacro"]
 ignore_missing_imports = true
 # Optional / untyped third-party deps (statsmodels, linearmodels, arch,
 # beautifulsoup4, mlx_lm, llama_cpp, yfinance, ...) are treated as Any so the
-# package stays type-checkable with only the 6 declared runtime deps installed.
+# package stays type-checkable with only the 5 declared runtime deps installed.
 # puremacro's own code type-checks clean at mypy's default strictness (0.92.0).
 
 [tool.coverage.run]

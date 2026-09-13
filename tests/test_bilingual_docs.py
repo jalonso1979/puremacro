@@ -51,6 +51,14 @@ _USER_DOCS = [
     "data_ecosystem.md",
     "notebooks.md",
     "replication.md",
+    "vfi_continuous_projection.md",
+    "vfi_splines_and_sparse_grids.md",
+    "dcegm.md",
+    "vfi_continuous_equilibrium.md",
+    "vfi_continuous_transition.md",
+    "vfi_analytic_gradients.md",
+    "deep_macro.md",
+    "spatial_and_trade_ge.md",
 ]
 
 

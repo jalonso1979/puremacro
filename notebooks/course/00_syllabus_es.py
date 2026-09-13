@@ -27,7 +27,7 @@
 
 # %% [markdown] slideshow={"slide_type": "slide"}
 # ## Cómo usar una lección
-# - **Instálala una vez:** `pip install puremacro` en tu Python local, sobre **Python 3.11
+# - **Instálala una vez:** `pip install "puremacro[io]"` en tu Python local, sobre **Python 3.11
 #   o posterior** (el curso no usa entornos en la nube; MATLAB y Dynare también se
 #   instalan localmente).
 # - **Ejecútala:** arranca Jupyter **desde la carpeta `notebooks/`** del material del curso

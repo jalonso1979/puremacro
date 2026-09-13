@@ -35,7 +35,7 @@
 #    propiedades —**amplitud** y **ciclicidad**— que suelen confundirse.
 #
 # Todo corre en Python puro sobre tu **instalación local** de `puremacro`
-# (`pip install puremacro`), leyendo los parquets **ya procesados** del bundle —
+# (`pip install "puremacro[io]"`), leyendo los parquets **ya procesados** del bundle —
 # nunca por red.
 
 # %% slideshow={"slide_type": "skip"}

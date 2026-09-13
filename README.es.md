@@ -175,6 +175,75 @@ show_colab_offload_dialog("sw07_offload.ipynb")
 #    posterior = load_colab_result("sw07_posterior.pmz")
 ```
 
+### 6. Programación Dinámica Continua y Métodos de Proyección (puremacro 3.3)
+Resuelve modelos de programación dinámica en espacios de estados continuos mediante colocación polinomial ortogonal de Chebyshev o proyección de Galerkin con elementos finitos y complementariedad NCP de Fischer-Burmeister:
+```python
+from puremacro.vfi import CollocationProblem, solve_collocation
+
+# Modelo neoclásico de crecimiento continuo: u(c)=ln(c), f(k)=k^alpha, delta=1.0
+alpha, beta, delta = 0.36, 0.96, 1.0
+k_ss = (alpha * beta) ** (1.0 / (1.0 - alpha))
+domain = (0.5 * k_ss, 1.5 * k_ss)
+
+prob = CollocationProblem(
+    domain=domain,
+    orders=7,
+    method="euler",
+    params={"alpha": alpha, "delta": delta},
+    beta=beta,
+)
+sol = solve_collocation(prob)
+print(f"Colocación convergente: {sol.converged}")
+print(f"Política en estado estacionario: {sol.policy(k_ss):.4f}")
+```
+
+### 7. Deep Macro y Redes Neuronales Informadas por la Física (puremacro 3.3)
+Resuelve modelos de equilibrio general dinámico continuo en ultra alta dimensión (10 o más estados continuos) mediante Redes Neuronales Informadas por la Física (PINNs) entrenadas a lo largo de trayectorias ergódicas simuladas en NumPy puro:
+```python
+from puremacro.vfi import DeepMacroModel, solve_deep_macro
+
+# Modelo de acumulación de capital dinámico para 10 países (10 variables de estado continuo)
+model = DeepMacroModel.multi_country_growth(
+    n_countries=10, alpha=0.36, beta=0.96, delta=0.08, gamma=2.0,
+)
+
+# Resolver en NumPy puro mediante muestreo por trayectorias ergódicas (Maliar et al. 2021)
+sol = solve_deep_macro(
+    model=model,
+    hidden_dims=(32, 32),
+    n_epochs=20,
+    batch_size=64,
+    trajectory_length=200,
+    seed=42,
+    verbose=False,
+)
+print(f"PINN convergente: {sol.converged}")
+print(f"Pérdida final de entrenamiento: {sol.loss_history[-1]:.4e}")
+```
+
+### 8. Economía Espacial Cuantitativa y Equilibrio General Comercial (puremacro 3.3)
+Evalúa los efectos de equilibrio general sobre el bienestar, los flujos comerciales y los salarios reales ante choques arancelarios, disrupciones en cadenas de suministro e inversiones en infraestructura regional:
+```python
+import numpy as np
+from puremacro.spatial import AllenArkolakisModel
+
+# Modelo continuo de geografía económica de 3 regiones (Norte, Sur, Este)
+coords = np.array([[45.0, -93.0], [30.0, -90.0], [40.7, -74.0]])
+model = AllenArkolakisModel.from_coordinates(
+    coords,
+    region_names=["Norte", "Sur", "Este"],
+    theta=4.0,
+    alpha=0.08,
+    beta=-0.35,
+    total_population=100.0,
+)
+
+# Simular inversión en infraestructura reduciendo la fricción bilateral en un 20%
+res = model.simulate_infrastructure_shock(origin="Norte", destination="Sur", cost_reduction=0.20)
+print(f"GE espacial convergente: {res.converged}")
+print(f"Variación del bienestar agregado: {res.welfare_pct:+.4f}%")
+```
+
 ---
 
 ## Contenido
@@ -208,6 +277,21 @@ show_colab_offload_dialog("sw07_offload.ipynb")
 - **Espectral / wavelet** (`spectral`, `wavelet`) — PSD de Welch / espectro cruzado / coherencia (solo numpy.fft); descomposición de varianza wavelet MODWT-Haar.
 - **Volatilidad realizada** (`realized_vol`) — varianza realizada, variación bipotencial, HAR-RV de Corsi.
 - **Agentes heterogéneos / VFI / HANK en el espacio de secuencias** (`vfi.*`, `models.hank_sequence_space`) — iteración sobre la función de valor con EGM, ciclo de vida de horizonte finito, OLG, choques agregados de Krusell-Smith, entrada/salida de empresas de Hopenhayn, Epstein-Zin, tipos permanentes, trayectorias de transición y estimación por método de momentos. Además, HANK completo en el espacio de secuencias (Auclert et al. 2021) con el algoritmo Fake News en $\mathcal{O}(T^2)$ (`fake_news_algorithm`, `FakeNewsResult`) y simulaciones de transferencias fiscales focalizadas entre deciles de riqueza (`simulate_targeted_transfer`, `FiscalTransferResult`); backend de referencia en numpy con aceleración opcional mediante numba / mlx / cupy. Véanse los cuadernos en `notebooks/` para una galería de ejemplos.
+
+**Motores de programación dinámica continua y métodos de proyección (puremacro 3.3)**
+
+- **Solvers de proyección continua** (`vfi.collocation`, `vfi.fem`) — Colocación con polinomios ortogonales de Chebyshev (nodos de extremos de Gauss y Lobatto) y proyección de elementos finitos de Galerkin con complementariedad de Fischer-Burmeister ($\Psi_{\text{FB}}^\epsilon(a, b) = 0$) para restricciones de endeudamiento ($k' \ge \bar{k}$); referencia analítica de crecimiento neoclásico de Brock-Mirman.
+- **Splines que preservan forma y mallas dispersas** (`vfi.splines`, `vfi.smolyak`) — B-splines cúbicos de Cox-De Boor, splines cuadráticos de Schumaker (1983) que garantizan monotonicidad estricta y preservación de concavidad ($\partial g / \partial k \ge 0$), y colocación en mallas dispersas de Smolyak (1963) con escala $\mathcal{O}(N (\log N)^{d-1})$ para modelos multidimensionales ($d \in [2, 6]$).
+- **EGM con elección discreta** (`vfi.dcegm`) — DC-EGM de Iskhakov, Jørgensen, Rust y Schjerning (2017) para modelos con elecciones discretas de jubilación/empleo y ahorro continuo, incorporando el algoritmo rápido de Upper Envelope para podar ramas subóptimas y choques de gusto con distribución de valor extremo.
+- **Distribuciones estacionarias continuas y GE** (`vfi.continuous_distribution`) — Simulación de densidad continua no estocástica de Young (2010) preservando la conservación de masa a precisión de máquina ($\sum \mu^* = 1.0 \pm 10^{-15}$), iteración de potencias / solvers lineales dispersos, y búsqueda de raíces de equilibrio general continuo de Aiyagari para precios de factores ($K^s(r^*) = K^d(r^*)$).
+- **Dinámica de transición continua bajo choques MIT** (`vfi.continuous_transition`) — Trayectorias de transición no lineal que acoplan EGM continuo hacia atrás con operadores de distribución de Young dependientes del tiempo hacia adelante ($\mu_{t+1} = T_t^* \mu_t$), resueltas mediante Quasi-Newton Broyden en el espacio de secuencias.
+- **Gradientes analíticos IFT exactos** (`vfi.analytic_gradients`) — Sensibilidades de parámetros a precisión de máquina $\nabla_\theta c^*$ calculadas mediante el Teorema de la Función Implícita en un único sistema lineal, logrando aceleraciones de más de $60\times$ frente a diferencias finitas para estimación estructural (GMM / SMM).
+- **Deep Macro y PINNs** (`vfi.deep_macro`) — Redes Neuronales Informadas por la Física (PINNs) en puro NumPy para modelos dinámicos de ultra alta dimensión (10+ estados continuos), activaciones acotadas que garantizan la factibilidad de recursos ($c > 0, k' > 0, c < W$), y muestreo de trayectorias ergódicas de Maliar et al. (2021).
+
+**Economía espacial cuantitativa y equilibrio general comercial (puremacro 3.3)**
+
+- **Álgebra exacta de sombreros de Caliendo-Parro (2015)** (`trade.caliendo_parro`, `spatial.caliendo_parro`) — Equilibrio general comercial multipaís y multisectorial con encadenamientos insumo-producto, bienes intermedios y aranceles resuelto sin necesidad de estimar fundamentos no observados (`CaliendoParroModel`).
+- **Equilibrio espacial de Allen-Arkolakis (2014)** (`spatial.allen_arkolakis`, `trade.allen_arkolakis`) — Equilibrio general geográfico continuo con costes de transporte bilateral tipo iceberg, movilidad laboral, aglomeración marshalliana ($\alpha$) y congestión de amenidades ($\beta$) (`AllenArkolakisModel`).
 
 **Econometría narrativa** (`narrative.*`)
 
@@ -263,7 +347,13 @@ Escriba las condiciones de equilibrio como una función de Python o cargue archi
 pip install puremacro
 ```
 
-Esto instala las **siete dependencias base** (numpy, scipy, pandas, matplotlib, requests, pyarrow, openpyxl) — todo lo que necesitan los estimadores, la capa `fetch` y las rutas de código en parquet. Los extras cubren únicamente las funciones opcionales que se listan más abajo.
+Esto instala las **cinco dependencias base** (numpy, scipy, pandas, matplotlib, requests): todo lo que necesitan los estimadores y la capa `fetch` para importarse. Todas se distribuyen con Pyodide, así que la misma instalación funciona en el navegador. Leer archivos parquet o Excel requiere los motores opcionales de formato de archivo:
+
+```bash
+pip install "puremacro[io]"      # añade pyarrow (parquet) y openpyxl (.xlsx)
+```
+
+Las lecciones ENOE del curso (08, 24), `build_all`, el atlas de choques y las cachés de `fetch.labor*` necesitan `[io]`; el código que necesita un motor ausente falla de inmediato e indica el extra. Los demás extras cubren las funciones opcionales que se listan más abajo.
 
 ### Local (desarrollo)
 
@@ -285,7 +375,7 @@ Para utilizar el extractor de cuerpo PDF de `narrative.sources`:
 pip install -e '.[narrative]'
 ```
 
-Otros extras opcionales: `[backend]` (numba + Apple-Silicon mlx), `[cuda]` (NVIDIA cupy), `[data]` (captadores yfinance / fredapi / xlrd), `[llm]` (puntuación narrativa respaldada por Anthropic), `[embeddings]` (puntuación narrativa con sentence-transformers), `[notebooks]` (construcción de cuadernos con jupytext).
+Otros extras opcionales: `[backend]` (numba + Apple-Silicon mlx), `[cuda]` (NVIDIA cupy), `[io]` (pyarrow + openpyxl: parquet y `.xlsx`), `[data]` (captadores yfinance / fredapi / xlrd, más los motores de `[io]`), `[llm]` (puntuación narrativa respaldada por Anthropic), `[embeddings]` (puntuación narrativa con sentence-transformers), `[notebooks]` (construcción de cuadernos con jupytext).
 
 Para los conectores que requieren caché en disco bajo demanda y regulación por host, las variantes `safe_get_bytes_cached` y `safe_get_text_cached` aplican una caché indexada por SHA-256 en `~/.cache/puremacro/http/`. Defina `PUREMACRO_HTTP_NO_CACHE=1` para omitirla.
 
@@ -294,20 +384,11 @@ Para los conectores que requieren caché en disco bajo demanda y regulación por
 Suba el directorio `puremacro/` a su espacio de trabajo en juno.sh y luego, en una celda de cuaderno:
 
 ```python
-# requiere: un kernel de Jupyter (magia de IPython)
+# requires: un kernel de Jupyter (magia de IPython)
 %pip install ./puremacro
 ```
 
-**Advertencia desde que `pyarrow` es dependencia base:** ese comando resuelve el conjunto completo de dependencias y `pyarrow` no tiene rueda para Pyodide, así que bajo un núcleo Pyodide falla. Instale el núcleo de estimadores sin resolución de dependencias y añada a mano sólo lo que necesite:
-
-```python
-# requiere: Pyodide (JupyterLite / juno.sh); `await` solo es válido allí
-import micropip
-await micropip.install("puremacro", deps=False)
-await micropip.install(["numpy", "scipy", "pandas", "matplotlib", "requests"])
-```
-
-Las rutas de código en parquet (`cache`, `fetch.labor*`, `shock_atlas`, `build_panel`) quedan indisponibles en el navegador. El navegador **no** es un destino de despliegue soportado: el material docente presupone una instalación local.
+Todas las dependencias base se distribuyen con Pyodide, así que ese comando resuelve sus dependencias desde la propia distribución de Pyodide, sin llegar a PyPI; lo mismo vale para `%pip install puremacro` y para `await micropip.install("puremacro")`. Las rutas en parquet (`cache`, `fetch.labor*`, `shock_atlas`, `build_panel`) necesitan además `pyarrow`: las distribuciones recientes de Pyodide (314.x, la del playground) lo incluyen, así que ahí funciona `%pip install pyarrow`, y las antiguas (0.28) no. Los lectores de `.xlsx` necesitan `openpyxl`, que es Python puro pero sólo se instala donde el núcleo puede llegar a PyPI. El navegador **no** es un destino de despliegue soportado: el material docente presupone una instalación local.
 
 #### Averiguar qué puede hacer realmente la tableta
 
@@ -403,7 +484,7 @@ pip install "puremacro[local-llm]"     # MLX (Apple Silicon) + llama.cpp (cualqu
 Luego utilice un backend local (mismas firmas que los backends de pago):
 
 ```python
-# requiere: un motor LLM local (llama-cpp-python o mlx-lm) y un corpus `records`
+# requires: un motor LLM local (llama-cpp-python o mlx-lm) y un corpus `records`
 from puremacro.narrative.scoring import score_llm, LocalBackend
 events = score_llm(records, backend=LocalBackend("qwen2.5-3b-instruct", engine="auto"))
 
@@ -418,11 +499,14 @@ idx = llm_prob_kernel(records, provider=LocalProvider("qwen2.5-3b-instruct"),
 
 La promesa de compatibilidad en tiempo de ejecución es: únicamente `numpy + scipy + pandas + matplotlib` serán importados por el código de los *estimadores* que se distribuye en la rueda. `statsmodels`, `linearmodels`, `arch` y `pypdf` son todos exclusivos del entorno de desarrollo, están limitados a extras o se importan de forma diferida tras una verificación.
 
-Otros tres paquetes están declarados como dependencias base en `pyproject.toml` —**siete en total**— porque la rueda no puede funcionar sin ellos, aunque ninguno toque la ruta de los estimadores:
+Otro paquete, `requests`, está declarado como dependencia base en `pyproject.toml` (**cinco en total**), porque la capa `fetch` y las fuentes narrativas lo importan a nivel de módulo, aunque nunca toque la ruta de los estimadores. Es Python puro y, como los otros cuatro, se distribuye con Pyodide. Toda dependencia base debe hacerlo: el playground de JupyterLite instala con el respaldo de PyPI desactivado, y `tests/test_pyodide_compat.py` lo exige.
 
-- `requests` — importado a nivel de módulo por `puremacro.fetch.*` y por las fuentes narrativas. Python puro; se instala bajo Pyodide.
-- `pyarrow` — el motor parquet que necesita `pandas.read_parquet` (`cache`, `fetch.labor*`, `shock_atlas`, `build_panel` y los conjuntos de datos en parquet que usa el material docente). pandas lo importa de forma diferida, así que nunca aparece en `sys.modules` en un barrido de importaciones. No tiene rueda para Pyodide: en el navegador use `micropip.install("puremacro", deps=False)`.
-- `openpyxl` — el motor `.xlsx` que necesita `pandas.read_excel`. Dieciocho módulos distribuidos leen Excel: entre ellos los descargadores de EPU, WUI, JLN, LMN, Fernald, GPR y del Pink Sheet del Banco Mundial. Antes vivía en el extra `dev`, así que un `pip install puremacro` sin más no podía producir ninguna de esas series — y `build_all` convierte cada fallo en un `print`, de modo que el panel volvía sin la mayor parte de sus indicadores de incertidumbre y sin decirlo. Python puro; se instala bajo Pyodide.
+Los motores de formato de archivo forman el extra opcional `[io]` (incluido también en `[data]` y `[dev]`):
+
+- `pyarrow` — el motor parquet que necesita `pandas.read_parquet` (`cache`, `fetch.labor*`, `shock_atlas`, `build_panel` y los datos ENOE en parquet de las lecciones 08 y 24 del curso). Sin él, `cache` recurre al almacén `.pmz`, que no necesita pyarrow.
+- `openpyxl` — el motor `.xlsx` que necesita `pandas.read_excel`. Dieciocho módulos distribuidos leen Excel: entre ellos los descargadores de EPU, WUI, JLN, LMN, Fernald, GPR y del Pink Sheet del Banco Mundial.
+
+Ambos fueron dependencias base hasta 3.3.0. Salieron porque ninguno se distribuye con todas las versiones de Pyodide, así que cualquiera de los dos rompía la instalación del playground. El riesgo que convirtió a openpyxl en dependencia base (que `build_all` convirtiera cada fallo en un `print` y devolviera un panel sin la mayor parte de sus indicadores de incertidumbre y sin decirlo) se resuelve ahora en su origen: `build_all`, el atlas de choques y el panel climático comprueban los motores antes de hacer nada y fallan indicando el comando de instalación.
 
 Véase `ARCHITECTURE.md` → «contrato de compatibilidad con Pyodide» para la justificación completa.
 
@@ -500,8 +584,13 @@ Si proviene de Stata, MATLAB/Dynare o statsmodels:
 | **Fake News en espacio de secuencias** | — | SSJ (Auclert et al. 2021) Python/Julia | — | `models.fake_news_algorithm(T=40)` / `models.simulate_targeted_transfer(...)` |
 | **Raíz unitaria GLS (DF-GLS)** | `dfgls y, maxlag(4)` | Código ERS (1996) | `adfuller` | `unit_root.dfgls_test(y, regression="ct")` |
 | **Ajuste estacional** | `x13 y` | Wrapper X-13 | `STL` / `x13` | `sa.stl_sa(y)` / `sa.x11_sa(y)` |
+| **Colocación Continua / FEM** | — | VFIToolkit / Miranda-Fackler | — | `vfi.CollocationProblem(domain, orders=7)` / `vfi.FEMProblem(...)` |
+| **Deep Macro PINNs (10+ estados)** | — | — | — | `vfi.DeepMacroModel.multi_country_growth(...)` / `vfi.solve_deep_macro(...)` |
+| **Álgebra Exacta de Sombreros** | — | Código Costinot-Rodríguez-Clare | — | `trade.CaliendoParroModel(...)` / `cp.solve_counterfactual(...)` |
+| **GE Gravitacional Espacial** | — | Replicación Allen-Arkolakis | — | `spatial.AllenArkolakisModel.from_coordinates(...)` |
 
 Las replicaciones de extremo a extremo de artículos canónicos y cuadernos pedagógicos se encuentran en `notebooks/` y `puremacro/examples/`:
+- **DP continuo, Deep Macro y GE espacial**: Chebyshev vs FEM Galerkin (`51`), dinámica de transición continua bajo choques MIT (`52`), sensibilidades analíticas IFT exactas y estimación GMM (`53`), PINNs de Deep Macro con 10 estados (`54`) y GE cuantitativo espacial de comercio e infraestructura (`55`).
 - **Escaparates de política aplicada**: Postura de política monetaria de bancos centrales y abanicos de proyección (`47`), nowcasting DFM en tiempo real y descomposición de noticias (`48`), GaR macroprudencial y conectividad sistémica (`49`), y multiplicadores fiscales trimétodo con DSA soberano (`50`).
 - **Frontera DSGE y HANK**: Recursión exacta del gradiente analítico de Kalman (`43`), puente espacio-secuencial HANK desde `.mod` (`44`), política discrecional óptima vs compromiso y shocks de noticias (`45`), y filtrado de partículas con MS-DSGE (`46`).
 - **Replicaciones canónicas**: Smets-Wouters 2007 (`41`, `42`), Bloom 2009 (`bloom2009.py`), SVAR narrativo de Mertens-Ravn (`svariv_mertens_ravn.py`), narrativa monetaria de Romer-Romer (`romer_romer_*.py`) y aproximadamente 75 más.
@@ -510,8 +599,16 @@ Todos los cuadernos cumplen estrictamente el contrato con Pyodide y la arquitect
 ## Documentación
 
 - **`docs/es/quickstart.md`** — Guía de inicio rápido en 2 minutos cubriendo estimadores principales y exportación para publicaciones.
+- **`docs/es/vfi_continuous_projection.md`** — Programación dinámica en espacio de estados continuo: colocación con polinomios de Chebyshev y proyección Galerkin por elementos finitos con restricciones de endeudamiento de Fischer-Burmeister.
+- **`docs/es/vfi_splines_and_sparse_grids.md`** — B-splines cúbicos que preservan forma, splines cuadráticos de Schumaker y mallas dispersas de Smolyak en alta dimensión ($d \in [2, 6]$).
+- **`docs/es/dcegm.md`** — Método de Malla Endógena con Elección Discreta (DC-EGM) con filtrado rápido de Upper Envelope para programación dinámica no convexa.
+- **`docs/es/vfi_continuous_equilibrium.md`** — Distribuciones de riqueza estacionarias continuas de Young (2010), conservación de masa y equilibrio general de Aiyagari con vaciado de mercados de factores.
+- **`docs/es/vfi_continuous_transition.md`** — Dinámica de transición continua no lineal bajo choques MIT inesperados y solvers Quasi-Newton Broyden en espacio de secuencias.
+- **`docs/es/vfi_analytic_gradients.md`** — Gradientes y jacobianos analíticos exactos mediante el Teorema de la Función Implícita (IFT) para estimación estructural GMM/SMM de alto rendimiento.
+- **`docs/es/deep_macro.md`** — Deep Macro y Redes Neuronales Informadas por la Física (PINNs) en puro NumPy para modelos dinámicos de ultra alta dimensión (10+ estados continuos) mediante muestreo ergódico.
+- **`docs/es/spatial_and_trade_ge.md`** — Economía espacial cuantitativa y equilibrio general de comercio internacional: álgebra exacta de sombreros de Caliendo-Parro (2015) y geografía económica de Allen-Arkolakis (2014).
 - **`docs/es/data_ecosystem.md`** — Ecosistema de datos macro globales: emisiones, transición energética, materias primas, estabilidad financiera internacional y constructores modulares de panel (`build_climate_panel`, `build_financial_panel`).
-- **`docs/es/notebooks.md`** — Catálogo completo de cuadernos (00–50), arquitectura pedagógica de 7 secciones y suites de política aplicada.
+- **`docs/es/notebooks.md`** — Catálogo completo de cuadernos (00–55), arquitectura pedagógica de 7 secciones y suites de política aplicada.
 - **`docs/es/dsge_build.md`** — Modelos DSGE desde ecuaciones, cargador de archivos `.mod`, poda de 2do orden, CLI `puremacro-dynare`, OccBin ZLB, relajación no lineal y MCMC bayesiano.
 - **`docs/es/models.md`** — Modelos estructurales: HANK en el espacio de secuencias, algoritmo Fake News, transferencias focalizadas y búsqueda y emparejamiento DMP.
 - **`docs/es/narrative_sign_svar.md`**, **`docs/es/honest_did.md`**, **`docs/es/smooth_lp.md`**, **`docs/es/hank_nonlinear.md`**, **`docs/es/gertler_karadi.md`**, **`docs/es/bvar_sv.md`** — las seis guías de las funciones 2.3.
@@ -543,7 +640,7 @@ Todos los cuadernos cumplen estrictamente el contrato con Pyodide y la arquitect
 
 ## Estado
 
-Versión de producción, distribuyendo **3.2.1**. `docs/1.0_path.md` § 5 enumera qué subpaquetes están dentro de la promesa del gate de publicación y cuáles son experimentales.
+Versión de producción, distribuyendo **3.3.0**. `docs/1.0_path.md` § 5 enumera qué subpaquetes están dentro de la promesa del gate de publicación y cuáles son experimentales.
 
 La CI está activa y corre en cada push: la suite sobre tres sistemas operativos y tres versiones de Python, el contrato con Pyodide, mypy, la guardia de deriva contra referencias, `mkdocs build --strict`, el despliegue del playground y una publicación en PyPI disparada por etiqueta mediante trusted publishing. Véase `.github/workflows/`. Aun así ejecute `python tools/release_check.py` localmente antes de etiquetar: los gates 5 y 6 son opcionales y la CI no los corre.
 

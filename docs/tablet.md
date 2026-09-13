@@ -72,10 +72,12 @@ Two browser limits are worth knowing before you depend on this:
   raising — which also means the WAF-bypass user-agent trick in
   `narrative/sources/RETRY_POLICY.md` §7 does not work in a browser.
 
-## 2. There is no pyarrow
+## 2. There may be no pyarrow
 
-`pyarrow` is a base dependency with no Pyodide wheel, so every parquet path
-(`cache`, `fetch.labor*`, `shock_atlas`, `build_panel`) is unreachable. numpy's
+`pyarrow` is an optional extra (`puremacro[io]`), and only recent Pyodide
+distributions (314.x) include it, so on older kernels such as Pyodide 0.28 every
+parquet path (`cache`, `fetch.labor*`, `shock_atlas`, `build_panel`) is
+unreachable. numpy's
 own `.npz` container has no such problem — it is zlib plus a header, implemented
 in numpy itself.
 
@@ -220,21 +222,24 @@ generate_colab_notebook(
 
 ## Installing on Juno
 
-`pyarrow` has no Pyodide wheel, so a dependency-resolving install fails. Install
-the core without resolution and add what you need:
+Every base dependency ships with Pyodide, so a dependency-resolving install
+works without reaching PyPI:
 
 ```python
 # requires: Pyodide (JupyterLite / juno.sh); `await` is only valid there
 import micropip
-await micropip.install("puremacro", deps=False)
-await micropip.install(["numpy", "scipy", "pandas", "matplotlib", "requests"])
+await micropip.install("puremacro")
 ```
+
+Add `await micropip.install("pyarrow")` for the parquet paths if your Pyodide
+distribution includes it (314.x does; 0.28 does not).
 
 ## What is actually verified
 
-`python tools/release_check.py --pyodide` (gate 6) boots a real Pyodide kernel
-and runs the `pyodide_smoke`-marked suite: **29 tests green under Pyodide
-0.28.3**, including all ten `runtime.store` frame round-trips, cartridge
+`python tools/release_check.py --pyodide` (gate 6) boots a real Pyodide kernel,
+installs the wheel the way the playground does (resolving dependencies, none
+from PyPI) and runs the `pyodide_smoke`-marked suite: **31 tests green under
+Pyodide 0.28.3**, including all ten `runtime.store` frame round-trips, cartridge
 pack/verify/base64 transport, the `longrun` invariance property, and
 `dsge.build` solving a model to its closed form.
 `test_detection_matches_the_interpreter_it_is_running_on` cross-examines the

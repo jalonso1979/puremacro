@@ -66,6 +66,12 @@
 pip install puremacro
 ```
 
+The parquet and Excel readers (the course's ENOE lessons, `build_all`, the shock atlas) need the optional file-format engines:
+
+```bash
+pip install "puremacro[io]"
+```
+
 Or install with full notebook tools:
 
 ```bash
