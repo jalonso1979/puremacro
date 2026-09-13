@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en-US" xml:lang="en-US">
 <head>
   <meta charset="utf-8" />
-  <meta name="generator" content="pandoc 3.10.2" />
+  <meta name="generator" content="pandoc 3.11" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <meta name="dcterms.date" content="2026-08-15" />
-  <title>puremacro: browser-runnable empirical macroeconomics in pure Python</title>
+  <meta name="author" content="Jorge Alonso Ortiz" />
+  <meta name="dcterms.date" content="2026-09-13" />
+  <title>puremacro: macroeconometrics and quantitative macroeconomics on the core scientific-Python stack</title>
   <style>
     /* Default styles provided by pandoc.
     ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -172,11 +173,11 @@
       margin: 0 0.8em 0.2em -1.6em;
       vertical-align: middle;
     }
-    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
     /* CSS for citations */
     div.csl-bib-body { }
     div.csl-entry {
       clear: both;
+      margin-bottom: 0em;
     }
     .hanging-indent div.csl-entry {
       margin-left:2em;
@@ -196,222 +197,665 @@
 </head>
 <body>
 <header id="title-block-header">
-<h1 class="title">puremacro: browser-runnable empirical macroeconomics
-in pure Python</h1>
-<p class="date">15 August 2026</p>
+<h1 class="title">puremacro: macroeconometrics and quantitative
+macroeconomics on the core scientific-Python stack</h1>
+<p class="author">true</p>
+<p class="date">13 September 2026</p>
 </header>
+<!-- AUTHOR: the ORCID above is the only "Jorge Alonso Ortiz" (ITAM) record in the
+     public ORCID registry (checked 2026-09-13); confirm it is yours. Set `date` to
+     the day you submit. -->
 <h1 id="summary">Summary</h1>
 <p><code>puremacro</code> is a Python library for empirical
-macroeconomics and quantitative macro modeling, implemented entirely on
-the scientific-Python core — NumPy <span class="citation"
-data-cites="numpy2020">(<span class="nocase">Harris et al.</span>
-2020)</span>, SciPy <span class="citation" data-cites="scipy2020">(<span
-class="nocase">Virtanen et al.</span> 2020)</span>, pandas, and
-Matplotlib — with no compiled or specialized dependencies at runtime.
-Because it avoids heavier libraries, it executes unchanged in the
-browser through Pyodide <span class="citation" data-cites="pyodide">(The
-Pyodide development team 2024)</span>, on a tablet, or in a JupyterLite
-notebook, as readily as on a workstation. The library spans the methods
-an applied macroeconomist reaches for: reduced-form and structural
-vector autoregressions <span class="citation"
-data-cites="sims1980 blanchardquah1989">(Sims 1980; Blanchard and Quah
-1989)</span>, factor-augmented VARs <span class="citation"
-data-cites="bernanke2005">(Bernanke et al. 2005)</span>, local
-projections <span class="citation" data-cites="jorda2005">(Jordà
-2005)</span>, ARCH/GARCH and GARCH-MIDAS volatility models <span
-class="citation" data-cites="engle1982 bollerslev1986">(Engle 1982;
-Bollerslev 1986)</span>, heteroskedasticity- and
-autocorrelation-consistent inference <span class="citation"
-data-cites="neweywest1987">(Newey and West 1987)</span>, dynamic-panel
-and weak-instrument estimators <span class="citation"
-data-cites="andersonrubin1949 oleapflueger2013">(Anderson and Rubin
-1949; Montiel Olea and Pflueger 2013)</span>, difference-in-differences
-and synthetic control, value-function iteration, Sequence-Space HANK
-general equilibrium <span class="citation"
-data-cites="auclert2021">(Auclert et al. 2021)</span>, mixed-frequency
-nowcasting <span class="citation" data-cites="giannone2008">(Giannone et
-al. 2008)</span>, integrated climate macroeconomics <span
-class="citation" data-cites="nordhaus2018 golosov2014">(Nordhaus 2018;
-Golosov et al. 2014)</span>, and text-based uncertainty and narrative
-burst indices <span class="citation" data-cites="bbd2016">(Baker et al.
-2016)</span>.</p>
+macroeconomics and for solving quantitative macroeconomic models. It
+gives researchers, instructors and students one consistent interface to
+the field’s standard methods, and a way to check the library’s numbers
+on the machine that produces them.</p>
+<p>On the empirical side it covers vector autoregressions (VARs) with
+recursive, long-run, sign, sign–zero, narrative and external-instrument
+identification <span class="citation"
+data-cites="sims1980 blanchardquah1989 uhlig2005 rubioramirez2010 antolindiaz2018 mertensravn2013 stockwatson2018">(<a
+href="#ref-antolindiaz2018" role="doc-biblioref">Antolín-Díaz &amp;
+Rubio-Ramírez, 2018</a>; <a href="#ref-blanchardquah1989"
+role="doc-biblioref">Blanchard &amp; Quah, 1989</a>; <a
+href="#ref-mertensravn2013" role="doc-biblioref">Mertens &amp; Ravn,
+2013</a>; <a href="#ref-rubioramirez2010"
+role="doc-biblioref">Rubio-Ramírez et al., 2010</a>; <a
+href="#ref-sims1980" role="doc-biblioref">Sims, 1980</a>; <a
+href="#ref-stockwatson2018" role="doc-biblioref">Stock &amp; Watson,
+2018</a>; <a href="#ref-uhlig2005" role="doc-biblioref">Uhlig,
+2005</a>)</span>; factor-augmented VARs <span class="citation"
+data-cites="bernanke2005">(<a href="#ref-bernanke2005"
+role="doc-biblioref">Bernanke et al., 2005</a>)</span>; local
+projections <span class="citation" data-cites="jorda2005">(<a
+href="#ref-jorda2005" role="doc-biblioref">Jordà, 2005</a>)</span>;
+ARCH, GARCH and GARCH-MIDAS volatility models <span class="citation"
+data-cites="engle1982 bollerslev1986 engleghyselssohn2013">(<a
+href="#ref-bollerslev1986" role="doc-biblioref">Bollerslev, 1986</a>; <a
+href="#ref-engle1982" role="doc-biblioref">Engle, 1982</a>; <a
+href="#ref-engleghyselssohn2013" role="doc-biblioref">Engle et al.,
+2013</a>)</span>; autocorrelation-robust and weak-instrument-robust
+inference <span class="citation"
+data-cites="neweywest1987 andersonrubin1949 oleapflueger2013">(<a
+href="#ref-andersonrubin1949" role="doc-biblioref">Anderson &amp; Rubin,
+1949</a>; <a href="#ref-oleapflueger2013" role="doc-biblioref">Montiel
+Olea &amp; Pflueger, 2013</a>; <a href="#ref-neweywest1987"
+role="doc-biblioref">Newey &amp; West, 1987</a>)</span>; dynamic panels
+<span class="citation" data-cites="arellanobond1991">(<a
+href="#ref-arellanobond1991" role="doc-biblioref">Arellano &amp; Bond,
+1991</a>)</span>; difference-in-differences and synthetic control <span
+class="citation" data-cites="abadie2010 arkhangelsky2021">(<a
+href="#ref-abadie2010" role="doc-biblioref">Abadie et al., 2010</a>; <a
+href="#ref-arkhangelsky2021" role="doc-biblioref">Arkhangelsky et al.,
+2021</a>)</span>; mixed-frequency nowcasting <span class="citation"
+data-cites="giannone2008 banburamodugno2014">(<a
+href="#ref-banburamodugno2014" role="doc-biblioref">Bańbura &amp;
+Modugno, 2014</a>; <a href="#ref-giannone2008"
+role="doc-biblioref">Giannone et al., 2008</a>)</span>; and text-based
+uncertainty indices <span class="citation" data-cites="bbd2016">(<a
+href="#ref-bbd2016" role="doc-biblioref">Baker et al., 2016</a>)</span>.
+On the modelling side it solves dynamic programs by value-function
+iteration and endogenous grids <span class="citation"
+data-cites="carroll2006 iskhakov2017">(<a href="#ref-carroll2006"
+role="doc-biblioref">Carroll, 2006</a>; <a href="#ref-iskhakov2017"
+role="doc-biblioref">Iskhakov et al., 2017</a>)</span>;
+heterogeneous-agent economies, including sequence-space HANK models
+<span class="citation"
+data-cites="aiyagari1994 young2010 auclert2021">(<a
+href="#ref-aiyagari1994" role="doc-biblioref">Aiyagari, 1994</a>; <a
+href="#ref-auclert2021" role="doc-biblioref">Auclert et al., 2021</a>;
+<a href="#ref-young2010" role="doc-biblioref">Young, 2010</a>)</span>;
+continuous-time models <span class="citation"
+data-cites="achdou2022">(<a href="#ref-achdou2022"
+role="doc-biblioref">Achdou et al., 2022</a>)</span>; projection methods
+on Chebyshev, finite-element and Smolyak grids <span class="citation"
+data-cites="judd1992 mcgrattan1996 smolyak1963 kruegerkubler2004">(<a
+href="#ref-judd1992" role="doc-biblioref">Judd, 1992</a>; <a
+href="#ref-kruegerkubler2004" role="doc-biblioref">Krueger &amp; Kubler,
+2004</a>; <a href="#ref-mcgrattan1996" role="doc-biblioref">McGrattan,
+1996</a>; <a href="#ref-smolyak1963" role="doc-biblioref">Smolyak,
+1963</a>)</span>; linear rational-expectations (DSGE) models;
+quantitative spatial and trade models <span class="citation"
+data-cites="allenarkolakis2014 caliendoparro2015">(<a
+href="#ref-allenarkolakis2014" role="doc-biblioref">Allen &amp;
+Arkolakis, 2014</a>; <a href="#ref-caliendoparro2015"
+role="doc-biblioref">Caliendo &amp; Parro, 2015</a>)</span>; and
+climate–economy models <span class="citation"
+data-cites="nordhaus2018 golosov2014">(<a href="#ref-golosov2014"
+role="doc-biblioref">Golosov et al., 2014</a>; <a
+href="#ref-nordhaus2018" role="doc-biblioref">Nordhaus,
+2018</a>)</span>.</p>
+<p>Its estimators and solvers are written against NumPy <span
+class="citation" data-cites="numpy2020">(<a href="#ref-numpy2020"
+role="doc-biblioref">Harris et al., 2020</a>)</span>, SciPy <span
+class="citation" data-cites="scipy2020">(<a href="#ref-scipy2020"
+role="doc-biblioref">Virtanen et al., 2020</a>)</span>, pandas <span
+class="citation" data-cites="mckinney2010">(<a href="#ref-mckinney2010"
+role="doc-biblioref">McKinney, 2010</a>)</span> and Matplotlib <span
+class="citation" data-cites="hunter2007">(<a href="#ref-hunter2007"
+role="doc-biblioref">Hunter, 2007</a>)</span> alone, and the package
+contains no compiled code of its own. The same code therefore also runs
+in a web browser under Pyodide <span class="citation"
+data-cites="pyodide">(<a href="#ref-pyodide" role="doc-biblioref">The
+Pyodide development team, 2021</a>)</span>, which ships those libraries
+compiled to WebAssembly.</p>
 <h1 id="statement-of-need">Statement of need</h1>
-<p>Macroeconometrics and computational macro are usually taught and
-practiced with tools that demand a substantial local installation — the
-statsmodels <span class="citation" data-cites="statsmodels2010">(Seabold
-and Perktold 2010)</span>, <code>arch</code>, and
-<code>linearmodels</code> stack — or commercial software, such as MATLAB
-for Dynare and most heterogeneous-agent toolkits. That barrier is
-invisible to well-resourced users and decisive for everyone else:
-students on tablets, instructors in low-bandwidth classrooms, and
-researchers without budgets or administrative rights.
-<code>puremacro</code> removes it. Because the library is pure
-scientific-Python, a reader can open a browser and reproduce a
-structural VAR, a local-projection impulse response, an Aiyagari/HANK
-equilibrium, or a real-time GDP nowcast at zero cost, with nothing to
-install.</p>
-<p>Breadth alone is not trustworthy, so <code>puremacro</code> ships its
-own evidence. A built-in <strong>validation gallery</strong> contains 73
-cases that continuously check the library’s estimators against
-independent references — statsmodels <span class="citation"
-data-cites="statsmodels2010">(Seabold and Perktold 2010)</span>,
-<code>arch</code>, and <code>linearmodels</code> where a canonical
-implementation exists, and closed-form solutions, published numbers, or
-internal cross-method identities elsewhere — across thirteen subsystems
-(). A companion <strong>replication gallery</strong> reproduces
-published results from heterogeneous-agent, SVAR, and climate-economy
-models. Both are wired into the CI workflows shipped with the package
-and re-run in a single line,
-<code>puremacro.validation.scorecard()</code>, including in the browser,
-so a user can verify the library on the same machine that runs it. No
-existing macro-econometrics package, to our knowledge, combines this
-breadth with browser portability and a continuously verified,
-self-contained correctness record.</p>
-<h1 id="features">Features</h1>
-<ul>
-<li><strong>Time series, SVARs, and Identification:</strong> VAR, FAVAR,
-BVAR (Minnesota), VECM, and TVP-VAR; structural identification via
-Cholesky, long-run (Blanchard–Quah), sign and sign-zero restrictions,
-proxy/external instruments, and narrative signs; impulse responses,
-variance decompositions, and bootstrap bands.</li>
-<li><strong>Nowcasting and Machine Learning:</strong> mixed-frequency
-Dynamic Factor Models (DFM) with ragged-edge EM imputation and news
-decomposition; Elastic Net and Adaptive Lasso penalized
-forecasting.</li>
-<li><strong>Single-equation and Panel:</strong> local projections
-(including IV and panel), dynamic-panel GMM, HAC and
-weak-instrument-robust Anderson-Rubin inference, synthetic
-difference-in-differences, and synthetic control.</li>
-<li><strong>Computational and Climate Macro:</strong> Sequence-Space
-HANK general equilibrium solve, value-function iteration, the endogenous
-grid method, continuous-time HJB, and DICE-2016 integrated
-climate-economy simulations.</li>
-<li><strong>Reproducibility and Teaching:</strong> an in-browser
-JupyterLite playground with 36 bilingual (English/Spanish) interactive
-showcase notebooks and empirical datasets.</li>
-</ul>
+<p>An applied macroeconomist’s toolkit typically spans several
+ecosystems: reduced-form time series and panel econometrics from
+Python’s statsmodels <span class="citation"
+data-cites="statsmodels2010">(<a href="#ref-statsmodels2010"
+role="doc-biblioref">Seabold &amp; Perktold, 2010</a>)</span>, arch
+<span class="citation" data-cites="arch">(<a href="#ref-arch"
+role="doc-biblioref">Sheppard, 2025a</a>)</span> and linearmodels <span
+class="citation" data-cites="linearmodels">(<a href="#ref-linearmodels"
+role="doc-biblioref">Sheppard, 2025b</a>)</span>; structural
+identification from MATLAB toolboxes or R packages such as vars and
+lpirfs <span class="citation" data-cites="pfaff2008 adammer2019">(<a
+href="#ref-adammer2019" role="doc-biblioref">Adämmer, 2019</a>; <a
+href="#ref-pfaff2008" role="doc-biblioref">Pfaff, 2008</a>)</span>; DSGE
+analysis in Dynare <span class="citation" data-cites="dynare2024">(<a
+href="#ref-dynare2024" role="doc-biblioref">Adjemian et al.,
+2024</a>)</span>, which runs under MATLAB or GNU Octave; and
+heterogeneous-agent models in Python codes accelerated with Numba <span
+class="citation"
+data-cites="auclert2021 carroll2018hark quantecon2024">(<a
+href="#ref-auclert2021" role="doc-biblioref">Auclert et al., 2021</a>;
+<a href="#ref-quantecon2024" role="doc-biblioref">Batista et al.,
+2024</a>; <a href="#ref-carroll2018hark" role="doc-biblioref">Carroll et
+al., 2018</a>)</span>. Each tool is good at what it does, but combining
+them means several installations, often several languages, sometimes a
+commercial licence, and conventions that change from package to package.
+The cost is highest in teaching, where installation problems consume
+class time and students’ machines (managed laptops, low-end hardware,
+tablets) may not support the full stack.</p>
+<p><code>puremacro</code> is written for that audience: instructors,
+students and applied researchers in macroeconomics. It puts common
+estimators and models behind one set of conventions (shared arguments
+such as <code>lags</code>, <code>horizon</code> and <code>ci</code>, and
+immutable result objects with plotting and table export), keeps the
+dependencies of its numerical code to four ubiquitous libraries, and
+ships the evidence needed to trust its output: galleries of checks that
+users can run themselves.</p>
+<h1 id="state-of-the-field">State of the field</h1>
+<p>statsmodels, arch and linearmodels are the reference Python
+implementations of reduced-form time series, conditional volatility and
+panel and instrumental-variable estimation. <code>puremacro</code> does
+not aim to replace them; it uses them as test oracles (see <em>Software
+design</em>). They do not, however, implement the identification schemes
+that define structural macroeconometrics (sign, sign–zero, narrative and
+external-instrument restrictions), nor do they solve heterogeneous-agent
+or general-equilibrium models. For models, widely used tools are Dynare,
+the sequence-space Jacobian toolkit, HARK and QuantEcon.py. In their
+domains they are more mature than <code>puremacro</code> and, for large
+heterogeneous-agent problems, faster: <code>puremacro</code> trades
+speed for portability.</p>
+<p>That portability can be stated precisely. As of September 2026 the
+Pyodide distribution includes NumPy, SciPy, pandas, Matplotlib and
+statsmodels, but not arch, linearmodels or Numba; arch and linearmodels
+publish no pure-Python wheels that a browser could install at run time;
+and HARK and QuantEcon.py declare Numba as a required dependency, while
+the sequence-space Jacobian toolkit uses it in its core modules. In a
+browser, the volatility, panel-IV and heterogeneous-agent layers of the
+usual stack are therefore unavailable, and Dynare needs a different
+language runtime altogether.</p>
+<p>This also answers the build-versus-contribute question. Individual
+estimators could be contributed to existing packages, and some would be
+welcome there. What cannot be contributed is the property that makes the
+collection usable on a constrained machine: one import surface whose
+numerical code depends on nothing beyond four core libraries. That is an
+invariant of the whole library, enforced by tests, not a feature that
+can be added to another project’s dependency graph.</p>
+<h1 id="software-design">Software design</h1>
+<p><strong>An import invariant.</strong> Library modules import NumPy,
+SciPy, pandas and Matplotlib (plus requests, in the data layer) at
+module scope; anything else, from Parquet support to optional
+accelerators, is optional and imported only when available. Two tests
+enforce the rule against the packages most likely to leak in. The first
+imports each of the 530 library modules (examples, teaching helpers,
+text-scraping sources and optional Numba kernels are excluded) and fails
+if statsmodels, linearmodels, arch or the scraping packages bs4,
+pdfplumber and pypdf have entered <code>sys.modules</code>. The second
+repeats the sweep in a subprocess in which those packages cannot be
+imported, so a module that would break on a machine without them fails
+in continuous integration (CI) on a machine that has them. The wheel is
+pure Python, and its base install adds only requests to the four core
+libraries; the Parquet and Excel engines are an optional extra.</p>
+<p><strong>Oracles that do not ship.</strong> The packages forbidden at
+run time are the test suite’s references. Scripts in the repository run
+statsmodels, arch, linearmodels and esda once on fixed inputs and store
+their outputs as package data, so the validation gallery can compare
+against them without importing them; an opt-in test marker recomputes
+the stored outputs with the installed packages to detect drift. The
+reference implementations thus certify the library without becoming its
+dependencies, which is what lets breadth and portability coexist.</p>
+<p><strong>Degrading rather than failing.</strong> Where an external
+tool does better, <code>puremacro</code> uses it if present: seasonal
+adjustment calls X-13ARIMA-SEATS through statsmodels when both are
+installed and otherwise falls back to a native X-11. A
+<code>runtime</code> module detects the host (CPython or Pyodide), the
+device class and the four capabilities that differ away from a
+workstation (sockets, Parquet, threads and a writable filesystem), and
+offers opt-in adaptations such as a browser <code>fetch</code>
+transport. A few dynamic-programming and projection solvers have
+optional Numba kernels and experimental MLX and CuPy paths; NumPy
+remains the reference path and the one tested in CI.</p>
+<p><strong>Costs.</strong> Writing everything in vectorised NumPy makes
+large heterogeneous-agent problems slower than in JIT-compiled toolkits,
+and derivatives that other libraries obtain by automatic differentiation
+must be coded by hand. The browser is a best-effort target rather than a
+supported one: Parquet and Excel files need engines that not every
+Pyodide distribution provides. Under Pyodide 314.0.5 in Node.js the full
+validation gallery passes, and an opt-in release gate installs the
+package as the playground does and runs a 31-test smoke subset of the
+suite.</p>
+<p><strong>Scale.</strong> Version 3.3.0 comprises about 730 modules and
+220,000 lines of Python, exercised by about 12,700 tests that CI runs on
+Linux, macOS and Windows under Python 3.11–3.13. Before a release is
+tagged, a script checks the suite against a recorded baseline, the
+import invariant, a snapshot of the public API that must be regenerated
+deliberately when the interface changes, and that the version string
+agrees across the package metadata, changelog and citation file.</p>
+<h2 id="verification">Verification</h2>
+<p>The validation gallery,
+<code>puremacro.validation.scorecard()</code>, runs 107 checks across 15
+subsystems in under a minute, with none of the oracle packages
+installed; all pass (<a href="#fig:scorecard"
+data-reference-type="ref+label"
+data-reference="fig:scorecard">[fig:scorecard]</a>). The checks differ
+in strength, and each records its reference. Nineteen compare against an
+external reference: stored outputs of statsmodels, arch, linearmodels
+and esda, SciPy results computed at run time, or a published table.
+Agreement with independent implementations is typically at machine
+precision (median relative difference of order
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mn>10</mn><mrow><mi>−</mi><mn>15</mn></mrow></msup><annotation encoding="application/x-tex">10^{-15}</annotation></semantics></math>);
+the exception is GARCH, whose estimates differ from arch’s by up to
+0.35% because the two packages use different optimisers. Twenty-nine
+checks compare against analytical results, and 59 test internal
+consistency, such as agreement between alternative algorithms and
+recovery of parameters from simulated data.</p>
+<p>A separate replication gallery,
+<code>puremacro.replication.scorecard()</code>, reproduces published
+estimates of the return to schooling <span class="citation"
+data-cites="card1995">(<a href="#ref-card1995"
+role="doc-biblioref">Card, 1995</a>)</span>, a textbook logit of married
+women’s labour-force participation on Mroz’s <span class="citation"
+data-cites="mroz1987">(<a href="#ref-mroz1987"
+role="doc-biblioref">1987</a>)</span> data, and the output effect of tax
+changes <span class="citation" data-cites="romer2010">(<a
+href="#ref-romer2010" role="doc-biblioref">Romer &amp; Romer,
+2010</a>)</span>, as well as two qualitative predictions of
+incomplete-markets models <span class="citation"
+data-cites="huggett1993 aiyagari1994">(<a href="#ref-aiyagari1994"
+role="doc-biblioref">Aiyagari, 1994</a>; <a href="#ref-huggett1993"
+role="doc-biblioref">Huggett, 1993</a>)</span>: precautionary saving
+holds the interest rate below the rate of time preference, and the rate
+falls as income risk rises. Most model solvers (sequence-space,
+continuous-time, spatial, trade and climate) are covered by unit tests
+but not yet by gallery checks.</p>
 <figure>
-<img src="scorecard.png" style="width:70.0%"
-alt="Validation coverage: 73 cases across 13 subsystems, each checked against an independent reference." />
-<figcaption aria-hidden="true">Validation coverage: 73 cases across 13
-subsystems, each checked against an independent reference.</figcaption>
+<img src="media/scorecard.png" style="width:80.0%"
+alt="The validation gallery of puremacro 3.3.0: 107 checks in 15 subsystems, by kind of reference; all pass. External reference: stored outputs of statsmodels, arch, linearmodels or esda, SciPy computed at run time, or a published table. Analytical result: a closed form, or an effect planted in simulated data. Internal consistency: agreement between alternative algorithms, identities that correct output must satisfy, or recovery of parameters from simulated data. Regenerate with python paper/make_scorecard_fig.py." />
+<figcaption aria-hidden="true">The validation gallery of
+<code>puremacro</code> 3.3.0: 107 checks in 15 subsystems, by kind of
+reference; all pass. <em>External reference</em>: stored outputs of
+statsmodels, arch, linearmodels or esda, SciPy computed at run time, or
+a published table. <em>Analytical result</em>: a closed form, or an
+effect planted in simulated data. <em>Internal consistency</em>:
+agreement between alternative algorithms, identities that correct output
+must satisfy, or recovery of parameters from simulated data. Regenerate
+with <code>python paper/make_scorecard_fig.py</code>.<span
+id="fig:scorecard" data-label="fig:scorecard"></span></figcaption>
 </figure>
+<h1 id="research-impact-statement">Research impact statement</h1>
+<p><code>puremacro</code> is young (public since July 2026) and has not
+yet been used in published research or by other packages. Its
+significance is near-term, and rests on evidence a reviewer can
+check.</p>
+<!-- AUTHOR: add any external use you know of (other courses, theses, working
+     papers, downstream code); JOSS weighs realized impact above near-term promise. -->
+<p><em>Teaching.</em> The library was written for, and is used in, the
+author’s course <em>Macroeconomía Avanzada</em> at ITAM, whose Fall 2026
+edition builds its computational material on it. The course’s 22 Spanish
+lesson notebooks are in the repository (<code>notebooks/course</code>),
+and 20 of them call <code>puremacro</code> directly.</p>
+<p><em>Reproducible material.</em> The repository contains 58 bilingual
+(English/Spanish) pairs of worked-example notebooks; all but one of
+them, with the lesson notebooks, are also published as a JupyterLite
+<span class="citation" data-cites="jupyterlite">(<a
+href="#ref-jupyterlite" role="doc-biblioref">JupyterLite contributors,
+2021</a>)</span> site that runs them in the browser.</p>
+<!-- AUTHOR: the live site's install failure (the 3.2.1 wheel required openpyxl
+     while PyPI fallback is disabled) is fixed in 3.3.0. After the next Pages
+     deploy, run the first cell of a notebook in a browser to confirm, then delete
+     this comment. -->
+<p><em>Community readiness.</em> The package is released on PyPI under
+the MIT licence, with documentation at <a
+href="https://jalonso1979.github.io/puremacro/"
+class="uri">https://jalonso1979.github.io/puremacro/</a>, contribution
+guidelines, and CI on three operating systems.</p>
+<h1 id="ai-usage-disclosure">AI usage disclosure</h1>
+<p>Generative AI was used extensively in writing <code>puremacro</code>,
+its documentation and this paper. Anthropic’s Claude models, used
+through the Claude Code agent (Claude Opus 5, Claude Fable 5 and Claude
+Fable 5.1), generated or co-wrote much of the code, tests, documentation
+and notebooks: 109 of the 211 commits in the public repository carry a
+Claude co-author trailer. Google’s Jules coding agent contributed 20
+pull requests (refactoring, performance and test improvements), each
+reviewed and merged by the author. Claude also drafted and revised this
+paper, including checking its claims against the code and its references
+against Crossref.</p>
+<p>The author set the scope and made the core design decisions (the
+import invariant, validation against stored outputs of reference
+implementations, and the shared interface conventions) and reviewed,
+edited and validated all AI-assisted output before it was merged.
+Correctness does not rest on that review alone: it is checked by the
+test suite, the validation and replication galleries, and CI.</p>
+<!-- AUTHOR, required before submitting (JOSS treats an incomplete or inaccurate
+     disclosure as an ethical breach):
+     (1) confirm that the review assertion in the paragraph above is accurate;
+     (2) add the AI tools used during private development (2026-04-28 to
+         2026-07-20, squashed into the first public commit), and the model and
+         version behind Jules;
+     (3) refresh the counts: `git rev-list --count HEAD` and
+         `git log -i --grep='co-authored-by: claude' --oneline | wc -l`. -->
 <h1 id="acknowledgements">Acknowledgements</h1>
 <p>The author thanks the scientific-Python and Pyodide communities,
-whose work makes a browser-runnable macroeconometrics library
-possible.</p>
+whose work makes a browser-capable macroeconomics library possible.</p>
+<!-- AUTHOR: JOSS asks for financial support to be acknowledged; name any grant,
+     or state that the work received no specific funding. -->
 <h1 class="unnumbered" id="references">References</h1>
 <div id="refs" class="references csl-bib-body hanging-indent"
-role="list">
+data-entry-spacing="0" data-line-spacing="2" role="list">
+<div id="ref-abadie2010" class="csl-entry" role="listitem">
+Abadie, A., Diamond, A., &amp; Hainmueller, J. (2010). Synthetic control
+methods for comparative case studies: Estimating the effect of
+<span>California</span>’s tobacco control program. <em>Journal of the
+American Statistical Association</em>, <em>105</em>(490), 493–505. <a
+href="https://doi.org/10.1198/jasa.2009.ap08746">https://doi.org/10.1198/jasa.2009.ap08746</a>
+</div>
+<div id="ref-achdou2022" class="csl-entry" role="listitem">
+Achdou, Y., Han, J., Lasry, J.-M., Lions, P.-L., &amp; Moll, B. (2022).
+Income and wealth distribution in macroeconomics: A continuous-time
+approach. <em>The Review of Economic Studies</em>, <em>89</em>(1),
+45–86. <a
+href="https://doi.org/10.1093/restud/rdab002">https://doi.org/10.1093/restud/rdab002</a>
+</div>
+<div id="ref-adammer2019" class="csl-entry" role="listitem">
+Adämmer, P. (2019). <span class="nocase">lpirfs</span>: An
+<span>R</span> package to estimate impulse response functions by local
+projections. <em>The R Journal</em>, <em>11</em>(2). <a
+href="https://doi.org/10.32614/RJ-2019-052">https://doi.org/10.32614/RJ-2019-052</a>
+</div>
+<div id="ref-dynare2024" class="csl-entry" role="listitem">
+Adjemian, S., Juillard, M., Karamé, F., Mutschler, W., Pfeifer, J.,
+Ratto, M., Rion, N., &amp; Villemot, S. (2024). <em>Dynare: Reference
+manual, version 6</em> (Dynare Working Papers No. 80). CEPREMAP. <a
+href="https://ideas.repec.org/p/cpm/dynare/080.html">https://ideas.repec.org/p/cpm/dynare/080.html</a>
+</div>
+<div id="ref-aiyagari1994" class="csl-entry" role="listitem">
+Aiyagari, S. R. (1994). Uninsured idiosyncratic risk and aggregate
+saving. <em>The Quarterly Journal of Economics</em>, <em>109</em>(3),
+659–684. <a
+href="https://doi.org/10.2307/2118417">https://doi.org/10.2307/2118417</a>
+</div>
+<div id="ref-allenarkolakis2014" class="csl-entry" role="listitem">
+Allen, T., &amp; Arkolakis, C. (2014). Trade and the topography of the
+spatial economy. <em>The Quarterly Journal of Economics</em>,
+<em>129</em>(3), 1085–1140. <a
+href="https://doi.org/10.1093/qje/qju016">https://doi.org/10.1093/qje/qju016</a>
+</div>
 <div id="ref-andersonrubin1949" class="csl-entry" role="listitem">
-Anderson, T. W., and Herman Rubin. 1949. <span>“Estimation of the
-Parameters of a Single Equation in a Complete System of Stochastic
-Equations.”</span> <em>The Annals of Mathematical Statistics</em> 20
-(1): 46–63. <a
-href="https://doi.org/10.1214/aoms/1177730030">https://doi.org/10.1214/aoms/1177730030</a>.
+Anderson, T. W., &amp; Rubin, H. (1949). Estimation of the parameters of
+a single equation in a complete system of stochastic equations. <em>The
+Annals of Mathematical Statistics</em>, <em>20</em>(1), 46–63. <a
+href="https://doi.org/10.1214/aoms/1177730090">https://doi.org/10.1214/aoms/1177730090</a>
+</div>
+<div id="ref-antolindiaz2018" class="csl-entry" role="listitem">
+Antolín-Díaz, J., &amp; Rubio-Ramírez, J. F. (2018). Narrative sign
+restrictions for <span>SVARs</span>. <em>American Economic Review</em>,
+<em>108</em>(10), 2802–2829. <a
+href="https://doi.org/10.1257/aer.20161852">https://doi.org/10.1257/aer.20161852</a>
+</div>
+<div id="ref-arellanobond1991" class="csl-entry" role="listitem">
+Arellano, M., &amp; Bond, S. (1991). Some tests of specification for
+panel data: <span>Monte Carlo</span> evidence and an application to
+employment equations. <em>The Review of Economic Studies</em>,
+<em>58</em>(2), 277–297. <a
+href="https://doi.org/10.2307/2297968">https://doi.org/10.2307/2297968</a>
+</div>
+<div id="ref-arkhangelsky2021" class="csl-entry" role="listitem">
+Arkhangelsky, D., Athey, S., Hirshberg, D. A., Imbens, G. W., &amp;
+Wager, S. (2021). Synthetic difference-in-differences. <em>American
+Economic Review</em>, <em>111</em>(12), 4088–4118. <a
+href="https://doi.org/10.1257/aer.20190159">https://doi.org/10.1257/aer.20190159</a>
 </div>
 <div id="ref-auclert2021" class="csl-entry" role="listitem">
-Auclert, Adrien, Bence Bardóczy, Matthew Rognlie, and Ludwig Straub.
-2021. <span>“Using the Sequence-Space <span>Jacobian</span> to Solve and
-Estimate Heterogeneous-Agent Models.”</span> <em>Econometrica</em> 89
-(6): 3115–46. <a
-href="https://doi.org/10.3982/ECTA17434">https://doi.org/10.3982/ECTA17434</a>.
+Auclert, A., Bardóczy, B., Rognlie, M., &amp; Straub, L. (2021). Using
+the sequence-space <span>Jacobian</span> to solve and estimate
+heterogeneous-agent models. <em>Econometrica</em>, <em>89</em>(5),
+2375–2408. <a
+href="https://doi.org/10.3982/ECTA17434">https://doi.org/10.3982/ECTA17434</a>
 </div>
 <div id="ref-bbd2016" class="csl-entry" role="listitem">
-Baker, Scott R., Nicholas Bloom, and Steven J. Davis. 2016.
-<span>“Measuring Economic Policy Uncertainty.”</span> <em>The Quarterly
-Journal of Economics</em> 131 (4): 1593–636. <a
-href="https://doi.org/10.1093/qje/qjw024">https://doi.org/10.1093/qje/qjw024</a>.
+Baker, S. R., Bloom, N., &amp; Davis, S. J. (2016). Measuring economic
+policy uncertainty. <em>The Quarterly Journal of Economics</em>,
+<em>131</em>(4), 1593–1636. <a
+href="https://doi.org/10.1093/qje/qjw024">https://doi.org/10.1093/qje/qjw024</a>
+</div>
+<div id="ref-banburamodugno2014" class="csl-entry" role="listitem">
+Bańbura, M., &amp; Modugno, M. (2014). Maximum likelihood estimation of
+factor models on datasets with arbitrary pattern of missing data.
+<em>Journal of Applied Econometrics</em>, <em>29</em>(1), 133–160. <a
+href="https://doi.org/10.1002/jae.2306">https://doi.org/10.1002/jae.2306</a>
+</div>
+<div id="ref-quantecon2024" class="csl-entry" role="listitem">
+Batista, Q., Coleman, C., Furusawa, Y., Hu, S., Lunagariya, S., Lyon,
+S., McKay, M., Oyama, D., Sargent, T. J., Shi, Z., Stachurski, J.,
+Winant, P., Watkins, N., Yang, Z., &amp; Zhang, H. (2024). <span
+class="nocase">QuantEcon.py</span>: A community based
+<span>Python</span> library for quantitative economics. <em>Journal of
+Open Source Software</em>, <em>9</em>(93), 5585. <a
+href="https://doi.org/10.21105/joss.05585">https://doi.org/10.21105/joss.05585</a>
 </div>
 <div id="ref-bernanke2005" class="csl-entry" role="listitem">
-Bernanke, Ben S., Jean Boivin, and Piotr Eliasz. 2005. <span>“Measuring
-the Effects of Monetary Policy: A Factor-Augmented Vector Autoregressive
-(<span>FAVAR</span>) Approach.”</span> <em>The Quarterly Journal of
-Economics</em> 120 (1): 387–422. <a
-href="https://doi.org/10.1162/0033553053327452">https://doi.org/10.1162/0033553053327452</a>.
+Bernanke, B. S., Boivin, J., &amp; Eliasz, P. (2005). Measuring the
+effects of monetary policy: A factor-augmented vector autoregressive
+(<span>FAVAR</span>) approach. <em>The Quarterly Journal of
+Economics</em>, <em>120</em>(1), 387–422. <a
+href="https://doi.org/10.1162/0033553053327452">https://doi.org/10.1162/0033553053327452</a>
 </div>
 <div id="ref-blanchardquah1989" class="csl-entry" role="listitem">
-Blanchard, Olivier Jean, and Danny Quah. 1989. <span>“The Dynamic
-Effects of Aggregate Demand and Supply Disturbances.”</span> <em>The
-American Economic Review</em> 79 (4): 655–73.
+Blanchard, O. J., &amp; Quah, D. (1989). The dynamic effects of
+aggregate demand and supply disturbances. <em>The American Economic
+Review</em>, <em>79</em>(4), 655–673.
 </div>
 <div id="ref-bollerslev1986" class="csl-entry" role="listitem">
-Bollerslev, Tim. 1986. <span>“Generalized Autoregressive Conditional
-Heteroskedasticity.”</span> <em>Journal of Econometrics</em> 31 (3):
-307–27. <a
-href="https://doi.org/10.1016/0304-4076(86)90063-1">https://doi.org/10.1016/0304-4076(86)90063-1</a>.
+Bollerslev, T. (1986). Generalized autoregressive conditional
+heteroskedasticity. <em>Journal of Econometrics</em>, <em>31</em>(3),
+307–327. <a
+href="https://doi.org/10.1016/0304-4076(86)90063-1">https://doi.org/10.1016/0304-4076(86)90063-1</a>
+</div>
+<div id="ref-caliendoparro2015" class="csl-entry" role="listitem">
+Caliendo, L., &amp; Parro, F. (2015). Estimates of the trade and welfare
+effects of <span>NAFTA</span>. <em>The Review of Economic Studies</em>,
+<em>82</em>(1), 1–44. <a
+href="https://doi.org/10.1093/restud/rdu035">https://doi.org/10.1093/restud/rdu035</a>
+</div>
+<div id="ref-card1995" class="csl-entry" role="listitem">
+Card, D. (1995). Using geographic variation in college proximity to
+estimate the return to schooling. In L. N. Christofides, E. K. Grant,
+&amp; R. Swidinsky (Eds.), <em>Aspects of labour market behaviour:
+Essays in honour of <span>John</span> <span>Vanderkamp</span></em> (pp.
+201–222). University of Toronto Press.
+</div>
+<div id="ref-carroll2006" class="csl-entry" role="listitem">
+Carroll, C. D. (2006). The method of endogenous gridpoints for solving
+dynamic stochastic optimization problems. <em>Economics Letters</em>,
+<em>91</em>(3), 312–320. <a
+href="https://doi.org/10.1016/j.econlet.2005.09.013">https://doi.org/10.1016/j.econlet.2005.09.013</a>
+</div>
+<div id="ref-carroll2018hark" class="csl-entry" role="listitem">
+Carroll, C. D., Kaufman, A. M., Kazil, J. L., Palmer, N. M., &amp;
+White, M. N. (2018). The <span>Econ-ARK</span> and <span>HARK</span>:
+Open source tools for computational economics. <em>Proceedings of the
+17th <span>Python</span> in Science Conference</em>, 25–30. <a
+href="https://doi.org/10.25080/Majora-4af1f417-004">https://doi.org/10.25080/Majora-4af1f417-004</a>
 </div>
 <div id="ref-engle1982" class="csl-entry" role="listitem">
-Engle, Robert F. 1982. <span>“Autoregressive Conditional
-Heteroscedasticity with Estimates of the Variance of United Kingdom
-Inflation.”</span> <em>Econometrica</em> 50 (4): 987–1007. <a
-href="https://doi.org/10.2307/1912773">https://doi.org/10.2307/1912773</a>.
+Engle, R. F. (1982). Autoregressive conditional heteroscedasticity with
+estimates of the variance of <span>United Kingdom</span> inflation.
+<em>Econometrica</em>, <em>50</em>(4), 987–1007. <a
+href="https://doi.org/10.2307/1912773">https://doi.org/10.2307/1912773</a>
+</div>
+<div id="ref-engleghyselssohn2013" class="csl-entry" role="listitem">
+Engle, R. F., Ghysels, E., &amp; Sohn, B. (2013). Stock market
+volatility and macroeconomic fundamentals. <em>The Review of Economics
+and Statistics</em>, <em>95</em>(3), 776–797. <a
+href="https://doi.org/10.1162/REST_a_00300">https://doi.org/10.1162/REST_a_00300</a>
 </div>
 <div id="ref-giannone2008" class="csl-entry" role="listitem">
-Giannone, Domenico, Lucrezia Reichlin, and David Small. 2008.
-<span>“Nowcasting: The Real-Time Informational Content of Macroeconomic
-Data.”</span> <em>Journal of Monetary Economics</em> 55 (4): 665–76. <a
-href="https://doi.org/10.1016/j.jmoneco.2008.05.010">https://doi.org/10.1016/j.jmoneco.2008.05.010</a>.
+Giannone, D., Reichlin, L., &amp; Small, D. (2008). Nowcasting: The
+real-time informational content of macroeconomic data. <em>Journal of
+Monetary Economics</em>, <em>55</em>(4), 665–676. <a
+href="https://doi.org/10.1016/j.jmoneco.2008.05.010">https://doi.org/10.1016/j.jmoneco.2008.05.010</a>
 </div>
 <div id="ref-golosov2014" class="csl-entry" role="listitem">
-Golosov, Mikhail, John Hassler, Per Krusell, and Aleh Tsyvinski. 2014.
-<span>“Optimal Taxes on Fossil Fuel in General Equilibrium.”</span>
-<em>Econometrica</em> 82 (1): 41–88. <a
-href="https://doi.org/10.3982/ECTA10217">https://doi.org/10.3982/ECTA10217</a>.
+Golosov, M., Hassler, J., Krusell, P., &amp; Tsyvinski, A. (2014).
+Optimal taxes on fossil fuel in general equilibrium.
+<em>Econometrica</em>, <em>82</em>(1), 41–88. <a
+href="https://doi.org/10.3982/ECTA10217">https://doi.org/10.3982/ECTA10217</a>
 </div>
 <div id="ref-numpy2020" class="csl-entry" role="listitem">
-<span class="nocase">Harris, Charles R. et al.</span> 2020. <span>“Array
-Programming with <span>NumPy</span>.”</span> <em>Nature</em> 585:
-357–62. <a
-href="https://doi.org/10.1038/s41586-020-2649-2">https://doi.org/10.1038/s41586-020-2649-2</a>.
+Harris, C. R., Millman, K. J., van der Walt, S. J., Gommers, R.,
+Virtanen, P., Cournapeau, D., Wieser, E., Taylor, J., Berg, S., Smith,
+N. J., Kern, R., Picus, M., Hoyer, S., van Kerkwijk, M. H., Brett, M.,
+Haldane, A., Fernández del Río, J., Wiebe, M., Peterson, P., … Oliphant,
+T. E. (2020). Array programming with <span>NumPy</span>.
+<em>Nature</em>, <em>585</em>(7825), 357–362. <a
+href="https://doi.org/10.1038/s41586-020-2649-2">https://doi.org/10.1038/s41586-020-2649-2</a>
+</div>
+<div id="ref-huggett1993" class="csl-entry" role="listitem">
+Huggett, M. (1993). The risk-free rate in heterogeneous-agent
+incomplete-insurance economies. <em>Journal of Economic Dynamics and
+Control</em>, <em>17</em>(5–6), 953–969. <a
+href="https://doi.org/10.1016/0165-1889(93)90024-M">https://doi.org/10.1016/0165-1889(93)90024-M</a>
+</div>
+<div id="ref-hunter2007" class="csl-entry" role="listitem">
+Hunter, J. D. (2007). Matplotlib: A <span>2D</span> graphics
+environment. <em>Computing in Science &amp; Engineering</em>,
+<em>9</em>(3), 90–95. <a
+href="https://doi.org/10.1109/MCSE.2007.55">https://doi.org/10.1109/MCSE.2007.55</a>
+</div>
+<div id="ref-iskhakov2017" class="csl-entry" role="listitem">
+Iskhakov, F., Jørgensen, T. H., Rust, J., &amp; Schjerning, B. (2017).
+The endogenous grid method for discrete-continuous dynamic choice models
+with (or without) taste shocks. <em>Quantitative Economics</em>,
+<em>8</em>(2), 317–365. <a
+href="https://doi.org/10.3982/QE643">https://doi.org/10.3982/QE643</a>
 </div>
 <div id="ref-jorda2005" class="csl-entry" role="listitem">
-Jordà, Òscar. 2005. <span>“Estimation and Inference of Impulse Responses
-by Local Projections.”</span> <em>The American Economic Review</em> 95
-(1): 161–82. <a
-href="https://doi.org/10.1257/0002828053828518">https://doi.org/10.1257/0002828053828518</a>.
+Jordà, Ò. (2005). Estimation and inference of impulse responses by local
+projections. <em>The American Economic Review</em>, <em>95</em>(1),
+161–182. <a
+href="https://doi.org/10.1257/0002828053828518">https://doi.org/10.1257/0002828053828518</a>
+</div>
+<div id="ref-judd1992" class="csl-entry" role="listitem">
+Judd, K. L. (1992). Projection methods for solving aggregate growth
+models. <em>Journal of Economic Theory</em>, <em>58</em>(2), 410–452. <a
+href="https://doi.org/10.1016/0022-0531(92)90061-L">https://doi.org/10.1016/0022-0531(92)90061-L</a>
+</div>
+<div id="ref-jupyterlite" class="csl-entry" role="listitem">
+JupyterLite contributors. (2021). <em><span>JupyterLite</span>:
+<span>Jupyter</span> running entirely in the browser</em>. <a
+href="https://github.com/jupyterlite/jupyterlite"
+class="uri">https://github.com/jupyterlite/jupyterlite</a>.
+</div>
+<div id="ref-kruegerkubler2004" class="csl-entry" role="listitem">
+Krueger, D., &amp; Kubler, F. (2004). Computing equilibrium in
+<span>OLG</span> models with stochastic production. <em>Journal of
+Economic Dynamics and Control</em>, <em>28</em>(7), 1411–1436. <a
+href="https://doi.org/10.1016/S0165-1889(03)00111-8">https://doi.org/10.1016/S0165-1889(03)00111-8</a>
+</div>
+<div id="ref-mcgrattan1996" class="csl-entry" role="listitem">
+McGrattan, E. R. (1996). Solving the stochastic growth model with a
+finite element method. <em>Journal of Economic Dynamics and
+Control</em>, <em>20</em>(1–3), 19–42. <a
+href="https://doi.org/10.1016/0165-1889(94)00842-0">https://doi.org/10.1016/0165-1889(94)00842-0</a>
+</div>
+<div id="ref-mckinney2010" class="csl-entry" role="listitem">
+McKinney, W. (2010). Data structures for statistical computing in
+<span>Python</span>. <em>Proceedings of the 9th <span>Python</span> in
+Science Conference</em>, 56–61. <a
+href="https://doi.org/10.25080/Majora-92bf1922-00a">https://doi.org/10.25080/Majora-92bf1922-00a</a>
+</div>
+<div id="ref-mertensravn2013" class="csl-entry" role="listitem">
+Mertens, K., &amp; Ravn, M. O. (2013). The dynamic effects of personal
+and corporate income tax changes in the <span>United States</span>.
+<em>American Economic Review</em>, <em>103</em>(4), 1212–1247. <a
+href="https://doi.org/10.1257/aer.103.4.1212">https://doi.org/10.1257/aer.103.4.1212</a>
 </div>
 <div id="ref-oleapflueger2013" class="csl-entry" role="listitem">
-Montiel Olea, José Luis, and Carolin Pflueger. 2013. <span>“A Robust
-Test for Weak Instruments.”</span> <em>Journal of Business &amp;
-Economic Statistics</em> 31 (3): 358–69. <a
-href="https://doi.org/10.1080/07350015.2013.806683">https://doi.org/10.1080/07350015.2013.806683</a>.
+Montiel Olea, J. L., &amp; Pflueger, C. (2013). A robust test for weak
+instruments. <em>Journal of Business &amp; Economic Statistics</em>,
+<em>31</em>(3), 358–369. <a
+href="https://doi.org/10.1080/00401706.2013.806694">https://doi.org/10.1080/00401706.2013.806694</a>
+</div>
+<div id="ref-mroz1987" class="csl-entry" role="listitem">
+Mroz, T. A. (1987). The sensitivity of an empirical model of married
+women’s hours of work to economic and statistical assumptions.
+<em>Econometrica</em>, <em>55</em>(4), 765–799. <a
+href="https://doi.org/10.2307/1911029">https://doi.org/10.2307/1911029</a>
 </div>
 <div id="ref-neweywest1987" class="csl-entry" role="listitem">
-Newey, Whitney K., and Kenneth D. West. 1987. <span>“A Simple, Positive
-Semi-Definite, Heteroskedasticity and Autocorrelation Consistent
-Covariance Matrix.”</span> <em>Econometrica</em> 55 (7): 703–8. <a
-href="https://doi.org/10.2307/1913610">https://doi.org/10.2307/1913610</a>.
+Newey, W. K., &amp; West, K. D. (1987). A simple, positive
+semi-definite, heteroskedasticity and autocorrelation consistent
+covariance matrix. <em>Econometrica</em>, <em>55</em>(3), 703–708. <a
+href="https://doi.org/10.2307/1913610">https://doi.org/10.2307/1913610</a>
 </div>
 <div id="ref-nordhaus2018" class="csl-entry" role="listitem">
-Nordhaus, William. 2018. <span>“Projections and Uncertainties about
-Climate Change in an Era of Minimal Climate Policies.”</span>
-<em>American Economic Journal: Economic Policy</em> 10 (3): 333–60. <a
-href="https://doi.org/10.1257/pol.20170046">https://doi.org/10.1257/pol.20170046</a>.
+Nordhaus, W. (2018). Projections and uncertainties about climate change
+in an era of minimal climate policies. <em>American Economic Journal:
+Economic Policy</em>, <em>10</em>(3), 333–360. <a
+href="https://doi.org/10.1257/pol.20170046">https://doi.org/10.1257/pol.20170046</a>
+</div>
+<div id="ref-pfaff2008" class="csl-entry" role="listitem">
+Pfaff, B. (2008). <span>VAR</span>, <span>SVAR</span> and
+<span>SVEC</span> models: Implementation within <span>R</span> package
+vars. <em>Journal of Statistical Software</em>, <em>27</em>(4). <a
+href="https://doi.org/10.18637/jss.v027.i04">https://doi.org/10.18637/jss.v027.i04</a>
+</div>
+<div id="ref-romer2010" class="csl-entry" role="listitem">
+Romer, C. D., &amp; Romer, D. H. (2010). The macroeconomic effects of
+tax changes: Estimates based on a new measure of fiscal shocks.
+<em>American Economic Review</em>, <em>100</em>(3), 763–801. <a
+href="https://doi.org/10.1257/aer.100.3.763">https://doi.org/10.1257/aer.100.3.763</a>
+</div>
+<div id="ref-rubioramirez2010" class="csl-entry" role="listitem">
+Rubio-Ramírez, J. F., Waggoner, D. F., &amp; Zha, T. (2010). Structural
+vector autoregressions: Theory of identification and algorithms for
+inference. <em>The Review of Economic Studies</em>, <em>77</em>(2),
+665–696. <a
+href="https://doi.org/10.1111/j.1467-937X.2009.00578.x">https://doi.org/10.1111/j.1467-937X.2009.00578.x</a>
 </div>
 <div id="ref-statsmodels2010" class="csl-entry" role="listitem">
-Seabold, Skipper, and Josef Perktold. 2010. <span>“Statsmodels:
-Econometric and Statistical Modeling with <span>Python</span>.”</span>
-<em>Proceedings of the 9th Python in Science Conference</em>, 92–96. <a
-href="https://doi.org/10.25080/Majora-92bf1922-011">https://doi.org/10.25080/Majora-92bf1922-011</a>.
+Seabold, S., &amp; Perktold, J. (2010). Statsmodels: Econometric and
+statistical modeling with <span>Python</span>. <em>Proceedings of the
+9th <span>Python</span> in Science Conference</em>, 92–96. <a
+href="https://doi.org/10.25080/Majora-92bf1922-011">https://doi.org/10.25080/Majora-92bf1922-011</a>
+</div>
+<div id="ref-arch" class="csl-entry" role="listitem">
+Sheppard, K. (2025a). <em><span
+class="nocase">bashtage/arch</span></em>. Zenodo. <a
+href="https://doi.org/10.5281/zenodo.593254">https://doi.org/10.5281/zenodo.593254</a>
+</div>
+<div id="ref-linearmodels" class="csl-entry" role="listitem">
+Sheppard, K. (2025b). <em><span
+class="nocase">bashtage/linearmodels</span></em>. Zenodo. <a
+href="https://doi.org/10.5281/zenodo.2591973">https://doi.org/10.5281/zenodo.2591973</a>
 </div>
 <div id="ref-sims1980" class="csl-entry" role="listitem">
-Sims, Christopher A. 1980. <span>“Macroeconomics and Reality.”</span>
-<em>Econometrica</em> 48 (1): 1–48. <a
-href="https://doi.org/10.2307/1912017">https://doi.org/10.2307/1912017</a>.
+Sims, C. A. (1980). Macroeconomics and reality. <em>Econometrica</em>,
+<em>48</em>(1), 1–48. <a
+href="https://doi.org/10.2307/1912017">https://doi.org/10.2307/1912017</a>
+</div>
+<div id="ref-smolyak1963" class="csl-entry" role="listitem">
+Smolyak, S. A. (1963). Quadrature and interpolation formulas for tensor
+products of certain classes of functions. <em>Soviet Mathematics
+Doklady</em>, <em>4</em>, 240–243.
+</div>
+<div id="ref-stockwatson2018" class="csl-entry" role="listitem">
+Stock, J. H., &amp; Watson, M. W. (2018). Identification and estimation
+of dynamic causal effects in macroeconomics using external instruments.
+<em>The Economic Journal</em>, <em>128</em>(610), 917–948. <a
+href="https://doi.org/10.1111/ecoj.12593">https://doi.org/10.1111/ecoj.12593</a>
 </div>
 <div id="ref-pyodide" class="csl-entry" role="listitem">
-The Pyodide development team. 2024. <em>Pyodide: <span>Python</span>
-with the Scientific Stack, Compiled to <span>WebAssembly</span></em>. <a
-href="https://pyodide.org" class="uri">Https://pyodide.org</a>. <a
-href="https://doi.org/10.5281/zenodo.5156931">https://doi.org/10.5281/zenodo.5156931</a>.
+The Pyodide development team. (2021). <em><span
+class="nocase">pyodide/pyodide</span></em>. Zenodo. <a
+href="https://doi.org/10.5281/zenodo.5156931">https://doi.org/10.5281/zenodo.5156931</a>
+</div>
+<div id="ref-uhlig2005" class="csl-entry" role="listitem">
+Uhlig, H. (2005). What are the effects of monetary policy on output?
+<span>Results</span> from an agnostic identification procedure.
+<em>Journal of Monetary Economics</em>, <em>52</em>(2), 381–419. <a
+href="https://doi.org/10.1016/j.jmoneco.2004.05.007">https://doi.org/10.1016/j.jmoneco.2004.05.007</a>
 </div>
 <div id="ref-scipy2020" class="csl-entry" role="listitem">
-<span class="nocase">Virtanen, Pauli et al.</span> 2020.
-<span>“<span>SciPy</span> 1.0: Fundamental Algorithms for Scientific
-Computing in <span>Python</span>.”</span> <em>Nature Methods</em> 17:
-261–72. <a
-href="https://doi.org/10.1038/s41592-019-0686-2">https://doi.org/10.1038/s41592-019-0686-2</a>.
+Virtanen, P., Gommers, R., Oliphant, T. E., Haberland, M., Reddy, T.,
+Cournapeau, D., Burovski, E., Peterson, P., Weckesser, W., Bright, J.,
+van der Walt, S. J., Brett, M., Wilson, J., Millman, K. J., Mayorov, N.,
+Nelson, A. R. J., Jones, E., Kern, R., Larson, E., … SciPy 1.0
+Contributors. (2020). <span>SciPy</span> 1.0: Fundamental algorithms for
+scientific computing in <span>Python</span>. <em>Nature Methods</em>,
+<em>17</em>(3), 261–272. <a
+href="https://doi.org/10.1038/s41592-019-0686-2">https://doi.org/10.1038/s41592-019-0686-2</a>
+</div>
+<div id="ref-young2010" class="csl-entry" role="listitem">
+Young, E. R. (2010). Solving the incomplete markets model with aggregate
+uncertainty using the <span>Krusell–Smith</span> algorithm and
+non-stochastic simulations. <em>Journal of Economic Dynamics and
+Control</em>, <em>34</em>(1), 36–41. <a
+href="https://doi.org/10.1016/j.jedc.2008.11.010">https://doi.org/10.1016/j.jedc.2008.11.010</a>
 </div>
 </div>
 </body>
