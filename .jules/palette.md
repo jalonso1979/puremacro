@@ -1,0 +1,3 @@
+## 2026-09-13 - [Accessibility] Inline HTML in Jupyter Widgets
+**Learning:** When injecting raw HTML payloads into Jupyter notebooks via `IPython.display.HTML`, inline UI features require explicit ARIA attributes: decorative emojis/symbols (like arrows and rockets) must be wrapped in `<span aria-hidden="true">`, and external links using `target="_blank"` must include `rel="noopener noreferrer"` along with an `aria-label` explaining the action (e.g. 'Open in a new tab') so screen readers interpret the interaction correctly.
+**Action:** Use these accessibility constraints consistently whenever returning HTML-formatted display objects from pure python functions.
