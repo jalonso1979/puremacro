@@ -23,12 +23,9 @@ puremacro's cached data layer.
 """
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
-import numpy as np
 import pandas as pd
-
-from ._codes import is_country
 
 _SCHEMA_COLS = ["code", "date", "variable", "value", "sa_source", "source"]
 _EMPTY = pd.DataFrame(
@@ -134,22 +131,23 @@ def _project_quarterly_to_monthly(
 
     records: list[dict[str, object]] = []
 
-    for _, row in df_q.iterrows():
-        base_date = pd.Timestamp(row["date"])
+    # ⚡ Bolt Optimization: Use itertuples instead of iterrows for significant performance improvement
+    for row in df_q.itertuples(index=False):
+        base_date = pd.Timestamp(row.date)
         yr = base_date.year
         q_month = base_date.month
-        val = float(row["value"])
-        var_name = str(row["variable"])
+        val = float(row.value)
+        var_name = str(row.variable)
         m_var = _norm_var_name(var_name, "M")
-        src = f"resampled_from_Q:{row['source']}"
-        sa = row["sa_source"]
+        src = f"resampled_from_Q:{row.source}"
+        sa = row.sa_source
 
         for offset in (0, 1, 2):
             m = q_month + offset
             if m > 12:
                 break
             records.append({
-                "code": row["code"],
+                "code": row.code,
                 "date": pd.Timestamp(f"{yr}-{m:02d}-01"),
                 "variable": m_var,
                 "value": val,
@@ -233,7 +231,7 @@ def build_financial_panel(
 
     # 1. Sovereign Yields & Spreads (monthly)
     try:
-        from .fetch.financial import fetch_sovereign_yields, compute_sovereign_spreads
+        from .fetch.financial import compute_sovereign_spreads, fetch_sovereign_yields
         b_code = benchmark_code.strip().upper()
         yield_codes: list[str] | None
         if codes is not None and include_spreads and b_code not in codes:
