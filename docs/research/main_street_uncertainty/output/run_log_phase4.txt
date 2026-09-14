@@ -1,0 +1,16 @@
+[    0.0s] frozen Phase-3 anchors: h*=9, beta*=+0.04152
+[    0.0s] LOO shock: sd=0.4358 (pre z-score), corr(own, loo) pooled +0.296, per-district range [+0.123, +0.522]
+[    1.6s] spec[urate_own]: peak h=9 beta=+0.0415 (DK se 0.0193, WC p=0.158) n=6273
+[    2.8s] spec[urate_loo_alone]: peak h=12 beta=+0.0354 (DK se 0.0183, WC p=0.008) n=6120
+[    4.1s] spec[urate_hr_own]: peak h=5 beta=+0.0275 (DK se 0.0173, WC p=0.055) n=6477
+[    5.4s] spec[urate_hr_loo]: peak h=12 beta=+0.0343 (DK se 0.0200, WC p=0.039) n=6120
+[    6.7s] spec[emp_own]: peak h=12 beta=-0.1167 (DK se 0.0413, WC p=0.146) n=6120
+[    7.9s] spec[emp_hr_own]: peak h=6 beta=-0.0670 (DK se 0.0368, WC p=0.310) n=6426
+[    8.2s] spec[urate_hr_leads]: peak h=-2 beta=-0.0149 (DK se 0.0115, WC p=0.115) n=6834
+[    8.2s] replication gate PASSED: urate 9.97e-17, emp 1.25e-16 vs frozen Phase-3 irf_exposure.csv
+[    8.2s] decision rule @ h=9: baseline +0.0415 -> horse-race own +0.0245 (ratio +0.59, WC p=0.128) => own-district reading SURVIVES
+[   10.8s] placebo closure: Phase-3 mean +0.0185 -> with LOO control -0.0007 (paired mean drop +0.0192 over 200 draws); randomization p=0.194
+[   10.8s] lead h=-4: Phase 3 -0.0208 (p_wc 0.23) -> | LOO -0.0126 (p_wc 0.35)
+[   10.8s] lead h=-3: Phase 3 -0.0143 (p_wc 0.27) -> | LOO -0.0081 (p_wc 0.55)
+[   10.8s] lead h=-2: Phase 3 -0.0157 (p_wc 0.05) -> | LOO -0.0149 (p_wc 0.12)
+[   11.2s] figure written

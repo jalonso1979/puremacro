@@ -1,0 +1,18 @@
+{
+  "created_utc": "2026-07-23T17:11:13.505423+00:00",
+  "exposure": "FRED CES state mirrors, 11 NAICS supersectors, SA-then-NSA fallback, base 1990Q1-1991Q4 frozen, share of {ST}NA; reference division omitted: other_services",
+  "inputs": {
+    "ces_supersector_shares_9091.csv": {
+      "sha256": "4aaf02da3bc20b5dd1182ff95427b98ff7448fd3c2c3a1c4a27e59fb1bee642e"
+    },
+    "state_district_panel_quarterly.csv": {
+      "sha256": "d5070014b4509c1ff8d6f22e6c2eb5e48072394c44b265118feb1d00b9a033dd"
+    },
+    "exposure_state.csv (gate)": {
+      "sha256": "d2fd4172512e1d3718209803fdc1b48258e2adabd41b74fe8a2d22a1c833b0d8"
+    }
+  },
+  "estimator": "phase-3/4 estimator imported; K=10 z-scored share interactions jointly; 4 lags of every interaction + outcome; joint DK Wald df=10",
+  "wc_draws": 999,
+  "seed": 42
+}
