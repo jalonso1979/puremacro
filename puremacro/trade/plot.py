@@ -13,16 +13,14 @@ Conforms strictly to the puremacro Pyodide runtime contract:
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Sequence
+
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from matplotlib.figure import Figure
 
 from puremacro.trade._results import ScenarioBatchResult
-from puremacro.trade.data import CANONICAL_COUNTRY_CODES, EU_COUNTRY_CODES
-
 
 _GRAYS = ["0.15", "0.40", "0.60", "0.25", "0.75", "0.50", "0.30", "0.70"]
 _MARKERS = ["o", "s", "^", "v", "D", "P", "X", "*"]
@@ -440,8 +438,9 @@ def plot_terms_of_trade_vs_welfare(
     ax.axvline(0, color="gray", linestyle=":", linewidth=0.8)
     ax.set_xlabel("Terms of Trade Change (%)", fontweight="bold")
     ax.set_ylabel("Real GDP Growth (%) [Geary-Khamis]", fontweight="bold")
+    escaped_scenario = scenario.replace("_", r"\_")
     ax.set_title(
-        f"Terms of Trade vs. Welfare Impact ({scenario.replace('_', r'\_')})",
+        f"Terms of Trade vs. Welfare Impact ({escaped_scenario})",
         fontsize=11,
         fontweight="bold",
     )
