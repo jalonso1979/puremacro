@@ -134,22 +134,22 @@ def _project_quarterly_to_monthly(
 
     records: list[dict[str, object]] = []
 
-    for _, row in df_q.iterrows():
-        base_date = pd.Timestamp(row["date"])
+    for row in df_q.itertuples(index=False):
+        base_date = pd.Timestamp(row.date)
         yr = base_date.year
         q_month = base_date.month
-        val = float(row["value"])
-        var_name = str(row["variable"])
+        val = float(row.value)
+        var_name = str(row.variable)
         m_var = _norm_var_name(var_name, "M")
-        src = f"resampled_from_Q:{row['source']}"
-        sa = row["sa_source"]
+        src = f"resampled_from_Q:{row.source}"
+        sa = row.sa_source
 
         for offset in (0, 1, 2):
             m = q_month + offset
             if m > 12:
                 break
             records.append({
-                "code": row["code"],
+                "code": row.code,
                 "date": pd.Timestamp(f"{yr}-{m:02d}-01"),
                 "variable": m_var,
                 "value": val,
