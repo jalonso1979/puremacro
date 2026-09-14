@@ -252,3 +252,39 @@ class TestAllenArkolakisPresentations:
         fig3 = res.plot(kind="counterfactual")
         assert fig3 is not None
         plt.close("all")
+
+
+class TestAdversarialRemediations:
+    """Tests verifying fixes for CR-01, CR-02, and CR-08."""
+
+    def test_beta_zero_raises_value_error(self):
+        with pytest.raises(ValueError, match="Amenity congestion elasticity beta cannot be zero"):
+            AllenArkolakisModel(
+                trade_costs=np.ones((2, 2)),
+                fundamental_productivity=np.ones(2),
+                fundamental_amenity=np.ones(2),
+                theta=4.0,
+                alpha=0.1,
+                beta=0.0,
+            )
+
+    def test_trade_shares_properties(self, us_4cities_model):
+        res = us_4cities_model.solve_equilibrium()
+        np.testing.assert_array_equal(res.trade_shares_dest_origin, res.trade_shares)
+        np.testing.assert_array_equal(res.trade_shares_origin_dest, res.trade_shares.T)
+
+    def test_positive_climate_shock(self, us_4cities_model):
+        # A positive productivity shock to Houston (+15%) using is_percentage_change=True
+        res_pos = us_4cities_model.simulate_climate_shock(
+            productivity_shocks={"HOU": 0.15},
+            is_percentage_change=True,
+        )
+        assert res_pos.converged
+        assert res_pos.welfare_pct is not None and res_pos.welfare_pct > 0.0
+        assert res_pos.L_hat is not None
+        assert res_pos.L_hat[3] > 1.0  # Houston attracts workers
+
+        # Shock <= -1.0 raises ValueError
+        with pytest.raises(ValueError, match="cannot be <= -1.0"):
+            us_4cities_model.simulate_climate_shock(productivity_shocks={"HOU": -1.0})
+

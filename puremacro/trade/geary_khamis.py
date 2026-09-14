@@ -95,6 +95,7 @@ def solve_multilateral_ppp(
     max_iter: int = 1000,
     method: str = "iterative",
     normalize: str = "none",
+    numeraire_idx: int | None = None,
 ) -> tuple[np.ndarray, np.ndarray, bool, int]:
     """Solve the simultaneous Geary-Khamis multilateral Purchasing Power Parity system.
 
@@ -123,6 +124,10 @@ def solve_multilateral_ppp(
           (exact paper tables parity).
         - 'pi1' or 'pi_1': Normalizes reference price of category 1 to 1.0.
         - 'ppp_usa' or 'numeraire': Normalizes PPP exchange rate of United States to 1.0.
+    numeraire_idx : int, optional
+        Explicit country index to normalize to 1.0 when ``normalize='ppp_usa'`` or
+        ``normalize='numeraire'``. Defaults to 73 if ``nc >= 74`` (matching standard WIOD 77-country layout),
+        or ``nc - 1`` otherwise.
 
     Returns
     -------
@@ -209,8 +214,13 @@ def solve_multilateral_ppp(
             pi = pi / scale
             ppp = ppp * scale
     elif norm_str in ("ppp_usa", "usa", "numeraire"):
-        usa_idx = 73 if nc >= 74 else (nc - 1)
-        scale = float(ppp[usa_idx])
+        if numeraire_idx is not None:
+            target_idx = int(numeraire_idx)
+            if target_idx < 0 or target_idx >= nc:
+                raise IndexError(f"numeraire_idx {target_idx} is out of bounds for {nc} countries.")
+        else:
+            target_idx = 73 if nc >= 74 else (nc - 1)
+        scale = float(ppp[target_idx])
         if scale != 0.0:
             ppp = ppp / scale
             pi = pi * scale
@@ -231,6 +241,7 @@ def compute_geary_khamis(
     method: str = "iterative",
     matlab_compat: bool = True,
     normalize: str = "none",
+    numeraire_idx: int | None = None,
     tol: float = 1e-10,
     max_iter: int = 1000,
 ) -> GearyKhamisResult:
@@ -253,6 +264,9 @@ def compute_geary_khamis(
         Whether to replicate MATLAB post-processing sign convention for ROW.
     normalize : {"none", "pi1", "ppp_usa"}, default "none"
         Scale normalization strategy.
+    numeraire_idx : int, optional
+        Explicit country index for PPP normalization. If None and country codes are
+        present, automatically resolves 'USA' or 'US'; otherwise defaults to 73 (if nc >= 74) or 0.
     tol : float, default 1e-10
         Stopping tolerance.
     max_iter : int, default 1000
@@ -313,6 +327,13 @@ def compute_geary_khamis(
             c_codes = tuple(calib.country_codes)
         cat_codes = ("Consumption", "Investment", "DirectPurchasesAbroad")
 
+    resolved_numeraire_idx = numeraire_idx
+    if resolved_numeraire_idx is None and c_codes:
+        for idx_c, code in enumerate(c_codes):
+            if str(code).upper() in ("USA", "US"):
+                resolved_numeraire_idx = idx_c
+                break
+
     # Solve multilateral PPP
     pi, ppp, converged, iterations = solve_multilateral_ppp(
         p=p,
@@ -321,6 +342,7 @@ def compute_geary_khamis(
         max_iter=max_iter,
         method=method,
         normalize=normalize,
+        numeraire_idx=resolved_numeraire_idx,
     )
 
     p_2d = p[0] if p.ndim == 3 else p

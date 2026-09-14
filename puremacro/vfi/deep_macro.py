@@ -454,6 +454,9 @@ class DeepMacroModel:
         State transition law s' = T(s, c, shocks).
     euler_residual_fn : Optional[Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray], np.ndarray]]
         Euler equation residual evaluator R(s, c, s', c').
+    euler_target_fn : Optional[Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray], np.ndarray]]
+        Optional custom Euler target policy evaluator c_target = f(s, c, s', c').
+        If None, defaults to canonical Cobb-Douglas CRRA capital accumulation target.
     name : str, default "Multi-Country Capital Accumulation"
         Descriptive model identifier.
     """
@@ -465,6 +468,7 @@ class DeepMacroModel:
     reward_fn: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None
     transition_fn: Optional[Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], np.ndarray]] = None
     euler_residual_fn: Optional[Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray], np.ndarray]] = None
+    euler_target_fn: Optional[Callable[[np.ndarray, np.ndarray, np.ndarray, np.ndarray], np.ndarray]] = None
     name: str = "Multi-Country Capital Accumulation"
 
     def __post_init__(self) -> None:
@@ -997,17 +1001,23 @@ def solve_deep_macro(
         # Next period evaluation
         _, _, _, cp_batch = _eval_policy(kp_batch)
 
-        # Future marginal return to capital
-        alpha = float(model.params.get("alpha", 0.36))
-        delta = float(model.params.get("delta", 0.08))
-        A = model.params.get("A", 1.0)
-        R_next = alpha * A * (np.maximum(kp_batch, 1e-6) ** (alpha - 1.0)) + (1.0 - delta)
+        # Euler equation target evaluation
+        target_fn = getattr(model, "euler_target_fn", None)
+        if target_fn is not None:
+            c_target = target_fn(k_batch, c, kp_batch, cp_batch)
+        else:
+            # Canonical neoclassical Cobb-Douglas / CRRA target:
+            # Future marginal return to capital
+            alpha = float(model.params.get("alpha", 0.36))
+            delta = float(model.params.get("delta", 0.08))
+            A = model.params.get("A", 1.0)
+            R_next = alpha * A * (np.maximum(kp_batch, 1e-6) ** (alpha - 1.0)) + (1.0 - delta)
 
-        # Euler equation target: u'(c_target) = beta * E[u'(c') * R']
-        # c_target = (beta * (c')^(-gamma) * R')^(-1 / gamma)
-        muc_next = (np.maximum(cp_batch, 1e-6)) ** (-gamma)
-        euler_rhs = model.beta * muc_next * R_next
-        c_target = np.maximum(euler_rhs, 1e-12) ** (-1.0 / gamma)
+            # Euler equation target: u'(c_target) = beta * E[u'(c') * R']
+            # c_target = (beta * (c')^(-gamma) * R')^(-1 / gamma)
+            muc_next = (np.maximum(cp_batch, 1e-6)) ** (-gamma)
+            euler_rhs = model.beta * muc_next * R_next
+            c_target = np.maximum(euler_rhs, 1e-12) ** (-1.0 / gamma)
 
         # Target consumption share
         share_target = np.clip(c_target / np.maximum(W, 1e-6), eps_bound, 1.0 - eps_bound)

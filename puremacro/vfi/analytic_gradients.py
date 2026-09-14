@@ -1,6 +1,6 @@
-r"""Exact Analytic Gradients via the Implicit Function Theorem (IFT) for puremacro.vfi.
+r"""Accelerated Semi-Analytic Gradients via the Implicit Function Theorem (IFT) for puremacro.vfi.
 
-Provides exact machine-precision Jacobians of continuous dynamic programming policy
+Provides fast semi-analytic Jacobians of continuous dynamic programming policy
 functions and general equilibrium aggregates with respect to structural parameters
 \theta = (\beta, \alpha, \delta, \sigma, \dots) on continuous Chebyshev collocation,
 Finite Element Method (FEM), and cubic/Schumaker spline residual systems:
@@ -14,12 +14,12 @@ Applying the Implicit Function Theorem:
 
 Computational & Algorithmic Advantages:
 - Single LU Factorization: Factors J_c = \nabla_c R once in O(N^3) flops and solves for all p
-  parameter columns in O(p N^2), achieving > 5x speedup over numerical finite differences.
-- Zero Discretization / Stopping Chatter: Eliminates numerical finite-difference noise O(1/h),
-  guaranteeing exact gradient directions required by HMC/NUTS, GMM, and SMM estimation.
+  parameter columns in O(p N^2), achieving > 5x speedup over repeated non-linear fixed-point resolves.
+- Fixed-Point Chatter Elimination: Evaluates the residual system directly at the converged
+  equilibrium c^*, avoiding non-linear solver convergence chatter and inner-loop tolerance inconsistencies.
 - Continuous Policy Gradients: Evaluates exact continuous sensitivities \nabla_\theta g(s) = \Phi(s) \nabla_\theta c^*
   at arbitrary continuous state coordinates s.
-- Adjoint Stationary Distribution & Macro Aggregates: Computes exact general equilibrium
+- Adjoint Stationary Distribution & Macro Aggregates: Computes general equilibrium
   sensitivities \nabla_\theta K^*, \nabla_\theta C^*, \nabla_\theta r^*, \nabla_\theta w^*
   and adjoint stationary distribution sensitivities \nabla_\theta \mu^*.
 - Robust Regularization Fallback: Automatically detects high condition numbers cond(J_c) > 10^12
@@ -45,6 +45,13 @@ from scipy.optimize import brentq
 
 from puremacro import _backend as _bk
 from puremacro.reports import _df_to_latex, _df_to_markdown, _df_to_typst
+
+_GREEK_LETTERS = {
+    "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta", "theta",
+    "iota", "kappa", "lambda", "mu", "nu", "xi", "pi", "rho", "sigma",
+    "tau", "upsilon", "phi", "chi", "psi", "omega",
+    "varepsilon", "vartheta", "varpi", "varrho", "varsigma", "varphi",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -297,7 +304,8 @@ class AnalyticGradientResult:
         colors = ["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple", "tab:brown"]
         for k, p_name in enumerate(self.param_names):
             color = colors[k % len(colors)]
-            ax1.plot(s_grid, pol_grads[:, k], label=f"$\\partial g(s) / \\partial \\{p_name}$", color=color, lw=2.0)
+            latex_sym = f"\\{p_name}" if p_name.lower() in _GREEK_LETTERS else p_name
+            ax1.plot(s_grid, pol_grads[:, k], label=f"$\\partial g(s) / \\partial {latex_sym}$", color=color, lw=2.0)
         ax1.axhline(0.0, color="gray", ls="--", alpha=0.6)
         ax1.set_title("Continuous Policy Sensitivities $\\nabla_\\theta g(s)$")
         ax1.set_xlabel("Continuous State $s$")
@@ -316,9 +324,10 @@ class AnalyticGradientResult:
 
             for k, p_name in enumerate(self.param_names):
                 color = colors[k % len(colors)]
+                latex_sym = f"\\{p_name}" if p_name.lower() in _GREEK_LETTERS else p_name
                 vals = [float(self.grad_aggregates[ak][k]) for ak in agg_keys]
                 x_pos = indices - 0.4 + (k + 0.5) * bar_width
-                ax2.bar(x_pos, vals, width=bar_width, label=f"$\\theta = \\{p_name}$", color=color, alpha=0.85)
+                ax2.bar(x_pos, vals, width=bar_width, label=f"$\\theta = {latex_sym}$", color=color, alpha=0.85)
 
             ax2.axhline(0.0, color="black", lw=0.8, ls="--")
             ax2.set_xticks(indices)

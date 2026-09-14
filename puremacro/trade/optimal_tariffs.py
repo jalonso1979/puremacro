@@ -715,7 +715,20 @@ def solve_multilateral_nash_tariffs(
         Equilibrium tariff profile, player welfare changes, terms-of-trade shifts,
         and convergence diagnostics.
     """
-    players = tuple(p.strip().upper() for p in player_countries)
+    if "players" in kwargs:
+        player_countries = kwargs.pop("players")
+
+    resolved_players: list[str] = []
+    c_codes = list(calib.country_codes) if calib.country_codes else []
+    for p in player_countries:
+        if isinstance(p, int):
+            if c_codes and 0 <= p < len(c_codes):
+                resolved_players.append(str(c_codes[p]))
+            else:
+                resolved_players.append(str(p))
+        else:
+            resolved_players.append(str(p).strip().upper())
+    players = tuple(resolved_players)
 
     # 1. Baseline Free Trade solve
     res_base = solve_trade_equilibrium(
@@ -834,7 +847,8 @@ def solve_multilateral_nash_tariffs(
 
                 w_plus = evaluate_national_welfare(calib, eq_p, country_idx=p, metric=metric, base_equilibrium=res_base, tau=tau_p, tau_fd=tau_fd_p)
                 w_minus = evaluate_national_welfare(calib, eq_m, country_idx=p, metric=metric, base_equilibrium=res_base, tau=tau_m, tau_fd=tau_fd_m)
-                grad[p] = (w_plus - w_minus) / (2.0 * h_fd)
+                h_actual = float(prof_plus[p] - prof_minus[p])
+                grad[p] = (w_plus - w_minus) / h_actual if h_actual > 1e-8 else 0.0
 
             # Gradient step with line search
             step_size = relaxation * 0.10

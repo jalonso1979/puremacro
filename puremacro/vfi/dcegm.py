@@ -301,7 +301,11 @@ def upper_envelope(
         if u_fn is not None and v_cont_amin is not None:
             v_con = u_fn(c_con) + v_cont_amin
         else:
-            slope_v = max((segments[0][2][1] - segments[0][2][0]) / max(segments[0][0][1] - segments[0][0][0], 1e-8), 0.1)
+            if len(segments[0][0]) >= 2:
+                denom = max(segments[0][0][1] - segments[0][0][0], 1e-8)
+                slope_v = max((segments[0][2][1] - segments[0][2][0]) / denom, 0.1)
+            else:
+                slope_v = 1.0
             v_con = segments[0][2][0] + slope_v * (m_con - m_min_unconstrained)
         segments.insert(0, (m_con, c_con, v_con, True))
 
@@ -317,9 +321,13 @@ def upper_envelope(
         # Left extrapolation for lowest segment
         left_mask = exog < m_seg[0]
         if np.any(left_mask) and m_seg[0] <= m_min_global + 1e-5:
-            denom = max(m_seg[1] - m_seg[0], 1e-8)
-            slope_c = max((c_seg[1] - c_seg[0]) / denom, 0.1)
-            slope_v = max((v_seg[1] - v_seg[0]) / denom, 0.1)
+            if len(m_seg) >= 2:
+                denom = max(m_seg[1] - m_seg[0], 1e-8)
+                slope_c = max((c_seg[1] - c_seg[0]) / denom, 0.1)
+                slope_v = max((v_seg[1] - v_seg[0]) / denom, 0.1)
+            else:
+                slope_c = 1.0
+                slope_v = 1.0
             c_eval[left_mask] = np.maximum(c_seg[0] + slope_c * (exog[left_mask] - m_seg[0]), 1e-6)
             v_eval[left_mask] = v_seg[0] + slope_v * (exog[left_mask] - m_seg[0])
 
@@ -328,8 +336,11 @@ def upper_envelope(
         if not is_con:
             right_mask = exog > m_seg[-1]
             if np.any(right_mask):
-                denom = max(m_seg[-1] - m_seg[-2], 1e-8)
-                slope_v = max((v_seg[-1] - v_seg[-2]) / denom, 1e-4)
+                if len(m_seg) >= 2:
+                    denom = max(m_seg[-1] - m_seg[-2], 1e-8)
+                    slope_v = max((v_seg[-1] - v_seg[-2]) / denom, 1e-4)
+                else:
+                    slope_v = 1.0
                 c_eval[right_mask] = c_seg[-1] + (exog[right_mask] - m_seg[-1])
                 v_eval[right_mask] = v_seg[-1] + slope_v * (exog[right_mask] - m_seg[-1])
 

@@ -1007,15 +1007,15 @@ class TestTier2BoundaryCornerCases:
         aa = _require_allen_arkolakis()
         data = canonical_allen_arkolakis_data
 
-        # Strong agglomeration + weak congestion: alpha = 0.90, beta = 0.0, theta = 4.0
-        # alpha + beta = 0.90 > 4.0 / 5.0 = 0.80
+        # Strong agglomeration + weak congestion: alpha = 0.90, beta = -0.05, theta = 4.0
+        # alpha + beta = 0.85 > 4.0 / 5.0 = 0.80
         model = aa.AllenArkolakisModel(
             trade_costs=data["trade_costs"],
             fundamental_productivity=data["fundamental_productivity"],
             fundamental_amenity=data["fundamental_amenity"],
             theta=4.0,
             alpha=0.90,
-            beta=0.0,
+            beta=-0.05,
         )
 
         assert not model.is_unique, "Model must flag is_unique=False when agglomeration forces exceed uniqueness threshold"

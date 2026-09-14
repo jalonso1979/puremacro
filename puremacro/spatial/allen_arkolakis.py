@@ -231,6 +231,16 @@ class AllenArkolakisResult:
 
         raise ValueError(f"Unknown plot kind: {kind!r}. Choose from 'spatial', 'population', 'counterfactual'.")
 
+    @property
+    def trade_shares_dest_origin(self) -> np.ndarray:
+        """Bilateral expenditure shares where axis 0 is destination i and axis 1 is origin j."""
+        return self.trade_shares
+
+    @property
+    def trade_shares_origin_dest(self) -> np.ndarray:
+        """Bilateral expenditure shares where axis 0 is origin j and axis 1 is destination i (transpose)."""
+        return self.trade_shares.T
+
 
 class AllenArkolakisModel:
     """Allen & Arkolakis (2014) Quantitative Spatial General Equilibrium Model.
@@ -303,7 +313,12 @@ class AllenArkolakisModel:
             raise ValueError("Fundamental amenities must be strictly positive.")
         if self.theta <= 0.0:
             raise ValueError(f"Trade elasticity theta must be positive, got {self.theta}")
-        if self.beta >= 0.0:
+        if self.beta == 0.0:
+            raise ValueError(
+                "Amenity congestion elasticity beta cannot be zero, as equilibrium inversion "
+                "requires finite congestion elasticity (nu = -1/beta)."
+            )
+        if self.beta > 0.0:
             warnings.warn(
                 f"Amenity congestion elasticity beta is non-negative ({self.beta}). "
                 "The model typically requires beta < 0 to ensure congestion balances agglomeration.",
@@ -715,6 +730,7 @@ class AllenArkolakisModel:
         self,
         productivity_shocks: Mapping[str | int, float] | np.ndarray | None = None,
         amenity_shocks: Mapping[str | int, float] | np.ndarray | None = None,
+        is_percentage_change: bool = False,
         **kwargs: Any,
     ) -> AllenArkolakisResult:
         """Simulate localized climate or environmental shocks altering productivities or amenities.
@@ -722,11 +738,19 @@ class AllenArkolakisModel:
         Parameters
         ----------
         productivity_shocks : Mapping[str | int, float] | np.ndarray | None, optional
-            Relative productivity shock (e.g. 0.90 or -0.10 for a 10% decline).
+            Productivity shock. If ``is_percentage_change=True``, values represent relative
+            fractional changes (e.g. +0.10 for +10%, -0.10 for -10%). If ``False``, values represent
+            gross multipliers (e.g. 1.10 for +10%, 0.85 for -15%) with convenience support for
+            negative fractional changes in (-1.0, 0.0).
             Can be given as a mapping {region: factor} or full array of length N.
         amenity_shocks : Mapping[str | int, float] | np.ndarray | None, optional
-            Relative amenity shock.
+            Amenity shock. Follows the same conventions as ``productivity_shocks``.
             Can be given as a mapping {region: factor} or full array of length N.
+        is_percentage_change : bool, default False
+            Whether shock values are interpreted strictly as percentage/fractional changes
+            relative to baseline (e.g., +0.10 means +10%, -0.10 means -10%, so factor = 1.0 + shock).
+        **kwargs : Any
+            Additional solver options passed to :meth:`solve_counterfactual`.
 
         Returns
         -------
@@ -736,34 +760,68 @@ class AllenArkolakisModel:
         prod_new = self.fundamental_productivity.copy()
         amen_new = self.fundamental_amenity.copy()
 
-        def _clean_factor(v: float) -> float:
+        def _clean_factor(v: float, name: str) -> float:
             val = float(v)
+            if is_percentage_change:
+                if val <= -1.0:
+                    raise ValueError(f"Percentage shock {val} for {name} cannot be <= -1.0 (wipes out or inverts baseline).")
+                return 1.0 + val
             if -1.0 < val < 0.0:
                 return 1.0 + val
+            if val <= -1.0:
+                raise ValueError(f"Relative shock {val} for {name} cannot be <= -1.0 (wipes out or inverts baseline).")
+            if val <= 0.0:
+                raise ValueError(f"Gross shock multiplier for {name} must be strictly positive, got {val}")
+            if 0.0 < val < 0.5:
+                warnings.warn(
+                    f"Shock value {val} for {name} is between 0 and 0.5 and interpreted as a gross multiplier "
+                    f"({val * 100:.1f}% of baseline, i.e. a {(1.0 - val) * 100:.1f}% decline). "
+                    f"If you intended a +{val * 100:.1f}% increase, pass 1.0 + {val} or set is_percentage_change=True.",
+                    UserWarning,
+                    stacklevel=3,
+                )
             return val
 
         if productivity_shocks is not None:
             if isinstance(productivity_shocks, Mapping):
                 for k, v in productivity_shocks.items():
                     idx = k if isinstance(k, int) else self.region_names.index(k)
-                    prod_new[idx] *= _clean_factor(v)
+                    prod_new[idx] *= _clean_factor(v, f"region {k}")
             else:
                 arr = np.asarray(productivity_shocks, dtype=float)
                 if arr.shape != (self.N,):
                     raise ValueError(f"productivity_shocks array must have shape ({self.N},)")
-                factors = np.where((-1.0 < arr) & (arr < 0.0), 1.0 + arr, arr)
+                if is_percentage_change:
+                    if np.any(arr <= -1.0):
+                        raise ValueError("Percentage shock cannot be <= -1.0 (wipes out or inverts baseline).")
+                    factors = 1.0 + arr
+                else:
+                    if np.any(arr <= -1.0):
+                        raise ValueError("Relative shock cannot be <= -1.0 (wipes out or inverts baseline).")
+                    factors = np.where((-1.0 < arr) & (arr < 0.0), 1.0 + arr, arr)
+                    if np.any(factors <= 0.0):
+                        raise ValueError("Gross shock multiplier must be strictly positive.")
                 prod_new *= factors
 
         if amenity_shocks is not None:
             if isinstance(amenity_shocks, Mapping):
                 for k, v in amenity_shocks.items():
                     idx = k if isinstance(k, int) else self.region_names.index(k)
-                    amen_new[idx] *= _clean_factor(v)
+                    amen_new[idx] *= _clean_factor(v, f"region {k}")
             else:
                 arr = np.asarray(amenity_shocks, dtype=float)
                 if arr.shape != (self.N,):
                     raise ValueError(f"amenity_shocks array must have shape ({self.N},)")
-                factors = np.where((-1.0 < arr) & (arr < 0.0), 1.0 + arr, arr)
+                if is_percentage_change:
+                    if np.any(arr <= -1.0):
+                        raise ValueError("Percentage shock cannot be <= -1.0 (wipes out or inverts baseline).")
+                    factors = 1.0 + arr
+                else:
+                    if np.any(arr <= -1.0):
+                        raise ValueError("Relative shock cannot be <= -1.0 (wipes out or inverts baseline).")
+                    factors = np.where((-1.0 < arr) & (arr < 0.0), 1.0 + arr, arr)
+                    if np.any(factors <= 0.0):
+                        raise ValueError("Gross shock multiplier must be strictly positive.")
                 amen_new *= factors
 
         return self.solve_counterfactual(

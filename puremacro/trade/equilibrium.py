@@ -159,18 +159,21 @@ def pack_equilibrium_vector(
     return np.concatenate([p_part, y_part, r_part, w_part, T_flat, XN_flat])
 
 
-_CALIB_CES_CACHE: dict[int, tuple[np.ndarray, np.ndarray]] = {}
-
-
 def _get_ces_weights(calib: TradeCalibrationResult) -> tuple[np.ndarray, np.ndarray]:
-    """Precompute and cache CES aggregation weights to optimize Newton Jacobian evaluations."""
-    c_id = id(calib)
-    if c_id not in _CALIB_CES_CACHE:
-        A_mat = np.sum(calib.a, axis=0)  # shape (ns, nc)
-        A_mat_safe = np.where(A_mat > 0, A_mat, 1.0)
-        omega = calib.a / A_mat_safe[np.newaxis, :, :]  # shape (ns*nc, ns, nc)
-        _CALIB_CES_CACHE[c_id] = (A_mat, omega)
-    return _CALIB_CES_CACHE[c_id]
+    """Precompute and cache CES aggregation weights on the calibration instance to optimize evaluations."""
+    cached = getattr(calib, "_ces_weights_cache", None)
+    if cached is not None:
+        return cached
+
+    A_mat = np.sum(calib.a, axis=0)  # shape (ns, nc)
+    A_mat_safe = np.where(A_mat > 0, A_mat, 1.0)
+    omega = calib.a / A_mat_safe[np.newaxis, :, :]  # shape (ns*nc, ns, nc)
+    cached_val = (A_mat, omega)
+    try:
+        object.__setattr__(calib, "_ces_weights_cache", cached_val)
+    except Exception:
+        pass
+    return cached_val
 
 
 def compute_equilibrium_residuals(
