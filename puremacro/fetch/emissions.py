@@ -322,7 +322,7 @@ def fetch_oecd_ghg(
 
     records: list[dict[str, object]] = []
 
-    for _, row in sub.iterrows():
+    for row in sub.to_dict('records'):
         ref_area = row.get("REF_AREA")
         if not isinstance(ref_area, str):
             continue
@@ -441,19 +441,19 @@ def fetch_emissions_panel(
 
     # Quarterly expansion: expand each annual observation into 4 quarterly periods
     q_records: list[dict[str, object]] = []
-    for _, row in merged.iterrows():
-        base_year = row["date"].year
-        var_name = str(row["variable"])
+    for row in merged.itertuples(index=False):
+        base_year = row.date.year
+        var_name = str(row.variable)
         q_var = var_name[:-2] + "_q" if var_name.endswith("_a") else var_name + "_q"
-        q_source = f"resampled_from_A:{row['source']}"
+        q_source = f"resampled_from_A:{row.source}"
 
         for m in (1, 4, 7, 10):
             q_records.append({
-                "code": row["code"],
+                "code": row.code,
                 "date": pd.Timestamp(f"{base_year}-{m:02d}-01"),
                 "variable": q_var,
-                "value": row["value"],
-                "sa_source": row["sa_source"],
+                "value": row.value,
+                "sa_source": row.sa_source,
                 "source": q_source,
             })
 
