@@ -13,16 +13,13 @@ Conforms strictly to the puremacro Pyodide runtime contract:
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Sequence
-import matplotlib.pyplot as plt
+from typing import Any
+
 import numpy as np
-import pandas as pd
-from matplotlib.figure import Figure
 
 from puremacro.trade._results import ScenarioBatchResult
-from puremacro.trade.data import CANONICAL_COUNTRY_CODES, EU_COUNTRY_CODES
-
 
 _GRAYS = ["0.15", "0.40", "0.60", "0.25", "0.75", "0.50", "0.30", "0.70"]
 _MARKERS = ["o", "s", "^", "v", "D", "P", "X", "*"]
@@ -36,15 +33,14 @@ def _palette(n: int) -> list[str]:
 
 
 def _resolve_ax(
-    ax: plt.Axes | None, figsize: tuple[float, float] = (7.0, 4.5)
-) -> tuple[Figure, plt.Axes]:
+    ax: Any | None, figsize: tuple[float, float] = (7.0, 4.5)
+) -> tuple[Any, Any]:
     """Helper to resolve or create a Figure and Axes."""
+    import matplotlib.pyplot as plt
     if ax is None:
         fig, new_ax = plt.subplots(figsize=figsize)
         return fig, new_ax
     f = ax.figure
-    if not isinstance(f, Figure):
-        raise TypeError(f"Expected matplotlib.figure.Figure, got {type(f)}")
     return f, ax
 
 
@@ -56,9 +52,9 @@ def plot_country_impacts(
     batch_res: ScenarioBatchResult,
     countries: Sequence[str] | None = None,
     save_path: str | Path | None = None,
-    ax: plt.Axes | None = None,
+    ax: Any | None = None,
     figsize: tuple[float, float] = (11.0, 4.0),
-) -> Figure:
+) -> Any:
     """Plot comparative macroeconomic impacts on selected economies across scenarios.
 
     If `ax` is None, constructs a publication-ready 3-panel figure:
@@ -98,13 +94,15 @@ def plot_country_impacts(
 
     if ax is not None:
         f = ax.figure
+        from matplotlib.figure import Figure
         if not isinstance(f, Figure):
             raise TypeError(f"Expected matplotlib.figure.Figure, got {type(f)}")
-        fig: Figure = f
+        fig = f
         gdp_sub = tbl.loc["GDP growth (%)"]
         for i, s in enumerate(scenarios):
             vals = [gdp_sub.loc[c, s] for c in c_list]
-            ax.bar(x + i * width, vals, width, label=s.replace("_", r"\_"), color=colors[i])
+            esc_s = s.replace("_", r"\_")
+            ax.bar(x + i * width, vals, width, label=esc_s, color=colors[i])
         ax.set_xticks(x + width * (n_scen - 1) / 2)
         ax.set_xticklabels(c_list)
         ax.axhline(0, color="gray", linestyle="--", linewidth=0.8)
@@ -113,6 +111,7 @@ def plot_country_impacts(
         ax.legend(frameon=True, fontsize=8)
         ax.grid(True, linestyle=":", alpha=0.5, axis="y")
     else:
+        import matplotlib.pyplot as plt
         fig, axes = plt.subplots(1, 3, figsize=figsize)
         sections = [
             ("GDP growth (%)", "Real GDP Growth (%)", axes[0]),
@@ -124,11 +123,12 @@ def plot_country_impacts(
             sec_sub = tbl.loc[sec_key]
             for i, s in enumerate(scenarios):
                 vals = [sec_sub.loc[c, s] for c in c_list]
+                esc_s = s.replace("_", r"\_")
                 cur_ax.bar(
                     x + i * width,
                     vals,
                     width,
-                    label=s.replace("_", r"\_"),
+                    label=esc_s,
                     color=colors[i],
                 )
             cur_ax.set_xticks(x + width * (n_scen - 1) / 2)
@@ -157,9 +157,9 @@ def plot_scenario_distributions(
     batch_res: ScenarioBatchResult,
     metric: str = "real_gdp_growth",
     save_path: str | Path | None = None,
-    ax: plt.Axes | None = None,
+    ax: Any | None = None,
     figsize: tuple[float, float] = (7.5, 4.5),
-) -> Figure:
+) -> Any:
     """Plot cross-country distribution box plots across tariff counterfactual scenarios.
 
     Parameters
@@ -243,9 +243,9 @@ def plot_tariff_escalation_curve(
     batch_res: ScenarioBatchResult,
     partner: str = "CHN",
     save_path: str | Path | None = None,
-    ax: plt.Axes | None = None,
+    ax: Any | None = None,
     figsize: tuple[float, float] = (7.5, 4.5),
-) -> Figure:
+) -> Any:
     """Plot non-linear economic contraction curve across escalating tariff schedules.
 
     Parameters
@@ -351,9 +351,9 @@ def plot_terms_of_trade_vs_welfare(
     batch_res: ScenarioBatchResult,
     scenario: str = "t10",
     save_path: str | Path | None = None,
-    ax: plt.Axes | None = None,
+    ax: Any | None = None,
     figsize: tuple[float, float] = (8.0, 5.0),
-) -> Figure:
+) -> Any:
     """Plot Terms of Trade change vs. Real GDP growth scatter plot for a given scenario.
 
     Parameters
@@ -440,8 +440,9 @@ def plot_terms_of_trade_vs_welfare(
     ax.axvline(0, color="gray", linestyle=":", linewidth=0.8)
     ax.set_xlabel("Terms of Trade Change (%)", fontweight="bold")
     ax.set_ylabel("Real GDP Growth (%) [Geary-Khamis]", fontweight="bold")
+    esc_scenario = scenario.replace('_', r'\_')
     ax.set_title(
-        f"Terms of Trade vs. Welfare Impact ({scenario.replace('_', r'\_')})",
+        f"Terms of Trade vs. Welfare Impact ({esc_scenario})",
         fontsize=11,
         fontweight="bold",
     )

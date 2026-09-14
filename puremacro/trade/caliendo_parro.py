@@ -13,8 +13,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy import linalg
@@ -136,11 +134,13 @@ class CaliendoParroResult:
     def plot(
         self,
         kind: str = "welfare",
-        ax: matplotlib.axes.Axes | None = None,
+        ax: Any | None = None,
         figsize: tuple[float, float] = (8.0, 4.5),
         **kwargs: Any,
-    ) -> matplotlib.figure.Figure:
+    ) -> Any:
         """Plot counterfactual outcome by country."""
+        import matplotlib.pyplot as plt
+
         if ax is None:
             fig, ax = plt.subplots(figsize=figsize)
         else:

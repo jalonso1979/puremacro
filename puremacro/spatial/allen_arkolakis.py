@@ -13,8 +13,6 @@ import warnings
 from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
@@ -125,11 +123,13 @@ class AllenArkolakisResult:
     def plot(
         self,
         kind: str = "spatial",
-        ax: matplotlib.axes.Axes | None = None,
+        ax: Any | None = None,
         figsize: tuple[float, float] = (9.0, 5.0),
         **kwargs: Any,
-    ) -> matplotlib.figure.Figure:
+    ) -> Any:
         """Plot equilibrium spatial distributions."""
+        import matplotlib.pyplot as plt
+
         regions = list(self.region_names)
         x = np.arange(len(regions))
 
@@ -194,6 +194,8 @@ class AllenArkolakisResult:
             return fig
 
         if kind == "counterfactual":
+            import matplotlib.pyplot as plt
+            import matplotlib.pyplot as plt
             if ax is None:
                 fig, ax = plt.subplots(figsize=figsize)
             else:
