@@ -10,11 +10,10 @@ Reference:
 from __future__ import annotations
 
 import warnings
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence
+from typing import Any
 
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
@@ -125,11 +124,13 @@ class AllenArkolakisResult:
     def plot(
         self,
         kind: str = "spatial",
-        ax: matplotlib.axes.Axes | None = None,
+        ax: Any | None = None,
         figsize: tuple[float, float] = (9.0, 5.0),
         **kwargs: Any,
-    ) -> matplotlib.figure.Figure:
+    ) -> Any:
         """Plot equilibrium spatial distributions."""
+        import matplotlib.pyplot as plt
+
         regions = list(self.region_names)
         x = np.arange(len(regions))
 
