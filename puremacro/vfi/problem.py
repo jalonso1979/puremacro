@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Callable
+from typing import Any, Callable, Sequence, Tuple
 
 import numpy as np
+import pandas as pd
 
 from puremacro import _backend as _bk
+from puremacro.reports import df_to_latex, df_to_markdown, df_to_typst
 from puremacro.vfi.returnfn import build_return_tensor
 from puremacro.vfi.solve import solve_vfi
 
@@ -14,6 +16,7 @@ from puremacro.vfi.solve import solve_vfi
 @dataclass(frozen=True)
 class VFISolution:
     """Solved value function and greedy policy (always returned as numpy)."""
+
     V: np.ndarray                 # (n_a, n_z)
     policy_aprime: np.ndarray     # (n_a, n_z) int indices into a_grid
     policy_d: np.ndarray | None   # (n_a, n_z) int indices into d_grid, or None
@@ -21,12 +24,149 @@ class VFISolution:
     sup_norm: float
     backend: str
     endo_shape: tuple = ()        # component sizes of the endogenous grid; (n_a,) if 1-D
+    a_grid: np.ndarray | None = None
+    z_grid: np.ndarray | None = None
 
-    def policy_components(self):
+    def policy_components(self) -> tuple[np.ndarray, ...]:
         """Per-asset next-state index arrays, each (n_a, n_z), unravelled from the
         flat ``policy_aprime`` over ``endo_shape``. A 1-tuple for a single asset."""
         shape = self.endo_shape if self.endo_shape else (self.policy_aprime.shape[0],)
         return tuple(np.unravel_index(np.asarray(self.policy_aprime), shape))
+
+    def summary(self) -> pd.DataFrame:
+        """Produce summary DataFrame of value function convergence and dimensions."""
+        n_a, n_z = self.V.shape
+        records = [
+            {"Metric": "Endogenous Grid Dimension (n_a)", "Value": str(n_a)},
+            {"Metric": "Exogenous Shock Dimension (n_z)", "Value": str(n_z)},
+            {"Metric": "Total State Space", "Value": str(n_a * n_z)},
+            {"Metric": "Iterations", "Value": str(self.n_iter)},
+            {"Metric": "Supremum Norm", "Value": f"{self.sup_norm:.6e}"},
+            {"Metric": "Backend", "Value": self.backend},
+            {"Metric": "Discrete Choice Included", "Value": str(self.policy_d is not None)},
+            {"Metric": "Mean Value (V)", "Value": f"{float(np.mean(self.V)):.6f}"},
+            {"Metric": "Min Value (V)", "Value": f"{float(np.min(self.V)):.6f}"},
+            {"Metric": "Max Value (V)", "Value": f"{float(np.max(self.V)):.6f}"},
+        ]
+        return pd.DataFrame(records).set_index("Metric")
+
+    def to_frame(self) -> pd.DataFrame:
+        """Tabulate state indices/values, value function, and policy choices as a DataFrame."""
+        n_a, n_z = self.V.shape
+        a_idx, z_idx = np.meshgrid(np.arange(n_a), np.arange(n_z), indexing="ij")
+        data: dict[str, Any] = {
+            "a_idx": a_idx.ravel(),
+            "z_idx": z_idx.ravel(),
+        }
+        if self.a_grid is not None:
+            a_arr = np.asarray(self.a_grid)
+            if a_arr.ndim == 1 and len(a_arr) == n_a:
+                data["a"] = a_arr[a_idx.ravel()]
+        if self.z_grid is not None:
+            z_arr = np.asarray(self.z_grid)
+            if z_arr.ndim == 1 and len(z_arr) == n_z:
+                data["z"] = z_arr[z_idx.ravel()]
+        data["V"] = self.V.ravel()
+        data["policy_aprime"] = self.policy_aprime.ravel()
+        if self.a_grid is not None:
+            a_arr = np.asarray(self.a_grid)
+            if a_arr.ndim == 1 and len(a_arr) == n_a:
+                data["aprime_val"] = a_arr[self.policy_aprime.ravel()]
+        if self.policy_d is not None:
+            data["policy_d"] = self.policy_d.ravel()
+        return pd.DataFrame(data)
+
+    def to_markdown(self, **kwargs: Any) -> str:
+        """Render summary table as GitHub-flavored Markdown."""
+        return df_to_markdown(self.summary(), **kwargs)
+
+    def to_latex(self, **kwargs: Any) -> str:
+        """Render summary table as LaTeX tabular."""
+        return df_to_latex(self.summary(), **kwargs)
+
+    def to_typst(self, **kwargs: Any) -> str:
+        """Render summary table as Typst table."""
+        return df_to_typst(self.summary(), **kwargs)
+
+    def plot(
+        self,
+        *,
+        ax: Any = None,
+        figsize: tuple[float, float] | None = None,
+        show: bool = False,
+    ) -> Any:
+        """Headless and WASM-safe plot of value functions and policy functions.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes or array-like of Axes, optional
+            Pre-existing axes for plotting. If None, a new 1x2 subplot figure is created.
+        figsize : tuple[float, float], optional
+            Figure dimension (width, height) in inches.
+        show : bool, default False
+            If True, calls ``plt.show()``. Always False in headless/test environments.
+
+        Returns
+        -------
+        matplotlib.figure.Figure or axes
+            The figure if created anew, or the passed axis/axes.
+        """
+        import matplotlib.pyplot as plt
+
+        n_a, n_z = self.V.shape
+        created_fig = False
+        if ax is None:
+            fig, (ax_v, ax_p) = plt.subplots(1, 2, figsize=figsize or (10, 4.5))
+            created_fig = True
+        elif isinstance(ax, (list, tuple, np.ndarray)) and len(ax) >= 2:
+            ax_v, ax_p = ax[0], ax[1]
+            fig = ax_v.get_figure()
+        else:
+            ax_v = ax
+            ax_p = None
+            fig = ax_v.get_figure()
+
+        if self.a_grid is not None and np.asarray(self.a_grid).ndim == 1 and len(np.asarray(self.a_grid)) == n_a:
+            a_x = np.asarray(self.a_grid)
+            x_label = "Asset (a)"
+        else:
+            a_x = np.arange(n_a)
+            x_label = "Asset Index (a_idx)"
+
+        # Value Function Panel
+        for iz in range(n_z):
+            if self.z_grid is not None and np.asarray(self.z_grid).ndim == 1 and len(np.asarray(self.z_grid)) == n_z:
+                label = f"z = {self.z_grid[iz]:.2f}"
+            else:
+                label = f"z_idx = {iz}"
+            ax_v.plot(a_x, self.V[:, iz], label=label)
+        ax_v.set_title("Value Function V(a, z)")
+        ax_v.set_xlabel(x_label)
+        ax_v.set_ylabel("V")
+        ax_v.grid(True, alpha=0.3)
+        ax_v.legend(frameon=False)
+
+        # Policy Function Panel
+        if ax_p is not None:
+            for iz in range(n_z):
+                if self.z_grid is not None and np.asarray(self.z_grid).ndim == 1 and len(np.asarray(self.z_grid)) == n_z:
+                    label = f"z = {self.z_grid[iz]:.2f}"
+                    pol_y = a_x[self.policy_aprime[:, iz]]
+                else:
+                    label = f"z_idx = {iz}"
+                    pol_y = self.policy_aprime[:, iz]
+                ax_p.plot(a_x, pol_y, label=label)
+            ax_p.plot(a_x, a_x, "k--", alpha=0.5, label="45° line")
+            ax_p.set_title("Policy Function a'(a, z)")
+            ax_p.set_xlabel(x_label)
+            ax_p.set_ylabel("a'")
+            ax_p.grid(True, alpha=0.3)
+            ax_p.legend(frameon=False)
+
+        if show:
+            plt.show()
+
+        return fig if created_fig else ax
 
 
 @dataclass(frozen=True)
@@ -165,6 +305,8 @@ class VFIProblem:
             sup_norm=float(sup),
             backend=backend,
             endo_shape=endo_shape,
+            a_grid=self.a_grid if isinstance(self.a_grid, (list, tuple)) else np.asarray(self.a_grid, dtype=float),
+            z_grid=self.z_grid if isinstance(self.z_grid, (list, tuple)) else np.asarray(self.z_grid, dtype=float),
         )
 
     def stationary_distribution(self, solution, *, tol: float = 1e-12,

@@ -116,6 +116,42 @@ class TariffScenario:
 
         return 0.0
 
+    def build_intermediate_tariffs(self, ns: int = 11, nc: int = 77) -> np.ndarray:
+        """Construct 3D intermediate tariff multiplier tensor of shape (ns*nc, ns, nc)."""
+        tau_a = np.ones((ns * nc, ns, nc), dtype=float)
+        country_codes = list(CANONICAL_COUNTRY_CODES)[:nc]
+        sector_codes = list(CANONICAL_SECTOR_CODES)[:ns] if ns <= len(CANONICAL_SECTOR_CODES) else [f"S{i:02d}" for i in range(ns)]
+        for d_idx, d_code in enumerate(country_codes):
+            for o_idx, o_code in enumerate(country_codes):
+                if o_idx == d_idx:
+                    continue
+                rate = self.get_rate(origin_code=o_code, dest_code=d_code)
+                if rate != 0.0:
+                    tau_a[o_idx * ns : (o_idx + 1) * ns, :, d_idx] = 1.0 + rate
+                for s_idx, s_code in enumerate(sector_codes):
+                    sec_rate = self.get_rate(origin_code=o_code, dest_code=d_code, sector_code=s_code)
+                    if sec_rate != rate:
+                        tau_a[o_idx * ns + s_idx, :, d_idx] = 1.0 + sec_rate
+        return tau_a
+
+    def build_final_demand_tariffs(self, ns: int = 11, nc: int = 77, nfd: int = 3) -> np.ndarray:
+        """Construct 3D final demand tariff multiplier tensor of shape (ns*nc, nfd, nc)."""
+        taufd_a = np.ones((ns * nc, nfd, nc), dtype=float)
+        country_codes = list(CANONICAL_COUNTRY_CODES)[:nc]
+        sector_codes = list(CANONICAL_SECTOR_CODES)[:ns] if ns <= len(CANONICAL_SECTOR_CODES) else [f"S{i:02d}" for i in range(ns)]
+        for d_idx, d_code in enumerate(country_codes):
+            for o_idx, o_code in enumerate(country_codes):
+                if o_idx == d_idx:
+                    continue
+                rate = self.get_rate(origin_code=o_code, dest_code=d_code)
+                if rate != 0.0:
+                    taufd_a[o_idx * ns : (o_idx + 1) * ns, :, d_idx] = 1.0 + rate
+                for s_idx, s_code in enumerate(sector_codes):
+                    sec_rate = self.get_rate(origin_code=o_code, dest_code=d_code, sector_code=s_code)
+                    if sec_rate != rate:
+                        taufd_a[o_idx * ns + s_idx, :, d_idx] = 1.0 + sec_rate
+        return taufd_a
+
 
 @dataclass(frozen=True)
 class ExtendedTariffScenario(TariffScenario):

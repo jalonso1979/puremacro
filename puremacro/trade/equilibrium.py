@@ -185,6 +185,8 @@ def compute_equilibrium_residuals(
     tauf_fd: np.ndarray | None = None,
     replicate_matlab_precedence: bool = True,
     *,
+    tau_a: np.ndarray | None = None,
+    taufd_a: np.ndarray | None = None,
     sigma: float = 0.0,
     fiscal_closure: str = "lump_sum",
     recycling_params: dict[str, Any] | None = None,
@@ -192,6 +194,7 @@ def compute_equilibrium_residuals(
     capacity_target_country: str = "USA",
     penalty_scale: float = 0.05,
     penalty_exponent: float = 8.0,
+    **kwargs: Any,
 ) -> np.ndarray:
     """Vectorized evaluation of all 2,001 general equilibrium residual equations.
 
@@ -255,6 +258,11 @@ def compute_equilibrium_residuals(
     nfd = calib.n_final_demand
 
     # Expand tariff matrices if needed
+    if tau_a is not None:
+        tau = tau_a
+    if taufd_a is not None:
+        tau_fd = taufd_a
+
     if tau is None:
         tau_a = np.ones((ns * nc, ns, nc), dtype=float)
     elif tau.shape == (ns * nc, ns, nc):

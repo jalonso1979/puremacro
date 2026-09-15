@@ -299,12 +299,13 @@ def to_latex_selected_country_table(
     lines.append(r"% zebra striping via xcolor")
     lines.append(r"\rowcolors{2}{gray!15}{white}")
 
-    col_count = n_scen if legacy_compat else (n_scen + 1)
+    use_legacy = legacy_compat and (n_scen == 5)
+    col_count = n_scen if use_legacy else (n_scen + 1)
     lines.append(r"\begin{tabular}{l" + "r" * col_count + "}")
     lines.append(r"\toprule")
 
     hdr_scens = " & ".join([s.replace("_", r"\_") for s in cf_scens])
-    if legacy_compat:
+    if use_legacy:
         lines.append(f"Country & {hdr_scens} \\\\")
     else:
         lines.append(f"Country & {hdr_scens} & Base \\\\")
@@ -312,7 +313,7 @@ def to_latex_selected_country_table(
     lines.append(r"\midrule")
 
     # Section 1: GDP growth (%)
-    sec1_span = (n_scen + 1) if legacy_compat else (col_count + 1)
+    sec1_span = (n_scen + 1) if use_legacy else (col_count + 1)
     lines.append(
         r"    \multicolumn{" + str(sec1_span) + r"}{l}{\textbf{GDP growth (\%)}} \\"
     )
@@ -321,7 +322,7 @@ def to_latex_selected_country_table(
         row_str = f"    {c:<8s} "
         for v in row_vals:
             row_str += f" & {v:6.{round_digits}f}"
-        if not legacy_compat:
+        if not use_legacy:
             row_str += " &       "
         row_str += r" \\"
         lines.append(row_str)
@@ -336,7 +337,7 @@ def to_latex_selected_country_table(
         row_str = f"    {c:<8s} "
         for v in row_vals:
             row_str += f" & {v:6.{round_digits}f}"
-        if not legacy_compat:
+        if not use_legacy:
             row_str += " &       "
         row_str += r" \\"
         lines.append(row_str)
@@ -636,38 +637,48 @@ def to_latex_selected_country_with_row(
     lines: list[str] = []
     lines.append(r"\begin{table}[ht]")
     lines.append(r"\centering")
+    use_legacy = legacy_compat and (n_scen == 5)
+    col_count = n_scen if use_legacy else (n_scen + 1)
+    span = 7 if use_legacy else (col_count + 1)
     lines.append(r"\rowcolors{2}{gray!15}{white}")
-    lines.append(r"\begin{tabular}{l" + "r" * n_scen + "}")
+    lines.append(r"\begin{tabular}{l" + "r" * col_count + "}")
     lines.append(r"\toprule")
 
     hdr_scens = " & ".join([s.replace("_", r"\_") for s in cf_scens])
-    lines.append(f"Country & {hdr_scens} \\\\")
+    if use_legacy:
+        lines.append(f"Country & {hdr_scens} \\\\")
+    else:
+        lines.append(f"Country & {hdr_scens} & Base \\\\")
     lines.append(r"\midrule")
 
     # Section 1: GDP growth (%)
-    lines.append(r"  \multicolumn{7}{l}{\textbf{GDP growth (\%)}} \\")
+    lines.append(r"  \multicolumn{" + str(span) + r"}{l}{\textbf{GDP growth (\%)}} \\")
     for c in targets:
         row_vals = [tbl.loc[("GDP growth (%)", c), s] for s in cf_scens]
         row_str = f"    {c:<8s} "
         for v in row_vals:
             row_str += f" & {v:6.{round_digits}f}"
+        if not use_legacy:
+            row_str += " &       "
         row_str += r" \\"
         lines.append(row_str)
 
     # Section 2: Inflation (%)
     lines.append(r"  \midrule")
-    lines.append(r"  \multicolumn{7}{l}{\textbf{Inflation (\%)}} \\")
+    lines.append(r"  \multicolumn{" + str(span) + r"}{l}{\textbf{Inflation (\%)}} \\")
     for c in targets:
         row_vals = [tbl.loc[("Inflation (%)", c), s] for s in cf_scens]
         row_str = f"    {c:<8s} "
         for v in row_vals:
             row_str += f" & {v:6.{round_digits}f}"
+        if not use_legacy:
+            row_str += " &       "
         row_str += r" \\"
         lines.append(row_str)
 
     # Section 3: Net exports / GDP (%)
     lines.append(r"  \midrule")
-    lines.append(r"  \multicolumn{7}{l}{\textbf{Net exports / GDP (\%)}} \\")
+    lines.append(r"  \multicolumn{" + str(span) + r"}{l}{\textbf{Net exports / GDP (\%)}} \\")
     for c in targets:
         row_vals = [tbl.loc[("Net exports / GDP (%)", c), s] for s in cf_scens]
         base_val = tbl.loc[("Net exports / GDP (%)", c), "Base"]

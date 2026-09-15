@@ -378,6 +378,18 @@ class BVAR_SVForecast:
                 })
         return pd.DataFrame(rows)
 
+    def to_markdown(self, **kwargs: Any) -> str:
+        """Format forecast summary table as Markdown."""
+        return _df_to_markdown(self.to_frame(), index=False, **kwargs)
+
+    def to_latex(self, **kwargs: Any) -> str:
+        """Format forecast summary table as LaTeX tabular."""
+        return _df_to_latex(self.to_frame(), index=False, **kwargs)
+
+    def to_typst(self, **kwargs: Any) -> str:
+        """Format forecast summary table as Typst table."""
+        return _df_to_typst(self.to_frame(), index=False, **kwargs)
+
     def plot(
         self,
         *,

@@ -7,7 +7,7 @@ from typing import Any, Sequence, Tuple
 import numpy as np
 import pandas as pd
 
-from puremacro.reports import df_to_latex, df_to_markdown
+from puremacro.reports import df_to_latex, df_to_markdown, df_to_typst
 
 
 @dataclass(frozen=True)
@@ -313,6 +313,10 @@ class TradeCalibrationResult:
         """Render summary table as LaTeX tabular."""
         return df_to_latex(self.summary(detailed=detailed), **kwargs)
 
+    def to_typst(self, detailed: bool = True, **kwargs: Any) -> str:
+        """Render summary table as Typst table."""
+        return df_to_typst(self.summary(detailed=detailed), **kwargs)
+
 
 @dataclass(frozen=True)
 class TradeEquilibriumResult:
@@ -538,6 +542,10 @@ class TradeEquilibriumResult:
         """Render summary table as LaTeX tabular."""
         return df_to_latex(self.summary(detailed=detailed), **kwargs)
 
+    def to_typst(self, detailed: bool = False, **kwargs: Any) -> str:
+        """Render summary table as Typst table."""
+        return df_to_typst(self.summary(detailed=detailed), **kwargs)
+
     @property
     def net_exports(self) -> np.ndarray | None:
         """Net exports (Exports - Imports) by country."""
@@ -699,6 +707,10 @@ class GearyKhamisResult:
 
     def to_latex(self, detailed: bool = True, **kwargs: Any) -> str:
         return df_to_latex(self.summary(detailed=detailed), **kwargs)
+
+    def to_typst(self, detailed: bool = True, **kwargs: Any) -> str:
+        """Render summary table as Typst table."""
+        return df_to_typst(self.summary(detailed=detailed), **kwargs)
 
     def category_prices_frame(self) -> pd.DataFrame:
         """Return international prices labeled by commodity category."""
@@ -1061,6 +1073,12 @@ class ScenarioBatchResult:
             return df_to_latex(self.to_mean_by_scenario_table(), **kwargs)
         return df_to_latex(self.to_selected_country_table(), **kwargs)
 
+    def to_typst(self, table_type: str = "selected", **kwargs: Any) -> str:
+        """Render summary table as Typst table."""
+        if table_type in ("mean", "mean_by_scenario"):
+            return df_to_typst(self.to_mean_by_scenario_table(), **kwargs)
+        return df_to_typst(self.to_selected_country_table(), **kwargs)
+
 
 @dataclass(frozen=True)
 class RetaliationGameResult:
@@ -1143,6 +1161,10 @@ class RetaliationGameResult:
     def to_latex(self, **kwargs: Any) -> str:
         """Render summary table as LaTeX tabular."""
         return df_to_latex(self.summary(), **kwargs)
+
+    def to_typst(self, **kwargs: Any) -> str:
+        """Render summary table as Typst table."""
+        return df_to_typst(self.summary(), **kwargs)
 
     @property
     def final_tariffs(self) -> np.ndarray:
@@ -1232,6 +1254,10 @@ class JCurveDynamicResult:
         """Render summary table as LaTeX tabular."""
         return df_to_latex(self.summary(), **kwargs)
 
+    def to_typst(self, **kwargs: Any) -> str:
+        """Render summary table as Typst table."""
+        return df_to_typst(self.summary(), **kwargs)
+
     @property
     def exports_path(self) -> np.ndarray:
         """Alias for us_exports_path."""
@@ -1319,6 +1345,10 @@ class RevenueRecyclingResult:
         """Render summary table as LaTeX tabular."""
         return df_to_latex(self.summary(), **kwargs)
 
+    def to_typst(self, **kwargs: Any) -> str:
+        """Render summary table as Typst table."""
+        return df_to_typst(self.summary(), **kwargs)
+
     @property
     def welfare_change(self) -> float:
         """Net equivalent welfare change."""
@@ -1401,6 +1431,10 @@ class CapacityBottleneckResult:
     def to_latex(self, **kwargs: Any) -> str:
         """Render summary table as LaTeX tabular."""
         return df_to_latex(self.summary(), **kwargs)
+
+    def to_typst(self, **kwargs: Any) -> str:
+        """Render summary table as Typst table."""
+        return df_to_typst(self.summary(), **kwargs)
 
     @property
     def capacity_ceilings(self) -> dict[str, float]:
@@ -1505,6 +1539,10 @@ class OptimalTariffResult:
         """Render summary table as LaTeX tabular."""
         return df_to_latex(self.summary(), **kwargs)
 
+    def to_typst(self, **kwargs: Any) -> str:
+        """Render summary table as Typst table."""
+        return df_to_typst(self.summary(), **kwargs)
+
 
 @dataclass(frozen=True)
 class NashTariffResult:
@@ -1597,6 +1635,10 @@ class NashTariffResult:
         """Render summary table as LaTeX tabular."""
         return df_to_latex(self.summary(), **kwargs)
 
+    def to_typst(self, **kwargs: Any) -> str:
+        """Render summary table as Typst table."""
+        return df_to_typst(self.summary(), **kwargs)
+
 
 @dataclass(frozen=True)
 class WelfarePayoffMatrixResult:
@@ -1669,6 +1711,10 @@ class WelfarePayoffMatrixResult:
     def to_latex(self, **kwargs: Any) -> str:
         """Render summary table as LaTeX tabular."""
         return df_to_latex(self.summary(), **kwargs)
+
+    def to_typst(self, **kwargs: Any) -> str:
+        """Render summary table as Typst table."""
+        return df_to_typst(self.summary(), **kwargs)
 
 
 __all__ = [

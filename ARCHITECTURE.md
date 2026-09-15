@@ -413,18 +413,26 @@ If you put a new module under one of these prefixes, you opt out of the Pyodide 
 
 ---
 
-## Result-object standard (0.4.0+)
+## Result-Object Presentation Standard (2.0+)
 
-All public estimators that return three or more fields (or any non-trivial diagnostic) MUST return a frozen dataclass result object. The contract:
+All public estimators that return three or more fields (or any non-trivial diagnostic) MUST return a frozen dataclass result object adhering to the unified presentation interface:
 
 1. **`@dataclass(frozen=True)`** for any return with 3+ fields or non-trivial diagnostics.
-2. **Naming:** `<MethodName>Result` in PascalCase (e.g., `GMMResult`, `IRFResult`, `JKResult`, `ProxySVARResult`). Defined in `<subpackage>/_results.py`; re-exported via `<subpackage>/__init__.py`.
+2. **Naming:** `<MethodName>Result` (or `<Problem>Solution`) in PascalCase (e.g., `GMMResult`, `IRFResult`, `JKResult`, `ProxySVARResult`, `VFISolution`, `HJBSolution`). Defined in `<subpackage>/_results.py` (or module); re-exported via `<subpackage>/__init__.py`.
 3. **Tuple returns** still allowed for genuinely simple two-value returns (`cycle, trend = hamilton_filter(y)`).
 4. **Common field vocabulary**: `coefs`, `se`, `cov`, `names: tuple[str, ...]`, `n_obs`, `converged`.
-5. **`.summary() -> str`** optional but encouraged.
-6. **No `.plot()` method.** Plotting stays in `plot.py` / `plotting/`; result objects are pure data.
-7. **No `__post_init__` validation that raises.** The estimator builds a valid result; the dataclass just stores it.
-8. **DataFrame carve-out.** Functions returning a single `pandas.DataFrame` with named columns (e.g. every `lp/` estimator) do NOT need to wrap. The DataFrame is already self-documenting.
+5. **`.summary() -> pd.DataFrame | str`**: Tabular analytical and diagnostic summary of the model or estimation.
+6. **Unified `.plot()` Contract (Headless & WASM-Safe)**:
+   Estimators/solvers with dynamic trajectories, distributions, policy functions, or impulse responses implement `.plot()` conforming to strict headless constraints:
+   - **Lazy Matplotlib Import**: `import matplotlib.pyplot as plt` inside `.plot()`, never at module level.
+   - **No Unsolicited Displays**: Never call `plt.show()` unless explicitly passed `show=True` (default: `False`).
+   - **Caller Axes Injection**: Accept `ax=...` (single axis or sequence of axes). If provided, plot into caller's axis and return `ax`.
+   - **Standalone Figure Creation**: If `ax is None`, create subplots via `plt.subplots(...)` and return the `fig`.
+   - **Headless / Pyodide / WASM Safety**: Operates seamlessly with the `Agg` backend without relying on windowing systems, desktop displays, or interactive loop hooks.
+7. **Export Parity Quintet**:
+   Result objects expose `.to_dataframe() / .to_frame()`, `.to_markdown()`, `.to_latex()`, and `.to_typst()`. All tabular formatters route through `puremacro.reports` (`df_to_markdown`, `df_to_latex`, `df_to_typst`) to guarantee escaping of LaTeX and Typst special characters and numeric stability.
+8. **No `__post_init__` validation that raises.** The estimator builds a valid result; the dataclass just stores it.
+9. **DataFrame carve-out.** Functions returning a single `pandas.DataFrame` with named columns (e.g. every `lp/` estimator) do NOT need to wrap. The DataFrame is already self-documenting.
 
 The public-API freeze test (`tests/test_public_api.py`) snapshots both `__all__` per subpackage and result-class field names per dataclass.
 

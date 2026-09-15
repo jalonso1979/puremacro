@@ -686,6 +686,14 @@ class ScoreDiagnosticsResult:
         })
         return _df_to_latex(df, digits=6)
 
+    def to_typst(self) -> str:
+        """Format score diagnostics as Typst table."""
+        df = self.verification_df if self.verification_df is not None else pd.DataFrame({
+            "parameter": list(self.param_names),
+            "score": list(self.gradient),
+        })
+        return _df_to_typst(df, digits=6)
+
 
 # ---------------------------------------------------------------------------
 # Combined Posterior and Analytical Gradient Evaluator
