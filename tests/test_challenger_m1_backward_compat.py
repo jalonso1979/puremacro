@@ -122,23 +122,23 @@ def test_hjb_solution_kwargs_unpacking_and_conversion():
     assert as_dict["n_iter"] == sol.n_iter
 
 
-def test_hjb_solution_iteration_flaw_investigation():
-    """Empirical investigation: Definition of __getitem__ without __iter__
-    leads to TypeError when iterating with 'for key in sol'.
-    
-    This is an empirical challenger finding:
-    In Python, if a class defines __getitem__ but omits __iter__, iteration
-    falls back to sequence indexing with integers 0, 1, 2...
-    Because __getitem__ expects string attributes, getattr(self, 0) raises
-    TypeError: attribute name must be string, not 'int'.
+def test_hjb_solution_iteration_yields_its_keys():
+    """``for key in sol`` yields exactly the documented keys, in order.
+
+    A class that defines ``__getitem__`` but not ``__iter__`` falls back to
+    integer indexing, and ``getattr(self, 0)`` raises ``TypeError: attribute
+    name must be string``. The Mapping protocol here must instead iterate
+    the string keys, so this asserts the positive contract rather than
+    branching on whether ``__iter__`` happens to exist.
     """
     sol = solve_hjb_achdou(Na=10, max_iter=2)
-    # Check if __iter__ is defined
-    has_iter = "__iter__" in type(sol).__dict__
-    if not has_iter:
-        with pytest.raises(TypeError, match="attribute name must be string"):
-            for _ in sol:
-                pass
+    assert "__iter__" in type(sol).__dict__
+    iterated = list(sol)
+    assert iterated == sol.keys()
+    assert len(iterated) == 12
+    assert all(isinstance(k, str) for k in iterated)
+    for k in sol:
+        assert sol[k] is getattr(sol, k)
 
 
 def test_hjb_solution_pickle_and_copy():

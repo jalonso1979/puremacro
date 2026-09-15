@@ -12,20 +12,13 @@ from typing import Callable, Optional
 import numpy as np
 from numpy.random import default_rng
 
+from ._parallel import _map_draws
 from .bootstrap import _ols_var, _irf_from_var
 
 #: Warn above this fraction of bootstrap draws failing identification. Mirrors
 #: ``puremacro.var.identify.cholesky._BOOT_FAIL_WARN_THRESHOLD``, which is the
 #: pattern CONTRIBUTING.md names as the one to follow.
 _BOOT_FAIL_WARN_THRESHOLD = 0.05
-
-
-def _can_use_threads() -> bool:
-    try:
-        from puremacro.runtime import capabilities
-        return bool(capabilities().threads)
-    except Exception:
-        return False
 
 
 def wild_bootstrap(
@@ -39,16 +32,23 @@ def wild_bootstrap(
 
     Parameters
     ----------
-    residuals : np.ndarray, shape (T,) or (T, k)
-        Model residuals to resample via Rademacher ±1 draws.
+    residuals : array-like, shape (T,) or (T, k)
+        Model residuals to resample via Rademacher ±1 draws. Coerced with
+        ``np.asarray(..., dtype=float)``, so lists, tuples and pandas objects
+        are accepted and ``refit_fn`` always receives a float ndarray.
     refit_fn : Callable[[np.ndarray], np.ndarray]
         Callable mapping resampled residuals (same shape) to statistic vector.
+        Whatever it raises propagates unchanged, for every ``n_jobs`` setting.
     n_boot : int
         Number of bootstrap replications (default 999).
     rng : np.random.Generator, optional
-        Numpy generator for reproducibility.
+        Numpy generator for reproducibility. All Rademacher weights are drawn
+        up front, so the draws do not depend on ``n_jobs``.
     n_jobs : int
-        Worker threads for parallel draw evaluation. 1 = serial, -1 = all cores.
+        Worker threads for parallel draw evaluation. 1 = serial, -1 = all
+        cores, 0 raises ``ValueError``. Threads are used only where the
+        runtime has them (:func:`puremacro.runtime.capabilities`, overridable
+        with ``PUREMACRO_THREADS``); otherwise the draws run serially.
 
     Returns
     -------
@@ -57,8 +57,10 @@ def wild_bootstrap(
     """
     if rng is None:
         rng = default_rng()
+    residuals = np.asarray(residuals, dtype=float)
+    T = residuals.shape[0]
 
-    T = len(residuals)
+    # Batch generate Rademacher weights (identical random sequence, vectorized)
     W = rng.choice(np.array([-1.0, 1.0]), size=(n_boot, T))
 
     def _eval_draw(w: np.ndarray) -> np.ndarray:
@@ -68,19 +70,7 @@ def wild_bootstrap(
             e_boot = residuals * w[:, None]
         return np.asarray(refit_fn(e_boot), dtype=float)
 
-    if n_jobs == 1 or not _can_use_threads():
-        draws = [_eval_draw(W[b]) for b in range(n_boot)]
-    else:
-        try:
-            import concurrent.futures
-            import os
-
-            workers = os.cpu_count() or 1 if n_jobs < 0 else n_jobs
-            with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
-                draws = list(ex.map(_eval_draw, W))
-        except Exception:
-            draws = [_eval_draw(W[b]) for b in range(n_boot)]
-
+    draws = _map_draws(_eval_draw, W, n_jobs, label="wild_bootstrap")
     return np.stack(draws, axis=0)
 
 
@@ -134,18 +124,7 @@ def wild_bootstrap_var(
         except np.linalg.LinAlgError:
             return None
 
-    if n_jobs == 1 or not _can_use_threads():
-        res_list = [_eval_draw(b) for b in range(n_boot)]
-    else:
-        try:
-            import concurrent.futures
-            import os
-
-            workers = os.cpu_count() or 1 if n_jobs < 0 else n_jobs
-            with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
-                res_list = list(ex.map(_eval_draw, range(n_boot)))
-        except Exception:
-            res_list = [_eval_draw(b) for b in range(n_boot)]
+    res_list = _map_draws(_eval_draw, range(n_boot), n_jobs, label="wild_bootstrap_var")
 
     accepted = [r for r in res_list if r is not None]
     n_fail = n_boot - len(accepted)
