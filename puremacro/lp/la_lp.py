@@ -21,6 +21,7 @@ from scipy.stats import chi2, norm
 from .._linalg import inv_xtx
 from ._common import resolve_lp_kwargs
 from ._results import LPResult
+from .iv import _compute_anderson_rubin_multi, mop_critical_values
 
 
 def _ols_eicker_huber(y: np.ndarray, X: np.ndarray) -> dict:
@@ -33,15 +34,6 @@ def _ols_eicker_huber(y: np.ndarray, X: np.ndarray) -> dict:
     return {"beta": beta, "se": np.sqrt(np.diag(V)), "vcov": V, "resid": u}
 
 
-def _mop_critical_values(k_z: int) -> tuple[float, float]:
-    """Return Montiel Olea & Pflueger (2013) critical values for 10% and 20% bias."""
-    mop_table_10 = {1: 11.52, 2: 11.12, 3: 10.60, 4: 10.20}
-    mop_table_20 = {1: 6.70, 2: 6.00, 3: 5.50, 4: 5.20}
-    cv_10 = mop_table_10.get(k_z, 9.80 if k_z >= 5 else 11.52)
-    cv_20 = mop_table_20.get(k_z, 4.90 if k_z >= 5 else 6.70)
-    return cv_10, cv_20
-
-
 def _compute_white_ar_ci(
     dy: np.ndarray,
     x: np.ndarray,
@@ -51,94 +43,56 @@ def _compute_white_ar_ci(
     beta_hat: float = 0.0,
     se_hat: float = 1.0,
 ) -> tuple[float, float, str]:
-    """Compute Eicker-Huber-White robust Anderson-Rubin confidence interval."""
+    """Eicker-Huber-White robust Anderson-Rubin confidence set.
+
+    ``k_z = 1``: exact quadratic inversion (the White special case of
+    :func:`puremacro.lp.iv._compute_anderson_rubin_ci`). ``k_z >= 2``: the
+    exact inversion of :func:`puremacro.lp.iv._compute_anderson_rubin_multi`
+    with ``lags = 0`` (White ``Omega = S'S`` is the zero-lag Bartlett case).
+    """
     k_z = Z_mat.shape[1]
+    if k_z != 1:
+        return _compute_anderson_rubin_multi(
+            dy, x, W_ctl_mat, Z_mat, lags=0, alpha=alpha, beta_hat=beta_hat, se_hat=se_hat
+        )
+
     W_inv = np.linalg.pinv(W_ctl_mat.T @ W_ctl_mat)
     y_tilde = dy - W_ctl_mat @ (W_inv @ (W_ctl_mat.T @ dy))
     x_tilde = x - W_ctl_mat @ (W_inv @ (W_ctl_mat.T @ x))
     Z_tilde = Z_mat - W_ctl_mat @ (W_inv @ (W_ctl_mat.T @ Z_mat))
 
-    if k_z == 1:
-        z_t = Z_tilde[:, 0]
-        ztz = float(z_t @ z_t)
-        if ztz <= 1e-14:
-            return np.nan, np.nan, "empty"
-        gamma_y = float(z_t @ y_tilde / ztz)
-        gamma_x = float(z_t @ x_tilde / ztz)
-        u_y = y_tilde - z_t * gamma_y
-        u_x = x_tilde - z_t * gamma_x
-        h_vec = z_t / ztz
-        s_y = h_vec * u_y
-        s_x = h_vec * u_x
-        V_yy = float(np.dot(s_y, s_y))
-        V_xx = float(np.dot(s_x, s_x))
-        V_yx = float(np.dot(s_y, s_x))
-        crit = float(chi2.ppf(1.0 - alpha, df=1))
+    z_t = Z_tilde[:, 0]
+    ztz = float(z_t @ z_t)
+    if ztz <= 1e-14:
+        return np.nan, np.nan, "empty"
+    gamma_y = float(z_t @ y_tilde / ztz)
+    gamma_x = float(z_t @ x_tilde / ztz)
+    u_y = y_tilde - z_t * gamma_y
+    u_x = x_tilde - z_t * gamma_x
+    h_vec = z_t / ztz
+    s_y = h_vec * u_y
+    s_x = h_vec * u_x
+    V_yy = float(np.dot(s_y, s_y))
+    V_xx = float(np.dot(s_x, s_x))
+    V_yx = float(np.dot(s_y, s_x))
+    crit = float(chi2.ppf(1.0 - alpha, df=1))
 
-        A = gamma_x ** 2 - crit * V_xx
-        B = -2.0 * (gamma_y * gamma_x - crit * V_yx)
-        C = gamma_y ** 2 - crit * V_yy
+    A = gamma_x ** 2 - crit * V_xx
+    B = -2.0 * (gamma_y * gamma_x - crit * V_yx)
+    C = gamma_y ** 2 - crit * V_yy
 
-        disc = B ** 2 - 4.0 * A * C
-        if A > 0:
-            if disc >= 0:
-                r1 = (-B - np.sqrt(disc)) / (2.0 * A)
-                r2 = (-B + np.sqrt(disc)) / (2.0 * A)
-                return float(min(r1, r2)), float(max(r1, r2)), "bounded"
-            else:
-                return np.nan, np.nan, "empty"
-        else:
-            if disc >= 0:
-                r1 = (-B - np.sqrt(disc)) / (2.0 * A)
-                r2 = (-B + np.sqrt(disc)) / (2.0 * A)
-                return float(max(r1, r2)), float(min(r1, r2)), "unbounded_rays"
-            else:
-                return -np.inf, np.inf, "all_real"
-    else:
-        # Multi-instrument grid search
-        ZtZ_inv = np.linalg.pinv(Z_tilde.T @ Z_tilde)
-        crit = float(chi2.ppf(1.0 - alpha, df=k_z))
-        span = max(10.0 * (se_hat if np.isfinite(se_hat) and se_hat > 0 else 1.0), 10.0)
-        grid = np.linspace(beta_hat - span, beta_hat + span, 401)
-        mask = np.empty(len(grid), dtype=bool)
-        accepted = []
-
-        for i, b0 in enumerate(grid):
-            w_t = y_tilde - b0 * x_tilde
-            delta = ZtZ_inv @ (Z_tilde.T @ w_t)
-            e_t = w_t - Z_tilde @ delta
-            S = Z_tilde * e_t[:, None]
-            Omega = S.T @ S
-            V_delta = ZtZ_inv @ Omega @ ZtZ_inv
-            try:
-                stat = float(delta.T @ np.linalg.solve(V_delta, delta))
-            except np.linalg.LinAlgError:
-                stat = float(delta.T @ np.linalg.pinv(V_delta) @ delta)
-            is_acc = stat <= crit
-            mask[i] = is_acc
-            if is_acc:
-                accepted.append(b0)
-
-        if not accepted:
-            return np.nan, np.nan, "empty"
-        if len(accepted) == len(grid):
-            return -np.inf, np.inf, "all_real"
-
-        left_acc = bool(mask[0])
-        right_acc = bool(mask[-1])
-
-        if left_acc and right_acc:
-            rej_indices = np.where(~mask)[0]
-            r1 = float(grid[rej_indices[0] - 1])
-            r2 = float(grid[rej_indices[-1] + 1])
-            return float(max(r1, r2)), float(min(r1, r2)), "unbounded_rays"
-        elif left_acc or right_acc:
-            rej_indices = np.where(~mask)[0]
-            r1 = float(grid[rej_indices[0] - 1]) if left_acc else float(grid[0])
-            r2 = float(grid[rej_indices[-1] + 1]) if right_acc else float(grid[-1])
-            return float(max(r1, r2)), float(min(r1, r2)), "unbounded_rays"
-
-        return float(min(accepted)), float(max(accepted)), "bounded"
+    disc = B ** 2 - 4.0 * A * C
+    if A > 0:
+        if disc >= 0:
+            r1 = (-B - np.sqrt(disc)) / (2.0 * A)
+            r2 = (-B + np.sqrt(disc)) / (2.0 * A)
+            return float(min(r1, r2)), float(max(r1, r2)), "bounded"
+        return np.nan, np.nan, "empty"
+    if disc >= 0:
+        r1 = (-B - np.sqrt(disc)) / (2.0 * A)
+        r2 = (-B + np.sqrt(disc)) / (2.0 * A)
+        return float(max(r1, r2)), float(min(r1, r2)), "unbounded_rays"
+    return -np.inf, np.inf, "all_real"
 
 
 def la_lp(
@@ -213,7 +167,7 @@ def la_lp(
     has_iv = z is not None
     z_names = ([z] if isinstance(z, str) else list(z)) if has_iv else []
     k_z = len(z_names)
-    cv_10, cv_20 = _mop_critical_values(k_z) if has_iv else (np.nan, np.nan)
+    cv_10, cv_20 = mop_critical_values(k_z) if has_iv else (np.nan, np.nan)
 
     rows = []
     for h in horizons:
