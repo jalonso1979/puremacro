@@ -20,6 +20,103 @@ Siguiendo `notebooks/_TEMPLATE.md`, los cuadernos profundizados y de frontera si
 6. **Tu Turno**: Ejercicio exploratorio interactivo con controles `# ← modifica esto`, valores por defecto funcionales con aserciones y retos graduados.
 7. **¿Qué tan Exhaustivo es Esto?**: Referencias contextuales que vinculan la demostración con otros módulos de `puremacro` y la literatura.
 
+## Demostraciones de HJB/KFE Continuo, OccBin Multirrestricción y Macro en Tiempo Real de América Latina (puremacro 3.4)
+
+Las demostraciones `56` a `58` presentan los motores de vanguardia de `puremacro` en resolución de Hamilton-Jacobi-Bellman (HJB) en tiempo continuo mediante esquema implícito upwind con ecuaciones de Kolmogorov hacia adelante (KFE) adjuntas, perturbación DSGE lineal a tramos multirrestricción (OccBin $M \ge 2$) combinada con Aprendizaje Automático Doble / Desesgado (DML-PLR), y cartuchos criptográficos portátiles `.pmz` de datos en tiempo real de América Latina con econometría de noticias frente a ruido de Mankiw-Shapiro (1986).
+
+### `56_implicit_hjb_and_continuous_kfe_es`
+- **Fuente**: `notebooks/56_implicit_hjb_and_continuous_kfe_es.py` (Inglés: `.py`, compilado: `.ipynb`)
+- **Pregunta Económica Motivadora**: ¿Cómo resuelven los macroeconomistas cuantitativos modelos de agentes heterogéneos en tiempo continuo con riesgo de ingreso no asegurable y límites de endeudamiento sin incurrir en errores de inversión de la ecuación de Euler en tiempo discreto, y cómo asegura la ecuación adjunta de Kolmogorov hacia adelante (KFE) la conservación exacta de la masa de probabilidad a nivel de máquina para distribuciones estacionarias de riqueza?
+- **Matemáticas y Algoritmos Rectores**:
+  - **HJB en Tiempo Continuo con Esquema Upwind Implícito**: Los hogares resuelven:
+    $$\rho v_j(a) = u(c_j(a)) + s_j(a) v_j'(a) + \sum_{k \ne j} \lambda_{jk} [v_k(a) - v_j(a)]$$
+    Sujeto a $s_j(a) = r a + z_j - c_j(a)$ y $a \ge \underline{a}$. Las diferencias finitas upwind evalúan derivas hacia adelante ($v_{j, i}'^F$) y hacia atrás ($v_{j, i}'^B$), seleccionando hacia adelante si $s_F > 0$, hacia atrás si $s_B < 0$, y deriva nula $s_0 = 0$ en puntos de inflexión estacionarios.
+  - **Estructura de M-Matriz del Generador Infinitesimal $A$**:
+    $$\rho v^{n+1} = u(c^n) + A(v^n) v^{n+1} + \frac{1}{\Delta} (v^{n+1} - v^n)$$
+    La matriz $(\rho + 1/\Delta) I - A(v^n)$ es estrictamente diagonal dominante con elementos fuera de la diagonal negativos, garantizando existencia, unicidad y estabilidad incondicional para cualquier $\Delta > 0$.
+  - **Ecuación Adjunta de Kolmogorov hacia Adelante (KFE)**:
+    $$A(v^*)^\top g = 0, \quad \text{s.a.} \quad \sum_{j=1}^J \sum_{i=1}^I g_{j, i} \Delta a_i = 1.0$$
+    Sustituir una fila por la condición de normalización asegura la conservación de masa a nivel de máquina ($|\sum g_i \Delta a_i - 1| \le 10^{-15}$).
+  - **Equilibrio General Continuo de Aiyagari**:
+    $$K^s(r) = \sum_{j, i} a_i g_{j, i} \Delta a_i = K^d(r) = \left( \frac{r + \delta}{\alpha \bar{Z}} \right)^{\frac{1}{\alpha - 1}}$$
+- **Intuición Económica**: Los modelos de tiempo discreto requieren una agregación temporal fina y sufren de fluctuaciones en la frontera del endeudamiento. La formulación en tiempo continuo reemplaza las elecciones discretas con una función de deriva suave $s(a, z)$. Las diferencias finitas upwind reflejan la dirección física de los flujos de activos: los hogares que acumulan activos miran hacia adelante ($v_{i+1} - v_i$), mientras que aquellos que desacumulan activos miran hacia atrás ($v_i - v_{i-1}$), eliminando oscilaciones no físicas. Dado que el generador de transición $A$ es un generador de Markov infinitesimal, su adjunto $A^\top$ entrega la densidad estacionaria exacta de riqueza $g(a, z)$ en una única resolución lineal, preservando la conservación de masa sin ruido de simulación de Monte Carlo.
+- **Código Desarrollado**:
+  ```text
+  from puremacro.vfi import solve_hjb_achdou, solve_aiyagari_continuous_hjb
+
+  # Solucionador implícito HJB en tiempo continuo
+  sol_hjb = solve_hjb_achdou(r=0.03, gamma=2.0, rho=0.05, a_min=0.0, a_max=30.0, n_a=100)
+
+  # Equilibrio General Continuo de Aiyagari
+  sol_ge = solve_aiyagari_continuous_hjb(gamma=2.0, rho=0.05, alpha=0.33, delta=0.05)
+  ```
+- **Lectura de Resultados y Visualizaciones**: Tablero hero de 4 paneles: (1) Funciones de valor convergidas $v_j(a)$ que exhiben estricta concavidad; (2) Políticas óptimas de consumo $c_j(a)$ con quiebres en la propensión marginal a consumir cerca de $\underline{a}$; (3) Trayectorias de deriva $s_j(a)$ mostrando desacumulación para ingresos bajos y acumulación para ingresos altos; (4) Densidad estacionaria de riqueza $g(a, z)$ mostrando el pico característico de masa precautoria en el límite de crédito.
+- **Tu Turno y Aserciones Interactivas**: Parámetros interactivos `gamma_custom = 1.50`, `a_min_custom = 0.0`, `r_test = 0.025` con aserciones `sol_custom.converged`, `np.isclose(sol_custom.g.sum() * da, 1.0, atol=1e-10)`, `r_star > 0.0`.
+- **Literatura y Referencias Cruzadas**: Achdou, Han, Lasry, Lions y Moll (2022), Aiyagari (1994), Huggett (1993). Guía de usuario: [`docs/es/vfi_continuous_equilibrium.md`](vfi_continuous_equilibrium.md).
+
+### `57_multiconstraint_occbin_and_dml_es`
+- **Fuente**: `notebooks/57_multiconstraint_occbin_and_dml_es.py` (Inglés: `.py`, compilado: `.ipynb`)
+- **Pregunta Económica Motivadora**: ¿Cómo responden las economías cuando múltiples restricciones vinculantes ocasionales (como el límite inferior cero en tasas de interés y los límites de endeudamiento colateral) se vuelven activas de forma simultánea, y cómo pueden los macroeconomistas obtener estimaciones causales no sesgadas de políticas macroeconómicas utilizando Aprendizaje Automático Doble / Desesgado (DML-PLR) en alta dimensión?
+- **Matemáticas y Algoritmos Rectores**:
+  - **Perturbación Lineal a Tramos con OccBin Multirrestricción**: Para $M$ restricciones, $2^M$ regímenes discretos:
+    $$A_{r_t} x_t = B_{r_t} x_{t-1} + C_{r_t} \mathbb{E}_t[x_{t+1}] + D_{r_t} + E_{r_t} \varepsilon_t$$
+    Las transiciones de régimen iteran hacia atrás desde el horizonte $T$ para determinar la secuencia de regímenes $\{r_1, r_2, \dots, r_T\}$ que satisface las condiciones de holgura complementaria para la ZLB ($i_t \ge 0$) y el crédito ($b_t \le \bar{b}$).
+  - **Aprendizaje Automático Doble / Desesgado (DML-PLR)**: Modelo de regresión parcialmente lineal:
+    $$Y = D \theta_0 + g_0(X) + U, \quad \mathbb{E}[U | D, X] = 0$$
+    $$D = m_0(X) + V, \quad \mathbb{E}[V | X] = 0$$
+    El score ortogonal de Neyman elimina el sesgo de regularización de los estimadores de aprendizaje automático $\hat{\ell}(X)$ y $\hat{m}(X)$:
+    $$\psi(W; \theta, \eta) = (Y - \ell(X)) - \theta (D - m(X))$$
+    El ajuste cruzado de $K$ particiones elimina el sesgo de sobreajuste, produciendo estimaciones $\sqrt{N}$-consistentes y asintóticamente normales $\hat{\theta} \sim \mathcal{N}(\theta_0, \sigma^2 / N)$.
+- **Intuición Económica**: Ante una contracción profunda, los hogares reducen su endeudamiento contra su límite crediticio mientras el banco central reduce la tasa de interés a cero. Cuando ambas restricciones operan simultáneamente (Régimen 3), la economía sufre una amplificación no lineal severa: la política monetaria no puede acomodar la caída mientras los hogares no pueden endeudarse para suavizar consumo. En la etapa empírica, MCO estándar fracasa por sesgo de variables omitidas ante 100 controles macroeconómicos (+42.5% de sesgo). DML ortogonaliza la política y el producto respecto a los factores de confusión, recuperando el parámetro estructural con cobertura estadística exacta.
+- **Código Desarrollado**:
+  ```text
+  from puremacro.dsge import OccBinConstraint, OccBinMultiConstraint, solve_multiconstraint_occbin
+  from puremacro.dml import DoubleMLPLR
+
+  # 1. Solución OccBin multirrestricción
+  occ_res = solve_multiconstraint_occbin(model, constraints=[zlb_c, borrow_c], shock=shock)
+
+  # 2. Regresión parcialmente lineal con DML
+  dml_res = DoubleMLPLR(Y, D, X, n_folds=5, estimator="lasso").fit()
+  ```
+- **Lectura de Resultados y Visualizaciones**: Tablero hero de 4 paneles: (1) Cronología de regímenes discretos que rastrea la duración de la crisis conjunta ZLB-crédito; (2) Comparación de FIR lineal frente a trayectoria lineal a tramos con quiebre no lineal; (3) Dispersión de residuos por pliegues de validación cruzada; (4) Densidad de distribución muestral comparando DML frente al sesgo de MCO.
+- **Tu Turno y Aserciones Interactivas**: Parámetros interactivos `shock_g_custom = -0.05`, `n_folds_custom = 5`, `alpha_custom = 0.05` con aserciones `res_custom.converged`, `np.abs(dml_custom.theta - theta_true) < 0.20`, `dml_custom.p_value < 0.01`.
+- **Literatura y Referencias Cruzadas**: Guerrieri e Iacoviello (2015), Chernozhukov et al. (2018), Belloni, Chernozhukov y Hansen (2014). Guías de usuario: [`docs/es/dsge_higher_order.md`](dsge_higher_order.md), [`docs/es/forecast.md`](forecast.md).
+
+### `58_latin_america_realtime_macro_es`
+- **Fuente**: `notebooks/58_latin_america_realtime_macro_es.py` (Inglés: `.py`, compilado: `.ipynb`)
+- **Pregunta Económica Motivadora**: ¿Cómo evolucionan las publicaciones preliminares del PIB y variables macroeconómicas de los institutos de estadística y bancos centrales de América Latina a través de sucesivas versiones históricas (vintages), y están estas revisiones guiadas por actualizaciones racionales con nueva información ("noticias") o por errores y ruido en la medición inicial ("ruido")?
+- **Matemáticas y Algoritmos Rectores**:
+  - **Triángulos de Revisiones $(T \times V)$**: Matriz de datos en tiempo real donde las filas denotan trimestres de referencia $t = 1, \dots, T$ y las columnas denotan trimestres de publicación $v = 1, \dots, V$ ($v \ge t$):
+    $$R_{t, k} = y_{t, t+k+1} - y_{t, t+k}, \quad R_{t, \text{final}} = y_{t, \text{final}} - y_{t, \text{primero}}$$
+  - **Econometría de Noticias frente a Ruido de Mankiw-Shapiro (1986)**:
+    $$\text{Modelo 1 (Noticias / Pronóstico Racional)}: \quad y_{t, \text{final}} - y_{t, \text{primero}} = \alpha + \beta y_{t, \text{primero}} + \varepsilon_t$$
+    Bajo pronóstico estadístico racional, las publicaciones iniciales usan toda la información disponible; las revisiones futuras son impredecibles: $H_0: \alpha = 0, \beta = 0$.
+    $$\text{Modelo 2 (Ruido / Error de Medición)}: \quad y_{t, \text{primero}} = \alpha + \beta y_{t, \text{final}} + u_t$$
+    Bajo ruido clásico de medición, la publicación preliminar es una aproximación ruidosa del PIB verdadero: $H_0: \alpha = 0, \beta = 1$.
+  - **Inferencia HAC Newey-West**: Estimación robusta de covarianza para heterocedasticidad y autocorrelación en los residuos de revisión.
+  - **Cartuchos Criptográficos `.pmz` Fuera de Línea**: Archivos `.pmz` portátiles y autocontenidos con verificación de integridad SHA-256, validación de esquema y desempaquetado instantáneo sin conexión a red.
+- **Intuición Económica**: Las cifras preliminares publicadas a los 30–45 días del cierre del trimestre se basan en muestras incompletas y modelos de nowcasting. Conforme arriba información dura (declaraciones tributarias, balances contables), las agencias revisan los datos. En economías emergentes de América Latina (México, Brasil, Chile), discernir si las revisiones son noticias o ruido determina si los formuladores de política deben reaccionar de inmediato a las señales preliminares o descontarlas como volatilidad transitoria. Los resultados empíricos confirman que las revisiones están dominadas por noticias, ratificando que los bancos centrales entregan estimaciones racionales en tiempo real.
+- **Código Desarrollado**:
+  ```text
+  from puremacro.realtime import (
+      build_revision_triangle,
+      mankiw_shapiro_test,
+      export_realtime_cartridge,
+      load_realtime_cartridge,
+  )
+
+  # Construcción del triángulo de revisiones y prueba de Mankiw-Shapiro
+  tri = build_revision_triangle(vintage_df)
+  news_res, noise_res = mankiw_shapiro_test(tri)
+
+  # Empaquetado en cartucho criptográfico offline
+  export_realtime_cartridge(cartridge_file, panel, metadata={"region": "América Latina"})
+  ```
+- **Lectura de Resultados y Visualizaciones**: Tablero hero de 4 paneles: (1) Mapa de calor triangular que ilustra las revisiones en tiempo real según trimestre y rezago de publicación; (2) Líneas espagueti de trayectorias de estimación del PIB desde el primer reporte hasta la cifra definitiva; (3) Histograma de magnitudes de revisión con ajuste normal y diagnósticos de asimetría; (4) Diagrama de dispersión de Mankiw-Shapiro con rectas de regresión y bandas de confianza robustas HAC.
+- **Tu Turno y Aserciones Interactivas**: Parámetros interactivos `country_custom = "brazil"`, `hac_lags_custom = 4`, `ci_level_custom = 0.95` con aserciones `tri_custom.shape[0] > 0`, `news_custom.p_value > 0.05`, `noise_custom.p_value < 0.05`.
+- **Literatura y Referencias Cruzadas**: Mankiw y Shapiro (1986), Croushore y Stark (2001), Faust, Rogers y Wright (2005). Guía de usuario: [`docs/es/real_time_data.md`](real_time_data.md).
+
 ---
 
 ## Demostraciones de Programación Dinámica Continua, Deep Macro y GE Espacial (puremacro 3.3)
@@ -299,6 +396,9 @@ Las demostraciones `47` a `50` conectan la macroeconometría teórica con la pr�
 | `53_exact_analytic_ift_gradients_es` | Jacobianos analíticos exactos por el TFI, sensibilidades adjuntas y estimación estructural GMM | `53_exact_analytic_ift_gradients` |
 | `54_deep_macro_pinns_high_dim_es` | Modelos dinámicos en alta dimensión (10+ estados) mediante Redes Neuronales Informadas por la Física | `54_deep_macro_pinns_high_dim` |
 | `55_quantitative_spatial_and_trade_ge_es` | Equilibrio general espacial y comercial cuantitativo: aranceles Caliendo-Parro y geografía Allen-Arkolakis | `55_quantitative_spatial_and_trade_ge` |
+| `56_implicit_hjb_and_continuous_kfe_es` | Solucionador implícito HJB en tiempo continuo, densidad estacionaria KFE adjunta y GE de Aiyagari | `56_implicit_hjb_and_continuous_kfe` |
+| `57_multiconstraint_occbin_and_dml_es` | OccBin multirrestricción ($M \ge 2$: ZLB + límites de crédito) y Aprendizaje Automático Doble (DML-PLR) | `57_multiconstraint_occbin_and_dml` |
+| `58_latin_america_realtime_macro_es` | Vintages del PIB en tiempo real de América Latina, cartuchos `.pmz` y noticias vs ruido Mankiw-Shapiro | `58_latin_america_realtime_macro` |
 
 ---
 
