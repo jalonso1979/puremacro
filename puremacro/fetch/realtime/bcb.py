@@ -1,33 +1,43 @@
 """Banco Central do Brasil (BCB) SGS API real-time connector.
 
-Retrieves Brazilian macroeconomic time series (quarterly GDP 4380, IPCA inflation 433,
-Selic policy rate 432, IBC-Br economic activity 24363) from the BCB SGS API:
+Retrieves Brazilian series from the BCB SGS open REST service (no
+token required)::
+
     https://api.bcb.gov.br/dados/serie/bcdata.sgs.{series_id}/dados?formato=json
 
-Public open REST service (no authentication token required). Captures snapshots into
-the persistent SQLite `realtime_vintages` cache table.
+The JSON body is a list of ``{"data": "dd/mm/yyyy", "valor": "1.23"}``
+objects (dot decimal). Catalogued series: quarterly real GDP index
+22099, IPCA monthly % change 433, Selic target 432 (daily), IBC-Br
+activity index 24363 (monthly) — see
+:data:`puremacro.fetch.realtime.catalog.BCB_SERIES`.
+
+SGS overwrites series in place and carries no vintage field, so a
+*vintage* here is a **snapshot date**: every fetch is stored in the
+local SQLite ``realtime_vintages`` table stamped with the day it was
+taken, and later calls return every stored snapshot as one vintage
+each. Revision history therefore starts with the first local snapshot.
 """
 from __future__ import annotations
 
-import datetime as dt
-import json
-import re
-import urllib.error
 import urllib.request
-import warnings
-from typing import Any
 
 import pandas as pd
 
-from ..._cache_db import query_realtime_vintages, record_connector_event, store_realtime_vintages
 from ._base import (
     VINTAGE_COLUMNS,
     VintagePanel,
     normalize_vintage_frame,
     register_provider,
 )
-from .canary import SchemaCanary, SchemaDriftError
-from .catalog import BCB_SERIES, SeriesSpec, register_catalog
+from ._snapshot import (
+    empty_snapshot,
+    fetch_snapshot_vintages,
+    finish_snapshot,
+    load_json,
+    warn_skipped,
+)
+from .canary import SchemaCanary
+from .catalog import BCB_SERIES, register_catalog
 
 BCB_SGS_URL = (
     "https://api.bcb.gov.br/dados/serie/bcdata.sgs.{series_id}/dados?formato=json"
@@ -36,86 +46,74 @@ BCB_SGS_URL = (
 _UA = "puremacro (real-time vintage reader)"
 
 
+def _parse_bcb_date(text: str) -> pd.Timestamp | None:
+    """``dd/mm/yyyy`` as documented, with a permissive fallback for drift."""
+    try:
+        return pd.to_datetime(text, format="%d/%m/%Y")
+    except Exception:
+        pass
+    try:
+        return pd.to_datetime(text)
+    except Exception:
+        return None
+
+
 def parse_bcb_json(
     raw: bytes | str | list | dict,
     *,
     series_id: str = "",
     vintage_date: str | pd.Timestamp | None = None,
+    on_drift: str = "raise",
 ) -> pd.DataFrame:
-    """Parse BCB SGS API JSON response into tidy [date, vintage, value] DataFrame.
+    """Parse a BCB SGS JSON response into a tidy ``[date, vintage, value]`` frame.
 
     Parameters
     ----------
     raw : bytes | str | list | dict
-        The JSON response from BCB SGS API.
+        The JSON response from the BCB SGS API.
     series_id : str
-        The SGS series identifier.
+        The SGS series identifier (for messages only).
     vintage_date : str | pd.Timestamp | None
-        Vintage date to stamp. Defaults to current date.
+        Snapshot date to stamp on every row. Defaults to today.
+    on_drift : {"raise", "warn", "ignore"}
+        Schema-canary policy; see :mod:`puremacro.fetch.realtime.canary`.
 
     Returns
     -------
     pd.DataFrame
-        DataFrame with columns ["date", "vintage", "value"].
+        Columns ``["date", "vintage", "value"]``. Observations whose
+        date or value cannot be read are dropped with a warning
+        counting them; empty values are dropped silently.
     """
-    if isinstance(raw, (bytes, bytearray)):
-        text = raw.decode("utf-8-sig", errors="ignore")
-        if not text.strip():
-            return pd.DataFrame(columns=["date", "vintage", "value"])
-        data = json.loads(text)
-    elif isinstance(raw, str):
-        if not raw.strip():
-            return pd.DataFrame(columns=["date", "vintage", "value"])
-        data = json.loads(raw)
-    elif isinstance(raw, (list, dict)):
-        data = raw
-    else:
-        return pd.DataFrame(columns=["date", "vintage", "value"])
+    data = load_json(raw)
+    if data is None or len(data) == 0:
+        return empty_snapshot()
 
-    if data is None or (isinstance(data, (list, dict)) and len(data) == 0):
-        return pd.DataFrame(columns=["date", "vintage", "value"])
+    SchemaCanary.check("bcb", data, on_drift=on_drift)
 
-    ok, reason = SchemaCanary.validate_bcb(data)
-    if not ok:
-        raise SchemaDriftError(f"BCB schema drift: {reason}")
-
-    records = []
-    for item in data:
+    items = data if isinstance(data, list) else []
+    records: list[tuple[pd.Timestamp, float]] = []
+    skipped = 0
+    for item in items:
         if not isinstance(item, dict):
+            skipped += 1
             continue
-        d_str = item.get("data", "").strip()
-        v_str = item.get("valor", "").strip()
+        d_str = str(item.get("data") or "").strip()
+        v_str = str(item.get("valor") or "").strip()
         if not d_str or not v_str:
             continue
         try:
             val = float(v_str.replace(",", "."))
-        except (ValueError, TypeError):
+        except ValueError:
+            skipped += 1
             continue
-
-        try:
-            d = pd.to_datetime(d_str, format="%d/%m/%Y")
-        except Exception:
-            try:
-                d = pd.to_datetime(d_str)
-            except Exception:
-                continue
+        d = _parse_bcb_date(d_str)
+        if d is None:
+            skipped += 1
+            continue
         records.append((d, val))
-
-    if not records:
-        return pd.DataFrame(columns=["date", "vintage", "value"])
-
-    if vintage_date is not None:
-        v_stamp = pd.to_datetime(vintage_date)
-    else:
-        v_stamp = pd.Timestamp.now(tz=None).normalize()
-
-    rows = [(d, v_stamp, val) for d, val in records]
-    df = pd.DataFrame(rows, columns=["date", "vintage", "value"])
-    return (
-        df.drop_duplicates(subset=["date", "vintage"], keep="last")
-        .sort_values(["date", "vintage"])
-        .reset_index(drop=True)
-    )
+    warn_skipped("parse_bcb_json", skipped, len(items))
+    return finish_snapshot(records, vintage_date)
 
 
 def fetch_bcb_vintages(
@@ -124,61 +122,48 @@ def fetch_bcb_vintages(
     vintage_date: str | None = None,
     timeout: float = 60.0,
     use_cache: bool = True,
+    history: bool = True,
+    on_drift: str = "raise",
 ) -> pd.DataFrame:
-    """Fetch time series from BCB SGS API or retrieve cached vintages.
+    """Fetch one SGS series and return its locally stored snapshot vintages.
 
     Parameters
     ----------
     series_id : str
-        BCB SGS series ID (e.g. '4380' for GDP, '433' for IPCA, '432' for Selic).
+        BCB SGS series ID (e.g. ``'22099'`` for the real GDP index,
+        ``'433'`` for IPCA, ``'432'`` for the Selic target).
     vintage_date : str | None
-        Vintage date stamp to assign.
+        Snapshot date to stamp on *this* fetch. Defaults to today. It is
+        a capture date, not a publication date.
     timeout : float
         HTTP request timeout in seconds.
     use_cache : bool
-        Whether to check and update the SQLite cache.
+        ``True`` stores the snapshot in the SQLite ``realtime_vintages``
+        table and falls back to stored snapshots when the fetch fails.
+        ``False`` neither reads nor writes the cache: the live snapshot
+        is returned, and a failure is raised.
+    history : bool
+        ``True`` (default) returns every snapshot stored locally for
+        this series — one vintage per snapshot date, today's included —
+        which is what a revision test needs. ``False`` returns only the
+        snapshot just fetched.
+    on_drift : {"raise", "warn", "ignore"}
+        Schema-canary policy. With ``"raise"`` a drifted payload falls
+        back to the cached snapshots (with a ``SchemaDriftWarning``)
+        when any exist.
 
     Returns
     -------
     pd.DataFrame
-        DataFrame with columns ["date", "vintage", "value"].
+        Columns ``["date", "vintage", "value"]``.
     """
     url = BCB_SGS_URL.format(series_id=series_id)
-    headers = {"User-Agent": _UA}
-    req = urllib.request.Request(url, headers=headers)
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            body = resp.read()
-        df = parse_bcb_json(body, series_id=series_id, vintage_date=vintage_date)
-        if df.empty and use_cache:
-            cached = query_realtime_vintages("bcb", "BRA", series_id)
-            if not cached.empty:
-                warnings.warn(
-                    f"fetch_bcb_vintages received empty observations; falling back to cached vintages.",
-                    UserWarning,
-                    stacklevel=2,
-                )
-                record_connector_event("bcb", "fallback", "sqlite_cache")
-                return cached[["date", "vintage", "value"]]
-        if use_cache and not df.empty:
-            store_df = df.copy()
-            store_df["provider"] = "bcb"
-            store_df["country"] = "BRA"
-            store_df["series_id"] = series_id
-            store_realtime_vintages(store_df)
-            record_connector_event("bcb", "success", "none")
-        return df
-    except Exception as exc:
-        cached = query_realtime_vintages("bcb", "BRA", series_id)
-        if not cached.empty:
-            warnings.warn(
-                f"fetch_bcb_vintages failed ({exc}); falling back to cached vintages.",
-                UserWarning,
-                stacklevel=2,
-            )
-            record_connector_event("bcb", "fallback", "sqlite_cache")
-            return cached[["date", "vintage", "value"]]
-        raise
+    req = urllib.request.Request(url, headers={"User-Agent": _UA})
+    return fetch_snapshot_vintages(
+        provider="bcb", country="BRA", series_id=series_id, request=req,
+        parser=parse_bcb_json, timeout=timeout, use_cache=use_cache,
+        history=history, on_drift=on_drift, vintage_date=vintage_date,
+    )
 
 
 def fetch_bcb_panel(
@@ -187,6 +172,8 @@ def fetch_bcb_panel(
     *,
     timeout: float = 60.0,
     use_cache: bool = True,
+    history: bool = True,
+    on_drift: str = "raise",
     **_ignored,
 ) -> VintagePanel:
     """Registry entry point for Banco Central do Brasil."""
@@ -205,6 +192,8 @@ def fetch_bcb_panel(
                     series_id,
                     timeout=timeout,
                     use_cache=use_cache,
+                    history=history,
+                    on_drift=on_drift,
                 )
             except Exception as exc:
                 failed[f"{country}:{variable}"] = f"{type(exc).__name__}: {exc}"

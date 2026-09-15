@@ -1,41 +1,122 @@
 """INEGI (Instituto Nacional de Estadística y Geografía) real-time connector.
 
-Retrieves Mexican national statistics (quarterly real GDP 735848, CPI inflation 628197,
-and IGAE economic activity 736184) from the INEGI BIE / Banco de Indicadores API:
-    https://www.inegi.org.mx/app/api/indicadores/desarrolladores/jsonxml/BISEventOp1/{series_id}/es/0700/true/IP/2.0/{token}?type=json
+Retrieves Mexican national statistics from the INEGI Indicadores API,
+BIE data source (token in the path)::
 
-Captures snapshots into the persistent SQLite `realtime_vintages` cache table,
-enabling offline reproducibility and historical vintage analysis.
+    https://www.inegi.org.mx/app/api/indicadores/desarrolladores/jsonxml/INDICATOR/{series_id}/es/00/false/BIE/2.0/{token}?type=json
+
+The path segments are the documented constructor: ``INDICATOR``,
+indicator id, language ``es``, geography ``00`` (national, BIE
+coding), ``false`` for the whole series rather than the latest datum
+only, data source ``BIE``, API version ``2.0``, token. The body is
+``{"Series": [{"INDICADOR": .., "FREQ": .., "OBSERVATIONS":
+[{"TIME_PERIOD": "2024/01", "OBS_VALUE": "1.2"}]}]}``; ``TIME_PERIOD``
+is ``YYYY/MM`` for monthly series and ``YYYY/N`` (N = 1..4) for
+quarterly ones. Catalogued series are in
+:data:`puremacro.fetch.realtime.catalog.INEGI_SERIES`.
+
+INEGI overwrites series in place, so a *vintage* here is a **snapshot
+date**: every fetch is stored in the local SQLite ``realtime_vintages``
+table stamped with the day it was taken, and later calls return every
+stored snapshot as one vintage each. Revision history therefore starts
+with the first local snapshot.
 """
 from __future__ import annotations
 
-import datetime as dt
-import json
-import re
-import urllib.error
+import functools
 import urllib.request
-import warnings
-from typing import Any
+from typing import Iterable
 
 import pandas as pd
 
 from ... import credentials
-from ..._cache_db import query_realtime_vintages, record_connector_event, store_realtime_vintages
 from ._base import (
     VINTAGE_COLUMNS,
     VintagePanel,
     normalize_vintage_frame,
     register_provider,
 )
-from .canary import SchemaCanary, SchemaDriftError
-from .catalog import INEGI_SERIES, SeriesSpec, register_catalog
+from ._snapshot import (
+    cached_snapshots,
+    empty_snapshot,
+    fetch_snapshot_vintages,
+    finish_snapshot,
+    load_json,
+    warn_skipped,
+)
+from .canary import SchemaCanary
+from .catalog import INEGI_SERIES, register_catalog
 
 INEGI_SERIES_URL = (
     "https://www.inegi.org.mx/app/api/indicadores/desarrolladores/jsonxml/"
-    "BISEventOp1/{series_id}/es/0700/true/IP/2.0/{token}?type=json"
+    "INDICATOR/{series_id}/es/00/false/BIE/2.0/{token}?type=json"
 )
 
 _UA = "puremacro (real-time vintage reader)"
+
+#: Spanish frequency words INEGI uses in ``FREQ`` on some payloads.
+_INEGI_FREQ_WORDS = {
+    "anual": "A", "semestral": "S", "trimestral": "Q", "mensual": "M",
+    "quincenal": "SM", "semanal": "W", "diaria": "D",
+}
+
+#: Numeric ``CL_FREQ`` codes as published in the API catalogue. Used as
+#: a hint only: the structure of ``TIME_PERIOD`` (see
+#: :func:`_infer_inegi_quarterly`) overrides it whenever it is decisive,
+#: so a code that turns out to be mis-mapped cannot mis-date a series
+#: long enough to tell. Verify against the live catalogue when in doubt.
+_INEGI_FREQ_CODES = {
+    "3": "A", "4": "S", "5": "Q", "6": "M", "7": "SM", "8": "W", "9": "D",
+}
+
+
+def _freq_hint(freq_field: object) -> str | None:
+    """``FREQ`` field -> ``"Q"`` / ``"M"`` / ... or None when unknown."""
+    token = str(freq_field or "").strip().lower()
+    if not token:
+        return None
+    if token in _INEGI_FREQ_CODES:
+        return _INEGI_FREQ_CODES[token]
+    for word, code in _INEGI_FREQ_WORDS.items():
+        if word in token:
+            return code
+    return None
+
+
+def _infer_inegi_quarterly(
+    freq_field: object,
+    periods: Iterable[object],
+    explicit_freq: str | None = None,
+) -> bool:
+    """Decide whether ``YYYY/NN`` periods are quarters or months.
+
+    Structural evidence wins. A period number above 4 rules out
+    quarters. Period numbers that never exceed 4 across two or more
+    years, or across five or more observations, rule out months (a
+    monthly series is contiguous, so five months always reach May).
+    Only when the payload is too short to tell does the caller's
+    ``freq`` decide, then the ``FREQ`` field; failing all of those, the
+    series is treated as monthly.
+    """
+    nums: list[int] = []
+    years: set[int] = set()
+    for tp in periods:
+        text = str(tp).strip()
+        if "/" not in text:
+            continue
+        year, _, num = text.partition("/")
+        if year.isdigit() and num.isdigit():
+            years.add(int(year))
+            nums.append(int(num))
+    if nums:
+        if max(nums) > 4:
+            return False
+        if len(years) >= 2 or len(nums) >= 5:
+            return True
+    if explicit_freq:
+        return str(explicit_freq).strip().upper().startswith("Q")
+    hint = _freq_hint(freq_field)
+    return hint == "Q"
 
 
 def _parse_inegi_period(tp: str, is_quarterly: bool = False) -> pd.Timestamp | None:
@@ -44,7 +125,7 @@ def _parse_inegi_period(tp: str, is_quarterly: bool = False) -> pd.Timestamp | N
     if not token:
         return None
 
-    # Handle "YYYY/MM" or "YYYY/QQ"
+    # Handle "YYYY/MM" or "YYYY/Q"
     if "/" in token:
         parts = token.split("/")
         if len(parts) == 2:
@@ -75,99 +156,79 @@ def parse_inegi_json(
     *,
     series_id: str = "",
     vintage_date: str | pd.Timestamp | None = None,
+    freq: str | None = None,
+    on_drift: str = "raise",
 ) -> pd.DataFrame:
-    """Parse INEGI BIE API JSON response into tidy [date, vintage, value] DataFrame.
+    """Parse an INEGI Indicadores JSON response into a tidy ``[date, vintage, value]`` frame.
 
     Parameters
     ----------
     raw : bytes | str | dict
-        The JSON response from INEGI API.
+        The JSON response from the INEGI API.
     series_id : str
-        The indicator identifier.
+        The indicator identifier (for messages only).
     vintage_date : str | pd.Timestamp | None
-        Vintage date to stamp. Defaults to current date.
+        Snapshot date to stamp on every row. Defaults to today.
+    freq : str | None
+        The catalogue's frequency for this indicator (``"Q"`` or
+        ``"M"``). It only decides when the payload is too short for
+        its ``TIME_PERIOD`` pattern to tell quarters from months; see
+        :func:`_infer_inegi_quarterly`.
+    on_drift : {"raise", "warn", "ignore"}
+        Schema-canary policy; see :mod:`puremacro.fetch.realtime.canary`.
 
     Returns
     -------
     pd.DataFrame
-        DataFrame with columns ["date", "vintage", "value"].
+        Columns ``["date", "vintage", "value"]``. Quarterly periods are
+        dated to the first day of the quarter, monthly ones to the
+        first of the month. Rows whose period or value cannot be read
+        are dropped with a warning counting them.
     """
-    if isinstance(raw, (bytes, bytearray)):
-        text = raw.decode("utf-8-sig", errors="ignore")
-        if not text.strip():
-            return pd.DataFrame(columns=["date", "vintage", "value"])
-        data = json.loads(text)
-    elif isinstance(raw, str):
-        if not raw.strip():
-            return pd.DataFrame(columns=["date", "vintage", "value"])
-        data = json.loads(raw)
-    elif isinstance(raw, dict):
-        data = raw
-    else:
-        return pd.DataFrame(columns=["date", "vintage", "value"])
-
+    data = load_json(raw)
     if not data:
-        return pd.DataFrame(columns=["date", "vintage", "value"])
+        return empty_snapshot()
 
-    ok, reason = SchemaCanary.validate_inegi(data)
-    if not ok:
-        raise SchemaDriftError(f"INEGI schema drift: {reason}")
+    SchemaCanary.check("inegi", data, on_drift=on_drift)
 
-    series_list = data.get("Series", [])
-    if not series_list:
-        return pd.DataFrame(columns=["date", "vintage", "value"])
+    series_list = data.get("Series") if isinstance(data, dict) else None
+    if (not isinstance(series_list, list) or not series_list
+            or not isinstance(series_list[0], dict)):
+        return empty_snapshot()
 
     first_series = series_list[0]
-    freq_desc = str(first_series.get("FREQ", "")).lower()
-    is_quarterly = "trimestral" in freq_desc or series_id == "735848"
+    obs_list = first_series.get("OBSERVATIONS")
+    if not isinstance(obs_list, list) or not obs_list:
+        return empty_snapshot()
 
-    obs_list = first_series.get("OBSERVATIONS", [])
-    if not obs_list:
-        return pd.DataFrame(columns=["date", "vintage", "value"])
+    is_quarterly = _infer_inegi_quarterly(
+        first_series.get("FREQ"),
+        (o.get("TIME_PERIOD") for o in obs_list if isinstance(o, dict)),
+        explicit_freq=freq,
+    )
 
-    # If freq not explicitly stated, check if max period number is <= 4
-    if not is_quarterly:
-        p_nums = []
-        for obs in obs_list:
-            tp = str(obs.get("TIME_PERIOD", ""))
-            if "/" in tp:
-                parts = tp.split("/")
-                if len(parts) == 2 and parts[1].isdigit():
-                    p_nums.append(int(parts[1]))
-        if p_nums and max(p_nums) <= 4 and series_id == "735848":
-            is_quarterly = True
-
-    records = []
+    records: list[tuple[pd.Timestamp, float]] = []
+    skipped = 0
     for obs in obs_list:
+        if not isinstance(obs, dict):
+            skipped += 1
+            continue
         tp = obs.get("TIME_PERIOD")
         v_str = obs.get("OBS_VALUE")
-        if tp is None or v_str is None:
+        if tp is None or v_str is None or str(v_str).strip() == "":
             continue
         try:
             val = float(str(v_str).replace(",", ""))
         except (ValueError, TypeError):
+            skipped += 1
             continue
-
         d = _parse_inegi_period(tp, is_quarterly=is_quarterly)
         if d is None:
+            skipped += 1
             continue
         records.append((d, val))
-
-    if not records:
-        return pd.DataFrame(columns=["date", "vintage", "value"])
-
-    if vintage_date is not None:
-        v_stamp = pd.to_datetime(vintage_date)
-    else:
-        v_stamp = pd.Timestamp.now(tz=None).normalize()
-
-    rows = [(d, v_stamp, val) for d, val in records]
-    df = pd.DataFrame(rows, columns=["date", "vintage", "value"])
-    return (
-        df.drop_duplicates(subset=["date", "vintage"], keep="last")
-        .sort_values(["date", "vintage"])
-        .reset_index(drop=True)
-    )
+    warn_skipped("parse_inegi_json", skipped, len(obs_list))
+    return finish_snapshot(records, vintage_date)
 
 
 def fetch_inegi_vintages(
@@ -177,70 +238,67 @@ def fetch_inegi_vintages(
     vintage_date: str | None = None,
     timeout: float = 60.0,
     use_cache: bool = True,
+    history: bool = True,
+    on_drift: str = "raise",
+    freq: str | None = None,
 ) -> pd.DataFrame:
-    """Fetch time series from INEGI BIE API or retrieve cached vintages.
+    """Fetch one INEGI indicator and return its locally stored snapshot vintages.
 
     Parameters
     ----------
     series_id : str
-        INEGI series ID (e.g. '735848' for GDP, '628197' for CPI).
+        INEGI BIE indicator ID (see
+        :data:`puremacro.fetch.realtime.catalog.INEGI_SERIES`).
     token : str | None
-        INEGI API token. Resolved from `puremacro.credentials` if omitted.
+        INEGI API token. Resolved from :mod:`puremacro.credentials`
+        (``INEGI_API_KEY`` / ``[inegi].api_key``) if omitted. Without a
+        token the stored snapshots are returned when there are any
+        (and ``use_cache`` is True); otherwise ``MissingCredentialError``.
     vintage_date : str | None
-        Vintage date stamp to assign.
+        Snapshot date to stamp on *this* fetch. Defaults to today. It is
+        a capture date, not a publication date.
     timeout : float
         HTTP request timeout in seconds.
     use_cache : bool
-        Whether to check and update the SQLite cache.
+        ``True`` stores the snapshot in the SQLite ``realtime_vintages``
+        table and falls back to stored snapshots when the fetch fails.
+        ``False`` neither reads nor writes the cache: the live snapshot
+        is returned, and a failure is raised.
+    history : bool
+        ``True`` (default) returns every snapshot stored locally for
+        this series — one vintage per snapshot date, today's included.
+        ``False`` returns only the snapshot just fetched.
+    on_drift : {"raise", "warn", "ignore"}
+        Schema-canary policy. With ``"raise"`` a drifted payload falls
+        back to the cached snapshots (with a ``SchemaDriftWarning``)
+        when any exist.
+    freq : str | None
+        Frequency of the indicator (``"Q"`` / ``"M"``) when the caller
+        knows it; the catalogue supplies it for catalogued series. See
+        :func:`parse_inegi_json`.
 
     Returns
     -------
     pd.DataFrame
-        DataFrame with columns ["date", "vintage", "value"].
+        Columns ``["date", "vintage", "value"]``.
     """
     tok = token or credentials.get("inegi")
     if not tok:
-        cached = query_realtime_vintages("inegi", "MEX", series_id)
-        if not cached.empty:
-            return cached[["date", "vintage", "value"]]
+        if use_cache:
+            cached = cached_snapshots("inegi", "MEX", series_id)
+            if not cached.empty:
+                return cached
         credentials.require("inegi")
 
     url = INEGI_SERIES_URL.format(series_id=series_id, token=tok)
-    headers = {"User-Agent": _UA}
-    req = urllib.request.Request(url, headers=headers)
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            body = resp.read()
-        df = parse_inegi_json(body, series_id=series_id, vintage_date=vintage_date)
-        if df.empty and use_cache:
-            cached = query_realtime_vintages("inegi", "MEX", series_id)
-            if not cached.empty:
-                warnings.warn(
-                    f"fetch_inegi_vintages received empty observations; falling back to cached vintages.",
-                    UserWarning,
-                    stacklevel=2,
-                )
-                record_connector_event("inegi", "fallback", "sqlite_cache")
-                return cached[["date", "vintage", "value"]]
-        if use_cache and not df.empty:
-            store_df = df.copy()
-            store_df["provider"] = "inegi"
-            store_df["country"] = "MEX"
-            store_df["series_id"] = series_id
-            store_realtime_vintages(store_df)
-            record_connector_event("inegi", "success", "none")
-        return df
-    except Exception as exc:
-        cached = query_realtime_vintages("inegi", "MEX", series_id)
-        if not cached.empty:
-            warnings.warn(
-                f"fetch_inegi_vintages failed ({exc}); falling back to cached vintages.",
-                UserWarning,
-                stacklevel=2,
-            )
-            record_connector_event("inegi", "fallback", "sqlite_cache")
-            return cached[["date", "vintage", "value"]]
-        raise
+    req = urllib.request.Request(url, headers={"User-Agent": _UA})
+    return fetch_snapshot_vintages(
+        provider="inegi", country="MEX", series_id=series_id, request=req,
+        parser=functools.partial(parse_inegi_json, freq=freq),
+        timeout=timeout, use_cache=use_cache, history=history,
+        on_drift=on_drift, vintage_date=vintage_date,
+        redact=lambda text: text.replace(tok, "***"),
+    )
 
 
 def fetch_inegi_panel(
@@ -250,6 +308,8 @@ def fetch_inegi_panel(
     token: str | None = None,
     timeout: float = 60.0,
     use_cache: bool = True,
+    history: bool = True,
+    on_drift: str = "raise",
     **_ignored,
 ) -> VintagePanel:
     """Registry entry point for INEGI."""
@@ -269,6 +329,9 @@ def fetch_inegi_panel(
                     token=token,
                     timeout=timeout,
                     use_cache=use_cache,
+                    history=history,
+                    on_drift=on_drift,
+                    freq=spec.freq or None,
                 )
             except Exception as exc:
                 failed[f"{country}:{variable}"] = f"{type(exc).__name__}: {exc}"

@@ -57,6 +57,7 @@ CANONICAL_VARIABLES: dict[str, str] = {
     "unemployment_rate": "Unemployment rate, SA",
     "cpi": "Consumer price index, all items",
     "ip": "Industrial production index, SA",
+    "activity": "Monthly economic activity index (IGAE / IMACEC / IBC-Br), SA",
     "policy_rate": "Central bank policy rate / target interest rate",
 }
 
@@ -84,6 +85,10 @@ VARIABLE_ALIASES: dict[str, str] = {
     "central_bank_rate": "policy_rate",
     "target_rate": "policy_rate",
     "overnight_rate": "policy_rate",
+    "economic_activity": "activity",
+    "igae": "activity",
+    "imacec": "activity",
+    "ibc_br": "activity",
 }
 
 #: Units a catalogued series can be published in, and the revision
@@ -94,17 +99,31 @@ UNITS_TRANSFORM: dict[str, str] = {
     "index": "log_diff_pct",
     "growth_qoq": "level",
     "growth_yoy": "level",
+    "growth_mom": "level",
     "rate": "level",
 }
+
+#: Marker for catalogue entries whose identifier could not be checked
+#: against the live service when they were written. ``vintage_catalog()``
+#: carries it in ``note``; ``pytest -m network`` is the audit.
+VERIFY_ONLINE = "VERIFY ONLINE"
 
 
 @dataclass(frozen=True)
 class SeriesSpec:
-    """One provider's series for one (country, variable)."""
+    """One provider's series for one (country, variable).
+
+    ``freq`` is the frequency the provider publishes the series at
+    (``"Q"``, ``"M"`` or ``"D"``), or ``""`` when the catalogue does not
+    say — every vintage-archive entry is quarterly and predates the
+    field. ``vintage_panel`` refuses to serve a series at a frequency
+    other than the one it declares.
+    """
     series_id: str
     units: str = "level"
     source: str = ""
     note: str = ""
+    freq: str = ""
 
     def default_transform(self) -> str:
         """The revision transform these units imply."""
@@ -326,8 +345,9 @@ def known_gaps(provider: str | None = None) -> dict[str, str]:
 def vintage_catalog(provider: str | None = None) -> pd.DataFrame:
     """The whole table as a DataFrame, for inspection.
 
-    Columns ``[provider, country, variable, series_id, units,
-    default_transform, source, note, description]``.
+    Columns ``[provider, country, variable, series_id, units, freq,
+    default_transform, source, note, description]``. ``freq`` is
+    ``""`` for entries that predate the field (all quarterly archives).
     """
     rows = []
     for prov, table in sorted(_CATALOGS.items()):
@@ -341,42 +361,108 @@ def vintage_catalog(provider: str | None = None) -> pd.DataFrame:
                     "variable": variable,
                     "series_id": spec.series_id,
                     "units": spec.units,
+                    "freq": spec.freq,
                     "default_transform": spec.default_transform(),
                     "source": spec.source,
                     "note": spec.note,
                     "description": CANONICAL_VARIABLES.get(variable, ""),
                 })
     return pd.DataFrame(rows, columns=[
-        "provider", "country", "variable", "series_id", "units",
+        "provider", "country", "variable", "series_id", "units", "freq",
         "default_transform", "source", "note", "description",
     ])
 
 
-#: Canonical series specs for Latin American central banks & statistical agencies
+# ---------------------------------------------------------------------------
+# Latin American central banks and statistical agencies
+# ---------------------------------------------------------------------------
+# These providers overwrite their series in place; the vintage history
+# is the local snapshot history (see puremacro.fetch.realtime._snapshot).
+# Identifiers were written from the providers' published catalogues
+# without a live check (no network at authoring time); the ones that
+# could not be confirmed carry VERIFY_ONLINE in their note. Frequencies
+# are declared so that vintage_panel never stamps a daily policy rate or
+# a monthly index as quarterly.
 BANXICO_SERIES: dict[str, SeriesSpec] = {
-    "policy_rate": SeriesSpec("SF61745", "rate", "banxico", "Tasa de interés interbancaria a 1 día (tasa objetivo)"),
-    "cpi": SeriesSpec("SP1", "index", "banxico", "Índice Nacional de Precios al Consumidor (INPC general)"),
-    "ip": SeriesSpec("SR17631", "index", "banxico", "Actividad económica / IGAE general"),
+    "policy_rate": SeriesSpec(
+        "SF61745", "rate", "banxico",
+        "Tasa objetivo (tasa de interés interbancaria a 1 día), diaria",
+        freq="D"),
+    "cpi": SeriesSpec(
+        "SP1", "index", "banxico",
+        "Índice Nacional de Precios al Consumidor (INPC general), mensual",
+        freq="M"),
+    "activity": SeriesSpec(
+        "SR17631", "index", "banxico",
+        f"IGAE índice general, mensual — {VERIFY_ONLINE}: confirm SR17631 is "
+        "the IGAE total index in the SIE catalogue",
+        freq="M"),
 }
 
 INEGI_SERIES: dict[str, SeriesSpec] = {
-    "gdp_real": SeriesSpec("735848", "level", "inegi", "PIB a precios de 2018, trimestral desestacionalizado"),
-    "cpi": SeriesSpec("628197", "index", "inegi", "INPC general"),
-    "ip": SeriesSpec("736184", "index", "inegi", "IGAE actividad económica general"),
+    "gdp_real": SeriesSpec(
+        "735848", "level", "inegi",
+        f"PIB trimestral, valores constantes 2018, desestacionalizado — "
+        f"{VERIFY_ONLINE}: confirm the BIE indicator id",
+        freq="Q"),
+    "cpi": SeriesSpec(
+        "628197", "index", "inegi",
+        f"INPC general, mensual — {VERIFY_ONLINE}: confirm the BIE indicator id",
+        freq="M"),
+    "activity": SeriesSpec(
+        "736184", "index", "inegi",
+        f"IGAE índice general, mensual — {VERIFY_ONLINE}: confirm the BIE "
+        "indicator id",
+        freq="M"),
 }
 
 BCB_SERIES: dict[str, SeriesSpec] = {
-    "gdp_real": SeriesSpec("4380", "level", "bcb", "PIB trimestral a preços de mercado - encadeado"),
-    "cpi": SeriesSpec("433", "index", "bcb", "IPCA - variação mensal / índice"),
-    "policy_rate": SeriesSpec("432", "rate", "bcb", "Taxa Selic acumulada no mês anualizada / meta"),
-    "ip": SeriesSpec("24363", "index", "bcb", "IBC-Br Índice de Atividade Econômica do Banco Central"),
+    # 4380 is "PIB mensal - valores correntes (R$ milhões)": monthly,
+    # nominal, BCB's own estimate — not a real GDP series. 22099 is the
+    # IBGE quarterly seasonally adjusted chained-volume index (22109 is
+    # the unadjusted one).
+    "gdp_real": SeriesSpec(
+        "22099", "index", "bcb",
+        "PIB trimestral - dados dessazonalizados - índice encadeado "
+        "(média 1995 = 100)",
+        freq="Q"),
+    # 433 is the IPCA monthly percentage change, not an index level, so
+    # its units say so and no revision helper will log-difference it.
+    "cpi": SeriesSpec(
+        "433", "growth_mom", "bcb", "IPCA - variação % mensal", freq="M"),
+    "policy_rate": SeriesSpec(
+        "432", "rate", "bcb",
+        "Taxa de juros - Meta Selic definida pelo Copom (% a.a.), diária",
+        freq="D"),
+    "activity": SeriesSpec(
+        "24363", "index", "bcb",
+        f"IBC-Br Índice de Atividade Econômica do Banco Central, "
+        f"dessazonalizado, mensal — {VERIFY_ONLINE}: confirm 24363 is the "
+        "seasonally adjusted series (24364 unadjusted)",
+        freq="M"),
 }
 
 BCCH_SERIES: dict[str, SeriesSpec] = {
-    "gdp_real": SeriesSpec("F032.PIB.VOL.Z.Z.18.Z.Z.0.Q", "level", "bcch", "PIB volumen a precios 2018"),
-    "cpi": SeriesSpec("F073.IPC.VAR.Z.Z.C.M", "index", "bcch", "IPC general"),
-    "policy_rate": SeriesSpec("F022.TPM.TPO.D001.NO.Z.D", "rate", "bcch", "Tasa de Política Monetaria (TPM)"),
-    "ip": SeriesSpec("F032.IMC.IND.Z.Z.EP18.Z.Z.0.M", "index", "bcch", "IMACEC Índice Mensual de Actividad Económica"),
+    # BCCh codes end in the Spanish frequency letter (D, M, T, A); no
+    # series ends in ".Q". IPC lives under chapter F074 (F073 is exchange
+    # rates).
+    "gdp_real": SeriesSpec(
+        "F032.PIB.FLU.R.CLP.EP18.Z.Z.0.T", "level", "bcch",
+        f"PIB volumen a precios del año anterior encadenado, ref. 2018, "
+        f"trimestral — {VERIFY_ONLINE}: confirm the code and whether the "
+        "seasonally adjusted variant is wanted",
+        freq="Q"),
+    "cpi": SeriesSpec(
+        "F074.IPC.IND.Z.Z.C.M", "index", "bcch",
+        f"IPC general, índice base 2023 = 100, mensual — {VERIFY_ONLINE}: "
+        "confirm the code (F074.IPC.VAR.Z.Z.C.M is the monthly % change)",
+        freq="M"),
+    "policy_rate": SeriesSpec(
+        "F022.TPM.TPO.D001.NO.Z.D", "rate", "bcch",
+        "Tasa de Política Monetaria (TPM), diaria", freq="D"),
+    "activity": SeriesSpec(
+        "F032.IMC.IND.Z.Z.EP18.Z.Z.0.M", "index", "bcch",
+        "IMACEC Índice Mensual de Actividad Económica, mensual", freq="M"),
 }
 
 
@@ -384,6 +470,7 @@ __all__ = [
     "CANONICAL_VARIABLES",
     "VARIABLE_ALIASES",
     "UNITS_TRANSFORM",
+    "VERIFY_ONLINE",
     "SeriesSpec",
     "ALFRED_KNOWN_GAPS",
     "BANXICO_SERIES",
