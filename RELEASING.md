@@ -2,7 +2,9 @@
 
 How to cut a release. Read §1 once; after that §3 is the whole procedure.
 
-*Last verified against a real release: **1.3.1**, 2026-08-20.*
+*Last verified against a real release: **1.3.1**, 2026-08-20. The gate table, CI matrix
+and counts below were brought up to date for 3.4.0 on 2026-09-15 from the tree, not from a
+release run — the next tag is the next verification.*
 
 ## 1. What the setup actually is
 
@@ -18,7 +20,7 @@ How to cut a release. Read §1 once; after that §3 is the whole procedure.
 
 | file | trigger | what it does |
 |---|---|---|
-| `ci.yml` | push / PR to `main` | pytest on 12 targets (ubuntu + macos + windows × Python 3.10–3.13), then `release_check.py --no-tests` on ubuntu/3.12 |
+| `ci.yml` | push / PR to `main` | pytest on 9 targets (ubuntu + macos + windows × Python 3.11–3.13; 3.10 is below `requires-python` and was dropped), then `release_check.py --no-tests` on ubuntu/3.11 and ubuntu/3.12, and a strict `mkdocs build` on ubuntu/3.12 |
 | `release.yml` | push of a `v*` tag | build → `twine check` → publish to PyPI (`environment: pypi`, `id-token: write`) |
 | `pages.yml` | push to `main`, or manual | builds the JupyterLite playground + mkdocs site, deploys to Pages |
 
@@ -29,39 +31,52 @@ If you ever see two PyPI workflows again, one of them is wrong.
 
 ## 2. The gate
 
-`tools/release_check.py` is the pre-tag check. Four gates run by default, two are opt-in:
+`tools/release_check.py` is the pre-tag check. Five gates run by default, two are opt-in:
 
 | gate | what it proves | notes |
 |---|---|---|
-| 1 test baseline | pytest failures == `tests/known_failures.json` | that file currently holds **zero** entries, i.e. the suite must be fully green. ~20 min |
+| 1 test baseline | pytest `FAILED` + `ERROR` node ids == `tests/known_failures.json` | the whitelist holds the statsmodels-parity tests that are red on statsmodels 0.15 (23 entries: `TestCollinearity` and `test_poisson_matches_statsmodels_glm`). CI installs the `dev` pin `<0.15`, where only two of them are red, so there the gate passes *with warning — previously-red now green*. Setup errors count since 3.4.0; before that a fixture raising `FileNotFoundError` was invisible here. ~20 min |
 | 2 Pyodide contract | `tests/test_pyodide_compat.py` green | static check of the import contract |
-| 3 public API snapshot | regenerated API == `tests/fixtures/public_api_snapshot.json` | 301 modules, 137 result classes |
-| 4 version sync | `pyproject.toml` == `puremacro/__init__.py` == `CHANGELOG.md` == `CITATION.cff` | all four |
+| 3 public API snapshot | regenerated API == `tests/fixtures/public_api_snapshot.json` | the fixture is the count (404 modules with `__all__`, 285 result classes at 3.4.0); the gate prints every symbol that moved |
+| 4 version sync | `pyproject.toml` == `puremacro/__init__.py` == `CHANGELOG.md` == `CITATION.cff` == the wheel pin in `playground/jupyter_lite_config.json` | all five |
+| 7 min-Python syntax | every `.py` under `puremacro/`, `tools/` and `tests/` parses on the `requires-python` floor (3.11) | `ast.parse(feature_version=(3, 11))` plus a PEP 701 f-string scan (quote reuse, backslashes and comments inside `{...}`), and a real `compile()` under `python3.11` when one is on PATH. Gates 1–6 run under whatever interpreter invokes the script, so a 3.11-only SyntaxError passed all of them while every 3.11 CI leg died at collection. `notebooks/` is not scanned: jupytext sources may carry bare `%magics`. Seconds |
 | 5 examples gallery | `--examples` | reads `docs/examples_gallery.json` |
 | 6 Pyodide smoke | `--pyodide` | builds the wheel and boots a real Pyodide kernel |
 
 ```bash
-python tools/release_check.py                 # the four defaults
-python tools/release_check.py --no-tests      # fast: gates 2-4 only, seconds
+python tools/release_check.py                 # the five defaults
+python tools/release_check.py --no-tests      # fast: gates 2, 3, 4 and 7, seconds
 python tools/release_check.py --pyodide       # add the real-kernel smoke test
 ```
 
-> Gate 4 reads **four** version-bearing files. `CITATION.cff` was added to it after it
+> Gate 4 reads **five** version-bearing files. `CITATION.cff` was added to it after it
 > silently went stale at 1.3.0 while the package shipped 1.3.1 — three files were bumped
-> and the fourth was not, and nothing in the release path noticed. If you add a fifth
-> place the version is written, add it to `gate_version_sync` at the same time.
+> and the fourth was not, and nothing in the release path noticed. The playground wheel
+> pin followed at 3.4.0: `build_playground.sh` rewrites it from the wheel it builds, so
+> the deployed site never lagged, but the tracked file read 1.9.0 while the package
+> shipped 3.3.0. If you add a sixth place the version is written, add it to
+> `gate_version_sync` at the same time.
 
 **When Gate 3 fails** it prints the exact symbols added or removed. If the change is
-intended, regenerate the fixture:
+intended, regenerate the fixture **from a clean copy of the commit**, not from the live
+working tree (a synced tree can carry modules that are not in git, and they would be
+baked into the fixture):
 
 ```bash
-python -c "import sys, json, pathlib; sys.path.insert(0, 'tests'); \
+rm -rf /tmp/pm-clean && mkdir /tmp/pm-clean && git archive HEAD | tar -x -C /tmp/pm-clean
+cd /tmp/pm-clean && PYTHONPATH=. python -c "import sys, json, pathlib; sys.path.insert(0, 'tests'); \
 from test_public_api import collect_current_api; \
 pathlib.Path('tests/fixtures/public_api_snapshot.json').write_text(json.dumps(collect_current_api(), indent=2) + '\n')"
+cp /tmp/pm-clean/tests/fixtures/public_api_snapshot.json tests/fixtures/
 ```
 
 Commit that as its own change and say in the message *why* the surface moved — a widened
 API and a renamed one look identical in the diff otherwise.
+
+**When Gate 7 fails** it names the file and line. The usual cause is an f-string that
+only Python 3.12 accepts: a string inside `{...}` that reuses the f-string's own quote,
+or a backslash inside `{...}` (`f"{s.replace('_', r'\_')}"` is the one that took the
+3.11 CI legs down before 3.4.0). Hoist the expression into a local first.
 
 ## 3. Cutting a release
 
@@ -72,21 +87,31 @@ Everything here is local and reversible until step 7.
 2. **Write the CHANGELOG section** — `## X.Y.Z (YYYY-MM-DD)`, a one-line summary in bold,
    then `### Added` / `### Fixed` / `### Internal` / `### Known issues`. Describe what a
    user can now do, or now no longer trips over.
-3. **Bump the version in all four places:** `pyproject.toml`, `puremacro/__init__.py`,
-   the CHANGELOG heading, and **`CITATION.cff`**.
-4. **Run the gate:** `python tools/release_check.py`. All four must pass.
+3. **Bump the version in all five places:** `pyproject.toml`, `puremacro/__init__.py`,
+   the CHANGELOG heading, **`CITATION.cff`**, and the wheel pin in
+   `playground/jupyter_lite_config.json` (`./wheels/puremacro-X.Y.Z-py3-none-any.whl`).
+4. **Run the gate:** `python tools/release_check.py`. All five must pass.
 5. **Sanity-build and inspect the artifact**, because this is the last point at which a
-   mistake is free:
+   mistake is free. Build from a clean export, not from the live tree: setuptools seeds
+   the sdist from a stale, gitignored `puremacro.egg-info/SOURCES.txt` when one is
+   present, and a live-tree build here once produced a 110 MB sdist carrying
+   `playground/dist/`, `tests/`, `notebooks/` and `matlab/`, plus a 9 MB wheel with 63
+   research PNGs — nothing like the 4 MB / 3.4 MB artifacts `release.yml` ships from a
+   fresh checkout.
    ```bash
-   rm -rf dist/ && python -m build && python -m twine check dist/*
+   rm -rf /tmp/pm-build && mkdir /tmp/pm-build && git archive HEAD | tar -x -C /tmp/pm-build
+   (cd /tmp/pm-build && python -m build && python -m twine check dist/*)
    python - <<'EOF'
    import zipfile, glob
-   z = zipfile.ZipFile(glob.glob("dist/*.whl")[0])
-   print(sorted(n for n in z.namelist() if n.endswith("__init__.py"))[:5])
+   z = zipfile.ZipFile(glob.glob("/tmp/pm-build/dist/*.whl")[0])
+   names = z.namelist()
+   print(len(names), "entries;", sum(n.endswith(".png") for n in names), "png (expect 0)")
+   print(sorted(n for n in names if n.endswith("__init__.py"))[:5])
    EOF
    ```
    Confirm the wheel really contains the module you just wrote. A file that was never
-   `git add`ed is in your working tree, in your tests, and **not** in the wheel.
+   `git add`ed is in your working tree, in your tests, and **not** in the wheel — and
+   `git archive` is exactly what makes that visible.
 6. **Tag, annotated, on the exact commit you verified:**
    ```bash
    git log --oneline -1                      # is this really the commit?
@@ -185,8 +210,8 @@ The present `# Features` section is not one of the six; fold it into *Software d
 
 JOSS looks for roughly **six months of public development history with activity spanning
 it**. This repo's first commit is a single `Initial public release (v0.92.0)` squash of
-1,256 files dated 2026-07-20, so a reviewer sees one month and ~50 commits for a library
-of 606 modules. The earlier history is real but lives in the private `uncertainty_examples`
+1,256 files dated 2026-07-20, so a reviewer sees a short public log for a library of ~750
+shipped modules. The earlier history is real but lives in the private `uncertainty_examples`
 monorepo, under `puremacro/`, from 2026-04-28.
 
 **This was investigated and rejected.** Re-splitting with
@@ -225,7 +250,7 @@ review, authors will deposit a copy of the repository with a data-archiving serv
 as Zenodo or figshare, get a DOI for the archive."* You do **not** need a DOI to submit.
 
 When you do get there, note that Zenodo archives on a **GitHub Release**, not on a tag.
-This repo has tags through `v1.3.1` but only one Release (`v1.0.0`), so
+This repo has tags through `v3.3.0` but only one Release (`v1.0.0`), so
 `gh release create vX.Y.Z --generate-notes` is a step you will need.
 
 ### 6.5 Then submit

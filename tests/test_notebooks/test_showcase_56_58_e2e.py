@@ -12,6 +12,9 @@ Verifies:
   docs/notebooks.md, and docs/es/notebooks.md.
 - Tier 4: Execution test (dry-run import / execution via build_notebooks.py --check and
   verification of economic domain properties).
+- Tier 5: The shipped .ipynb artifacts hold no tracebacks, were built from the current
+  jupytext source, and print the numbers the current code produces (one replicated
+  printed number per notebook), so a stale rebuild cannot pass unnoticed.
 """
 from __future__ import annotations
 
@@ -19,10 +22,12 @@ import ast
 import importlib.util
 import json
 import re
+import tempfile
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+import pandas as pd
 import pytest
 
 PROJ = Path(__file__).resolve().parents[2]
@@ -717,3 +722,173 @@ class TestTier4RealWorldScenariosAndExecution:
             assert cart_path.exists() and cart_path.stat().st_size > 100
             loaded = load_realtime_cartridge(cart_path, verify=True)
             assert len(loaded) == len(panel)
+
+
+# ============================================================================
+# Tier 5: Rendered .ipynb artifacts must match the code they claim to show
+# ============================================================================
+
+def _ipynb_cells(path: Path) -> list[dict[str, Any]]:
+    return json.loads(_require_file(path))["cells"]
+
+
+def _ipynb_code_sources(path: Path) -> list[str]:
+    out: list[str] = []
+    for cell in _ipynb_cells(path):
+        if cell.get("cell_type") == "code":
+            src = cell.get("source", "")
+            out.append("".join(src) if isinstance(src, list) else src)
+    return out
+
+
+def _ipynb_stdout(path: Path) -> str:
+    """Everything the notebook's code cells printed, in order."""
+    chunks: list[str] = []
+    for cell in _ipynb_cells(path):
+        if cell.get("cell_type") != "code":
+            continue
+        for out in cell.get("outputs", []):
+            if out.get("output_type") == "stream" and out.get("name", "stdout") == "stdout":
+                text = out.get("text", "")
+                chunks.append("".join(text) if isinstance(text, list) else text)
+    return "".join(chunks)
+
+
+_SOURCE_IPYNB_PAIRS = [
+    (NB_PATHS_EN[stem], IPYNB_PATHS_EN[stem]) for stem in ("56", "57", "58")
+] + [
+    (NB_PATHS_ES[stem], IPYNB_PATHS_ES[stem]) for stem in ("56", "57", "58")
+]
+
+
+class TestTier5RenderedOutputsMatchCode:
+    """A shipped .ipynb is a claim about what the code prints; hold it to that.
+
+    The Tier 4 execution check proves the source *runs*; it says nothing about
+    whether the committed .ipynb was rebuilt afterwards. Each printed-number
+    test below replicates one computation exactly as the notebook's code cell
+    does it (same inputs, same seed, same format string) and looks for that
+    string in the .ipynb stdout, so an artifact rendered from older code, or
+    from code that now gives a different answer, fails here.
+    """
+
+    @pytest.mark.parametrize("ipynb_path", ALL_IPYNB_PATHS, ids=[p.name for p in ALL_IPYNB_PATHS])
+    def test_ipynb_has_no_error_outputs(self, ipynb_path: Path):
+        for idx, cell in enumerate(_ipynb_cells(ipynb_path)):
+            for out in cell.get("outputs", []):
+                assert out.get("output_type") != "error", (
+                    f"{ipynb_path.name} cell {idx} holds a traceback: "
+                    f"{out.get('ename')}: {out.get('evalue')}"
+                )
+
+    @pytest.mark.parametrize(
+        "src_path,ipynb_path", _SOURCE_IPYNB_PAIRS, ids=[p[1].name for p in _SOURCE_IPYNB_PAIRS]
+    )
+    def test_ipynb_code_cells_match_the_jupytext_source(self, src_path: Path, ipynb_path: Path):
+        src_cells = [normalize_code(c) for c in extract_code_cells(_require_file(src_path))]
+        nb_cells = [normalize_code(c) for c in _ipynb_code_sources(ipynb_path)]
+        assert nb_cells == src_cells, (
+            f"{ipynb_path.name} was built from a different {src_path.name}; rebuild it "
+            "with tools/build_notebooks.py"
+        )
+
+    @pytest.mark.parametrize(
+        "ipynb_path", [IPYNB_PATHS_EN["56"], IPYNB_PATHS_ES["56"]], ids=["en", "es"]
+    )
+    def test_nb56_printed_hjb_numbers_are_current(self, ipynb_path: Path):
+        from puremacro.vfi import solve_hjb_achdou
+
+        # Experiment 1 and 2 of the notebook, verbatim.
+        sol = solve_hjb_achdou(
+            r_rate=0.03, w_rate=1.0, rho_val=0.05, gamma_r=2.0,
+            Na=50, a_min=0.0, a_max=30.0, tol=1e-8, max_iter=100,
+        )
+        da = sol.a_grid[1] - sol.a_grid[0]
+        capital_supply = float(np.sum(sol.a_grid[:, None] * sol.g_dist * da))
+
+        stdout = _ipynb_stdout(ipynb_path)
+        assert f"Iterations         : {sol.n_iter} (expected <= 20)" in stdout, stdout[:600]
+        assert f"Aggregate Capital Supply (Ks) : {capital_supply:.4f}" in stdout, stdout[:1200]
+
+    @pytest.mark.parametrize(
+        "ipynb_path", [IPYNB_PATHS_EN["57"], IPYNB_PATHS_ES["57"]], ids=["en", "es"]
+    )
+    def test_nb57_printed_dml_estimate_is_current(self, ipynb_path: Path):
+        from puremacro.causal import dml_plr
+
+        # Experiment 2 of the notebook, verbatim: the notebook's rng is first
+        # drawn from here, so a fresh default_rng(42) reproduces X, D and Y.
+        rng = np.random.default_rng(42)
+        n_samples, p_controls, theta_true = 500, 30, 1.75
+        X_mat = rng.standard_normal((n_samples, p_controls))
+        g_true = 0.8 * X_mat[:, 0] - 1.0 * X_mat[:, 1] + 0.5 * (X_mat[:, 2] ** 2)
+        m_true = 0.7 * X_mat[:, 0] + 0.9 * X_mat[:, 1] - 0.4 * X_mat[:, 3]
+        D_treat = m_true + 0.8 * rng.standard_normal(n_samples)
+        Y_outcome = D_treat * theta_true + g_true + 0.8 * rng.standard_normal(n_samples)
+        res = dml_plr(Y_outcome, D_treat, X_mat, n_folds=5, learner="lasso", random_state=42)
+
+        stdout = _ipynb_stdout(ipynb_path)
+        expected = f"DML (Lasso)        : theta = {res.theta:.4f} +/- {1.96 * res.se:.4f}"
+        assert expected in stdout, (expected, stdout[:1500])
+
+    @pytest.mark.parametrize(
+        "ipynb_path", [IPYNB_PATHS_EN["58"], IPYNB_PATHS_ES["58"]], ids=["en", "es"]
+    )
+    def test_nb58_printed_news_noise_numbers_are_current(self, ipynb_path: Path):
+        from puremacro.fetch.realtime import (
+            VintagePanel,
+            load_realtime_cartridge,
+            pack_realtime_cartridge,
+        )
+
+        # Experiments 1, 2 and 4 of the notebook, verbatim (panel construction
+        # is the notebook's only rng consumer, so the seed reproduces it).
+        rng = np.random.default_rng(42)
+        ref_dates = pd.date_range("2022-01-01", "2025-07-01", freq="QS").strftime("%Y-%m-%d").tolist()
+        vintage_dates = pd.date_range("2024-01-01", "2025-10-01", freq="QS").strftime("%Y-%m-%d").tolist()
+        rows = []
+        for v in vintage_dates:
+            for d_idx, d in enumerate(ref_dates):
+                if d <= v:
+                    base_gdp = 24000000.0 + 150000.0 * d_idx
+                    recent = d == v or (pd.to_datetime(v) - pd.to_datetime(d)).days <= 180
+                    noise = float(rng.normal(0, 50000.0)) if recent else 0.0
+                    rows.append({
+                        "country": "MEX", "variable": "gdp_real", "date": d, "vintage": v,
+                        "value": base_gdp + noise, "provider": "inegi", "series_id": "735848",
+                        "units": "MXN_millions",
+                    })
+                    rows.append({
+                        "country": "MEX", "variable": "policy_rate", "date": d, "vintage": v,
+                        "value": 11.25 - 0.25 * d_idx, "provider": "banxico", "series_id": "SF61745",
+                        "units": "percent",
+                    })
+                    rows.append({
+                        "country": "BRA", "variable": "policy_rate", "date": d, "vintage": v,
+                        "value": 12.75 - 0.50 * d_idx, "provider": "bcb", "series_id": "432",
+                        "units": "percent",
+                    })
+                    rows.append({
+                        "country": "CHL", "variable": "policy_rate", "date": d, "vintage": v,
+                        "value": 9.50 - 0.75 * d_idx, "provider": "bcch",
+                        "series_id": "F022.TPM.TPO.D001.NO.Z.D", "units": "percent",
+                    })
+        panel_raw = VintagePanel(pd.DataFrame(rows))
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            cartridge_file = Path(tmp_dir) / "latam_realtime_macro.pmz"
+            pack_realtime_cartridge(
+                panel_raw, cartridge_file,
+                source="Banxico, INEGI, BCB, BCCh Regional Real-Time Ecosystem",
+                vintage="2026-04-01",
+                notes="Latin America central bank real-time macroeconomic vintage cartridge",
+            )
+            loaded_panel = load_realtime_cartridge(cartridge_file, verify=True)
+        ms_res = loaded_panel.news_or_noise("MEX", "gdp_real")
+
+        stdout = _ipynb_stdout(ipynb_path)
+        assert f"Total Observations : {len(panel_raw):,}" in stdout, stdout[:600]
+        expected = (
+            f"beta_p              : {ms_res.beta_on_preliminary:.4f} "
+            f"(SE = {ms_res.se_beta_on_preliminary:.4f})"
+        )
+        assert expected in stdout, (expected, stdout[:2000])

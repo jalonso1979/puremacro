@@ -37,8 +37,11 @@ jobs:
         run: |
           pytest --durations=10
 
+      # On 3.11 (the requires-python floor) Gate 7 is the interpreter's own
+      # parser; on 3.12 it is the PEP 701 f-string scan. Running both keeps
+      # the scan honest against the real thing.
       - name: Run pre-tag release gate verification
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        if: matrix.os == 'ubuntu-latest' && (matrix.python-version == '3.11' || matrix.python-version == '3.12')
         run: |
           python tools/release_check.py --no-tests
 
