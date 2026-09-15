@@ -1047,7 +1047,7 @@ def _safe_solve(A: np.ndarray, B: np.ndarray) -> np.ndarray:
 def solve_occbin(
     reference_model: Any,
     constrained_model: Any,
-    constraint: OccBinConstraint,
+    constraint: OccBinConstraint | Mapping[str, OccBinConstraint] | Sequence[OccBinConstraint],
     shock_sequence: np.ndarray,
     max_iter: int = 50,
     horizon: int = 40,
@@ -1056,16 +1056,19 @@ def solve_occbin(
 
     Finds the piecewise-linear perfect-foresight transition path between the
     constrained and unconstrained regimes using backward recursion.
+    Supports polymorphic dispatch to multi-constraint solver when multiple
+    constraints or models are provided.
 
     Parameters
     ----------
     reference_model : LinearModel
         The unconstrained baseline model (e.g., standard Taylor rule regime).
-    constrained_model : LinearModel | Callable
-        The model under the binding constraint (e.g., nominal interest rate held at floor).
-        Can be a solved ``LinearModel`` or a callable ``eqs(lead, curr, lag, shocks, params)``.
-    constraint : OccBinConstraint
-        Constraint definition specifying variable, threshold, and direction.
+    constrained_model : LinearModel | Callable | Mapping | Sequence
+        The model under the binding constraint (e.g., nominal interest rate held at floor),
+        or a mapping/sequence of models for multi-constraint regimes.
+    constraint : OccBinConstraint | Mapping[str, OccBinConstraint] | Sequence[OccBinConstraint]
+        Constraint definition specifying variable, threshold, and direction,
+        or a mapping/sequence of constraints.
     shock_sequence : np.ndarray
         Structural shocks, **all anticipated at t = 1** (perfect foresight).
         Either 1D (shape ``(n_shocks,)``) for a one-shot shock at t=1, or 2D
@@ -1109,6 +1112,21 @@ def solve_occbin(
         raise ValueError(f"solve_occbin: max_iter must be an integer >= 1, got {max_iter!r}")
     horizon = int(horizon)
     max_iter = int(max_iter)
+
+    # Polymorphic routing: dispatch to multi-constraint solver if multiple constraints or multiple models are passed
+    if (
+        (isinstance(constraint, (Mapping, Sequence)) and not isinstance(constraint, OccBinConstraint))
+        or isinstance(constrained_model, Mapping)
+        or (isinstance(constrained_model, (list, tuple)) and not callable(constrained_model))
+    ):
+        return solve_multiconstraint_occbin(
+            m_unconstrained=reference_model,
+            m_constrained_dict=constrained_model,
+            shock_seq=shock_sequence,
+            constraints=constraint,
+            horizon=horizon,
+            max_iter=max_iter,
+        )
 
     # 1. Extract system matrices for both regimes
     A_p_0, A_0_0, A_m_0, B_u_0, c_0, ss_0, variables, shocks = _extract_model_matrices(reference_model)
@@ -2177,7 +2195,19 @@ def solve_multiconstraint_occbin(
     else:
         sim_X, shadow_vals = simulate_path(regime)
 
-    converged = fixed_point
+    regimes_list = [int(v) for v in regime]
+    terminal_slack = (regimes_list[-1] == 0)
+    if not terminal_slack:
+        converged = False
+        warnings.warn(
+            f"solve_multiconstraint_occbin: constraint still binds at terminal period T={horizon} "
+            f"(regime={regimes_list[-1]}). Terminal condition P_{{T+1}} = P_0 is unverified; increase horizon.",
+            UserWarning,
+            stacklevel=2,
+        )
+    else:
+        converged = bool(fixed_point)
+
     period_index = pd.RangeIndex(1, horizon + 1, name="t")
     sim_df = pd.DataFrame(sim_X, columns=variables, index=period_index)
     shadow_df = sim_df.copy()
@@ -2185,7 +2215,6 @@ def solve_multiconstraint_occbin(
         c_obj = constraint_info[k][0]
         shadow_df[f"{c_obj.variable}_shadow"] = shadow_vals[k]
 
-    regimes_list = [int(v) for v in regime]
     binding_periods = int(np.sum(np.asarray(regimes_list) > 0))
 
     return OccBinResult(
