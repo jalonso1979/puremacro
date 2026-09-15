@@ -92,6 +92,26 @@ VINTAGE_SEMANTICS: dict[str, str] = {
         "previous month's published figure. Fine for ordering editions "
         "and measuring revisions; not a release date."
     ),
+    "banxico": (
+        "Banco de México SIE API time series. Upstream overwrites series in "
+        "place; vintage date tracks the date of snapshot capture recorded into "
+        "the local SQLite realtime_vintages cache."
+    ),
+    "inegi": (
+        "INEGI Banco de Indicadores / BIE API time series. Upstream overwrites "
+        "series in place; vintage date tracks the date of snapshot capture "
+        "recorded into the local SQLite realtime_vintages cache."
+    ),
+    "bcb": (
+        "Banco Central do Brasil SGS API time series. Open public endpoint; "
+        "vintage date tracks the date of snapshot capture recorded into the "
+        "local SQLite realtime_vintages cache."
+    ),
+    "bcch": (
+        "Banco Central de Chile Base de Datos Estadísticos (SIETE API). "
+        "Vintage date tracks the date of snapshot capture recorded into the "
+        "local SQLite realtime_vintages cache."
+    ),
 }
 
 

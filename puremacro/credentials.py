@@ -65,6 +65,24 @@ SERVICES: dict[str, ServiceCredentialSpec] = {
         signup_url="https://api.census.gov/data/key_signup.html",
         description="Census BFS / ACS connectors",
     ),
+    "banxico": ServiceCredentialSpec(
+        name="banxico",
+        env_vars=("BANXICO_API_KEY", "BMX_TOKEN", "PUREMACRO_BANXICO_API_KEY"),
+        signup_url="https://www.banxico.org.mx/SieAPIRest/service/v1/token_req.html",
+        description="Banco de México SIE API",
+    ),
+    "inegi": ServiceCredentialSpec(
+        name="inegi",
+        env_vars=("INEGI_API_KEY", "PUREMACRO_INEGI_API_KEY"),
+        signup_url="https://www.inegi.org.mx/app/api/indicadores/desarrolladores/jsonxml/",
+        description="INEGI Banco de Indicadores / BIE API",
+    ),
+    "bcch": ServiceCredentialSpec(
+        name="bcch",
+        env_vars=("BCCH_API_USER", "BCCH_API_PASS", "BCCH_API_KEY", "PUREMACRO_BCCH_API_KEY"),
+        signup_url="https://si3.bcentral.cl/estadisticas/principal1/registro/index.html",
+        description="Banco Central de Chile Base de Datos Estadísticos (SIETE API)",
+    ),
 }
 
 
@@ -177,12 +195,18 @@ def status() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+get_credential = get
+require_credential = require
+
+
 __all__ = [
     "ServiceCredentialSpec",
     "SERVICES",
     "MissingCredentialError",
     "default_config_path",
     "get",
+    "get_credential",
     "require",
+    "require_credential",
     "status",
 ]

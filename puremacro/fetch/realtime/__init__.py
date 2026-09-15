@@ -47,12 +47,15 @@ def _register_all() -> None:
     from . import alfred as _alfred
     from . import bundesbank as _bundesbank
     from . import banxico as _banxico
+    from . import inegi as _inegi
+    from . import bcb as _bcb
+    from . import bcch as _bcch
     from . import ecb_rtd as _ecb_rtd
     from . import oecd_stes as _oecd_stes
     from . import ons as _ons
     from . import statcan as _statcan
     for mod in (_oecd_stes, _alfred, _bundesbank, _ons, _statcan,
-                _ecb_rtd, _banxico):
+                _ecb_rtd, _banxico, _inegi, _bcb, _bcch):
         try:
             mod._register()
         except Exception as exc:                          # pragma: no cover
@@ -76,6 +79,18 @@ from .seasonal import (
 )
 
 
+from .canary import (
+    SchemaCanary,
+    SchemaDriftError,
+    SchemaDriftWarning,
+    validate_payload,
+)
+from .cartridge import (
+    load_realtime_cartridge,
+    pack_realtime_cartridge,
+)
+
+
 __all__ = [
     # container + shape
     "VintagePanel", "VINTAGE_COLUMNS", "VINTAGE_SEMANTICS",
@@ -91,4 +106,9 @@ __all__ = [
     # seasonality screen
     "seasonal_signature", "drop_unadjusted_editions",
     "SEASONAL_F_MIN", "SEASONAL_RANGE_MIN", "SEASONAL_MIN_OBS", "SEASONAL_WINDOW",
+    # schema drift canaries
+    "SchemaCanary", "SchemaDriftError", "SchemaDriftWarning", "validate_payload",
+    # portable cartridges
+    "pack_realtime_cartridge", "load_realtime_cartridge",
 ]
+

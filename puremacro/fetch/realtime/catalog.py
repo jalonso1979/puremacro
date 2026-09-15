@@ -57,6 +57,7 @@ CANONICAL_VARIABLES: dict[str, str] = {
     "unemployment_rate": "Unemployment rate, SA",
     "cpi": "Consumer price index, all items",
     "ip": "Industrial production index, SA",
+    "policy_rate": "Central bank policy rate / target interest rate",
 }
 
 #: Accepted spellings, including the ESA/SDMX transaction codes the
@@ -74,6 +75,15 @@ VARIABLE_ALIASES: dict[str, str] = {
     "log_con_real": "con_real", "log_govcon_real": "govcon_real",
     "log_gfcf_real": "gfcf_real", "log_exports_real": "exports_real",
     "log_imports_real": "imports_real", "log_deflator": "deflator",
+    "policy_rate": "policy_rate",
+    "tpm": "policy_rate",
+    "selic": "policy_rate",
+    "tasa_objetivo": "policy_rate",
+    "interest_rate": "policy_rate",
+    "mp_rate": "policy_rate",
+    "central_bank_rate": "policy_rate",
+    "target_rate": "policy_rate",
+    "overnight_rate": "policy_rate",
 }
 
 #: Units a catalogued series can be published in, and the revision
@@ -342,12 +352,44 @@ def vintage_catalog(provider: str | None = None) -> pd.DataFrame:
     ])
 
 
+#: Canonical series specs for Latin American central banks & statistical agencies
+BANXICO_SERIES: dict[str, SeriesSpec] = {
+    "policy_rate": SeriesSpec("SF61745", "rate", "banxico", "Tasa de interés interbancaria a 1 día (tasa objetivo)"),
+    "cpi": SeriesSpec("SP1", "index", "banxico", "Índice Nacional de Precios al Consumidor (INPC general)"),
+    "ip": SeriesSpec("SR17631", "index", "banxico", "Actividad económica / IGAE general"),
+}
+
+INEGI_SERIES: dict[str, SeriesSpec] = {
+    "gdp_real": SeriesSpec("735848", "level", "inegi", "PIB a precios de 2018, trimestral desestacionalizado"),
+    "cpi": SeriesSpec("628197", "index", "inegi", "INPC general"),
+    "ip": SeriesSpec("736184", "index", "inegi", "IGAE actividad económica general"),
+}
+
+BCB_SERIES: dict[str, SeriesSpec] = {
+    "gdp_real": SeriesSpec("4380", "level", "bcb", "PIB trimestral a preços de mercado - encadeado"),
+    "cpi": SeriesSpec("433", "index", "bcb", "IPCA - variação mensal / índice"),
+    "policy_rate": SeriesSpec("432", "rate", "bcb", "Taxa Selic acumulada no mês anualizada / meta"),
+    "ip": SeriesSpec("24363", "index", "bcb", "IBC-Br Índice de Atividade Econômica do Banco Central"),
+}
+
+BCCH_SERIES: dict[str, SeriesSpec] = {
+    "gdp_real": SeriesSpec("F032.PIB.VOL.Z.Z.18.Z.Z.0.Q", "level", "bcch", "PIB volumen a precios 2018"),
+    "cpi": SeriesSpec("F073.IPC.VAR.Z.Z.C.M", "index", "bcch", "IPC general"),
+    "policy_rate": SeriesSpec("F022.TPM.TPO.D001.NO.Z.D", "rate", "bcch", "Tasa de Política Monetaria (TPM)"),
+    "ip": SeriesSpec("F032.IMC.IND.Z.Z.EP18.Z.Z.0.M", "index", "bcch", "IMACEC Índice Mensual de Actividad Económica"),
+}
+
+
 __all__ = [
     "CANONICAL_VARIABLES",
     "VARIABLE_ALIASES",
     "UNITS_TRANSFORM",
     "SeriesSpec",
     "ALFRED_KNOWN_GAPS",
+    "BANXICO_SERIES",
+    "INEGI_SERIES",
+    "BCB_SERIES",
+    "BCCH_SERIES",
     "canonical_variable",
     "register_catalog",
     "resolve_spec",
@@ -357,3 +399,4 @@ __all__ = [
     "known_gaps",
     "vintage_catalog",
 ]
+

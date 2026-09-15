@@ -1,12 +1,11 @@
-"""Banco de México (Banxico) SIE API real-time connector.
+"""INEGI (Instituto Nacional de Estadística y Geografía) real-time connector.
 
-Retrieves Mexican macroeconomic time series (policy rate SF61745, CPI inflation SP1,
-economic activity IGAE SR17631) from the Banxico SIE API:
-    https://www.banxico.org.mx/SieAPIRest/service/v1/series/{series_id}/datos
+Retrieves Mexican national statistics (quarterly real GDP 735848, CPI inflation 628197,
+and IGAE economic activity 736184) from the INEGI BIE / Banco de Indicadores API:
+    https://www.inegi.org.mx/app/api/indicadores/desarrolladores/jsonxml/BISEventOp1/{series_id}/es/0700/true/IP/2.0/{token}?type=json
 
-Since Banxico overwrites current series in place, this module captures snapshots
-into the persistent SQLite `realtime_vintages` cache table, enabling historical
-revision tracking and offline reproducibility.
+Captures snapshots into the persistent SQLite `realtime_vintages` cache table,
+enabling offline reproducibility and historical vintage analysis.
 """
 from __future__ import annotations
 
@@ -29,50 +28,64 @@ from ._base import (
     register_provider,
 )
 from .canary import SchemaCanary, SchemaDriftError
-from .catalog import BANXICO_SERIES, SeriesSpec, register_catalog
+from .catalog import INEGI_SERIES, SeriesSpec, register_catalog
 
-#: Why Mexico quarterly GDP had no native vintage provider originally.
-MEXICO_VINTAGE_NOTE = (
-    "Neither Banxico SIE nor INEGI BIE retains previously published "
-    "editions of quarterly GDP — both overwrite in place and their "
-    "payloads carry no vintage field. Use provider 'oecd_stes', which "
-    "archives INEGI's series with 329 monthly editions from 1999-02."
-)
-
-#: Same determination for Spain's national statistics office.
-SPAIN_VINTAGE_NOTE = (
-    "INE / Banco de España publish no machine-readable vintage archive "
-    "for quarterly GDP. Use provider 'oecd_stes' (331 editions from "
-    "1999-02)."
-)
-
-BANXICO_SIE_BASE = "https://www.banxico.org.mx/SieAPIRest/service/v1/"
-INEGI_BIE_BASE = (
+INEGI_SERIES_URL = (
     "https://www.inegi.org.mx/app/api/indicadores/desarrolladores/jsonxml/"
-)
-BANXICO_SERIES_URL = (
-    "https://www.banxico.org.mx/SieAPIRest/service/v1/series/{series_id}/datos"
+    "BISEventOp1/{series_id}/es/0700/true/IP/2.0/{token}?type=json"
 )
 
 _UA = "puremacro (real-time vintage reader)"
 
 
-def parse_banxico_json(
+def _parse_inegi_period(tp: str, is_quarterly: bool = False) -> pd.Timestamp | None:
+    """Convert INEGI TIME_PERIOD string to Timestamp."""
+    token = str(tp).strip()
+    if not token:
+        return None
+
+    # Handle "YYYY/MM" or "YYYY/QQ"
+    if "/" in token:
+        parts = token.split("/")
+        if len(parts) == 2:
+            try:
+                year = int(parts[0])
+                num = int(parts[1])
+                if is_quarterly:
+                    # Quarter 1 -> Jan 1, 2 -> Apr 1, 3 -> Jul 1, 4 -> Oct 1
+                    q_month = {1: 1, 2: 4, 3: 7, 4: 10}.get(num, num)
+                    return pd.Timestamp(year, q_month, 1)
+                else:
+                    # Monthly
+                    return pd.Timestamp(year, num, 1)
+            except (ValueError, TypeError):
+                pass
+
+    # Handle standard formats: YYYY-MM-DD, YYYY-MM, YYYY-Q#
+    try:
+        if "Q" in token or "q" in token:
+            return pd.Period(token.upper(), freq="Q").to_timestamp()
+        return pd.to_datetime(token)
+    except Exception:
+        return None
+
+
+def parse_inegi_json(
     raw: bytes | str | dict,
     *,
     series_id: str = "",
     vintage_date: str | pd.Timestamp | None = None,
 ) -> pd.DataFrame:
-    """Parse Banxico SIE API JSON response into tidy [date, vintage, value] DataFrame.
+    """Parse INEGI BIE API JSON response into tidy [date, vintage, value] DataFrame.
 
     Parameters
     ----------
     raw : bytes | str | dict
-        The JSON response from Banxico's SIE API.
+        The JSON response from INEGI API.
     series_id : str
-        The series identifier.
+        The indicator identifier.
     vintage_date : str | pd.Timestamp | None
-        Vintage date to stamp. Defaults to current date or latest observation date.
+        Vintage date to stamp. Defaults to current date.
 
     Returns
     -------
@@ -96,50 +109,56 @@ def parse_banxico_json(
     if not data:
         return pd.DataFrame(columns=["date", "vintage", "value"])
 
-    ok, reason = SchemaCanary.validate_banxico(data)
+    ok, reason = SchemaCanary.validate_inegi(data)
     if not ok:
-        raise SchemaDriftError(f"Banxico schema drift: {reason}")
+        raise SchemaDriftError(f"INEGI schema drift: {reason}")
 
-    series_list = data.get("bmx", {}).get("series", [])
+    series_list = data.get("Series", [])
     if not series_list:
         return pd.DataFrame(columns=["date", "vintage", "value"])
 
     first_series = series_list[0]
-    datos = first_series.get("datos", [])
-    if not datos:
+    freq_desc = str(first_series.get("FREQ", "")).lower()
+    is_quarterly = "trimestral" in freq_desc or series_id == "735848"
+
+    obs_list = first_series.get("OBSERVATIONS", [])
+    if not obs_list:
         return pd.DataFrame(columns=["date", "vintage", "value"])
 
+    # If freq not explicitly stated, check if max period number is <= 4
+    if not is_quarterly:
+        p_nums = []
+        for obs in obs_list:
+            tp = str(obs.get("TIME_PERIOD", ""))
+            if "/" in tp:
+                parts = tp.split("/")
+                if len(parts) == 2 and parts[1].isdigit():
+                    p_nums.append(int(parts[1]))
+        if p_nums and max(p_nums) <= 4 and series_id == "735848":
+            is_quarterly = True
+
     records = []
-    for item in datos:
-        f_str = item.get("fecha", "").strip()
-        v_str = item.get("dato", "").strip()
-        if not f_str or not v_str or v_str in ("N/E", "NaN", "null"):
+    for obs in obs_list:
+        tp = obs.get("TIME_PERIOD")
+        v_str = obs.get("OBS_VALUE")
+        if tp is None or v_str is None:
             continue
-        # Clean value
         try:
-            val = float(v_str.replace(",", ""))
+            val = float(str(v_str).replace(",", ""))
         except (ValueError, TypeError):
             continue
 
-        # Parse date: Banxico sends DD/MM/YYYY
-        try:
-            if "/" in f_str:
-                d = pd.to_datetime(f_str, format="%d/%m/%Y")
-            else:
-                d = pd.to_datetime(f_str)
-        except Exception:
+        d = _parse_inegi_period(tp, is_quarterly=is_quarterly)
+        if d is None:
             continue
-
         records.append((d, val))
 
     if not records:
         return pd.DataFrame(columns=["date", "vintage", "value"])
 
-    # Determine vintage stamp
     if vintage_date is not None:
         v_stamp = pd.to_datetime(vintage_date)
     else:
-        # Defaults to current date
         v_stamp = pd.Timestamp.now(tz=None).normalize()
 
     rows = [(d, v_stamp, val) for d, val in records]
@@ -151,7 +170,7 @@ def parse_banxico_json(
     )
 
 
-def fetch_banxico_vintages(
+def fetch_inegi_vintages(
     series_id: str,
     *,
     token: str | None = None,
@@ -159,14 +178,14 @@ def fetch_banxico_vintages(
     timeout: float = 60.0,
     use_cache: bool = True,
 ) -> pd.DataFrame:
-    """Fetch time series from Banxico SIE API or retrieve cached vintages.
+    """Fetch time series from INEGI BIE API or retrieve cached vintages.
 
     Parameters
     ----------
     series_id : str
-        Banxico series ID (e.g. 'SF61745' for policy rate, 'SP1' for CPI).
+        INEGI series ID (e.g. '735848' for GDP, '628197' for CPI).
     token : str | None
-        Banxico API token. Resolved from `puremacro.credentials` if omitted.
+        INEGI API token. Resolved from `puremacro.credentials` if omitted.
     vintage_date : str | None
         Vintage date stamp to assign.
     timeout : float
@@ -179,57 +198,52 @@ def fetch_banxico_vintages(
     pd.DataFrame
         DataFrame with columns ["date", "vintage", "value"].
     """
-    tok = token or credentials.get("banxico")
-    url = BANXICO_SERIES_URL.format(series_id=series_id)
-
-    # If no token is configured, attempt offline cache fallback immediately
+    tok = token or credentials.get("inegi")
     if not tok:
-        cached = query_realtime_vintages("banxico", "MEX", series_id)
+        cached = query_realtime_vintages("inegi", "MEX", series_id)
         if not cached.empty:
             return cached[["date", "vintage", "value"]]
-        # If still empty, raise actionable error
-        credentials.require("banxico")
+        credentials.require("inegi")
 
-    # Fetch live data
-    headers = {"User-Agent": _UA, "Bmx-Token": tok}
+    url = INEGI_SERIES_URL.format(series_id=series_id, token=tok)
+    headers = {"User-Agent": _UA}
     req = urllib.request.Request(url, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             body = resp.read()
-        df = parse_banxico_json(body, series_id=series_id, vintage_date=vintage_date)
+        df = parse_inegi_json(body, series_id=series_id, vintage_date=vintage_date)
         if df.empty and use_cache:
-            cached = query_realtime_vintages("banxico", "MEX", series_id)
+            cached = query_realtime_vintages("inegi", "MEX", series_id)
             if not cached.empty:
                 warnings.warn(
-                    f"fetch_banxico_vintages received empty observations; falling back to cached vintages.",
+                    f"fetch_inegi_vintages received empty observations; falling back to cached vintages.",
                     UserWarning,
                     stacklevel=2,
                 )
-                record_connector_event("banxico", "fallback", "sqlite_cache")
+                record_connector_event("inegi", "fallback", "sqlite_cache")
                 return cached[["date", "vintage", "value"]]
         if use_cache and not df.empty:
             store_df = df.copy()
-            store_df["provider"] = "banxico"
+            store_df["provider"] = "inegi"
             store_df["country"] = "MEX"
             store_df["series_id"] = series_id
             store_realtime_vintages(store_df)
-            record_connector_event("banxico", "success", "none")
+            record_connector_event("inegi", "success", "none")
         return df
     except Exception as exc:
-        # On network error or schema drift, fallback to cached SQLite vintages
-        cached = query_realtime_vintages("banxico", "MEX", series_id)
+        cached = query_realtime_vintages("inegi", "MEX", series_id)
         if not cached.empty:
             warnings.warn(
-                f"fetch_banxico_vintages failed ({exc}); falling back to cached vintages.",
+                f"fetch_inegi_vintages failed ({exc}); falling back to cached vintages.",
                 UserWarning,
                 stacklevel=2,
             )
-            record_connector_event("banxico", "fallback", "sqlite_cache")
+            record_connector_event("inegi", "fallback", "sqlite_cache")
             return cached[["date", "vintage", "value"]]
         raise
 
 
-def fetch_banxico_panel(
+def fetch_inegi_panel(
     countries,
     variables,
     *,
@@ -238,19 +252,19 @@ def fetch_banxico_panel(
     use_cache: bool = True,
     **_ignored,
 ) -> VintagePanel:
-    """Registry entry point for Banxico."""
+    """Registry entry point for INEGI."""
     frames = []
     failed = {}
     for country in countries:
         if str(country).upper() != "MEX":
             continue
         for variable in variables:
-            spec = BANXICO_SERIES.get(variable)
+            spec = INEGI_SERIES.get(variable)
             if spec is None:
                 continue
             series_id = spec.series_id
             try:
-                long = fetch_banxico_vintages(
+                long = fetch_inegi_vintages(
                     series_id,
                     token=token,
                     timeout=timeout,
@@ -264,7 +278,7 @@ def fetch_banxico_panel(
                     long,
                     country="MEX",
                     variable=variable,
-                    provider="banxico",
+                    provider="inegi",
                     series_id=series_id,
                     units=spec.units,
                 )
@@ -276,27 +290,19 @@ def fetch_banxico_panel(
     )
     return VintagePanel(
         df=df,
-        metadata={"provider": "banxico", "failed": failed},
+        metadata={"provider": "inegi", "failed": failed},
     )
 
 
 def _register() -> None:
-    """Register Banxico catalog and provider."""
-    register_catalog(
-        "banxico",
-        {"MEX": BANXICO_SERIES},
-        gaps={"ESP": SPAIN_VINTAGE_NOTE},
-    )
-    register_provider("banxico", fetch_banxico_panel, ["MEX"])
+    """Register INEGI catalog and provider."""
+    register_catalog("inegi", {"MEX": INEGI_SERIES})
+    register_provider("inegi", fetch_inegi_panel, ["MEX"])
 
 
 __all__ = [
-    "MEXICO_VINTAGE_NOTE",
-    "SPAIN_VINTAGE_NOTE",
-    "BANXICO_SIE_BASE",
-    "INEGI_BIE_BASE",
-    "BANXICO_SERIES_URL",
-    "parse_banxico_json",
-    "fetch_banxico_vintages",
-    "fetch_banxico_panel",
+    "INEGI_SERIES_URL",
+    "parse_inegi_json",
+    "fetch_inegi_vintages",
+    "fetch_inegi_panel",
 ]

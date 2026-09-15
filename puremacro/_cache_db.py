@@ -65,6 +65,23 @@ _DDL_CONNECTOR_EVENTS_IDX = (
     "ON connector_events(ts, source);"
 )
 
+_DDL_REALTIME_VINTAGES = """
+CREATE TABLE IF NOT EXISTS realtime_vintages (
+    provider         TEXT NOT NULL,
+    country          TEXT NOT NULL,
+    series_id        TEXT NOT NULL,
+    observation_date TEXT NOT NULL,
+    vintage_date     TEXT NOT NULL,
+    value            REAL,
+    PRIMARY KEY (provider, country, series_id, observation_date, vintage_date)
+);
+"""
+
+_DDL_REALTIME_VINTAGES_IDX = (
+    "CREATE INDEX IF NOT EXISTS realtime_vintages_idx "
+    "ON realtime_vintages(provider, country, series_id, vintage_date);"
+)
+
 _DDL_SCHEMA_VERSION = """
 CREATE TABLE IF NOT EXISTS schema_version (
     component TEXT PRIMARY KEY,
@@ -73,7 +90,7 @@ CREATE TABLE IF NOT EXISTS schema_version (
 """
 
 _SCHEMA_SEED = [("http_cache", 1), ("alfred_vintages", 1),
-                ("connector_events", 1)]
+                ("connector_events", 1), ("realtime_vintages", 1)]
 
 
 def default_db_path() -> Path:
@@ -102,6 +119,8 @@ def bootstrap_schema(conn: sqlite3.Connection) -> None:
     cur.execute(_DDL_ALFRED_VINTAGES_IDX)
     cur.execute(_DDL_CONNECTOR_EVENTS)
     cur.execute(_DDL_CONNECTOR_EVENTS_IDX)
+    cur.execute(_DDL_REALTIME_VINTAGES)
+    cur.execute(_DDL_REALTIME_VINTAGES_IDX)
     cur.execute(_DDL_SCHEMA_VERSION)
     for component, version in _SCHEMA_SEED:
         cur.execute(
@@ -207,10 +226,147 @@ def migrate_from_flat_files(
     return migrated
 
 
+def store_realtime_vintages(
+    df,
+    *,
+    conn: sqlite3.Connection | None = None,
+) -> int:
+    """Insert or replace rows into `realtime_vintages`.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame with columns: provider, country, series_id,
+        date (or observation_date), vintage (or vintage_date), and value.
+    conn : sqlite3.Connection | None
+        SQLite connection. Defaults to `get_conn()`.
+
+    Returns
+    -------
+    int
+        Number of rows inserted or updated.
+    """
+    if df is None or len(df) == 0:
+        return 0
+    import pandas as pd
+    c = conn or get_conn()
+    date_col = "date" if "date" in df.columns else "observation_date"
+    vin_col = "vintage" if "vintage" in df.columns else "vintage_date"
+    required = {"provider", "country", "series_id", date_col, vin_col, "value"}
+    if not required.issubset(df.columns):
+        missing = required - set(df.columns)
+        raise ValueError(f"store_realtime_vintages missing columns: {sorted(missing)}")
+
+    records = []
+    for _, row in df.iterrows():
+        val = row["value"]
+        if pd.isna(val):
+            val_float = None
+        else:
+            try:
+                val_float = float(val)
+            except (ValueError, TypeError):
+                continue
+        try:
+            parsed_obs = pd.to_datetime(row[date_col])
+            parsed_vin = pd.to_datetime(row[vin_col])
+            if pd.isna(parsed_obs) or pd.isna(parsed_vin):
+                continue
+            obs_d = parsed_obs.strftime("%Y-%m-%d")
+            vin_d = parsed_vin.strftime("%Y-%m-%d")
+        except Exception:
+            continue
+        records.append((
+            str(row["provider"]),
+            str(row["country"]).upper(),
+            str(row["series_id"]),
+            obs_d,
+            vin_d,
+            val_float,
+        ))
+    if not records:
+        return 0
+    c.executemany(
+        "INSERT OR REPLACE INTO realtime_vintages "
+        "(provider, country, series_id, observation_date, vintage_date, value) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        records,
+    )
+    c.commit()
+    return len(records)
+
+
+def query_realtime_vintages(
+    provider: str,
+    country: str,
+    series_id: str,
+    *,
+    vintage_date: str | None = None,
+    conn: sqlite3.Connection | None = None,
+) -> Any:
+    """Query `realtime_vintages` for a given provider, country, and series_id.
+
+    Returns DataFrame with columns:
+    date, vintage, value, provider, country, series_id
+    """
+    import pandas as pd
+    c = conn or get_conn()
+    c_code = str(country).upper()
+    if vintage_date is not None:
+        vin_str = pd.to_datetime(vintage_date).strftime("%Y-%m-%d")
+        cur = c.execute(
+            "SELECT observation_date, vintage_date, value, provider, country, series_id "
+            "FROM realtime_vintages "
+            "WHERE provider = ? AND country = ? AND series_id = ? AND vintage_date <= ? "
+            "ORDER BY observation_date, vintage_date",
+            (provider, c_code, series_id, vin_str),
+        )
+    else:
+        cur = c.execute(
+            "SELECT observation_date, vintage_date, value, provider, country, series_id "
+            "FROM realtime_vintages "
+            "WHERE provider = ? AND country = ? AND series_id = ? "
+            "ORDER BY observation_date, vintage_date",
+            (provider, c_code, series_id),
+        )
+    rows = cur.fetchall()
+    cols = ["date", "vintage", "value", "provider", "country", "series_id"]
+    if not rows:
+        return pd.DataFrame(columns=cols)
+    out = pd.DataFrame(rows, columns=cols)
+    out["date"] = pd.to_datetime(out["date"])
+    out["vintage"] = pd.to_datetime(out["vintage"])
+    out["value"] = pd.to_numeric(out["value"], errors="coerce")
+    return out
+
+
+def record_connector_event(
+    source: str,
+    outcome: str,
+    fallback_used: str,
+    *,
+    conn: sqlite3.Connection | None = None,
+) -> None:
+    """Log an event into connector_events table."""
+    import time
+    c = conn or get_conn()
+    ts = int(time.time())
+    c.execute(
+        "INSERT INTO connector_events (ts, source, outcome, fallback_used) "
+        "VALUES (?, ?, ?, ?)",
+        (ts, source, outcome, fallback_used),
+    )
+    c.commit()
+
+
 __all__ = [
     "default_db_path",
     "bootstrap_schema",
     "get_conn",
     "close_conn",
     "migrate_from_flat_files",
+    "store_realtime_vintages",
+    "query_realtime_vintages",
+    "record_connector_event",
 ]
+
