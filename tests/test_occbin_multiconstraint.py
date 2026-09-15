@@ -356,6 +356,22 @@ def test_two_row_constrained_model_honours_every_row(dual_constraint_models, eqs
     np.testing.assert_allclose(r[zlb_t], r_floor, atol=1e-12, rtol=0.0)
     assert r.min() >= r_floor - 1e-12
     assert np.all(multi.shadow_path["r_shadow"].values[zlb_t] < r_floor)
+    # The notional rate is solved out of the equation the peg replaced -- the
+    # reference Taylor rule (row 2) -- and not out of another differing row
+    # that merely contains r (the IS curve in the IS-row+peg model, which
+    # comes first): in every period, binding or slack, r_shadow must satisfy
+    # the reference Taylor rule evaluated on the simulated path. Both solvers
+    # share the rule, so parity alone would not detect the wrong row.
+    y = multi.simulated_path["y"].values
+    pi = multi.simulated_path["pi"].values
+    r_lag = np.concatenate([[0.0], r[:-1]])
+    taylor_rate = (
+        PARAMS["rho_r"] * r_lag
+        + (1.0 - PARAMS["rho_r"]) * (PARAMS["phi_pi"] * pi + PARAMS["phi_y"] * y)
+        + shocks[:, SHOCKS.index("eps_r")]
+    )
+    np.testing.assert_allclose(multi.shadow_path["r_shadow"].values, taylor_rate, atol=1e-10, rtol=0.0)
+    np.testing.assert_allclose(single.shadow_path["r_shadow"].values, taylor_rate, atol=1e-10, rtol=0.0)
     # The second differing row changes the economics: the path must differ
     # from the one-row ZLB model's path.
     assert np.max(np.abs(multi.simulated_path.values - one_row.simulated_path.values)) > 1e-3
