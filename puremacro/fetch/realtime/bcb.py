@@ -86,7 +86,7 @@ def parse_bcb_json(
         counting them; empty values are dropped silently.
     """
     data = load_json(raw)
-    if data is None or len(data) == 0:
+    if data is None or (isinstance(data, (list, dict)) and len(data) == 0):
         return empty_snapshot()
 
     SchemaCanary.check("bcb", data, on_drift=on_drift)

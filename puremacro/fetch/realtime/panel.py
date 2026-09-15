@@ -71,8 +71,8 @@ def vintage_panel(
         are daily, IPCA / INPC / IMACEC / IBC-Br monthly) is not fetched
         for that request and is reported in ``metadata["failed"]`` with
         the reason — ask for it at its own frequency instead. Entries
-        that declare no frequency (the quarterly GDP archives) are
-        served as before.
+        that declare no frequency (the quarterly vintage archives) are
+        served at ``"Q"`` only, as before.
     providers : ``"oecd_stes"`` (default) for one uniform pipeline
         across 42 economies, ``"auto"`` to fall back through
         :data:`DEFAULT_PROVIDER_ORDER` per country, or an explicit
@@ -175,14 +175,22 @@ def vintage_panel(
             spec = resolve_spec(prov, c, v, catalog=catalog)
             if spec is None:
                 continue
-            declared = str(spec.freq or "").upper()
-            if declared and declared != freq:
+            # An entry that predates the field (every vintage archive)
+            # declares nothing and is quarterly; treating "" as "Q" keeps
+            # freq="M" from serving quarterly editions stamped monthly,
+            # which is the mislabelling this check exists to prevent.
+            declared = str(spec.freq or "Q").upper()
+            if declared != freq:
                 # A daily policy rate stamped "Q" would feed a quarterly
                 # revision test with daily rows; refuse and say why.
+                what = (
+                    f"{_FREQ_NAMES.get(declared, declared)} (freq={declared!r})"
+                    if spec.freq else
+                    "served as quarterly only (declares no freq)"
+                )
                 failed[f"{c}:{v}:{prov}"] = (
-                    f"catalogue series {spec.series_id} is "
-                    f"{_FREQ_NAMES.get(declared, declared)} "
-                    f"(freq={declared!r}); requested freq={freq!r}"
+                    f"catalogue series {spec.series_id} is {what}; "
+                    f"requested freq={freq!r}"
                 )
                 continue
             servable.append((c, v))

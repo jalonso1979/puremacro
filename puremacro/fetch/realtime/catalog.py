@@ -117,7 +117,8 @@ class SeriesSpec:
     (``"Q"``, ``"M"`` or ``"D"``), or ``""`` when the catalogue does not
     say — every vintage-archive entry is quarterly and predates the
     field. ``vintage_panel`` refuses to serve a series at a frequency
-    other than the one it declares.
+    other than the one it declares, and serves an entry that declares
+    nothing at ``"Q"`` only.
     """
     series_id: str
     units: str = "level"

@@ -399,6 +399,15 @@ class SchemaCanary:
         for every drift, whatever the policy.
         """
         prov = str(provider).lower()
+        policy = on_drift if on_drift is not None else (
+            "raise" if raise_on_drift else "warn")
+        # Checked before the payload, not only once drift occurs: a typo
+        # in the policy must fail on the first call, not months later
+        # inside a fallback path where it reads as a fetch failure.
+        if str(policy).lower() not in DRIFT_POLICIES:
+            raise ValueError(
+                f"on_drift={policy!r} is not one of {DRIFT_POLICIES}"
+            )
         validators: dict[str, Callable[[Any], tuple[bool, str]]] = {
             "banxico": cls.validate_banxico,
             "inegi": cls.validate_inegi,
@@ -410,8 +419,6 @@ class SchemaCanary:
             return True, ""
         ok, reason = validator(payload)
         if not ok:
-            policy = on_drift if on_drift is not None else (
-                "raise" if raise_on_drift else "warn")
             handle_drift(prov, reason, policy, stacklevel=3)
         return ok, reason
 

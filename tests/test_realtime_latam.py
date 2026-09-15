@@ -479,6 +479,18 @@ def test_parse_inegi_structure_beats_frequency_hints():
     assert sorted(m_default["date"]) == [pd.Timestamp("2025-01-01"), pd.Timestamp("2025-02-01")]
 
 
+def test_parse_bcb_scalar_body_is_schema_drift():
+    """A JSON scalar where the list should be is drift, not a TypeError
+    from ``len()`` (regression guard for the shared load_json path)."""
+    for body in (b"5", b"true"):
+        with pytest.raises(SchemaDriftError, match="expected list root"):
+            parse_bcb_json(body)
+    with pytest.raises(SchemaDriftError, match="Schema drift detected for bcb"):
+        parse_bcb_json(b'"texto"')
+    assert parse_bcb_json(b"[]").empty
+    assert parse_bcb_json(b"null").empty
+
+
 def test_parse_bcb_sgs():
     df = parse_bcb_json(BCB_FIXTURE_JSON, series_id="432", vintage_date="2026-04-01")
     assert len(df) == 3
@@ -823,6 +835,21 @@ def test_drift_policy_warn_lets_parser_fallbacks_work(fresh_cache):
         parse_bcb_json(iso, on_drift="explode")
 
 
+def test_invalid_on_drift_is_rejected_before_any_drift_occurs():
+    """A mistyped policy must fail on the first call, valid payload or
+    not, rather than surface months later inside a fallback path."""
+    valid = [{"data": "01/01/2026", "valor": "1.0"}]
+    with pytest.raises(ValueError, match="on_drift='explode'"):
+        parse_bcb_json(valid, on_drift="explode")
+    with pytest.raises(ValueError, match="on_drift"):
+        SchemaCanary.check("bcb", valid, on_drift="explode")
+    with pytest.raises(ValueError, match="on_drift"):
+        parse_banxico_json(BANXICO_FIXTURE_JSON, on_drift="")
+    # The three policies, in any case, are accepted on a valid payload.
+    for policy in DRIFT_POLICIES + ("RAISE", "Warn"):
+        assert len(parse_bcb_json(valid, vintage_date="2026-02-01", on_drift=policy)) == 1
+
+
 def test_fetch_on_drift_policies(fresh_cache):
     """Through the fetch path: 'raise' falls back to the cache with a
     SchemaDriftWarning; 'warn' parses the live payload."""
@@ -1036,6 +1063,49 @@ def test_fetch_latam_panels(fresh_cache, monkeypatch):
         assert p_bcch.countries == ["CHL"]
         assert "policy_rate" in p_bcch.variables
         assert len(p_bcch) == 3
+
+
+def test_vintage_panel_serves_undeclared_archives_at_q_only(monkeypatch):
+    """An entry that predates ``SeriesSpec.freq`` (every quarterly vintage
+    archive, and any bare-string ``catalog=`` override) declares nothing.
+    It is quarterly: asking for it at ``freq="M"`` or ``"D"`` must be
+    refused with a reason, never served stamped monthly or daily."""
+    from puremacro.fetch.realtime import _base as rt_base
+    from puremacro.fetch.realtime import catalog as rt_catalog
+
+    seen = []
+
+    def fake_fetch(countries, variables, **kwargs):
+        seen.append((list(countries), list(variables)))
+        rows = [
+            {"country": c, "variable": v, "date": d, "vintage": vin, "value": 1.0,
+             "provider": "fakeq", "series_id": "X", "units": "level"}
+            for c in countries for v in variables
+            for vin in ("2020-04-01", "2020-07-01")
+            for d in ("2019-10-01", "2020-01-01")
+        ]
+        return VintagePanel(pd.DataFrame(rows), metadata={"provider": "fakeq", "failed": {}})
+
+    monkeypatch.setitem(rt_base._PROVIDER_REGISTRY, "fakeq", fake_fetch)
+    monkeypatch.setitem(rt_base._PROVIDER_COVERAGE, "fakeq", frozenset({"DEU"}))
+    monkeypatch.setitem(rt_catalog._CATALOGS, "fakeq", {"DEU": {"gdp_real": "X"}})
+    assert resolve_spec("fakeq", "DEU", "gdp_real").freq == ""
+
+    quarterly = vintage_panel(["DEU"], providers="fakeq")
+    assert len(quarterly) == 4 and quarterly.metadata["freq"] == "Q"
+    for freq in ("M", "D"):
+        with pytest.warns(UserWarning, match="returned nothing for 1 of 1"):
+            other = vintage_panel(["DEU"], providers="fakeq", freq=freq)
+        assert other.is_empty(), freq
+        assert other.metadata["freq"] == freq
+        reason = other.metadata["failed"]["DEU:gdp_real:fakeq"]
+        assert "declares no freq" in reason and f"requested freq={freq!r}" in reason
+    assert seen == [(["DEU"], ["gdp_real"])]      # the M / D requests never fetched
+
+    # A hand-written override with a declared frequency is honoured.
+    override = {"fakeq": {"DEU": {"gdp_real": rt_catalog.SeriesSpec("X", freq="M")}}}
+    monthly = vintage_panel(["DEU"], providers="fakeq", catalog=override, freq="M")
+    assert len(monthly) == 4 and monthly.metadata["failed"] == {}
 
 
 def test_vintage_panel_refuses_to_stamp_daily_series_quarterly(fresh_cache):
