@@ -45,9 +45,11 @@ def no_threads(monkeypatch):
     caps = refresh()
     assert caps.threads is False and "threads" in caps.overridden
     yield
-    # monkeypatch undoes the env only after this teardown, so drop it here
-    # and re-detect; otherwise the cached snapshot would stay threads=False.
-    monkeypatch.delenv("PUREMACRO_THREADS", raising=False)
+    # Restore the caller's environment first (monkeypatch would only do so
+    # after this teardown) and re-detect against it; otherwise the cached
+    # snapshot would keep threads=False, or disagree with a PUREMACRO_THREADS
+    # that was already set in the shell.
+    monkeypatch.undo()
     refresh()
 
 
@@ -58,6 +60,7 @@ def live_threads(monkeypatch):
     if not refresh().threads:
         pytest.skip("host has no working OS threads")
     yield
+    monkeypatch.undo()
     refresh()
 
 
@@ -322,8 +325,13 @@ def test_pool_that_cannot_start_warns_and_runs_serially_once(engine, exc, live_t
             got = run(refit, 4)
     np.testing.assert_array_equal(got, ref)
     assert len(calls) == 8, "replications were evaluated more than once"
-    # The warning points at the code that called the engine, not at the helper.
-    assert rec[0].filename == __file__
+    # Exactly one fallback warning (pytest.warns records every warning, so an
+    # unrelated one must not be mistaken for it), and it points at the code
+    # that called the engine, not at the helper.
+    fallback = [w for w in rec if issubclass(w.category, RuntimeWarning)
+                and "could not start a thread pool" in str(w.message)]
+    assert len(fallback) == 1
+    assert fallback[0].filename == __file__
 
 
 def test_pool_construction_errors_of_other_types_propagate(live_threads):
