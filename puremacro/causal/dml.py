@@ -22,6 +22,7 @@ Features:
 """
 from __future__ import annotations
 
+import copy
 import warnings
 from dataclasses import dataclass
 from typing import Any, Sequence
@@ -36,14 +37,43 @@ from scipy.stats import norm
 # ===========================================================================
 
 
+def _as_design(X: Any) -> np.ndarray:
+    """Coerce ``X`` to a 2-D float array; a 1-D ``X`` is read as a single column."""
+    X_arr = np.asarray(X, dtype=float)
+    if X_arr.ndim == 1:
+        X_arr = X_arr[:, None]
+    if X_arr.ndim != 2:
+        raise ValueError(f"X must be 2-D (n_samples, n_features), got shape {X_arr.shape}.")
+    return X_arr
+
+
+def _validate_xy(X: Any, y: Any) -> tuple[np.ndarray, np.ndarray]:
+    """Return finite ``(X, y)`` arrays of matching length or raise a clear ``ValueError``."""
+    X_arr = _as_design(X)
+    y_arr = np.asarray(y, dtype=float).ravel()
+    n, p = X_arr.shape
+    if n == 0 or p == 0:
+        raise ValueError("X must have at least one sample and one feature.")
+    if len(y_arr) != n:
+        raise ValueError(f"X has {n} rows but y has {len(y_arr)} entries.")
+    if not np.isfinite(X_arr).all() or not np.isfinite(y_arr).all():
+        raise ValueError("X and y must not contain NaN or inf.")
+    return X_arr, y_arr
+
+
 class LassoCoordinateDescent:
     """Pure-NumPy Lasso (L1-regularized linear regression) via cyclical coordinate descent.
 
     Solves:
         min_beta  (1 / (2*N)) * ||y - X*beta||_2^2 + alpha * ||beta||_1
 
+    With ``fit_intercept=True`` (default) the columns of ``X`` are centred and
+    scaled to unit variance before the penalty is applied (the reported
+    ``coef_`` is on the original scale); with ``fit_intercept=False`` the
+    penalty acts on the raw columns, whatever their scale.
+
     Supports warm restarts along a decreasing regularization path and model
-    selection via BIC or AIC.
+    selection via BIC or AIC (``criterion``).
     """
 
     def __init__(
@@ -61,7 +91,10 @@ class LassoCoordinateDescent:
         self.tol = tol
         self.n_alphas = n_alphas
         self.eps = eps
-        self.criterion = criterion.lower()
+        crit = str(criterion).lower()
+        if crit not in ("aic", "bic"):
+            raise ValueError(f"criterion must be 'aic' or 'bic', got {criterion!r}.")
+        self.criterion = crit
         self.fit_intercept = fit_intercept
 
         # Fitted attributes
@@ -70,12 +103,8 @@ class LassoCoordinateDescent:
         self.alpha_: float | None = None
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> "LassoCoordinateDescent":
-        X_arr = np.asarray(X, dtype=float)
-        y_arr = np.asarray(y, dtype=float).ravel()
+        X_arr, y_arr = _validate_xy(X, y)
         n, p = X_arr.shape
-
-        if n == 0 or p == 0:
-            raise ValueError("X must have at least one sample and one feature.")
 
         # Center and standardize
         if self.fit_intercept:
@@ -109,21 +138,32 @@ class LassoCoordinateDescent:
 
         beta_s = np.zeros(p)
 
+        # Per-column Gram entries Xs[:, j]' Xs[:, j] / n. These equal 1.0 for the
+        # standardized design (fit_intercept=True) but are arbitrary for raw
+        # columns (fit_intercept=False); the exact coordinate minimizer is
+        # beta_j = S(rho_j, a) / c_j, so treating c_j as 1 turns the update into
+        # a gradient step of size c_j that diverges for c_j > 2.
+        col_norm2 = np.einsum("ij,ij->j", Xs, Xs) / n
+
         for a in alphas:
             # Cyclical coordinate descent with warm start
             r = yc - Xs @ beta_s
             for _ in range(self.max_iter):
                 max_change = 0.0
                 for j in range(p):
+                    c_j = col_norm2[j]
+                    if c_j <= 0.0:
+                        # All-zero column: the coefficient is unidentified, keep it at 0.
+                        continue
                     old_bj = beta_s[j]
-                    # Partial residual plus current coordinate contribution
-                    # Xs[:, j]' Xs[:, j] / n == 1.0 (standardized)
-                    rho_j = float(Xs[:, j] @ r / n) + old_bj
+                    # Gradient of the smooth part at beta_j = 0 with the other
+                    # coordinates fixed: Xs_j' (r + Xs_j * old_bj) / n
+                    rho_j = float(Xs[:, j] @ r / n) + c_j * old_bj
                     # Soft thresholding
                     if rho_j > a:
-                        new_bj = rho_j - a
+                        new_bj = (rho_j - a) / c_j
                     elif rho_j < -a:
-                        new_bj = rho_j + a
+                        new_bj = (rho_j + a) / c_j
                     else:
                         new_bj = 0.0
 
@@ -154,6 +194,11 @@ class LassoCoordinateDescent:
         self.alpha_ = best_alpha
         # Unstandardize coefficients
         self.coef_ = best_beta_s / x_std
+        if not np.isfinite(self.coef_).all():
+            raise RuntimeError(
+                "LassoCoordinateDescent produced non-finite coefficients; "
+                "the design is numerically degenerate."
+            )
         if self.fit_intercept:
             self.intercept_ = y_mean - float(x_mean @ self.coef_)
         else:
@@ -164,15 +209,21 @@ class LassoCoordinateDescent:
     def predict(self, X: np.ndarray) -> np.ndarray:
         if self.coef_ is None:
             raise RuntimeError("LassoCoordinateDescent is not fitted yet.")
-        X_arr = np.asarray(X, dtype=float)
-        return X_arr @ self.coef_ + self.intercept_
+        return _as_design(X) @ self.coef_ + self.intercept_
 
 
 class RidgeGCV:
     """Pure-NumPy Ridge Regression with Generalized Cross-Validation (GCV).
 
-    Solves:
-        min_beta  (1 / (2*N)) * ||y - X*beta||_2^2 + (alpha / 2) * ||beta||_2^2
+    Solves, on the centred and unit-variance-scaled columns of ``X`` when
+    ``fit_intercept=True`` (the default) and on the raw columns otherwise:
+        min_beta  ||y - X*beta||_2^2 + alpha * ||beta||_2^2
+
+    i.e. ``beta = (X'X + alpha I)^{-1} X'y`` with the penalty in the same
+    absolute units as ``sklearn.linear_model.Ridge``; it is *not* divided by
+    ``N``. ``alpha_`` and any user-supplied ``alphas`` grid are therefore
+    absolute, and the default grid ``np.logspace(-4, 6, 100)`` is chosen for
+    standardized columns. The reported ``coef_`` is on the original scale.
 
     Uses SVD decomposition of X for O(p) evaluation of the GCV criterion
     across a geometric grid of penalty parameters.
@@ -192,12 +243,8 @@ class RidgeGCV:
         self.alpha_: float | None = None
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> "RidgeGCV":
-        X_arr = np.asarray(X, dtype=float)
-        y_arr = np.asarray(y, dtype=float).ravel()
+        X_arr, y_arr = _validate_xy(X, y)
         n, p = X_arr.shape
-
-        if n == 0 or p == 0:
-            raise ValueError("X must have at least one sample and one feature.")
 
         # Center and standardize
         if self.fit_intercept:
@@ -262,12 +309,37 @@ class RidgeGCV:
     def predict(self, X: np.ndarray) -> np.ndarray:
         if self.coef_ is None:
             raise RuntimeError("RidgeGCV is not fitted yet.")
-        X_arr = np.asarray(X, dtype=float)
-        return X_arr @ self.coef_ + self.intercept_
+        return _as_design(X) @ self.coef_ + self.intercept_
+
+
+def _is_learner_instance(learner: Any) -> bool:
+    """True for an already-constructed learner object (has ``fit``/``predict``, is not a class)."""
+    return (
+        not isinstance(learner, (str, type))
+        and hasattr(learner, "fit")
+        and hasattr(learner, "predict")
+    )
+
+
+def _learner_name(learner: str | Any) -> str:
+    """Human-readable learner label for ``DMLResult.learner``."""
+    if isinstance(learner, str):
+        return learner
+    if isinstance(learner, type):
+        return learner.__name__
+    if _is_learner_instance(learner):
+        return type(learner).__name__
+    return getattr(learner, "__name__", type(learner).__name__)
 
 
 def _get_learner(learner: str | Any, **kwargs: Any) -> Any:
-    """Helper to instantiate learners by string alias or pass-through custom learner."""
+    """Return a fresh, unfitted learner for one nuisance regression.
+
+    ``learner`` may be a string alias, a class or factory callable (called with
+    ``kwargs``), or an already-constructed instance. An instance is deep-copied
+    so that each nuisance model (l(X), every m_j(X), every fold) gets its own
+    object and the caller's instance is never fitted in place.
+    """
     if isinstance(learner, str):
         key = learner.lower()
         if key in ("lasso", "l1"):
@@ -276,9 +348,24 @@ def _get_learner(learner: str | Any, **kwargs: Any) -> Any:
             return RidgeGCV(**kwargs)
         else:
             raise ValueError(f"Unknown learner {learner!r}. Supported: 'lasso', 'ridge'.")
-    elif callable(learner):
-        return learner(**kwargs)
-    return learner
+    if _is_learner_instance(learner):
+        if kwargs:
+            raise ValueError(
+                "learner_kwargs cannot be combined with a learner instance "
+                f"({type(learner).__name__}); configure the instance directly or "
+                "pass the learner class / string alias instead."
+            )
+        return copy.deepcopy(learner)
+    if callable(learner):
+        obj = learner(**kwargs)
+        if not (hasattr(obj, "fit") and hasattr(obj, "predict")):
+            raise TypeError(
+                f"learner {learner!r} returned {type(obj).__name__}, which has no fit/predict methods."
+            )
+        return obj
+    raise TypeError(
+        f"learner must be a string alias, a class, or an object with fit/predict; got {type(learner).__name__}."
+    )
 
 
 # ===========================================================================
@@ -436,13 +523,18 @@ class DMLResult:
         return ax
 
     def to_markdown(self) -> str:
-        """Export results to Markdown table."""
+        """Export results to a GitHub-flavoured Markdown table.
+
+        Pipes inside cells (the ``P>|z|`` header, any ``|`` in a variable
+        name) are escaped as ``\\|`` so the header and delimiter rows have the
+        same cell count and renderers recognise the table.
+        """
         pct = int(round(self.ci_level * 100))
         lines = [
             f"### DML-PLR: {self.outcome_name}",
             f"*Learner: {self.learner} | N: {self.n_obs} | Folds: {self.n_folds}*",
             "",
-            f"| Variable | Coef. | Std.Err. | z | P>|z| | [{pct}% Conf. Interval] |",
+            f"| Variable | Coef. | Std.Err. | z | P>\\|z\\| | [{pct}% Conf. Interval] |",
             "|:---|---:|---:|---:|---:|:---:|",
         ]
         thetas = np.atleast_1d(self.theta)
@@ -456,18 +548,28 @@ class DMLResult:
             self.treatment_names, thetas, ses, ts, ps, los, his
         ):
             p_str = "<0.001" if p_val < 0.001 else f"{p_val:.4f}"
+            cell_name = str(name).replace("|", "\\|")
             lines.append(
-                f"| {name} | {th:.4f} | {s:.4f} | {t_val:.3f} | {p_str} | [{lo:.4f}, {hi:.4f}] |"
+                f"| {cell_name} | {th:.4f} | {s:.4f} | {t_val:.3f} | {p_str} | [{lo:.4f}, {hi:.4f}] |"
             )
         return "\n".join(lines)
 
     def to_latex(self) -> str:
-        """Export results to LaTeX table with booktabs formatting."""
+        """Export results to a LaTeX ``table`` that needs only the ``booktabs`` package.
+
+        The p-value cell is set in math mode (``$<0.001$``) because a bare
+        ``<`` in OT1 text mode prints as an inverted exclamation mark, and the
+        sample-size note is a ``\\multicolumn`` row inside the tabular rather
+        than a ``\\subcaption`` (which needs the ``subcaption`` package).
+        """
+        from puremacro.reports import latex_escape
+
         pct = int(round(self.ci_level * 100))
+        n_cols = 6
         lines = [
             r"\begin{table}[htbp]",
             r"\centering",
-            f"\\caption{{Double Machine Learning Estimates for {self.outcome_name}}}",
+            f"\\caption{{Double Machine Learning Estimates for {latex_escape(self.outcome_name)}}}",
             r"\begin{tabular}{lrrrrr}",
             r"\toprule",
             f"Variable & Coef. & Std. Err. & $z$ & $P>|z|$ & [{pct}\\% CI] \\\\",
@@ -483,15 +585,19 @@ class DMLResult:
         for name, th, s, t_val, p_val, lo, hi in zip(
             self.treatment_names, thetas, ses, ts, ps, los, his
         ):
-            p_str = "<0.001" if p_val < 0.001 else f"{p_val:.4f}"
-            clean_name = name.replace("_", "\\_")
+            p_str = "$<0.001$" if p_val < 0.001 else f"{p_val:.4f}"
+            clean_name = latex_escape(name)
             lines.append(
                 f"{clean_name} & {th:.4f} & {s:.4f} & {t_val:.3f} & {p_str} & [{lo:.4f}, {hi:.4f}] \\\\"
             )
+        note = (
+            f"Observations: {self.n_obs}; Folds: {self.n_folds}; "
+            f"Learner: {latex_escape(self.learner)}."
+        )
         lines.extend([
             r"\bottomrule",
+            f"\\multicolumn{{{n_cols}}}{{l}}{{\\footnotesize {note}}} \\\\",
             r"\end{tabular}",
-            f"\\subcaption{{\\footnotesize Observations: {self.n_obs}; Folds: {self.n_folds}; Learner: {self.learner}.}}",
             r"\end{table}",
         ])
         return "\n".join(lines)
@@ -549,16 +655,29 @@ class DoubleMLPLR:
     Parameters
     ----------
     n_folds : int, default 5
-        Number of cross-fitting folds (K >= 2).
-    learner : str or learner instance / callable, default 'lasso'
+        Number of cross-fitting folds (K >= 2, and at most N).
+    learner : str, learner class, or learner instance, default 'lasso'
         Base learner for estimating nuisance functions l_0(X) = E[Y|X] and m_0(X) = E[D|X].
-        Options: 'lasso' (L1 coordinate descent) or 'ridge' (L2 GCV closed-form).
+        Options: 'lasso' (L1 coordinate descent) or 'ridge' (L2 GCV closed-form), a
+        class / factory with ``fit``/``predict`` (constructed with ``learner_kwargs``),
+        or a configured instance (deep-copied for every nuisance model, so the
+        caller's object is never fitted in place; ``learner_kwargs`` must then be empty).
     alpha : float, default 0.05
         Significance level for confidence intervals (0.05 -> 95% CI).
     random_state : int or None, default 42
         Seed for reproducible random fold splitting.
     learner_kwargs : dict, optional
         Additional keyword arguments passed to learner constructors.
+
+    Notes
+    -----
+    Valid root-N inference requires each training fold, of size roughly
+    ``N * (1 - 1/K)``, to be comfortably larger than the number of controls
+    ``p`` for the ridge learner, and a sparse nuisance structure for the
+    lasso learner. When a training fold has ``n_train <= p + 1`` observations
+    ``fit`` emits a ``UserWarning``: in that regime ``RidgeGCV`` interpolates
+    the training data and both built-in learners give biased estimates whose
+    nominal 95% intervals under-cover.
     """
 
     def __init__(
@@ -576,6 +695,12 @@ class DoubleMLPLR:
         self.alpha = float(alpha)
         self.random_state = random_state
         self.learner_kwargs = learner_kwargs or {}
+        if self.learner_kwargs and _is_learner_instance(learner):
+            raise ValueError(
+                "learner_kwargs cannot be combined with a learner instance "
+                f"({type(learner).__name__}); configure the instance directly or "
+                "pass the learner class / string alias instead."
+            )
 
     def fit(
         self,
@@ -620,13 +745,26 @@ class DoubleMLPLR:
             X_arr = X.to_numpy(dtype=float)
         else:
             X_arr = np.asarray(X, dtype=float)
+        X_arr = _as_design(X_arr)
+        if D_arr.ndim != 2:
+            raise ValueError(f"D must be 1-D or 2-D (N, k_d), got shape {D_arr.shape}.")
 
         n = len(Y_arr)
         if len(D_arr) != n or len(X_arr) != n:
             raise ValueError(
                 f"Sample size mismatch: Y has {n}, D has {len(D_arr)}, X has {len(X_arr)} rows."
             )
+        if n == 0 or X_arr.shape[1] == 0:
+            raise ValueError("Y, D and X must have at least one observation and X at least one column.")
+        for label, arr in (("Y", Y_arr), ("D", D_arr), ("X", X_arr)):
+            if not np.isfinite(arr).all():
+                raise ValueError(
+                    f"{label} contains NaN or inf; drop or impute missing observations before calling fit()."
+                )
+        if self.n_folds > n:
+            raise ValueError(f"n_folds must not exceed the number of observations, got n_folds={self.n_folds} > N={n}.")
         k_d = D_arr.shape[1]
+        p = X_arr.shape[1]
 
         # Generate K-fold partition
         rng = np.random.default_rng(self.random_state)
@@ -634,12 +772,23 @@ class DoubleMLPLR:
         rng.shuffle(indices)
         folds = np.array_split(indices, self.n_folds)
 
+        n_train_min = n - max(len(f) for f in folds)
+        if n_train_min <= p + 1:
+            warnings.warn(
+                f"DML nuisance learners are trained on as few as {n_train_min} observations per "
+                f"fold with p = {p} controls (n_train <= p + 1). In this high-dimensional regime "
+                "RidgeGCV interpolates the training fold and the root-N inference for theta is "
+                "unreliable for either built-in learner (biased estimates, under-covering "
+                "intervals). Increase N, reduce n_folds or the number of controls, or supply a "
+                "learner suited to p >= n.",
+                UserWarning,
+                stacklevel=2,
+            )
+
         res_y = np.zeros(n)
         res_d = np.zeros((n, k_d))
 
-        learner_name = (
-            self.learner if isinstance(self.learner, str) else type(self.learner).__name__
-        )
+        learner_name = _learner_name(self.learner)
 
         # Cross-fitting loop
         for fold_idx, test_idx in enumerate(folds):
@@ -748,9 +897,10 @@ def dml_plr(
     X : array-like of shape (N, p)
         Covariates / control variables.
     n_folds : int, default 5
-        Number of cross-fitting folds.
+        Number of cross-fitting folds (2 <= n_folds <= N).
     learner : str or learner class/instance, default 'lasso'
-        Base learner ('lasso' or 'ridge').
+        Base learner ('lasso' or 'ridge'), a learner class, or a configured
+        instance (copied per nuisance model; incompatible with ``learner_kwargs``).
     alpha : float, default 0.05
         Significance level for confidence intervals (0.05 -> 95% CI).
     random_state : int, default 42
