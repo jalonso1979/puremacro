@@ -3,15 +3,22 @@
 Provides hardware-accelerated general equilibrium modeling for multi-country multi-sector
 computable general equilibrium (CGE) trade models:
 
-- Dual-device PyTorch (NVIDIA CUDA / Apple Silicon MPS) and Apple MLX acceleration.
-- Batched parallel Jacobian evaluation across batch dimension B = 230 (using factor return
-  equivalence r_c == w_c) and B = 307.
+- Dual-device PyTorch (NVIDIA CUDA / Apple Silicon MPS), Apple MLX and NumPy execution.
+- Batched parallel Jacobian evaluation across the macro dimension B = 3*nc - 1 (reduced
+  layout using factor return equivalence r_c == w_c, verified against the calibration)
+  or B = 4*nc - 1 (full layout); 230 / 307 for the canonical 77 countries.
 - One-time pre-inversion of Leontief operators (I - B^T) and (I - A) converting serial
   column perturbations into vectorized multi-RHS GEMM.
 - Vectorized tensor contractions (einsum) for bilateral trade flows.
-- Forward-mode automatic differentiation / VJP support for small-economy numerical stability.
+- Forward-mode (JVP) and reverse-mode (VJP) automatic differentiation for small-economy
+  numerical stability.
 - Levenberg-Marquardt regularized damping with two-sided equilibration and Armijo line search.
 - Adaptive homotopy continuation along tariff parameter lambda in [0, 1].
+
+Jacobians are evaluated in float64 wherever the device supports it; float32-only devices
+(Apple MPS, MLX GPU stream) are used only for the coarse phase when requested explicitly.
+This subpackage is outside the four-package Pyodide contract: torch and mlx are optional
+and imported lazily on first use, so ``import puremacro.trade`` never loads them.
 """
 from __future__ import annotations
 

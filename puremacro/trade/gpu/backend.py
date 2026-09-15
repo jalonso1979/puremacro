@@ -4,31 +4,30 @@ This module provides device detection, hardware memory tracking, device context
 management, and seamless tensor conversion helpers across NVIDIA CUDA, Apple
 Silicon Metal Performance Shaders (MPS), Apple Silicon MLX (Unified Memory Architecture),
 and CPU fallbacks.
+
+PyTorch and MLX are optional, heavy dependencies (importing torch costs roughly a
+second and 175 MB of RSS). They are therefore never imported at module import
+time: availability is probed with :func:`importlib.util.find_spec` and the
+packages are loaded lazily, on first use, through :func:`_load_torch` and
+:func:`_load_mlx`. ``import puremacro.trade`` stays a NumPy/SciPy-only import.
 """
 from __future__ import annotations
 
 import contextlib
-import os
+import functools
+import importlib.util
 import platform
+import sys
+import warnings
 from dataclasses import dataclass
 from typing import Any, Generator, Literal
 
 import numpy as np
 
-# Optional imports for hardware acceleration
-try:
-    import torch
-    _HAS_TORCH = True
-except ImportError:
-    torch = None  # type: ignore[assignment]
-    _HAS_TORCH = False
-
-try:
-    import mlx.core as mx
-    _HAS_MLX = True
-except ImportError:
-    mx = None  # type: ignore[assignment]
-    _HAS_MLX = False
+#: Device / backend strings accepted by :func:`select_compute_device`.
+DEVICE_STRINGS: tuple[str, ...] = (
+    "auto", "cuda", "cuda:N", "mps", "mlx", "gpu", "cpu", "torch", "numpy",
+)
 
 
 @dataclass(frozen=True)
@@ -60,15 +59,91 @@ class DeviceInfo:
         return f"<DeviceInfo: {self.backend}:{self.device} ({self.device_name}{mem_str}, {f64_str}{uma_str})>"
 
 
+# ---------------------------------------------------------------------------
+# Lazy accelerator loading
+# ---------------------------------------------------------------------------
+
 def has_torch() -> bool:
-    """Return True if PyTorch is available."""
-    return _HAS_TORCH
+    """Return True if PyTorch is installed (cheap: does not import it)."""
+    return importlib.util.find_spec("torch") is not None
 
 
 def has_mlx() -> bool:
-    """Return True if Apple MLX is available."""
-    return _HAS_MLX
+    """Return True if Apple MLX is installed (cheap: does not import it)."""
+    return importlib.util.find_spec("mlx") is not None
 
+
+@functools.lru_cache(maxsize=None)
+def _load_torch() -> Any | None:
+    """Import and return ``torch`` on first use; None when absent or broken.
+
+    A broken installation (e.g. an ``OSError`` from a missing shared library)
+    is reported once as a RuntimeWarning and then treated as unavailable.
+    """
+    if not has_torch():
+        return None
+    try:
+        import torch
+    except Exception as exc:  # pragma: no cover - depends on the local install
+        warnings.warn(
+            f"PyTorch is installed but failed to import ({exc!r}); treating it as unavailable.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return None
+    return torch
+
+
+@functools.lru_cache(maxsize=None)
+def _load_mlx() -> Any | None:
+    """Import and return ``mlx.core`` on first use; None when absent or broken."""
+    if not has_mlx():
+        return None
+    try:
+        import mlx.core as mx
+    except Exception as exc:  # pragma: no cover - depends on the local install
+        warnings.warn(
+            f"Apple MLX is installed but failed to import ({exc!r}); treating it as unavailable.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+        return None
+    return mx
+
+
+def _require_torch(what: str) -> Any:
+    torch = _load_torch()
+    if torch is None:
+        raise RuntimeError(f"Device '{what}' requested but PyTorch is not installed.")
+    return torch
+
+
+def _require_mlx() -> Any:
+    mx = _load_mlx()
+    if mx is None:
+        raise RuntimeError("Apple MLX requested but 'mlx' package is not installed.")
+    return mx
+
+
+def _mps_available(torch: Any) -> bool:
+    return bool(hasattr(torch.backends, "mps") and torch.backends.mps.is_available())
+
+
+def _is_torch_tensor(obj: Any) -> bool:
+    """True if ``obj`` is a torch.Tensor, without importing torch to find out."""
+    torch = sys.modules.get("torch")
+    return torch is not None and isinstance(obj, torch.Tensor)
+
+
+def _is_mlx_array(obj: Any) -> bool:
+    """True if ``obj`` is an mlx.core.array, without importing mlx to find out."""
+    mx = sys.modules.get("mlx.core")
+    return mx is not None and isinstance(obj, mx.array)
+
+
+# ---------------------------------------------------------------------------
+# Device selection
+# ---------------------------------------------------------------------------
 
 def select_compute_device(preferred: str | None = None) -> tuple[str, str]:
     """Select compute backend and device string.
@@ -76,83 +151,154 @@ def select_compute_device(preferred: str | None = None) -> tuple[str, str]:
     Parameters
     ----------
     preferred : str | None
-        Preferred device or backend: 'auto', 'cuda', 'mps', 'mlx', 'cpu', 'torch'.
-        If 'auto' or None, automatically selects best available hardware:
-        CUDA -> MPS -> MLX -> CPU.
+        Preferred device or backend: 'auto', 'cuda', 'cuda:N', 'mps', 'mlx',
+        'gpu', 'cpu', 'torch' or 'numpy'.
+        If 'auto' or None, automatically selects the best available hardware:
+        CUDA -> MPS -> MLX -> PyTorch CPU -> NumPy.
+        'cpu' resolves to PyTorch on the CPU when PyTorch is installed and to
+        the NumPy serial evaluator otherwise; 'gpu' is the best available GPU
+        of any backend; 'numpy' always selects the NumPy evaluator.
 
     Returns
     -------
     tuple[str, str]
         (backend, device_str) where backend is 'torch', 'mlx', or 'numpy',
-        and device_str is 'cuda', 'mps', 'gpu', or 'cpu'.
+        and device_str is 'cuda', 'cuda:N', 'mps', 'gpu', or 'cpu'.
+
+    Raises
+    ------
+    ValueError
+        If ``preferred`` is not one of the documented strings.
+    RuntimeError
+        If an explicitly requested device or backend is not available.
     """
     pref = (preferred or "auto").lower().strip()
 
     # Explicit MLX request
     if pref in ("mlx", "apple_mlx"):
-        if _HAS_MLX:
-            return ("mlx", "gpu")
-        raise RuntimeError("Apple MLX requested but 'mlx' package is not installed.")
+        _require_mlx()
+        return ("mlx", "gpu")
 
-    # Explicit PyTorch device requests
-    if pref in ("cuda", "mps", "cpu"):
-        if not _HAS_TORCH:
-            raise RuntimeError(f"Device '{pref}' requested but PyTorch is not installed.")
-        if pref == "cuda" and not torch.cuda.is_available():
+    if pref == "numpy":
+        return ("numpy", "cpu")
+
+    if pref == "cpu":
+        return ("torch", "cpu") if _load_torch() is not None else ("numpy", "cpu")
+
+    if pref == "cuda" or pref.startswith("cuda:"):
+        torch = _require_torch(pref)
+        if not torch.cuda.is_available():
             raise RuntimeError("CUDA requested but torch.cuda.is_available() is False.")
-        if pref == "mps" and not (hasattr(torch.backends, "mps") and torch.backends.mps.is_available()):
-            raise RuntimeError("MPS requested but torch.backends.mps.is_available() is False.")
+        if pref.startswith("cuda:"):
+            idx_str = pref[len("cuda:"):]
+            if not idx_str.isdigit() or int(idx_str) >= torch.cuda.device_count():
+                raise RuntimeError(
+                    f"CUDA device '{pref}' requested but only {torch.cuda.device_count()} device(s) are available."
+                )
         return ("torch", pref)
 
+    if pref == "mps":
+        torch = _require_torch(pref)
+        if not _mps_available(torch):
+            raise RuntimeError("MPS requested but torch.backends.mps.is_available() is False.")
+        return ("torch", "mps")
+
     if pref in ("torch", "pytorch"):
-        if not _HAS_TORCH:
+        torch = _load_torch()
+        if torch is None:
             raise RuntimeError("PyTorch requested but not installed.")
         if torch.cuda.is_available():
             return ("torch", "cuda")
-        if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        if _mps_available(torch):
             return ("torch", "mps")
         return ("torch", "cpu")
 
-    # 'auto' mode: CUDA -> MPS -> MLX -> CPU
-    if _HAS_TORCH and torch.cuda.is_available():
+    if pref == "gpu":
+        torch = _load_torch()
+        if torch is not None and torch.cuda.is_available():
+            return ("torch", "cuda")
+        if torch is not None and _mps_available(torch):
+            return ("torch", "mps")
+        if has_mlx():
+            return ("mlx", "gpu")
+        raise RuntimeError("A GPU was requested but neither CUDA, MPS nor MLX is available.")
+
+    if pref != "auto":
+        raise ValueError(
+            f"Unknown device/backend {preferred!r}; expected one of {DEVICE_STRINGS}."
+        )
+
+    # 'auto' mode: CUDA -> MPS -> MLX -> torch CPU -> NumPy
+    torch = _load_torch()
+    if torch is not None and torch.cuda.is_available():
         return ("torch", "cuda")
 
-    if _HAS_TORCH and hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+    if torch is not None and _mps_available(torch):
         return ("torch", "mps")
 
-    if _HAS_MLX:
+    if has_mlx():
         return ("mlx", "gpu")
 
-    if _HAS_TORCH:
+    if torch is not None:
         return ("torch", "cpu")
 
     return ("numpy", "cpu")
 
 
-def detect_device(preferred: str | None = None) -> DeviceInfo:
-    """Inspect and return detailed capabilities of the selected hardware accelerator.
+def _resolve_backend_device(device: str | None, backend: str | None) -> tuple[str, str]:
+    """Resolve a validated ``(backend, device)`` pair from a device/backend request.
 
-    Parameters
-    ----------
-    preferred : str | None
-        Optional device preference ('auto', 'cuda', 'mps', 'mlx', 'cpu').
-
-    Returns
-    -------
-    DeviceInfo
-        Structured hardware capabilities dataclass.
+    This is the single place where the solvers and the batched evaluator turn
+    the user's ``device`` and ``backend`` arguments into a concrete pair, so the
+    device string is never re-parsed (``'gpu'`` is the MLX device, not a request
+    for "any GPU").
     """
-    backend, dev = select_compute_device(preferred)
+    dev = None if device is None else str(device).lower().strip()
+    be = None if backend is None else str(backend).lower().strip()
+    if dev == "auto":
+        dev = None
+    if be == "auto":
+        be = None
 
+    if be is None:
+        return select_compute_device(dev)
+
+    if be in ("torch", "pytorch"):
+        if dev is None:
+            return select_compute_device("torch")
+        sel_backend, sel_device = select_compute_device(dev)
+        if sel_backend != "torch":
+            raise ValueError(f"device={device!r} is not a PyTorch device (expected 'cuda', 'cuda:N', 'mps' or 'cpu').")
+        return (sel_backend, sel_device)
+
+    if be in ("mlx", "apple_mlx"):
+        _require_mlx()
+        if dev in (None, "mlx", "gpu"):
+            return ("mlx", "gpu")
+        if dev == "cpu":
+            return ("mlx", "cpu")
+        raise ValueError(f"device={device!r} is not an MLX device (expected 'gpu' or 'cpu').")
+
+    if be == "numpy":
+        if dev not in (None, "cpu"):
+            raise ValueError(f"device={device!r} is not available for the NumPy backend (expected 'cpu').")
+        return ("numpy", "cpu")
+
+    raise ValueError(f"Unknown backend {backend!r}; expected 'torch', 'mlx', 'numpy' or None.")
+
+
+def _device_info(backend: str, dev: str) -> DeviceInfo:
+    """Build the :class:`DeviceInfo` for an already-resolved ``(backend, device)`` pair."""
     if backend == "torch":
-        if dev == "cuda":
-            dev_idx = torch.cuda.current_device()
+        torch = _require_torch(dev)
+        if dev == "cuda" or dev.startswith("cuda:"):
+            dev_idx = int(dev[len("cuda:"):]) if dev.startswith("cuda:") else torch.cuda.current_device()
             dev_name = torch.cuda.get_device_name(dev_idx)
             props = torch.cuda.get_device_properties(dev_idx)
             total_mem = props.total_memory / (1024**3)
             return DeviceInfo(
                 backend="torch",
-                device="cuda",
+                device=dev,
                 device_name=dev_name,
                 total_memory_gb=total_mem,
                 supports_float64=True,
@@ -161,19 +307,12 @@ def detect_device(preferred: str | None = None) -> DeviceInfo:
         elif dev == "mps":
             # Apple Silicon Metal Performance Shaders
             # Metal GPUs share unified memory with host CPU
-            import subprocess
             soc_name = platform.processor() or "Apple Silicon"
-            total_mem_gb = None
-            try:
-                out = subprocess.check_output(["sysctl", "-n", "hw.memsize"], text=True).strip()
-                total_mem_gb = float(out) / (1024**3)
-            except Exception:
-                pass
             return DeviceInfo(
                 backend="torch",
                 device="mps",
                 device_name=f"Apple Metal ({soc_name})",
-                total_memory_gb=total_mem_gb,
+                total_memory_gb=_host_memory_gb(),
                 supports_float64=False,  # MPS framework does not support float64
                 is_uma=True,
             )
@@ -190,18 +329,11 @@ def detect_device(preferred: str | None = None) -> DeviceInfo:
     elif backend == "mlx":
         # Apple MLX Native
         soc_name = platform.processor() or "Apple Silicon"
-        total_mem_gb = None
-        try:
-            import subprocess
-            out = subprocess.check_output(["sysctl", "-n", "hw.memsize"], text=True).strip()
-            total_mem_gb = float(out) / (1024**3)
-        except Exception:
-            pass
         return DeviceInfo(
             backend="mlx",
             device=dev,
             device_name=f"Apple MLX ({soc_name})",
-            total_memory_gb=total_mem_gb,
+            total_memory_gb=_host_memory_gb(),
             supports_float64=(dev != "gpu"),  # Metal GPU lacks hardware float64; MLX CPU supports float64
             is_uma=True,
         )
@@ -215,6 +347,40 @@ def detect_device(preferred: str | None = None) -> DeviceInfo:
         is_uma=False,
     )
 
+
+def _host_memory_gb() -> float | None:
+    """Total physical memory of an Apple Silicon host in GB (None if unknown)."""
+    if platform.system() != "Darwin":
+        return None
+    try:
+        import subprocess
+
+        out = subprocess.check_output(["sysctl", "-n", "hw.memsize"], text=True).strip()
+        return float(out) / (1024**3)
+    except Exception:
+        return None
+
+
+def detect_device(preferred: str | None = None) -> DeviceInfo:
+    """Inspect and return detailed capabilities of the selected hardware accelerator.
+
+    Parameters
+    ----------
+    preferred : str | None
+        Optional device preference; see :func:`select_compute_device`.
+
+    Returns
+    -------
+    DeviceInfo
+        Structured hardware capabilities dataclass.
+    """
+    backend, dev = select_compute_device(preferred)
+    return _device_info(backend, dev)
+
+
+# ---------------------------------------------------------------------------
+# Memory tracking
+# ---------------------------------------------------------------------------
 
 def get_memory_usage(
     device: str | None = None,
@@ -235,8 +401,13 @@ def get_memory_usage(
 
     info: dict[str, float | str] = {"backend": backend, "device": device}
 
-    if backend == "torch" and _HAS_TORCH:
-        if device == "cuda" and torch.cuda.is_available():
+    # Only report accelerator counters for a library that is already loaded:
+    # nothing has been allocated on a device whose library was never imported.
+    torch = sys.modules.get("torch") if backend == "torch" else None
+    mx = sys.modules.get("mlx.core") if backend == "mlx" else None
+
+    if torch is not None:
+        if (device == "cuda" or device.startswith("cuda:")) and torch.cuda.is_available():
             info["allocated_mb"] = float(torch.cuda.memory_allocated() / (1024**2))
             info["peak_mb"] = float(torch.cuda.max_memory_allocated() / (1024**2))
             info["cache_mb"] = float(torch.cuda.memory_reserved() / (1024**2))
@@ -250,7 +421,7 @@ def get_memory_usage(
             except Exception:
                 pass
 
-    elif backend == "mlx" and _HAS_MLX:
+    elif mx is not None:
         try:
             get_act = getattr(mx, "get_active_memory", getattr(getattr(mx, "metal", None), "get_active_memory", lambda: 0))
             get_peak = getattr(mx, "get_peak_memory", getattr(getattr(mx, "metal", None), "get_peak_memory", lambda: 0))
@@ -281,20 +452,27 @@ def reset_peak_memory(
     device: str | None = None,
     backend: str | None = None,
 ) -> None:
-    """Reset peak memory tracking counters on the active device."""
+    """Reset peak memory tracking counters on the active device.
+
+    A library that has not been imported yet has nothing to reset, so this never
+    triggers the (slow) first import of torch or mlx.
+    """
     if backend is None or device is None:
         sel_backend, sel_device = select_compute_device(device)
         backend = backend or sel_backend
         device = device or sel_device
 
-    if backend == "torch" and _HAS_TORCH:
-        if device == "cuda" and torch.cuda.is_available():
+    torch = sys.modules.get("torch") if backend == "torch" else None
+    mx = sys.modules.get("mlx.core") if backend == "mlx" else None
+
+    if torch is not None:
+        if (device == "cuda" or device.startswith("cuda:")) and torch.cuda.is_available():
             torch.cuda.reset_peak_memory_stats()
             torch.cuda.empty_cache()
         elif device == "mps" and hasattr(torch, "mps"):
             torch.mps.empty_cache()
 
-    elif backend == "mlx" and _HAS_MLX:
+    elif mx is not None:
         try:
             if hasattr(mx, "reset_peak_memory"):
                 mx.reset_peak_memory()
@@ -331,6 +509,10 @@ def device_context(
         reset_peak_memory(curr_device, curr_backend)
 
 
+# ---------------------------------------------------------------------------
+# Tensor conversion
+# ---------------------------------------------------------------------------
+
 def to_tensor(
     array: Any,
     device: str | None = None,
@@ -356,12 +538,13 @@ def to_tensor(
         Converted tensor or array.
     """
     if backend == "torch":
-        if not _HAS_TORCH:
+        torch = _load_torch()
+        if torch is None:
             raise RuntimeError("PyTorch is not available.")
-        if isinstance(array, torch.Tensor):
+        if _is_torch_tensor(array):
             t = array
-        elif _HAS_MLX and isinstance(array, mx.array):
-            t = torch.from_numpy(np.array(array, copy=False))
+        elif _is_mlx_array(array):
+            t = torch.from_numpy(np.asarray(array))
         elif isinstance(array, np.ndarray):
             t = torch.from_numpy(array)
         else:
@@ -374,11 +557,12 @@ def to_tensor(
         return t
 
     elif backend == "mlx":
-        if not _HAS_MLX:
+        mx = _load_mlx()
+        if mx is None:
             raise RuntimeError("Apple MLX is not available.")
-        if isinstance(array, mx.array):
+        if _is_mlx_array(array):
             m = array
-        elif _HAS_TORCH and isinstance(array, torch.Tensor):
+        elif _is_torch_tensor(array):
             m = mx.array(array.detach().cpu().numpy())
         elif isinstance(array, np.ndarray):
             m = mx.array(array)
@@ -410,10 +594,9 @@ def to_numpy(tensor: Any) -> np.ndarray:
     if isinstance(tensor, np.ndarray):
         return tensor
 
-    if _HAS_TORCH and isinstance(tensor, torch.Tensor):
+    if _is_torch_tensor(tensor):
         return tensor.detach().cpu().numpy()
 
-    if _HAS_MLX and isinstance(tensor, mx.array):
-        return np.array(tensor, copy=False)
-
+    # MLX arrays implement __array__ (forcing evaluation); np.asarray copies only
+    # when it must, unlike np.array(..., copy=False) which raises under NumPy 2.
     return np.asarray(tensor)

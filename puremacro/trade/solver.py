@@ -17,6 +17,7 @@ zero dev-dependencies in the execution path, fully vectorized.
 """
 from __future__ import annotations
 
+import contextlib
 from dataclasses import replace
 import time
 from typing import TYPE_CHECKING, Any, Callable
@@ -468,7 +469,16 @@ def _condensed_schur_solve(
     penalty_scale: float = 0.05,
     penalty_exponent: float = 8.0,
 ) -> tuple[np.ndarray, bool, int, float, float, np.ndarray]:
-    """Block-elimination / Schur complement price condensation general equilibrium solver."""
+    """Block-elimination / Schur complement price condensation general equilibrium solver.
+
+    ``backend`` selects the array namespace for the two bilateral-flow contractions
+    ('numpy', 'mlx' or 'cupy'). Device arrays are always float64: on Apple MLX the
+    contractions run on the CPU stream (Metal has no float64, and float32 residuals
+    make the finite-difference Jacobian diverge on the canonical data). If an
+    accelerated run does not converge, a RuntimeWarning is emitted and the solve
+    is repeated with the NumPy reference implementation, so a non-converged
+    accelerated result is never returned silently.
+    """
     if backend != "numpy":
         if not backend_available(backend):
             warnings.warn(
@@ -491,6 +501,63 @@ def _condensed_schur_solve(
                 backend = "numpy"
     else:
         xp = np
+
+    if backend != "numpy":
+        try:
+            out = _condensed_schur_solve_impl(
+                calib, tau_a, taufd_a, tauf_vec, tauf_fd_vec, x0=x0, tol=tol, max_iter=max_iter,
+                eps_fd=eps_fd, replicate_matlab_precedence=replicate_matlab_precedence,
+                backend=backend, xp=xp,
+            )
+        except Exception as exc:
+            warnings.warn(
+                f"Backend '{backend}' failed during the condensed solve ({exc!r}); falling back to 'numpy'.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            out = None
+        if out is not None and out[1]:
+            return out
+        if out is not None:
+            warnings.warn(
+                f"Backend '{backend}' did not converge (max residual {out[3]:.3e} > tol {tol:.1e}); "
+                "falling back to 'numpy'.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+        backend, xp = "numpy", np
+
+    return _condensed_schur_solve_impl(
+        calib, tau_a, taufd_a, tauf_vec, tauf_fd_vec, x0=x0, tol=tol, max_iter=max_iter,
+        eps_fd=eps_fd, replicate_matlab_precedence=replicate_matlab_precedence,
+        backend=backend, xp=xp,
+    )
+
+
+def _device_float64(xp: Any, backend: str, arr: np.ndarray) -> Any:
+    """Move ``arr`` to the backend namespace as float64 (MLX: on the CPU stream)."""
+    if backend == "mlx":
+        with xp.stream(xp.cpu):
+            return xp.array(arr, dtype=xp.float64)
+    return xp.asarray(arr, dtype=xp.float64)
+
+
+def _condensed_schur_solve_impl(
+    calib: TradeCalibrationResult,
+    tau_a: np.ndarray,
+    taufd_a: np.ndarray,
+    tauf_vec: np.ndarray,
+    tauf_fd_vec: np.ndarray,
+    x0: np.ndarray | None,
+    tol: float,
+    max_iter: int,
+    eps_fd: float,
+    replicate_matlab_precedence: bool,
+    backend: str,
+    xp: Any,
+) -> tuple[np.ndarray, bool, int, float, float, np.ndarray]:
+    """Condensed solver body for a resolved array namespace ``xp``."""
+    device_stream = xp.stream(xp.cpu) if backend == "mlx" else contextlib.nullcontext()
 
     ns = calib.n_sectors
     nc = calib.n_countries
@@ -545,7 +612,11 @@ def _condensed_schur_solve(
     ])
     n_m = len(xm)
 
-    # Fast evaluation of condensed macro residual system (307 equations)
+    # Constant technology blocks for the bilateral-flow contraction (device copy built once)
+    a_blocks = a_2d.reshape(M, nc, ns)
+    a_blocks_dev = _device_float64(xp, backend, a_blocks) if xp is not np else None
+
+    # Fast evaluation of condensed macro residual system (4*nc - 1 equations)
     def eval_macro(
         xm_curr: np.ndarray,
         p_cached: tuple[np.ndarray, np.ndarray] | None = None,
@@ -602,12 +673,12 @@ def _condensed_schur_solve(
         pp_col = p_vec[:, np.newaxis]
         ppfd_row = ppfd.reshape((1, nfd * nc), order="F")
 
-        a_blocks = a_2d.reshape(M, nc, ns)
         y_blocks = y_vec.reshape(nc, ns)
         if xp is not np:
-            a_dev = xp.asarray(a_blocks)
-            y_dev = xp.asarray(y_blocks)
-            x_sum_c2 = to_numpy(xp.sum(a_dev * y_dev[None, :, :], axis=2))
+            # a_blocks lives on the device (built once, float64); y changes per call
+            with device_stream:
+                y_dev = _device_float64(xp, backend, y_blocks)
+                x_sum_c2 = to_numpy(xp.sum(a_blocks_dev * y_dev[None, :, :], axis=2))
         else:
             x_sum_c2 = xp.sum(a_blocks * y_blocks[None, :, :], axis=2)
         val_sum = x_sum_c2 * pp_col
@@ -616,9 +687,10 @@ def _condensed_schur_solve(
         xc_blocks = xc_2d.reshape(M, nc, nfd)
         ppfd_blocks = ppfd_row.reshape(nc, nfd)
         if xp is not np:
-            xc_dev = xp.asarray(xc_blocks)
-            ppfd_dev = xp.asarray(ppfd_blocks)
-            fd_sum_c2 = to_numpy(xp.sum(xc_dev * ppfd_dev[None, :, :], axis=2))
+            with device_stream:
+                xc_dev = _device_float64(xp, backend, xc_blocks)
+                ppfd_dev = _device_float64(xp, backend, ppfd_blocks)
+                fd_sum_c2 = to_numpy(xp.sum(xc_dev * ppfd_dev[None, :, :], axis=2))
         else:
             fd_sum_c2 = xp.sum(xc_blocks * ppfd_blocks[None, :, :], axis=2)
         T_fd = np.sum(fd_sum_c2.reshape(nc, ns, nc), axis=1)

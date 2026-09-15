@@ -449,8 +449,12 @@ def plot_terms_of_trade_vs_welfare(
     ax.axvline(0, color="gray", linestyle=":", linewidth=0.8)
     ax.set_xlabel("Terms of Trade Change (%)", fontweight="bold")
     ax.set_ylabel("Real GDP Growth (%) [Geary-Khamis]", fontweight="bold")
+    # Matplotlib renders titles as plain text (no TeX), so the scenario name is
+    # used verbatim. Kept outside the f-string: a backslash inside a replacement
+    # field is a SyntaxError before Python 3.12 (PEP 701).
+    scenario_label = str(scenario)
     ax.set_title(
-        f"Terms of Trade vs. Welfare Impact ({scenario.replace('_', r'\_')})",
+        f"Terms of Trade vs. Welfare Impact ({scenario_label})",
         fontsize=11,
         fontweight="bold",
     )

@@ -1,43 +1,113 @@
 """Batched Parallel Jacobian Assembly & Automatic Differentiation for CGE Trade Models.
 
 This module replaces serial column perturbation loops with high-performance batched
-tensor operations across batch dimension B = 230 (using factor return equivalence
-r_c == w_c) or B = 307.
+tensor operations across the macro system of dimension B = 3*nc - 1 (reduced layout
+``[log w; T; XN]`` using factor return equivalence r_c == w_c) or B = 4*nc - 1 (full
+layout ``[log r; log w; T; XN]``). For the canonical 77-country calibration these are
+the familiar B = 230 and B = 307.
 
 Key Capabilities:
 1. One-time pre-inversion of Leontief operators (I - B^T) and (I - A) per scenario/step.
-2. Vectorized multi-RHS linear solves / GEMM ((3465, 3465) @ (3465, B)) on GPU.
+2. Vectorized multi-RHS linear solves / GEMM ((ns*nc, ns*nc) @ (ns*nc, B)) on GPU.
 3. Batched tensor contractions (einsum) for bilateral trade flow accounting.
-4. Forward-mode automatic differentiation / JVP (via torch.func.jvp / mx.jvp) eliminating
-   step-size sensitivity on small economies (e.g. Cyprus).
+4. Forward-mode (JVP) and reverse-mode (VJP) automatic differentiation via
+   torch.func / mx.jvp / mx.vjp, eliminating step-size sensitivity on small
+   economies (e.g. Cyprus).
+
+Precision policy
+----------------
+Finite-difference Jacobians divide residual differences of order 1e3 by a step of
+1e-4, so float32 evaluation (Apple MPS, MLX GPU stream) yields O(1) relative errors
+and diverging Newton steps on real data. The evaluator therefore defaults to float64
+wherever the device supports it: PyTorch on CPU/CUDA, and the MLX CPU stream (where
+``mx.exp`` is only float32-accurate and is replaced by an exact ``e ** x``). A
+float32 device is used only when explicitly requested through ``stream='gpu'``.
 """
 from __future__ import annotations
 
-import time
-from typing import Any, Literal
+import math
+import warnings
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 import scipy.linalg as la
 
 from puremacro.trade._results import TradeCalibrationResult
 from puremacro.trade.gpu.backend import (
-    detect_device,
-    has_mlx,
-    has_torch,
-    select_compute_device,
+    _device_info,
+    _load_mlx,
+    _load_torch,
+    _resolve_backend_device,
     to_numpy,
-    to_tensor,
 )
 
-if has_torch():
+if TYPE_CHECKING:  # pragma: no cover
     import torch
 
-if has_mlx():
-    import mlx.core as mx
+
+def _uniform_capital_share(calib: TradeCalibrationResult, rtol: float = 1e-8, atol: float = 1e-10) -> bool:
+    """True if every active sector of each country shares the same capital share alpha.
+
+    The reduced macro layout imposes r_c == w_c, which is only equivalent to the
+    full system (labour *and* capital market clearing) when the capital share is
+    identical across the producing sectors of a country. Inactive sectors carry
+    alpha == 0 in :func:`calibrate_trade_model` and are ignored.
+    """
+    alpha = np.asarray(calib.alpha, dtype=float).reshape(calib.n_sectors, calib.n_countries)
+    for c in range(calib.n_countries):
+        col = alpha[:, c]
+        active = col[col > 0.0]
+        if active.size > 1 and not np.allclose(active, active[0], rtol=rtol, atol=atol):
+            return False
+    return True
+
+
+def _resolve_layout(
+    calib: TradeCalibrationResult,
+    batch_size: int | None,
+    factor_equivalence: bool | None,
+) -> tuple[bool, int]:
+    """Resolve the macro layout: (factor_equivalence, macro dimension).
+
+    ``batch_size`` (kept for backward compatibility) must equal ``3*nc - 1`` or
+    ``4*nc - 1`` for the calibration's ``nc``; any other value is rejected rather
+    than silently selecting a layout. When neither argument is given, the reduced
+    layout is used iff it is exact for the calibration (uniform capital shares).
+    """
+    nc = calib.n_countries
+    n_reduced, n_full = 3 * nc - 1, 4 * nc - 1
+
+    if batch_size is not None:
+        if batch_size == n_reduced:
+            from_batch = True
+        elif batch_size == n_full:
+            from_batch = False
+        else:
+            raise ValueError(
+                f"batch_size={batch_size} is inconsistent with a {nc}-country calibration: "
+                f"expected {n_reduced} (reduced layout, r == w) or {n_full} (full layout)."
+            )
+        if factor_equivalence is not None and bool(factor_equivalence) != from_batch:
+            raise ValueError(
+                f"batch_size={batch_size} implies factor_equivalence={from_batch} but "
+                f"factor_equivalence={factor_equivalence} was requested."
+            )
+        factor_equivalence = from_batch
+
+    uniform = _uniform_capital_share(calib)
+    if factor_equivalence is None:
+        factor_equivalence = uniform
+    elif factor_equivalence and not uniform:
+        raise ValueError(
+            "factor_equivalence=True (reduced layout, r == w) is invalid for this calibration: "
+            "capital shares differ across sectors within a country, so imposing r == w drops "
+            "the capital-market clearing condition. Use factor_equivalence=False."
+        )
+    return bool(factor_equivalence), (n_reduced if factor_equivalence else n_full)
 
 
 class BatchedJacobianEvaluator:
-    """High-performance GPU-accelerated batched Jacobian evaluator for 45-sector CGE trade models.
+    """High-performance GPU-accelerated batched Jacobian evaluator for CGE trade models.
 
     Parameters
     ----------
@@ -48,17 +118,29 @@ class BatchedJacobianEvaluator:
     taufd_a : np.ndarray
         Effective final demand tariff matrix (ns * nc, nfd, nc) or 4D tensor.
     tauf_vec : np.ndarray
-        National intermediate tariff vectors (nc,).
+        National intermediate tariff rates (nc,).
     tauf_fd_vec : np.ndarray
-        National final demand tariff vectors (nc,).
+        National final demand tariff rates (nc,).
     device : str | None
-        Target device ('auto', 'cuda', 'mps', 'mlx', 'cpu').
+        Target device ('auto', 'cuda', 'cuda:N', 'mps', 'mlx', 'gpu', 'cpu').
     backend : str | None
-        Target backend ('torch' or 'mlx').
-    batch_size : int, default 230
-        Perturbation dimension B: 230 (factor equivalence r_c == w_c) or 307.
+        Target backend ('torch', 'mlx', 'numpy' or None for automatic).
+    batch_size : int | None, default None
+        Macro dimension B. Must equal ``3*nc - 1`` (reduced layout) or ``4*nc - 1``
+        (full layout) for the calibration; kept for backward compatibility with
+        the canonical values 230 / 307. Prefer ``factor_equivalence``.
+    factor_equivalence : bool | None, default None
+        True selects the reduced layout ``[log w; T; XN]`` with r == w (valid only
+        when capital shares are uniform across sectors within each country, which
+        is verified); False selects the full layout ``[log r; log w; T; XN]``.
+        None (default) selects the reduced layout iff it is exact.
     replicate_matlab_precedence : bool, default True
         Whether to replicate MATLAB operator precedence at ff_equi.m:31.
+
+    Notes
+    -----
+    Only the tensors of the selected backend are materialised; torch and mlx are
+    imported lazily on first use.
     """
 
     def __init__(
@@ -70,7 +152,8 @@ class BatchedJacobianEvaluator:
         tauf_fd_vec: np.ndarray,
         device: str | None = None,
         backend: str | None = None,
-        batch_size: int = 230,
+        batch_size: int | None = None,
+        factor_equivalence: bool | None = None,
         replicate_matlab_precedence: bool = True,
     ) -> None:
         self.calib = calib
@@ -78,20 +161,20 @@ class BatchedJacobianEvaluator:
         self.nc = calib.n_countries
         self.nfd = calib.n_final_demand
         self.M = self.ns * self.nc
-        self.batch_size = batch_size
+        self.factor_equivalence, self.batch_size = _resolve_layout(calib, batch_size, factor_equivalence)
+        self.n_factor_vars = self.nc if self.factor_equivalence else 2 * self.nc
         self.replicate_matlab_precedence = replicate_matlab_precedence
 
-        pref = device if device not in (None, "auto") else backend
-        sel_backend, sel_device = select_compute_device(pref)
-        self.backend = sel_backend if backend in (None, "auto") else backend
-        self.device = sel_device if device in (None, "auto") else device
+        self.backend, self.device = _resolve_backend_device(device, backend)
 
         # Check precision capabilities
-        dev_info = detect_device(self.device)
+        dev_info = _device_info(self.backend, self.device)
         self.supports_float64 = dev_info.supports_float64
-        # On MPS, default tensor dtype is float32; on CUDA/CPU/MLX, float64
+        self._torch = _load_torch() if self.backend == "torch" else None
+        self._mx = _load_mlx() if self.backend == "mlx" else None
+        # On MPS, tensor dtype is float32; on CUDA/CPU, float64
         if self.backend == "torch":
-            self.dtype = torch.float32 if self.device == "mps" else torch.float64
+            self.dtype = self._torch.float32 if self.device == "mps" else self._torch.float64
         else:
             self.dtype = None
 
@@ -110,6 +193,74 @@ class BatchedJacobianEvaluator:
 
         # Invert pricing operator (I - B^T) for given initial tariffs
         self.update_tariffs(tau_a, taufd_a, tauf_vec, tauf_fd_vec)
+
+    # ------------------------------------------------------------------
+    # Layout helpers
+    # ------------------------------------------------------------------
+
+    def _macro_from_x0(self, x0: np.ndarray | None) -> np.ndarray:
+        """Build the macro vector of this evaluator's layout from an initial guess.
+
+        ``x0`` may be None (baseline guess), a full state vector of length
+        ``2*ns*nc + 4*nc - 1``, or a macro vector of either layout
+        (``3*nc - 1`` or ``4*nc - 1``); r == w is assumed when a reduced vector
+        seeds the full layout.
+        """
+        nc, M = self.nc, self.M
+        n_reduced, n_full, n_state = 3 * nc - 1, 4 * nc - 1, 2 * M + 4 * nc - 1
+
+        if x0 is None:
+            log_w = np.zeros(nc, dtype=float)
+            log_r = np.zeros(nc, dtype=float)
+            T = np.asarray(self.calib.T, dtype=float).ravel() if self.calib.T is not None else np.zeros(nc, dtype=float)
+            XN = np.asarray(self.calib.invforT, dtype=float).ravel()[: nc - 1]
+        else:
+            x0 = np.asarray(x0, dtype=float).ravel()
+            if len(x0) == n_state:
+                log_r = x0[2 * M : 2 * M + nc]
+                log_w = x0[2 * M + nc : 2 * M + 2 * nc]
+                T = x0[2 * M + 2 * nc : 2 * M + 3 * nc]
+                XN = x0[2 * M + 3 * nc : n_state]
+            elif len(x0) == n_full:
+                log_r, log_w, T, XN = x0[:nc], x0[nc : 2 * nc], x0[2 * nc : 3 * nc], x0[3 * nc :]
+            elif len(x0) == n_reduced:
+                log_w, T, XN = x0[:nc], x0[nc : 2 * nc], x0[2 * nc :]
+                log_r = log_w
+            else:
+                raise ValueError(
+                    f"Invalid initial guess dimension {len(x0)}. Expected {n_reduced} (reduced macro "
+                    f"vector), {n_full} (full macro vector) or {n_state} (full state vector)."
+                )
+
+        if self.factor_equivalence:
+            return np.concatenate([log_w, T, XN]).astype(float, copy=True)
+        return np.concatenate([log_r, log_w, T, XN]).astype(float, copy=True)
+
+    def _full_state(self, xm: np.ndarray, p_vec: np.ndarray, y_vec: np.ndarray) -> np.ndarray:
+        """Reconstruct the full state vector ``[log p; log y; log r; log w; T; XN]``."""
+        nc = self.nc
+        if self.factor_equivalence:
+            log_w = xm[:nc]
+            log_r = log_w
+            T_vec = xm[nc : 2 * nc]
+            XN_vec = xm[2 * nc :]
+        else:
+            log_r = xm[:nc]
+            log_w = xm[nc : 2 * nc]
+            T_vec = xm[2 * nc : 3 * nc]
+            XN_vec = xm[3 * nc :]
+        return np.concatenate([
+            np.log(np.maximum(p_vec, 1e-12)),
+            np.log(np.maximum(y_vec, 1e-12)),
+            log_r,
+            log_w,
+            T_vec,
+            XN_vec,
+        ])
+
+    # ------------------------------------------------------------------
+    # Tariff / operator updates
+    # ------------------------------------------------------------------
 
     def update_tariffs(
         self,
@@ -139,9 +290,10 @@ class BatchedJacobianEvaluator:
         self.afd_taufd_np = (self.calib.afd * self.taufd_a).reshape((self.M, self.nfd * self.nc), order="F")
 
         # Transfer matrices to PyTorch
-        if has_torch():
-            torch_dev = self.device if self.backend == "torch" else "cpu"
-            torch_dtype = self.dtype if self.backend == "torch" and self.dtype is not None else torch.float64
+        if self.backend == "torch":
+            torch = self._torch
+            torch_dev = self.device
+            torch_dtype = self.dtype
             self.inv_P_t = torch.as_tensor(self.inv_P_np, device=torch_dev, dtype=torch_dtype)
             self.inv_Y_t = torch.as_tensor(self.inv_Y_np, device=torch_dev, dtype=torch_dtype)
             self.a_blocks_t = torch.as_tensor(self.a_2d.reshape(self.M, self.nc, self.ns), device=torch_dev, dtype=torch_dtype)
@@ -160,7 +312,8 @@ class BatchedJacobianEvaluator:
             self.tauf_fd_vec_t = torch.as_tensor(self.tauf_fd_vec, device=torch_dev, dtype=torch_dtype)
 
         # Transfer matrices to Apple MLX
-        if has_mlx():
+        if self.backend == "mlx":
+            mx = self._mx
             self.inv_P_mx = mx.array(self.inv_P_np)
             self.inv_Y_mx = mx.array(self.inv_Y_np)
             self.a_blocks_mx = mx.array(self.a_2d.reshape(self.M, self.nc, self.ns))
@@ -197,6 +350,10 @@ class BatchedJacobianEvaluator:
                 self.tauf_vec_mx_64 = mx.array(self.tauf_vec, dtype=mx.float64)
                 self.tauf_fd_vec_mx_64 = mx.array(self.tauf_fd_vec, dtype=mx.float64)
 
+    # ------------------------------------------------------------------
+    # Residual evaluation
+    # ------------------------------------------------------------------
+
     def eval_macro_single(
         self,
         xm: np.ndarray,
@@ -206,7 +363,7 @@ class BatchedJacobianEvaluator:
         """Evaluate macro residual equations at a single point in float64 on host CPU."""
         nc, ns, nfd, M = self.nc, self.ns, self.nfd, self.M
 
-        if self.batch_size == 230:
+        if self.factor_equivalence:
             w = np.exp(xm[:nc]).reshape((1, 1, nc))
             r = w
             T = xm[nc : 2 * nc].reshape((1, 1, nc))
@@ -277,7 +434,7 @@ class BatchedJacobianEvaluator:
         ff4 = XN - invforT_realized[: nc - 1]
         ff5 = T.ravel() - (Tax_Total + Tarifs_Totals)
 
-        if self.batch_size == 230:
+        if self.factor_equivalence:
             f_macro = np.concatenate([ff2, ff4, ff5])
         else:
             ratio_wr = (self.calib.alpha * w) / ((1.0 - self.calib.alpha) * r)
@@ -290,7 +447,7 @@ class BatchedJacobianEvaluator:
             ff0 = y_vec - (self.a_2d @ y_vec + d)
             v_P = val_va.flatten(order="F") / self.denom_tax
             ff1 = p_vec - self.inv_P_np @ v_P
-            if self.batch_size == 230:
+            if self.factor_equivalence:
                 ratio_wr = (self.calib.alpha * w) / ((1.0 - self.calib.alpha) * r)
                 xk = np.where(mask_active, (ytot / self.calib.beta) * (ratio_wr ** (1.0 - self.calib.alpha)), 0.0)
                 ff3 = self.calib.k_endow.ravel() - np.sum(xk, axis=1).ravel()
@@ -298,12 +455,13 @@ class BatchedJacobianEvaluator:
 
         return f_macro, f_full, p_vec, p, y_vec
 
-    def eval_macro_batched_torch(self, X_batch: torch.Tensor) -> torch.Tensor:
-        """Evaluate B column perturbations in parallel on PyTorch GPU (CUDA or MPS)."""
+    def eval_macro_batched_torch(self, X_batch: Any) -> Any:
+        """Evaluate B column perturbations in parallel on PyTorch (CUDA, MPS or CPU)."""
+        torch = self._torch
         B = X_batch.shape[0]
         nc, ns, nfd, M = self.nc, self.ns, self.nfd, self.M
 
-        if self.batch_size == 230:
+        if self.factor_equivalence:
             w_b = torch.exp(X_batch[:, :nc])
             r_b = w_b
             T_b = X_batch[:, nc : 2 * nc]
@@ -353,9 +511,11 @@ class BatchedJacobianEvaluator:
         Y_b = (self.inv_Y_t @ d_b.T).T  # (B, M)
         Y_b_4d = Y_b.reshape(B, nc, ns).permute(0, 2, 1).unsqueeze(1)
 
-        # Factor demand
+        # Factor demand (masked to producing sectors, as in eval_macro_single)
+        mask_active = Y_b_4d > 0
         ratio_rw = ((1.0 - self.alpha_t) * r_b_4d) / (self.alpha_t * w_b_4d)
         xl_b = (Y_b_4d / self.beta_t) * (ratio_rw ** self.alpha_t)
+        xl_b = torch.where(mask_active, xl_b, torch.zeros_like(xl_b))
 
         # Bilateral trade flows
         y_blocks_b = Y_b.reshape(B, nc, ns)
@@ -369,7 +529,7 @@ class BatchedJacobianEvaluator:
         fd_sum_b = torch.einsum("bmin,bin->bmi", xc_blocks_b, ppfd_blocks_b)
         T_fd_b = fd_sum_b.reshape(B, nc, ns, nc).sum(dim=2)
 
-        eye_mask = torch.eye(nc, device=self.device, dtype=torch.bool).unsqueeze(0)
+        eye_mask = torch.eye(nc, device=X_batch.device, dtype=torch.bool).unsqueeze(0)
         T_inter_b = T_inter_b.masked_fill(eye_mask, 0.0)
         T_fd_b = T_fd_b.masked_fill(eye_mask, 0.0)
 
@@ -386,39 +546,70 @@ class BatchedJacobianEvaluator:
         ff4_b = XN_b - invforT_realized_b[:, : nc - 1]
         ff5_b = T_b - (Tax_Total_b + Tarifs_Totals_b)
 
-        if self.batch_size == 230:
+        if self.factor_equivalence:
             return torch.cat([ff2_b, ff4_b, ff5_b], dim=1)
         else:
             ratio_wr = (self.alpha_t * w_b_4d) / ((1.0 - self.alpha_t) * r_b_4d)
             xk_b = (Y_b_4d / self.beta_t) * (ratio_wr ** (1.0 - self.alpha_t))
+            xk_b = torch.where(mask_active, xk_b, torch.zeros_like(xk_b))
             ff3_b = self.k_endow_t.reshape(1, nc) - xk_b.sum(dim=2).squeeze(1)
             return torch.cat([ff2_b, ff3_b, ff4_b, ff5_b], dim=1)
 
+    def _mlx_stream(self, stream: Any) -> Any:
+        """Resolve an MLX stream argument: None -> CPU (float64), 'cpu'/'gpu' or mx stream."""
+        mx = self._mx
+        if stream is None:
+            return mx.cpu
+        if isinstance(stream, str):
+            key = stream.lower().strip()
+            if key == "cpu":
+                return mx.cpu
+            if key == "gpu":
+                return mx.gpu
+            raise ValueError(f"Unknown MLX stream {stream!r}; expected 'cpu' or 'gpu'.")
+        return stream
+
     def eval_macro_batched_mlx(self, X_batch: Any, stream: Any = None) -> Any:
-        """Evaluate B column perturbations in parallel on Apple MLX Unified Memory."""
+        """Evaluate B column perturbations in parallel on Apple MLX Unified Memory.
+
+        ``stream`` selects the execution stream: ``mx.cpu`` / ``'cpu'`` (float64,
+        the default) or ``mx.gpu`` / ``'gpu'`` (float32). A float64 ``X_batch``
+        always runs on the CPU stream because Metal has no float64.
+        """
+        mx = self._mx
         B = X_batch.shape[0]
         nc, ns, nfd, M = self.nc, self.ns, self.nfd, self.M
 
-        use_f64 = (X_batch.dtype == mx.float64) or (stream == mx.cpu)
-        target_stream = stream if stream is not None else (mx.cpu if use_f64 else (mx.gpu if self.device != "cpu" else mx.cpu))
+        target_stream = self._mlx_stream(stream)
+        use_f64 = (X_batch.dtype == mx.float64) or (target_stream == mx.cpu)
+        if use_f64:
+            target_stream = mx.cpu
         with mx.stream(target_stream):
             if use_f64:
-                inv_P = getattr(self, "inv_P_mx_64", self.inv_P_mx)
-                inv_Y = getattr(self, "inv_Y_mx_64", self.inv_Y_mx)
-                a_blocks = getattr(self, "a_blocks_mx_64", self.a_blocks_mx)
-                afd_taufd = getattr(self, "afd_taufd_mx_64", self.afd_taufd_mx)
-                denom = getattr(self, "denom_mx_64", self.denom_mx)
-                tax_fd = getattr(self, "tax_fd_mx_64", self.tax_fd_mx)
-                tax = getattr(self, "tax_mx_64", self.tax_mx)
-                l_endow = getattr(self, "l_endow_mx_64", self.l_endow_mx)
-                k_endow = getattr(self, "k_endow_mx_64", self.k_endow_mx)
-                alpha = getattr(self, "alpha_mx_64", self.alpha_mx)
-                beta = getattr(self, "beta_mx_64", self.beta_mx)
-                theta = getattr(self, "theta_mx_64", self.theta_mx)
-                afd = getattr(self, "afd_mx_64", self.afd_mx)
-                tauf_vec = getattr(self, "tauf_vec_mx_64", self.tauf_vec_mx)
-                tauf_fd_vec = getattr(self, "tauf_fd_vec_mx_64", self.tauf_fd_vec_mx)
+                inv_P = self.inv_P_mx_64
+                inv_Y = self.inv_Y_mx_64
+                a_blocks = self.a_blocks_mx_64
+                afd_taufd = self.afd_taufd_mx_64
+                denom = self.denom_mx_64
+                tax_fd = self.tax_fd_mx_64
+                tax = self.tax_mx_64
+                l_endow = self.l_endow_mx_64
+                k_endow = self.k_endow_mx_64
+                alpha = self.alpha_mx_64
+                beta = self.beta_mx_64
+                theta = self.theta_mx_64
+                afd = self.afd_mx_64
+                tauf_vec = self.tauf_vec_mx_64
+                tauf_fd_vec = self.tauf_fd_vec_mx_64
                 eye_diag = mx.eye(nc, dtype=mx.float64)
+                if X_batch.dtype != mx.float64:
+                    X_batch = X_batch.astype(mx.float64)
+                # mx.exp is only float32-accurate on the float64 CPU stream (MLX 0.32);
+                # e ** x is exact to ~1 ulp and differentiable, so use it instead.
+                e64 = mx.array(math.e, dtype=mx.float64)
+
+                def _exp(z: Any) -> Any:
+                    return mx.power(e64, z)
             else:
                 inv_P = self.inv_P_mx
                 inv_Y = self.inv_Y_mx
@@ -436,15 +627,16 @@ class BatchedJacobianEvaluator:
                 tauf_vec = self.tauf_vec_mx
                 tauf_fd_vec = self.tauf_fd_vec_mx
                 eye_diag = mx.eye(nc)
+                _exp = mx.exp
 
-            if self.batch_size == 230:
-                w_b = mx.exp(X_batch[:, :nc])
+            if self.factor_equivalence:
+                w_b = _exp(X_batch[:, :nc])
                 r_b = w_b
                 T_b = X_batch[:, nc : 2 * nc]
                 XN_b = X_batch[:, 2 * nc :]
             else:
-                r_b = mx.exp(X_batch[:, :nc])
-                w_b = mx.exp(X_batch[:, nc : 2 * nc])
+                r_b = _exp(X_batch[:, :nc])
+                w_b = _exp(X_batch[:, nc : 2 * nc])
                 T_b = X_batch[:, 2 * nc : 3 * nc]
                 XN_b = X_batch[:, 3 * nc :]
 
@@ -464,7 +656,7 @@ class BatchedJacobianEvaluator:
             val_va_flat = mx.reshape(mx.transpose(mx.squeeze(val_va, 1), (0, 2, 1)), (B, M))
             v_P_b = val_va_flat / mx.expand_dims(denom, 0)
 
-            # Linear solve via GPU GEMM
+            # Linear solve via GEMM
             P_b = mx.transpose(inv_P @ mx.transpose(v_P_b))
 
             ppfd_flat = P_b @ afd_taufd
@@ -484,8 +676,11 @@ class BatchedJacobianEvaluator:
             Y_b = mx.transpose(inv_Y @ mx.transpose(d_b))
             Y_b_4d = mx.expand_dims(mx.transpose(mx.reshape(Y_b, (B, nc, ns)), (0, 2, 1)), 1)
 
+            # Factor demand (masked to producing sectors, as in eval_macro_single)
+            mask_active = Y_b_4d > 0
             ratio_rw = ((1.0 - alpha) * r_b_4d) / (alpha * w_b_4d)
             xl_b = (Y_b_4d / beta) * (ratio_rw ** alpha)
+            xl_b = mx.where(mask_active, xl_b, mx.zeros_like(xl_b))
 
             y_blocks_b = mx.reshape(Y_b, (B, nc, ns))
             x_sum_b = mx.einsum("min,bin->bmi", a_blocks, y_blocks_b)
@@ -516,13 +711,18 @@ class BatchedJacobianEvaluator:
             ff4_b = XN_b - invforT_realized_b[:, : nc - 1]
             ff5_b = T_b - (Tax_Total_b + Tarifs_Totals_b)
 
-            if self.batch_size == 230:
+            if self.factor_equivalence:
                 return mx.concatenate([ff2_b, ff4_b, ff5_b], axis=1)
             else:
                 ratio_wr = (alpha * w_b_4d) / ((1.0 - alpha) * r_b_4d)
                 xk_b = (Y_b_4d / beta) * (ratio_wr ** (1.0 - alpha))
+                xk_b = mx.where(mask_active, xk_b, mx.zeros_like(xk_b))
                 ff3_b = mx.reshape(k_endow, (1, nc)) - mx.squeeze(mx.sum(xk_b, axis=2), 1)
                 return mx.concatenate([ff2_b, ff3_b, ff4_b, ff5_b], axis=1)
+
+    # ------------------------------------------------------------------
+    # Jacobian evaluation
+    # ------------------------------------------------------------------
 
     def evaluate_batched_jacobian(
         self,
@@ -532,63 +732,104 @@ class BatchedJacobianEvaluator:
         ad_mode: Literal["finite_diff", "forward", "vjp"] = "finite_diff",
         stream: Any = None,
     ) -> np.ndarray:
-        """Evaluate the full (B, B) macro Jacobian using parallel batched GPU execution or forward-mode AD.
+        """Evaluate the full (B, B) macro Jacobian using parallel batched execution or AD.
 
         Parameters
         ----------
         xm : np.ndarray
-            Current macro point (length 230 or 307).
+            Current macro point (length ``3*nc - 1`` or ``4*nc - 1``, matching the layout).
         f_base : np.ndarray | None
             Unperturbed macro residual vector. If None, evaluated automatically.
         eps_fd : float, default 1e-4
             Finite difference step size.
         ad_mode : str, default 'finite_diff'
-            Differentiation mode: 'finite_diff' (GPU batched), 'forward' (AD/JVP), or 'vjp'.
+            Differentiation mode: 'finite_diff' (batched one-sided differences),
+            'forward' (forward-mode AD: torch.func.jacfwd / mx.jvp) or 'vjp'
+            (reverse-mode AD: torch.func.jacrev / mx.vjp). If an AD mode fails
+            on the device, a RuntimeWarning is emitted and finite differences are
+            used; the fallback is never silent.
         stream : Any, default None
-            Target execution stream (e.g. mx.gpu or mx.cpu for Apple MLX).
+            MLX execution stream: ``'cpu'`` / ``mx.cpu`` (float64, the default)
+            or ``'gpu'`` / ``mx.gpu`` (float32). Ignored for other backends.
 
         Returns
         -------
         np.ndarray
             Jacobian matrix J of shape (B, B).
         """
+        if ad_mode not in ("finite_diff", "forward", "vjp"):
+            raise ValueError(f"Unknown ad_mode {ad_mode!r}; expected 'finite_diff', 'forward' or 'vjp'.")
+
         B = len(xm)
-        nc = self.nc
+        if B != self.batch_size:
+            raise ValueError(
+                f"Macro vector of length {B} does not match the evaluator layout (expected {self.batch_size})."
+            )
 
         if f_base is None:
             f_base, _, _, _, _ = self.eval_macro_single(xm)
 
-        # Forward AD mode via torch.func
-        if ad_mode == "forward" and self.backend == "torch" and has_torch():
+        # Automatic differentiation via torch.func
+        if ad_mode in ("forward", "vjp") and self.backend == "torch":
+            torch = self._torch
             try:
-                def f_call(x_tensor: torch.Tensor) -> torch.Tensor:
+                def f_call(x_tensor: Any) -> Any:
                     return self.eval_macro_batched_torch(x_tensor.unsqueeze(0)).squeeze(0)
 
                 xm_t = torch.as_tensor(xm, device=self.device, dtype=self.dtype)
-                J_t = torch.func.jacfwd(f_call)(xm_t)
-                return to_numpy(J_t)
-            except Exception:
-                pass
+                jac_fn = torch.func.jacfwd if ad_mode == "forward" else torch.func.jacrev
+                J_t = jac_fn(f_call)(xm_t)
+                return to_numpy(J_t).astype(float, copy=False)
+            except Exception as exc:
+                warnings.warn(
+                    f"ad_mode={ad_mode!r} failed on {self.backend}:{self.device} ({exc!r}); "
+                    "falling back to batched finite differences.",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
 
-        # Forward AD mode via Apple MLX JVP
-        if ad_mode == "forward" and self.backend == "mlx" and has_mlx():
+        # Automatic differentiation via Apple MLX (jvp columns / vjp rows)
+        if ad_mode in ("forward", "vjp") and self.backend == "mlx":
+            mx = self._mx
+            target_stream = self._mlx_stream(stream)
+            mx_dtype = mx.float64 if target_stream == mx.cpu else mx.float32
             try:
-                def f_call_mlx(x_m: Any) -> Any:
-                    return mx.squeeze(self.eval_macro_batched_mlx(mx.expand_dims(x_m, 0), stream=stream), 0)
+                with mx.stream(target_stream):
+                    def f_call_mlx(x_m: Any) -> Any:
+                        return mx.squeeze(self.eval_macro_batched_mlx(mx.expand_dims(x_m, 0), stream=target_stream), 0)
 
-                xm_mx = mx.array(xm)
-                J_cols = []
-                for b in range(B):
-                    e_b = np.zeros(B, dtype=float)
-                    e_b[b] = 1.0
-                    _, col_b = mx.jvp(f_call_mlx, (xm_mx,), (mx.array(e_b),))
-                    J_cols.append(to_numpy(col_b[0]))
-                return np.column_stack(J_cols)
-            except Exception:
-                pass
+                    xm_mx = mx.array(xm, dtype=mx_dtype)
+                    if ad_mode == "forward":
+                        J_cols = []
+                        for b in range(B):
+                            e_b = np.zeros(B, dtype=float)
+                            e_b[b] = 1.0
+                            _, col_b = mx.jvp(f_call_mlx, (xm_mx,), (mx.array(e_b, dtype=mx_dtype),))
+                            J_cols.append(to_numpy(col_b[0]))
+                        return np.column_stack(J_cols).astype(float, copy=False)
+                    J_rows = []
+                    for i in range(B):
+                        e_i = np.zeros(B, dtype=float)
+                        e_i[i] = 1.0
+                        _, row_i = mx.vjp(f_call_mlx, (xm_mx,), (mx.array(e_i, dtype=mx_dtype),))
+                        J_rows.append(to_numpy(row_i[0]))
+                    return np.vstack(J_rows).astype(float, copy=False)
+            except Exception as exc:
+                warnings.warn(
+                    f"ad_mode={ad_mode!r} failed on mlx ({exc!r}); falling back to batched finite differences.",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+
+        if ad_mode != "finite_diff" and self.backend == "numpy":
+            warnings.warn(
+                f"ad_mode={ad_mode!r} requires the torch or mlx backend; the numpy backend uses finite differences.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
 
         # High-performance Batched Finite Difference (default)
-        n_factor_vars = nc if self.batch_size == 230 else 2 * nc
+        n_factor_vars = self.n_factor_vars
         h = np.empty(B, dtype=float)
         for j in range(B):
             if j < n_factor_vars:
@@ -599,24 +840,26 @@ class BatchedJacobianEvaluator:
         # Construct perturbation matrix
         X_batch_np = np.tile(xm, (B, 1)) + np.diag(h)
 
-        if self.backend == "torch" and has_torch():
+        if self.backend == "torch":
+            torch = self._torch
             X_batch_t = torch.as_tensor(X_batch_np, device=self.device, dtype=self.dtype)
             F_batch_t = self.eval_macro_batched_torch(X_batch_t)
-            F_batch = to_numpy(F_batch_t)
-        elif self.backend == "mlx" and has_mlx():
-            target_stream = stream if stream is not None else (mx.cpu if self.device == "cpu" else mx.gpu)
+            F_batch = to_numpy(F_batch_t).astype(float, copy=False)
+        elif self.backend == "mlx":
+            mx = self._mx
+            target_stream = self._mlx_stream(stream)
             if target_stream == mx.cpu:
                 with mx.stream(mx.cpu):
                     X_batch_mx = mx.array(X_batch_np, dtype=mx.float64)
                     F_batch_mx = self.eval_macro_batched_mlx(X_batch_mx, stream=mx.cpu)
                     mx.eval(F_batch_mx)
-                    F_batch = to_numpy(F_batch_mx)
+                    F_batch = to_numpy(F_batch_mx).astype(float, copy=False)
             else:
                 with mx.stream(mx.gpu):
                     X_batch_mx = mx.array(X_batch_np, dtype=mx.float32)
                     F_batch_mx = self.eval_macro_batched_mlx(X_batch_mx, stream=mx.gpu)
                     mx.eval(F_batch_mx)
-                    F_batch = to_numpy(F_batch_mx)
+                    F_batch = to_numpy(F_batch_mx).astype(float, copy=False)
         else:
             # CPU numpy fallback
             F_batch = np.empty((B, B), dtype=float)
@@ -629,30 +872,46 @@ class BatchedJacobianEvaluator:
         return J
 
     def jvp(self, xm: np.ndarray, v: np.ndarray) -> np.ndarray:
-        """Compute exact directional derivative (Jacobian-Vector Product) J(xm) @ v."""
-        if self.backend == "torch" and has_torch():
+        """Compute the directional derivative (Jacobian-Vector Product) J(xm) @ v.
+
+        Uses forward-mode AD in float64 where the backend supports it (PyTorch on
+        CPU/CUDA, the MLX CPU stream); falls back, with a RuntimeWarning, to a
+        float64 central difference on the host.
+        """
+        if self.backend == "torch":
+            torch = self._torch
             try:
-                def f_call(x_tensor: torch.Tensor) -> torch.Tensor:
+                def f_call(x_tensor: Any) -> Any:
                     return self.eval_macro_batched_torch(x_tensor.unsqueeze(0)).squeeze(0)
 
                 xm_t = torch.as_tensor(xm, device=self.device, dtype=self.dtype)
                 v_t = torch.as_tensor(v, device=self.device, dtype=self.dtype)
                 _, tangent = torch.func.jvp(f_call, (xm_t,), (v_t,))
-                return to_numpy(tangent)
-            except Exception:
-                pass
+                return to_numpy(tangent).astype(float, copy=False)
+            except Exception as exc:
+                warnings.warn(
+                    f"torch.func.jvp failed on {self.device} ({exc!r}); using a central-difference directional derivative.",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
 
-        if self.backend == "mlx" and has_mlx():
+        if self.backend == "mlx":
+            mx = self._mx
             try:
-                def f_call_mlx(x_m: Any) -> Any:
-                    return mx.squeeze(self.eval_macro_batched_mlx(mx.expand_dims(x_m, 0)), 0)
+                with mx.stream(mx.cpu):
+                    def f_call_mlx(x_m: Any) -> Any:
+                        return mx.squeeze(self.eval_macro_batched_mlx(mx.expand_dims(x_m, 0), stream=mx.cpu), 0)
 
-                xm_mx = mx.array(xm)
-                v_mx = mx.array(v)
-                _, tangent = mx.jvp(f_call_mlx, (xm_mx,), (v_mx,))
-                return to_numpy(tangent[0])
-            except Exception:
-                pass
+                    xm_mx = mx.array(xm, dtype=mx.float64)
+                    v_mx = mx.array(v, dtype=mx.float64)
+                    _, tangent = mx.jvp(f_call_mlx, (xm_mx,), (v_mx,))
+                    return to_numpy(tangent[0]).astype(float, copy=False)
+            except Exception as exc:
+                warnings.warn(
+                    f"mx.jvp failed ({exc!r}); using a central-difference directional derivative.",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
 
         eps = 1e-7
         f_plus, _, _, _, _ = self.eval_macro_single(xm + eps * v)

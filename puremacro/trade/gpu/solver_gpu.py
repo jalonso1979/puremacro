@@ -1,42 +1,84 @@
 """High-Performance GPU-Accelerated CGE Solver for puremacro.trade.
 
-Implements a dual-device PyTorch (NVIDIA CUDA / Apple Silicon MPS) general equilibrium
-solver using Levenberg-Marquardt regularized normal equations:
+Implements a dual-device PyTorch (NVIDIA CUDA / Apple Silicon MPS), Apple MLX and
+NumPy general equilibrium solver using Levenberg-Marquardt regularized normal equations:
 
     (J^T J + mu * I) Delta x_m = -J^T F_m
 
 combined with two-sided diagonal equilibration (Jacobi scaling) and backtracking
 Armijo line search on the merit function Phi(x_m) = 1/2 ||F_m(x_m)||_2^2.
 
-On Apple Silicon (MPS), evaluates batched column perturbations in parallel on the GPU
-in float32, and executes the Levenberg-Marquardt step update and residual verification
-in float64 on host memory / UMA. On NVIDIA CUDA, executes natively in float64 throughout.
+Precision policy
+----------------
+The macro Jacobian is assembled from one-sided finite differences, which are only
+usable in float64. Jacobians are therefore evaluated in float64 wherever the device
+supports it (PyTorch on CPU/CUDA, the MLX CPU stream). When ``device='auto'`` selects
+a float32-only device (Apple MPS, MLX GPU), the solver transparently uses the float64
+host evaluator of the same backend instead. When a float32 device is requested
+explicitly (``device='mps'`` / ``'mlx'``), a RuntimeWarning is emitted, the device is
+used only for the coarse phase (residual >= 5e6 in the first iterations) and the
+Jacobian is polished in float64 on the host; the devices actually used are recorded
+in ``result.metadata['jacobian_evaluations']``.
 """
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import replace
 import time
-from typing import TYPE_CHECKING, Any, Literal
+import warnings
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import scipy.linalg as la
 
 from puremacro.trade.gpu.backend import (
-    detect_device,
-    device_context,
+    _device_info,
+    _load_torch,
+    _resolve_backend_device,
     get_memory_usage,
-    has_torch,
     reset_peak_memory,
-    select_compute_device,
 )
 from puremacro.trade.gpu.batched_jacobian import BatchedJacobianEvaluator
 from puremacro.trade.postprocessing import postprocess_trade_equilibrium
+from puremacro.trade.solver import _resolve_tariffs
 
 if TYPE_CHECKING:
     from puremacro.trade._results import TradeCalibrationResult, TradeEquilibriumResult
 
-if has_torch():
-    import torch
+#: Residual level above which an explicitly requested float32 device is used for the
+#: coarse phase of the iteration; below it the Jacobian is polished in float64.
+_COARSE_RESIDUAL_THRESHOLD = 5e6
+_COARSE_MAX_ITER = 5
+
+
+def _jacobian_devices(
+    requested_backend: str,
+    requested_device: str,
+    explicit_device: bool,
+) -> tuple[tuple[str, str], tuple[str, str] | None]:
+    """Choose the float64 (polish) evaluator and, if any, the float32 coarse evaluator.
+
+    Returns ``((polish_backend, polish_device), coarse)`` where ``coarse`` is
+    ``None`` unless the user explicitly requested a float32-only device.
+    """
+    info = _device_info(requested_backend, requested_device)
+    if info.supports_float64:
+        return (requested_backend, requested_device), None
+
+    host = ("torch", "cpu") if requested_backend == "torch" else ("mlx", "cpu")
+    if not explicit_device:
+        # auto-selected float32 device: finite differences need float64
+        return host, None
+
+    warnings.warn(
+        f"Device {requested_backend}:{requested_device} only supports float32; finite-difference "
+        "Jacobians are unusable in float32, so it is used for the coarse phase only and the "
+        f"Jacobian is polished in float64 on {host[0]}:{host[1]} "
+        "(see result.metadata['jacobian_evaluations']).",
+        RuntimeWarning,
+        stacklevel=3,
+    )
+    return host, (requested_backend, requested_device)
 
 
 def solve_trade_equilibrium_gpu(
@@ -48,7 +90,7 @@ def solve_trade_equilibrium_gpu(
     x0: np.ndarray | None = None,
     device: str | None = None,
     backend: str | None = None,
-    batch_size: int = 230,
+    batch_size: int | None = None,
     max_iter: int = 50,
     tol: float = 2.5e-3,
     damping: float = 1e-4,
@@ -56,30 +98,45 @@ def solve_trade_equilibrium_gpu(
     replicate_matlab_precedence: bool = True,
     base_result: TradeEquilibriumResult | None = None,
     verbose: bool = False,
+    *,
+    factor_equivalence: bool | None = None,
 ) -> TradeEquilibriumResult:
     """Solve multi-country multi-sector CGE trade equilibrium using GPU acceleration.
+
+    Tariff arguments follow exactly the conventions of
+    :func:`puremacro.trade.solver.solve_trade_equilibrium`: the bilateral
+    multipliers ``tau`` / ``tau_fd`` are gross rates (``1 + rate``, default all
+    ones) and the national vectors ``tauf`` / ``tauf_fd`` are net rates (default
+    all zeros), so the default call solves the same baseline as the NumPy solver.
 
     Parameters
     ----------
     calib : TradeCalibrationResult
         Calibrated model structural parameters.
     tau : np.ndarray | None, default None
-        Effective intermediate tariff matrix. If None, defaults to baseline (all 1s).
+        Intermediate tariff multipliers (1 + rate), shape (ns*nc, ns, nc), (ns, nc, ns, nc)
+        or (nc,). If None, defaults to the tariff-free baseline (all ones).
     tau_fd : np.ndarray | None, default None
-        Effective final demand tariff matrix. If None, defaults to baseline (all 1s).
+        Final demand tariff multipliers (1 + rate), shape (ns*nc, nfd, nc), (ns, nc, nfd, nc)
+        or (nc,). If None, defaults to the tariff-free baseline (all ones).
     tauf : np.ndarray | None, default None
-        National intermediate tariff vector. If None, defaults to baseline (all 1s).
+        National intermediate tariff rates (nc,). If None, defaults to zeros.
     tauf_fd : np.ndarray | None, default None
-        National final demand tariff vector. If None, defaults to baseline (all 1s).
+        National final demand tariff rates (nc,). If None, defaults to zeros.
     x0 : np.ndarray | None, default None
-        Initial guess vector. May be full 7,237 state vector or macro vector (length 230 or 307).
+        Initial guess: the full state vector (length ``2*ns*nc + 4*nc - 1``) or a
+        macro vector of the reduced (``3*nc - 1``) or full (``4*nc - 1``) layout.
         If None, constructed from calibrated baseline endowments and transfers.
     device : str | None, default None
-        Compute device ('auto', 'cuda', 'mps', 'cpu'). If None, automatically detected.
+        Compute device ('auto', 'cuda', 'cuda:N', 'mps', 'mlx', 'gpu', 'cpu').
+        If None, automatically detected; see the module docstring for the
+        float64 policy applied to float32-only devices.
     backend : str | None, default None
-        Compute backend ('torch' or 'mlx').
-    batch_size : int, default 230
-        Perturbation dimension B: 230 (factor equivalence r_c == w_c) or 307.
+        Compute backend ('torch', 'mlx', 'numpy' or None for automatic).
+    batch_size : int | None, default None
+        Macro dimension; must equal ``3*nc - 1`` (reduced layout, r == w) or
+        ``4*nc - 1`` (full layout) for the calibration (230 / 307 for the canonical
+        77 countries). Kept for backward compatibility; prefer ``factor_equivalence``.
     max_iter : int, default 50
         Maximum Levenberg-Marquardt iterations.
     tol : float, default 2.5e-3
@@ -87,127 +144,99 @@ def solve_trade_equilibrium_gpu(
     damping : float, default 1e-4
         Initial Levenberg-Marquardt regularized damping parameter mu.
     ad_mode : str, default 'finite_diff'
-        Differentiation mode ('finite_diff', 'forward', 'vjp').
+        Differentiation mode ('finite_diff', 'forward', 'vjp'); see
+        :meth:`BatchedJacobianEvaluator.evaluate_batched_jacobian`.
     replicate_matlab_precedence : bool, default True
         Whether to replicate MATLAB operator precedence at ff_equi.m:31.
     base_result : TradeEquilibriumResult | None, default None
         Baseline equilibrium for terms-of-trade and CPI deflation calculations.
     verbose : bool, default False
         Whether to print per-iteration convergence diagnostics.
+    factor_equivalence : bool | None, keyword-only, default None
+        True imposes r == w (reduced macro layout), which is verified to be exact
+        for the calibration (uniform capital shares across a country's sectors)
+        and raises ValueError otherwise; False solves the full layout with
+        separate capital-market clearing. None selects the reduced layout iff it
+        is exact.
 
     Returns
     -------
     TradeEquilibriumResult
-        Fully post-processed trade equilibrium dataclass container.
+        Fully post-processed trade equilibrium dataclass container. The metadata
+        records ``device`` / ``backend`` actually used for the Jacobian, the
+        requested pair, and ``jacobian_evaluations`` (counts by backend, device
+        and dtype).
     """
     t_start = time.perf_counter()
-    reset_peak_memory()
 
-    pref = device if device not in (None, "auto") else backend
-    sel_backend, sel_device = select_compute_device(pref)
-    target_backend = sel_backend if backend in (None, "auto") else backend
-    target_device = sel_device if device in (None, "auto") else device
+    requested_backend, requested_device = _resolve_backend_device(device, backend)
+    explicit_device = device is not None and str(device).lower().strip() not in ("auto", "")
+    (polish_backend, polish_device), coarse = _jacobian_devices(
+        requested_backend, requested_device, explicit_device
+    )
+    reset_peak_memory(polish_device, polish_backend)
 
-    dev_info = detect_device(target_device)
-    nc = calib.n_countries
-    ns = calib.n_sectors
-    nfd = calib.n_final_demand
-    M = ns * nc
+    # Tariffs: identical defaults and shape handling to the NumPy solver
+    tau_arr = None if tau is None else np.asarray(tau, dtype=float)
+    tau_fd_arr = None if tau_fd is None else np.asarray(tau_fd, dtype=float)
+    tau_a, taufd_a, tauf_vec, tauf_fd_vec = _resolve_tariffs(
+        calib, tau=tau_arr, tau_fd=tau_fd_arr, tauf=tauf, tauf_fd=tauf_fd
+    )
 
-    # Initialize tariffs
-    if tau is None:
-        tau_a = np.ones((M, ns, nc), dtype=float)
-    else:
-        tau_a = np.asarray(tau, dtype=float)
-        if tau_a.ndim == 4:
-            tau_a = tau_a.transpose(1, 0, 2, 3).reshape(M, ns, nc)
-
-    if tau_fd is None:
-        taufd_a = np.ones((M, nfd, nc), dtype=float)
-    else:
-        taufd_a = np.asarray(tau_fd, dtype=float)
-        if taufd_a.ndim == 4:
-            taufd_a = taufd_a.transpose(1, 0, 2, 3).reshape(M, nfd, nc)
-
-    tauf_vec = np.ones(nc, dtype=float) if tauf is None else np.asarray(tauf, dtype=float).ravel()
-    tauf_fd_vec = np.ones(nc, dtype=float) if tauf_fd is None else np.asarray(tauf_fd, dtype=float).ravel()
-
-    # Construct evaluator
+    # Float64 evaluator (always used for the residuals and the polished Jacobian)
     evaluator = BatchedJacobianEvaluator(
         calib=calib,
         tau_a=tau_a,
         taufd_a=taufd_a,
         tauf_vec=tauf_vec,
         tauf_fd_vec=tauf_fd_vec,
-        device=target_device,
-        backend=target_backend,
+        device=polish_device,
+        backend=polish_backend,
         batch_size=batch_size,
+        factor_equivalence=factor_equivalence,
         replicate_matlab_precedence=replicate_matlab_precedence,
     )
 
-    # If on Apple Silicon MPS (which lacks native float64), also prepare a float64 CPU evaluator for polishing
-    evaluator_cpu = None
-    if target_device == "mps" and not dev_info.supports_float64:
-        evaluator_cpu = BatchedJacobianEvaluator(
-            calib=calib,
-            tau_a=tau_a,
-            taufd_a=taufd_a,
-            tauf_vec=tauf_vec,
-            tauf_fd_vec=tauf_fd_vec,
-            device="cpu",
-            backend="torch",
-            batch_size=batch_size,
-            replicate_matlab_precedence=replicate_matlab_precedence,
-        )
-
-    # Initial guess construction / extraction
-    if x0 is None:
-        log_w0 = np.zeros(nc, dtype=float)
-        T0 = calib.T.ravel() if calib.T is not None else np.zeros(nc, dtype=float)
-        XN0 = calib.invforT.ravel()[: nc - 1]
-        if batch_size == 230:
-            xm = np.concatenate([log_w0, T0, XN0])
+    # Optional float32 evaluator for the coarse phase of an explicitly requested device
+    evaluator_coarse = None
+    coarse_stream = None
+    if coarse is not None:
+        if coarse[0] == "mlx":
+            evaluator_coarse = evaluator  # same arrays, GPU stream
+            coarse_stream = "gpu"
         else:
-            log_r0 = np.zeros(nc, dtype=float)
-            xm = np.concatenate([log_r0, log_w0, T0, XN0])
-    elif len(x0) == 2 * M + 4 * nc - 1:
-        # Full 7,237 system state vector
-        i_w_start = 2 * M + nc
-        i_w_end = 2 * M + 2 * nc
-        i_T_end = 2 * M + 3 * nc
-        i_XN_end = 2 * M + 4 * nc - 1
-        w_raw = x0[i_w_start:i_w_end]
-        T_raw = x0[i_w_end:i_T_end]
-        XN_raw = x0[i_T_end:i_XN_end]
-        if batch_size == 230:
-            xm = np.concatenate([w_raw, T_raw, XN_raw])
-        else:
-            r_raw = x0[2 * M : i_w_start]
-            xm = np.concatenate([r_raw, w_raw, T_raw, XN_raw])
-    elif len(x0) in (230, 307):
-        xm = np.asarray(x0, dtype=float).copy()
-    else:
-        raise ValueError(
-            f"Invalid initial guess dimension {len(x0)}. Expected 230, 307, or {2 * M + 4 * nc - 1}."
-        )
+            evaluator_coarse = BatchedJacobianEvaluator(
+                calib=calib,
+                tau_a=tau_a,
+                taufd_a=taufd_a,
+                tauf_vec=tauf_vec,
+                tauf_fd_vec=tauf_fd_vec,
+                device=coarse[1],
+                backend=coarse[0],
+                batch_size=batch_size,
+                factor_equivalence=evaluator.factor_equivalence,
+                replicate_matlab_precedence=replicate_matlab_precedence,
+            )
 
+    nc = calib.n_countries
+    xm = evaluator._macro_from_x0(x0)
     n_m = len(xm)
-    n_factor_vars = nc if batch_size == 230 else 2 * nc
+    n_factor_vars = evaluator.n_factor_vars
+    torch = _load_torch() if polish_backend == "torch" else None
+    jac_log: Counter[str] = Counter()
 
     # Initial residual evaluation
     f_m, f_full, p_sol, p_sol_3d, y_sol = evaluator.eval_macro_single(xm, compute_full=True)
     res_max = float(np.max(np.abs(f_m)))
     diff = float(np.sum(np.abs(f_m)))
+    iters = 0
+    conv = res_max <= tol
 
-    if res_max <= tol:
+    if conv:
         if verbose:
             print(f"[solve_trade_equilibrium_gpu] Initial point already converged: max_res = {res_max:.4e}")
-        p_vec = p_sol
-        y_vec = y_sol
     else:
         mu = damping
-        conv = False
-        iters = 0
 
         for it in range(max_iter):
             iters = it + 1
@@ -217,14 +246,20 @@ def solve_trade_equilibrium_gpu(
                 conv = True
                 break
 
-            # Choose active evaluator: on MPS, switch to CPU float64 when error is refined
-            if evaluator_cpu is not None and (res_max < 5e6 or it >= 5):
-                curr_ev = evaluator_cpu
+            # Evaluate batched parallel Jacobian: float32 device only in the coarse phase
+            use_coarse = (
+                evaluator_coarse is not None
+                and res_max >= _COARSE_RESIDUAL_THRESHOLD
+                and it < _COARSE_MAX_ITER
+            )
+            if use_coarse:
+                J = evaluator_coarse.evaluate_batched_jacobian(
+                    xm, f_base=f_m, ad_mode=ad_mode, stream=coarse_stream
+                )
+                jac_log[f"{coarse[0]}:{coarse[1]}:float32"] += 1
             else:
-                curr_ev = evaluator
-
-            # Evaluate batched parallel Jacobian on GPU / host
-            J = curr_ev.evaluate_batched_jacobian(xm, f_base=f_m, ad_mode=ad_mode)
+                J = evaluator.evaluate_batched_jacobian(xm, f_base=f_m, ad_mode=ad_mode, stream="cpu" if polish_backend == "mlx" else None)
+                jac_log[f"{polish_backend}:{polish_device}:float64"] += 1
 
             # Two-sided diagonal equilibration (Jacobi scaling)
             c_norm = np.linalg.norm(J, axis=0)
@@ -241,19 +276,17 @@ def solve_trade_equilibrium_gpu(
             # Levenberg-Marquardt normal equations solve
             JT_J = J_equil.T @ J_equil
             JT_rhs = J_equil.T @ rhs_equil
-            if backend == "torch" and has_torch():
+            sol_u = None
+            if torch is not None:
                 try:
-                    torch_dev = target_device if target_device in ("cuda", "cpu") else "cpu"
+                    torch_dev = polish_device if (polish_device == "cpu" or polish_device.startswith("cuda")) else "cpu"
                     A_t = torch.as_tensor(JT_J + mu * np.eye(n_m), device=torch_dev, dtype=torch.float64)
                     b_t = torch.as_tensor(JT_rhs[:, None], device=torch_dev, dtype=torch.float64)
                     sol_t = torch.linalg.solve(A_t, b_t)
                     sol_u = sol_t.cpu().numpy().ravel()
                 except Exception:
-                    try:
-                        sol_u = la.solve(JT_J + mu * np.eye(n_m), JT_rhs)
-                    except Exception:
-                        sol_u = la.lstsq(J_equil, rhs_equil, rcond=1e-12)[0]
-            else:
+                    sol_u = None
+            if sol_u is None:
                 try:
                     sol_u = la.solve(JT_J + mu * np.eye(n_m), JT_rhs)
                 except Exception:
@@ -317,41 +350,13 @@ def solve_trade_equilibrium_gpu(
 
             if verbose:
                 print(
-                    f"[{target_device}] Iter {it + 1:02d}: "
+                    f"[{polish_backend}:{polish_device}] Iter {it + 1:02d}: "
                     f"max_res = {np.max(np.abs(f_m)):.4e}, "
                     f"step = {alpha_step:.4f}, mu = {mu:.2e}"
                 )
 
     # Reconstruct full general equilibrium state vector x_full in double precision
-    p_vec = p_sol
-    y_vec = y_sol
-
-    if batch_size == 230:
-        log_w = xm[:nc]
-        log_r = log_w
-        T_vec = xm[nc : 2 * nc]
-        XN_vec = xm[2 * nc :]
-        x_full = np.concatenate([
-            np.log(np.maximum(p_vec, 1e-12)),
-            np.log(np.maximum(y_vec, 1e-12)),
-            log_r,
-            log_w,
-            T_vec,
-            XN_vec,
-        ])
-    else:
-        log_r = xm[:nc]
-        log_w = xm[nc : 2 * nc]
-        T_vec = xm[2 * nc : 3 * nc]
-        XN_vec = xm[3 * nc :]
-        x_full = np.concatenate([
-            np.log(np.maximum(p_vec, 1e-12)),
-            np.log(np.maximum(y_vec, 1e-12)),
-            log_r,
-            log_w,
-            T_vec,
-            XN_vec,
-        ])
+    x_full = evaluator._full_state(xm, p_sol, y_sol)
 
     # Final residual check
     _, f_full_final, _, _, _ = evaluator.eval_macro_single(xm, compute_full=True)
@@ -361,7 +366,7 @@ def solve_trade_equilibrium_gpu(
     conv = bool(max_res <= tol)
 
     t_end = time.perf_counter()
-    mem_info = get_memory_usage(target_device)
+    mem_info = get_memory_usage(polish_device, polish_backend)
 
     res_dataclass = postprocess_trade_equilibrium(
         x_sol=x_full,
@@ -372,13 +377,20 @@ def solve_trade_equilibrium_gpu(
         tauf_fd=tauf_fd_vec,
         replicate_matlab_precedence=replicate_matlab_precedence,
         converged=conv,
-        iterations=iters if 'iters' in locals() else 0,
+        iterations=iters,
         base_result=base_result,
         metadata={
             "method": "gpu_accelerated",
-            "device": target_device,
-            "backend": target_backend,
-            "batch_size": batch_size,
+            "device": polish_device,
+            "backend": polish_backend,
+            "requested_device": requested_device,
+            "requested_backend": requested_backend,
+            "jacobian_device": f"{polish_backend}:{polish_device}",
+            "jacobian_dtype": "float64",
+            "jacobian_evaluations": dict(jac_log),
+            "batch_size": evaluator.batch_size,
+            "factor_equivalence": evaluator.factor_equivalence,
+            "ad_mode": ad_mode,
             "tol": tol,
             "max_iter": max_iter,
             "solve_duration_seconds": t_end - t_start,

@@ -116,41 +116,111 @@ class TariffScenario:
 
         return 0.0
 
-    def build_intermediate_tariffs(self, ns: int = 11, nc: int = 77) -> np.ndarray:
-        """Construct 3D intermediate tariff multiplier tensor of shape (ns*nc, ns, nc)."""
-        tau_a = np.ones((ns * nc, ns, nc), dtype=float)
-        country_codes = list(CANONICAL_COUNTRY_CODES)[:nc]
-        sector_codes = list(CANONICAL_SECTOR_CODES)[:ns] if ns <= len(CANONICAL_SECTOR_CODES) else [f"S{i:02d}" for i in range(ns)]
-        for d_idx, d_code in enumerate(country_codes):
-            for o_idx, o_code in enumerate(country_codes):
-                if o_idx == d_idx:
-                    continue
-                rate = self.get_rate(origin_code=o_code, dest_code=d_code)
-                if rate != 0.0:
-                    tau_a[o_idx * ns : (o_idx + 1) * ns, :, d_idx] = 1.0 + rate
-                for s_idx, s_code in enumerate(sector_codes):
-                    sec_rate = self.get_rate(origin_code=o_code, dest_code=d_code, sector_code=s_code)
-                    if sec_rate != rate:
-                        tau_a[o_idx * ns + s_idx, :, d_idx] = 1.0 + sec_rate
-        return tau_a
+    def _resolve_codes(
+        self,
+        ns: int,
+        nc: int,
+        country_codes: Sequence[str] | None,
+        sector_codes: Sequence[str] | None,
+    ) -> tuple[list[str], list[str]]:
+        """Resolve the country and sector code lists for the solver-layout tensors.
 
-    def build_final_demand_tariffs(self, ns: int = 11, nc: int = 77, nfd: int = 3) -> np.ndarray:
-        """Construct 3D final demand tariff multiplier tensor of shape (ns*nc, nfd, nc)."""
-        taufd_a = np.ones((ns * nc, nfd, nc), dtype=float)
-        country_codes = list(CANONICAL_COUNTRY_CODES)[:nc]
-        sector_codes = list(CANONICAL_SECTOR_CODES)[:ns] if ns <= len(CANONICAL_SECTOR_CODES) else [f"S{i:02d}" for i in range(ns)]
-        for d_idx, d_code in enumerate(country_codes):
-            for o_idx, o_code in enumerate(country_codes):
+        The canonical registries are used only when the dimensions match them
+        exactly; any other calibration must pass its own codes, because mapping
+        e.g. a 2-country model onto the first two canonical codes ('ARG', 'AUS')
+        would silently produce a tariff-free tensor.
+        """
+        if country_codes is None:
+            if nc != len(CANONICAL_COUNTRY_CODES):
+                raise ValueError(
+                    f"nc={nc} does not match the {len(CANONICAL_COUNTRY_CODES)} canonical country codes; "
+                    "pass country_codes=calib.country_codes (or use build_tariff_matrices(scenario, calib))."
+                )
+            countries = list(CANONICAL_COUNTRY_CODES)
+        else:
+            countries = [str(c) for c in country_codes]
+            if len(countries) != nc:
+                raise ValueError(f"country_codes has {len(countries)} entries but nc={nc}.")
+
+        if sector_codes is None:
+            if ns == len(CANONICAL_SECTOR_CODES):
+                sectors = list(CANONICAL_SECTOR_CODES)
+            elif self.sectoral_tariffs:
+                raise ValueError(
+                    f"ns={ns} does not match the {len(CANONICAL_SECTOR_CODES)} canonical sector codes and the "
+                    "scenario has sectoral_tariffs; pass sector_codes=calib.sector_codes."
+                )
+            else:
+                sectors = [f"S{i:02d}" for i in range(ns)]  # unused: no sectoral overrides
+        else:
+            sectors = [str(c) for c in sector_codes]
+            if len(sectors) != ns:
+                raise ValueError(f"sector_codes has {len(sectors)} entries but ns={ns}.")
+        return countries, sectors
+
+    def _build_solver_tensor(
+        self,
+        ns: int,
+        nc: int,
+        n_dest: int,
+        country_codes: Sequence[str] | None,
+        sector_codes: Sequence[str] | None,
+    ) -> np.ndarray:
+        """Fill a (ns*nc, n_dest, nc) multiplier tensor in the solver's origin-major layout."""
+        countries, sectors = self._resolve_codes(ns, nc, country_codes, sector_codes)
+        out = np.ones((ns * nc, n_dest, nc), dtype=float)
+        for d_idx, d_code in enumerate(countries):
+            for o_idx, o_code in enumerate(countries):
                 if o_idx == d_idx:
                     continue
                 rate = self.get_rate(origin_code=o_code, dest_code=d_code)
                 if rate != 0.0:
-                    taufd_a[o_idx * ns : (o_idx + 1) * ns, :, d_idx] = 1.0 + rate
-                for s_idx, s_code in enumerate(sector_codes):
+                    out[o_idx * ns : (o_idx + 1) * ns, :, d_idx] = 1.0 + rate
+                for s_idx, s_code in enumerate(sectors):
                     sec_rate = self.get_rate(origin_code=o_code, dest_code=d_code, sector_code=s_code)
                     if sec_rate != rate:
-                        taufd_a[o_idx * ns + s_idx, :, d_idx] = 1.0 + sec_rate
-        return taufd_a
+                        out[o_idx * ns + s_idx, :, d_idx] = 1.0 + sec_rate
+        return out
+
+    def build_intermediate_tariffs(
+        self,
+        ns: int = 11,
+        nc: int = 77,
+        *,
+        country_codes: Sequence[str] | None = None,
+        sector_codes: Sequence[str] | None = None,
+    ) -> np.ndarray:
+        """Construct the intermediate tariff multiplier tensor of shape (ns*nc, ns, nc).
+
+        This is the solver layout ``tau_a[o_sector + ns*o_country, d_sector, d_country]``
+        equal to ``build_tariff_matrices(scenario, calib)[0].transpose(1, 0, 2, 3)
+        .reshape(ns*nc, ns, nc)``.
+
+        Parameters
+        ----------
+        ns, nc : int
+            Number of sectors and countries.
+        country_codes, sector_codes : sequence of str, optional
+            Codes indexing the calibration. Required unless ``nc`` (and, when the
+            scenario has sectoral overrides, ``ns``) match the canonical registries;
+            a ValueError is raised otherwise instead of returning an all-ones tensor.
+        """
+        return self._build_solver_tensor(ns, nc, ns, country_codes, sector_codes)
+
+    def build_final_demand_tariffs(
+        self,
+        ns: int = 11,
+        nc: int = 77,
+        nfd: int = 3,
+        *,
+        country_codes: Sequence[str] | None = None,
+        sector_codes: Sequence[str] | None = None,
+    ) -> np.ndarray:
+        """Construct the final demand tariff multiplier tensor of shape (ns*nc, nfd, nc).
+
+        Same layout and code-resolution rules as :meth:`build_intermediate_tariffs`.
+        """
+        return self._build_solver_tensor(ns, nc, nfd, country_codes, sector_codes)
 
 
 @dataclass(frozen=True)
