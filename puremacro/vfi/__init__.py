@@ -161,6 +161,13 @@ from puremacro.vfi.deep_macro import (
     DeepMacroSolution,
     solve_deep_macro,
 )
+from puremacro.vfi.hjb_achdou import (
+    AiyagariContinuousHJBResult,
+    HJBSolution,
+    solve_aiyagari_continuous_hjb,
+    solve_hjb_achdou,
+    solve_kfe_achdou,
+)
 
 __all__ = [
     "VFIProblem", "VFISolution", "tauchen", "rouwenhorst", "farmer_toda",
@@ -204,5 +211,6 @@ __all__ = [
     "ContinuousTransitionResult", "solve_continuous_transition", "continuous_mit_shock", "TransitionShock",
     "AnalyticGradientResult", "compute_ift_gradients", "policy_parameter_jacobian", "equilibrium_parameter_jacobian", "gmm_objective_and_gradient",
     "DeepMacroModel", "DeepMacroMLP", "DeepMacroSolution", "solve_deep_macro", "AdamOptimizer",
+    "HJBSolution", "solve_hjb_achdou", "solve_kfe_achdou", "solve_aiyagari_continuous_hjb", "AiyagariContinuousHJBResult",
 ]
 
