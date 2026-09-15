@@ -12,6 +12,7 @@ import pandas as pd
 import scipy.optimize as opt
 import scipy.sparse as sp
 import scipy.sparse.linalg as spla
+from scipy.sparse.csgraph import connected_components
 
 from puremacro.reports import df_to_latex, df_to_markdown, df_to_typst
 
@@ -397,6 +398,25 @@ def _validate_generator(A_z: Any, Ne: int, *, tol: float = 1e-10) -> np.ndarray:
     return A_z
 
 
+def _n_closed_classes(A: sp.spmatrix) -> int:
+    """Number of closed communicating classes of the CTMC generator ``A`` (structural).
+
+    A finite chain has a unique stationary distribution iff exactly one class of its
+    transition graph is closed (no transition leaves it), so this is the exact test for
+    the KFE null space being one-dimensional; a numerically singular solve cannot
+    detect a reducible generator whose blocks each carry a valid null vector.
+    """
+    coo = sp.coo_matrix(A)
+    mask = (coo.row != coo.col) & (coo.data != 0.0)
+    off = sp.csr_matrix(
+        (np.ones(int(mask.sum())), (coo.row[mask], coo.col[mask])), shape=A.shape
+    )
+    n_comp, labels = connected_components(off, directed=True, connection="strong")
+    src, dst = off.nonzero()
+    open_classes = np.unique(labels[src[labels[src] != labels[dst]]])
+    return int(n_comp - open_classes.size)
+
+
 def solve_kfe_achdou(
     A: sp.spmatrix,
     a_grid: np.ndarray,
@@ -419,7 +439,7 @@ def solve_kfe_achdou(
     A : scipy.sparse.spmatrix
         Infinitesimal generator matrix of shape (Na*Ne, Na*Ne) from HJB solver.
     a_grid : np.ndarray
-        Asset grid of shape (Na,), uniform or not.
+        Asset grid of shape (Na,), strictly increasing, uniform or not.
     e_grid : np.ndarray
         Income productivity grid of shape (Ne,).
     return_residual : bool, default False
@@ -435,14 +455,29 @@ def solve_kfe_achdou(
     Raises
     ------
     ValueError
-        If ``A`` has the wrong shape or admits no unique stationary distribution
-        (e.g. a reducible income generator with no switching between blocks).
+        If ``A`` has the wrong shape, ``a_grid`` is not strictly increasing, or ``A``
+        admits no unique stationary distribution: its transition graph must have
+        exactly one closed communicating class (a reducible income generator with no
+        switching between blocks, or a policy with zero drift at isolated grid nodes,
+        gives several), and the normalised system must be numerically non-singular.
     """
+    a_grid = np.asarray(a_grid, dtype=float)
     Na = len(a_grid)
     Ne = len(e_grid)
     N = Na * Ne
     if tuple(A.shape) != (N, N):
         raise ValueError(f"A must have shape ({N}, {N}) for Na={Na}, Ne={Ne}; got {A.shape}")
+    if Na > 1 and not np.all(np.diff(a_grid) > 0):
+        raise ValueError("a_grid must be strictly increasing")
+
+    n_closed = _n_closed_classes(A)
+    if n_closed != 1:
+        raise ValueError(
+            f"KFE has no unique stationary distribution: the generator has {n_closed} closed "
+            "communicating classes (exactly one is required). Typical causes are a reducible "
+            "income generator A_z with no switching between blocks, or a policy with zero "
+            "drift at isolated grid nodes. Pass an irreducible A_z or use compute_kfe=False."
+        )
 
     w_a = _quadrature_weights(a_grid)
     quad_weights = np.tile(w_a, Ne)
@@ -461,9 +496,9 @@ def solve_kfe_achdou(
         pi = spla.spsolve(M, b)
     if not np.all(np.isfinite(pi)):
         raise ValueError(
-            "KFE has no unique stationary distribution: the generator is singular after "
-            "normalisation (typically a reducible income generator A_z with no switching "
-            "between blocks). Pass an irreducible A_z or use compute_kfe=False."
+            "KFE has no unique stationary distribution: the generator is numerically "
+            "singular after normalisation. Check the drift policy (e.g. nodes with "
+            "vanishing outflow) or use compute_kfe=False."
         )
     # Strict non-negativity and exact normalisation of the node mass
     pi = np.maximum(pi, 0.0)
@@ -581,9 +616,11 @@ def solve_hjb_achdou(
         a_grid = np.linspace(a_min, a_max, Na)
     else:
         a_grid = np.asarray(a_grid, dtype=float)
-        Na = len(a_grid)
-    if a_grid.ndim != 1 or Na < 2 or not np.all(np.diff(a_grid) > 0):
-        raise ValueError("a_grid must be a strictly increasing 1-D array with at least two points")
+    if a_grid.ndim != 1 or a_grid.size < 2 or not np.all(np.diff(a_grid) > 0):
+        raise ValueError(
+            "a_grid must be a finite, strictly increasing 1-D array with at least two points"
+        )
+    Na = len(a_grid)
 
     if e_grid is None:
         e_grid = np.array([0.2, 1.0])

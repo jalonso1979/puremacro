@@ -434,3 +434,64 @@ def test_mapping_protocol_is_field_restricted_and_equality_is_array_aware():
     assert res == pickle.loads(pickle.dumps(res))
     with pytest.raises(TypeError):
         hash(res)
+
+
+def test_asset_grid_validation():
+    """a_grid must be a finite, strictly increasing 1-D array with at least two points, in
+    solve_hjb_achdou and in the public solve_kfe_achdou (whose cell-width weights would
+    otherwise go negative or infinite silently)."""
+    bad_grids = (
+        np.ones((3, 3)),
+        np.float64(1.0),
+        [1.0],
+        np.linspace(5.0, 0.0, 10),
+        [0.0, 1.0, np.nan, 3.0],
+        [0.0, 1.0, 1.0, 2.0],
+    )
+    for bad in bad_grids:
+        with pytest.raises(ValueError, match="strictly increasing"):
+            solve_hjb_achdou(a_grid=bad)
+    with pytest.raises(ValueError, match="strictly increasing"):
+        solve_hjb_achdou(Na=1)
+    sol2 = solve_hjb_achdou(Na=2, max_iter=20)
+    assert sol2.V.shape == (2, 2) and np.all(np.isfinite(sol2.V))
+
+    sol = solve_hjb_achdou(Na=20)
+    with pytest.raises(ValueError, match="strictly increasing"):
+        solve_kfe_achdou(sol.A_generator, sol.a_grid[::-1].copy(), sol.e_grid)
+    with pytest.raises(ValueError, match="strictly increasing"):
+        solve_kfe_achdou(sol.A_generator, np.r_[sol.a_grid[:10], sol.a_grid[9], sol.a_grid[11:]], sol.e_grid)
+
+
+def test_kfe_rejects_generators_without_unique_stationary_distribution():
+    """A^T pi = 0 has a unique solution iff the chain has exactly one closed communicating
+    class. A block-diagonal A_z (two permanent income types, no switching) has two, and
+    spsolve then returns a finite but arbitrary null vector without any warning, so the
+    check must be structural rather than rely on a NaN solve. A generator with one
+    absorbing income state has a single closed class and keeps working."""
+    blk = np.array([
+        [-0.2, 0.2, 0.0, 0.0],
+        [0.2, -0.2, 0.0, 0.0],
+        [0.0, 0.0, -0.2, 0.2],
+        [0.0, 0.0, 0.2, -0.2],
+    ])
+    e4 = np.array([0.5, 1.0, 1.5, 2.0])
+    with pytest.raises(ValueError, match="no unique stationary distribution"):
+        solve_hjb_achdou(Na=15, e_grid=e4, A_z=blk)
+    sol_blk = solve_hjb_achdou(Na=15, e_grid=e4, A_z=blk, compute_kfe=False)
+    assert sol_blk.converged and sol_blk.g_dist is None
+    with pytest.raises(ValueError, match="2 closed communicating classes"):
+        solve_kfe_achdou(sol_blk.A_generator, sol_blk.a_grid, sol_blk.e_grid)
+    # No switching at all, and a zero-drift policy (r = rho, w = 0): every node is closed
+    with pytest.raises(ValueError, match="no unique stationary distribution"):
+        solve_hjb_achdou(Na=15, A_z=np.zeros((2, 2)))
+    with pytest.raises(ValueError, match="no unique stationary distribution"):
+        solve_hjb_achdou(r_rate=0.05, rho_val=0.05, w_rate=0.0, a_min=1.0, a_max=5.0, Na=20)
+
+    # One absorbing income state: unique stationary distribution with all mass in it
+    sol_abs = solve_hjb_achdou(Na=15, A_z=[[-0.1, 0.1], [0.0, 0.0]])
+    w = _quadrature_weights(sol_abs.a_grid)
+    np.testing.assert_allclose(np.sum(sol_abs.g_dist * w[:, None], axis=0), [0.0, 1.0], atol=1e-12)
+    assert sol_abs.mass_residual <= 1e-12
+    pi = (sol_abs.g_dist * w[:, None]).ravel(order="F")
+    assert np.max(np.abs(sol_abs.A_generator.T @ pi)) < 1e-12
