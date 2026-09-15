@@ -23,6 +23,7 @@ Features:
 from __future__ import annotations
 
 import copy
+import sys
 import warnings
 from dataclasses import dataclass
 from typing import Any, Sequence
@@ -61,6 +62,33 @@ def _validate_xy(X: Any, y: Any) -> tuple[np.ndarray, np.ndarray]:
     return X_arr, y_arr
 
 
+def _check_penalties(alphas: Any, name: str) -> np.ndarray:
+    """Return ``alphas`` as a non-empty 1-D array of finite, non-negative penalties.
+
+    An empty grid used to fail with ``IndexError``, a NaN penalty produced NaN
+    coefficients that only surfaced as a ``LinAlgError`` deep inside DML, and a
+    negative penalty was accepted silently.
+    """
+    arr = np.atleast_1d(np.asarray(alphas, dtype=float)).ravel()
+    if arr.size == 0:
+        raise ValueError(f"{name} must contain at least one penalty value.")
+    if not np.isfinite(arr).all() or (arr < 0).any():
+        raise ValueError(f"{name} must be finite and non-negative, got {alphas!r}.")
+    return arr
+
+
+def _warn_stacklevel() -> int:
+    """``stacklevel`` for :func:`warnings.warn` that points at the first frame
+    outside this module, so a warning raised inside :meth:`DoubleMLPLR.fit` is
+    attributed to the user's call whether it went through :func:`dml_plr` or not."""
+    level = 1  # stacklevel=1 is the frame that calls ``warnings.warn``
+    frame = sys._getframe(1)
+    while frame is not None and frame.f_globals.get("__name__") == __name__:
+        frame = frame.f_back
+        level += 1
+    return level
+
+
 class LassoCoordinateDescent:
     """Pure-NumPy Lasso (L1-regularized linear regression) via cyclical coordinate descent.
 
@@ -86,10 +114,16 @@ class LassoCoordinateDescent:
         criterion: str = "bic",
         fit_intercept: bool = True,
     ) -> None:
+        if alpha is not None:
+            if np.ndim(alpha) != 0:
+                raise ValueError(f"alpha must be a scalar penalty or None, got {alpha!r}.")
+            _check_penalties(alpha, "alpha")
+        if int(n_alphas) < 1:
+            raise ValueError(f"n_alphas must be a positive integer, got {n_alphas!r}.")
         self.alpha = alpha
         self.max_iter = max_iter
         self.tol = tol
-        self.n_alphas = n_alphas
+        self.n_alphas = int(n_alphas)
         self.eps = eps
         crit = str(criterion).lower()
         if crit not in ("aic", "bic"):
@@ -123,7 +157,7 @@ class LassoCoordinateDescent:
 
         # Regularization path
         if self.alpha is not None:
-            alphas = [float(self.alpha)]
+            alphas = [float(_check_penalties(self.alpha, "alpha")[0])]
         else:
             # Maximum alpha where all coefficients are zero: max_j |X_j' y| / n
             alpha_max = float(np.max(np.abs(Xs.T @ yc)) / n)
@@ -234,6 +268,8 @@ class RidgeGCV:
         alphas: Sequence[float] | np.ndarray | None = None,
         fit_intercept: bool = True,
     ) -> None:
+        if alphas is not None:
+            _check_penalties(alphas, "alphas")
         self.alphas = alphas
         self.fit_intercept = fit_intercept
 
@@ -267,7 +303,7 @@ class RidgeGCV:
         k = len(S)
 
         alphas = (
-            np.asarray(self.alphas, dtype=float)
+            _check_penalties(self.alphas, "alphas")
             if self.alphas is not None
             else np.logspace(-4, 6, 100)
         )
@@ -603,7 +639,16 @@ class DMLResult:
         return "\n".join(lines)
 
     def to_typst(self) -> str:
-        """Export results to Typst table format."""
+        """Export results to a Typst ``#figure(table(...))``.
+
+        Variable and learner names and the ``<0.001`` p-value cell are passed
+        through :func:`puremacro.reports.typst_escape`, like every other
+        result object's Typst table, so characters Typst reads as markup
+        inside a content block (``_``, ``$``, ``#``, ``[``, ``<`` ...) are
+        rendered literally.
+        """
+        from puremacro.reports import typst_escape
+
         pct = int(round(self.ci_level * 100))
         lines = [
             f"#figure(",
@@ -625,14 +670,14 @@ class DMLResult:
         for name, th, s, t_val, p_val, lo, hi in zip(
             self.treatment_names, thetas, ses, ts, ps, los, his
         ):
-            p_str = "<0.001" if p_val < 0.001 else f"{p_val:.4f}"
+            p_str = typst_escape("<0.001") if p_val < 0.001 else f"{p_val:.4f}"
             lines.append(
-                f"    [{name}], [{th:.4f}], [{s:.4f}], [{t_val:.3f}], [{p_str}], [[{lo:.4f}, {hi:.4f}]],"
+                f"    [{typst_escape(name)}], [{th:.4f}], [{s:.4f}], [{t_val:.3f}], [{p_str}], [[{lo:.4f}, {hi:.4f}]],"
             )
         lines.extend([
             f"    table.hline(),",
             f"  ),",
-            f"  caption: [Double Machine Learning Estimates ({self.learner}, N={self.n_obs})],",
+            f"  caption: [Double Machine Learning Estimates ({typst_escape(self.learner)}, N={self.n_obs})],",
             f")",
         ])
         return "\n".join(lines)
@@ -663,7 +708,8 @@ class DoubleMLPLR:
         or a configured instance (deep-copied for every nuisance model, so the
         caller's object is never fitted in place; ``learner_kwargs`` must then be empty).
     alpha : float, default 0.05
-        Significance level for confidence intervals (0.05 -> 95% CI).
+        Significance level for confidence intervals (0.05 -> 95% CI); must lie
+        strictly between 0 and 1.
     random_state : int or None, default 42
         Seed for reproducible random fold splitting.
     learner_kwargs : dict, optional
@@ -690,6 +736,8 @@ class DoubleMLPLR:
     ) -> None:
         if n_folds < 2:
             raise ValueError(f"n_folds must be an integer >= 2, got {n_folds}")
+        if not (0.0 < float(alpha) < 1.0):
+            raise ValueError(f"alpha (significance level) must lie strictly between 0 and 1, got {alpha!r}")
         self.n_folds = int(n_folds)
         self.learner = learner
         self.alpha = float(alpha)
@@ -784,7 +832,7 @@ class DoubleMLPLR:
                 "intervals). Increase N, reduce n_folds or the number of controls, or supply a "
                 "learner suited to p >= n.",
                 UserWarning,
-                stacklevel=2,
+                stacklevel=_warn_stacklevel(),
             )
 
         res_y = np.zeros(n)
@@ -904,7 +952,10 @@ def dml_plr(
         Base learner ('lasso' or 'ridge'), a learner class, or a configured
         instance (copied per nuisance model; incompatible with ``learner_kwargs``).
     alpha : float, default 0.05
-        Significance level for confidence intervals (0.05 -> 95% CI).
+        Significance level for confidence intervals (0.05 -> 95% CI), strictly
+        between 0 and 1. Note this is the DML significance level, not the lasso
+        penalty: set that through ``learner_kwargs={"alpha": ...}`` on
+        ``DoubleMLPLR`` or a configured ``LassoCoordinateDescent`` instance.
     random_state : int, default 42
         Seed for reproducible fold splitting.
     **learner_kwargs : Any

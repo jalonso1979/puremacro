@@ -3,8 +3,9 @@
 Tests:
 1. Pure-NumPy regularized learners (LassoCoordinateDescent, RidgeGCV): sparse
    recovery, the ``fit_intercept=False`` coordinate update (KKT optimality and an
-   sklearn cross-check), ``criterion`` validation, input validation, and the
-   absolute (sklearn-style) units of the ridge penalty.
+   sklearn cross-check), ``criterion`` / penalty-grid validation (empty, NaN or
+   negative penalties raise), input validation, and the absolute (sklearn-style)
+   units of the ridge penalty.
 2. Unbiased recovery of causal effect theta_0 on synthetic benchmark data.
 3. Asymptotic standard errors: root-N scaling, and bit-level agreement of theta,
    the out-of-fold residuals, the Chernozhukov et al. (2018) plug-in variance and
@@ -14,9 +15,11 @@ Tests:
    Omega without u_hat).
 5. Multidimensional treatment D support, pandas inputs and constant control columns.
 6. Presentation contract (.summary, .plot, .to_markdown, .to_latex, .to_typst):
-   GFM-parseable Markdown and LaTeX that compiles with ``booktabs`` alone.
-7. Input validation (NaN/inf, 1-D X, n_folds > N, learner instances / classes)
-   and the high-dimensional ``n_train <= p + 1`` warning.
+   GFM-parseable Markdown, LaTeX that compiles with ``booktabs`` alone, and Typst
+   cells escaped with ``typst_escape``.
+7. Input validation (NaN/inf, 1-D X, n_folds > N, the significance level,
+   learner instances / classes) and the high-dimensional ``n_train <= p + 1``
+   warning, attributed to the caller's line through ``dml_plr`` as well.
 8. Zero non-Pyodide runtime dependencies (the module imports only
    numpy/scipy/pandas/matplotlib and the standard library).
 """
@@ -220,7 +223,7 @@ def test_dml_result_presentation_contract():
     assert isinstance(typ, str)
     assert "#figure(" in typ
     assert "table(" in typ
-    assert "tax_cut" in typ
+    assert "[tax\\_cut]" in typ  # underscores are escaped Typst markup
 
     # 5. plot()
     ax1 = res.plot(kind="forest")
@@ -614,7 +617,110 @@ def test_dml_module_has_no_extra_runtime_dependencies():
         elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
             roots.add(node.module.split(".")[0])
     allowed = {
-        "__future__", "copy", "warnings", "dataclasses", "typing",
+        "__future__", "copy", "sys", "warnings", "dataclasses", "typing",
         "numpy", "pandas", "scipy", "matplotlib", "puremacro",
     }
     assert roots <= allowed, roots - allowed
+
+
+# ---------------------------------------------------------------------------
+# 3.4.0 repair round (verifier follow-ups)
+# ---------------------------------------------------------------------------
+
+
+def test_learner_penalty_grids_validated():
+    """An empty grid used to raise IndexError, a NaN penalty surfaced as a LinAlgError
+    from ``pinv`` deep inside DML, and negative penalties were accepted silently."""
+    rng = np.random.default_rng(21)
+    X = rng.standard_normal((40, 3))
+    y = X[:, 0] + rng.standard_normal(40)
+    with pytest.raises(ValueError, match="alphas must contain at least one penalty"):
+        RidgeGCV(alphas=[])
+    with pytest.raises(ValueError, match="alphas must be finite and non-negative"):
+        RidgeGCV(alphas=[np.nan])
+    with pytest.raises(ValueError, match="alphas must be finite and non-negative"):
+        RidgeGCV(alphas=[1.0, -0.5])
+    # The grid is re-checked at fit time so a mutated attribute fails clearly too.
+    m = RidgeGCV()
+    m.alphas = []
+    with pytest.raises(ValueError, match="alphas must contain at least one penalty"):
+        m.fit(X, y)
+    with pytest.raises(ValueError, match="n_alphas must be a positive integer"):
+        LassoCoordinateDescent(n_alphas=0)
+    with pytest.raises(ValueError, match="alpha must be finite and non-negative"):
+        LassoCoordinateDescent(alpha=-1.0)
+    with pytest.raises(ValueError, match="alpha must be finite and non-negative"):
+        LassoCoordinateDescent(alpha=np.nan)
+    with pytest.raises(ValueError, match="alpha must be a scalar penalty"):
+        LassoCoordinateDescent(alpha=[0.1, 0.2])
+    # Reachable through the DML interface, and reported as a ValueError there too.
+    Y, D, Xc = _plr_dgp(80, 4, 22)
+    with pytest.raises(ValueError, match="alphas must be finite and non-negative"):
+        dml_plr(Y, D, Xc, learner="ridge", alphas=[np.nan])
+    with pytest.raises(ValueError, match="alphas must contain at least one penalty"):
+        dml_plr(Y, D, Xc, learner="ridge", alphas=[])
+    # Zero and scalar grids remain valid.
+    assert np.isfinite(LassoCoordinateDescent(alpha=0.0).fit(X, y).coef_).all()
+    assert RidgeGCV(alphas=[2.5]).fit(X, y).alpha_ == 2.5
+    assert LassoCoordinateDescent(alpha=np.float64(0.1)).fit(X, y).alpha_ == 0.1
+
+
+def test_dml_significance_level_validated():
+    """``alpha`` outside (0, 1) used to give ``ci_level`` > 1 and NaN intervals."""
+    Y, D, X = _plr_dgp(80, 4, 23)
+    for bad in (0.0, 1.0, -1.0, 1.5):
+        with pytest.raises(ValueError, match="significance level"):
+            dml_plr(Y, D, X, alpha=bad)
+    res = dml_plr(Y, D, X, alpha=0.10, learner="ridge")
+    assert res.ci_level == pytest.approx(0.90)
+    assert res.ci_upper - res.ci_lower == pytest.approx(2 * norm.ppf(0.95) * res.se)
+
+
+def test_dml_high_dimensional_warning_points_at_caller():
+    """The warning used to be attributed to ``dml_plr``'s own ``return est.fit(...)``
+    line instead of the user's call site."""
+    rng = np.random.default_rng(31)
+    n, p = 40, 60
+    X = rng.standard_normal((n, p))
+    D = 0.5 * X[:, 0] + rng.standard_normal(n)
+    Y = 1.5 * D + rng.standard_normal(n)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        dml_plr(Y, D, X, n_folds=2, learner="ridge", random_state=1)
+        DoubleMLPLR(n_folds=2, learner="ridge", random_state=1).fit(Y, D, X)
+    hd = [w for w in caught if issubclass(w.category, UserWarning) and "n_train <= p + 1" in str(w.message)]
+    assert len(hd) == 2
+    for w in hd:
+        assert Path(w.filename).resolve() == Path(__file__).resolve(), w.filename
+    assert hd[0].lineno + 1 == hd[1].lineno
+
+
+def test_dml_typst_escapes_markup():
+    """Names, the learner label and the ``<0.001`` cell go through ``typst_escape``
+    like every other result object's Typst table, so ``$``, ``#``, ``_``, ``[`` and
+    ``<`` are literal text rather than math, code, emphasis, content or label markup."""
+    from puremacro.reports import typst_escape
+
+    res = _presentation_result()
+    typ = res.to_typst()
+    assert res.p_value < 0.001
+    assert "[\\<0.001]" in typ
+    assert "[tax\\_cut]" in typ
+    assert "<0.001]" not in typ.replace("\\<0.001]", "")
+
+    weird = DMLResult(
+        theta=np.array([1.0, 2.0]), se=np.array([0.1, 0.2]), t_stat=np.array([10.0, 10.0]),
+        p_value=np.array([0.0, 0.5]), ci_lower=np.array([0.8, 1.6]), ci_upper=np.array([1.2, 2.4]),
+        n_obs=10, n_folds=2, learner="my_learner", residuals_y=np.zeros(10),
+        residuals_d=np.zeros((10, 2)), treatment_names=("100$", "a#b_[x]"), outcome_name="gdp",
+    )
+    wt = weird.to_typst()
+    assert "[100\\$]" in wt
+    assert "[a\\#b\\_\\[x\\]]" in wt
+    assert "(my\\_learner, N=10)" in wt
+    assert typst_escape("a#b_[x]") == "a\\#b\\_\\[x\\]"
+    # Every data row still has six cells and the numeric cells are untouched.
+    rows = [ln for ln in wt.splitlines() if ln.startswith("    [") and "*" not in ln]
+    assert len(rows) == 2
+    assert all(ln.count("], [") == 5 for ln in rows)
+    assert "[1.0000], [0.1000], [10.000], [\\<0.001], [[0.8000, 1.2000]]" in rows[0]
