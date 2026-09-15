@@ -440,6 +440,14 @@ def test_dml_one_dimensional_controls_and_shape_guards():
         dml_plr(Y[:4], D[:4], X[:4], n_folds=10)
     with pytest.raises(ValueError, match="D must be 1-D or 2-D"):
         dml_plr(Y, np.zeros((120, 1, 1)), X)
+    # A scalar D used to escape the guard with an IndexError from ``D_arr.shape[1]``,
+    # and a (N, 0) D silently returned an empty theta.
+    with pytest.raises(ValueError, match="D must be 1-D or 2-D"):
+        dml_plr(Y, 3.0, X)
+    with pytest.raises(ValueError, match="at least one treatment column"):
+        dml_plr(Y, np.zeros((120, 0)), X)
+    with pytest.raises(ValueError, match="at least one treatment column"):
+        dml_plr(Y, pd.DataFrame(index=range(120)), X)
     with pytest.raises(ValueError, match="X must be 2-D"):
         dml_plr(Y, D, np.zeros((120, 2, 2)))
     # n_folds == N (leave-one-out) is allowed.

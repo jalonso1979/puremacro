@@ -737,8 +737,10 @@ class DoubleMLPLR:
             if D_arr.ndim == 1:
                 treatment_names = ("D",)
                 D_arr = D_arr[:, None]
-            else:
+            elif D_arr.ndim == 2:
                 treatment_names = tuple(f"D_{j+1}" for j in range(D_arr.shape[1]))
+            else:
+                raise ValueError(f"D must be 1-D or 2-D (N, k_d), got shape {D_arr.shape}.")
 
         Y_arr = np.asarray(Y, dtype=float).ravel()
         if isinstance(X, pd.DataFrame):
@@ -746,8 +748,8 @@ class DoubleMLPLR:
         else:
             X_arr = np.asarray(X, dtype=float)
         X_arr = _as_design(X_arr)
-        if D_arr.ndim != 2:
-            raise ValueError(f"D must be 1-D or 2-D (N, k_d), got shape {D_arr.shape}.")
+        if D_arr.shape[1] == 0:
+            raise ValueError("D must have at least one treatment column.")
 
         n = len(Y_arr)
         if len(D_arr) != n or len(X_arr) != n:
