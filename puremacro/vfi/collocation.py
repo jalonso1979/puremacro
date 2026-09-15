@@ -17,7 +17,6 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Sequence, Tuple, Union
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.optimize import brentq, minimize_scalar, root
@@ -508,6 +507,8 @@ class CollocationSolution:
         matplotlib.figure.Figure
             Figure instance containing the diagnostic subplots.
         """
+        import matplotlib.pyplot as plt
+
         if self.basis.n_dims == 1:
             a, b = self.basis.domain[0]
             s_dense = np.linspace(a, b, 200)

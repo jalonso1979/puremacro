@@ -61,6 +61,8 @@ from puremacro.lp.la_lp import la_lp_iv
 from puremacro.vfi.hjb_achdou import (
     AiyagariContinuousHJBResult,
     HJBSolution,
+    _quadrature_weights,
+    _stationary_markov_distribution,
     solve_aiyagari_continuous_hjb,
     solve_hjb_achdou,
     solve_kfe_achdou,
@@ -71,6 +73,33 @@ from puremacro.vfi.hjb_achdou import (
 # 1. Implicit Upwind HJB & Adjoint Continuous KFE Stress Tests
 # ===========================================================================
 
+_DEFAULT_A_Z = np.array([[-0.1, 0.1], [0.1, -0.1]])
+
+
+def _assert_hjb_kfe_invariants(sol, A_z) -> None:
+    """Quantitative checks a converged HJB/KFE solution cannot satisfy by construction.
+
+    mass_residual and g >= 0 are enforced by renormalisation and clipping inside
+    solve_kfe_achdou, so they hold for any g. These do not: the node mass pi = g * w
+    must be a null vector of A^T (the KFE itself), its marginal over e must equal the
+    stationary distribution of A_z, consumption must increase in wealth whenever income
+    does (r >= 0; with r < 0 the zero-drift branch c = r a + w e itself falls in a), and
+    the state constraints s(a_min) >= 0 >= s(a_max) must hold.
+    """
+    g = sol.g_dist
+    assert g is not None and sol.A_generator is not None
+    w = _quadrature_weights(sol.a_grid)
+    pi = (g * w[:, None]).ravel(order="F")
+    assert abs(np.sum(pi) - 1.0) <= 1e-12
+    assert np.max(np.abs(sol.A_generator.T @ pi)) < 1e-10
+    np.testing.assert_allclose(
+        np.sum(g * w[:, None], axis=0), _stationary_markov_distribution(np.asarray(A_z, dtype=float)), atol=1e-10
+    )
+    if sol.r_rate >= 0.0:
+        assert np.all(np.diff(sol.c_policy, axis=0) > 0.0)
+    assert np.all(sol.s_drift[0, :] >= -1e-12)
+    assert np.all(sol.s_drift[-1, :] <= 1e-12)
+
 
 def test_hjb_extreme_parameter_boundaries():
     """Verify implicit HJB solver converges under extreme and boundary parameter configurations."""
@@ -79,27 +108,32 @@ def test_hjb_extreme_parameter_boundaries():
     assert sol_eq.converged, "HJB failed to converge when r == rho"
     assert sol_eq.n_iter <= 20
     assert sol_eq.mass_residual <= 1e-12
+    _assert_hjb_kfe_invariants(sol_eq, _DEFAULT_A_Z)
 
     # Boundary 2: r > rho (impatience dominated by return, strong savings drift)
     sol_high_r = solve_hjb_achdou(r_rate=0.06, rho_val=0.04, Na=40, max_iter=40)
     assert sol_high_r.converged, "HJB failed to converge when r > rho"
     assert sol_high_r.mass_residual <= 1e-12
+    _assert_hjb_kfe_invariants(sol_high_r, _DEFAULT_A_Z)
 
     # Boundary 3: r < 0 (negative real interest rate)
     sol_neg_r = solve_hjb_achdou(r_rate=-0.02, rho_val=0.05, Na=40, max_iter=40)
     assert sol_neg_r.converged, "HJB failed to converge when r < 0"
     assert sol_neg_r.mass_residual <= 1e-12
+    _assert_hjb_kfe_invariants(sol_neg_r, _DEFAULT_A_Z)
 
     # Boundary 4: Extreme relative risk aversion gamma = 10.0
     sol_crra_10 = solve_hjb_achdou(gamma_r=10.0, Na=40, max_iter=40)
     assert sol_crra_10.converged, "HJB failed to converge with gamma = 10.0"
     assert np.all(np.diff(sol_crra_10.V[:, 0]) > 0)
     assert np.all(np.diff(sol_crra_10.V[:, 1]) > 0)
+    _assert_hjb_kfe_invariants(sol_crra_10, _DEFAULT_A_Z)
 
     # Boundary 5: Low risk aversion gamma = 0.5
     sol_crra_05 = solve_hjb_achdou(gamma_r=0.5, Na=40, max_iter=40)
     assert sol_crra_05.converged, "HJB failed to converge with gamma = 0.5"
     assert sol_crra_05.mass_residual <= 1e-12
+    _assert_hjb_kfe_invariants(sol_crra_05, _DEFAULT_A_Z)
 
 
 def test_hjb_coarse_and_nonuniform_grids():
@@ -109,6 +143,7 @@ def test_hjb_coarse_and_nonuniform_grids():
     assert sol_coarse.converged
     assert sol_coarse.V.shape == (6, 2)
     assert sol_coarse.mass_residual <= 1e-12
+    _assert_hjb_kfe_invariants(sol_coarse, _DEFAULT_A_Z)
 
     # Non-uniform geometrically spaced asset grid (concentrated near borrowing limit)
     a_grid_geom = np.geomspace(0.01, 40.0, 45) - 0.01
@@ -117,6 +152,7 @@ def test_hjb_coarse_and_nonuniform_grids():
     assert sol_geom.mass_residual <= 1e-12
     assert sol_geom.g_dist is not None
     assert np.all(sol_geom.g_dist >= 0.0)
+    _assert_hjb_kfe_invariants(sol_geom, _DEFAULT_A_Z)
 
 
 def test_hjb_multistate_markov_generator():
@@ -135,6 +171,7 @@ def test_hjb_multistate_markov_generator():
     assert sol_4.g_dist.shape == (40, 4)
     assert np.all(sol_4.g_dist >= 0.0)
     assert sol_4.mass_residual <= 1e-12
+    _assert_hjb_kfe_invariants(sol_4, A_z_4)
 
     # Verify monotonicity in productivity: V(a, e_k) < V(a, e_{k+1})
     for k in range(3):
@@ -527,3 +564,19 @@ sys.exit(0)
 """
     result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
     assert result.returncode == 0, f"Subprocess import leak detected: {result.stdout} {result.stderr}"
+
+
+def test_vfi_import_does_not_load_matplotlib():
+    """puremacro.vfi imports matplotlib lazily (inside .plot methods only), so a clean
+    interpreter that imports the subpackage never loads the plotting stack."""
+    code = """
+import sys
+import puremacro.vfi
+leaked = sorted(m for m in sys.modules if m == "matplotlib" or m.startswith("matplotlib."))
+if leaked:
+    print(f"LEAKED: {leaked[:5]}")
+    sys.exit(1)
+sys.exit(0)
+"""
+    result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+    assert result.returncode == 0, f"matplotlib loaded eagerly: {result.stdout} {result.stderr}"

@@ -96,7 +96,7 @@ class TestSQLiteCacheAdversarial:
 
         def worker_write(thread_id: int):
             conn = sqlite3.connect(db_file, timeout=60.0, isolation_level=None)
-            dates = pd.date_range("2020-01-01", periods=rows_per_thread, freq="ME")
+            dates = pd.date_range("2020-01-01", periods=rows_per_thread, freq="MS")
             df = pd.DataFrame({
                 "provider": [f"prov_{thread_id % 4}"] * rows_per_thread,
                 "country": ["MEX"] * rows_per_thread,
@@ -259,6 +259,16 @@ class TestCartridgeAdversarial:
 
 class TestLatAmCanaryAdversarial:
     """Stress testing SchemaCanary against hostile and mutated inputs."""
+
+    @pytest.fixture(autouse=True)
+    def _isolated_cache_db(self, tmp_path, monkeypatch):
+        """SchemaCanary.check records drift events through record_connector_event, which
+        opens the default cache DB; point it at tmp_path so no test writes to the
+        developer's ~/.cache/puremacro/cache.db."""
+        monkeypatch.setenv("PUREMACRO_HTTP_CACHE_DIR", str(tmp_path / "canary_cache.db"))
+        close_conn()
+        yield
+        close_conn()
 
     def test_canary_hostile_html_response(self):
         """Canary must reject HTML error pages (e.g. Cloudflare or gateway 502)."""

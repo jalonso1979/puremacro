@@ -21,7 +21,6 @@ import warnings
 from dataclasses import dataclass, field
 from typing import Any, Callable, Sequence, Tuple, Union
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.optimize import root
@@ -756,6 +755,8 @@ class SmolyakSolution:
         matplotlib.figure.Figure
             Diagnostic figure with 3 subplots.
         """
+        import matplotlib.pyplot as plt
+
         fig, axes = plt.subplots(1, 3, figsize=figsize, constrained_layout=True)
 
         d = self.basis.d
