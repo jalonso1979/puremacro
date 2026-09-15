@@ -12,7 +12,10 @@
       "close_conn",
       "default_db_path",
       "get_conn",
-      "migrate_from_flat_files"
+      "migrate_from_flat_files",
+      "query_realtime_vintages",
+      "record_connector_event",
+      "store_realtime_vintages"
     ],
     "puremacro._http": [
       "DEFAULT_TIMEOUT",
@@ -68,6 +71,21 @@
       "qna_capital",
       "qna_tfp"
     ],
+    "puremacro.causal": [
+      "DMLResult",
+      "DoubleMLPLR",
+      "LassoCoordinateDescent",
+      "RidgeGCV",
+      "dml_plr",
+      "synthetic_control"
+    ],
+    "puremacro.causal.dml": [
+      "DMLResult",
+      "DoubleMLPLR",
+      "LassoCoordinateDescent",
+      "RidgeGCV",
+      "dml_plr"
+    ],
     "puremacro.climate": [
       "DICEResult",
       "simulate_dice_model"
@@ -114,7 +132,9 @@
       "ServiceCredentialSpec",
       "default_config_path",
       "get",
+      "get_credential",
       "require",
+      "require_credential",
       "status"
     ],
     "puremacro.cycles": [
@@ -351,6 +371,7 @@
       "solve_gertler_karadi",
       "solve_hank_bridge",
       "solve_ms_dsge",
+      "solve_multiconstraint_occbin",
       "solve_occbin",
       "solve_perfect_foresight",
       "solve_steady_state",
@@ -930,6 +951,9 @@
       "SEASONAL_RANGE_MIN",
       "SEASONAL_WINDOW",
       "SUPPORTED_FREQUENCIES",
+      "SchemaCanary",
+      "SchemaDriftError",
+      "SchemaDriftWarning",
       "VINTAGE_COLUMNS",
       "VINTAGE_SEMANTICS",
       "VintagePanel",
@@ -937,13 +961,16 @@
       "available_providers",
       "canonical_variable",
       "drop_unadjusted_editions",
+      "load_realtime_cartridge",
       "normalize_vintage_frame",
+      "pack_realtime_cartridge",
       "parse_alfredgraph_csv",
       "provider_countries",
       "providers_for",
       "register_provider",
       "resolve_series",
       "seasonal_signature",
+      "validate_payload",
       "vintage_catalog",
       "vintage_panel"
     ],
@@ -972,10 +999,26 @@
       "parse_alfredgraph_csv"
     ],
     "puremacro.fetch.realtime.banxico": [
+      "BANXICO_SERIES_URL",
       "BANXICO_SIE_BASE",
       "INEGI_BIE_BASE",
       "MEXICO_VINTAGE_NOTE",
-      "SPAIN_VINTAGE_NOTE"
+      "SPAIN_VINTAGE_NOTE",
+      "fetch_banxico_panel",
+      "fetch_banxico_vintages",
+      "parse_banxico_json"
+    ],
+    "puremacro.fetch.realtime.bcb": [
+      "BCB_SGS_URL",
+      "fetch_bcb_panel",
+      "fetch_bcb_vintages",
+      "parse_bcb_json"
+    ],
+    "puremacro.fetch.realtime.bcch": [
+      "BCCH_SIETE_URL",
+      "fetch_bcch_panel",
+      "fetch_bcch_vintages",
+      "parse_bcch_json"
     ],
     "puremacro.fetch.realtime.bundesbank": [
       "BBK_RTD_KEYS",
@@ -987,9 +1030,23 @@
       "parse_bbk_rtd_csv",
       "parse_bbk_vintage_date"
     ],
+    "puremacro.fetch.realtime.canary": [
+      "SchemaCanary",
+      "SchemaDriftError",
+      "SchemaDriftWarning",
+      "validate_payload"
+    ],
+    "puremacro.fetch.realtime.cartridge": [
+      "load_realtime_cartridge",
+      "pack_realtime_cartridge"
+    ],
     "puremacro.fetch.realtime.catalog": [
       "ALFRED_KNOWN_GAPS",
+      "BANXICO_SERIES",
+      "BCB_SERIES",
+      "BCCH_SERIES",
       "CANONICAL_VARIABLES",
+      "INEGI_SERIES",
       "SeriesSpec",
       "UNITS_TRANSFORM",
       "VARIABLE_ALIASES",
@@ -1010,6 +1067,12 @@
       "fetch_ecb_rtd_panel",
       "fetch_ecb_rtd_vintages",
       "parse_ecb_history_csv"
+    ],
+    "puremacro.fetch.realtime.inegi": [
+      "INEGI_SERIES_URL",
+      "fetch_inegi_panel",
+      "fetch_inegi_vintages",
+      "parse_inegi_json"
     ],
     "puremacro.fetch.realtime.oecd_stes": [
       "DATAFLOW",
@@ -1409,7 +1472,9 @@
       "lp_garch_state"
     ],
     "puremacro.lp.iv": [
-      "lp_iv"
+      "compute_mop_effective_f",
+      "lp_iv",
+      "mop_critical_values"
     ],
     "puremacro.lp.iv_helpers": [
       "gertler_karadi_surprise",
@@ -1422,7 +1487,8 @@
       "lp_hac"
     ],
     "puremacro.lp.la_lp": [
-      "la_lp"
+      "la_lp",
+      "la_lp_iv"
     ],
     "puremacro.lp.lp_did": [
       "LPDiDResult",
@@ -2502,6 +2568,7 @@
     "puremacro.trade": [
       "AllenArkolakisModel",
       "AllenArkolakisResult",
+      "BatchedJacobianEvaluator",
       "BottleneckConfig",
       "CANONICAL_COUNTRY_CODES",
       "CANONICAL_FINAL_DEMAND_CODES",
@@ -2512,6 +2579,7 @@
       "CaliendoParroModel",
       "CaliendoParroResult",
       "CapacityBottleneckResult",
+      "DeviceInfo",
       "DynamicJCurveConfig",
       "EU_COUNTRY_CODES",
       "EffectiveRateOfProtectionResult",
@@ -2552,6 +2620,8 @@
       "compute_welfare_payoff_matrix",
       "decompose_harberger_welfare",
       "decompose_welfare_effects",
+      "detect_device",
+      "device_context",
       "evaluate_equilibrium_residuals",
       "evaluate_national_welfare",
       "export_latex_tables",
@@ -2564,6 +2634,7 @@
       "get_country_codes",
       "get_eu_country_codes",
       "get_final_demand_codes",
+      "get_memory_usage",
       "get_sector_codes",
       "get_sector_names",
       "list_canonical_scenarios",
@@ -2574,6 +2645,7 @@
       "plot_scenario_distributions",
       "plot_tariff_escalation_curve",
       "plot_terms_of_trade_vs_welfare",
+      "reset_peak_memory",
       "resolve_country_indices",
       "restore_capital_formation",
       "run_bottleneck_scenario",
@@ -2581,11 +2653,15 @@
       "run_fiscal_recycling_scenario",
       "run_scenario_batch",
       "run_tariff_scenario",
+      "select_compute_device",
       "simulate_analytical_j_curve",
+      "solve_homotopy_continuation",
       "solve_multilateral_nash_tariffs",
       "solve_multilateral_ppp",
       "solve_retaliation_game",
       "solve_trade_equilibrium",
+      "solve_trade_equilibrium_gpu",
+      "solve_trade_equilibrium_mlx",
       "to_latex_mean_by_scenario",
       "to_latex_mean_by_scenario_table",
       "to_latex_selected_country",
@@ -2668,6 +2744,22 @@
       "compute_geary_khamis_ppp",
       "restore_capital_formation",
       "solve_multilateral_ppp"
+    ],
+    "puremacro.trade.gpu": [
+      "BatchedJacobianEvaluator",
+      "DeviceInfo",
+      "detect_device",
+      "device_context",
+      "get_memory_usage",
+      "has_mlx",
+      "has_torch",
+      "reset_peak_memory",
+      "select_compute_device",
+      "solve_homotopy_continuation",
+      "solve_trade_equilibrium_gpu",
+      "solve_trade_equilibrium_mlx",
+      "to_numpy",
+      "to_tensor"
     ],
     "puremacro.trade.optimal_tariffs": [
       "benchmark_real_world_tariffs",
@@ -2946,6 +3038,7 @@
     "puremacro.vfi": [
       "AdamOptimizer",
       "AiyagariContinuousEquilibrium",
+      "AiyagariContinuousHJBResult",
       "AiyagariContinuousModel",
       "AnalyticGradientResult",
       "Case2Problem",
@@ -2975,6 +3068,7 @@
       "FiniteHorizonProblem",
       "FiniteHorizonSolution",
       "FirmEntryExitEquilibrium",
+      "HJBSolution",
       "KSEquilibrium",
       "Model",
       "OLGEquilibrium",
@@ -3033,12 +3127,15 @@
       "rouwenhorst",
       "simulate_panel",
       "solve_aiyagari_continuous",
+      "solve_aiyagari_continuous_hjb",
       "solve_collocation",
       "solve_continuous_transition",
       "solve_dcegm",
       "solve_deep_macro",
       "solve_egm",
       "solve_fem",
+      "solve_hjb_achdou",
+      "solve_kfe_achdou",
       "solve_permanent_types",
       "solve_smolyak",
       "solve_spline_collocation",
@@ -3319,6 +3416,22 @@
       "share",
       "share_mode",
       "tfp"
+    ],
+    "puremacro.causal.dml.DMLResult": [
+      "ci_level",
+      "ci_lower",
+      "ci_upper",
+      "learner",
+      "n_folds",
+      "n_obs",
+      "outcome_name",
+      "p_value",
+      "residuals_d",
+      "residuals_y",
+      "se",
+      "t_stat",
+      "theta",
+      "treatment_names"
     ],
     "puremacro.climate.dice.DICEResult": [
       "end_century_damages",
@@ -5859,6 +5972,14 @@
       "strategic_players",
       "tariff_cap"
     ],
+    "puremacro.trade.gpu.backend.DeviceInfo": [
+      "backend",
+      "device",
+      "device_name",
+      "is_uma",
+      "supports_float64",
+      "total_memory_gb"
+    ],
     "puremacro.trade.policy_analytics.EffectiveRateOfProtectionResult": [
       "country_code",
       "distortion_category",
@@ -6506,6 +6627,7 @@
     "puremacro.vfi.deep_macro.DeepMacroModel": [
       "beta",
       "euler_residual_fn",
+      "euler_target_fn",
       "n_controls",
       "n_states",
       "name",
@@ -6621,6 +6743,38 @@
       "survive",
       "value"
     ],
+    "puremacro.vfi.hjb_achdou.AiyagariContinuousHJBResult": [
+      "K_star",
+      "Kd_star",
+      "Ks_star",
+      "L_star",
+      "Y_star",
+      "converged",
+      "elapsed",
+      "excess_capital",
+      "g_dist",
+      "hjb_solution",
+      "n_iter_ge",
+      "r_star",
+      "w_star"
+    ],
+    "puremacro.vfi.hjb_achdou.HJBSolution": [
+      "A_generator",
+      "V",
+      "a_grid",
+      "c_policy",
+      "converged",
+      "e_grid",
+      "elapsed",
+      "g_dist",
+      "gamma_r",
+      "mass_residual",
+      "n_iter",
+      "r_rate",
+      "rho_val",
+      "s_drift",
+      "w_rate"
+    ],
     "puremacro.vfi.krusell_smith.KSEquilibrium": [
       "K_path",
       "b0",
@@ -6658,12 +6812,14 @@
     ],
     "puremacro.vfi.problem.VFISolution": [
       "V",
+      "a_grid",
       "backend",
       "endo_shape",
       "n_iter",
       "policy_aprime",
       "policy_d",
-      "sup_norm"
+      "sup_norm",
+      "z_grid"
     ],
     "puremacro.vfi.smolyak.SmolyakProblem": [
       "beta",

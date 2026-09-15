@@ -81,6 +81,20 @@ from .solver import (
     solve_trade_equilibrium,
 )
 
+# GPU & Apple MLX acceleration engine
+from .gpu import (
+    BatchedJacobianEvaluator,
+    DeviceInfo,
+    detect_device,
+    device_context,
+    get_memory_usage,
+    reset_peak_memory,
+    select_compute_device,
+    solve_homotopy_continuation,
+    solve_trade_equilibrium_gpu,
+    solve_trade_equilibrium_mlx,
+)
+
 # Multilateral Geary-Khamis PPP engine
 from .geary_khamis import (
     compute_geary_khamis,
@@ -213,6 +227,17 @@ __all__ = [
     # Solver routines
     "solve_trade_equilibrium",
     "build_initial_guess",
+    # GPU & Apple MLX acceleration engine
+    "solve_trade_equilibrium_gpu",
+    "solve_trade_equilibrium_mlx",
+    "solve_homotopy_continuation",
+    "BatchedJacobianEvaluator",
+    "detect_device",
+    "select_compute_device",
+    "device_context",
+    "get_memory_usage",
+    "reset_peak_memory",
+    "DeviceInfo",
     # Multilateral PPP routines
     "compute_geary_khamis",
     "compute_geary_khamis_ppp",

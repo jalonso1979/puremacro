@@ -20,6 +20,14 @@ from .bootstrap import _ols_var, _irf_from_var
 _BOOT_FAIL_WARN_THRESHOLD = 0.05
 
 
+def _can_use_threads() -> bool:
+    try:
+        from puremacro.runtime import capabilities
+        return bool(capabilities().threads)
+    except Exception:
+        return False
+
+
 def wild_bootstrap(
     residuals: np.ndarray,
     refit_fn: Callable[[np.ndarray], np.ndarray],
@@ -29,32 +37,28 @@ def wild_bootstrap(
 ) -> np.ndarray:
     """Rademacher wild bootstrap for scalar / LP regression inference.
 
-    Multiplies each residual by an i.i.d. Rademacher weight (±1), then
-    calls ``refit_fn`` to re-estimate the statistic of interest.
-
     Parameters
     ----------
-    residuals : ndarray of shape (T,) or (T, n)
-        Fitted residuals (zero-mean recommended).
-    refit_fn : callable
-        Signature: ``refit_fn(e_boot) -> ndarray``. Called ``n_boot`` times.
+    residuals : np.ndarray, shape (T,) or (T, k)
+        Model residuals to resample via Rademacher ±1 draws.
+    refit_fn : Callable[[np.ndarray], np.ndarray]
+        Callable mapping resampled residuals (same shape) to statistic vector.
     n_boot : int
-        Number of bootstrap replications.
-    rng : numpy Generator or None
-    n_jobs : int, default 1
-        Number of parallel worker threads. Set to -1 to use all available CPU cores.
+        Number of bootstrap replications (default 999).
+    rng : np.random.Generator, optional
+        Numpy generator for reproducibility.
+    n_jobs : int
+        Worker threads for parallel draw evaluation. 1 = serial, -1 = all cores.
 
     Returns
     -------
-    draws : ndarray of shape (n_boot, ...)
-        Bootstrap draws of the statistic returned by ``refit_fn``.
+    np.ndarray, shape (n_boot, *statistic_shape)
+        Bootstrap distribution of the target statistic.
     """
     if rng is None:
         rng = default_rng()
-    residuals = np.asarray(residuals, dtype=float)
-    T = residuals.shape[0]
 
-    # Batch generate Rademacher weights (identical random sequence, vectorized)
+    T = len(residuals)
     W = rng.choice(np.array([-1.0, 1.0]), size=(n_boot, T))
 
     def _eval_draw(w: np.ndarray) -> np.ndarray:
@@ -64,15 +68,18 @@ def wild_bootstrap(
             e_boot = residuals * w[:, None]
         return np.asarray(refit_fn(e_boot), dtype=float)
 
-    if n_jobs == 1:
+    if n_jobs == 1 or not _can_use_threads():
         draws = [_eval_draw(W[b]) for b in range(n_boot)]
     else:
-        import concurrent.futures
-        import os
+        try:
+            import concurrent.futures
+            import os
 
-        workers = os.cpu_count() or 1 if n_jobs < 0 else n_jobs
-        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
-            draws = list(ex.map(_eval_draw, W))
+            workers = os.cpu_count() or 1 if n_jobs < 0 else n_jobs
+            with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
+                draws = list(ex.map(_eval_draw, W))
+        except Exception:
+            draws = [_eval_draw(W[b]) for b in range(n_boot)]
 
     return np.stack(draws, axis=0)
 
@@ -127,15 +134,18 @@ def wild_bootstrap_var(
         except np.linalg.LinAlgError:
             return None
 
-    if n_jobs == 1:
+    if n_jobs == 1 or not _can_use_threads():
         res_list = [_eval_draw(b) for b in range(n_boot)]
     else:
-        import concurrent.futures
-        import os
+        try:
+            import concurrent.futures
+            import os
 
-        workers = os.cpu_count() or 1 if n_jobs < 0 else n_jobs
-        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
-            res_list = list(ex.map(_eval_draw, range(n_boot)))
+            workers = os.cpu_count() or 1 if n_jobs < 0 else n_jobs
+            with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
+                res_list = list(ex.map(_eval_draw, range(n_boot)))
+        except Exception:
+            res_list = [_eval_draw(b) for b in range(n_boot)]
 
     accepted = [r for r in res_list if r is not None]
     n_fail = n_boot - len(accepted)

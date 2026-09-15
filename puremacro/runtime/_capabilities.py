@@ -70,6 +70,7 @@ _ENV_OVERRIDES = {
     "PUREMACRO_DEVICE": "device",
     "PUREMACRO_SOCKETS": "sockets",
     "PUREMACRO_PARQUET": "parquet",
+    "PUREMACRO_THREADS": "threads",
 }
 
 
@@ -287,7 +288,7 @@ def _detect_memory_mb() -> int | None:
 
 def _coerce(field: str, raw: str):
     """Parse an override string into the field's type."""
-    if field in ("sockets", "parquet"):
+    if field in ("sockets", "parquet", "threads"):
         return raw.strip().lower() in ("1", "true", "yes", "on")
     value = raw.strip().lower()
     if field == "host" and value not in HOSTS:

@@ -15,6 +15,7 @@ nested DMP model and the general vfi engine share one source of truth.)
 """
 from __future__ import annotations
 
+import functools
 import importlib.util
 
 import numpy as np
@@ -83,21 +84,40 @@ def to_numpy(x) -> np.ndarray:
     return np.asarray(x)
 
 
-def njit_fallback(*args, **kwargs):
-    """Decorator compiling with numba.njit if numba is available, or no-op fallback."""
-    if backend_available("numba"):
-        try:
-            import numba
+def njit_fallback(*dargs, **dkwargs):
+    """Decorator compiling with numba.njit if numba is available, or no-op fallback.
 
-            return numba.njit(*args, **kwargs)
-        except Exception:
-            pass
+    Compilation is deferred until the decorated function is first called, ensuring that
+    importing modules decorated with @_bk.njit_fallback does not eagerly load numba.
+    """
+    def _wrap(fn, jit_args, jit_kwargs):
+        compiled = None
+        attempted = False
 
-    if len(args) == 1 and callable(args[0]) and not kwargs:
-        return args[0]
+        @functools.wraps(fn)
+        def wrapper(*args, **kwargs):
+            nonlocal compiled, attempted
+            if not attempted:
+                attempted = True
+                if backend_available("numba"):
+                    try:
+                        import numba
+
+                        compiled = numba.njit(*jit_args, **jit_kwargs)(fn)
+                    except Exception:
+                        compiled = None
+            if compiled is not None:
+                return compiled(*args, **kwargs)
+            return fn(*args, **kwargs)
+
+        wrapper.py_func = fn
+        return wrapper
+
+    if len(dargs) == 1 and callable(dargs[0]) and not dkwargs:
+        return _wrap(dargs[0], (), {})
 
     def decorator(fn):
-        return fn
+        return _wrap(fn, dargs, dkwargs)
 
     return decorator
 

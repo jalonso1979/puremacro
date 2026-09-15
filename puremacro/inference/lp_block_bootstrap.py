@@ -29,6 +29,14 @@ import pandas as pd
 # inside cum_irf_block_bootstrap below (Pyodide contract; see ARCHITECTURE.md).
 
 
+def _can_use_threads() -> bool:
+    try:
+        from puremacro.runtime import capabilities
+        return bool(capabilities().threads)
+    except Exception:
+        return False
+
+
 def cum_irf_block_bootstrap(
     df_wide: pd.DataFrame,
     *,
@@ -119,15 +127,18 @@ def cum_irf_block_bootstrap(
             return np.full(len(horizons), np.nan)
 
     all_sampled = [rng.choice(entities, size=n_e, replace=True) for _ in range(B)]
-    if n_jobs == 1:
+    if n_jobs == 1 or not _can_use_threads():
         boot = np.array([_fit_draw(s) for s in all_sampled])
     else:
-        import concurrent.futures
-        import os
+        try:
+            import concurrent.futures
+            import os
 
-        workers = os.cpu_count() or 1 if n_jobs < 0 else n_jobs
-        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
-            boot = np.array(list(ex.map(_fit_draw, all_sampled)))
+            workers = os.cpu_count() or 1 if n_jobs < 0 else n_jobs
+            with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
+                boot = np.array(list(ex.map(_fit_draw, all_sampled)))
+        except Exception:
+            boot = np.array([_fit_draw(s) for s in all_sampled])
 
     cum_boot = np.nancumsum(boot, axis=1)
     cum_point = np.cumsum(point_betas)

@@ -20,12 +20,14 @@ from __future__ import annotations
 from dataclasses import replace
 import time
 from typing import TYPE_CHECKING, Any, Callable
+import warnings
 import numpy as np
 import scipy.linalg as la
 import scipy.sparse as sp
 import scipy.sparse.linalg as spla
 from scipy.optimize._numdiff import approx_derivative, group_columns
 
+from puremacro._backend import backend_available, get_array_namespace, to_numpy
 from puremacro.trade.equilibrium import compute_equilibrium_residuals, unpack_equilibrium_vector
 from puremacro.trade.postprocessing import postprocess_trade_equilibrium
 
@@ -457,6 +459,7 @@ def _condensed_schur_solve(
     eps_fd: float = 1e-4,
     replicate_matlab_precedence: bool = True,
     *,
+    backend: str = "numpy",
     sigma: float = 0.0,
     fiscal_closure: str = "lump_sum",
     recycling_params: dict[str, Any] | None = None,
@@ -466,6 +469,29 @@ def _condensed_schur_solve(
     penalty_exponent: float = 8.0,
 ) -> tuple[np.ndarray, bool, int, float, float, np.ndarray]:
     """Block-elimination / Schur complement price condensation general equilibrium solver."""
+    if backend != "numpy":
+        if not backend_available(backend):
+            warnings.warn(
+                f"Backend '{backend}' is not available; falling back to 'numpy'.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            xp = np
+            backend = "numpy"
+        else:
+            try:
+                xp = get_array_namespace(backend)
+            except Exception as exc:
+                warnings.warn(
+                    f"Failed to load array namespace for backend '{backend}' ({exc}); falling back to 'numpy'.",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+                xp = np
+                backend = "numpy"
+    else:
+        xp = np
+
     ns = calib.n_sectors
     nc = calib.n_countries
     nfd = calib.n_final_demand
@@ -573,15 +599,28 @@ def _condensed_schur_solve(
         xk = np.where(mask_active, (ytot / calib.beta) * (ratio_wr ** (1.0 - calib.alpha)), 0.0)
 
         # 4. Bilateral trade flow accounting via fast broadcasting
-        x_2d = a_2d * y_vec[np.newaxis, :]
         pp_col = p_vec[:, np.newaxis]
         ppfd_row = ppfd.reshape((1, nfd * nc), order="F")
 
-        x_sum_c2 = np.sum(x_2d.reshape(M, nc, ns), axis=2)
+        a_blocks = a_2d.reshape(M, nc, ns)
+        y_blocks = y_vec.reshape(nc, ns)
+        if xp is not np:
+            a_dev = xp.asarray(a_blocks)
+            y_dev = xp.asarray(y_blocks)
+            x_sum_c2 = to_numpy(xp.sum(a_dev * y_dev[None, :, :], axis=2))
+        else:
+            x_sum_c2 = xp.sum(a_blocks * y_blocks[None, :, :], axis=2)
         val_sum = x_sum_c2 * pp_col
         T_inter = np.sum(val_sum.reshape(nc, ns, nc), axis=1)
 
-        fd_sum_c2 = np.sum((xc_2d * ppfd_row).reshape(M, nc, nfd), axis=2)
+        xc_blocks = xc_2d.reshape(M, nc, nfd)
+        ppfd_blocks = ppfd_row.reshape(nc, nfd)
+        if xp is not np:
+            xc_dev = xp.asarray(xc_blocks)
+            ppfd_dev = xp.asarray(ppfd_blocks)
+            fd_sum_c2 = to_numpy(xp.sum(xc_dev * ppfd_dev[None, :, :], axis=2))
+        else:
+            fd_sum_c2 = xp.sum(xc_blocks * ppfd_blocks[None, :, :], axis=2)
         T_fd = np.sum(fd_sum_c2.reshape(nc, ns, nc), axis=1)
         np.fill_diagonal(T_inter, 0.0)
         np.fill_diagonal(T_fd, 0.0)
@@ -846,6 +885,7 @@ def solve_trade_equilibrium(
     replicate_matlab_precedence: bool = True,
     base_result: TradeEquilibriumResult | None = None,
     *,
+    backend: str = "numpy",
     sigma: float = 0.0,
     fiscal_closure: str = "lump_sum",
     recycling_params: dict[str, Any] | None = None,
@@ -991,6 +1031,7 @@ def solve_trade_equilibrium(
                 tol=tol,
                 max_iter=max_iter,
                 replicate_matlab_precedence=replicate_matlab_precedence,
+                backend=backend,
             )
     elif method == "broyden":
         x_sol, conv, iters, max_res, diff, res = _broyden_solve(
@@ -1040,6 +1081,7 @@ def solve_trade_equilibrium(
         base_result=base_result,
         metadata={
             "method": method,
+            "backend": backend,
             "tol": tol,
             "max_iter": max_iter,
             "replicate_matlab_precedence": replicate_matlab_precedence,

@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from puremacro._backend import backend_available, get_array_namespace, to_numpy
 from puremacro.reports import _df_to_latex, _df_to_markdown, _df_to_typst
 from puremacro.spatial.weights import pairwise_distances
 
@@ -456,6 +457,7 @@ class AllenArkolakisModel:
         tol: float = 1e-8,
         max_iter: int = 2500,
         damping: float = 0.35,
+        backend: str = "numpy",
     ) -> AllenArkolakisResult:
         """Solve for the spatial general equilibrium.
 
@@ -471,12 +473,36 @@ class AllenArkolakisModel:
             Maximum fixed-point iterations.
         damping : float, default 0.35
             Damping relaxation parameter \\lambda \\in (0, 1].
+        backend : str, default 'numpy'
+            Hardware acceleration backend ('numpy', 'mlx', 'cupy').
 
         Returns
         -------
         AllenArkolakisResult
             Frozen dataclass containing the equilibrium allocations and welfare.
         """
+        if backend != "numpy":
+            if not backend_available(backend):
+                warnings.warn(
+                    f"Backend '{backend}' is not available; falling back to 'numpy'.",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+            else:
+                try:
+                    return self._solve_equilibrium_device(
+                        backend=backend,
+                        tol=tol,
+                        max_iter=max_iter,
+                        damping=damping,
+                    )
+                except Exception as exc:
+                    warnings.warn(
+                        f"Execution on backend '{backend}' failed with error ({exc}); falling back to 'numpy'.",
+                        RuntimeWarning,
+                        stacklevel=2,
+                    )
+
         N = self.N
         theta = self.theta
         alpha = self.alpha
@@ -606,6 +632,126 @@ class AllenArkolakisModel:
             coordinates=self.coordinates,
         )
 
+    def _solve_equilibrium_device(
+        self,
+        backend: str,
+        tol: float,
+        max_iter: int,
+        damping: float,
+    ) -> AllenArkolakisResult:
+        """Device-accelerated fixed-point contraction mapping."""
+        xp = get_array_namespace(backend)
+        N = self.N
+        theta = float(self.theta)
+        alpha = float(self.alpha)
+        beta = float(self.beta)
+        L_bar = float(self.total_population)
+        nu = -1.0 / beta
+
+        dtype = xp.float32 if backend == "mlx" else xp.float64
+        tau_dev = xp.asarray(self.trade_costs, dtype=dtype)
+        A_bar_dev = xp.asarray(self.fundamental_productivity, dtype=dtype)
+        a_bar_dev = xp.asarray(self.fundamental_amenity, dtype=dtype)
+
+        kernel_P = tau_dev ** (-theta)
+        w = xp.ones(N, dtype=dtype)
+        L = xp.full(N, L_bar / N, dtype=dtype) if hasattr(xp, "full") else xp.ones(N, dtype=dtype) * (L_bar / N)
+
+        converged = False
+        iteration = 0
+        utility_dispersion = 1.0
+        max_residual = 1.0
+
+        device_tol = max(tol, 1e-6 if backend == "mlx" else tol)
+        device_udisp_tol = 1e-5 if backend == "mlx" else 1e-7
+
+        for it in range(1, max_iter + 1):
+            iteration = it
+
+            A = A_bar_dev * (L ** alpha)
+            marginal_cost = w / A
+            cost_factor = marginal_cost ** (-theta)
+            P_pow_neg_theta = cost_factor @ kernel_P
+            P = P_pow_neg_theta ** (-1.0 / theta)
+
+            dest_exp = (P ** theta) * w * L
+            FMA = kernel_P @ dest_exp
+
+            w_target = ((A ** theta) * FMA / L) ** (1.0 / (1.0 + theta))
+            w_target = w_target / xp.mean(w_target)
+
+            w_next = (1.0 - damping) * w + damping * w_target
+            w_next = w_next / xp.mean(w_next)
+
+            real_comp = (w_next * a_bar_dev) / P
+            log_real_comp = xp.log(real_comp)
+            z = nu * log_real_comp
+            z_max = xp.max(z)
+            exp_z = xp.exp(z - z_max)
+            L_target = L_bar * (exp_z / xp.sum(exp_z))
+
+            L_next = (1.0 - damping) * L + damping * L_target
+            L_next = L_bar * (L_next / xp.sum(L_next))
+
+            u_i = a_bar_dev * (L_next ** beta) * (w_next / P)
+            u_bar = xp.mean(u_i)
+            u_diff = u_i - u_bar
+            u_std = xp.sqrt(xp.mean(u_diff * u_diff))
+            u_bar_val = float(to_numpy(u_bar))
+            utility_dispersion = float(to_numpy(u_std)) / max(u_bar_val, 1e-12)
+
+            wage_diff = float(to_numpy(xp.max(xp.abs(w_next - w))))
+            pop_diff = float(to_numpy(xp.max(xp.abs(L_next - L)) / L_bar))
+            max_residual = max(wage_diff, pop_diff, utility_dispersion)
+
+            w = w_next
+            L = L_next
+
+            if max_residual < device_tol and utility_dispersion < device_udisp_tol:
+                converged = True
+                break
+
+        w_np = to_numpy(w).astype(np.float64)
+        L_np = to_numpy(L).astype(np.float64)
+        L_np = L_bar * (L_np / np.sum(L_np))
+        w_np = w_np / np.mean(w_np)
+
+        A_np = self.fundamental_productivity * (L_np ** alpha)
+        kernel_P_np = self.trade_costs ** (-theta)
+        P_pow_neg_theta_np = np.dot((w_np / A_np) ** (-theta), kernel_P_np)
+        P_np = P_pow_neg_theta_np ** (-1.0 / theta)
+        CMA_np = P_pow_neg_theta_np
+        FMA_np = np.dot(kernel_P_np, (P_np ** theta) * w_np * L_np)
+        real_wages_np = w_np / P_np
+
+        u_i_np = self.fundamental_amenity * (L_np ** beta) * (w_np / P_np)
+        welfare = float(np.mean(u_i_np))
+        spatial_utility_variance = float(np.std(u_i_np) / max(welfare, 1e-12))
+        labor_conservation_res = float(np.abs(np.sum(L_np) - L_bar))
+
+        trade_shares = np.zeros((N, N), dtype=float)
+        for i in range(N):
+            trade_shares[i, :] = kernel_P_np[:, i] * ((w_np / A_np) ** (-theta)) / CMA_np[i]
+            trade_shares[i, :] = trade_shares[i, :] / np.sum(trade_shares[i, :])
+
+        return AllenArkolakisResult(
+            wages=w_np,
+            population=L_np,
+            price_index=P_np,
+            real_wages=real_wages_np,
+            welfare=welfare,
+            trade_shares=trade_shares,
+            consumer_market_access=CMA_np,
+            firm_market_access=FMA_np,
+            converged=converged,
+            iterations=iteration,
+            max_residual=max_residual,
+            labor_conservation_residual=labor_conservation_res,
+            spatial_utility_variance=spatial_utility_variance,
+            region_names=self.region_names,
+            coordinates=self.coordinates,
+        )
+
     def solve_counterfactual(
         self,
         trade_costs_new: np.ndarray | None = None,
@@ -614,6 +760,7 @@ class AllenArkolakisModel:
         tol: float = 1e-8,
         max_iter: int = 2500,
         damping: float = 0.35,
+        backend: str = "numpy",
     ) -> AllenArkolakisResult:
         """Solve a counterfactual equilibrium and compute comparative statics against baseline.
 
@@ -631,6 +778,8 @@ class AllenArkolakisModel:
             Maximum iterations.
         damping : float, default 0.35
             Damping parameter.
+        backend : str, default 'numpy'
+            Hardware acceleration backend ('numpy', 'mlx', 'cupy').
 
         Returns
         -------
@@ -638,7 +787,7 @@ class AllenArkolakisModel:
             Counterfactual equilibrium result with w_hat, L_hat, welfare_hat, and welfare_pct.
         """
         # Solve baseline equilibrium
-        base_res = self.solve_equilibrium(tol=tol, max_iter=max_iter, damping=damping)
+        base_res = self.solve_equilibrium(tol=tol, max_iter=max_iter, damping=damping, backend=backend)
 
         # Create counterfactual model
         cf_tau = self.trade_costs if trade_costs_new is None else np.asarray(trade_costs_new, dtype=float)
@@ -657,7 +806,7 @@ class AllenArkolakisModel:
             coordinates=self.coordinates,
         )
 
-        cf_res = cf_model.solve_equilibrium(tol=tol, max_iter=max_iter, damping=damping)
+        cf_res = cf_model.solve_equilibrium(tol=tol, max_iter=max_iter, damping=damping, backend=backend)
 
         # Compute comparative statics
         w_hat = cf_res.wages / base_res.wages

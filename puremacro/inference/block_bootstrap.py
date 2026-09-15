@@ -19,6 +19,14 @@ def default_block_length(T: int) -> int:
     return round(T ** (1 / 3))
 
 
+def _can_use_threads() -> bool:
+    try:
+        from puremacro.runtime import capabilities
+        return bool(capabilities().threads)
+    except Exception:
+        return False
+
+
 def block_bootstrap(
     residuals: np.ndarray,
     *,
@@ -85,14 +93,17 @@ def block_bootstrap(
     def _eval_draw(boot: np.ndarray) -> np.ndarray:
         return np.asarray(refit_fn(boot), dtype=float)
 
-    if n_jobs == 1:
+    if n_jobs == 1 or not _can_use_threads():
         draws_list = [_eval_draw(boot_matrix[b]) for b in range(B)]
     else:
-        import concurrent.futures
-        import os
+        try:
+            import concurrent.futures
+            import os
 
-        workers = os.cpu_count() or 1 if n_jobs < 0 else n_jobs
-        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
-            draws_list = list(ex.map(_eval_draw, boot_matrix))
+            workers = os.cpu_count() or 1 if n_jobs < 0 else n_jobs
+            with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
+                draws_list = list(ex.map(_eval_draw, boot_matrix))
+        except Exception:
+            draws_list = [_eval_draw(boot_matrix[b]) for b in range(B)]
 
     return np.stack(draws_list, axis=0)   # shape (B, n_stats)
