@@ -459,6 +459,34 @@ def test_max_iter_exhaustion_is_reported(dual_constraint_models):
     assert via_dispatch.converged is False
 
 
+def test_nonconvergence_warning_is_attributed_to_the_caller(dual_constraint_models):
+    """The warning points at the user's line, also when solve_occbin forwards to the multi solver.
+
+    With a fixed ``stacklevel=2`` a mapping/sequence call through solve_occbin
+    attributed the warning to the dispatch line inside occbin.py, so the
+    default 'once per location' filter and the printed location were wrong.
+    """
+    m_ref, m_zlb, m_borr, c_zlb, c_borr = dual_constraint_models
+    models = {"zlb": m_zlb, "borrowing": m_borr}
+    cons = {"zlb": c_zlb, "borrowing": c_borr}
+    calls = {
+        "direct": lambda: solve_multiconstraint_occbin(m_ref, models, _joint_shock(), constraints=cons, horizon=40, max_iter=1),
+        "mapping via solve_occbin": lambda: solve_occbin(m_ref, models, cons, _joint_shock(), horizon=40, max_iter=1),
+        "sequence via solve_occbin": lambda: solve_occbin(
+            m_ref, [m_zlb, m_borr], [c_zlb, c_borr], _joint_shock(), horizon=40, max_iter=1
+        ),
+        "single via solve_occbin": lambda: solve_occbin(m_ref, m_zlb, c_zlb, _joint_shock(), horizon=40, max_iter=1),
+    }
+    for label, call in calls.items():
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            res = call()
+        assert res.converged is False
+        user = [w for w in caught if issubclass(w.category, UserWarning) and "converged=False" in str(w.message)]
+        assert len(user) == 1, (label, [str(w.message) for w in caught])
+        assert user[0].filename == __file__, f"{label}: warning attributed to {user[0].filename}:{user[0].lineno}"
+
+
 def test_regime_cycle_and_bound_violation_are_reported(dual_constraint_models):
     """A threshold inconsistent with the peg makes the regime guess cycle: reported, not hidden.
 

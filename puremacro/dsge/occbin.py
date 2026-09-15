@@ -80,6 +80,7 @@ Scope and honest limitations
 """
 from __future__ import annotations
 
+import sys
 import warnings
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Sequence
@@ -1055,6 +1056,24 @@ def _safe_solve(A: np.ndarray, B: np.ndarray) -> np.ndarray:
     except np.linalg.LinAlgError:
         sol, *_ = np.linalg.lstsq(A, B, rcond=None)
         return sol
+
+
+def _stacklevel_outside_module() -> int:
+    """``stacklevel`` that attributes a warning to the first frame outside this module.
+
+    :func:`solve_occbin` forwards mapping/sequence inputs to
+    :func:`solve_multiconstraint_occbin`; with a fixed ``stacklevel=2`` the
+    non-convergence warning raised there would point at the dispatch line
+    inside this file rather than at the user's call. Walking past every frame
+    whose globals belong to this module gives the right level for a direct
+    call (2) and for the forwarded one (3) alike.
+    """
+    level = 1
+    frame = sys._getframe(1)
+    while frame is not None and frame.f_globals.get("__name__") == __name__:
+        level += 1
+        frame = frame.f_back
+    return level
 
 
 # ---------------------------------------------------------------------------
@@ -2516,13 +2535,15 @@ def solve_multiconstraint_occbin(
 
     converged = bool(fixed_point) and not reasons
     if reasons:
+        # Attributed to the user's call whether they called this function or
+        # reached it through solve_occbin's mapping/sequence dispatch.
         warnings.warn(
             "solve_multiconstraint_occbin did not produce a verified solution (converged=False): "
             + "; ".join(reasons)
             + ". The returned path is the one solved under `result.regimes` and is a "
             "diagnostic, not a solution.",
             UserWarning,
-            stacklevel=2,
+            stacklevel=_stacklevel_outside_module(),
         )
 
     period_index = pd.RangeIndex(1, horizon + 1, name="t")
