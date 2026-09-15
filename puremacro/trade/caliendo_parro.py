@@ -11,10 +11,12 @@ Reference:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
-import matplotlib
-import matplotlib.pyplot as plt
+if TYPE_CHECKING:
+    import matplotlib.axes
+    import matplotlib.figure
+
 import numpy as np
 import pandas as pd
 from scipy import linalg
@@ -141,6 +143,8 @@ class CaliendoParroResult:
         **kwargs: Any,
     ) -> matplotlib.figure.Figure:
         """Plot counterfactual outcome by country."""
+        import matplotlib.pyplot as plt
+
         if ax is None:
             fig, ax = plt.subplots(figsize=figsize)
         else:

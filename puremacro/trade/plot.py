@@ -14,11 +14,14 @@ Conforms strictly to the puremacro Pyodide runtime contract:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Sequence
-import matplotlib.pyplot as plt
+from typing import TYPE_CHECKING, Any, Sequence
+
+if TYPE_CHECKING:
+    import matplotlib.pyplot as plt
+    from matplotlib.figure import Figure
+
 import numpy as np
 import pandas as pd
-from matplotlib.figure import Figure
 
 from puremacro.trade._results import ScenarioBatchResult
 from puremacro.trade.data import CANONICAL_COUNTRY_CODES, EU_COUNTRY_CODES
@@ -39,6 +42,9 @@ def _resolve_ax(
     ax: plt.Axes | None, figsize: tuple[float, float] = (7.0, 4.5)
 ) -> tuple[Figure, plt.Axes]:
     """Helper to resolve or create a Figure and Axes."""
+    import matplotlib.pyplot as plt
+    from matplotlib.figure import Figure
+
     if ax is None:
         fig, new_ax = plt.subplots(figsize=figsize)
         return fig, new_ax
@@ -82,6 +88,9 @@ def plot_country_impacts(
     matplotlib.figure.Figure
         The created Figure object.
     """
+    import matplotlib.pyplot as plt
+    from matplotlib.figure import Figure
+
     from puremacro.trade.tables import generate_selected_country_table
 
     if countries is None:

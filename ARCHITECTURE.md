@@ -98,6 +98,9 @@ puremacro/
 ├── nowcast/               ← kalman_dfm, mf_var, forecast combos, CRPS
 ├── gar/                   ← Growth-at-Risk: QAR, skew-t, FCI
 ├── did/                   ← Staggered DiD: CS, Sun-Abraham, BJS, SDID
+├── causal/                ← Double / Debiased Machine Learning & causal inference
+│   ├── dml.py             ← DML PLR (Chernozhukov et al. 2018) + cross-fitting
+│   └── synthetic_control.py ← Synthetic control methods & placebo inference
 ├── dynpanel/              ← Arellano-Bond + Blundell-Bond dynamic-panel GMM
 ├── hfi/                   ← high-frequency monetary surprises (GK / NS / JK)
 │
@@ -115,7 +118,8 @@ puremacro/
 │   ├── continuous_distribution.py ← Young (2010) continuous density & Aiyagari GE
 │   ├── continuous_transition.py   ← Non-linear MIT transitions + sequence Broyden
 │   ├── analytic_gradients.py      ← Machine-precision IFT parameter Jacobians
-│   └── deep_macro.py      ← Deep Macro PINNs in pure NumPy + ergodic sampling
+│   ├── deep_macro.py      ← Deep Macro PINNs in pure NumPy + ergodic sampling
+│   └── hjb_achdou.py      ← Implicit upwind M-matrix solver, adjoint KFE, continuous Aiyagari GE
 ├── trade/                 ← Quantitative international trade general equilibrium
 │   ├── caliendo_parro.py  ← Caliendo-Parro (2015) exact hat algebra
 │   ├── equilibrium.py / solver.py / optimal_tariffs.py / calibration.py
@@ -163,15 +167,20 @@ puremacro/
 │
 │ ── data pipelines (entire new category vs the 0.4.0 doc) ─────────
 ├── fetch/                 ← Public-data fetchers, all routed through
-│                            ._http (UA override, SSL fallback, 30s
-│                            timeout). Modules for FRED / ALFRED / SDMX
-│                            (OECD / Eurostat / ECB / IMF SDMX-Central),
-│                            FRED-states, EPU / GPR / WUI / JLN /
-│                            Fernald, OECD-MEI / OECD-QNA / OECD-energy
-│                            / OECD-FX / OECD-QNA-labor, WB pink-sheet,
-│                            emissions, energy_transition, commodities,
-│                            financial, ILOSTAT, Yahoo, plus a STL/X-13 seasonal
-│                            helper (_seasonal.py — statsmodels lazy).
+│   │                        ._http (UA override, SSL fallback, 30s
+│   │                        timeout). Modules for FRED / ALFRED / SDMX
+│   │                        (OECD / Eurostat / ECB / IMF SDMX-Central),
+│   │                        FRED-states, EPU / GPR / WUI / JLN /
+│   │                        Fernald, OECD-MEI / OECD-QNA / OECD-energy
+│   │                        / OECD-FX / OECD-QNA-labor, WB pink-sheet,
+│   │                        emissions, energy_transition, commodities,
+│   │                        financial, ILOSTAT, Yahoo, plus a STL/X-13 seasonal
+│   │                        helper (_seasonal.py — statsmodels lazy).
+│   └── realtime/          ← Real-time central bank vintage connectors:
+│                            Banxico, INEGI, Banco Central do Brasil (SGS),
+│                            Banco Central de Chile, ALFRED, Bundesbank,
+│                            ECB RTD, ONS, StatCan, OECD STES; offline
+│                            .pmz cartridges and schema canaries.
 ├── build_panel.py         ← Orchestrates panel_Q + panel_M from fetch/*.
 │                            Public entry: build_all(countries, fast,
 │                            refresh). Imports arch lazily for GARCH-σ.
@@ -319,6 +328,9 @@ These are the load-bearing imports. If you change one of these arrows, double-ch
 | `vfi/continuous_transition` | **Stable** | Non-linear transition paths under unexpected MIT shocks combining backward EGM with forward Young operators via sequence-space Broyden. |
 | `vfi/analytic_gradients` | **Stable** | Exact parameter Jacobians $\nabla_\theta c^*$ via the Implicit Function Theorem in a single linear solve ($60\times+$ faster than finite differences) for GMM/SMM. |
 | `vfi/deep_macro` | **Stable** | Physics-Informed Neural Networks (PINNs) in pure NumPy for ultra-high-dimensional dynamic models (10+ states) with ergodic sampling. |
+| `vfi/hjb_achdou` | **Mature** | Canonical implicit upwind finite-difference scheme (sparse M-matrix system $(\rho I - A^n) v^{n+1} = u(c^n)$), adjoint continuous-time KFE stationary distribution $g(a, z)$, and continuous Aiyagari GE. |
+| `causal/dml` | **Stable** | Double / Debiased Machine Learning (Chernozhukov et al. 2018) for partially linear regression (`DMLPLR`) with $K$-fold cross-fitting and pure-NumPy regularized learners. |
+| `fetch/realtime/{banxico, inegi, bcb, bcch}` | **Stable** | Latin America real-time central bank and statistical agency data connectors with offline `.pmz` cartridges and schema canaries. |
 | `trade/caliendo_parro` | **Stable** | Multi-country, multi-sector trade general equilibrium with input-output linkages, intermediate goods, and tariffs solved via exact hat algebra (`CaliendoParroModel`). |
 | `spatial/allen_arkolakis` | **Stable** | Continuous geographic general equilibrium with bilateral iceberg trade costs, labor mobility, agglomeration, and congestion (`AllenArkolakisModel`). |
 | `regress/*` | **Soft-legacy** | `regress/lp.py` is an independent pure-numpy LP implementation (not a thin re-export of `lp.panel` — different signature). 3 callers in `tools/run_*.py`; its own follow-up release. |
@@ -481,17 +493,27 @@ declare `PARSER_SCHEMA_VERSION` and call
 fail loudly on upstream layout drift. References:
 `docs/CREDENTIALS.md`, `docs/CACHE_DB.md`.
 
-### Real-time / vintage layer (1.7.0+)
+### Real-time / vintage layer (1.7.0+, 3.4.0+)
 
 `puremacro.fetch.realtime` is a provider registry, not a single
-fetcher. Six repositories publish previously-released values in six
-different shapes; each gets a module exposing a **pure parser**
+fetcher. Central bank and statistical agency repositories publish previously-released
+values in different shapes; each gets a module exposing a **pure parser**
 (bytes → `[date, vintage, value]`, no I/O, offline-testable) plus a
 network wrapper, and every result is funnelled through
 `_base.normalize_vintage_frame` into one tidy schema
 (`country, variable, date, vintage, value, provider, series_id, units`).
 `vintage_panel` is the single entry point; `VintagePanel` carries the
 revision helpers, which delegate to `puremacro.vintages`.
+
+At 3.4.0, first-class Latin American providers join the registry:
+- `banxico`: Banco de México (SIE API) real-time series and revision tracking.
+- `inegi`: INEGI (Mexico) national accounts, inflation, and activity indicators.
+- `bcb`: Banco Central do Brasil (SGS API) policy rates and aggregates.
+- `bcch`: Banco Central de Chile statistical database series.
+
+All providers support offline SQLite caching in `_cache_db` (`realtime_vintages` table)
+and `.pmz` offline package cartridges (`cartridge.py`). Active schema canaries
+(`canary.py`) run health checks detecting upstream endpoint and layout drift.
 
 Three invariants are load-bearing and easy to break:
 
@@ -505,7 +527,7 @@ Three invariants are load-bearing and easy to break:
    growth rate is not differenced twice.
 3. **Vintage-date semantics differ by provider** and are recorded in
    `_base.VINTAGE_SEMANTICS`. Some are genuine national release dates
-   (Bundesbank, StatCan), some are snapshot months (OECD), one is a
+   (Bundesbank, StatCan, Banxico), some are snapshot months (OECD), one is a
    month-plus-stage label with no day (ONS). Ordering is safe
    everywhere; event-dating is not.
 

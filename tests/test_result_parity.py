@@ -456,6 +456,8 @@ def test_hjb_solution_elevation_and_dict_compatibility():
 # ---------------------------------------------------------------------------
 
 def test_garch_utils_deprecation_warning():
+    import sys
+    sys.modules.pop("puremacro.lp.garch_utils", None)
     with warnings.catch_warnings(record=True) as record:
         warnings.simplefilter("always")
         import puremacro.lp.garch_utils  # noqa: F401

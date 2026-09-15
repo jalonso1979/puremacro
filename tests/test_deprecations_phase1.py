@@ -29,5 +29,7 @@ def test_sigma_numpy_emits_future_warning():
 
 
 def test_lp_garch_utils_emits_future_warning():
+    import sys
+    sys.modules.pop("puremacro.lp.garch_utils", None)
     with pytest.deprecated_call():
         import puremacro.lp.garch_utils  # noqa: F401

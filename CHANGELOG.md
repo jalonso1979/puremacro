@@ -2,6 +2,48 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## 3.4.0 (2026-09-15)
+
+### Milestone 3.4: Strategic API Parity, Implicit Continuous HJB-KFE Solvers, Multi-Constraint OccBin, Causal DML & Latin America Real-Time Macro Connectors
+
+Major milestone release delivering four strategic frontiers: unified result-object presentation parity with `.to_typst()`, high-performance continuous-time implicit HJB upwind M-matrix solvers and adjoint KFE distributions, multi-constraint OccBin ($M \ge 2$) coupled with Double / Debiased Machine Learning (DML), and a regional real-time data ecosystem for Latin American central banks with offline `.pmz` cartridges, under the zero-dependency Pyodide four-package contract (`numpy`, `scipy`, `pandas`, `matplotlib`):
+
+---
+
+### Added — High-Performance Implicit Continuous-Time HJB & Adjoint KFE Solvers (`puremacro.vfi.hjb_achdou`)
+- **Canonical Implicit Upwind M-Matrix Solver** (`solve_hjb_achdou`, `HJBSolution`): Upgraded from explicit time-stepping to the Achdou, Han, Lasry, Lions & Moll (2022) implicit upwind finite-difference scheme. Solves the sparse, diagonally dominant M-matrix system $(\rho I - A^n) v^{n+1} = u(c^n)$ via `scipy.sparse.linalg.spsolve`, converging unconditionally in 10–20 policy iterations.
+- **Adjoint Kolmogorov Forward Equation (KFE) Distribution Solver**: Solves the stationary continuous wealth density $g(a, z)$ via the transposed generator $A^T g = 0$ subject to exact mass conservation $\sum g_i \Delta a_i = 1.0 \pm 10^{-12}$, replacing stochastic simulation with machine-precision numerical integration.
+- **Continuous Aiyagari General Equilibrium** (`solve_aiyagari_continuous_hjb`): General equilibrium root-finder balancing aggregate capital supply $K^s(r) = \int a \, g(a, z) \, da \, dz$ against firm marginal product demand $K^d(r)$, delivering market-clearing equilibrium interest rates $r^*$ and wages $w^*$.
+- **Frozen Result Object & Presentation Contract**: `HJBSolution` is a `@dataclass(frozen=True)` equipped with `.summary()`, `.plot()`, `.to_latex()`, `.to_typst()`, and `.to_markdown()`, with full dict-mapping backward compatibility.
+
+### Added — Structural & Causal Macro Frontiers (`puremacro.dsge.occbin`, `puremacro.causal.dml`, `puremacro.lp.iv`)
+- **Multi-Constraint OccBin** ($M \ge 2$): Extended Guerrieri & Iacoviello (2015) piecewise-linear simulation to handle $M \ge 2$ simultaneous occasionally binding inequality constraints (e.g. concurrent Zero Lower Bound $i_t \ge 0$ and collateral borrowing limits $b_{t+1} \le \bar{b}$). Tracks up to $2^M$ regime transitions with guaranteed backward convergence.
+- **Double / Debiased Machine Learning (DML)** (`puremacro.causal.dml.DMLPLR`, `DMLResult`): Implements Chernozhukov et al. (2018) Partially Linear Regression (PLR) with Neyman orthogonal scores, $K$-fold cross-fitting, and pure-NumPy regularized learners (Ridge, Lasso, Elastic Net) for high-dimensional macroeconomic controls, achieving $\sqrt{N}$-consistent causal treatment effect inference without external ML dependencies.
+- **Montiel Olea & Pflueger (2013) Weak-IV Inference**: Enhanced `puremacro.lp.iv` and `puremacro.lp.la_lp` with effective $F$-statistics and weak-IV robust confidence sets robust to arbitrary heteroskedasticity, autocorrelation, and clustering.
+
+### Added — Latin America Real-Time Data Ecosystem (`puremacro.fetch.realtime`)
+- **First-Class Central Bank & Statistical Agency Connectors**: Native real-time vintage data fetchers and pure parsers for Latin American institutions:
+  - `puremacro.fetch.realtime.banxico`: Banco de México (SIE API) real-time series and revision tracking.
+  - `puremacro.fetch.realtime.inegi`: INEGI (Mexico) national accounts, inflation, and economic activity indicators.
+  - `puremacro.fetch.realtime.bcb`: Banco Central do Brasil (SGS API) policy rates, credit aggregates, and fiscal indicators.
+  - `puremacro.fetch.realtime.bcch`: Banco Central de Chile statistical database series and vintage matrices.
+- **Offline `.pmz` Cartridges & Schema Canaries**: Integrated standard SQLite caching (`_cache_db`), offline `.pmz` package cartridges, and automated schema drift canaries (`canary.py`) detecting upstream endpoint and layout changes before network failures occur.
+
+### Added — Bilingual Showcase Notebooks (56, 57, 58)
+- **Notebook 56 (`56_implicit_hjb_and_continuous_kfe`)**: Demonstrates continuous-time HJB implicit upwind finite-difference solutions, adjoint KFE stationary wealth distributions, Lorenz curves, and Aiyagari general equilibrium in English and Spanish.
+- **Notebook 57 (`57_multiconstraint_occbin_and_dml`)**: Simulates dual occasionally binding constraints (ZLB and borrowing caps) via multi-constraint OccBin, coupled with high-dimensional macroeconomic treatment effect estimation via DML PLR with cross-fitting.
+- **Notebook 58 (`58_latin_america_realtime_macro`)**: Evaluates real-time macro data vintages across Latin America, analyzing GDP and CPI revision triangles, noise-vs-news decompositions, and offline `.pmz` cartridge persistence.
+
+### Improved — API Consistency & Export Parity
+- **Typst Format Parity (`.to_typst()`)**: Implemented `.to_typst()` across all remaining result objects in `puremacro.trade`, `puremacro.var`, `puremacro.vfi`, and `puremacro.causal`, achieving 100% parity across `.summary()`, `.plot()`, `.to_latex()`, `.to_typst()`, and `.to_markdown()`.
+- **Result-Object Standard**: Elevated `VFISolution` and `HJBSolution` into immutable frozen dataclasses conforming to the unified puremacro presentation contract.
+- **Stale Deprecations Retired**: Cleaned and modernized deprecation notices in `puremacro.lp.garch_utils` and related modules targeting version 4.0.0+.
+
+### Improved — Runtime Portability & Multi-Backend Acceleration
+- **GPU / Hardware Backend Integration**: Connected `puremacro.trade.solver` (Caliendo-Parro CGE) and `puremacro.spatial.allen_arkolakis` to `puremacro._backend`, supporting Apple Silicon MLX GPU and NVIDIA CuPy acceleration with seamless, warning-safe fallback to pure NumPy.
+- **WASM / Pyodide Thread Fallback**: Added runtime capability checks (`runtime.capabilities.threads`) in parallel bootstrap engines (`wild_bootstrap`, `block_bootstrap`, `var/bootstrap`), automatically falling back to serial execution in browser and single-threaded environments without throwing exceptions.
+- **Lazy Matplotlib Imports**: Ensured all spatial, trade, and econometric modules import visualization tools lazily, preventing premature Matplotlib loading during module import sweeps.
+
 ## 3.3.0 (2026-09-13)
 
 ### Milestone 3.3: Continuous Dynamic Programming, Deep Macro PINNs & Quantitative Spatial and Trade General Equilibrium

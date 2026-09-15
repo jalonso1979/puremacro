@@ -390,16 +390,16 @@ class TestLatexCompilationAndAdversarialEdgeCases:
             assert "Extra alignment tab" not in log_text
 
     def test_adversarial_with_row_legacy_compat_ignored(self, benchmark_batch):
-        """Adversarially document that to_latex_selected_country_with_row ignores legacy_compat."""
+        """Verify that to_latex_selected_country_with_row correctly respects legacy_compat."""
         leg = to_latex_selected_country_with_row(benchmark_batch, legacy_compat=True)
         clean = to_latex_selected_country_with_row(benchmark_batch, legacy_compat=False)
 
-        # The function signature has legacy_compat, but the body does not branch on it
-        assert leg == clean, (
-            "Found discrepancy: to_latex_selected_country_with_row was expected to ignore legacy_compat"
-        )
-        assert r"\begin{tabular}{lrrrrr}" in clean
-        # Net exports row still has 7 columns in clean mode
+        assert leg != clean, "Expected legacy_compat=True and False to produce different tables"
+        assert r"\begin{tabular}{lrrrrr}" in leg
+        assert r"\begin{tabular}{lrrrrrr}" in clean
+        assert "Country & t10 & t10\\_25 & t10\\_54 & t10\\_125 & t10\\_145 \\\\" in leg
+        assert "Country & t10 & t10\\_25 & t10\\_54 & t10\\_125 & t10\\_145 & Base \\\\" in clean
+        # Net exports row has 7 columns in clean mode (with Base)
         assert "CAN       &  -1.59 &  -1.50 &  -1.40 &  -1.14 &  -1.06 &  -1.74 \\" in clean
 
     def test_adversarial_unescaped_percent_in_caption(self, benchmark_batch):

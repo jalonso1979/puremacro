@@ -138,13 +138,16 @@ def _chebyshev_basis_1d_kernel(x: np.ndarray, max_order: int) -> np.ndarray:
 def _chebyshev_deriv_1d_kernel(x: np.ndarray, max_order: int) -> np.ndarray:
     """Evaluate first derivatives T'_0(x) ... T'_max_order(x) via derivative recurrence."""
     n = len(x)
-    T = _chebyshev_basis_1d_kernel(x, max_order)
+    T = np.zeros((n, max_order + 1), dtype=np.float64)
     dT = np.zeros((n, max_order + 1), dtype=np.float64)
     for i in range(n):
+        T[i, 0] = 1.0
         dT[i, 0] = 0.0
         if max_order >= 1:
+            T[i, 1] = x[i]
             dT[i, 1] = 1.0
         for j in range(1, max_order):
+            T[i, j + 1] = 2.0 * x[i] * T[i, j] - T[i, j - 1]
             dT[i, j + 1] = 2.0 * T[i, j] + 2.0 * x[i] * dT[i, j] - dT[i, j - 1]
     return dT
 

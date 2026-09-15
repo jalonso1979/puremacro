@@ -52,8 +52,12 @@ def test_bootstrap_seeds_schema_version(fresh_db):
     from puremacro._cache_db import get_conn
     conn = get_conn(fresh_db)
     rows = dict(conn.execute("SELECT component, version FROM schema_version"))
-    assert rows == {"http_cache": 1, "alfred_vintages": 1,
-                    "connector_events": 1}
+    assert rows == {
+        "http_cache": 1,
+        "alfred_vintages": 1,
+        "connector_events": 1,
+        "realtime_vintages": 1,
+    }
 
 
 def test_bootstrap_is_idempotent(fresh_db):
@@ -62,7 +66,7 @@ def test_bootstrap_is_idempotent(fresh_db):
     bootstrap_schema(conn)
     bootstrap_schema(conn)  # second call must not raise or duplicate
     rows = list(conn.execute("SELECT component, version FROM schema_version"))
-    assert len(rows) == 3
+    assert len(rows) == 4
 
 
 def test_wal_mode_enabled(fresh_db):

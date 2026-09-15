@@ -75,9 +75,25 @@ def test_no_forbidden_framework_imports() -> None:
                         f"Forbidden from-import '{node.module}' found in {source_path}"
                     )
 
-    # 2. Check sys.modules
-    for f in forbidden:
-        assert f not in sys.modules, f"Forbidden module '{f}' unexpectedly present in sys.modules"
+    # 2. Check in an isolated process that importing deep_macro does not pull in forbidden frameworks
+    import os
+    import subprocess
+    root = Path(__file__).resolve().parents[2]
+    cmd = (
+        "import sys, puremacro.vfi.deep_macro; "
+        "forbidden = ['torch', 'tensorflow', 'jax', 'statsmodels', 'linearmodels', 'arch']; "
+        "leaked = [f for f in forbidden if f in sys.modules]; "
+        "assert not leaked, f'Forbidden module(s) {leaked} present in sys.modules'"
+    )
+    proc = subprocess.run(
+        [sys.executable, "-c", cmd],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        env={"PYTHONPATH": str(root), "PATH": os.environ.get("PATH", "/usr/bin:/bin")},
+    )
+    assert proc.returncode == 0, proc.stderr
 
 
 # ---------------------------------------------------------------------------
