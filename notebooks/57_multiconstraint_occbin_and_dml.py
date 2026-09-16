@@ -41,7 +41,7 @@
 #
 # **Intuition.** In linear macroeconomic models, shocks propagate symmetrically: a negative demand shock contracts output by the exact same proportion that a positive shock expands it. In reality, economic crises trigger non-linear boundaries. When an adverse demand shock drives the nominal policy rate to zero ($r_t = -r_{ss}$), conventional monetary policy loses its ability to lower interest rates further. If a simultaneous credit contraction restricts private borrowing ($b_t = \bar{b}$), credit-constrained firms and households cannot borrow against future income to smooth current spending. The resulting collapse in aggregate demand further depresses inflation, deepening the real interest rate burden and prolonging the duration of the liquidity trap. Multi-constraint OccBin provides the structural machinery to track how these two constraints interact dynamically, revealing non-linear amplification effects that single-constraint models overlook.
 #
-# Simultaneously, empirical macroeconomists face the challenge of estimating the true causal effect $\theta_0$ of policy interventions in the presence of dozens of potentially confounding macroeconomic variables. Including 30 or 50 correlated controls in an ordinary least squares regression severely inflates standard errors or produces singular moment matrices when sample sizes are modest. Applying naive regularized machine learning (such as standard Lasso) penalizes all control variables, introducing omitted-variable shrinkage bias that leaks directly into the policy coefficient $\hat{\theta}$.
+# Simultaneously, empirical macroeconomists face the challenge of estimating the true causal effect $\theta_0$ of policy interventions in the presence of dozens of potentially confounding macroeconomic variables. Ordinary least squares degrades as the control count $p$ becomes a non-trivial fraction of the sample size $N$ — standard errors inflate, and the moment matrix turns singular once $p \ge N$. Applying naive regularized machine learning (such as standard Lasso) to $D$ and $X$ jointly penalizes the policy variable itself, introducing shrinkage bias that leaks directly into the policy coefficient $\hat{\theta}$. The experiment below deliberately sits in the comfortable corner ($N = 500$, $p = 30$), where OLS is still unbiased and efficient and therefore serves as the honest yardstick against which the debiased estimator is judged.
 #
 # Double Machine Learning solves this problem through the dual principles of Neyman orthogonality and cross-fitting. First, by partialling out the influence of the high-dimensional controls from both the policy variable $D$ and the outcome variable $Y$, the score function becomes insensitive to small errors in estimating the nuisance functions. Second, by using out-of-fold predictions to evaluate residuals, cross-fitting prevents overfitting from contaminating the sample moments. The resulting estimator recovers the true policy effect with root-$N$ parametric efficiency and valid asymptotic confidence intervals, marrying modern machine learning flexibility with rigorous econometric inference.
 
@@ -162,6 +162,9 @@ t_occ = time.perf_counter() - t0_occ
 sim_linear = m_ref.simulate(periods=horizon, shocks=shocks_mat, burn=0)
 
 regimes = np.asarray(res_occ.regimes)
+y_occ = np.asarray(res_occ.path["y"])
+y_lin = np.asarray(sim_linear["y"])
+r_lin = np.asarray(sim_linear["r"])
 print(f"Multi-Constraint OccBin Results:")
 print(f"  Converged             : {res_occ.converged}")
 print(f"  Iterations            : {res_occ.iterations}")
@@ -170,6 +173,8 @@ print(f"  Active Regimes Across Time : {regimes[:12]}")
 print(f"  ZLB Binding Periods   : {np.sum((regimes & 1) == 1)}")
 print(f"  Borrowing Cap Periods : {np.sum((regimes & 2) == 2)}")
 print(f"  Joint Binding Periods : {np.sum(regimes == 3)}")
+print(f"  Linear Rate at Impact : r_0 = {r_lin[0]:.4f}, trough r = {r_lin.min():.4f} (ZLB floor = {-params['r_ss']:.4f})")
+print(f"  Output Trough         : OccBin {y_occ.min():.4f} vs Linear {y_lin.min():.4f} ({100 * (y_occ.min() / y_lin.min() - 1.0):.1f}% deeper)")
 
 # Structural OccBin assertions
 assert isinstance(res_occ, OccBinResult), "Result must be an OccBinResult instance"
@@ -199,14 +204,17 @@ D_treat = m_true + V_shock
 U_shock = 0.8 * rng.standard_normal(N_samples)
 Y_outcome = D_treat * theta_true + g_true + U_shock
 
-# 1. Naive OLS (unregularized: inflated standard error under high-dimensional controls)
+# 1. Naive OLS on D and all p controls. With p = 30 << N = 500 and iid Gaussian
+#    controls this is the textbook benchmark: unbiased and, since g_0 is only mildly
+#    non-linear here, about as precise as DML. It is the estimator that breaks down
+#    once p approaches N, not at this design.
 X_augmented = np.column_stack([D_treat, np.ones(N_samples), X_mat])
 beta_ols = np.linalg.lstsq(X_augmented, Y_outcome, rcond=None)[0]
 theta_ols = float(beta_ols[0])
 residuals_ols = Y_outcome - X_augmented @ beta_ols
 se_ols = float(np.sqrt(np.diag(np.linalg.pinv(X_augmented.T @ X_augmented) * np.var(residuals_ols))[0]))
 
-# 2. Naive Regularized Lasso (regularizing D alongside X induces severe attenuation bias)
+# 2. Naive Regularized Lasso (penalizing D alongside X shrinks the policy coefficient)
 lasso_naive = LassoCoordinateDescent(n_alphas=40, criterion="bic")
 lasso_naive.fit(np.column_stack([D_treat, X_mat]), Y_outcome)
 theta_naive_lasso = float(lasso_naive.coef_[0])
@@ -223,7 +231,7 @@ t_dml_r = time.perf_counter() - t0_dml_r
 
 print(f"Policy Multiplier Estimation Results (True theta = {theta_true:.2f}):")
 print(f"  Naive OLS          : theta = {theta_ols:.4f} +/- {1.96 * se_ols:.4f} | 95% CI: [{theta_ols - 1.96 * se_ols:.4f}, {theta_ols + 1.96 * se_ols:.4f}]")
-print(f"  Naive Lasso        : theta = {theta_naive_lasso:.4f} (severe shrinkage attenuation bias)")
+print(f"  Naive Lasso        : theta = {theta_naive_lasso:.4f} (shrunk toward zero by {100 * (theta_true - theta_naive_lasso) / theta_true:.1f}%)")
 print(f"  DML (Lasso)        : theta = {res_dml_lasso.theta:.4f} +/- {1.96 * res_dml_lasso.se:.4f} | 95% CI: [{res_dml_lasso.ci_lower:.4f}, {res_dml_lasso.ci_upper:.4f}] | p-val: {res_dml_lasso.p_value:.2e}")
 print(f"  DML (Ridge GCV)    : theta = {res_dml_ridge.theta:.4f} +/- {1.96 * res_dml_ridge.se:.4f} | 95% CI: [{res_dml_ridge.ci_lower:.4f}, {res_dml_ridge.ci_upper:.4f}] | p-val: {res_dml_ridge.p_value:.2e}")
 
@@ -276,12 +284,9 @@ ax3.legend(frameon=False)
 
 # Subplot 4: DML Residual Orthogonality & Treatment Effect Slope
 ax4 = axes[1, 1]
-# Compute cross-fitting residuals for scatter plot
-lasso_learner = LassoCoordinateDescent(n_alphas=30, criterion="bic")
-lasso_learner.fit(X_mat, D_treat)
-d_res = D_treat - lasso_learner.predict(X_mat)
-lasso_learner.fit(X_mat, Y_outcome)
-y_res = Y_outcome - lasso_learner.predict(X_mat)
+# Out-of-fold (cross-fitted) residuals, exactly the ones the DML score is built from
+d_res = res_dml_lasso.residuals_d
+y_res = res_dml_lasso.residuals_y
 
 ax4.scatter(d_res, y_res, alpha=0.3, color="gray", edgecolors="none", s=20, label="Orthogonalized Residuals")
 grid_d = np.linspace(d_res.min(), d_res.max(), 100)
@@ -299,9 +304,9 @@ plt.show()
 #
 # **Read the output.** The empirical and simulation results confirm the core mathematical propositions of multi-constraint piecewise linear modeling and debiased causal inference:
 #
-# 1. **Multi-Constraint Dynamic Coupling (Experiment 1):** Following the severe crisis shock, OccBin converges in 4 iterations. At impact ($t = 0$), both the Zero Lower Bound ($r_t = -0.015$) and the borrowing limit ($b_t = 0.02$) bind simultaneously (Regime 3). Over the subsequent quarters ($t = 1, 2$), the borrowing constraint relaxes while the interest rate remains pinned at the ZLB (Regime 1), before returning smoothly to the unconstrained steady state (Regime 0). The linear model, by contrast, predicts a deeply negative interest rate ($r_0 \approx -0.038$), understating the real-rate burden and misrepresenting crisis propagation.
-# 2. **Shrinkage Bias of Naive Estimators (Experiment 2):** Naive Lasso directly penalizes the policy variable $D$, driving its estimated coefficient down toward zero ($\hat{\theta}_{\text{naive}} \approx 1.22$ vs. $\theta_0 = 1.75$). Naive OLS, while unbiased, suffers from inflated variance and wider confidence intervals due to multicollinearity across the 30 control variables.
-# 3. **Debiased Recovery via DML (Experiment 2):** Double Machine Learning with Lasso recovers $\hat{\theta}_{\text{DML}} = 1.699 \pm 0.118$ with a 95% confidence interval of $[1.581, 1.816]$, which tightly covers the true parameter $\theta_0 = 1.75$. Ridge GCV produces similarly accurate estimates ($\hat{\theta} = 1.658 \pm 0.120$). By partialling out the nuisance functions in out-of-fold samples, DML eliminates regularization bias and delivers root-$N$ asymptotic normality.
+# 1. **Multi-Constraint Dynamic Coupling (Experiment 1):** Following the severe crisis shock, the regime sequence converges in 3 iterations. At impact ($t = 0$), both the Zero Lower Bound ($r_t = -0.015$) and the borrowing limit ($b_t = 0.02$) bind simultaneously (Regime 3). Over the subsequent quarters ($t = 1, 2$), the borrowing constraint relaxes while the interest rate remains pinned at the ZLB (Regime 1), before returning smoothly to the unconstrained steady state (Regime 0) from $t = 3$ onward — three quarters at the bound, one of them joint. The linear model, by contrast, lets the policy rate sink straight through the floor ($r_0 = -0.026$, troughing at $r_1 = -0.029$, roughly twice the depth of the ZLB), so it hands the economy stimulus the constrained model cannot deliver: the OccBin output trough is $-14.6\%$ against $-9.4\%$ in the linear path, a $55\%$ deeper contraction that a single-regime simulation would miss entirely.
+# 2. **What the Naive Estimators Actually Do (Experiment 2):** Naive Lasso penalizes the policy variable $D$ alongside the controls, shrinking its coefficient toward zero ($\hat{\theta}_{\text{naive}} = 1.5818$ vs. $\theta_0 = 1.75$, a $9.6\%$ attenuation). Naive OLS is a different matter at this design: with $p = 30$ iid Gaussian controls and $N = 500$ observations, it is unbiased *and* efficient, returning $1.6857 \pm 0.1153$ — a confidence band marginally **tighter** than DML's, and the shortest of the three confidence bands drawn in the estimator panel. This experiment is therefore not a demonstration that OLS breaks; it is a demonstration that DML pays no efficiency penalty for using regularized learners at a design where the textbook estimator is still available.
+# 3. **Debiased Recovery via DML (Experiment 2):** Double Machine Learning with Lasso recovers $\hat{\theta}_{\text{DML}} = 1.6989 \pm 0.1176$ with a 95% confidence interval of $[1.5813, 1.8165]$, which covers the true parameter $\theta_0 = 1.75$ (0.85 standard errors away). Ridge GCV produces a comparable estimate ($\hat{\theta} = 1.6583 \pm 0.1201$, CI $[1.5383, 1.7784]$, 1.5 standard errors from $\theta_0$). The scatter in the fourth panel plots the genuine out-of-fold residuals $\tilde{D}$ and $\tilde{Y}$ taken from the fitted result, not an in-sample refit, so the slope drawn through them *is* the DML estimate. By partialling out the nuisance functions in out-of-fold samples, DML removes the regularization bias that sinks the naive Lasso and delivers root-$N$ asymptotic normality — the property that survives when $p$ grows toward $N$ and OLS does not.
 
 # %%
 # Your turn: customize shock intensities, borrowing thresholds, and cross-fitting folds
@@ -328,11 +333,19 @@ shocks_custom = np.zeros((horizon, 3))
 shocks_custom[0, 0] = shock_g_custom
 shocks_custom[0, 2] = shock_b_custom
 
+# The threshold and the constrained regime's own b_bar must move together: the
+# borrowing regime pins b_t = p.b_bar, so changing only the OccBinConstraint would
+# leave the solver pinning b at the OLD cap while testing against the new one.
+params_custom = {**params, "b_bar": b_bar_custom}
+m_borr_custom = build_dynare(
+    borr_eqs, variables=variables, shocks=shocks, params=params_custom,
+    steady_state=steady_state, check_steady_state=False, strict=False,
+)
 c_borr_custom = OccBinConstraint(variable="b", threshold=b_bar_custom, operator=">")
 
 res_custom_occ = solve_multiconstraint_occbin(
     m_unconstrained=m_ref,
-    m_constrained_dict={"zlb": m_zlb, "borrowing": m_borr},
+    m_constrained_dict={"zlb": m_zlb, "borrowing": m_borr_custom},
     shock_seq=shocks_custom,
     constraints={"zlb": c_zlb, "borrowing": c_borr_custom},
     horizon=horizon,
@@ -346,9 +359,12 @@ res_custom_dml = dml_plr(
     random_state=42,
 )
 
+b_path_custom = np.asarray(res_custom_occ.path["b"])
+
 print(f"Custom Simulation Results (shock_g = {shock_g_custom:.2f}, shock_b = {shock_b_custom:.2f}, b_bar = {b_bar_custom:.3f}):")
 print(f"  OccBin Converged      : {res_custom_occ.converged} (iterations = {res_custom_occ.iterations})")
 print(f"  Active Regime Sequence: {np.asarray(res_custom_occ.regimes)[:8]}")
+print(f"  Max Borrowing on Path : {b_path_custom.max():.5f} (cap = {b_bar_custom:.5f})")
 print(f"Custom DML Results (learner = '{learner_custom}', K = {n_folds_custom}):")
 print(f"  Estimated theta       : {res_custom_dml.theta:.4f} +/- {1.96 * res_custom_dml.se:.4f}")
 print(f"  95% Confidence Band   : [{res_custom_dml.ci_lower:.4f}, {res_custom_dml.ci_upper:.4f}]")
@@ -357,13 +373,14 @@ print(f"  95% Confidence Band   : [{res_custom_dml.ci_lower:.4f}, {res_custom_dm
 assert n_folds_custom >= 2, "Cross-fitting requires at least 2 folds"
 assert learner_custom in ("lasso", "ridge"), "Learner must be 'lasso' or 'ridge'"
 assert res_custom_occ.converged, "Custom OccBin solve must converge"
+assert b_path_custom.max() <= b_bar_custom + 1e-9, "Simulated borrowing must respect the declared cap"
 assert res_custom_dml.ci_lower <= theta_true <= res_custom_dml.ci_upper, "Custom DML CI must cover true parameter"
 
 # %% [markdown]
 # **Prompts.**
-# 1. *Basic:* Switch `learner_custom` from `"lasso"` to `"ridge"`. Observe how Ridge with Generalized Cross-Validation (GCV) handles dense collinearity while maintaining valid confidence band coverage.
-# 2. *Intermediate:* Alter `b_bar_custom` to $0.035$. Notice how the borrowing constraint becomes slack, reverting the system to single-constraint ZLB dynamics without multi-regime coupling.
-# 3. *Stretch:* Vary `shock_g_custom` from $-0.04$ to $-0.08$. Track the number of consecutive quarters spent trapped at the ZLB and examine the non-linear amplification of output losses.
+# 1. *Basic:* Switch `learner_custom` from `"lasso"` to `"ridge"`. Ridge with Generalized Cross-Validation (GCV) shrinks every control smoothly instead of selecting a sparse subset; check from the printed band that the 95% interval still covers $\theta_0 = 1.75$, which the cell asserts.
+# 2. *Intermediate:* Alter `b_bar_custom` to $0.035$. Notice how the borrowing constraint becomes slack, reverting the system to single-constraint ZLB dynamics (regime sequence `[1 1 1 0 ...]`) without multi-regime coupling. Then tighten it to $0.015$: the knob rebuilds the constrained regime with the new cap, so the printed `Max Borrowing on Path` tracks `b_bar_custom` exactly whenever the constraint binds.
+# 3. *Stretch:* Vary `shock_g_custom` from $-0.04$ to $-0.08$. The quarters spent at the ZLB rise from two to four, and the amplification grows monotonically with shock size: the constrained output trough is about $16\%$ deeper than the linear path at $-0.04$, $55\%$ deeper at the baseline $-0.06$ and $83\%$ deeper at $-0.08$.
 #
 # ## How comprehensive is this?
 #

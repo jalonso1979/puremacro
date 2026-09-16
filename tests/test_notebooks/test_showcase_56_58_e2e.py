@@ -12,9 +12,15 @@ Verifies:
   docs/notebooks.md, and docs/es/notebooks.md.
 - Tier 4: Execution test (dry-run import / execution via build_notebooks.py --check and
   verification of economic domain properties).
-- Tier 5: The shipped .ipynb artifacts hold no tracebacks, were built from the current
-  jupytext source, and print the numbers the current code produces (one replicated
-  printed number per notebook), so a stale rebuild cannot pass unnoticed.
+- Tier 5: The shipped .ipynb artifacts hold no tracebacks and no warnings, were built
+  from the current jupytext source, and print the numbers the current code produces --
+  several replicated printed numbers per notebook, each one a figure the prose quotes
+  (56: HJB iterations, Ks, the wealth Gini, r*/w*/K*/L* and the sampled Ks-Kd crossing;
+  57: the DML and OLS estimates, the OccBin iteration count, regime path, linear impact
+  rate and output trough; 58: the panel size, beta_p, the verdict, the noise share and
+  the simulated policy-rate floor) -- so a stale rebuild cannot pass unnoticed. It also
+  checks that notebook 58 discloses, in both languages and in code as well as prose,
+  that its Latin American panel is simulated.
 """
 from __future__ import annotations
 
@@ -805,10 +811,45 @@ class TestTier5RenderedOutputsMatchCode:
         )
         da = sol.a_grid[1] - sol.a_grid[0]
         capital_supply = float(np.sum(sol.a_grid[:, None] * sol.g_dist * da))
+        marginal_g_a = np.sum(sol.g_dist, axis=1) * da
+        cumulative_g_a = np.cumsum(marginal_g_a)
+        cum_wealth = np.cumsum(sol.a_grid * marginal_g_a) / capital_supply
+        gini = float(1.0 - np.sum((cum_wealth[:-1] + cum_wealth[1:]) * np.diff(cumulative_g_a)))
 
         stdout = _ipynb_stdout(ipynb_path)
         assert f"Iterations         : {sol.n_iter} (expected <= 20)" in stdout, stdout[:600]
         assert f"Aggregate Capital Supply (Ks) : {capital_supply:.4f}" in stdout, stdout[:1200]
+        # The "Read the output" prose quotes this Gini; a stale artifact drifts from it.
+        assert f"Wealth Gini Coefficient       : {gini:.4f}" in stdout, stdout[:1600]
+
+    @pytest.mark.parametrize(
+        "ipynb_path", [IPYNB_PATHS_EN["56"], IPYNB_PATHS_ES["56"]], ids=["en", "es"]
+    )
+    def test_nb56_printed_ge_prices_and_market_clearing_are_current(self, ipynb_path: Path):
+        """The hero market-clearing panel must cross where the solver says r* is.
+
+        The capital demand curve is K^d = L* (alpha/(r+delta))^(1/(1-alpha)); dropping
+        the L* factor plots K/L instead and moves the crossing about a percentage
+        point away from the r* line the same panel draws.
+        """
+        from puremacro.vfi import solve_aiyagari_continuous_hjb
+
+        ge = solve_aiyagari_continuous_hjb(
+            alpha=0.33, delta=0.05, rho_val=0.05, gamma_r=2.0,
+            Na=40, a_max=25.0, tol_ge=1e-4, max_iter_ge=30,
+        )
+        stdout = _ipynb_stdout(ipynb_path)
+        assert f"Equilibrium Rate (r*)  : {ge.r_star:.6f} ({ge.r_star * 100:.3f}%)" in stdout, stdout[:2000]
+        assert f"Equilibrium Wage (w*)  : {ge.w_star:.4f}" in stdout, stdout[:2000]
+        assert f"Aggregate Capital (K*) : {ge.K_star:.4f}" in stdout, stdout[:2000]
+        assert f"Aggregate Labor (L*)   : {ge.L_star:.4f}" in stdout, stdout[:2000]
+
+        crossings = re.findall(r"Sampled Crossing Rate  : ([0-9.]+) ", stdout)
+        assert crossings, f"{ipynb_path.name} never printed the sampled Ks/Kd crossing"
+        assert abs(float(crossings[0]) - ge.r_star) < 5e-4, (
+            f"{ipynb_path.name} plots a market-clearing crossing at {crossings[0]} while the "
+            f"solver's r* is {ge.r_star:.6f}"
+        )
 
     @pytest.mark.parametrize(
         "ipynb_path", [IPYNB_PATHS_EN["57"], IPYNB_PATHS_ES["57"]], ids=["en", "es"]
@@ -827,9 +868,31 @@ class TestTier5RenderedOutputsMatchCode:
         Y_outcome = D_treat * theta_true + g_true + 0.8 * rng.standard_normal(n_samples)
         res = dml_plr(Y_outcome, D_treat, X_mat, n_folds=5, learner="lasso", random_state=42)
 
+        X_augmented = np.column_stack([D_treat, np.ones(n_samples), X_mat])
+        beta_ols = np.linalg.lstsq(X_augmented, Y_outcome, rcond=None)[0]
+        theta_ols = float(beta_ols[0])
+        resid_ols = Y_outcome - X_augmented @ beta_ols
+        se_ols = float(np.sqrt(np.diag(np.linalg.pinv(X_augmented.T @ X_augmented) * np.var(resid_ols))[0]))
+
         stdout = _ipynb_stdout(ipynb_path)
         expected = f"DML (Lasso)        : theta = {res.theta:.4f} +/- {1.96 * res.se:.4f}"
         assert expected in stdout, (expected, stdout[:1500])
+        # The prose claims OLS is unbiased here and its band is the tightest drawn.
+        assert f"Naive OLS          : theta = {theta_ols:.4f} +/- {1.96 * se_ols:.4f}" in stdout, stdout[:2000]
+        assert 1.96 * se_ols < 1.96 * res.se, (
+            "the notebook's prose says the OLS band is tighter than DML's; it no longer is"
+        )
+
+    @pytest.mark.parametrize(
+        "ipynb_path", [IPYNB_PATHS_EN["57"], IPYNB_PATHS_ES["57"]], ids=["en", "es"]
+    )
+    def test_nb57_printed_occbin_regimes_are_current(self, ipynb_path: Path):
+        """The OccBin narrative quotes an iteration count and a linear impact rate."""
+        stdout = _ipynb_stdout(ipynb_path)
+        assert "Iterations            : 3" in stdout, stdout[:1200]
+        assert "Active Regimes Across Time : [3 1 1 0 0 0 0 0 0 0 0 0]" in stdout, stdout[:1200]
+        assert "Linear Rate at Impact : r_0 = -0.0264" in stdout, stdout[:1600]
+        assert "Output Trough         : OccBin -0.1464 vs Linear -0.0943" in stdout, stdout[:1600]
 
     @pytest.mark.parametrize(
         "ipynb_path", [IPYNB_PATHS_EN["58"], IPYNB_PATHS_ES["58"]], ids=["en", "es"]
@@ -856,31 +919,35 @@ class TestTier5RenderedOutputsMatchCode:
                     rows.append({
                         "country": "MEX", "variable": "gdp_real", "date": d, "vintage": v,
                         "value": base_gdp + noise, "provider": "inegi", "series_id": "735848",
-                        "units": "MXN_millions",
+                        "units": "level",
                     })
                     rows.append({
                         "country": "MEX", "variable": "policy_rate", "date": d, "vintage": v,
                         "value": 11.25 - 0.25 * d_idx, "provider": "banxico", "series_id": "SF61745",
-                        "units": "percent",
+                        "units": "rate",
                     })
                     rows.append({
                         "country": "BRA", "variable": "policy_rate", "date": d, "vintage": v,
                         "value": 12.75 - 0.50 * d_idx, "provider": "bcb", "series_id": "432",
-                        "units": "percent",
+                        "units": "rate",
                     })
                     rows.append({
                         "country": "CHL", "variable": "policy_rate", "date": d, "vintage": v,
-                        "value": 9.50 - 0.75 * d_idx, "provider": "bcch",
-                        "series_id": "F022.TPM.TPO.D001.NO.Z.D", "units": "percent",
+                        "value": max(3.00, 9.50 - 0.50 * d_idx), "provider": "bcch",
+                        "series_id": "F022.TPM.TPO.D001.NO.Z.D", "units": "rate",
                     })
         panel_raw = VintagePanel(pd.DataFrame(rows))
         with tempfile.TemporaryDirectory() as tmp_dir:
             cartridge_file = Path(tmp_dir) / "latam_realtime_macro.pmz"
             pack_realtime_cartridge(
                 panel_raw, cartridge_file,
-                source="Banxico, INEGI, BCB, BCCh Regional Real-Time Ecosystem",
+                source="SIMULATED panel on Banxico, INEGI, BCB and BCCh series identifiers",
                 vintage="2026-04-01",
-                notes="Latin America central bank real-time macroeconomic vintage cartridge",
+                notes=(
+                    "Latin America real-time vintage cartridge for puremacro showcase 58. "
+                    "SYNTHETIC DATA: values are generated from a fixed seed, not fetched from "
+                    "any provider. Vintage columns are snapshot dates, not published editions."
+                ),
             )
             loaded_panel = load_realtime_cartridge(cartridge_file, verify=True)
         ms_res = loaded_panel.news_or_noise("MEX", "gdp_real")
@@ -892,3 +959,49 @@ class TestTier5RenderedOutputsMatchCode:
             f"(SE = {ms_res.se_beta_on_preliminary:.4f})"
         )
         assert expected in stdout, (expected, stdout[:2000])
+        # The prose reports the verdict; it read "noise" while the code said "neither".
+        assert f"Test Verdict          : {ms_res.verdict}" in stdout, stdout[:2500]
+        assert f"Noise Share Metric    : {ms_res.noise_share * 100:.2f}%" in stdout, stdout[:2500]
+        # The simulated Chilean path is floored, so no policy rate may reach zero.
+        min_rate = float(pd.DataFrame(rows).query("variable == 'policy_rate'")["value"].min())
+        assert min_rate > 0.0
+        assert f"Lowest Policy Rate : {min_rate:.2f}%" in stdout, stdout[:1200]
+
+    @pytest.mark.parametrize(
+        "ipynb_path", ALL_IPYNB_PATHS, ids=[p.name for p in ALL_IPYNB_PATHS]
+    )
+    def test_ipynb_has_no_warning_output(self, ipynb_path: Path):
+        """A UserWarning baked into a shipped artifact is a defect the reader sees.
+
+        58 used to emit ``log_diff_pct dropped 5 non-positive value(s)`` because its
+        simulated Chilean policy rate ran below zero; that warning is stderr in the
+        stored .ipynb, so guard it here rather than trusting the prose.
+        """
+        chunks: list[str] = []
+        for cell in _ipynb_cells(ipynb_path):
+            for out in cell.get("outputs", []):
+                if out.get("output_type") == "stream" and out.get("name") == "stderr":
+                    text = out.get("text", "")
+                    chunks.append("".join(text) if isinstance(text, list) else text)
+        stderr = "".join(chunks)
+        assert "Warning" not in stderr, f"{ipynb_path.name} ships a warning in its output:\n{stderr[:800]}"
+
+    @pytest.mark.parametrize(
+        "nb_path", [NB_PATHS_EN["58"], NB_PATHS_ES["58"]], ids=["en", "es"]
+    )
+    def test_nb58_discloses_that_the_panel_is_simulated(self, nb_path: Path):
+        """58 builds its panel with an rng; the reader must never take it for real data."""
+        content = _require_file(nb_path)
+        markdown = extract_markdown_cells(content)
+        first = markdown[0].lower()
+        assert ("simulated" in first or "simulado" in first), (
+            f"{nb_path.name}: the opening markdown cell must say the panel is simulated"
+        )
+        code_text = "\n".join(extract_code_cells(content))
+        assert "SIMULATED" in code_text, (
+            f"{nb_path.name}: the panel-building cell must label the data SIMULATED in its output"
+        )
+        output_cell = next(c for c in markdown if "Read the output" in c or "Lectura de los resultados" in c)
+        assert ("simulated" in output_cell.lower() or "simulad" in output_cell.lower()), (
+            f"{nb_path.name}: the results narrative must repeat that the panel is simulated"
+        )
