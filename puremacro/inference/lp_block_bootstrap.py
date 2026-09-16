@@ -25,16 +25,12 @@ from typing import Iterable, Sequence
 import numpy as np
 import pandas as pd
 
+# The thread gate is shared by every bootstrap engine; ``_can_use_threads`` is
+# re-exported because tests import it from this module.
+from ._parallel import _can_use_threads, _map_draws  # noqa: F401
+
 # puremacro.teaching.panel_lm.panel_lp uses linearmodels.PanelOLS — lazy-imported
 # inside cum_irf_block_bootstrap below (Pyodide contract; see ARCHITECTURE.md).
-
-
-def _can_use_threads() -> bool:
-    try:
-        from puremacro.runtime import capabilities
-        return bool(capabilities().threads)
-    except Exception:
-        return False
 
 
 def cum_irf_block_bootstrap(
@@ -77,7 +73,10 @@ def cum_irf_block_bootstrap(
         probability 1−α; the pointwise band only covers each horizon
         separately.
     n_jobs
-        Number of parallel worker threads. Default 1. Set to -1 to use all CPUs.
+        Number of parallel worker threads. Default 1. Set to -1 to use all
+        CPUs; 0 raises ``ValueError``. Threads are used only where the
+        runtime has them (:func:`puremacro.runtime.capabilities`); the entity
+        samples are drawn up front, so the bands do not depend on ``n_jobs``.
 
     Returns
     -------
@@ -127,18 +126,9 @@ def cum_irf_block_bootstrap(
             return np.full(len(horizons), np.nan)
 
     all_sampled = [rng.choice(entities, size=n_e, replace=True) for _ in range(B)]
-    if n_jobs == 1 or not _can_use_threads():
-        boot = np.array([_fit_draw(s) for s in all_sampled])
-    else:
-        try:
-            import concurrent.futures
-            import os
-
-            workers = os.cpu_count() or 1 if n_jobs < 0 else n_jobs
-            with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
-                boot = np.array(list(ex.map(_fit_draw, all_sampled)))
-        except Exception:
-            boot = np.array([_fit_draw(s) for s in all_sampled])
+    boot = np.array(
+        _map_draws(_fit_draw, all_sampled, n_jobs, label="cum_irf_block_bootstrap")
+    )
 
     cum_boot = np.nancumsum(boot, axis=1)
     cum_point = np.cumsum(point_betas)

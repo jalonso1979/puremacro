@@ -378,17 +378,21 @@ class BVAR_SVForecast:
                 })
         return pd.DataFrame(rows)
 
-    def to_markdown(self, **kwargs: Any) -> str:
-        """Format forecast summary table as Markdown."""
-        return _df_to_markdown(self.to_frame(), index=False, **kwargs)
+    def to_markdown(self, *, digits: int | None = None) -> str:
+        """Format the forecast summary table as Markdown.
 
-    def to_latex(self, **kwargs: Any) -> str:
-        """Format forecast summary table as LaTeX tabular."""
-        return _df_to_latex(self.to_frame(), index=False, **kwargs)
+        ``digits`` fixes the number of decimals for float cells (default: at
+        most six). The table has no meaningful row index, so none is printed.
+        """
+        return _df_to_markdown(self.to_frame(), index=False, digits=digits)
 
-    def to_typst(self, **kwargs: Any) -> str:
-        """Format forecast summary table as Typst table."""
-        return _df_to_typst(self.to_frame(), index=False, **kwargs)
+    def to_latex(self, *, digits: int | None = None) -> str:
+        """Format the forecast summary table as a LaTeX ``tabular``; see :meth:`to_markdown`."""
+        return _df_to_latex(self.to_frame(), index=False, digits=digits)
+
+    def to_typst(self, *, digits: int | None = None) -> str:
+        """Format the forecast summary table as a Typst ``#table``; see :meth:`to_markdown`."""
+        return _df_to_typst(self.to_frame(), index=False, digits=digits)
 
     def plot(
         self,

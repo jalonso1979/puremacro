@@ -66,14 +66,6 @@ def _kilian_bias_correct(Y, p, n_pilot=100, rng=None):
     return A_bc, int_bc
 
 
-def _can_use_threads() -> bool:
-    try:
-        from puremacro.runtime import capabilities
-        return bool(capabilities().threads)
-    except Exception:
-        return False
-
-
 def bootstrap_bands(Y, p, identify_fn, horizon, n_boot=500, alpha=0.10,
                     method="recursive", rng=None, bias_correct=False,
                     n_pilot=100, band="pointwise", n_jobs: int = 1, **id_kwargs):
@@ -104,7 +96,11 @@ def bootstrap_bands(Y, p, identify_fn, horizon, n_boot=500, alpha=0.10,
           contract is unchanged.
 
     n_jobs: int, default 1
-        Number of parallel worker threads. Set to -1 to use all available CPU cores.
+        Number of parallel worker threads. Set to -1 to use all available CPU
+        cores; 0 raises ``ValueError``. Threads are used only where the
+        runtime has them (:func:`puremacro.runtime.capabilities`); the
+        bootstrap innovations are drawn up front, so the bands do not depend
+        on ``n_jobs``.
     """
     if band not in ("pointwise", "sup-t"):
         raise ValueError(f"unknown band {band!r}; use 'pointwise' or 'sup-t'")
@@ -162,21 +158,12 @@ def bootstrap_bands(Y, p, identify_fn, horizon, n_boot=500, alpha=0.10,
         except Exception:
             return np.full((horizon + 1, n, n), np.nan)
 
-    if n_jobs == 1 or not _can_use_threads():
-        for b in range(n_boot):
-            irfs[b] = _eval_draw(b)
-    else:
-        try:
-            import concurrent.futures
-            import os
+    from puremacro.inference._parallel import _map_draws  # lazy: avoid import cycle
 
-            workers = os.cpu_count() or 1 if n_jobs < 0 else n_jobs
-            with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
-                draw_results = list(ex.map(_eval_draw, range(n_boot)))
-            irfs = np.stack(draw_results, axis=0)
-        except Exception:
-            for b in range(n_boot):
-                irfs[b] = _eval_draw(b)
+    for b, irf_b in enumerate(
+        _map_draws(_eval_draw, range(n_boot), n_jobs, label="bootstrap_bands")
+    ):
+        irfs[b] = irf_b
 
     point = np.nanpercentile(irfs, 50, axis=0)
     if band == "pointwise":
