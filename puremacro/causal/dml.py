@@ -144,9 +144,15 @@ class LassoCoordinateDescent:
         if self.fit_intercept:
             x_mean = np.mean(X_arr, axis=0)
             x_std = np.std(X_arr, axis=0)
-            x_std[x_std < 1e-12] = 1.0
+            constant = x_std < 1e-12
+            x_std[constant] = 1.0
             y_mean = float(np.mean(y_arr))
             Xs = (X_arr - x_mean) / x_std
+            # A (near-)constant column carries no information once centred. Zero it
+            # so its Gram entry below is exactly 0 and the coordinate stays at 0;
+            # otherwise the exact update divides by a ~1e-28 Gram entry and, at
+            # alpha = 0, blows the coefficient up to ~1e12.
+            Xs[:, constant] = 0.0
             yc = y_arr - y_mean
         else:
             x_mean = np.zeros(p)

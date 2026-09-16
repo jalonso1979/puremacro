@@ -234,8 +234,10 @@ class AiyagariContinuousHJBResult(Mapping):
     Follows the same mapping protocol as :class:`HJBSolution`: ``keys()`` lists all
     thirteen fields, subscripting/``in``/``get`` are restricted to those fields,
     ``==`` is array-aware field equality and instances are unhashable and frozen.
-    ``converged`` is True only when Brent's method converged AND the market
-    clearing residual satisfies ``|K^s - K^d| < tol_ge``.
+    ``converged`` is True iff the market-clearing residual at ``r_star`` satisfies
+    ``|K^s - K^d| < tol_ge`` (``excess_capital`` is that residual); it does not
+    depend on whether Brent's method exhausted ``max_iter_ge``, which ``n_iter_ge``
+    reports.
     """
 
     r_star: float
@@ -590,7 +592,13 @@ def solve_hjb_achdou(
         If specified, provides Neumann boundary conditions at a_min and/or a_max.
         When w_rate == 0.0 (unconstrained cake-eating / asset-only benchmark), defaults
         to exact analytical CRRA marginal utilities; that mode requires a_grid[0] > 0
-        because the closed form (mu a)^(-gamma) is singular at a = 0.
+        because the closed form (mu a)^(-gamma) is singular at a = 0. The benchmark
+        has no income risk, so its stationary distribution is degenerate: with
+        r < rho all mass sits at a_min, with r > rho at a_max, and at r == rho every
+        node is absorbing. The KFE is therefore only computable when the discretised
+        drift leaves exactly one absorbing node (typically a_min >= 0.5 with r < rho);
+        otherwise ``compute_kfe=True`` raises ValueError and ``compute_kfe=False``
+        returns the HJB solution alone, which is what the benchmark is for.
 
     Returns
     -------
@@ -604,7 +612,8 @@ def solve_hjb_achdou(
         If ``max_iter < 1``, ``a_grid`` is not strictly increasing with at least two
         points, ``A_z`` is not a valid (Ne, Ne) generator, ``w_rate == 0`` with
         ``a_grid[0] <= 0``, or (with ``compute_kfe=True``) the generator admits no
-        unique stationary distribution.
+        unique stationary distribution (a reducible ``A_z``, or the degenerate
+        ``w_rate == 0`` benchmark; pass ``compute_kfe=False`` for the HJB alone).
     """
     t_start = time.time()
 
@@ -788,7 +797,18 @@ def solve_hjb_achdou(
     g_dist = None
     mass_residual = 0.0
     if compute_kfe and A is not None:
-        g_dist, mass_residual = solve_kfe_achdou(A, a_grid, e_grid, return_residual=True)
+        try:
+            g_dist, mass_residual = solve_kfe_achdou(A, a_grid, e_grid, return_residual=True)
+        except ValueError as exc:
+            if w_rate != 0.0:
+                raise
+            raise ValueError(
+                f"{exc} The w_rate == 0 cake-eating benchmark has no income risk, so its "
+                "stationary distribution is degenerate (all mass at a_min for r < rho, at "
+                "a_max for r > rho, arbitrary at r == rho) and the discretised drift "
+                "vanishes at several nodes; pass compute_kfe=False to obtain the HJB "
+                "solution alone."
+            ) from exc
 
     return HJBSolution(
         V=V,
@@ -853,8 +873,10 @@ def solve_aiyagari_continuous_hjb(
     K^s(r) = \\int a g(a, z) da and firm capital demand K^d(r) from Cobb-Douglas FOCs.
     Brent's method runs with an x-tolerance derived from ``tol_ge`` and the
     bracket's secant slope, and the bracket is tightened from the cached
-    evaluations until |K^s(r*) - K^d(r*)| < tol_ge; ``converged`` reports whether
-    that market-clearing criterion was met.
+    evaluations (up to three further passes) until |K^s(r*) - K^d(r*)| < tol_ge.
+    ``converged`` is True iff that residual criterion holds at the returned
+    ``r_star``, whether or not a Brent pass ran out of ``max_iter_ge`` iterations
+    (``n_iter_ge`` counts the iterations actually used).
 
     Parameters
     ----------
@@ -1000,14 +1022,11 @@ def solve_aiyagari_continuous_hjb(
         f_high = _eval_r(r_high_adj)
         attempts += 1
 
-    converged_ge = True
     n_iter_brent = 1
 
     if f_low * f_high > 0:
         # Fallback: pick the best candidate among cached evaluations
-        best_r = min(eval_cache.keys(), key=lambda r: abs(eval_cache[r][0]))
-        r_star = best_r
-        converged_ge = abs(eval_cache[best_r][0]) < tol_ge
+        r_star = min(eval_cache.keys(), key=lambda r: abs(eval_cache[r][0]))
     else:
         # x-tolerance implied by tol_ge through the bracket's secant slope (f_low < 0 < f_high)
         slope = (f_high - f_low) / (r_high_adj - r_low_adj)
@@ -1022,12 +1041,13 @@ def solve_aiyagari_continuous_hjb(
             maxiter=max_iter_ge,
         )
         r_star = float(res.root)
-        converged_ge = bool(res.converged)
         n_iter_brent = int(res.iterations)
 
-        # Tighten the bracket from the cached evaluations until |K^s - K^d| < tol_ge
+        # Tighten the bracket from the cached evaluations until |K^s - K^d| < tol_ge.
+        # Each pass gets max_iter_ge Brent iterations, whether or not the previous
+        # pass shrank its x-interval below xtol: the target is the residual, not xtol.
         for _ in range(3):
-            if not converged_ge or abs(_eval_r(r_star)) < tol_ge:
+            if abs(_eval_r(r_star)) < tol_ge:
                 break
             r_lo = max((r for r, v in eval_cache.items() if v[0] < 0.0), default=None)
             r_hi = min((r for r, v in eval_cache.items() if v[0] > 0.0), default=None)
@@ -1044,13 +1064,15 @@ def solve_aiyagari_continuous_hjb(
                 maxiter=max_iter_ge,
             )
             r_star = float(res.root)
-            converged_ge = bool(res.converged)
             n_iter_brent += int(res.iterations)
 
     _eval_r(r_star)
     excess_cap, Ks_star, Kd_star, sol_star = eval_cache[r_star]
-    # The documented criterion: converged only if the market actually clears to tol_ge
-    converged_ge = bool(converged_ge) and abs(excess_cap) < tol_ge
+    # The documented criterion: converged iff the market clears to tol_ge at r_star.
+    # Brent's own x-interval flag is deliberately not consulted: an iteration-starved
+    # pass whose last iterate already clears the market has found the equilibrium,
+    # and a pass that shrank the interval without clearing it has not.
+    converged_ge = bool(abs(excess_cap) < tol_ge)
 
     k_over_l_star = (alpha / (r_star + delta)) ** (1.0 / (1.0 - alpha))
     w_star = float((1.0 - alpha) * (k_over_l_star ** alpha))

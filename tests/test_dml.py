@@ -275,6 +275,29 @@ def test_lasso_no_intercept_uses_column_norms():
     np.testing.assert_allclose(mz.coef_[:3], LassoCoordinateDescent(fit_intercept=False, alpha=0.1).fit(X, y).coef_)
 
 
+def test_lasso_near_constant_column_stays_zero_with_intercept():
+    """A column whose std is below the 1e-12 standardisation floor is treated as
+    constant: its coefficient is exactly 0 for every penalty, including ``alpha=0``.
+
+    The exact coordinate update divides by the column's Gram entry (~1e-28 for such
+    a column), which at ``alpha=0`` produced a ~1e12 coefficient and degraded
+    out-of-sample predictions; the column must be zeroed in the standardised design.
+    """
+    rng = np.random.default_rng(9)
+    n = 200
+    X = rng.standard_normal((n, 3))
+    X[:, 2] = 5.0 + 1e-14 * rng.standard_normal(n)
+    y = X[:, 0] - X[:, 1] + rng.standard_normal(n)
+    X_new = rng.standard_normal((100, 3))
+    X_new[:, 2] = 5.0 + 1e-14 * rng.standard_normal(100)
+    for alpha in (0.0, 1e-6, 0.05, None):
+        m = LassoCoordinateDescent(alpha=alpha).fit(X, y)
+        ref = LassoCoordinateDescent(alpha=alpha).fit(X[:, :2], y)
+        assert m.coef_[2] == 0.0
+        np.testing.assert_allclose(m.coef_[:2], ref.coef_, rtol=1e-10, atol=1e-12)
+        np.testing.assert_allclose(m.predict(X_new), ref.predict(X_new[:, :2]), rtol=1e-10, atol=1e-10)
+
+
 def test_lasso_no_intercept_matches_sklearn():
     """Cross-check the raw-column solution against scikit-learn at a fixed penalty."""
     sklearn_linear = pytest.importorskip("sklearn.linear_model")

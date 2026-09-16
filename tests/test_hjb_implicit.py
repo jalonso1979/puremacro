@@ -330,17 +330,34 @@ def test_kfe_returns_density_on_nonuniform_grid():
 
 
 def test_ge_tol_ge_governs_convergence_flag():
-    """converged reflects |K^s - K^d| < tol_ge, tol_ge drives the root tolerance, and
-    invalid brackets (r_max >= rho, r_min >= r_max, r_min <= -delta) are rejected."""
+    """converged is exactly |K^s - K^d| < tol_ge at r_star: tol_ge drives the root
+    tolerance, an iteration-starved Brent pass whose last iterate already clears the
+    market reports True, one that does not reports False, and invalid brackets
+    (r_max >= rho, r_min >= r_max, r_min <= -delta) are rejected."""
     res = solve_aiyagari_continuous_hjb(Na=40, a_max=25.0, tol_ge=1e-7, max_iter_ge=30)
     assert res.converged is True
     assert abs(res.excess_capital) < 1e-7
     assert abs(res.Ks_star - res.Kd_star) < 1e-7
+    res_full = solve_aiyagari_continuous_hjb(Na=40, a_max=25.0, max_iter_ge=30)
+    assert res_full.converged is True and abs(res_full.excess_capital) < 1e-4
 
     # Starved of iterations, the flag must not report a cleared market
     res_short = solve_aiyagari_continuous_hjb(Na=40, a_max=25.0, max_iter_ge=1)
     assert res_short.converged is False
     assert abs(res_short.excess_capital) > 1e-4
+    assert res_short.n_iter_ge <= 4  # one Brent pass plus at most three tightening passes
+
+    # Starved of iterations but the last iterate clears the market to tol_ge: that IS the
+    # documented equilibrium, so the flag is True even though Brent's x-interval never
+    # shrank below xtol (the fully converged run needs more than five iterations)
+    res_five = solve_aiyagari_continuous_hjb(Na=40, a_max=25.0, max_iter_ge=5)
+    assert res_full.n_iter_ge > 5
+    assert res_five.n_iter_ge >= 5
+    assert abs(res_five.excess_capital) < 1e-4
+    assert res_five.converged is True
+    assert abs(res_five.r_star - res_full.r_star) < 1e-5
+    for r in (res, res_full, res_short, res_five):
+        assert r.converged == (abs(r.excess_capital) < (1e-7 if r is res else 1e-4))
 
     with pytest.raises(ValueError, match="below rho_val"):
         solve_aiyagari_continuous_hjb(Na=20, r_max=0.06)
@@ -387,6 +404,37 @@ def test_zero_wage_requires_positive_lower_bound():
     sol = solve_hjb_achdou(r_rate=0.0, w_rate=0.0, a_min=1.0, a_max=5.0, Na=30)
     assert sol.converged
     assert np.all(np.isfinite(sol.V))
+
+
+def test_zero_wage_kfe_degeneracy_is_explained():
+    """The w_rate == 0 benchmark has no income risk, so its stationary distribution is
+    degenerate. When the discretised drift leaves more than one absorbing node (small
+    a_min, or r == rho where every node is absorbing) the KFE must raise a ValueError
+    that names the cake-eating mode and the compute_kfe=False workaround; the HJB
+    solution itself stays available, and where the KFE is computable all mass sits at
+    a_min for r < rho."""
+    for kw in (dict(r_rate=0.03, a_min=0.1), dict(r_rate=0.05, a_min=1.0)):
+        with pytest.raises(ValueError, match="cake-eating") as excinfo:
+            solve_hjb_achdou(w_rate=0.0, Na=50, **kw)
+        assert "compute_kfe=False" in str(excinfo.value)
+        assert "no unique stationary distribution" in str(excinfo.value)
+        assert isinstance(excinfo.value.__cause__, ValueError)
+        sol = solve_hjb_achdou(w_rate=0.0, Na=50, compute_kfe=False, **kw)
+        assert sol.converged and sol.g_dist is None
+        assert np.all(np.isfinite(sol.V)) and np.all(np.isfinite(sol.c_policy))
+
+    # Computable case: r < rho with a_min well above zero -> point mass at a_min
+    sol = solve_hjb_achdou(w_rate=0.0, r_rate=0.03, a_min=1.0, Na=50)
+    assert sol.converged and sol.g_dist is not None
+    w = _quadrature_weights(sol.a_grid)
+    assert sol.mass_residual <= 1e-12
+    np.testing.assert_allclose(np.sum(sol.g_dist[0]) * w[0], 1.0, atol=1e-12)
+    assert np.all(sol.g_dist[1:] == 0.0)
+
+    # A non-benchmark (w > 0) failure keeps the generic message without the hint
+    with pytest.raises(ValueError, match="no unique stationary distribution") as generic:
+        solve_hjb_achdou(Na=20, A_z=np.zeros((2, 2)))
+    assert "cake-eating" not in str(generic.value)
 
 
 def test_max_iter_must_be_positive():
