@@ -43,12 +43,14 @@ connector_health(window=pd.Timedelta(hours=1), sources=["bok"])  # combined
 ```sql
 CREATE TABLE connector_events (
     ts             INTEGER NOT NULL,    -- unix epoch seconds
-    source         TEXT NOT NULL,       -- 'eu_eurlex', 'rba', 'beige_book', ...
-    outcome        TEXT NOT NULL,       -- success / 404 / timeout / ssl_fail /
+    source         TEXT NOT NULL,       -- 'eu_eurlex', 'rba', 'banxico', ...
+    outcome        TEXT NOT NULL,       -- success / fallback / schema_drift /
+                                        -- 404 / timeout / ssl_fail /
                                         -- server_5xx / wayback_no_snapshot /
                                         -- playwright_unavailable /
                                         -- parser_schema_mismatch / other_network_error
-    fallback_used  TEXT NOT NULL        -- live / wayback / playwright / none
+    fallback_used  TEXT NOT NULL        -- live / wayback / playwright / none /
+                                        -- sqlite_cache / warning_emitted / ignored
 );
 CREATE INDEX connector_events_ts_source_idx
     ON connector_events(ts, source);
@@ -68,6 +70,30 @@ Lives in `~/.cache/puremacro/cache.db` (or `$PUREMACRO_HTTP_CACHE_DIR`).
   `connector_health()` until they opt in (typically by adopting
   `fetch_with_fallback(policy=("live",))` or calling `log_event(...)`
   directly).
+
+## Real-time snapshot connectors (3.4.0)
+
+The four Latin American snapshot connectors — `banxico`, `inegi`, `bcb`
+and `bcch`, documented in
+[`docs/real_time_data.md`](real_time_data.md) — log under their own
+provider name and add three outcomes to the vocabulary above:
+
+| `outcome` | `fallback_used` | What happened |
+|---|---|---|
+| `success` | `none` | the live payload parsed; the snapshot was returned (and stored, unless storing failed) |
+| `fallback` | `sqlite_cache` | the fetch, the parse or the schema canary failed, or the payload was empty, and the locally stored snapshots were served instead |
+| `schema_drift` | `none` | drift under `on_drift="raise"`: a `SchemaDriftError` was raised, which the fetch layer then turns into a `fallback` row if it has a cache |
+| `schema_drift` | `warning_emitted` | drift under `on_drift="warn"`: a `SchemaDriftWarning` was emitted and the parser carried on |
+| `schema_drift` | `ignored` | drift under `on_drift="ignore"` |
+
+A `schema_drift` row is written **whatever** the `on_drift` policy is,
+so `connector_health()` sees upstream drift even in the runs where a
+fallback or a lenient policy hid it from the caller. That is the point
+of the canary: a provider that quietly renamed a JSON key shows up as a
+rising drift count rather than as a series that mysteriously shortened.
+
+Telemetry never breaks the fetch that emitted it: a write that fails is
+reported as a `UserWarning` and the data is returned regardless.
 
 ## Kill-switch
 

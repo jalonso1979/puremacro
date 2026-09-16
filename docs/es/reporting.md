@@ -155,6 +155,59 @@ typst_did = res_cs.to_typst()
 
 ---
 
+### Aprendizaje automático doble (`DMLResult`)
+
+Nuevo en la 3.4.0. `puremacro.causal.dml_plr` / `DoubleMLPLR` devuelven un
+`DMLResult` con los mismos tres exportadores, más `.summary()`:
+
+```python
+from puremacro.causal import dml_plr
+
+# Modelo parcialmente lineal: Y = theta*D + g(X) + U, D = m(X) + V
+X_dml = rng.standard_normal((500, 30))
+D_dml = 0.7 * X_dml[:, 0] + 0.9 * X_dml[:, 1] - 0.4 * X_dml[:, 3] + 0.8 * rng.standard_normal(500)
+Y_dml = 1.75 * D_dml + 0.8 * X_dml[:, 0] - 1.0 * X_dml[:, 1] + 0.8 * rng.standard_normal(500)
+
+dml_res = dml_plr(Y_dml, D_dml, X_dml, n_folds=5, learner="lasso", random_state=42)
+
+print(dml_res.summary())     # Bloque de coeficientes al estilo de Stata
+markdown_dml = dml_res.to_markdown()
+latex_dml = dml_res.to_latex()
+typst_dml = dml_res.to_typst()
+```
+
+La tabla LaTeX compila únicamente con `booktabs` — sin `siunitx` ni
+`threeparttable` — y escapa los nombres de las variables, de modo que un control
+llamado `gdp_growth` no rompe la compilación. `to_markdown()` escapa el
+encabezado `P>|z|` para que la barra vertical no parta la columna.
+
+### Solucionadores en tiempo continuo (`HJBSolution`, `AiyagariContinuousHJBResult`, `VFISolution`)
+
+También nuevo en la 3.4.0: los objetos de resultado de programación dinámica se
+exportan como cualquier estimador. `.summary()` devuelve un DataFrame de
+diagnósticos del solucionador (dimensiones de la malla, iteraciones,
+convergencia, error de conservación de masa), `.to_frame()` devuelve la tabla
+completa estado por estado, y `.plot()` funciona sin entorno gráfico:
+
+```python
+from puremacro.vfi import solve_hjb_achdou
+
+sol = solve_hjb_achdou(r_rate=0.03, w_rate=1.0, rho_val=0.05, gamma_r=2.0,
+                       Na=100, a_min=0.0, a_max=30.0)
+
+sol.summary()       # Metric / Value: iteraciones, convergencia, error de masa KFE, ...
+sol.to_frame()      # a_idx, e_idx, asset_a, prod_e, value_V, consumption_c,
+                    # savings_drift_s, density_g
+print(sol.to_latex())
+```
+
+`VFISolution.to_frame()` y `.plot()` también admiten problemas multiactivo cuyo
+`a_grid` es una lista de mallas de longitudes distintas: la tabla recibe un par
+de columnas `a_<k>` / `aprime_<k>` por componente, y el gráfico se traza contra
+el índice endógeno aplanado.
+
+---
+
 ## 2. Tablas de regresión independientes (`coef_table`)
 
 `puremacro.reports.coef_table` estructura coeficientes y errores estándar arbitrarios en tablas de regresión con estrellas de significancia estadística:

@@ -251,6 +251,132 @@ $$P_t = - (A_0^{(r_t)} + A_+^{(r_t)} P_{t+1})^{-1} A_-^{(r_t)}$$
 3. Simulates forward state trajectories and updates shadow multiplier values.
 4. Checks convergence of the binding sequence.
 
+#### The `solve_multiconstraint_occbin` API
+
+The multi-constraint solver **predates 3.4.0** — it shipped in 2.8.0 —
+and 3.4.0 extends and hardens it rather than introducing it: the regime
+splice now carries *every* row in which a constrained model differs from
+the reference, non-convergence is reported instead of implied, and the
+pairing rules below are enforced with `ValueError`.
+
+```text
+solve_multiconstraint_occbin(
+    m_unconstrained: LinearModel,
+    m_constrained_dict: Mapping[str, LinearModel] | Sequence[LinearModel],
+    shock_seq: np.ndarray,                       # (n_shocks,) or (horizon, n_shocks)
+    constraints: Mapping[str, OccBinConstraint]
+                 | Sequence[OccBinConstraint]
+                 | None = None,
+    horizon: int = 40,
+    max_iter: int = 50,
+) -> OccBinResult
+```
+
+**One model per constraint, paired one-to-one.** `m_constrained_dict`
+holds the model in which *that* constraint, and only that one, binds;
+`constraints` must be a mapping with exactly the model keys, a sequence
+in the model order, or a single constraint when there is a single model.
+Mismatched keys, a wrong-length sequence, or one constraint offered for
+several models each raise `ValueError` — the solver never guesses a
+pairing. Passing `constraints=None` deduces each constraint from its
+model (the pegged variable, $-c/a$ as the threshold, the operator read
+off the key or the sign of the threshold).
+
+**The regime sequence is a bitmask.** `result.regimes[t]` is an integer
+whose bit $k$ is set when constraint $k$ — the $k$-th entry of
+`m_constrained_dict` — binds in period $t$. With two constraints:
+`0` neither, `1` the first only, `2` the second only, `3` both. That is
+why regime counts are written as mask tests rather than equality tests:
+
+```python
+import numpy as np
+from puremacro.dsge import build_dynare, OccBinConstraint, solve_multiconstraint_occbin
+
+params = {
+    "beta": 0.99, "sigma": 1.0, "kappa": 0.15, "phi_pi": 1.5, "phi_y": 0.25,
+    "rho_r": 0.6, "rho_b": 0.5, "rho_g": 0.7, "gamma_y": 0.2, "chi": 0.1,
+    "r_ss": 0.015, "b_bar": 0.02,
+}
+variables = ["y", "pi", "r", "b", "g"]
+shocks = ["eps_g", "eps_r", "eps_b"]
+
+
+def ref_eqs(lead, curr, lag, s, p):          # reference: no constraint binds
+    return [
+        curr.y - lead.y + (curr.r - lead.pi) / p.sigma - curr.g + p.chi * curr.b,
+        curr.pi - p.beta * lead.pi - p.kappa * curr.y,
+        curr.r - (p.rho_r * lag.r + (1.0 - p.rho_r)
+                  * (p.phi_pi * curr.pi + p.phi_y * curr.y) + s.eps_r),
+        curr.b - (p.rho_b * lag.b + p.gamma_y * curr.y + s.eps_b),
+        curr.g - p.rho_g * lag.g - s.eps_g,
+    ]
+
+
+def zlb_eqs(lead, curr, lag, s, p):          # only the ZLB binds
+    eqs = ref_eqs(lead, curr, lag, s, p)
+    eqs[2] = curr.r - (-p.r_ss)
+    return eqs
+
+
+def borr_eqs(lead, curr, lag, s, p):         # only the borrowing cap binds
+    eqs = ref_eqs(lead, curr, lag, s, p)
+    eqs[3] = curr.b - p.b_bar
+    return eqs
+
+
+ss = {v: 0.0 for v in variables}
+kw = dict(variables=variables, shocks=shocks, params=params, steady_state=ss)
+m_ref = build_dynare(ref_eqs, **kw)
+m_zlb = build_dynare(zlb_eqs, check_steady_state=False, strict=False, **kw)
+m_borr = build_dynare(borr_eqs, check_steady_state=False, strict=False, **kw)
+
+c_zlb = OccBinConstraint(variable="r", threshold=-params["r_ss"], operator="<")
+c_borr = OccBinConstraint(variable="b", threshold=params["b_bar"], operator=">")
+
+shock_seq = np.zeros((40, 3))
+shock_seq[0, 0] = -0.06      # eps_g: demand contraction
+shock_seq[0, 2] = 0.05       # eps_b: credit surge
+
+res = solve_multiconstraint_occbin(
+    m_unconstrained=m_ref,
+    m_constrained_dict={"zlb": m_zlb, "borrowing": m_borr},
+    shock_seq=shock_seq,
+    constraints={"zlb": c_zlb, "borrowing": c_borr},
+    horizon=40,
+)
+
+regimes = np.asarray(res.regimes)
+print(res.converged, res.iterations)          # True 3
+print(regimes[:12])                           # [3 1 1 0 0 0 0 0 0 0 0 0]
+print(np.sum((regimes & 1) == 1))             # 3 — ZLB binds, alone or jointly
+print(np.sum(regimes == 3))                   # 1 — BOTH bind
+print([c for c in res.shadow_path.columns if c.endswith("_shadow")])
+#                                             # ['r_shadow', 'b_shadow']
+```
+
+`result.constraints` maps each model key to the constraint actually
+used, and `result.shadow_path` adds one `<variable>_shadow` column per
+constraint (`r_shadow`, `b_shadow` above), which is what the
+complementary-slackness check reads.
+
+**Non-convergence is now reported, not implied.** `result.converged` is
+`True` only when the regime iteration reached a fixed point, the returned
+path respects every constraint where that is meaningful for its style,
+and every constraint is slack in the final period so the terminal
+condition is verified. Otherwise the function returns `converged=False`
+**and emits a single `UserWarning` naming every reason** — `max_iter`
+exhausted, a regime cycle damping could not break, a violated bound, a
+constraint still binding at $T$. The path that comes back is then the one
+solved under `result.regimes`: a diagnostic, not a solution.
+
+Other `ValueError` conditions: a non-positive `horizon` or `max_iter`, no
+constrained model at all, a constraint naming an unknown variable or
+`relax_variable`, a constrained model identical to the reference, two
+constrained models rewriting the same equation row, and an alternative
+regime that pegs a variable in a row that does not determine it in the
+reference model without a `relax_variable` (the relax test would be
+vacuous).
+
 ### 4.2 The Piecewise Kalman Filter (Giovannini et al. 2021)
 
 Estimating models with occasionally binding constraints historically required particle filtering or nonlinear likelihood inversions. 

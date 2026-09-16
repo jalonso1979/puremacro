@@ -10,6 +10,8 @@ fallan sistemáticamente cuando el momento de adopción del tratamiento es **esc
 
 `puremacro.did` implementa la suite completa de estimadores robustos a la heterogeneidad en Python puro (solo numpy / scipy / pandas), ofreciendo inferencia por bootstrap de panel, agregaciones dinámicas para estudios de eventos y exportación directa de tablas para publicaciones.
 
+Cuando no existe un antes/después limpio y la identificación descansa en condicionar sobre controles de alta dimensión, véase [`docs/es/causal_dml.md`](causal_dml.md) para el modelo parcialmente lineal con aprendizaje automático doble/desesgado.
+
 ---
 
 ## Panorama de estimadores

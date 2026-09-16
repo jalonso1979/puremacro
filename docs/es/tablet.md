@@ -24,7 +24,7 @@ puremacro runtime
 ```
 
 La detección se realiza por heurística del sistema operativo, el entorno de aislamiento de iOS (`/var/mobile/`) y el agente de usuario del navegador. Cada campo puede fijarse manualmente mediante variables de entorno si la detección automática discrepa:
-`PUREMACRO_HOST`, `PUREMACRO_DEVICE`, `PUREMACRO_SOCKETS`, `PUREMACRO_PARQUET`.
+`PUREMACRO_HOST`, `PUREMACRO_DEVICE`, `PUREMACRO_SOCKETS`, `PUREMACRO_PARQUET`, `PUREMACRO_THREADS`.
 
 ---
 
@@ -96,6 +96,44 @@ bandas = np.percentile(job.result(), [5, 95], axis=0)
 ```
 
 Cada extracción $i$ utiliza deterministamente `default_rng([seed, i])`, de modo que un cálculo ejecutado a lo largo de varias sesiones fragmentadas genera resultados **bit a bit idénticos** a una ejecución continua, condición indispensable para publicaciones científicas.
+
+### `n_jobs` recurre a un bucle secuencial
+
+Bajo Pyodide no hay hilos del sistema operativo operativos, y allí
+`ThreadPoolExecutor` o bien se niega a arrancar o bien no ejecuta nada. Cinco
+motores de bootstrap aceptan `n_jobs` — `wild_bootstrap`, `wild_bootstrap_var`,
+`block_bootstrap`, `cum_irf_block_bootstrap` y `bootstrap_bands` — y los cinco
+pasan por un único punto que decide entre el grupo de hilos y el bucle:
+
+- Cada motor extrae **todo** su material aleatorio por adelantado con el
+  generador que usted le pasa y después aplica una función pura por
+  replicación. `Executor.map` preserva el orden de entrada, de modo que el grupo
+  de hilos y el bucle devuelven resultados **idénticos**; solo cambia el tiempo
+  de reloj.
+- Antes de construir un ejecutor, el motor consulta
+  `runtime.capabilities().threads`. Cuando la respuesta es negativa — un núcleo
+  Pyodide/WASM, o `PUREMACRO_THREADS=0` — se ejecuta el bucle y no se construye
+  ejecutor alguno. Su `n_jobs` simplemente se ignora; nada lanza excepción.
+- Si se intenta crear el grupo de hilos y no puede arrancar (`RuntimeError`,
+  `OSError` o `ValueError` desde `ThreadPoolExecutor`), un **`RuntimeWarning`**
+  nombra el motor e indica que las replicaciones se evalúan secuencialmente.
+- `n_jobs=0` lanza `ValueError` antes de ejecutar nada; un `n_jobs` negativo
+  significa todos los núcleos de CPU; `n_jobs=1` es el bucle.
+- Una excepción lanzada dentro de su función por replicación nunca se silencia:
+  se propaga sin alterar por cualquiera de las dos rutas, de modo que un
+  reajuste fallido se reporta en vez de reintentarse en silencio.
+
+`PUREMACRO_THREADS` es un **interruptor booleano, no un número de hilos**. Como
+las demás variables de anulación de capacidades, solo es verdadera con `1`,
+`true`, `yes` u `on`; cualquier otro valor — incluido `PUREMACRO_THREADS=8` — se
+lee como *sin hilos* y convierte todo `n_jobs` en un bucle secuencial. Para
+elegir el número de trabajadores, use `n_jobs`.
+
+```python
+from puremacro import runtime
+runtime.capabilities().threads      # el veredicto que consultan los cinco motores
+runtime.capabilities().overridden   # ('threads',) cuando lo fijó la variable de entorno
+```
 
 ---
 

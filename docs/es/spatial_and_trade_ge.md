@@ -109,6 +109,51 @@ $$\alpha + \beta \le \frac{\theta}{1 + \theta} \quad \text{y} \quad \alpha \le \
 | **Casos de uso principales** | Tratados de libre comercio, guerras arancelarias, TLCAN/T-MEC | Trenes de alta velocidad, corredores carreteros, choques climáticos |
 | **Tasa de convergencia** | 10–30 iteraciones ($< 0.01$ s) | 20–50 iteraciones ($< 0.005$ s) |
 
+### 2.1 Backends de hardware (`backend=`, 3.4.0)
+
+Ambos solucionadores de punto fijo aceptan un argumento `backend` — `"numpy"`
+(el valor por omisión), `"mlx"` (Apple Silicon) o `"cupy"` (NVIDIA):
+
+```python
+aa_res = aa_model.solve_equilibrium(backend="mlx")
+cf_res = aa_model.solve_counterfactual(trade_costs_new=tau_new, backend="mlx")
+```
+
+`puremacro.trade.solve_trade_equilibrium(..., backend=...)` admite el mismo
+argumento y traslada al dispositivo las dos contracciones de flujos bilaterales
+que se ejecutan en cada iteración.
+
+Conviene conocer tres propiedades antes de recurrir a ellos:
+
+- **NumPy es el oráculo.** Toda ruta acelerada se contrasta contra la
+  implementación de referencia en NumPy, y nunca al revés. El backend `numpy`
+  está siempre disponible y preserva intacto el contrato de Pyodide.
+- **`tol` sigue significando `tol`.** Metal no admite float64, de modo que la
+  contracción con MLX en `AllenArkolakisModel` se ejecuta en float32 hasta un
+  piso de 1e-6; el resultado se refina después con la contracción float64 de
+  NumPy, inicializada en la solución del dispositivo, de manera que `converged`
+  se refiere a la tolerancia `tol` solicitada. El solucionador de comercio
+  mantiene float64 en todo momento y ejecuta MLX en el flujo de CPU, porque los
+  residuos en float32 hacen divergir su jacobiano por diferencias finitas.
+- **El fallo es explícito y no fatal.** Un backend no instalado, un espacio de
+  nombres de arreglos que no puede importarse o una excepción en el dispositivo
+  emiten un `RuntimeWarning` y recurren a NumPy. Un resultado acelerado que no
+  convergió tampoco se devuelve nunca, pero cada solucionador lo resuelve de
+  distinta manera: `solve_trade_equilibrium` advierte y repite la resolución
+  completa con la implementación de referencia en NumPy, mientras que
+  `AllenArkolakisModel` remata la solución del dispositivo con la contracción
+  float64 de NumPy descrita arriba — sin advertencia, porque entonces
+  `converged` es el veredicto de NumPy a la tolerancia `tol` solicitada.
+
+```python
+from puremacro._backend import available_backends
+available_backends()          # ('numpy', 'numba', 'mlx') en esta máquina
+```
+
+Los contrafactuales arancelarios en GPU — jacobianos por lotes, continuación por
+homotopía y los solucionadores opcionales con `torch` / `mlx` — constituyen una
+superficie aparte, documentada en [`docs/es/trade_gpu.md`](trade_gpu.md).
+
 ---
 
 ## 3. Calibración canónica y especificaciones espaciales
@@ -274,6 +319,17 @@ AllenArkolakisModel.solve_equilibrium(
     tol: float = 1e-8,
     max_iter: int = 2500,
     damping: float = 0.35,
+    backend: str = "numpy",          # 'numpy' | 'mlx' | 'cupy'
+) -> AllenArkolakisResult
+
+AllenArkolakisModel.solve_counterfactual(
+    trade_costs_new: np.ndarray | None = None,
+    productivity_new: np.ndarray | None = None,
+    amenity_new: np.ndarray | None = None,
+    tol: float = 1e-8,
+    max_iter: int = 2500,
+    damping: float = 0.35,
+    backend: str = "numpy",
 ) -> AllenArkolakisResult
 
 AllenArkolakisModel.simulate_infrastructure_shock(

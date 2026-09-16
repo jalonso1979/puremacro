@@ -10,6 +10,8 @@ fail when treatment timing is **staggered** (units are treated at different poin
 
 `puremacro.did` implements the modern suite of heterogeneity-robust DiD estimators in pure Python (numpy / scipy / pandas only), providing panel-bootstrap inference, dynamic event-study aggregations, and publication-ready table exports.
 
+When there is no clean before/after and identification rests on conditioning on high-dimensional controls instead, see [`docs/causal_dml.md`](causal_dml.md) for the double/debiased machine-learning partially linear model.
+
 ---
 
 ## Overview of Estimators

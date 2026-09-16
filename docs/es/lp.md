@@ -107,6 +107,87 @@ print("Estadísticos F de primera etapa:", res_iv["first_stage_f"].values)
 res_iv.plot(title="LP-IV: Transmisión Monetaria vía Instrumento Externo")
 ```
 
+### Diagnósticos de instrumentos débiles (3.4.0)
+
+`z` admite una secuencia además de un nombre único, y cada fila de LP-IV incorpora ahora el **estadístico F efectivo de Montiel Olea y Pflueger (2013)** junto con sus valores críticos:
+
+| Columna | Significado |
+|---|---|
+| `first_stage_f` | Con **un** instrumento, el cuadrado del estadístico t de la primera etapa (sin cambios respecto de la 3.3.0). Con **dos o más**, coincide con `mop_f`, porque un F de Wald conjunto y robusto es el único escalar razonable en ese caso |
+| `mop_f` | El F efectivo de MOP, $\hat{\pi}' (Z'Z) \hat{\pi} \; / \; \operatorname{tr}\!\big((Z'Z)^{-1} \hat{\Omega}_{zz}\big)$, con el mismo ancho de banda Newey-West $L = h + 1$ que los errores HAC del horizonte |
+| `mop_cv_10`, `mop_cv_20` | Valores críticos al nivel del 5 % para un sesgo de Nagar del 10 % y del 20 % en el peor de los casos |
+
+Los valores críticos se calculan a partir de la forma cerrada de MOP en lugar de leerse de una tabla:
+
+$$\text{cv}(K, \tau, \alpha) = \frac{\chi^2_{K, \, 1-\alpha}(K / \tau)}{K}$$
+
+es decir, el cuantil $1 - \alpha$ de una $\chi^2$ no central con $K$ grados de libertad y parámetro de no centralidad $K / \tau$, dividido por $K$. Para un único instrumento con $\alpha = 0{,}05$ esto reproduce los valores publicados por MOP: **23,11** ($\tau = 10\%$) y **15,06** ($\tau = 20\%$), además de 37,42 al 5 % y 12,04 al 30 %:
+
+```python
+from puremacro.lp.iv import mop_critical_values   # no reexportado en puremacro.lp
+
+mop_critical_values(1)                  # (23.10851121160664, 15.061552535779715)
+mop_critical_values(1, tau=(0.05, 0.30))  # (37.417561545697716, 12.045036998377999)
+mop_critical_values(2)                  # (19.294343449962533, 12.172075007359934)
+```
+
+Para $K \ge 2$ el valor crítico *completo* de MOP depende de los datos (sustituye $K$ por unos grados de libertad efectivos estimados a partir de la covarianza HAC de la primera etapa). Lo que reportan `mop_cv_10` y `mop_cv_20` es la reducción con $W = I$, exacta para $K = 1$ y punto de referencia en los demás casos.
+
+### Conjuntos de confianza de Anderson-Rubin
+
+`anderson_rubin=True` (alias `weak_iv_robust=True`) añade `ar_lo`, `ar_hi` y `ar_set_type`. El conjunto $\{\beta_0 : AR(\beta_0) \le \chi^2_{K,\,1-\alpha}\}$ se invierte **en forma cerrada** — el límite $AR(\pm\infty)$ determina si las colas quedan rechazadas, y los extremos son raíces de Brent de $AR - \text{cv}$ — en lugar de leerse sobre una malla fija, de modo que un intervalo alejado de la estimación puntual de MC2E no se trunca silenciosamente:
+
+| `ar_set_type` | El conjunto es | Cómo leerlo |
+|---|---|---|
+| `bounded` | $[\,$`ar_lo`, `ar_hi`$\,]$ | el intervalo habitual; los instrumentos identifican $\beta$ |
+| `unbounded_rays` | $(-\infty,$ `ar_hi`$\,] \cup [\,$`ar_lo`$, \infty)$, con `ar_lo` > `ar_hi` | identificación débil: no existe un intervalo acotado |
+| `all_real` | $(-\infty, \infty)$; `ar_lo` = $-\infty$, `ar_hi` = $+\infty$ | los instrumentos no dicen nada sobre $\beta$ |
+| `empty` | $\varnothing$; ambos extremos NaN | todo candidato queda rechazado: normalmente un modelo mal especificado o sobreidentificado |
+
+```python
+# Dos instrumentos para un regresor endógeno
+df["hf_surprise_2"] = 0.4 * df["hf_monetary_surprise"] + 0.6 * rng.standard_normal(T)
+df["fedfunds2"] = (0.5 * df["hf_monetary_surprise"] + 0.5 * df["hf_surprise_2"]
+                   + 0.5 * rng.standard_normal(T))
+
+res_weak = lp_iv(
+    df,
+    y="gdp",
+    x="fedfunds2",
+    z=["hf_monetary_surprise", "hf_surprise_2"],
+    controls=["inflation"],
+    horizon=4,
+    lags=4,
+    ci=0.90,
+    weak_iv_robust=True,
+)
+
+print(res_weak[["h", "beta", "mop_f", "mop_cv_10", "ar_lo", "ar_hi", "ar_set_type"]].round(4))
+#    h    beta     mop_f  mop_cv_10   ar_lo   ar_hi ar_set_type
+# h
+# 0  0  0.0115  238.0877    19.2943 -0.0967  0.1123     bounded
+# 1  1  0.1049  229.4756    19.2943 -0.0479  0.2764     bounded
+# 2  2  0.1415  228.8576    19.2943 -0.0408  0.3303     bounded
+# 3  3  0.0729  228.2393    19.2943 -0.1292  0.2407     bounded
+# 4  4  0.0952  233.6795    19.2943 -0.1213  0.2832     bounded
+```
+
+La versión con aumento de rezagos es la misma superficie bajo otro estimador de varianza. `la_lp` incorporó `z=`, `anderson_rubin=` y `weak_iv_robust=`, y `la_lp_iv` es la grafía «con instrumento primero» del mismo estimador (`res.method == "la_lp_iv"`); ambos se exportan desde `puremacro.lp`:
+
+```python
+from puremacro.lp import la_lp_iv
+
+res_la = la_lp_iv(
+    df, y="gdp", x="fedfunds", z="hf_monetary_surprise",
+    horizon=4, lags=4, ci=0.90, weak_iv_robust=True,
+)
+```
+
+Siguiendo a Plagborg-Møller y Wolf (2021), el aumento de rezagos vuelve válido el error estándar **de Eicker-Huber-White (HC0)** en todos los horizontes, de modo que `la_lp_iv` emplea White — no HAC — en todas partes: en la segunda etapa, en `mop_f` y en el conjunto AR (`lags = 0` es el caso Bartlett de cero rezagos). Allí `first_stage_f` coincide con `mop_f` sea cual sea el número de instrumentos.
+
+> **No se admite agrupamiento (*clustering*).** Ni `lp_iv` ni `la_lp_iv` aceptan un argumento `cluster=`, y ningún estadístico de instrumentos débiles de esta página es robusto a agrupamiento: la varianza es Newey-West HAC en `lp_iv` y White en `la_lp_iv`. La inferencia de panel robusta a agrupamiento reside en `panel_lp` / `panel_lp_dk` (§ Proyecciones locales para paneles), que **no** calculan `mop_f` ni conjuntos AR. La función `puremacro.inference.weak_iv.olea_pflueger_f` sí acepta un arreglo `cluster=`, pero es un estadístico autónomo de primera etapa, no parte del flujo de LP-IV.
+
+
 ---
 
 ## 3. Proyecciones locales dependientes del estado (`lp_state_dep`)

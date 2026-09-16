@@ -36,23 +36,43 @@ Showcases `56` through `58` demonstrate `puremacro`'s frontier continuous-time H
     Matrix $(\rho + 1/\Delta) I - A(v^n)$ is strictly diagonally dominant with negative off-diagonals, guaranteeing existence, uniqueness, and unconditional stability for any $\Delta > 0$.
   - **Adjoint Kolmogorov Forward Equation (KFE)**:
     $$A(v^*)^\top g = 0, \quad \text{s.t.} \quad \sum_{j=1}^J \sum_{i=1}^I g_{j, i} \Delta a_i = 1.0$$
-    Replacing one row with normalization ensures machine-precision mass conservation ($|\sum g_i \Delta a_i - 1| \le 10^{-15}$).
+    Replacing one row with normalization ensures mass conservation to the notebook's gate ($|\sum g_i \Delta a_i - 1| \le 10^{-12}$; the run above reaches $1.1 \times 10^{-16}$). On a non-uniform grid the null vector is node *mass* and `solve_kfe_achdou` divides it by the cell-width quadrature weights, so what comes back is a *density*.
   - **Continuous Aiyagari General Equilibrium**:
     $$K^s(r) = \sum_{j, i} a_i g_{j, i} \Delta a_i = K^d(r) = \left( \frac{r + \delta}{\alpha \bar{Z}} \right)^{\frac{1}{\alpha - 1}}$$
-- **Economic Intuition**: Discrete-time models require fine time aggregation and suffer from lower-bound binding jitter. Continuous-time formulation replaces discrete choice with a smooth drift function $s(a, z)$. Upwind finite differences mirror the physical direction of asset flows: households accumulating assets look forward ($v_{i+1} - v_i$), while households decumulating assets look backward ($v_i - v_{i-1 interior}$), avoiding non-physical oscillation. Because the transition generator $A$ is an infinitesimal Markov generator, its adjoint $A^\top$ yields the exact stationary wealth density $g(a, z)$ in a single linear solve, preserving mass conservation without Monte Carlo simulation noise.
+- **Economic Intuition**: Discrete-time models require fine time aggregation and suffer from lower-bound binding jitter. Continuous-time formulation replaces discrete choice with a smooth drift function $s(a, z)$. Upwind finite differences mirror the physical direction of asset flows: households accumulating assets look forward ($v_{i+1} - v_i$), while households decumulating assets look backward ($v_i - v_{i-1}$), avoiding non-physical oscillation. Because the transition generator $A$ is an infinitesimal Markov generator, its adjoint $A^\top$ yields the exact stationary wealth density $g(a, z)$ in a single linear solve, preserving mass conservation without Monte Carlo simulation noise.
 - **Worked Code**:
-  ```text
+  ```python
+  import numpy as np
   from puremacro.vfi import solve_hjb_achdou, solve_aiyagari_continuous_hjb
 
-  # Continuous-time HJB implicit solver
-  sol_hjb = solve_hjb_achdou(r=0.03, gamma=2.0, rho=0.05, a_min=0.0, a_max=30.0, n_a=100)
+  # Continuous-time HJB implicit solver (note the parameter names:
+  # r_rate / w_rate / rho_val / gamma_r / Na, not r / w / rho / gamma / n_a)
+  sol = solve_hjb_achdou(
+      r_rate=0.03, w_rate=1.0, rho_val=0.05, gamma_r=2.0,
+      Na=100, a_min=0.0, a_max=30.0, tol=1e-8, max_iter=100,
+  )
+  sol.converged, sol.n_iter          # True, 9
+  sol.V.shape, sol.c_policy.shape    # (100, 2), (100, 2)
+  sol.mass_residual                  # 1.11e-16  (KFE gate: <= 1e-12)
 
-  # Continuous Aiyagari General Equilibrium
-  sol_ge = solve_aiyagari_continuous_hjb(gamma=2.0, rho=0.05, alpha=0.33, delta=0.05)
+  da = sol.a_grid[1] - sol.a_grid[0]
+  mass = float(np.sum(sol.g_dist * da))   # 1.0 — the density is `g_dist`
+
+  # Continuous Aiyagari general equilibrium: bisection on r until Ks(r) = Kd(r)
+  ge = solve_aiyagari_continuous_hjb(
+      alpha=0.33, delta=0.05, rho_val=0.05, gamma_r=2.0,
+      Na=40, a_max=25.0, tol_ge=1e-4, max_iter_ge=30,
+  )
+  ge.converged, ge.r_star, ge.K_star      # True, 0.018879, 6.2190
   ```
-- **Read the Output & Visualizations**: 4-Panel hero dashboard: (1) Converged value functions $v_j(a)$ exhibiting strict concavity; (2) Optimal consumption policies $c_j(a)$ with liquidity-constrained MPC kinks near $\underline{a}$; (3) Drift trajectories $s_j(a)$ showing asset decumulation for low-income and accumulation for high-income households; (4) Stationary wealth density $g(a, z)$ showing the characteristic precautionary mass spike at the borrowing constraint.
-- **Your Turn Interactive Knobs & Asserts**: Knobs `gamma_custom = 1.50`, `a_min_custom = 0.0`, `r_test = 0.025` with assertion gates `sol_custom.converged`, `np.isclose(sol_custom.g.sum() * da, 1.0, atol=1e-10)`, `r_star > 0.0`.
-- **Literature & Cross-References**: Achdou, Han, Lasry, Lions & Moll (2022), Aiyagari (1994), Huggett (1993). User guide: [`docs/vfi_continuous_equilibrium.md`](vfi_continuous_equilibrium.md).
+  Since 3.4.0 `solve_hjb_achdou` adds the two-state Poisson income-switching
+  term the 3.3.0 explicit solver omitted (symmetric generator, default
+  $\lambda = 0.1$), so the productivity states are no longer independent
+  deterministic-income problems; `tol_ge` governs the general-equilibrium
+  bisection and `ge.converged` reports $|K^s - K^d| \le$ `tol_ge`.
+- **Read the Output & Visualizations**: 4-Panel hero dashboard: (1) Optimal consumption policies $c_j(a)$ by income state, with liquidity-constrained MPC kinks near $\underline{a}$; (2) Savings drift $s(a, z) = r a + w z - c(a, z)$, showing decumulation for low-income and accumulation for high-income households; (3) Stationary wealth distribution from the adjoint KFE, with the characteristic precautionary mass spike at the borrowing constraint; (4) Aiyagari asset-market clearing, $K^s(r)$ against $K^d(r)$ around $r^*$.
+- **Your Turn Interactive Knobs & Asserts**: Knobs `rho_custom = 0.05`, `gamma_custom = 2.0`, `Na_custom = 50`, `a_max_custom = 30.0`, re-solved with `solve_hjb_achdou`; assertion gates `sol_custom.converged`, `sol_custom.n_iter <= 25`, `sol_custom.mass_residual <= 1e-12` and `abs(mass_custom - 1.0) <= 1e-12` where `mass_custom = np.sum(sol_custom.g_dist * da_custom)`.
+- **Literature & Cross-References**: Achdou, Han, Lasry, Lions & Moll (2022), Aiyagari (1994), Huggett (1993). User guides: [`docs/vfi_hjb_continuous.md`](vfi_hjb_continuous.md) (the continuous-time solver) and [`docs/vfi_continuous_equilibrium.md`](vfi_continuous_equilibrium.md) (the discrete-time histogram route).
 
 ### `57_multiconstraint_occbin_and_dml`
 - **Source**: `notebooks/57_multiconstraint_occbin_and_dml.py` (Spanish: `_es.py`, compiled: `.ipynb`)
@@ -67,20 +87,42 @@ Showcases `56` through `58` demonstrate `puremacro`'s frontier continuous-time H
     Neyman-orthogonal score removes regularization bias of machine learning estimators $\hat{\ell}(X)$ and $\hat{m}(X)$:
     $$\psi(W; \theta, \eta) = (Y - \ell(X)) - \theta (D - m(X))$$
     $K$-fold cross-fitting eliminates overfitting bias, delivering $\sqrt{N}$-consistent and asymptotically normal estimates $\hat{\theta} \sim \mathcal{N}(\theta_0, \sigma^2 / N)$.
-- **Economic Intuition**: When a severe contractionary shock hits, households cut borrowing against their credit limit while the central bank lowers interest rates to zero. If both constraints bind concurrently (Regime 3), the economy experiences severe non-linear amplification: monetary policy cannot provide accommodation while credit-constrained households cannot borrow to smooth consumption. In the empirical stage, naive OLS fails catastrophically due to omitted variable bias from 100 high-dimensional macroeconomic controls ($+42.5\%$ bias). DML uses cross-fitted penalized regression to orthogonalize both policy $D$ and outcome $Y$ with respect to confounders $X$, recovering the structural policy parameter with exact statistical coverage.
+- **Economic Intuition**: When a severe contractionary shock hits, households cut borrowing against their credit limit while the central bank lowers interest rates to zero. If both constraints bind concurrently (Regime 3), the economy experiences severe non-linear amplification: monetary policy cannot provide accommodation while credit-constrained households cannot borrow to smooth consumption. In the empirical stage the notebook contrasts three estimators on a synthetic panel with $N = 500$, $p = 30$ controls and a true effect $\theta_0 = 1.75$: OLS on all controls ($\hat\theta = 1.686$, 95% CI $[1.570, 1.801]$), a naive Lasso that penalizes the policy variable $D$ alongside $X$ ($\hat\theta = 1.582$ — shrinkage attenuation, and no confidence interval worth quoting), and DML ($\hat\theta = 1.699$, 95% CI $[1.581, 1.817]$). The naive Lasso is the estimator that fails; what DML buys is the right to use a penalized nuisance fit *and* still report a valid interval, via cross-fitting plus the Neyman-orthogonal score. Note the scope of that guarantee: the shipped nuisance learners (`lasso`, `ridge` — there is no elastic net) are **linear in the columns of $X$ you supply**, so DML removes confounding that is linear in those columns. Non-linear confounding needs a basis expansion appended to $X$, or a custom learner passed through `learner=`.
 - **Worked Code**:
-  ```text
-  from puremacro.dsge import OccBinConstraint, OccBinMultiConstraint, solve_multiconstraint_occbin
-  from puremacro.dml import DoubleMLPLR
+  ```python
+  import numpy as np
+  from puremacro.dsge import (
+      build_dynare, OccBinConstraint, solve_multiconstraint_occbin, OccBinResult,
+  )
+  from puremacro.causal import dml_plr, DoubleMLPLR, LassoCoordinateDescent, RidgeGCV
 
-  # 1. Multi-constraint OccBin solve
-  occ_res = solve_multiconstraint_occbin(model, constraints=[zlb_c, borrow_c], shock=shock)
+  # 1. Multi-constraint OccBin: one constrained model per constraint, paired by key
+  res_occ = solve_multiconstraint_occbin(
+      m_unconstrained=m_ref,
+      m_constrained_dict={"zlb": m_zlb, "borrowing": m_borr},
+      shock_seq=shocks_mat,                      # (horizon, n_shocks)
+      constraints={"zlb": c_zlb, "borrowing": c_borr},
+      horizon=40,
+  )
+  regimes = np.asarray(res_occ.regimes)          # bitmask: 1 = ZLB, 2 = cap, 3 = both
+  res_occ.converged, regimes[:8]                 # True, [3 1 1 0 0 0 0 0]
 
-  # 2. DML Partially Linear Regression
-  dml_res = DoubleMLPLR(Y, D, X, n_folds=5, estimator="lasso").fit()
+  # 2. DML partially linear regression (N = 500, p = 30 controls, theta_0 = 1.75)
+  res_dml_lasso = dml_plr(Y_outcome, D_treat, X_mat, n_folds=5,
+                          learner="lasso", random_state=42)
+  res_dml_ridge = dml_plr(Y_outcome, D_treat, X_mat, n_folds=5,
+                          learner="ridge", random_state=42)
+  res_dml_lasso.theta, res_dml_lasso.ci_lower, res_dml_lasso.ci_upper
+  #                                              # 1.6989, 1.5813, 1.8165
   ```
-- **Read the Output & Visualizations**: 4-Panel hero dashboard: (1) Discrete regime timeline tracking duration of joint ZLB-borrowing crisis; (2) IRF comparison between linear unconstrained trajectory and multi-constraint piecewise path; (3) Cross-fitting fold residual scatter plots; (4) Sampling distribution density comparing DML estimate against biased naive OLS.
-- **Your Turn Interactive Knobs & Asserts**: Knobs `shock_g_custom = -0.05`, `n_folds_custom = 5`, `alpha_custom = 0.05` with assertion gates `res_custom.converged`, `np.abs(dml_custom.theta - theta_true) < 0.20`, `dml_custom.p_value < 0.01`.
+  `DoubleMLPLR(n_folds=5, learner="lasso").fit(Y, D, X)` is the class form of
+  the same estimator — the data go to `.fit()`, not to the constructor, and the
+  keyword is `learner=`, not `estimator=`. There is no `OccBinMultiConstraint`
+  class and no `puremacro.dml` module; the multi-constraint solver is
+  `puremacro.dsge.solve_multiconstraint_occbin` and DML lives in
+  `puremacro.causal`.
+- **Read the Output & Visualizations**: 4-Panel hero dashboard: (1) Interest-rate trajectory, OccBin against the unconstrained linear simulation; (2) Active structural regime sequence across time (the bitmask); (3) Causal policy estimator comparison with confidence bands — true effect, OLS, naive Lasso, DML-Lasso, DML-Ridge; (4) Neyman-orthogonalized residuals with the fitted policy slope.
+- **Your Turn Interactive Knobs & Asserts**: Knobs `shock_g_custom = -0.06`, `shock_b_custom = 0.05`, `b_bar_custom = 0.020`, `n_folds_custom = 5`, `learner_custom = "lasso"` with assertion gates `res_custom_occ.converged` and `res_custom_dml.ci_lower <= theta_true <= res_custom_dml.ci_upper`.
 - **Literature & Cross-References**: Guerrieri & Iacoviello (2015), Chernozhukov et al. (2018), Belloni, Chernozhukov & Hansen (2014). User guides: [`docs/dsge_higher_order.md`](dsge_higher_order.md), [`docs/forecast.md`](forecast.md).
 
 ### `58_latin_america_realtime_macro`
@@ -96,26 +138,45 @@ Showcases `56` through `58` demonstrate `puremacro`'s frontier continuous-time H
     Under classical measurement noise, the preliminary release is a noisy proxy of true GDP: $H_0: \alpha = 0, \beta = 1$.
   - **HAC Newey-West Inference**: Robust covariance estimation accounting for heteroskedasticity and serial correlation in revision residuals.
   - **Cryptographic Offline `.pmz` Cartridges**: Portable, offline-contained `.pmz` vintage archives with SHA-256 integrity verification, schema validation, and instant zero-network unpacking.
+  - **Vintages here are snapshot dates.** Banxico, INEGI, BCB and BCCh publish only the edition current at the moment of the request; they overwrite in place. The notebook's panel is therefore synthetic, and against the live connectors a vintage date is the day the series was captured, with revision history accumulating only across repeated captures on different days.
 - **Economic Intuition**: Preliminary releases published 30–45 days after quarter-end rely on incomplete survey samples and statistical nowcasting models. As hard data (tax filings, balance sheets) arrive, statistical agencies revise historical figures. In emerging Latin American economies (Mexico, Brazil, Chile), understanding whether revisions are news or noise determines whether policymakers should respond immediately to preliminary growth signals or discount them as volatile measurement noise. Empirical results show revisions are news-dominated, confirming Latin American central banks produce rational real-time estimates.
 - **Worked Code**:
-  ```text
-  from puremacro.realtime import (
-      build_revision_triangle,
-      mankiw_shapiro_test,
-      export_realtime_cartridge,
+  ```python
+  from puremacro.fetch.realtime import (
+      VintagePanel,
+      pack_realtime_cartridge,
       load_realtime_cartridge,
   )
 
-  # Build revision triangle and run Mankiw-Shapiro test
-  tri = build_revision_triangle(vintage_df)
-  news_res, noise_res = mankiw_shapiro_test(tri)
+  # `df_raw` is the tidy long frame: country, variable, date, vintage, value,
+  # provider, series_id, units
+  panel_raw = VintagePanel(df_raw)
 
-  # Package into offline cryptographic cartridge
-  export_realtime_cartridge(cartridge_file, panel, metadata={"region": "Latin America"})
+  # Package into an offline .pmz cartridge and load it back with SHA-256 checking
+  pack_realtime_cartridge(
+      panel_raw, cartridge_file,
+      source="Banxico, INEGI, BCB, BCCh Regional Real-Time Ecosystem",
+      vintage="2026-04-01",
+  )
+  panel = load_realtime_cartridge(cartridge_file, verify=True)
+
+  # Revision triangles and the Mankiw-Shapiro pair are methods of the panel
+  panel.coverage()                            # what came back, per (country, variable)
+  panel.as_of("2025-06-01")                   # the information set on that date
+  panel.triangle("MEX", "gdp_real")           # reference periods x vintages
+  panel.revisions("MEX", "gdp_real")          # preliminary / final / revision
+  ms = panel.news_or_noise("MEX", "gdp_real") # MankiwShapiroResult
+  ms.verdict, ms.beta_on_preliminary, ms.p_beta_on_final
+  panel.news_or_noise_panel()                 # every series, one tidy table
   ```
-- **Read the Output & Visualizations**: 4-Panel hero dashboard: (1) Triangular heatmap displaying real-time vintage revisions across reference quarters and revision lags; (2) Trajectory spaghetti lines tracing GDP estimates from first release to final benchmark; (3) Histogram of revision sizes with normal fit and skewness diagnostics; (4) Mankiw-Shapiro scatter plot with fitted regression lines and HAC confidence bands.
-- **Your Turn Interactive Knobs & Asserts**: Knobs `country_custom = "brazil"`, `hac_lags_custom = 4`, `ci_level_custom = 0.95` with assertion gates `tri_custom.shape[0] > 0`, `news_custom.p_value > 0.05`, `noise_custom.p_value < 0.05`.
-- **Literature & Cross-References**: Mankiw & Shapiro (1986), Croushore & Stark (2001), Faust, Rogers & Wright (2005). User guide: [`docs/real_time_data.md`](real_time_data.md).
+  There is no `puremacro.realtime` module and no `build_revision_triangle` /
+  `mankiw_shapiro_test` / `export_realtime_cartridge` function: the cartridge
+  helpers are `pack_realtime_cartridge` / `load_realtime_cartridge` in
+  `puremacro.fetch.realtime`, and the revision machinery is on `VintagePanel`
+  (with the underlying test in `puremacro.vintages.mankiw_shapiro`).
+- **Read the Output & Visualizations**: 4-Panel hero dashboard: (1) Latin American central-bank policy rates; (2) Triangular heatmap of the revision triangle $\mathbf{T}[t, v]$ for Mexican real GDP; (3) Preliminary against final GDP estimates across reference periods; (4) Mankiw-Shapiro scatter of revisions on the preliminary release, annotated with the verdict.
+- **Your Turn Interactive Knobs & Asserts**: Knobs `country_custom = "MEX"`, `var_custom = "gdp_real"`, `as_of_custom = "2025-06-01"`, `signif_custom = 0.05` with assertion gates `country_custom in panel.countries`, `var_custom in panel.variables`, `not custom_asof.empty`, `len(custom_rev) > 0` and `hasattr(custom_ms, "verdict")`.
+- **Literature & Cross-References**: Mankiw & Shapiro (1986), Croushore & Stark (2001), Faust, Rogers & Wright (2005). User guides: [`docs/real_time_latam.md`](real_time_latam.md) (the four connectors) and [`docs/real_time_data.md`](real_time_data.md).
 
 ---
 

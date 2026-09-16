@@ -110,6 +110,116 @@ print("First stage F:", res_iv["first_stage_f"].values)
 res_iv.plot(title="LP-IV: Monetary Transmission via External Instrument")
 ```
 
+### Weak-instrument diagnostics (3.4.0)
+
+`z` accepts a sequence as well as a single name, and every LP-IV row now
+carries the **Montiel Olea & Pflueger (2013) effective F-statistic**
+alongside its critical values:
+
+| Column | Meaning |
+|---|---|
+| `first_stage_f` | With **one** instrument, the squared first-stage t-statistic (unchanged from 3.3.0). With **two or more**, it equals `mop_f`, because a robust joint Wald F is the only sensible scalar there |
+| `mop_f` | The MOP effective F, $\hat{\pi}' (Z'Z) \hat{\pi} \; / \; \operatorname{tr}\!\big((Z'Z)^{-1} \hat{\Omega}_{zz}\big)$, with the same Newey-West bandwidth $L = h + 1$ as the horizon's HAC errors |
+| `mop_cv_10`, `mop_cv_20` | Critical values at the 5% level for 10% and 20% worst-case Nagar bias |
+
+The critical values are computed from the MOP closed form rather than
+read off a table:
+
+$$\text{cv}(K, \tau, \alpha) = \frac{\chi^2_{K, \, 1-\alpha}(K / \tau)}{K}$$
+
+the $1 - \alpha$ quantile of a non-central $\chi^2$ with $K$ degrees of
+freedom and non-centrality $K / \tau$, divided by $K$. For a single
+instrument at $\alpha = 0.05$ this reproduces the published MOP values
+**23.11** ($\tau = 10\%$) and **15.06** ($\tau = 20\%$) — and 37.42 at
+5%, 12.04 at 30%:
+
+```python
+from puremacro.lp.iv import mop_critical_values   # not re-exported at puremacro.lp
+
+mop_critical_values(1)                  # (23.10851121160664, 15.061552535779715)
+mop_critical_values(1, tau=(0.05, 0.30))  # (37.417561545697716, 12.045036998377999)
+mop_critical_values(2)                  # (19.294343449962533, 12.172075007359934)
+```
+
+For $K \ge 2$ the *full* MOP critical value is data dependent (it replaces
+$K$ by an effective degrees of freedom estimated from the first-stage HAC
+covariance). What `mop_cv_10` / `mop_cv_20` report is the $W = I$
+reduction, which is exact for $K = 1$ and a reference point otherwise.
+
+### Anderson-Rubin confidence sets
+
+`anderson_rubin=True` (alias `weak_iv_robust=True`) adds `ar_lo`, `ar_hi`
+and `ar_set_type`. The set $\{\beta_0 : AR(\beta_0) \le \chi^2_{K,\,1-\alpha}\}$
+is inverted **in closed form** — the limit $AR(\pm\infty)$ decides whether
+the tails are rejected, and the endpoints are Brent roots of
+$AR - \text{cv}$ — rather than being read off a fixed grid, so an
+interval far from the 2SLS point estimate is not silently truncated:
+
+| `ar_set_type` | The set is | Read it as |
+|---|---|---|
+| `bounded` | $[\,$`ar_lo`, `ar_hi`$\,]$ | the usual interval; the instruments identify $\beta$ |
+| `unbounded_rays` | $(-\infty,$ `ar_hi`$\,] \cup [\,$`ar_lo`$, \infty)$, with `ar_lo` > `ar_hi` | weak identification: a bounded interval does not exist |
+| `all_real` | $(-\infty, \infty)$; `ar_lo` = $-\infty$, `ar_hi` = $+\infty$ | the instruments say nothing about $\beta$ |
+| `empty` | $\varnothing$; both bounds NaN | every candidate is rejected — normally a misspecified or over-identified model |
+
+```python
+# Two instruments for one endogenous regressor
+df["hf_surprise_2"] = 0.4 * df["hf_monetary_surprise"] + 0.6 * rng.standard_normal(T)
+df["fedfunds2"] = (0.5 * df["hf_monetary_surprise"] + 0.5 * df["hf_surprise_2"]
+                   + 0.5 * rng.standard_normal(T))
+
+res_weak = lp_iv(
+    df,
+    y="gdp",
+    x="fedfunds2",
+    z=["hf_monetary_surprise", "hf_surprise_2"],
+    controls=["inflation"],
+    horizon=4,
+    lags=4,
+    ci=0.90,
+    weak_iv_robust=True,
+)
+
+print(res_weak[["h", "beta", "mop_f", "mop_cv_10", "ar_lo", "ar_hi", "ar_set_type"]].round(4))
+#    h    beta     mop_f  mop_cv_10   ar_lo   ar_hi ar_set_type
+# h
+# 0  0  0.0115  238.0877    19.2943 -0.0967  0.1123     bounded
+# 1  1  0.1049  229.4756    19.2943 -0.0479  0.2764     bounded
+# 2  2  0.1415  228.8576    19.2943 -0.0408  0.3303     bounded
+# 3  3  0.0729  228.2393    19.2943 -0.1292  0.2407     bounded
+# 4  4  0.0952  233.6795    19.2943 -0.1213  0.2832     bounded
+```
+
+Lag-augmented LP-IV is the same surface under a different variance
+estimator. `la_lp` gained `z=`, `anderson_rubin=` and `weak_iv_robust=`,
+and `la_lp_iv` is the instrument-first spelling of the same estimator
+(`res.method == "la_lp_iv"`); both are exported from `puremacro.lp`:
+
+```python
+from puremacro.lp import la_lp_iv
+
+res_la = la_lp_iv(
+    df, y="gdp", x="fedfunds", z="hf_monetary_surprise",
+    horizon=4, lags=4, ci=0.90, weak_iv_robust=True,
+)
+```
+
+Following Plagborg-Møller & Wolf (2021), lag augmentation makes the
+plain **Eicker-Huber-White (HC0)** standard error valid at every horizon,
+so `la_lp_iv` uses White — not HAC — everywhere: in the second stage, in
+`mop_f`, and in the AR set (`lags = 0` is the zero-lag Bartlett case).
+`first_stage_f` there equals `mop_f` for any number of instruments.
+
+> **Clustering is not supported.** Neither `lp_iv` nor `la_lp_iv` takes a
+> `cluster=` argument, and no weak-instrument statistic on this page is
+> cluster-robust: the variance is Newey-West HAC in `lp_iv` and White in
+> `la_lp_iv`. Cluster-robust panel inference lives in `panel_lp` /
+> `panel_lp_dk` (§ Panel Local Projections), which do **not** compute
+> `mop_f` or AR sets. `puremacro.inference.weak_iv.olea_pflueger_f`
+> accepts a `cluster=` array, but that is a standalone first-stage
+> statistic, not part of the LP-IV pipeline.
+
+
 ---
 
 ## State-Dependent Local Projections (`lp_state_dep`)
