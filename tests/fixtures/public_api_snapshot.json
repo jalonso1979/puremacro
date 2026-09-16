@@ -128,11 +128,13 @@
     ],
     "puremacro.credentials": [
       "MissingCredentialError",
+      "PASSWORD_ENV_VARS",
       "SERVICES",
       "ServiceCredentialSpec",
       "default_config_path",
       "get",
       "get_credential",
+      "get_password",
       "require",
       "require_credential",
       "status"
@@ -1015,6 +1017,7 @@
       "parse_bcb_json"
     ],
     "puremacro.fetch.realtime.bcch": [
+      "BCCH_SIETE_ENDPOINT",
       "BCCH_SIETE_URL",
       "fetch_bcch_panel",
       "fetch_bcch_vintages",
@@ -1031,9 +1034,11 @@
       "parse_bbk_vintage_date"
     ],
     "puremacro.fetch.realtime.canary": [
+      "DRIFT_POLICIES",
       "SchemaCanary",
       "SchemaDriftError",
       "SchemaDriftWarning",
+      "handle_drift",
       "validate_payload"
     ],
     "puremacro.fetch.realtime.cartridge": [
@@ -1050,6 +1055,7 @@
       "SeriesSpec",
       "UNITS_TRANSFORM",
       "VARIABLE_ALIASES",
+      "VERIFY_ONLINE",
       "canonical_variable",
       "known_gaps",
       "provider_country_codes",
@@ -1433,6 +1439,7 @@
       "SmoothLPResult",
       "cce_panel_lp",
       "la_lp",
+      "la_lp_iv",
       "lp_asymmetric",
       "lp_did",
       "lp_garch_in_mean",
@@ -4593,6 +4600,7 @@
       "metadata"
     ],
     "puremacro.fetch.realtime.catalog.SeriesSpec": [
+      "freq",
       "note",
       "series_id",
       "source",

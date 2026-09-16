@@ -10,6 +10,8 @@ En la evaluación empírica de políticas públicas, el supuesto causal indispen
 
 El enfoque del «DiD Honesto» sustituye los contrastes binarios de hipótesis por un **análisis de sensibilidad riguroso**, construyendo intervalos de confianza robustos y conjuntos identificados bajo violaciones potenciales acotadas del supuesto de tendencias paralelas en el período posterior al tratamiento.
 
+El análisis de sensibilidad responde a «cuánto pueden fallar las tendencias paralelas antes de que cambie la conclusión»; la pregunta complementaria — qué aporta un diseño de selección sobre observables cuando los controles son de alta dimensión — se trata en [`docs/es/causal_dml.md`](causal_dml.md).
+
 ---
 
 ## 1. Marco econométrico

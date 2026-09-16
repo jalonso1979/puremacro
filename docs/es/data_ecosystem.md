@@ -2,7 +2,12 @@
 
 # Ecosistema de Datos Macroeconómicos Globales
 
-`puremacro` proporciona un ecosistema de datos unificado, sin necesidad de claves API y con almacenamiento en caché para la investigación macroeconómica internacional, el análisis de políticas y el pronóstico. Todos los recolectores operan a través de la capa de caché unificada (`puremacro.fetch._http.cached_get`), cumplen estrictamente con la seguridad de Pyodide (cero importaciones de `requests` a nivel de módulo) y devuelven marcos de datos en formato largo estandarizados (`code, date, variable, value, source`).
+`puremacro` proporciona un ecosistema de datos unificado, en su mayor parte sin necesidad de claves API y con almacenamiento en caché, para la investigación macroeconómica internacional, el análisis de políticas y el pronóstico. Los recolectores cumplen estrictamente con la seguridad de Pyodide (cero importaciones de `requests` a nivel de módulo) y devuelven marcos de datos en formato largo estandarizados (`code, date, variable, value, source`).
+
+Conviven dos contratos HTTP distintos, y la diferencia es observable:
+
+- **Las secciones 1 a 5 de esta página, y los proveedores de tiempo real respaldados por un archivo histórico** (`oecd_stes`, `alfred`, `bundesbank`, `ons`, `statcan`, `ecb_rtd`) operan a través de auxiliares HTTP compartidos y con caché, que son dos. Los recolectores de las secciones 1 a 5 invocan `puremacro.fetch._http.cached_get`, que fija un User-Agent identificable, usa un tiempo de espera de 60 segundos por omisión y replica cada URL bajo `data/raw/` junto a un manifiesto JSON. Los proveedores de añadas respaldados por archivo histórico invocan `fetch_with_backoff`, que reintenta ante códigos de límite de tasa y de error transitorio del servidor sobre `puremacro._http` (sustitución del User-Agent, un único respaldo SSL y tiempo de espera de 30 segundos por omisión) y almacena cada cuerpo de respuesta en la tabla SQLite `http_cache`; por eso toda URL que *ellos* consultan aparece en `puremacro.cache.http_list_urls()`.
+- **Los cuatro conectores latinoamericanos de instantánea** (`banxico`, `inegi`, `bcb`, `bcch`, incorporados en la 3.4.0) **no** lo hacen. Construyen un `urllib.request.Request` e invocan `urllib.request.urlopen` directamente, con un tiempo de espera de 60 segundos, porque la credencial debe colocarse de forma específica en cada proveedor (una cabecera, un segmento de ruta, un par de parámetros de consulta) y porque su capa de caché es otra: la tabla SQLite `realtime_vintages`, que almacena instantáneas ya interpretadas y no cuerpos de respuesta. En consecuencia, nunca aparecen en `http_list_urls()`, `use_cache=False` omite el almacén de instantáneas en lugar de una caché HTTP, y la semántica de fallos de `_http` no les aplica. Su propia semántica de fallos — recurrir a las instantáneas almacenadas, advertir y registrar telemetría — se documenta en [`docs/es/real_time_data.md`](real_time_data.md) y [`docs/es/CONNECTOR_HEALTH.md`](CONNECTOR_HEALTH.md).
 
 Además de los recolectores de series individuales, los **constructores modulares de paneles** de alto nivel (`puremacro.build_climate_panel` y `puremacro.build_financial_panel`) ensamblan conjuntos de datos multipaís y multifrecuencia con agregación temporal automatizada y seguimiento de datos faltantes.
 
@@ -222,11 +227,48 @@ print(panel.head())
 
 ---
 
-## 6. Garantías Arquitectónicas y Pruebas Fuera de Línea
+## 6. Ecosistema latinoamericano de tiempo real (`puremacro.fetch.realtime`)
+
+Incorporado en la 3.4.0: cuatro conectores nacionales para México, Brasil y
+Chile, que cubren el PIB real trimestral, los precios al consumidor, el índice
+mensual de actividad económica (IGAE / IBC-Br / IMACEC) y la tasa de política
+monetaria del banco central.
+
+```python
+from puremacro.fetch.realtime import available_providers, providers_for, vintage_catalog
+
+available_providers()
+# ['alfred', 'banxico', 'bcb', 'bcch', 'bundesbank', 'ecb_rtd',
+#  'inegi', 'oecd_stes', 'ons', 'statcan']
+
+providers_for("MEX", "cpi")        # ['banxico', 'inegi']
+providers_for("MEX", "gdp_real")   # ['alfred', 'inegi', 'oecd_stes']
+vintage_catalog("bcch")[["variable", "series_id", "freq", "units"]]
+```
+
+| Proveedor | Institución | País | Credencial |
+|---|---|---|---|
+| `banxico` | Banco de México, API SIE | MX | token (cabecera `Bmx-Token`) |
+| `inegi` | INEGI Banco de Indicadores / BIE | MX | token (ruta de la URL) |
+| `bcb` | Banco Central do Brasil, SGS | BR | ninguna |
+| `bcch` | Banco Central de Chile, SIETE | CL | usuario + contraseña (cadena de consulta) |
+
+**Son conectores de instantánea, no archivos históricos.** Cada servicio
+publica únicamente la edición vigente en el momento de la llamada, de modo que
+la fecha de la añada es el día en que esta máquina capturó la serie; el
+historial de revisiones se acumula solo a lo largo de capturas repetidas en
+días distintos. El tratamiento completo, incluido el flujo de cartuchos `.pmz`
+y el contraste de noticias frente a ruido, se encuentra en
+[`docs/es/real_time_latam.md`](real_time_latam.md) y
+[`docs/es/real_time_data.md`](real_time_data.md).
+
+---
+
+## 7. Garantías Arquitectónicas y Pruebas Fuera de Línea
 
 1. **Compatibilidad con Pyodide y Cero Dependencias de Red en Importación**:
    La importación de `puremacro`, `puremacro.fetch` o cualquiera de los constructores de paneles jamás realiza llamadas de red ni requiere `requests` a nivel de módulo.
 2. **Artefactos Fijos para Pruebas Fuera de Línea (Fixtures)**:
    Cada recolector incluye respuestas pregrabadas en `tests/data/`, permitiendo que el conjunto completo de pruebas unitarias y CI se ejecute al 100 % sin conexión.
 3. **Caché Unificada**:
-   Las llamadas en vivo almacenan entradas con marca de tiempo en `data/raw/` con gestión automática de tiempo de vida (TTL) y alertas de datos desactualizados.
+   Las llamadas en vivo almacenan entradas con marca de tiempo en `data/raw/` con gestión automática de tiempo de vida (TTL) y alertas de datos desactualizados. La excepción son los cuatro conectores latinoamericanos de instantánea de la sección 6, que almacenan instantáneas ya interpretadas en la tabla SQLite `realtime_vintages` en lugar de almacenar respuestas HTTP — véase [`docs/es/CACHE_DB.md`](CACHE_DB.md).

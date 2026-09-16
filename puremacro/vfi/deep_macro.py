@@ -41,8 +41,6 @@ import warnings
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.special import erf
@@ -794,6 +792,8 @@ class DeepMacroSolution:
         self, figsize: tuple[float, float] = (12, 4.5), show: bool = False
     ) -> matplotlib.figure.Figure:
         """Plot training diagnostics, Euler equation residuals, and simulated trajectory."""
+        import matplotlib.pyplot as plt
+
         fig, axes = plt.subplots(1, 3, figsize=figsize, constrained_layout=True)
 
         # Panel 1: Loss History

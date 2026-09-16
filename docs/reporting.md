@@ -155,6 +155,59 @@ typst_did = res_cs.to_typst()
 
 ---
 
+### Double Machine Learning (`DMLResult`)
+
+New in 3.4.0. `puremacro.causal.dml_plr` / `DoubleMLPLR` return a
+`DMLResult` with the same three exporters plus `.summary()`:
+
+```python
+from puremacro.causal import dml_plr
+
+# Partially linear model: Y = theta*D + g(X) + U, D = m(X) + V
+X_dml = rng.standard_normal((500, 30))
+D_dml = 0.7 * X_dml[:, 0] + 0.9 * X_dml[:, 1] - 0.4 * X_dml[:, 3] + 0.8 * rng.standard_normal(500)
+Y_dml = 1.75 * D_dml + 0.8 * X_dml[:, 0] - 1.0 * X_dml[:, 1] + 0.8 * rng.standard_normal(500)
+
+dml_res = dml_plr(Y_dml, D_dml, X_dml, n_folds=5, learner="lasso", random_state=42)
+
+print(dml_res.summary())     # Stata-style coefficient block
+markdown_dml = dml_res.to_markdown()
+latex_dml = dml_res.to_latex()
+typst_dml = dml_res.to_typst()
+```
+
+The LaTeX table compiles with `booktabs` alone — no `siunitx`, no
+`threeparttable` — and escapes variable names, so a control called
+`gdp_growth` does not break the build. `to_markdown()` escapes the
+`P>|z|` header so the pipe does not split the column.
+
+### Continuous-time solvers (`HJBSolution`, `AiyagariContinuousHJBResult`, `VFISolution`)
+
+Also new in 3.4.0: the dynamic-programming result objects export like
+every estimator. `.summary()` returns a DataFrame of solver diagnostics
+(grid dimensions, iterations, convergence, mass-conservation error),
+`.to_frame()` returns the full state-by-state table, and `.plot()` is
+headless-safe:
+
+```python
+from puremacro.vfi import solve_hjb_achdou
+
+sol = solve_hjb_achdou(r_rate=0.03, w_rate=1.0, rho_val=0.05, gamma_r=2.0,
+                       Na=100, a_min=0.0, a_max=30.0)
+
+sol.summary()       # Metric / Value: iterations, converged, KFE mass error, ...
+sol.to_frame()      # a_idx, e_idx, asset_a, prod_e, value_V, consumption_c,
+                    # savings_drift_s, density_g
+print(sol.to_latex())
+```
+
+`VFISolution.to_frame()` and `.plot()` also handle multi-asset problems
+whose `a_grid` is a list of grids of unequal length: the table gets one
+`a_<k>` / `aprime_<k>` column pair per component, and the plot is drawn
+against the flat endogenous index.
+
+---
+
 ## 2. Standalone Regression Tables (`coef_table`)
 
 `puremacro.reports.coef_table` formats arbitrary coefficient estimates and standard errors into academic regression tables with significance stars:

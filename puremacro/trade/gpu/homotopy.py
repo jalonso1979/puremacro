@@ -13,11 +13,12 @@ Newton methods diverge.
 from __future__ import annotations
 
 import time
+import warnings
 from typing import TYPE_CHECKING, Any, Callable, Literal
 
 import numpy as np
 
-from puremacro.trade.gpu.backend import select_compute_device
+from puremacro.trade.gpu.backend import _resolve_backend_device
 from puremacro.trade.gpu.solver_gpu import solve_trade_equilibrium_gpu
 
 if TYPE_CHECKING:
@@ -37,7 +38,7 @@ def solve_homotopy_continuation(
     x0: np.ndarray | None = None,
     device: str | None = None,
     backend: str | None = None,
-    batch_size: int = 230,
+    batch_size: int | None = None,
     initial_step: float = 0.1,
     min_step: float = 1e-4,
     max_step: float = 0.5,
@@ -48,6 +49,8 @@ def solve_homotopy_continuation(
     base_result: TradeEquilibriumResult | None = None,
     verbose: bool = False,
     callback: Callable[[float, TradeEquilibriumResult], None] | None = None,
+    *,
+    factor_equivalence: bool | None = None,
 ) -> TradeEquilibriumResult:
     """Solve CGE trade equilibrium along an adaptive homotopy path from base to target tariffs.
 
@@ -60,25 +63,27 @@ def solve_homotopy_continuation(
     target_tau_fd : np.ndarray
         Target final demand tariff matrix (taufd_1).
     target_tauf : np.ndarray | None, default None
-        Target national intermediate tariff vector. If None, derived or 1.0.
+        Target national intermediate tariff rates (nc,). Defaults to zeros.
     target_tauf_fd : np.ndarray | None, default None
-        Target national final demand tariff vector. If None, derived or 1.0.
+        Target national final demand tariff rates (nc,). Defaults to zeros.
     base_tau : np.ndarray | None, default None
-        Base intermediate tariff matrix (tau_0). Defaults to baseline (all 1.0s).
+        Base intermediate tariff multipliers (tau_0). Defaults to baseline (all 1.0s).
     base_tau_fd : np.ndarray | None, default None
-        Base final demand tariff matrix (taufd_0). Defaults to baseline (all 1.0s).
+        Base final demand tariff multipliers (taufd_0). Defaults to baseline (all 1.0s).
     base_tauf : np.ndarray | None, default None
-        Base national intermediate tariff vector. Defaults to all 1.0s.
+        Base national intermediate tariff rates. Defaults to zeros (no national tariff).
     base_tauf_fd : np.ndarray | None, default None
-        Base national final demand tariff vector. Defaults to all 1.0s.
+        Base national final demand tariff rates. Defaults to zeros (no national tariff).
     x0 : np.ndarray | None, default None
         Initial equilibrium state at base tariffs. If None, baseline state is solved.
     device : str | None, default None
-        Target compute device ('auto', 'cuda', 'mps', 'mlx', 'cpu').
+        Target compute device ('auto', 'cuda', 'cuda:N', 'mps', 'mlx', 'gpu', 'cpu');
+        see :func:`solve_trade_equilibrium_gpu` for the float64 policy.
     backend : str | None, default None
-        Target backend ('torch' or 'mlx').
-    batch_size : int, default 230
-        Macro perturbation dimension (230 or 307).
+        Target backend ('torch', 'mlx', 'numpy' or None for automatic).
+    batch_size : int | None, default None
+        Macro dimension; must equal ``3*nc - 1`` or ``4*nc - 1`` for the
+        calibration. Prefer ``factor_equivalence``.
     initial_step : float, default 0.1
         Initial homotopy step size Delta lambda.
     min_step : float, default 1e-4
@@ -99,6 +104,8 @@ def solve_homotopy_continuation(
         Whether to log continuation steps and convergence diagnostics.
     callback : callable | None, default None
         Optional hook called after each successful continuation step as callback(lambda_val, result).
+    factor_equivalence : bool | None, keyword-only, default None
+        Reduced (r == w) versus full macro layout; see :func:`solve_trade_equilibrium_gpu`.
 
     Returns
     -------
@@ -110,10 +117,11 @@ def solve_homotopy_continuation(
     ns = calib.n_sectors
     nfd = calib.n_final_demand
     M = ns * nc
-    pref = device if device not in (None, "auto") else backend
-    sel_backend, sel_device = select_compute_device(pref)
-    target_backend = sel_backend if backend in (None, "auto") else backend
-    target_device = sel_device if device in (None, "auto") else device
+    # Validate the device request once; the per-step solver receives the
+    # original strings so its float64 policy (auto vs explicit device) applies.
+    _resolve_backend_device(device, backend)
+    target_backend = backend
+    target_device = device
 
     # Format target tariffs
     t_tau = np.asarray(target_tau, dtype=float)
@@ -158,6 +166,7 @@ def solve_homotopy_continuation(
             device=target_device,
             backend=target_backend,
             batch_size=batch_size,
+            factor_equivalence=factor_equivalence,
             max_iter=max_iter_per_step,
             tol=tol,
             damping=damping,
@@ -192,23 +201,30 @@ def solve_homotopy_continuation(
                 f"(step size = {actual_delta:.4f}) ..."
             )
 
-        step_res = solve_trade_equilibrium_gpu(
-            calib=calib,
-            tau=lam_tau,
-            tau_fd=lam_tau_fd,
-            tauf=lam_tauf,
-            tauf_fd=lam_tauf_fd,
-            x0=last_good_x,
-            device=target_device,
-            backend=target_backend,
-            batch_size=batch_size,
-            max_iter=max_iter_per_step,
-            tol=tol,
-            damping=damping,
-            replicate_matlab_precedence=replicate_matlab_precedence,
-            base_result=base_result,
-            verbose=False,
-        )
+        with warnings.catch_warnings():
+            if step_count > 1 or x0 is None:
+                # the float32-device notice was already issued by the first solve
+                warnings.filterwarnings(
+                    "ignore", message="Device .* only supports float32", category=RuntimeWarning
+                )
+            step_res = solve_trade_equilibrium_gpu(
+                calib=calib,
+                tau=lam_tau,
+                tau_fd=lam_tau_fd,
+                tauf=lam_tauf,
+                tauf_fd=lam_tauf_fd,
+                x0=last_good_x,
+                device=target_device,
+                backend=target_backend,
+                batch_size=batch_size,
+                factor_equivalence=factor_equivalence,
+                max_iter=max_iter_per_step,
+                tol=tol,
+                damping=damping,
+                replicate_matlab_precedence=replicate_matlab_precedence,
+                base_result=base_result,
+                verbose=False,
+            )
 
         if step_res.converged and step_res.max_residual <= tol:
             curr_lambda = target_step_lambda

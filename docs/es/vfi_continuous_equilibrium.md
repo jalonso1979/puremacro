@@ -6,6 +6,21 @@
 
 En modelos macroeconómicos con riesgo no asegurable en los ingresos laborales (p. ej., Aiyagari 1994, Huggett 1993), los hogares optimizan sobre un continuo de activos $k \in [\underline{k}, \bar{k}]$. Mientras que la simulación de Monte Carlo con un panel finito de hogares introduce ruido estocástico y una lenta convergencia $O(1/\sqrt{N})$, el método no estocástico de Young proyecta las reglas de decisión continuas sobre una representación fina de densidad lineal a trozos. Esto garantiza la conservación exacta de la masa de probabilidad ($\sum \mu^* = 1.0 \pm 10^{-12}$) y de la tenencia media local de activos, permitiendo determinar los precios de equilibrio general con extrema rapidez mediante algoritmos de búsqueda de raíces sin derivadas.
 
+> **Esta página describe la vía en tiempo discreto.** El tiempo es discreto:
+> primero se resuelve una función de política $g(k, z)$, y este módulo la
+> proyecta sobre un histograma fino para obtener la *masa de probabilidad*
+> invariante $\mu^*$. puremacro incluye además una vía en **tiempo continuo** —
+> `solve_hjb_achdou`, `solve_kfe_achdou` y `solve_aiyagari_continuous_hjb` —,
+> donde un esquema implícito a contracorriente resuelve la ecuación de
+> Hamilton-Jacobi-Bellman y la ecuación adjunta de Kolmogorov hacia adelante
+> $A^\top g = 0$ devuelve una *densidad* $g$ en una única resolución lineal, sin
+> iteración de la función de política ni pesos de lotería. Son dos
+> discretizaciones distintas de la misma economía y no son intercambiables: aquí
+> $\mu^*$ es masa por nodo y suma 1, mientras que allí $g$ es una densidad e
+> integra 1 (en una malla no uniforme, masa del nodo dividida por el ancho de la
+> celda y normalizada con pesos de cuadratura trapezoidal). Véase
+> [`docs/es/vfi_hjb_continuous.md`](vfi_hjb_continuous.md).
+
 ---
 
 ## 1. Marco teórico y computacional

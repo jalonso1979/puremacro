@@ -55,6 +55,7 @@ nav:
       - Data:
           - Quarterly National Accounts: national_accounts.md
           - Real-time data (vintages): real_time_data.md
+          - Latin America real-time connectors: real_time_latam.md
           - Long national accounts panel: long_panel.md
           - Global Macro Data Ecosystem: data_ecosystem.md
       - Econometric Engines:
@@ -65,6 +66,7 @@ nav:
           - Smooth Local Projections: smooth_lp.md
           - Modern Difference-in-Differences: did.md
           - Honest DiD Sensitivity: honest_did.md
+          - Double / Debiased Machine Learning: causal_dml.md
           - Spatial Econometrics: spatial.md
           - Global VAR (GVAR): gvar.md
           - DSGE Estimation & Diagnostics: dsge_estimation.md
@@ -88,11 +90,13 @@ nav:
           - Splines & Sparse Grids: vfi_splines_and_sparse_grids.md
           - Discrete Choice EGM (DC-EGM): dcegm.md
           - Continuous Distributions & General Equilibrium: vfi_continuous_equilibrium.md
+          - Continuous-Time HJB & Adjoint KFE: vfi_hjb_continuous.md
           - Continuous Transition Dynamics: vfi_continuous_transition.md
           - Exact Analytic Gradients (IFT): vfi_analytic_gradients.md
       - Frontier Macro & Spatial Economics:
           - Deep Macro & Neural Networks: deep_macro.md
           - Quantitative Spatial & Trade General Equilibrium: spatial_and_trade_ge.md
+          - Hardware Backends (GPU, MLX & Batched Jacobians): trade_gpu.md
       - Running Anywhere (iPad / browser): tablet.md
       - Performance & Benchmarks: benchmarks.md
       - Reference:
@@ -113,6 +117,7 @@ nav:
       - Datos:
           - Cuentas nacionales trimestrales: es/national_accounts.md
           - Datos en tiempo real (vintages): es/real_time_data.md
+          - Conectores en tiempo real de América Latina: es/real_time_latam.md
           - Panel largo de cuentas nacionales: es/long_panel.md
           - Ecosistema de datos macro globales: es/data_ecosystem.md
       - Motores econométricos:
@@ -123,6 +128,7 @@ nav:
           - Proyecciones locales suavizadas: es/smooth_lp.md
           - Diferencias en diferencias modernas: es/did.md
           - Sensibilidad en DiD honesto: es/honest_did.md
+          - Aprendizaje automático doble / desesgado: es/causal_dml.md
           - Econometría espacial: es/spatial.md
           - VAR global (GVAR): es/gvar.md
           - Estimación y diagnósticos DSGE: es/dsge_estimation.md
@@ -146,11 +152,13 @@ nav:
           - Splines y mallas dispersas: es/vfi_splines_and_sparse_grids.md
           - DC-EGM de elección discreta: es/dcegm.md
           - Distribuciones continuas y equilibrio general: es/vfi_continuous_equilibrium.md
+          - HJB en tiempo continuo y KFE adjunta: es/vfi_hjb_continuous.md
           - Dinámica de transición continua: es/vfi_continuous_transition.md
           - Gradientes analíticos exactos (TFI): es/vfi_analytic_gradients.md
       - Macroeconomía de frontera y economía espacial:
           - Deep Macro y redes neuronales: es/deep_macro.md
           - Economía espacial cuantitativa y equilibrio general de comercio: es/spatial_and_trade_ge.md
+          - Backends de hardware (GPU, MLX y jacobianos por lotes): es/trade_gpu.md
       - Ejecución en cualquier entorno (iPad / navegador): es/tablet.md
       - Rendimiento y pruebas comparativas: es/benchmarks.md
       - Referencia:

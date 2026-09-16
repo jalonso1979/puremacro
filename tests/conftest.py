@@ -120,3 +120,51 @@ def mock_http(monkeypatch):
             by_url_text.update(text)
 
     return register
+
+
+# ---------------------------------------------------------------------------
+# Availability of the private ICIO research data
+# ---------------------------------------------------------------------------
+#
+# The 77-country input-output matrices live outside the repository (../IO, or
+# IO_DATA_PATH / IO_COMPUTATION_DIR).  A clean checkout -- CI included -- has no
+# such tree, and on a cloud-synced machine the files can be present in the
+# directory listing with a full ``st_size`` while their contents have been
+# evicted: opening one yields zero bytes and scipy raises
+# ``MatReadError("Mat file appears to be truncated")``.  Both cases mean the
+# data is *unavailable*, not that puremacro is broken, so tests that need it
+# must skip rather than fail; otherwise release_check Gate 1 can never match
+# tests/known_failures.json away from the author's machine.
+
+def mat_file_is_readable(path) -> bool:
+    """True when ``path`` is a .mat file whose bytes can actually be read."""
+    from pathlib import Path
+
+    p = Path(path)
+    try:
+        if not p.is_file():
+            return False
+        with p.open("rb") as fh:
+            return len(fh.read(1024)) > 0
+    except OSError:
+        return False
+
+
+def load_or_skip(loader, *args, **kwargs):
+    """Call ``loader``; turn an unavailable-data failure into a pytest skip."""
+    import pytest
+
+    try:
+        return loader(*args, **kwargs)
+    except FileNotFoundError as exc:
+        pytest.skip(f"private ICIO data unavailable: {exc}")
+    except OSError as exc:
+        pytest.skip(f"private ICIO data unreadable: {exc}")
+    except ValueError as exc:
+        if "0 rows" in str(exc) or "expected at least" in str(exc):
+            pytest.skip(f"private ICIO data unreadable (empty matrix): {exc}")
+        raise
+    except Exception as exc:  # scipy MatReadError is not an OSError subclass
+        if type(exc).__name__ == "MatReadError":
+            pytest.skip(f"private ICIO data unreadable: {exc}")
+        raise

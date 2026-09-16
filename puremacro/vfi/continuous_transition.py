@@ -41,8 +41,6 @@ import warnings
 from dataclasses import dataclass, field
 from typing import Any, Callable, Mapping, Optional, Sequence, Tuple
 
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.optimize import brentq
@@ -201,6 +199,8 @@ class ContinuousTransitionResult:
         5. Market clearing residual H_t = K_t^s - K_t^d.
         6. Evolution of the marginal continuous asset distribution mu_t(k).
         """
+        import matplotlib.pyplot as plt
+
         fig, axes = plt.subplots(2, 3, figsize=figsize, constrained_layout=True)
         t_grid = np.arange(self.horizon)
 

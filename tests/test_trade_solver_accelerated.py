@@ -127,21 +127,37 @@ def test_tensor_contraction_equivalence():
 
 
 def test_trade_equilibrium_backend_acceleration(toy_trade_calib):
-    """Verify solve_trade_equilibrium with method='condensed' across backends."""
-    res_np = solve_trade_equilibrium(toy_trade_calib, method="condensed", backend="numpy")
+    """Verify solve_trade_equilibrium with method='condensed' across backends.
+
+    The comparison uses a tariff-shocked problem so that the solver actually
+    iterates (the unshocked calibration is already an equilibrium and returns
+    the initial guess after 0 iterations, which cannot detect backend defects).
+    """
+    ns, nc, nfd = 2, 2, 3
+    tau = np.ones((ns, nc, ns, nc))
+    tau_fd = np.ones((ns, nc, nfd, nc))
+    tau[:, 1, :, 0] = 1.25  # country 0 imposes 25% on imports from country 1
+    tau_fd[:, 1, :, 0] = 1.25
+
+    res_np = solve_trade_equilibrium(toy_trade_calib, tau=tau, tau_fd=tau_fd, method="condensed", backend="numpy")
     assert res_np.converged is True
+    assert res_np.iterations > 0
     assert res_np.max_residual < 2.5e-3
 
     if backend_available("mlx"):
-        res_mlx = solve_trade_equilibrium(toy_trade_calib, method="condensed", backend="mlx")
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", RuntimeWarning)  # a fallback to numpy would hide a defect
+            res_mlx = solve_trade_equilibrium(toy_trade_calib, tau=tau, tau_fd=tau_fd, method="condensed", backend="mlx")
         assert res_mlx.converged is True
-        np.testing.assert_allclose(res_np.w_sol, res_mlx.w_sol, atol=1e-10)
-        np.testing.assert_allclose(res_np.r_sol, res_mlx.r_sol, atol=1e-10)
-        np.testing.assert_allclose(res_np.p_sol, res_mlx.p_sol, atol=1e-10)
+        assert res_mlx.metadata["backend"] == "mlx"
+        np.testing.assert_allclose(res_np.w_sol, res_mlx.w_sol, atol=1e-8)
+        np.testing.assert_allclose(res_np.r_sol, res_mlx.r_sol, atol=1e-8)
+        np.testing.assert_allclose(res_np.p_sol, res_mlx.p_sol, atol=1e-8)
+        np.testing.assert_allclose(res_np.x_sol, res_mlx.x_sol, atol=1e-8)
 
     # Test unavailable backend fallback
     with pytest.warns(RuntimeWarning, match="falling back to 'numpy'"):
-        res_fallback = solve_trade_equilibrium(toy_trade_calib, method="condensed", backend="cupy")
+        res_fallback = solve_trade_equilibrium(toy_trade_calib, tau=tau, tau_fd=tau_fd, method="condensed", backend="cupy")
     assert res_fallback.converged is True
     np.testing.assert_allclose(res_np.w_sol, res_fallback.w_sol, atol=1e-12)
 
@@ -163,15 +179,17 @@ def test_allen_arkolakis_backend_acceleration():
     assert res_np.labor_conservation_residual < 1e-12
     assert res_np.spatial_utility_variance < 1e-7
 
-    # MLX acceleration (if available on Apple Silicon)
+    # MLX acceleration (if available on Apple Silicon): float32 contraction polished in float64
     if backend_available("mlx"):
         res_mlx = model.solve_equilibrium(backend="mlx")
         assert res_mlx.converged is True
+        assert res_mlx.max_residual < 1e-8, "converged must mean the requested tol=1e-8 was met"
         assert res_mlx.labor_conservation_residual < 1e-12
-        # Verify close agreement with NumPy
-        np.testing.assert_allclose(res_np.wages, res_mlx.wages, atol=1e-5, rtol=1e-5)
-        np.testing.assert_allclose(res_np.population, res_mlx.population, atol=1e-5, rtol=1e-5)
-        np.testing.assert_allclose(res_np.price_index, res_mlx.price_index, atol=1e-5, rtol=1e-5)
+        # Verify close agreement with NumPy (the requested tolerance, not a float32 floor)
+        np.testing.assert_allclose(res_np.wages, res_mlx.wages, atol=1e-6, rtol=0)
+        np.testing.assert_allclose(res_np.population, res_mlx.population, atol=1e-6, rtol=0)
+        np.testing.assert_allclose(res_np.price_index, res_mlx.price_index, atol=1e-6, rtol=0)
+        np.testing.assert_allclose(res_np.welfare, res_mlx.welfare, atol=1e-8, rtol=0)
 
         # Counterfactual on MLX
         cf_mlx = model.solve_counterfactual(
@@ -180,6 +198,11 @@ def test_allen_arkolakis_backend_acceleration():
         )
         assert cf_mlx.converged is True
         assert cf_mlx.welfare_pct is not None
+        cf_np = model.solve_counterfactual(
+            productivity_new=np.array([1.2, 1.0, 1.0, 1.0, 1.0]),
+            backend="numpy",
+        )
+        np.testing.assert_allclose(cf_mlx.welfare_pct, cf_np.welfare_pct, atol=1e-6, rtol=0)
 
     # Fallback when backend is unavailable
     with pytest.warns(RuntimeWarning, match="falling back to 'numpy'"):

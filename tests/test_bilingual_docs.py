@@ -59,6 +59,10 @@ _USER_DOCS = [
     "vfi_analytic_gradients.md",
     "deep_macro.md",
     "spatial_and_trade_ge.md",
+    "causal_dml.md",
+    "vfi_hjb_continuous.md",
+    "real_time_latam.md",
+    "trade_gpu.md",
 ]
 
 

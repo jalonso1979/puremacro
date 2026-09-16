@@ -252,7 +252,18 @@ def compute_equilibrium_residuals(
     -------
     np.ndarray
         1D residual vector of length 2*ns*nc + 3*nc + (nc - 1).
+
+    Raises
+    ------
+    TypeError
+        If unknown keyword arguments are passed (a misspelled option such as
+        ``fiscal_closur=`` would otherwise silently change the model solved).
     """
+    if kwargs:
+        raise TypeError(
+            f"compute_equilibrium_residuals() got unexpected keyword argument(s): {sorted(kwargs)}"
+        )
+
     nc = calib.n_countries
     ns = calib.n_sectors
     nfd = calib.n_final_demand

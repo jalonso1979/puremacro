@@ -248,6 +248,145 @@ print(f"Spatial GE converged: {res.converged}")
 print(f"Aggregate welfare change: {res.welfare_pct:+.4f}%")
 ```
 
+### 9. Double / Debiased Machine Learning (puremacro 3.4)
+Estimate a treatment effect with high-dimensional macro controls via Chernozhukov et al. (2018) partially linear regression: cross-fitted Robinson orthogonal scores, pure-NumPy penalized learners, and result objects that export to LaTeX, Typst and Markdown. The learners are **lasso and ridge only** — there is no elastic-net learner:
+```python
+import numpy as np
+from puremacro.causal import dml_plr
+
+# 500 observations, 50 controls; the true treatment effect is 1.5.
+rng = np.random.default_rng(0)
+n, p = 500, 50
+X = rng.normal(size=(n, p))
+beta = np.r_[1.0, 0.5, 0.25, np.zeros(p - 3)]
+D = X @ beta + rng.normal(size=n)
+Y = 1.5 * D + X @ beta + rng.normal(size=n)
+
+res = dml_plr(Y, D, X, n_folds=5, learner="lasso")
+print(f"theta = {res.theta:.4f}  se = {res.se:.4f}")
+print(f"95% CI = [{res.ci_lower:.4f}, {res.ci_upper:.4f}]")
+# theta = 1.4959  se = 0.0485
+# 95% CI = [1.4009, 1.5909]
+```
+The class behind `dml_plr` is `DoubleMLPLR`. NaN / infinite inputs, more folds than
+observations and arrays above two dimensions raise `ValueError`; a training fold with
+`n_train <= p + 1` emits a `UserWarning` rather than returning a silently unidentified
+estimate. A learner passed as an instance is deep-copied per fold, so the folds never
+share fitted state, and `.to_latex()` compiles with `booktabs` alone.
+
+### 10. Implicit Continuous-Time HJB, Adjoint KFE & Aiyagari GE (puremacro 3.4)
+Solve the Achdou, Han, Lasry, Lions & Moll (2022) implicit upwind M-matrix system, then the adjoint Kolmogorov forward equation for the stationary density on the same grid, then the continuous-time Aiyagari general equilibrium:
+```python
+from puremacro.vfi import solve_hjb_achdou, solve_aiyagari_continuous_hjb
+
+# Implicit upwind HJB with two-state Poisson income switching (default lambda = 0.1),
+# plus the adjoint KFE stationary density g(a, z) on the same grid.
+sol = solve_hjb_achdou(r_rate=0.03, w_rate=1.0, rho_val=0.05, Na=200, a_max=20.0)
+print(f"HJB iterations: {sol.n_iter}   |mass - 1| = {sol.mass_residual:.1e}")
+print(f"g_dist is a density of shape {sol.g_dist.shape} (mass per unit of a)")
+
+# `converged` means |K^s - K^d| <= tol_ge, and tol_ge governs the GE loop.
+ge = solve_aiyagari_continuous_hjb(Na=120, a_max=20.0, tol_ge=1e-4)
+print(f"GE converged: {ge.converged}   r* = {ge.r_star:.6f}   K* = {ge.K_star:.4f}")
+print(f"|K^s - K^d| = {abs(ge.excess_capital):.2e} <= tol_ge = 1e-4")
+# HJB iterations: 9   |mass - 1| = 0.0e+00
+# g_dist is a density of shape (200, 2) (mass per unit of a)
+# GE converged: True   r* = 0.020571   K* = 5.9977
+# |K^s - K^d| = 2.41e-07 <= tol_ge = 1e-4
+```
+`g_dist` is a **density**, not node mass: on a non-uniform `a_grid` the node mass is
+divided by the cell width, so `sum_i g_i w_i = 1` with the trapezoid quadrature weights
+`w`. The Poisson switching between the states of `e_grid` is new in 3.4: the 3.3.0
+explicit solver carried the same two income states but no switching term, so they were
+independent deterministic-income problems.
+
+### 11. Montiel Olea-Pflueger Weak-IV Inference (puremacro 3.4)
+`lp_iv` reports the effective F-statistic with its critical values, and inverts the Anderson-Rubin set exactly instead of scanning a fixed grid — the closed-form tail limit classifies it as a bounded interval, two rays, the whole line or empty, and the endpoints are Brent roots (a closed-form quadratic when there is a single instrument):
+```python
+import numpy as np
+import pandas as pd
+from puremacro.lp import lp_iv
+from puremacro.lp.iv import mop_critical_values
+
+# The closed form behind the MOP table: cv = chi2_{K, 1-alpha}(K / tau) / K.
+cv10, cv20 = mop_critical_values(1)
+print(f"K=1: 10% worst-case bias {cv10:.2f}, 20% {cv20:.2f}")
+
+rng = np.random.default_rng(7)
+T = 240
+z1, z2 = rng.normal(size=T), rng.normal(size=T)
+u = rng.normal(size=T)
+x = 0.8 * z1 + 0.5 * z2 + u
+y = np.cumsum(0.4 * x + u + rng.normal(size=T))
+df = pd.DataFrame({"y": y, "x": x, "z1": z1, "z2": z2})
+
+res = lp_iv(df, y="y", x="x", z=["z1", "z2"], horizon=3, weak_iv_robust=True)
+print(res[["h", "beta", "se", "mop_f", "ar_lo", "ar_hi", "ar_set_type"]]
+      .round(3).to_string(index=False))
+# K=1: 10% worst-case bias 23.11, 20% 15.06
+#  h  beta    se  mop_f  ar_lo  ar_hi ar_set_type
+#  0 0.347 0.123 89.978  0.095  0.546     bounded
+#  1 0.155 0.187 88.555 -0.257  0.495     bounded
+#  2 0.186 0.244 84.872 -0.188  0.481     bounded
+#  3 0.093 0.260 81.220 -0.481  0.548     bounded
+```
+The errors are heteroskedasticity- and autocorrelation-robust (Newey-West with the
+horizon's bandwidth). **`lp_iv` has no cluster argument: neither the effective F it
+reports nor the Anderson-Rubin set it inverts is cluster-robust.** Only
+`inference.weak_iv.olea_pflueger_f(x, z, cluster=...)` takes clusters, and it returns
+the effective F alone — there is no cluster-robust confidence set anywhere.
+
+### 12. Latin American Real-Time Macro Data (puremacro 3.4)
+Banco de México, INEGI, Banco Central do Brasil and Banco Central de Chile join the real-time providers. The catalog, the series identifiers and the vintage semantics all resolve offline, before any request is made:
+```python
+from puremacro.fetch.realtime import (
+    available_providers, vintage_catalog, resolve_series, VINTAGE_SEMANTICS,
+)
+
+print(available_providers())
+
+cat = vintage_catalog()
+latam = cat[cat["provider"].isin(["banxico", "inegi", "bcb", "bcch"])]
+print(latam.query("variable == 'cpi'")[["provider", "country", "series_id", "freq"]]
+           .to_string(index=False))
+print(resolve_series("banxico", "MEX", "cpi"))
+print(VINTAGE_SEMANTICS["bcch"][:82])
+# ['alfred', 'banxico', 'bcb', 'bcch', 'bundesbank', 'ecb_rtd', 'inegi', 'oecd_stes', 'ons', 'statcan']
+# provider country            series_id freq
+#  banxico     MEX                  SP1    M
+#      bcb     BRA                  433    M
+#     bcch     CHL F074.IPC.IND.Z.Z.C.M    M
+#    inegi     MEX               628197    M
+# SP1
+# Banco Central de Chile Base de Datos Estadísticos (SIETE API). Upstream overwrites
+```
+**These four sources publish only the current edition of a series, so their vintage
+date is the local *snapshot* date — the day this machine fetched the series and stored
+it.** Revision history therefore accumulates only across repeated captures on different
+days; it is not a publication archive like ALFRED or the ONS workbook. Catalog
+entries that could not be confirmed against the live API are marked `VERIFY_ONLINE`.
+
+### 13. GPU / Apple-Silicon Trade Equilibrium (puremacro 3.4)
+The Torch and MLX trade solvers are imported lazily, so nothing heavy loads until you ask for a device, and their tariff defaults now match the NumPy solver:
+```python
+import sys
+import puremacro.trade.gpu as gpu
+
+print("torch in sys.modules:", "torch" in sys.modules)
+print("matplotlib in sys.modules:", "matplotlib" in sys.modules)
+print("has_torch:", gpu.has_torch(), " has_mlx:", gpu.has_mlx())
+print("device:", gpu.detect_device())
+print("selected:", gpu.select_compute_device())
+# torch in sys.modules: False
+# matplotlib in sys.modules: False
+# has_torch: True  has_mlx: True
+# device: <DeviceInfo: torch:mps (Apple Metal (arm), 36.0 GB, f32-only, UMA)>
+# selected: ('torch', 'mps')
+```
+The output above is from a fresh interpreter on an Apple-Silicon machine. The last three
+lines are hardware-specific: with neither framework installed, `has_torch()` and
+`has_mlx()` are `False` and the GPU tests skip instead of failing.
+
 ---
 
 ## What's in it
@@ -340,6 +479,15 @@ print(f"Aggregate welfare change: {res.welfare_pct:+.4f}%")
 - **Caliendo-Parro (2015) exact hat algebra** (`trade.caliendo_parro`, `spatial.caliendo_parro`) — Multi-country, multi-sector trade general equilibrium with input-output linkages, intermediate goods, and tariffs solved without estimating unobserved fundamentals (`CaliendoParroModel`).
 - **Allen-Arkolakis (2014) spatial equilibrium** (`spatial.allen_arkolakis`, `trade.allen_arkolakis`) — Continuous geographic general equilibrium with bilateral iceberg trade costs, mobile labor, Marshallian agglomeration ($\alpha$), and amenity congestion ($\beta$) (`AllenArkolakisModel`).
 
+**Causal ML, continuous-time HJB, multi-constraint OccBin & regional real time (puremacro 3.4)**
+
+- **Double / Debiased Machine Learning** (`causal.dml`) — Chernozhukov et al. (2018) partially linear regression with Neyman-orthogonal Robinson scores, $K$-fold cross-fitting and pure-NumPy penalized learners (`LassoCoordinateDescent`, `RidgeGCV`); the entry points are `dml_plr` and `DoubleMLPLR`, and the learners are **lasso and ridge only**. `DMLResult` carries `.summary()`, `.plot()`, `.to_latex()`, `.to_typst()` and `.to_markdown()`.
+- **Implicit continuous-time HJB & adjoint KFE** (`vfi.hjb_achdou`) — Achdou, Han, Lasry, Lions & Moll (2022) implicit upwind M-matrix scheme solved with `scipy.sparse.linalg.spsolve`, two-state Poisson income switching (default intensity $\lambda = 0.1$, new in 3.4), and the stationary density from $A^\top g = 0$. `solve_kfe_achdou` returns a **density** — node mass divided by the cell width — normalized with trapezoid quadrature weights, so it integrates to one on non-uniform grids too. `solve_aiyagari_continuous_hjb` closes the loop in general equilibrium, with `tol_ge` governing convergence and `converged` meaning $|K^s - K^d| \le$ `tol_ge`.
+- **Multi-constraint OccBin** (`dsge.solve_multiconstraint_occbin`) — $M \ge 2$ simultaneous occasionally binding constraints (a zero lower bound and a collateral limit at once). Shipped in 2.8.0; 3.4 extends and hardens it: the regime splice carries **every** differing row, `result.regimes[t]` is a bitmask (bit $k$ set when constraint $k$ binds, so `3` means both bind), non-convergence returns `converged=False` *with* a `UserWarning` naming each reason, and a constraint that cannot be paired one-to-one with its model raises `ValueError`.
+- **Montiel Olea-Pflueger weak-IV inference** (`lp.iv`, `inference.weak_iv`) — the effective $F$-statistic with critical values from the MOP closed form $\mathrm{cv} = \chi^2_{K,\,1-\alpha}(K/\tau)/K$ (23.11 and 15.06 for $K = 1$ at $\tau$ = 10% and 20%), and a multi-instrument Anderson-Rubin set inverted exactly — bounded interval, two rays, the whole line, or empty — rather than read off a grid. Errors are heteroskedasticity- and autocorrelation-robust; **`lp_iv` takes no clusters and no confidence set is cluster-robust** (`inference.weak_iv.olea_pflueger_f` accepts a `cluster` argument for the effective F alone). `la_lp_iv` is re-exported from `puremacro.lp`.
+- **Latin American real-time connectors** (`fetch.realtime.{banxico,inegi,bcb,bcch}`) — Banco de México (SIE), INEGI (BIE), Banco Central do Brasil (SGS) and Banco Central de Chile (SIETE), with separate user and password resolution for BCCh (`PASSWORD_ENV_VARS`, `get_password`), a configurable schema-drift canary (`DRIFT_POLICIES`, `handle_drift`), `use_cache=False` that really bypasses the cache, and offline `.pmz` cartridges. **These four sources publish only the current edition, so their vintage date is the local snapshot date and revision history accumulates only across repeated captures on different days.** Catalog entries not yet confirmed against the live API are marked `VERIFY_ONLINE`.
+- **GPU / Apple-Silicon trade solvers** (`trade.gpu`) — Torch and MLX paths for the Caliendo-Parro equilibrium, imported lazily so `import puremacro.trade` pulls in neither. Tariff defaults match the NumPy solver, the batched-Jacobian layout is validated rather than inferred from a magic batch size, and the tests skip (not fail) when torch / mlx or the private ICIO data are absent.
+
 **Narrative econometrics** (`narrative.*`)
 
 Fiscal- / labor- / uncertainty-narrative IV pipeline: canonical
@@ -394,14 +542,20 @@ helper. Coverage is constrained by what Wayback has snapshotted.
   were measured to buy zero quarters and the reasons are kept in
   `LONG_PANEL_KNOWN_GAPS`. See `docs/long_panel.md`.
 - **Real-time data** (`fetch.vintage_panel`, `fetch.realtime.*`) — published
-  *editions* of a series across six providers behind one call: the OECD STES
+  *editions* of a series across ten providers behind one call: the OECD STES
   revisions archive (42 economies, monthly editions from 1999), ALFRED, the
   Bundesbank Gerda database, the ONS real-time workbook (746 editions back to
-  1961), Statistics Canada's vintage tables and the ECB/EABCN database. Comes
+  1961), Statistics Canada's vintage tables, the ECB/EABCN database, and the
+  four Latin American connectors added in 3.4 (Banco de México, INEGI, Banco
+  Central do Brasil, Banco Central de Chile). Comes
   with the revision toolkit — revision triangles, first/latest release,
   `r_t = y_f - y_p`, and the Mankiw-Shapiro news-vs-noise test
   (`vintages.mankiw_shapiro`). Each provider documents what its vintage date
-  actually means, because they disagree. See `docs/real_time_data.md`.
+  actually means, because they disagree: the first six carry a genuine
+  publication or edition date, while **the four Latin American sources publish
+  only the current edition, so their vintage date is the local snapshot date**
+  and revision history accumulates only across repeated captures on different
+  days. See `docs/real_time_data.md`.
 - **Modular panel builders** (`build_panel`, `build_subnational_panel`, `build_climate_panel`, `build_financial_panel`) — single
   entry points that materialise quarterly / monthly cross-country,
   US-state, climate/energy, and macro-financial panels from the fetchers,
@@ -564,7 +718,11 @@ print(runtime.report())
 
 Detection is heuristic — no API tells you "this is Juno" — so every field
 can be pinned with `PUREMACRO_HOST`, `PUREMACRO_DEVICE`,
-`PUREMACRO_SOCKETS` or `PUREMACRO_PARQUET`.
+`PUREMACRO_SOCKETS`, `PUREMACRO_PARQUET` or `PUREMACRO_THREADS`. The last
+one decides whether the bootstrap engines build a thread pool at all: set
+`PUREMACRO_THREADS=0` and every resampling engine runs the plain loop, which
+is what a browser kernel needs. When threads are unavailable, `n_jobs` is
+ignored rather than raising.
 
 #### The three things that break, and what to do about them
 
@@ -836,6 +994,7 @@ If you are transitioning from Stata, MATLAB/Dynare, or statsmodels:
 
 End-to-end replications of canonical papers and pedagogical showcases live under `notebooks/`
 and `puremacro/examples/`:
+- **Causal ML, continuous-time HJB & regional real time**: implicit HJB with the adjoint KFE and Aiyagari GE (`56`), multi-constraint OccBin coupled with DML (`57`), and Latin American real-time macro vintages (`58`).
 - **Continuous DP, Deep Macro & Spatial GE**: Chebyshev vs FEM Galerkin (`51`), continuous transition dynamics under MIT shocks (`52`), exact analytic IFT parameter sensitivities & GMM estimation (`53`), 10-state Deep Macro PINNs (`54`), and quantitative spatial trade & infrastructure GE (`55`).
 - **Applied Policy Showcases**: Central bank policy stance & fan charts (`47`), real-time DFM nowcasting & news decomposition (`48`), macroprudential GaR & systemic connectedness (`49`), and tri-method fiscal multipliers & sovereign DSA (`50`).
 - **Frontier DSGE & HANK**: Exact analytic Kalman score recursion (`43`), HANK sequence-space bridge from `.mod` (`44`), optimal discretionary policy vs commitment & news shocks (`45`), and particle filtering with MS-DSGE (`46`).
@@ -854,7 +1013,7 @@ All notebooks strictly adhere to the Pyodide contract and the 7-section pedagogi
 - **`docs/deep_macro.md`** — Deep Macro & Physics-Informed Neural Networks (PINNs) in pure NumPy for ultra-high-dimensional dynamic models (10+ continuous states) via ergodic sampling.
 - **`docs/spatial_and_trade_ge.md`** — Quantitative spatial economics and international trade general equilibrium: Caliendo-Parro (2015) exact hat algebra and Allen-Arkolakis (2014) economic geography.
 - **`docs/data_ecosystem.md`** — Global macro data ecosystem: emissions, energy transitions, commodity benchmark suites, international financial stability, and modular panel builders (`build_climate_panel`, `build_financial_panel`).
-- **`docs/notebooks.md`** — Complete showcase catalog (notebooks 00–55), pedagogical 7-section architecture, and applied policy suites.
+- **`docs/notebooks.md`** — Complete showcase catalog (notebooks 00–58), pedagogical 7-section architecture, and applied policy suites.
 - **`docs/dsge_build.md`** — DSGE models from equations, native Dynare `.mod` loader, 2nd-order pruning, `puremacro-dynare` CLI, OccBin ZLB, non-linear relaxation, and Bayesian MCMC.
 - **`docs/models.md`** — Structural models: Sequence-Space HANK, Fake News algorithm, targeted transfers, and DMP search-and-matching.
 - **`docs/narrative_sign_svar.md`**, **`docs/honest_did.md`**, **`docs/smooth_lp.md`**, **`docs/hank_nonlinear.md`**, **`docs/gertler_karadi.md`**, **`docs/bvar_sv.md`** — the six 2.3 feature guides (each with a Spanish twin under `docs/es/`).
@@ -891,17 +1050,17 @@ All notebooks strictly adhere to the Pyodide contract and the 7-section pedagogi
 
 ## Status
 
-Production release, shipping **3.3.0**. `docs/1.0_path.md` § 5 lists which
+Production release, shipping **3.4.0**. `docs/1.0_path.md` § 5 lists which
 subpackages are inside the release-gate promise and which are
 research-experimental.
 
 CI is live and runs on every push: the suite across three operating
-systems and three Python versions, the Pyodide contract, mypy, the
-reference drift-guard, `mkdocs build --strict`, the playground deploy,
-and a tag-triggered PyPI publish via trusted publishing. See
-`.github/workflows/`. Run `python tools/release_check.py` locally
-before tagging anyway — gates 5 and 6 are opt-in and CI does not run
-them.
+systems and three Python versions (3.11, 3.12 and 3.13), the Pyodide
+contract, mypy, the reference drift-guard, `mkdocs build --strict`, the
+playground deploy, and a tag-triggered PyPI publish via trusted
+publishing. See `.github/workflows/`. Run
+`python tools/release_check.py` locally before tagging anyway — gates 5
+and 6 are opt-in and CI does not run them.
 
 When a released version has returned a wrong number, it is recorded in
 **[`docs/ADVISORY.md`](docs/ADVISORY.md)**, with the condition under

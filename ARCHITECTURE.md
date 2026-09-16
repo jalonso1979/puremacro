@@ -99,7 +99,8 @@ puremacro/
 ├── gar/                   ← Growth-at-Risk: QAR, skew-t, FCI
 ├── did/                   ← Staggered DiD: CS, Sun-Abraham, BJS, SDID
 ├── causal/                ← Double / Debiased Machine Learning & causal inference
-│   ├── dml.py             ← DML PLR (Chernozhukov et al. 2018) + cross-fitting
+│   ├── dml.py             ← DML PLR (Chernozhukov et al. 2018) + cross-fitting:
+│   │                        DoubleMLPLR / dml_plr / DMLResult, lasso + ridge
 │   └── synthetic_control.py ← Synthetic control methods & placebo inference
 ├── dynpanel/              ← Arellano-Bond + Blundell-Bond dynamic-panel GMM
 ├── hfi/                   ← high-frequency monetary surprises (GK / NS / JK)
@@ -123,7 +124,11 @@ puremacro/
 ├── trade/                 ← Quantitative international trade general equilibrium
 │   ├── caliendo_parro.py  ← Caliendo-Parro (2015) exact hat algebra
 │   ├── equilibrium.py / solver.py / optimal_tariffs.py / calibration.py
-│   └── policy_analytics.py / scenarios.py / tables.py / plot.py
+│   ├── policy_analytics.py / scenarios.py / tables.py / plot.py
+│   └── gpu/               ← optional torch / MLX accelerators (3.4.0):
+│                            backend.py / batched_jacobian.py / homotopy.py /
+│                            mlx_solver.py / solver_gpu.py. Outside the
+│                            four-package contract; falls back to NumPy.
 ├── spatial/               ← Quantitative spatial economics & spatial econometrics
 │   ├── allen_arkolakis.py ← Allen-Arkolakis (2014) spatial gravity GE
 │   └── weights.py / models.py / hac.py / panel.py / lp.py / diagnostics.py
@@ -166,9 +171,13 @@ puremacro/
 ├── reports.py             ← table / report builders
 │
 │ ── data pipelines (entire new category vs the 0.4.0 doc) ─────────
-├── fetch/                 ← Public-data fetchers, all routed through
-│   │                        ._http (UA override, SSL fallback, 30s
-│   │                        timeout). Modules for FRED / ALFRED / SDMX
+├── fetch/                 ← Public-data fetchers. Most route through
+│   │                        ._http (UA override, SSL fallback, 60s
+│   │                        timeout); the four Latin American real-time
+│   │                        connectors (banxico, inegi, bcb, bcch) call
+│   │                        urllib directly, so they get no HTTP cache
+│   │                        and no SSL fallback.
+│   │                        Modules for FRED / ALFRED / SDMX
 │   │                        (OECD / Eurostat / ECB / IMF SDMX-Central),
 │   │                        FRED-states, EPU / GPR / WUI / JLN /
 │   │                        Fernald, OECD-MEI / OECD-QNA / OECD-energy
@@ -263,6 +272,9 @@ These are the load-bearing imports. If you change one of these arrows, double-ch
 | `narrative/replication/__init__.py` re-exports both `load_*` and `*_csv_to_events` | Examples import the public CSV-to-events helpers from `puremacro.narrative`; do not reach into `replication.<dataset>` directly. |
 | `fetch/*` ← `build_panel`, `build_subnational_panel` | All quarterly/monthly panel construction goes through the fetcher layer; no direct HTTP at the build_panel level. |
 | `_codes.drop_aggregates` ← `build_panel`, downstream notebooks | Single source of truth for the EA20/EU27/OECD/WLD aggregate filter. |
+| `trade/gpu/*` → `trade/solver._resolve_tariffs`, `trade/postprocessing`, `trade/_results` | The accelerated solvers reuse the NumPy solver's tariff resolution, post-processing and result objects, so a GPU solve returns the same `TradeEquilibriumResult`. The arrow never reverses: nothing in `trade/` outside `trade/gpu/` touches torch or mlx, and `trade/gpu/` itself imports them only on first use. |
+| `fetch/realtime/{banxico,inegi,bcb,bcch}` → `credentials`, `_cache_db`, `realtime/{_base,_snapshot,canary,catalog}` | One direction only: a connector resolves credentials, validates the payload with the canary, normalises through `_base`, and stores or reads snapshots through `_snapshot` on the shared SQLite connection. `_register_all()` imports each connector and calls its `_register()` to add its catalogue entries; a provider that fails to register warns instead of breaking the registry. |
+| `reports.{df_to_markdown, df_to_latex, df_to_typst, latex_escape, typst_escape}` ← every result object's exporters | The single escaping/formatting layer for LaTeX and Typst output — never hand-roll a table. `puremacro.reports` imports only numpy, pandas and scipy, so result modules may import it at top level (`trade/_results`, `vfi/problem`, `vfi/hjb_achdou`, `var/bvar_sv`) or inside the exporter (`causal/dml`). |
 
 ---
 
@@ -328,9 +340,10 @@ These are the load-bearing imports. If you change one of these arrows, double-ch
 | `vfi/continuous_transition` | **Stable** | Non-linear transition paths under unexpected MIT shocks combining backward EGM with forward Young operators via sequence-space Broyden. |
 | `vfi/analytic_gradients` | **Stable** | Exact parameter Jacobians $\nabla_\theta c^*$ via the Implicit Function Theorem in a single linear solve ($60\times+$ faster than finite differences) for GMM/SMM. |
 | `vfi/deep_macro` | **Stable** | Physics-Informed Neural Networks (PINNs) in pure NumPy for ultra-high-dimensional dynamic models (10+ states) with ergodic sampling. |
-| `vfi/hjb_achdou` | **Mature** | Canonical implicit upwind finite-difference scheme (sparse M-matrix system $(\rho I - A^n) v^{n+1} = u(c^n)$), adjoint continuous-time KFE stationary distribution $g(a, z)$, and continuous Aiyagari GE. |
-| `causal/dml` | **Stable** | Double / Debiased Machine Learning (Chernozhukov et al. 2018) for partially linear regression (`DMLPLR`) with $K$-fold cross-fitting and pure-NumPy regularized learners. |
-| `fetch/realtime/{banxico, inegi, bcb, bcch}` | **Stable** | Latin America real-time central bank and statistical agency data connectors with offline `.pmz` cartridges and schema canaries. |
+| `vfi/hjb_achdou` | **Stable** | Canonical implicit upwind finite-difference scheme (sparse M-matrix system $(\rho I - A^n) v^{n+1} = u(c^n)$), adjoint continuous-time KFE stationary distribution $g(a, z)$, and continuous Aiyagari GE. Rewritten at 3.4.0 and unit-tested, not replication-tested, so **Stable** rather than **Mature**. Its income process differs from the 3.3.0 explicit solver — see the 3.4.0 CHANGELOG. |
+| `causal/dml` | **Stable** | Double / Debiased Machine Learning (Chernozhukov et al. 2018) for partially linear regression: the class `DoubleMLPLR`, the one-call `dml_plr`, and `DMLResult`. $K$-fold cross-fitting with pure-NumPy regularized learners — `LassoCoordinateDescent` (`'lasso'`) and `RidgeGCV` (`'ridge'`) only, plus any object with `fit` / `predict`. No elastic net. |
+| `fetch/realtime/{banxico, inegi, bcb, bcch}` | **Best-effort** | Latin America real-time central bank and statistical agency data connectors with offline `.pmz` cartridges and schema canaries. Network-dependent, so the same tier as the rest of `fetch/*` (and outside the 1.0 promise, per `docs/1.0_path.md`). Their vintages are local snapshot dates, not publication dates. |
+| `trade/gpu/{backend, batched_jacobian, homotopy, mlx_solver, solver_gpu}` | **Experimental** | Optional torch / MLX accelerators for the Caliendo-Parro solve (`pip install "puremacro[gpu]"`). **Outside the four-package Pyodide contract**: torch and mlx are never imported at module import time and never required — without them the solve runs on the NumPy evaluator. Auto-selected float32 devices fall back to the float64 host evaluator for Jacobians. |
 | `trade/caliendo_parro` | **Stable** | Multi-country, multi-sector trade general equilibrium with input-output linkages, intermediate goods, and tariffs solved via exact hat algebra (`CaliendoParroModel`). |
 | `spatial/allen_arkolakis` | **Stable** | Continuous geographic general equilibrium with bilateral iceberg trade costs, labor mobility, agglomeration, and congestion (`AllenArkolakisModel`). |
 | `regress/*` | **Soft-legacy** | `regress/lp.py` is an independent pure-numpy LP implementation (not a thin re-export of `lp.panel` — different signature). 3 callers in `tools/run_*.py`; its own follow-up release. |
@@ -376,11 +389,12 @@ Both were base dependencies until 3.3.0: `openpyxl` because a bare install once 
 
 The in-process guarantee is separate: the two sweeps in `tests/test_pyodide_compat.py` check the import contract, and the subprocess sweep also blocks `pyarrow` and `openpyxl`, so every shippable module must import without the `io` extra.
 
-Anything else is **dev-only or extra-only** (pytest, statsmodels, linearmodels, arch, pypdf, beautifulsoup4, pdfplumber, and the `io` engines pyarrow and openpyxl). These are declared in `[project.optional-dependencies]`:
+Anything else is **dev-only or extra-only** (pytest, statsmodels, linearmodels, arch, pypdf, beautifulsoup4, pdfplumber, torch, mlx, cupy, and the `io` engines pyarrow and openpyxl). These are declared in `[project.optional-dependencies]`:
 
 - `io = ["pyarrow", "openpyxl"]` — file-format engines (see above); also part of `data` and `dev`.
 - `dev = ["pytest", "statsmodels", "linearmodels", "arch", ...]` — parity tests, plus the `io` engines so the suite runs with them.
 - `narrative = ["pypdf", "beautifulsoup4", "pdfplumber"]` — body-extraction backend for `narrative/sources/_extractors.py`; HTML parsing for connectors (Beige Book, EUR-Lex, EU Parliament, SOTU); PDF text extraction for connectors (ERP, CBO, WARN).
+- `gpu = ["torch>=2.1", "mlx>=0.9; sys_platform == 'darwin'"]` and `cuda = ["cupy-cuda12x>=13"]` — **hardware accelerators, never required.** `gpu` powers `puremacro.trade.gpu`; `cuda` serves only the xp-generic dispatch in `puremacro/_backend.py`. Every estimator has a NumPy path and takes it when the accelerator is absent: `puremacro.trade.gpu` probes torch and mlx with `importlib.util.find_spec` (`has_torch()` / `has_mlx()`), imports them only on first use, and runs the NumPy evaluator when neither is installed, so `import puremacro.trade` leaves `torch` and `mlx` out of `sys.modules` and the Pyodide import contract is unchanged. Nothing in the package assumes a GPU exists, and no result depends on one being present.
 
 Dev / extra deps **must not** be imported at runtime by code that ships in the wheel without going through a lazy-import guard. The one architecturally-sanctioned exception is `puremacro.narrative.sources.*`, which is the HTTP/scraping side-channel — modules under that path may import `beautifulsoup4` / `pdfplumber` at top level since the Pyodide-compat walker (see "Excluded from the Pyodide sweep" below) explicitly skips them.
 
@@ -436,13 +450,13 @@ All public estimators that return three or more fields (or any non-trivial diagn
 5. **`.summary() -> pd.DataFrame | str`**: Tabular analytical and diagnostic summary of the model or estimation.
 6. **Unified `.plot()` Contract (Headless & WASM-Safe)**:
    Estimators/solvers with dynamic trajectories, distributions, policy functions, or impulse responses implement `.plot()` conforming to strict headless constraints:
-   - **Lazy Matplotlib Import**: `import matplotlib.pyplot as plt` inside `.plot()`, never at module level.
+   - **Lazy Matplotlib Import**: `import matplotlib.pyplot as plt` inside `.plot()`, never at module level. As of 3.4.0 this holds package-wide: importing `puremacro` or any of `.dsge`, `.did`, `.models`, `.trade`, `.spatial`, `.vfi`, `.causal`, `.fetch.realtime`, `.lp`, `.var` and `.inference` leaves `matplotlib` out of `sys.modules`. The rule binds every estimator, solver and result module. Module-level `import matplotlib` survives only where the module *is* the plotting layer and nothing on an import path reaches it: `plot.py`, `plotting/{bw_style,irf_plot}.py`, `teaching/plot.py`, `dsge/widgets.py` and the `examples/` scripts. None of them is imported by a package `__init__`; `dsge/widgets.py` is served through the `puremacro.dsge` module `__getattr__` (`interactive_irf`, `InteractiveIRFResult`, `widgets`), so it too loads only when a caller asks for a widget.
    - **No Unsolicited Displays**: Never call `plt.show()` unless explicitly passed `show=True` (default: `False`).
    - **Caller Axes Injection**: Accept `ax=...` (single axis or sequence of axes). If provided, plot into caller's axis and return `ax`.
    - **Standalone Figure Creation**: If `ax is None`, create subplots via `plt.subplots(...)` and return the `fig`.
    - **Headless / Pyodide / WASM Safety**: Operates seamlessly with the `Agg` backend without relying on windowing systems, desktop displays, or interactive loop hooks.
 7. **Export Parity Quintet**:
-   Result objects expose `.to_dataframe() / .to_frame()`, `.to_markdown()`, `.to_latex()`, and `.to_typst()`. All tabular formatters route through `puremacro.reports` (`df_to_markdown`, `df_to_latex`, `df_to_typst`) to guarantee escaping of LaTeX and Typst special characters and numeric stability.
+   Result objects expose `.to_dataframe() / .to_frame()`, `.to_markdown()`, `.to_latex()`, and `.to_typst()`. All tabular formatters route through `puremacro.reports` (`df_to_markdown`, `df_to_latex`, `df_to_typst`) to guarantee escaping of LaTeX and Typst special characters and numeric stability. This is the standard **new** result objects must meet; it is not a package-wide invariant yet. 3.4.0 added `.to_typst()` to seventeen classes (the eleven `trade/_results` classes, `BVAR_SVForecast`, `ScoreDiagnosticsResult`, `VFISolution`, `HJBSolution`, `AiyagariContinuousHJBResult`, `DMLResult`), and many older result classes still lack one or more of the five — check the class, not the promise. `tests/test_result_parity.py` pins the classes that do claim it.
 8. **No `__post_init__` validation that raises.** The estimator builds a valid result; the dataclass just stores it.
 9. **DataFrame carve-out.** Functions returning a single `pandas.DataFrame` with named columns (e.g. every `lp/` estimator) do NOT need to wrap. The DataFrame is already self-documenting.
 
@@ -505,15 +519,32 @@ network wrapper, and every result is funnelled through
 `vintage_panel` is the single entry point; `VintagePanel` carries the
 revision helpers, which delegate to `puremacro.vintages`.
 
-At 3.4.0, first-class Latin American providers join the registry:
-- `banxico`: Banco de México (SIE API) real-time series and revision tracking.
-- `inegi`: INEGI (Mexico) national accounts, inflation, and activity indicators.
-- `bcb`: Banco Central do Brasil (SGS API) policy rates and aggregates.
-- `bcch`: Banco Central de Chile statistical database series.
+At 3.4.0, four Latin American providers join the registry. Each covers a small,
+explicit set of canonical variables — what is not in the catalogue is not fetched:
+- `banxico`: Banco de México (SIE API) — `policy_rate` (SF61745), `cpi` (SP1), `activity` (IGAE, SR17631).
+- `inegi`: INEGI (Mexico, BIE API) — `gdp_real` (735848), `cpi` (628197), `activity` (736184).
+- `bcb`: Banco Central do Brasil (SGS API) — `gdp_real` (22099), `cpi` (IPCA 433), `policy_rate` (Selic 432), `activity` (IBC-Br 24363).
+- `bcch`: Banco Central de Chile (SIETE API) — `gdp_real`, `cpi` (IPC), `policy_rate` (TPM), `activity` (IMACEC).
+
+**These four keep no editions upstream.** Each publishes only the current
+edition and overwrites series in place, so a vintage here is the *local
+snapshot date*: the day this machine fetched the series and stored it in
+`realtime_vintages`. Revision history accumulates only across repeated
+captures on different days — a first call yields one vintage per series, and
+`revisions()` / `news_or_noise()` need several. The OECD STES archive remains
+the historical vintage source for MEX / BRA / CHL and is what
+`DEFAULT_PROVIDER_ORDER` reaches first.
 
 All providers support offline SQLite caching in `_cache_db` (`realtime_vintages` table)
-and `.pmz` offline package cartridges (`cartridge.py`). Active schema canaries
-(`canary.py`) run health checks detecting upstream endpoint and layout drift.
+and `.pmz` offline package cartridges (`cartridge.py`). The schema canaries
+(`canary.py`) are **payload-shape validators, not endpoint probes**: they run on
+a response that has already been downloaded and check its key names, envelope
+and date formats before it is parsed. On drift the caller's `on_drift` policy
+decides — `"raise"` (default) raises `SchemaDriftError`, which the fetch layer
+turns into a fallback to stored snapshots where it has any; `"warn"` emits
+`SchemaDriftWarning` and lets the parser's own date fallbacks try; `"ignore"`
+parses silently — and a `schema_drift` event is recorded in `connector_events`
+in every mode, so `connector_health` sees drift a fallback hid from the caller.
 
 Three invariants are load-bearing and easy to break:
 
@@ -526,10 +557,13 @@ Three invariants are load-bearing and easy to break:
    say which; `SeriesSpec.units` decides the default transform so a
    growth rate is not differenced twice.
 3. **Vintage-date semantics differ by provider** and are recorded in
-   `_base.VINTAGE_SEMANTICS`. Some are genuine national release dates
-   (Bundesbank, StatCan, Banxico), some are snapshot months (OECD), one is a
-   month-plus-stage label with no day (ONS). Ordering is safe
-   everywhere; event-dating is not.
+   `_base.VINTAGE_SEMANTICS` (surfaced by `VintagePanel.vintage_semantics()`).
+   Some are genuine national release dates (Bundesbank, StatCan), some are
+   snapshot months (OECD), one is a month-plus-stage label with no day (ONS),
+   and four — `banxico`, `inegi`, `bcb`, `bcch` — are **local snapshot-capture
+   dates**, safe to order only across your own captures. Ordering is safe
+   everywhere; event-dating is not, and against the snapshot providers it is
+   simply wrong.
 
 The catalogue is self-auditing via
 `tests/test_realtime_providers/test_catalog_live.py` (`-m network`),

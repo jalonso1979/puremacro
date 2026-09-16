@@ -293,9 +293,10 @@ def olea_pflueger_f(
     Returns
     -------
     f_eff : float
-        Olea-Pflueger effective F-statistic. Reference cutoffs (5%
-        worst-case bias, k=1): F > 23.1 (strong); F < 23.1 means
-        weak-IV-robust inference recommended.
+        Olea-Pflueger effective F-statistic. Reference cutoff (5% level,
+        10% worst-case Nagar bias, k=1): F > 23.1 (strong); F < 23.1 means
+        weak-IV-robust inference recommended. The critical value for any
+        ``k``, ``tau`` and level is :func:`puremacro.lp.iv.mop_critical_values`.
 
     References
     ----------

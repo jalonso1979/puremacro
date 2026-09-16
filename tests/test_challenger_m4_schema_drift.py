@@ -673,9 +673,10 @@ class TestCanarySamplingAndSilentDropDefects:
             parse_banxico_json(payload)
 
     def test_empty_observation_list_bypasses_cache_fallback(self, tmp_path, monkeypatch):
-        """FINDING: When an upstream API returns an empty observation list (e.g. datos: []),
-        Canary returns (True, ''), parse_banxico_json returns an empty DataFrame,
-        and fetch_banxico_vintages returns the empty DataFrame instead of falling back to cache!
+        """Regression: when an upstream API returns an empty observation list
+        (e.g. datos: []), the canary passes and parse_banxico_json returns an
+        empty DataFrame; fetch_banxico_vintages must then fall back to the
+        cached snapshots with a warning rather than return the empty frame.
         """
         db_path = tmp_path / "empty_obs_test.db"
         monkeypatch.setenv("PUREMACRO_HTTP_CACHE_DIR", str(db_path))

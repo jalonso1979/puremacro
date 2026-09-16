@@ -251,6 +251,135 @@ $$P_t = - (A_0^{(r_t)} + A_+^{(r_t)} P_{t+1})^{-1} A_-^{(r_t)}$$
 3. Simula prospectivamente los estados y recalcula los multiplicadores de sombra de holgura.
 4. Verifica la convergencia de la secuencia de activación.
 
+#### La API de `solve_multiconstraint_occbin`
+
+El solucionador multirrestricción **es anterior a la versión 3.4.0** — se
+incorporó en la 2.8.0 —, y la 3.4.0 lo amplía y endurece en lugar de
+introducirlo: el empalme de regímenes arrastra ahora *todas* las filas en las
+que un modelo restringido difiere del de referencia, la no convergencia se
+reporta en vez de insinuarse, y las reglas de emparejamiento descritas abajo se
+hacen cumplir con `ValueError`.
+
+```text
+solve_multiconstraint_occbin(
+    m_unconstrained: LinearModel,
+    m_constrained_dict: Mapping[str, LinearModel] | Sequence[LinearModel],
+    shock_seq: np.ndarray,                       # (n_shocks,) o (horizon, n_shocks)
+    constraints: Mapping[str, OccBinConstraint]
+                 | Sequence[OccBinConstraint]
+                 | None = None,
+    horizon: int = 40,
+    max_iter: int = 50,
+) -> OccBinResult
+```
+
+**Un modelo por restricción, emparejados uno a uno.** `m_constrained_dict`
+contiene el modelo en el que *esa* restricción, y solo esa, es activa;
+`constraints` debe ser un diccionario con exactamente las mismas claves que los
+modelos, una secuencia en el orden de los modelos, o una única restricción
+cuando solo hay un modelo. Claves discordantes, una secuencia de longitud
+incorrecta o una sola restricción ofrecida para varios modelos lanzan
+`ValueError`: el solucionador nunca conjetura un emparejamiento. Con
+`constraints=None`, cada restricción se deduce de su modelo (la variable fijada,
+$-c/a$ como umbral, y el operador leído de la clave o del signo del umbral).
+
+**La secuencia de regímenes es una máscara de bits.** `result.regimes[t]` es un
+entero cuyo bit $k$ está activado cuando la restricción $k$ — la $k$-ésima
+entrada de `m_constrained_dict` — es activa en el período $t$. Con dos
+restricciones: `0` ninguna, `1` solo la primera, `2` solo la segunda, `3` ambas.
+Por eso los recuentos de regímenes se escriben como pruebas de máscara y no como
+pruebas de igualdad:
+
+```python
+import numpy as np
+from puremacro.dsge import build_dynare, OccBinConstraint, solve_multiconstraint_occbin
+
+params = {
+    "beta": 0.99, "sigma": 1.0, "kappa": 0.15, "phi_pi": 1.5, "phi_y": 0.25,
+    "rho_r": 0.6, "rho_b": 0.5, "rho_g": 0.7, "gamma_y": 0.2, "chi": 0.1,
+    "r_ss": 0.015, "b_bar": 0.02,
+}
+variables = ["y", "pi", "r", "b", "g"]
+shocks = ["eps_g", "eps_r", "eps_b"]
+
+
+def ref_eqs(lead, curr, lag, s, p):          # referencia: ninguna restricción activa
+    return [
+        curr.y - lead.y + (curr.r - lead.pi) / p.sigma - curr.g + p.chi * curr.b,
+        curr.pi - p.beta * lead.pi - p.kappa * curr.y,
+        curr.r - (p.rho_r * lag.r + (1.0 - p.rho_r)
+                  * (p.phi_pi * curr.pi + p.phi_y * curr.y) + s.eps_r),
+        curr.b - (p.rho_b * lag.b + p.gamma_y * curr.y + s.eps_b),
+        curr.g - p.rho_g * lag.g - s.eps_g,
+    ]
+
+
+def zlb_eqs(lead, curr, lag, s, p):          # solo la ZLB es activa
+    eqs = ref_eqs(lead, curr, lag, s, p)
+    eqs[2] = curr.r - (-p.r_ss)
+    return eqs
+
+
+def borr_eqs(lead, curr, lag, s, p):         # solo el tope de endeudamiento es activo
+    eqs = ref_eqs(lead, curr, lag, s, p)
+    eqs[3] = curr.b - p.b_bar
+    return eqs
+
+
+ss = {v: 0.0 for v in variables}
+kw = dict(variables=variables, shocks=shocks, params=params, steady_state=ss)
+m_ref = build_dynare(ref_eqs, **kw)
+m_zlb = build_dynare(zlb_eqs, check_steady_state=False, strict=False, **kw)
+m_borr = build_dynare(borr_eqs, check_steady_state=False, strict=False, **kw)
+
+c_zlb = OccBinConstraint(variable="r", threshold=-params["r_ss"], operator="<")
+c_borr = OccBinConstraint(variable="b", threshold=params["b_bar"], operator=">")
+
+shock_seq = np.zeros((40, 3))
+shock_seq[0, 0] = -0.06      # eps_g: contracción de la demanda
+shock_seq[0, 2] = 0.05       # eps_b: expansión del crédito
+
+res = solve_multiconstraint_occbin(
+    m_unconstrained=m_ref,
+    m_constrained_dict={"zlb": m_zlb, "borrowing": m_borr},
+    shock_seq=shock_seq,
+    constraints={"zlb": c_zlb, "borrowing": c_borr},
+    horizon=40,
+)
+
+regimes = np.asarray(res.regimes)
+print(res.converged, res.iterations)          # True 3
+print(regimes[:12])                           # [3 1 1 0 0 0 0 0 0 0 0 0]
+print(np.sum((regimes & 1) == 1))             # 3 — la ZLB es activa, sola o junto a la otra
+print(np.sum(regimes == 3))                   # 1 — AMBAS son activas
+print([c for c in res.shadow_path.columns if c.endswith("_shadow")])
+#                                             # ['r_shadow', 'b_shadow']
+```
+
+`result.constraints` asocia cada clave de modelo con la restricción efectivamente
+utilizada, y `result.shadow_path` añade una columna `<variable>_shadow` por
+restricción (`r_shadow`, `b_shadow` arriba), que es lo que lee la verificación de
+holgura complementaria.
+
+**La no convergencia se reporta, ya no se insinúa.** `result.converged` es `True`
+únicamente cuando la iteración de regímenes alcanzó un punto fijo, la trayectoria
+devuelta respeta cada restricción allí donde ello tiene sentido según su
+naturaleza, y toda restricción está holgada en el período final, de modo que la
+condición terminal queda verificada. En caso contrario la función devuelve
+`converged=False` **y emite un único `UserWarning` que nombra todos los motivos**:
+`max_iter` agotado, un ciclo de regímenes que el amortiguamiento no pudo romper,
+una cota violada, o una restricción todavía activa en $T$. La trayectoria que se
+obtiene es entonces la resuelta bajo `result.regimes`: un diagnóstico, no una
+solución.
+
+Otras condiciones que lanzan `ValueError`: un `horizon` o `max_iter` no positivo,
+la ausencia total de modelo restringido, una restricción que nombra una variable
+o un `relax_variable` inexistente, un modelo restringido idéntico al de
+referencia, dos modelos restringidos que reescriben la misma fila de ecuaciones,
+y un régimen alternativo que fija una variable en una fila que no la determina en
+el modelo de referencia sin un `relax_variable` (la prueba de relajación sería
+vacua).
+
 ### 4.2 El Filtro de Kalman por tramos (PKF, Giovannini et al. 2021)
 
 La estimación econométrica de modelos con cotas activas exigía tradicionalmente filtros no lineales o simuladores de partículas computacionalmente lentos.

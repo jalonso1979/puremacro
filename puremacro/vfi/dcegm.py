@@ -25,7 +25,6 @@ import warnings
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
@@ -615,6 +614,8 @@ class DCEGMSolution:
         matplotlib.figure.Figure
             Figure instance containing the diagnostic subplots.
         """
+        import matplotlib.pyplot as plt
+
         fig, axes = plt.subplots(2, 2, figsize=figsize, constrained_layout=True)
         colors = ["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple", "tab:brown"]
 

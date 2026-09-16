@@ -36,8 +36,6 @@ import warnings
 from dataclasses import dataclass, field, replace
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.linalg import lu_factor, lu_solve, svd
@@ -275,6 +273,8 @@ class AnalyticGradientResult:
         fig : matplotlib.figure.Figure
             Figure instance containing the diagnostic subplots.
         """
+        import matplotlib.pyplot as plt
+
         # Determine continuous state evaluation domain
         domain = (0.5, 2.0)
         if self.solution is not None:

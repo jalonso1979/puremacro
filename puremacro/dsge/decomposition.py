@@ -50,17 +50,18 @@ import warnings
 from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 
-import matplotlib.dates as mdates
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy.linalg
-from matplotlib.figure import Figure
 
 from puremacro.dsge._moments import conditional_fevd
-from puremacro.plot import _new_ax, _palette
 from puremacro.reports import _df_to_latex, _df_to_markdown, _df_to_typst
 from puremacro.state_space import StateSpaceModel, kalman_smoother
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from matplotlib.figure import Figure
 
 
 @dataclass(frozen=True)
@@ -149,6 +150,9 @@ class FEVDResult:
         matplotlib.figure.Figure
             Figure containing the FEVD plots.
         """
+        import matplotlib.pyplot as plt
+        from puremacro.plot import _palette
+
         if variables is None:
             vars_to_plot = list(self.variable_names[:9])
         elif isinstance(variables, str):
@@ -366,6 +370,10 @@ class ShockDecompResult:
         matplotlib.figure.Figure
             Figure with the stacked historical shock decomposition.
         """
+        import matplotlib.dates as mdates
+        import matplotlib.pyplot as plt
+        from puremacro.plot import _new_ax, _palette
+
         df = self.to_frame(variable)
         T = len(df)
         t = np.arange(T) if isinstance(df.index, pd.RangeIndex) else df.index

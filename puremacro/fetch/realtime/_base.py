@@ -94,23 +94,32 @@ VINTAGE_SEMANTICS: dict[str, str] = {
     ),
     "banxico": (
         "Banco de México SIE API time series. Upstream overwrites series in "
-        "place; vintage date tracks the date of snapshot capture recorded into "
-        "the local SQLite realtime_vintages cache."
+        "place, so the vintage date is the local SNAPSHOT date: the day this "
+        "machine fetched the series and stored it in the SQLite "
+        "realtime_vintages cache. One vintage per stored snapshot; history "
+        "begins with the first local fetch. Not a publication date."
     ),
     "inegi": (
         "INEGI Banco de Indicadores / BIE API time series. Upstream overwrites "
-        "series in place; vintage date tracks the date of snapshot capture "
-        "recorded into the local SQLite realtime_vintages cache."
+        "series in place, so the vintage date is the local SNAPSHOT date: the "
+        "day this machine fetched the series and stored it in the SQLite "
+        "realtime_vintages cache. One vintage per stored snapshot; history "
+        "begins with the first local fetch. Not a publication date."
     ),
     "bcb": (
-        "Banco Central do Brasil SGS API time series. Open public endpoint; "
-        "vintage date tracks the date of snapshot capture recorded into the "
-        "local SQLite realtime_vintages cache."
+        "Banco Central do Brasil SGS API time series. Open public endpoint "
+        "that overwrites in place, so the vintage date is the local SNAPSHOT "
+        "date: the day this machine fetched the series and stored it in the "
+        "SQLite realtime_vintages cache. One vintage per stored snapshot; "
+        "history begins with the first local fetch. Not a publication date."
     ),
     "bcch": (
         "Banco Central de Chile Base de Datos Estadísticos (SIETE API). "
-        "Vintage date tracks the date of snapshot capture recorded into the "
-        "local SQLite realtime_vintages cache."
+        "Upstream overwrites in place, so the vintage date is the local "
+        "SNAPSHOT date: the day this machine fetched the series and stored "
+        "it in the SQLite realtime_vintages cache. One vintage per stored "
+        "snapshot; history begins with the first local fetch. Not a "
+        "publication date."
     ),
 }
 

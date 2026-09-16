@@ -29,11 +29,12 @@ from typing import TYPE_CHECKING, Any, Mapping, Sequence, Tuple
 if TYPE_CHECKING:
     from puremacro.dsge.build import LinearModel
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.axes import Axes
-from matplotlib.figure import Figure
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
 
 from puremacro.dsge.klein import BlanchardKahnError, KleinSolution, klein_solve
 from puremacro.reports import _df_to_latex, _df_to_markdown, _df_to_typst
@@ -136,6 +137,8 @@ class NewsIRFResult:
         **kwargs: Any,
     ) -> tuple[Figure, Any]:
         """Plot publication-grade impulse response comparisons."""
+        import matplotlib.pyplot as plt
+
         if variables is None:
             vars_to_plot = list(self.irf.columns)[:6]
         else:
@@ -293,6 +296,8 @@ class NewsDecompositionResult:
         **kwargs: Any,
     ) -> tuple[Figure, Any]:
         """Plot stacked bar chart of variance decomposition shares."""
+        import matplotlib.pyplot as plt
+
         df = self.variance_shares
         if variables is not None:
             vars_to_plot = [v for v in variables if v in df.index]
@@ -835,6 +840,8 @@ def plot_news_vs_surprise(
     tuple[Figure, Axes]
         Matplotlib Figure and Axes objects.
     """
+    import matplotlib.pyplot as plt
+
     if variables is None:
         vars_to_plot = list(model.variables)[:6]
     else:

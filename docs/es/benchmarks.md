@@ -19,6 +19,15 @@ La siguiente tabla reporta los tiempos de ejecución cronometrados en modelos y 
 | **Descenso por coordenadas Elastic Net** ($T=200, P=40, 30\lambda$) | **39.08 ms** | glmnet / scikit-learn | Bucle de umbralización suave en NumPy puro |
 | **Filtro paso-banda (CF) + Beveridge-Nelson** ($T=500$) | **3.17 ms** | MATLAB / Stata `tsfilter` | Proyección de espacio de estados en tiempo lineal |
 
+Los tiempos anteriores corresponden a las rutas de referencia en NumPy/SciPy
+sobre CPU. Las alternativas aceleradas por hardware se documentan aparte: el
+argumento `backend=` de los solucionadores espaciales y de comercio en
+[`docs/es/spatial_and_trade_ge.md`](spatial_and_trade_ge.md), la superficie
+arancelaria en GPU — jacobianos por lotes, continuación por homotopía y los
+solucionadores opcionales con `torch` / `mlx` — en
+[`docs/es/trade_gpu.md`](trade_gpu.md), y el solucionador HJB en tiempo continuo
+en [`docs/es/vfi_hjb_continuous.md`](vfi_hjb_continuous.md).
+
 ---
 
 ## Reproducir las pruebas localmente

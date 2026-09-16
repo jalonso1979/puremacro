@@ -1,35 +1,45 @@
 """Banco de México (Banxico) SIE API real-time connector.
 
-Retrieves Mexican macroeconomic time series (policy rate SF61745, CPI inflation SP1,
-economic activity IGAE SR17631) from the Banxico SIE API:
+Retrieves Mexican series from the Banxico SIE REST API (token in the
+``Bmx-Token`` header)::
+
     https://www.banxico.org.mx/SieAPIRest/service/v1/series/{series_id}/datos
 
-Since Banxico overwrites current series in place, this module captures snapshots
-into the persistent SQLite `realtime_vintages` cache table, enabling historical
-revision tracking and offline reproducibility.
+The body is ``{"bmx": {"series": [{"idSerie": .., "titulo": ..,
+"datos": [{"fecha": "dd/mm/yyyy", "dato": "1,234.56"}]}]}}`` with
+``"N/E"`` where an observation is missing. Catalogued series: policy
+rate SF61745 (daily), INPC SP1 (monthly), IGAE activity SR17631
+(monthly) — see :data:`puremacro.fetch.realtime.catalog.BANXICO_SERIES`.
+
+SIE overwrites series in place, so a *vintage* here is a **snapshot
+date**: every fetch is stored in the local SQLite ``realtime_vintages``
+table stamped with the day it was taken, and later calls return every
+stored snapshot as one vintage each. Revision history therefore starts
+with the first local snapshot.
 """
 from __future__ import annotations
 
-import datetime as dt
-import json
-import re
-import urllib.error
 import urllib.request
-import warnings
-from typing import Any
 
 import pandas as pd
 
 from ... import credentials
-from ..._cache_db import query_realtime_vintages, record_connector_event, store_realtime_vintages
 from ._base import (
     VINTAGE_COLUMNS,
     VintagePanel,
     normalize_vintage_frame,
     register_provider,
 )
-from .canary import SchemaCanary, SchemaDriftError
-from .catalog import BANXICO_SERIES, SeriesSpec, register_catalog
+from ._snapshot import (
+    cached_snapshots,
+    empty_snapshot,
+    fetch_snapshot_vintages,
+    finish_snapshot,
+    load_json,
+    warn_skipped,
+)
+from .canary import SchemaCanary
+from .catalog import BANXICO_SERIES, register_catalog
 
 #: Why Mexico quarterly GDP had no native vintage provider originally.
 MEXICO_VINTAGE_NOTE = (
@@ -56,99 +66,79 @@ BANXICO_SERIES_URL = (
 
 _UA = "puremacro (real-time vintage reader)"
 
+#: ``dato`` values SIE uses for a missing observation.
+_MISSING_MARKERS = frozenset({"N/E", "NaN", "null", ""})
+
 
 def parse_banxico_json(
     raw: bytes | str | dict,
     *,
     series_id: str = "",
     vintage_date: str | pd.Timestamp | None = None,
+    on_drift: str = "raise",
 ) -> pd.DataFrame:
-    """Parse Banxico SIE API JSON response into tidy [date, vintage, value] DataFrame.
+    """Parse a Banxico SIE JSON response into a tidy ``[date, vintage, value]`` frame.
 
     Parameters
     ----------
     raw : bytes | str | dict
         The JSON response from Banxico's SIE API.
     series_id : str
-        The series identifier.
+        The series identifier (for messages only).
     vintage_date : str | pd.Timestamp | None
-        Vintage date to stamp. Defaults to current date or latest observation date.
+        Snapshot date to stamp on every row. Defaults to today.
+    on_drift : {"raise", "warn", "ignore"}
+        Schema-canary policy; see :mod:`puremacro.fetch.realtime.canary`.
 
     Returns
     -------
     pd.DataFrame
-        DataFrame with columns ["date", "vintage", "value"].
+        Columns ``["date", "vintage", "value"]``. ``"N/E"`` observations
+        are dropped silently; rows whose date or value cannot be read
+        are dropped with a warning counting them.
     """
-    if isinstance(raw, (bytes, bytearray)):
-        text = raw.decode("utf-8-sig", errors="ignore")
-        if not text.strip():
-            return pd.DataFrame(columns=["date", "vintage", "value"])
-        data = json.loads(text)
-    elif isinstance(raw, str):
-        if not raw.strip():
-            return pd.DataFrame(columns=["date", "vintage", "value"])
-        data = json.loads(raw)
-    elif isinstance(raw, dict):
-        data = raw
-    else:
-        return pd.DataFrame(columns=["date", "vintage", "value"])
-
+    data = load_json(raw)
     if not data:
-        return pd.DataFrame(columns=["date", "vintage", "value"])
+        return empty_snapshot()
 
-    ok, reason = SchemaCanary.validate_banxico(data)
-    if not ok:
-        raise SchemaDriftError(f"Banxico schema drift: {reason}")
+    SchemaCanary.check("banxico", data, on_drift=on_drift)
 
-    series_list = data.get("bmx", {}).get("series", [])
-    if not series_list:
-        return pd.DataFrame(columns=["date", "vintage", "value"])
+    bmx = data.get("bmx") if isinstance(data, dict) else None
+    series_list = bmx.get("series") if isinstance(bmx, dict) else None
+    if (not isinstance(series_list, list) or not series_list
+            or not isinstance(series_list[0], dict)):
+        return empty_snapshot()
 
-    first_series = series_list[0]
-    datos = first_series.get("datos", [])
-    if not datos:
-        return pd.DataFrame(columns=["date", "vintage", "value"])
-
-    records = []
+    datos = series_list[0].get("datos")
+    if not isinstance(datos, list):
+        return empty_snapshot()
+    records: list[tuple[pd.Timestamp, float]] = []
+    skipped = 0
     for item in datos:
-        f_str = item.get("fecha", "").strip()
-        v_str = item.get("dato", "").strip()
-        if not f_str or not v_str or v_str in ("N/E", "NaN", "null"):
+        if not isinstance(item, dict):
+            skipped += 1
             continue
-        # Clean value
+        f_str = str(item.get("fecha") or "").strip()
+        v_str = str(item.get("dato") or "").strip()
+        if not f_str or v_str in _MISSING_MARKERS:
+            continue
         try:
             val = float(v_str.replace(",", ""))
-        except (ValueError, TypeError):
+        except ValueError:
+            skipped += 1
             continue
-
-        # Parse date: Banxico sends DD/MM/YYYY
+        # SIE sends DD/MM/YYYY; anything else is drift the canary reports.
         try:
             if "/" in f_str:
                 d = pd.to_datetime(f_str, format="%d/%m/%Y")
             else:
                 d = pd.to_datetime(f_str)
         except Exception:
+            skipped += 1
             continue
-
         records.append((d, val))
-
-    if not records:
-        return pd.DataFrame(columns=["date", "vintage", "value"])
-
-    # Determine vintage stamp
-    if vintage_date is not None:
-        v_stamp = pd.to_datetime(vintage_date)
-    else:
-        # Defaults to current date
-        v_stamp = pd.Timestamp.now(tz=None).normalize()
-
-    rows = [(d, v_stamp, val) for d, val in records]
-    df = pd.DataFrame(rows, columns=["date", "vintage", "value"])
-    return (
-        df.drop_duplicates(subset=["date", "vintage"], keep="last")
-        .sort_values(["date", "vintage"])
-        .reset_index(drop=True)
-    )
+    warn_skipped("parse_banxico_json", skipped, len(datos))
+    return finish_snapshot(records, vintage_date)
 
 
 def fetch_banxico_vintages(
@@ -158,75 +148,63 @@ def fetch_banxico_vintages(
     vintage_date: str | None = None,
     timeout: float = 60.0,
     use_cache: bool = True,
+    history: bool = True,
+    on_drift: str = "raise",
 ) -> pd.DataFrame:
-    """Fetch time series from Banxico SIE API or retrieve cached vintages.
+    """Fetch one SIE series and return its locally stored snapshot vintages.
 
     Parameters
     ----------
     series_id : str
-        Banxico series ID (e.g. 'SF61745' for policy rate, 'SP1' for CPI).
+        Banxico series ID (e.g. ``'SF61745'`` for the policy rate,
+        ``'SP1'`` for the INPC).
     token : str | None
-        Banxico API token. Resolved from `puremacro.credentials` if omitted.
+        Banxico API token. Resolved from :mod:`puremacro.credentials`
+        (``BANXICO_API_KEY`` / ``BMX_TOKEN`` / ``[banxico].api_key``)
+        if omitted. Without a token the stored snapshots are returned
+        when there are any (and ``use_cache`` is True); otherwise
+        ``MissingCredentialError``.
     vintage_date : str | None
-        Vintage date stamp to assign.
+        Snapshot date to stamp on *this* fetch. Defaults to today. It is
+        a capture date, not a publication date.
     timeout : float
         HTTP request timeout in seconds.
     use_cache : bool
-        Whether to check and update the SQLite cache.
+        ``True`` stores the snapshot in the SQLite ``realtime_vintages``
+        table and falls back to stored snapshots when the fetch fails.
+        ``False`` neither reads nor writes the cache: the live snapshot
+        is returned, and a failure is raised.
+    history : bool
+        ``True`` (default) returns every snapshot stored locally for
+        this series — one vintage per snapshot date, today's included.
+        ``False`` returns only the snapshot just fetched.
+    on_drift : {"raise", "warn", "ignore"}
+        Schema-canary policy. With ``"raise"`` a drifted payload falls
+        back to the cached snapshots (with a ``SchemaDriftWarning``)
+        when any exist.
 
     Returns
     -------
     pd.DataFrame
-        DataFrame with columns ["date", "vintage", "value"].
+        Columns ``["date", "vintage", "value"]``.
     """
     tok = token or credentials.get("banxico")
-    url = BANXICO_SERIES_URL.format(series_id=series_id)
-
-    # If no token is configured, attempt offline cache fallback immediately
     if not tok:
-        cached = query_realtime_vintages("banxico", "MEX", series_id)
-        if not cached.empty:
-            return cached[["date", "vintage", "value"]]
-        # If still empty, raise actionable error
+        if use_cache:
+            cached = cached_snapshots("banxico", "MEX", series_id)
+            if not cached.empty:
+                return cached
         credentials.require("banxico")
 
-    # Fetch live data
-    headers = {"User-Agent": _UA, "Bmx-Token": tok}
-    req = urllib.request.Request(url, headers=headers)
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            body = resp.read()
-        df = parse_banxico_json(body, series_id=series_id, vintage_date=vintage_date)
-        if df.empty and use_cache:
-            cached = query_realtime_vintages("banxico", "MEX", series_id)
-            if not cached.empty:
-                warnings.warn(
-                    f"fetch_banxico_vintages received empty observations; falling back to cached vintages.",
-                    UserWarning,
-                    stacklevel=2,
-                )
-                record_connector_event("banxico", "fallback", "sqlite_cache")
-                return cached[["date", "vintage", "value"]]
-        if use_cache and not df.empty:
-            store_df = df.copy()
-            store_df["provider"] = "banxico"
-            store_df["country"] = "MEX"
-            store_df["series_id"] = series_id
-            store_realtime_vintages(store_df)
-            record_connector_event("banxico", "success", "none")
-        return df
-    except Exception as exc:
-        # On network error or schema drift, fallback to cached SQLite vintages
-        cached = query_realtime_vintages("banxico", "MEX", series_id)
-        if not cached.empty:
-            warnings.warn(
-                f"fetch_banxico_vintages failed ({exc}); falling back to cached vintages.",
-                UserWarning,
-                stacklevel=2,
-            )
-            record_connector_event("banxico", "fallback", "sqlite_cache")
-            return cached[["date", "vintage", "value"]]
-        raise
+    url = BANXICO_SERIES_URL.format(series_id=series_id)
+    req = urllib.request.Request(
+        url, headers={"User-Agent": _UA, "Bmx-Token": tok},
+    )
+    return fetch_snapshot_vintages(
+        provider="banxico", country="MEX", series_id=series_id, request=req,
+        parser=parse_banxico_json, timeout=timeout, use_cache=use_cache,
+        history=history, on_drift=on_drift, vintage_date=vintage_date,
+    )
 
 
 def fetch_banxico_panel(
@@ -236,6 +214,8 @@ def fetch_banxico_panel(
     token: str | None = None,
     timeout: float = 60.0,
     use_cache: bool = True,
+    history: bool = True,
+    on_drift: str = "raise",
     **_ignored,
 ) -> VintagePanel:
     """Registry entry point for Banxico."""
@@ -255,6 +235,8 @@ def fetch_banxico_panel(
                     token=token,
                     timeout=timeout,
                     use_cache=use_cache,
+                    history=history,
+                    on_drift=on_drift,
                 )
             except Exception as exc:
                 failed[f"{country}:{variable}"] = f"{type(exc).__name__}: {exc}"

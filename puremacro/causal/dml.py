@@ -22,6 +22,8 @@ Features:
 """
 from __future__ import annotations
 
+import copy
+import sys
 import warnings
 from dataclasses import dataclass
 from typing import Any, Sequence
@@ -36,14 +38,70 @@ from scipy.stats import norm
 # ===========================================================================
 
 
+def _as_design(X: Any) -> np.ndarray:
+    """Coerce ``X`` to a 2-D float array; a 1-D ``X`` is read as a single column."""
+    X_arr = np.asarray(X, dtype=float)
+    if X_arr.ndim == 1:
+        X_arr = X_arr[:, None]
+    if X_arr.ndim != 2:
+        raise ValueError(f"X must be 2-D (n_samples, n_features), got shape {X_arr.shape}.")
+    return X_arr
+
+
+def _validate_xy(X: Any, y: Any) -> tuple[np.ndarray, np.ndarray]:
+    """Return finite ``(X, y)`` arrays of matching length or raise a clear ``ValueError``."""
+    X_arr = _as_design(X)
+    y_arr = np.asarray(y, dtype=float).ravel()
+    n, p = X_arr.shape
+    if n == 0 or p == 0:
+        raise ValueError("X must have at least one sample and one feature.")
+    if len(y_arr) != n:
+        raise ValueError(f"X has {n} rows but y has {len(y_arr)} entries.")
+    if not np.isfinite(X_arr).all() or not np.isfinite(y_arr).all():
+        raise ValueError("X and y must not contain NaN or inf.")
+    return X_arr, y_arr
+
+
+def _check_penalties(alphas: Any, name: str) -> np.ndarray:
+    """Return ``alphas`` as a non-empty 1-D array of finite, non-negative penalties.
+
+    An empty grid used to fail with ``IndexError``, a NaN penalty produced NaN
+    coefficients that only surfaced as a ``LinAlgError`` deep inside DML, and a
+    negative penalty was accepted silently.
+    """
+    arr = np.atleast_1d(np.asarray(alphas, dtype=float)).ravel()
+    if arr.size == 0:
+        raise ValueError(f"{name} must contain at least one penalty value.")
+    if not np.isfinite(arr).all() or (arr < 0).any():
+        raise ValueError(f"{name} must be finite and non-negative, got {alphas!r}.")
+    return arr
+
+
+def _warn_stacklevel() -> int:
+    """``stacklevel`` for :func:`warnings.warn` that points at the first frame
+    outside this module, so a warning raised inside :meth:`DoubleMLPLR.fit` is
+    attributed to the user's call whether it went through :func:`dml_plr` or not."""
+    level = 1  # stacklevel=1 is the frame that calls ``warnings.warn``
+    frame = sys._getframe(1)
+    while frame is not None and frame.f_globals.get("__name__") == __name__:
+        frame = frame.f_back
+        level += 1
+    return level
+
+
 class LassoCoordinateDescent:
     """Pure-NumPy Lasso (L1-regularized linear regression) via cyclical coordinate descent.
 
     Solves:
         min_beta  (1 / (2*N)) * ||y - X*beta||_2^2 + alpha * ||beta||_1
 
+    With ``fit_intercept=True`` (default) the columns of ``X`` are centred and
+    scaled to unit variance before the penalty is applied (the reported
+    ``coef_`` is on the original scale); with ``fit_intercept=False`` the
+    penalty acts on the raw columns, whatever their scale.
+
     Supports warm restarts along a decreasing regularization path and model
-    selection via BIC or AIC.
+    selection via BIC or AIC (``criterion``).
     """
 
     def __init__(
@@ -56,12 +114,21 @@ class LassoCoordinateDescent:
         criterion: str = "bic",
         fit_intercept: bool = True,
     ) -> None:
+        if alpha is not None:
+            if np.ndim(alpha) != 0:
+                raise ValueError(f"alpha must be a scalar penalty or None, got {alpha!r}.")
+            _check_penalties(alpha, "alpha")
+        if int(n_alphas) < 1:
+            raise ValueError(f"n_alphas must be a positive integer, got {n_alphas!r}.")
         self.alpha = alpha
         self.max_iter = max_iter
         self.tol = tol
-        self.n_alphas = n_alphas
+        self.n_alphas = int(n_alphas)
         self.eps = eps
-        self.criterion = criterion.lower()
+        crit = str(criterion).lower()
+        if crit not in ("aic", "bic"):
+            raise ValueError(f"criterion must be 'aic' or 'bic', got {criterion!r}.")
+        self.criterion = crit
         self.fit_intercept = fit_intercept
 
         # Fitted attributes
@@ -70,20 +137,22 @@ class LassoCoordinateDescent:
         self.alpha_: float | None = None
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> "LassoCoordinateDescent":
-        X_arr = np.asarray(X, dtype=float)
-        y_arr = np.asarray(y, dtype=float).ravel()
+        X_arr, y_arr = _validate_xy(X, y)
         n, p = X_arr.shape
-
-        if n == 0 or p == 0:
-            raise ValueError("X must have at least one sample and one feature.")
 
         # Center and standardize
         if self.fit_intercept:
             x_mean = np.mean(X_arr, axis=0)
             x_std = np.std(X_arr, axis=0)
-            x_std[x_std < 1e-12] = 1.0
+            constant = x_std < 1e-12
+            x_std[constant] = 1.0
             y_mean = float(np.mean(y_arr))
             Xs = (X_arr - x_mean) / x_std
+            # A (near-)constant column carries no information once centred. Zero it
+            # so its Gram entry below is exactly 0 and the coordinate stays at 0;
+            # otherwise the exact update divides by a ~1e-28 Gram entry and, at
+            # alpha = 0, blows the coefficient up to ~1e12.
+            Xs[:, constant] = 0.0
             yc = y_arr - y_mean
         else:
             x_mean = np.zeros(p)
@@ -94,7 +163,7 @@ class LassoCoordinateDescent:
 
         # Regularization path
         if self.alpha is not None:
-            alphas = [float(self.alpha)]
+            alphas = [float(_check_penalties(self.alpha, "alpha")[0])]
         else:
             # Maximum alpha where all coefficients are zero: max_j |X_j' y| / n
             alpha_max = float(np.max(np.abs(Xs.T @ yc)) / n)
@@ -109,21 +178,32 @@ class LassoCoordinateDescent:
 
         beta_s = np.zeros(p)
 
+        # Per-column Gram entries Xs[:, j]' Xs[:, j] / n. These equal 1.0 for the
+        # standardized design (fit_intercept=True) but are arbitrary for raw
+        # columns (fit_intercept=False); the exact coordinate minimizer is
+        # beta_j = S(rho_j, a) / c_j, so treating c_j as 1 turns the update into
+        # a gradient step of size c_j that diverges for c_j > 2.
+        col_norm2 = np.einsum("ij,ij->j", Xs, Xs) / n
+
         for a in alphas:
             # Cyclical coordinate descent with warm start
             r = yc - Xs @ beta_s
             for _ in range(self.max_iter):
                 max_change = 0.0
                 for j in range(p):
+                    c_j = col_norm2[j]
+                    if c_j <= 0.0:
+                        # All-zero column: the coefficient is unidentified, keep it at 0.
+                        continue
                     old_bj = beta_s[j]
-                    # Partial residual plus current coordinate contribution
-                    # Xs[:, j]' Xs[:, j] / n == 1.0 (standardized)
-                    rho_j = float(Xs[:, j] @ r / n) + old_bj
+                    # Gradient of the smooth part at beta_j = 0 with the other
+                    # coordinates fixed: Xs_j' (r + Xs_j * old_bj) / n
+                    rho_j = float(Xs[:, j] @ r / n) + c_j * old_bj
                     # Soft thresholding
                     if rho_j > a:
-                        new_bj = rho_j - a
+                        new_bj = (rho_j - a) / c_j
                     elif rho_j < -a:
-                        new_bj = rho_j + a
+                        new_bj = (rho_j + a) / c_j
                     else:
                         new_bj = 0.0
 
@@ -154,6 +234,11 @@ class LassoCoordinateDescent:
         self.alpha_ = best_alpha
         # Unstandardize coefficients
         self.coef_ = best_beta_s / x_std
+        if not np.isfinite(self.coef_).all():
+            raise RuntimeError(
+                "LassoCoordinateDescent produced non-finite coefficients; "
+                "the design is numerically degenerate."
+            )
         if self.fit_intercept:
             self.intercept_ = y_mean - float(x_mean @ self.coef_)
         else:
@@ -164,15 +249,21 @@ class LassoCoordinateDescent:
     def predict(self, X: np.ndarray) -> np.ndarray:
         if self.coef_ is None:
             raise RuntimeError("LassoCoordinateDescent is not fitted yet.")
-        X_arr = np.asarray(X, dtype=float)
-        return X_arr @ self.coef_ + self.intercept_
+        return _as_design(X) @ self.coef_ + self.intercept_
 
 
 class RidgeGCV:
     """Pure-NumPy Ridge Regression with Generalized Cross-Validation (GCV).
 
-    Solves:
-        min_beta  (1 / (2*N)) * ||y - X*beta||_2^2 + (alpha / 2) * ||beta||_2^2
+    Solves, on the centred and unit-variance-scaled columns of ``X`` when
+    ``fit_intercept=True`` (the default) and on the raw columns otherwise:
+        min_beta  ||y - X*beta||_2^2 + alpha * ||beta||_2^2
+
+    i.e. ``beta = (X'X + alpha I)^{-1} X'y`` with the penalty in the same
+    absolute units as ``sklearn.linear_model.Ridge``; it is *not* divided by
+    ``N``. ``alpha_`` and any user-supplied ``alphas`` grid are therefore
+    absolute, and the default grid ``np.logspace(-4, 6, 100)`` is chosen for
+    standardized columns. The reported ``coef_`` is on the original scale.
 
     Uses SVD decomposition of X for O(p) evaluation of the GCV criterion
     across a geometric grid of penalty parameters.
@@ -183,6 +274,8 @@ class RidgeGCV:
         alphas: Sequence[float] | np.ndarray | None = None,
         fit_intercept: bool = True,
     ) -> None:
+        if alphas is not None:
+            _check_penalties(alphas, "alphas")
         self.alphas = alphas
         self.fit_intercept = fit_intercept
 
@@ -192,12 +285,8 @@ class RidgeGCV:
         self.alpha_: float | None = None
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> "RidgeGCV":
-        X_arr = np.asarray(X, dtype=float)
-        y_arr = np.asarray(y, dtype=float).ravel()
+        X_arr, y_arr = _validate_xy(X, y)
         n, p = X_arr.shape
-
-        if n == 0 or p == 0:
-            raise ValueError("X must have at least one sample and one feature.")
 
         # Center and standardize
         if self.fit_intercept:
@@ -220,7 +309,7 @@ class RidgeGCV:
         k = len(S)
 
         alphas = (
-            np.asarray(self.alphas, dtype=float)
+            _check_penalties(self.alphas, "alphas")
             if self.alphas is not None
             else np.logspace(-4, 6, 100)
         )
@@ -262,12 +351,37 @@ class RidgeGCV:
     def predict(self, X: np.ndarray) -> np.ndarray:
         if self.coef_ is None:
             raise RuntimeError("RidgeGCV is not fitted yet.")
-        X_arr = np.asarray(X, dtype=float)
-        return X_arr @ self.coef_ + self.intercept_
+        return _as_design(X) @ self.coef_ + self.intercept_
+
+
+def _is_learner_instance(learner: Any) -> bool:
+    """True for an already-constructed learner object (has ``fit``/``predict``, is not a class)."""
+    return (
+        not isinstance(learner, (str, type))
+        and hasattr(learner, "fit")
+        and hasattr(learner, "predict")
+    )
+
+
+def _learner_name(learner: str | Any) -> str:
+    """Human-readable learner label for ``DMLResult.learner``."""
+    if isinstance(learner, str):
+        return learner
+    if isinstance(learner, type):
+        return learner.__name__
+    if _is_learner_instance(learner):
+        return type(learner).__name__
+    return getattr(learner, "__name__", type(learner).__name__)
 
 
 def _get_learner(learner: str | Any, **kwargs: Any) -> Any:
-    """Helper to instantiate learners by string alias or pass-through custom learner."""
+    """Return a fresh, unfitted learner for one nuisance regression.
+
+    ``learner`` may be a string alias, a class or factory callable (called with
+    ``kwargs``), or an already-constructed instance. An instance is deep-copied
+    so that each nuisance model (l(X), every m_j(X), every fold) gets its own
+    object and the caller's instance is never fitted in place.
+    """
     if isinstance(learner, str):
         key = learner.lower()
         if key in ("lasso", "l1"):
@@ -276,9 +390,24 @@ def _get_learner(learner: str | Any, **kwargs: Any) -> Any:
             return RidgeGCV(**kwargs)
         else:
             raise ValueError(f"Unknown learner {learner!r}. Supported: 'lasso', 'ridge'.")
-    elif callable(learner):
-        return learner(**kwargs)
-    return learner
+    if _is_learner_instance(learner):
+        if kwargs:
+            raise ValueError(
+                "learner_kwargs cannot be combined with a learner instance "
+                f"({type(learner).__name__}); configure the instance directly or "
+                "pass the learner class / string alias instead."
+            )
+        return copy.deepcopy(learner)
+    if callable(learner):
+        obj = learner(**kwargs)
+        if not (hasattr(obj, "fit") and hasattr(obj, "predict")):
+            raise TypeError(
+                f"learner {learner!r} returned {type(obj).__name__}, which has no fit/predict methods."
+            )
+        return obj
+    raise TypeError(
+        f"learner must be a string alias, a class, or an object with fit/predict; got {type(learner).__name__}."
+    )
 
 
 # ===========================================================================
@@ -436,13 +565,18 @@ class DMLResult:
         return ax
 
     def to_markdown(self) -> str:
-        """Export results to Markdown table."""
+        """Export results to a GitHub-flavoured Markdown table.
+
+        Pipes inside cells (the ``P>|z|`` header, any ``|`` in a variable
+        name) are escaped as ``\\|`` so the header and delimiter rows have the
+        same cell count and renderers recognise the table.
+        """
         pct = int(round(self.ci_level * 100))
         lines = [
             f"### DML-PLR: {self.outcome_name}",
             f"*Learner: {self.learner} | N: {self.n_obs} | Folds: {self.n_folds}*",
             "",
-            f"| Variable | Coef. | Std.Err. | z | P>|z| | [{pct}% Conf. Interval] |",
+            f"| Variable | Coef. | Std.Err. | z | P>\\|z\\| | [{pct}% Conf. Interval] |",
             "|:---|---:|---:|---:|---:|:---:|",
         ]
         thetas = np.atleast_1d(self.theta)
@@ -456,18 +590,28 @@ class DMLResult:
             self.treatment_names, thetas, ses, ts, ps, los, his
         ):
             p_str = "<0.001" if p_val < 0.001 else f"{p_val:.4f}"
+            cell_name = str(name).replace("|", "\\|")
             lines.append(
-                f"| {name} | {th:.4f} | {s:.4f} | {t_val:.3f} | {p_str} | [{lo:.4f}, {hi:.4f}] |"
+                f"| {cell_name} | {th:.4f} | {s:.4f} | {t_val:.3f} | {p_str} | [{lo:.4f}, {hi:.4f}] |"
             )
         return "\n".join(lines)
 
     def to_latex(self) -> str:
-        """Export results to LaTeX table with booktabs formatting."""
+        """Export results to a LaTeX ``table`` that needs only the ``booktabs`` package.
+
+        The p-value cell is set in math mode (``$<0.001$``) because a bare
+        ``<`` in OT1 text mode prints as an inverted exclamation mark, and the
+        sample-size note is a ``\\multicolumn`` row inside the tabular rather
+        than a ``\\subcaption`` (which needs the ``subcaption`` package).
+        """
+        from puremacro.reports import latex_escape
+
         pct = int(round(self.ci_level * 100))
+        n_cols = 6
         lines = [
             r"\begin{table}[htbp]",
             r"\centering",
-            f"\\caption{{Double Machine Learning Estimates for {self.outcome_name}}}",
+            f"\\caption{{Double Machine Learning Estimates for {latex_escape(self.outcome_name)}}}",
             r"\begin{tabular}{lrrrrr}",
             r"\toprule",
             f"Variable & Coef. & Std. Err. & $z$ & $P>|z|$ & [{pct}\\% CI] \\\\",
@@ -483,21 +627,34 @@ class DMLResult:
         for name, th, s, t_val, p_val, lo, hi in zip(
             self.treatment_names, thetas, ses, ts, ps, los, his
         ):
-            p_str = "<0.001" if p_val < 0.001 else f"{p_val:.4f}"
-            clean_name = name.replace("_", "\\_")
+            p_str = "$<0.001$" if p_val < 0.001 else f"{p_val:.4f}"
+            clean_name = latex_escape(name)
             lines.append(
                 f"{clean_name} & {th:.4f} & {s:.4f} & {t_val:.3f} & {p_str} & [{lo:.4f}, {hi:.4f}] \\\\"
             )
+        note = (
+            f"Observations: {self.n_obs}; Folds: {self.n_folds}; "
+            f"Learner: {latex_escape(self.learner)}."
+        )
         lines.extend([
             r"\bottomrule",
+            f"\\multicolumn{{{n_cols}}}{{l}}{{\\footnotesize {note}}} \\\\",
             r"\end{tabular}",
-            f"\\subcaption{{\\footnotesize Observations: {self.n_obs}; Folds: {self.n_folds}; Learner: {self.learner}.}}",
             r"\end{table}",
         ])
         return "\n".join(lines)
 
     def to_typst(self) -> str:
-        """Export results to Typst table format."""
+        """Export results to a Typst ``#figure(table(...))``.
+
+        Variable and learner names and the ``<0.001`` p-value cell are passed
+        through :func:`puremacro.reports.typst_escape`, like every other
+        result object's Typst table, so characters Typst reads as markup
+        inside a content block (``_``, ``$``, ``#``, ``[``, ``<`` ...) are
+        rendered literally.
+        """
+        from puremacro.reports import typst_escape
+
         pct = int(round(self.ci_level * 100))
         lines = [
             f"#figure(",
@@ -519,14 +676,14 @@ class DMLResult:
         for name, th, s, t_val, p_val, lo, hi in zip(
             self.treatment_names, thetas, ses, ts, ps, los, his
         ):
-            p_str = "<0.001" if p_val < 0.001 else f"{p_val:.4f}"
+            p_str = typst_escape("<0.001") if p_val < 0.001 else f"{p_val:.4f}"
             lines.append(
-                f"    [{name}], [{th:.4f}], [{s:.4f}], [{t_val:.3f}], [{p_str}], [[{lo:.4f}, {hi:.4f}]],"
+                f"    [{typst_escape(name)}], [{th:.4f}], [{s:.4f}], [{t_val:.3f}], [{p_str}], [[{lo:.4f}, {hi:.4f}]],"
             )
         lines.extend([
             f"    table.hline(),",
             f"  ),",
-            f"  caption: [Double Machine Learning Estimates ({self.learner}, N={self.n_obs})],",
+            f"  caption: [Double Machine Learning Estimates ({typst_escape(self.learner)}, N={self.n_obs})],",
             f")",
         ])
         return "\n".join(lines)
@@ -549,16 +706,30 @@ class DoubleMLPLR:
     Parameters
     ----------
     n_folds : int, default 5
-        Number of cross-fitting folds (K >= 2).
-    learner : str or learner instance / callable, default 'lasso'
+        Number of cross-fitting folds (K >= 2, and at most N).
+    learner : str, learner class, or learner instance, default 'lasso'
         Base learner for estimating nuisance functions l_0(X) = E[Y|X] and m_0(X) = E[D|X].
-        Options: 'lasso' (L1 coordinate descent) or 'ridge' (L2 GCV closed-form).
+        Options: 'lasso' (L1 coordinate descent) or 'ridge' (L2 GCV closed-form), a
+        class / factory with ``fit``/``predict`` (constructed with ``learner_kwargs``),
+        or a configured instance (deep-copied for every nuisance model, so the
+        caller's object is never fitted in place; ``learner_kwargs`` must then be empty).
     alpha : float, default 0.05
-        Significance level for confidence intervals (0.05 -> 95% CI).
+        Significance level for confidence intervals (0.05 -> 95% CI); must lie
+        strictly between 0 and 1.
     random_state : int or None, default 42
         Seed for reproducible random fold splitting.
     learner_kwargs : dict, optional
         Additional keyword arguments passed to learner constructors.
+
+    Notes
+    -----
+    Valid root-N inference requires each training fold, of size roughly
+    ``N * (1 - 1/K)``, to be comfortably larger than the number of controls
+    ``p`` for the ridge learner, and a sparse nuisance structure for the
+    lasso learner. When a training fold has ``n_train <= p + 1`` observations
+    ``fit`` emits a ``UserWarning``: in that regime ``RidgeGCV`` interpolates
+    the training data and both built-in learners give biased estimates whose
+    nominal 95% intervals under-cover.
     """
 
     def __init__(
@@ -571,11 +742,19 @@ class DoubleMLPLR:
     ) -> None:
         if n_folds < 2:
             raise ValueError(f"n_folds must be an integer >= 2, got {n_folds}")
+        if not (0.0 < float(alpha) < 1.0):
+            raise ValueError(f"alpha (significance level) must lie strictly between 0 and 1, got {alpha!r}")
         self.n_folds = int(n_folds)
         self.learner = learner
         self.alpha = float(alpha)
         self.random_state = random_state
         self.learner_kwargs = learner_kwargs or {}
+        if self.learner_kwargs and _is_learner_instance(learner):
+            raise ValueError(
+                "learner_kwargs cannot be combined with a learner instance "
+                f"({type(learner).__name__}); configure the instance directly or "
+                "pass the learner class / string alias instead."
+            )
 
     def fit(
         self,
@@ -612,21 +791,36 @@ class DoubleMLPLR:
             if D_arr.ndim == 1:
                 treatment_names = ("D",)
                 D_arr = D_arr[:, None]
-            else:
+            elif D_arr.ndim == 2:
                 treatment_names = tuple(f"D_{j+1}" for j in range(D_arr.shape[1]))
+            else:
+                raise ValueError(f"D must be 1-D or 2-D (N, k_d), got shape {D_arr.shape}.")
 
         Y_arr = np.asarray(Y, dtype=float).ravel()
         if isinstance(X, pd.DataFrame):
             X_arr = X.to_numpy(dtype=float)
         else:
             X_arr = np.asarray(X, dtype=float)
+        X_arr = _as_design(X_arr)
+        if D_arr.shape[1] == 0:
+            raise ValueError("D must have at least one treatment column.")
 
         n = len(Y_arr)
         if len(D_arr) != n or len(X_arr) != n:
             raise ValueError(
                 f"Sample size mismatch: Y has {n}, D has {len(D_arr)}, X has {len(X_arr)} rows."
             )
+        if n == 0 or X_arr.shape[1] == 0:
+            raise ValueError("Y, D and X must have at least one observation and X at least one column.")
+        for label, arr in (("Y", Y_arr), ("D", D_arr), ("X", X_arr)):
+            if not np.isfinite(arr).all():
+                raise ValueError(
+                    f"{label} contains NaN or inf; drop or impute missing observations before calling fit()."
+                )
+        if self.n_folds > n:
+            raise ValueError(f"n_folds must not exceed the number of observations, got n_folds={self.n_folds} > N={n}.")
         k_d = D_arr.shape[1]
+        p = X_arr.shape[1]
 
         # Generate K-fold partition
         rng = np.random.default_rng(self.random_state)
@@ -634,12 +828,23 @@ class DoubleMLPLR:
         rng.shuffle(indices)
         folds = np.array_split(indices, self.n_folds)
 
+        n_train_min = n - max(len(f) for f in folds)
+        if n_train_min <= p + 1:
+            warnings.warn(
+                f"DML nuisance learners are trained on as few as {n_train_min} observations per "
+                f"fold with p = {p} controls (n_train <= p + 1). In this high-dimensional regime "
+                "RidgeGCV interpolates the training fold and the root-N inference for theta is "
+                "unreliable for either built-in learner (biased estimates, under-covering "
+                "intervals). Increase N, reduce n_folds or the number of controls, or supply a "
+                "learner suited to p >= n.",
+                UserWarning,
+                stacklevel=_warn_stacklevel(),
+            )
+
         res_y = np.zeros(n)
         res_d = np.zeros((n, k_d))
 
-        learner_name = (
-            self.learner if isinstance(self.learner, str) else type(self.learner).__name__
-        )
+        learner_name = _learner_name(self.learner)
 
         # Cross-fitting loop
         for fold_idx, test_idx in enumerate(folds):
@@ -748,11 +953,15 @@ def dml_plr(
     X : array-like of shape (N, p)
         Covariates / control variables.
     n_folds : int, default 5
-        Number of cross-fitting folds.
+        Number of cross-fitting folds (2 <= n_folds <= N).
     learner : str or learner class/instance, default 'lasso'
-        Base learner ('lasso' or 'ridge').
+        Base learner ('lasso' or 'ridge'), a learner class, or a configured
+        instance (copied per nuisance model; incompatible with ``learner_kwargs``).
     alpha : float, default 0.05
-        Significance level for confidence intervals (0.05 -> 95% CI).
+        Significance level for confidence intervals (0.05 -> 95% CI), strictly
+        between 0 and 1. Note this is the DML significance level, not the lasso
+        penalty: set that through ``learner_kwargs={"alpha": ...}`` on
+        ``DoubleMLPLR`` or a configured ``LassoCoordinateDescent`` instance.
     random_state : int, default 42
         Seed for reproducible fold splitting.
     **learner_kwargs : Any

@@ -17,13 +17,13 @@ from .cce import cce_panel_lp
 from .garch_state import lp_garch_state
 from .garch_in_mean import lp_garch_in_mean
 from .quantile import lp_quantile
-from .la_lp import la_lp
+from .la_lp import la_lp, la_lp_iv
 
 __all__ = [
     "lp_hac", "LPResult", "panel_lp", "panel_lp_dk", "lp_iv", "lp_iv_lewbel", "panel_lp_iv",
     "lp_state_dep", "lp_state_dep_iv", "smooth_lp", "lp_smooth", "SmoothLPResult", "lp_asymmetric",
     "mean_group_panel_lp", "cce_panel_lp",
     "lp_garch_state", "lp_garch_in_mean",
-    "lp_quantile", "la_lp",
+    "lp_quantile", "la_lp", "la_lp_iv",
     "lp_did", "LPDiDResult",
 ]

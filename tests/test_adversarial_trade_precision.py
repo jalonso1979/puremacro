@@ -24,6 +24,7 @@ from __future__ import annotations
 from dataclasses import replace
 import os
 from pathlib import Path
+import sys
 import warnings
 
 import numpy as np
@@ -33,15 +34,27 @@ import scipy.io as sio
 from puremacro.trade.calibration import calibrate_trade_model
 from puremacro.trade.data import get_country_codes, get_sector_codes, load_icio_data
 
+from conftest import load_or_skip, mat_file_is_readable
+
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 
+def _load_icio_or_skip():
+    """The 77x11 ICIO matrix lives outside the repository (../IO or IO_DATA_PATH).
+
+    Without it ``load_icio_data`` raises FileNotFoundError, which a module
+    fixture turns into a setup ERROR on all sixteen tests. A clean checkout
+    (CI included) has no such tree, so the honest outcome there is a skip.
+    """
+    return load_or_skip(load_icio_data)
+
+
 @pytest.fixture(scope="module")
 def reference_data():
     """Load raw ICIO matrix and reference MATLAB results."""
-    raw_data = load_icio_data()
+    raw_data = _load_icio_or_skip()
     calib = calibrate_trade_model(raw_data, nc=77, ns=11, nfd=3)
 
     # Resolve results_77c_11s_base.mat path portably
@@ -53,7 +66,7 @@ def reference_data():
     ]
     mat_path = None
     for c in candidates:
-        if c.is_file():
+        if mat_file_is_readable(c):
             mat_path = c
             break
 
@@ -62,6 +75,17 @@ def reference_data():
 
     mat = sio.loadmat(str(mat_path))
     return raw_data, calib, mat
+
+
+def test_reference_fixture_skips_without_the_private_icio_data(monkeypatch):
+    """A checkout without ../IO must skip this module, not ERROR sixteen times."""
+
+    def _missing(*_args, **_kwargs):
+        raise FileNotFoundError("Could not automatically locate data_77c_11s.mat")
+
+    monkeypatch.setattr(sys.modules[__name__], "load_icio_data", _missing)
+    with pytest.raises(pytest.skip.Exception):
+        _load_icio_or_skip()
 
 
 # ---------------------------------------------------------------------------

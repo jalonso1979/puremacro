@@ -28,7 +28,6 @@ import warnings
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional, Sequence, Tuple, Union
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.optimize import brentq, minimize_scalar, root
@@ -823,6 +822,8 @@ class SplineCollocationSolution:
         self, figsize: Tuple[float, float] = (10, 4), show: bool = False
     ) -> plt.Figure:
         """Plot continuous policy, marginal policy, and continuous Euler equation residual."""
+        import matplotlib.pyplot as plt
+
         a, b = self.basis.domain
         s_dense = np.linspace(a, b, 200)
 

@@ -115,7 +115,9 @@ def test_dml_nonlinear_dgp_bias_reduction():
 def test_dml_coverage_monte_carlo():
     """Empirically test nominal 95% confidence interval coverage over 60 replications.
 
-    Empirical coverage must fall within nominal 95% +/- 6% (i.e. >= 88%).
+    Empirical coverage must fall within 88% and 99% of the replications: the lower
+    bound is nominal 95% - 6%/-7%, the upper bound rejects an inflated standard error
+    (a doubled SE covers all 60 replications).
     """
     n_reps = 60
     theta_0 = 1.80
@@ -151,6 +153,7 @@ def test_dml_coverage_monte_carlo():
     mean_theta = float(np.mean(estimates))
     assert abs(mean_theta - theta_0) < 0.05, f"Monte Carlo mean {mean_theta:.4f} biased relative to {theta_0}"
     assert emp_coverage >= 0.88, f"Empirical coverage {emp_coverage * 100:.1f}% below acceptable threshold"
+    assert emp_coverage <= 0.99, f"Empirical coverage {emp_coverage * 100:.1f}% suggests inflated standard errors"
 
 
 def test_dml_extreme_sample_sizes():

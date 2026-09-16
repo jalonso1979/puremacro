@@ -15,13 +15,18 @@ import warnings
 from typing import Iterable, Sequence
 
 from ._base import VintagePanel, available_providers, get_provider
-from .catalog import canonical_variable, provider_country_codes, resolve_series
+from .catalog import canonical_variable, provider_country_codes, resolve_spec
 
 
 #: Frequencies the real-time catalogues cover. Kept explicit so an
 #: unsupported request fails loudly instead of returning an empty panel
-#: that reads as "no vintages exist for these countries".
-SUPPORTED_FREQUENCIES = {"Q"}
+#: that reads as "no vintages exist for these countries". ``"M"`` and
+#: ``"D"`` exist for the central-bank snapshot providers (policy rates
+#: are daily, price and activity indices monthly); the vintage archives
+#: are quarterly.
+SUPPORTED_FREQUENCIES = {"Q", "M", "D"}
+
+_FREQ_NAMES = {"Q": "quarterly", "M": "monthly", "D": "daily", "A": "annual"}
 
 #: Order tried when ``providers="auto"``. The OECD STES revisions
 #: archive leads because it covers 42 economies through *one* pipeline
@@ -59,7 +64,15 @@ def vintage_panel(
         :func:`~puremacro.fetch.realtime.catalog.canonical_variable`
         accepts — ``"gdp_real"``, ``"B1GQ"``, ``"gdp"``.
     variables : fetch several variables at once; overrides ``series``.
-    freq : only ``"Q"`` today; anything else raises.
+    freq : ``"Q"`` (default), ``"M"`` or ``"D"``; anything else raises.
+        It is the frequency of the series you are asking for, and the
+        panel's ``metadata["freq"]`` repeats it. A catalogue entry that
+        declares a different frequency (the Selic and TPM policy rates
+        are daily, IPCA / INPC / IMACEC / IBC-Br monthly) is not fetched
+        for that request and is reported in ``metadata["failed"]`` with
+        the reason — ask for it at its own frequency instead. Entries
+        that declare no frequency (the quarterly vintage archives) are
+        served at ``"Q"`` only, as before.
     providers : ``"oecd_stes"`` (default) for one uniform pipeline
         across 42 economies, ``"auto"`` to fall back through
         :data:`DEFAULT_PROVIDER_ORDER` per country, or an explicit
@@ -79,7 +92,8 @@ def vintage_panel(
         alternative is silent: Sweden's first estimate of 2002Q4 is
         +16.09% quarterly growth against +0.07% today, and a revision
         test run over that is regressing a seasonal factor. See
-        :mod:`puremacro.fetch.realtime.seasonal`.
+        :mod:`puremacro.fetch.realtime.seasonal`. The screen is built
+        on quarterly dummies and only runs for ``freq="Q"``.
     warn_on_mixed_providers : warn when the assembled panel draws on
         more than one provider. Mixing matters: providers disagree on
         what a vintage *date* means (ingestion date vs. national
@@ -98,12 +112,17 @@ def vintage_panel(
     A country with only one archived edition cannot support a revision
     test at all, and ``news_or_noise_panel`` flags it rather than
     quietly dropping it.
+
+    For the central-bank snapshot providers (``banxico``, ``inegi``,
+    ``bcb``, ``bcch``) a vintage is a local *snapshot date*: every call
+    stores today's fetch and returns every snapshot stored so far, so
+    the revision history is whatever this machine has accumulated.
     """
     if freq not in SUPPORTED_FREQUENCIES:
         raise ValueError(
             f"freq={freq!r} is not supported; the real-time catalogues "
-            f"cover {sorted(SUPPORTED_FREQUENCIES)}. Monthly and annual "
-            "vintages exist at several providers but are not mapped yet."
+            f"cover {sorted(SUPPORTED_FREQUENCIES)}. Annual vintages exist "
+            "at several providers but are not mapped yet."
         )
 
     if variables is not None:
@@ -151,10 +170,30 @@ def vintage_panel(
     for prov in provider_list:
         if not remaining:
             break
-        servable = sorted(
-            (c, v) for (c, v) in remaining
-            if resolve_series(prov, c, v, catalog=catalog) is not None
-        )
+        servable = []
+        for c, v in sorted(remaining):
+            spec = resolve_spec(prov, c, v, catalog=catalog)
+            if spec is None:
+                continue
+            # An entry that predates the field (every vintage archive)
+            # declares nothing and is quarterly; treating "" as "Q" keeps
+            # freq="M" from serving quarterly editions stamped monthly,
+            # which is the mislabelling this check exists to prevent.
+            declared = str(spec.freq or "Q").upper()
+            if declared != freq:
+                # A daily policy rate stamped "Q" would feed a quarterly
+                # revision test with daily rows; refuse and say why.
+                what = (
+                    f"{_FREQ_NAMES.get(declared, declared)} (freq={declared!r})"
+                    if spec.freq else
+                    "served as quarterly only (declares no freq)"
+                )
+                failed[f"{c}:{v}:{prov}"] = (
+                    f"catalogue series {spec.series_id} is {what}; "
+                    f"requested freq={freq!r}"
+                )
+                continue
+            servable.append((c, v))
         if not servable:
             continue
         countries_here = sorted({c for c, _ in servable})
@@ -191,7 +230,7 @@ def vintage_panel(
 
     panel = VintagePanel.concat(panels)
 
-    if drop_unadjusted and not panel.is_empty():
+    if drop_unadjusted and freq == "Q" and not panel.is_empty():
         from .seasonal import drop_unadjusted_editions
         panel, dropped = drop_unadjusted_editions(panel)
         if len(dropped):

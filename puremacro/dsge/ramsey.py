@@ -38,7 +38,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy.linalg
@@ -433,6 +432,8 @@ class RamseyResult:
         ax: Any = None,
     ) -> Any:
         """Plot impulse responses of variables and policy multipliers."""
+        import matplotlib.pyplot as plt
+
         if self.augmented_model is None:
             return None
 

@@ -44,12 +44,14 @@ connector_health(window=pd.Timedelta(hours=1), sources=["bok"])  # combined
 ```sql
 CREATE TABLE connector_events (
     ts             INTEGER NOT NULL,    -- unix epoch seconds
-    source         TEXT NOT NULL,       -- 'eu_eurlex', 'rba', 'beige_book', ...
-    outcome        TEXT NOT NULL,       -- success / 404 / timeout / ssl_fail /
+    source         TEXT NOT NULL,       -- 'eu_eurlex', 'rba', 'banxico', ...
+    outcome        TEXT NOT NULL,       -- success / fallback / schema_drift /
+                                        -- 404 / timeout / ssl_fail /
                                         -- server_5xx / wayback_no_snapshot /
                                         -- playwright_unavailable /
                                         -- parser_schema_mismatch / other_network_error
-    fallback_used  TEXT NOT NULL        -- live / wayback / playwright / none
+    fallback_used  TEXT NOT NULL        -- live / wayback / playwright / none /
+                                        -- sqlite_cache / warning_emitted / ignored
 );
 CREATE INDEX connector_events_ts_source_idx
     ON connector_events(ts, source);
@@ -69,6 +71,32 @@ Reside en `~/.cache/puremacro/cache.db` (o `$PUREMACRO_HTTP_CACHE_DIR`).
   `connector_health()` hasta que se incorporen (típicamente adoptando
   `fetch_with_fallback(policy=("live",))` o invocando `log_event(...)`
   directamente).
+
+## Conectores de instantánea de tiempo real (3.4.0)
+
+Los cuatro conectores latinoamericanos de instantánea — `banxico`, `inegi`,
+`bcb` y `bcch`, documentados en
+[`docs/es/real_time_data.md`](real_time_data.md) — registran eventos bajo su
+propio nombre de proveedor e incorporan tres resultados al vocabulario
+anterior:
+
+| `outcome` | `fallback_used` | Qué ocurrió |
+|---|---|---|
+| `success` | `none` | la respuesta en vivo se interpretó correctamente y la instantánea se devolvió (y se almacenó, salvo que la escritura fallara) |
+| `fallback` | `sqlite_cache` | la descarga, el análisis o el canario de esquema fallaron, o la respuesta venía vacía, y se sirvieron las instantáneas almacenadas localmente |
+| `schema_drift` | `none` | deriva bajo `on_drift="raise"`: se lanzó un `SchemaDriftError`, que la capa de descarga convierte después en una fila `fallback` si dispone de caché |
+| `schema_drift` | `warning_emitted` | deriva bajo `on_drift="warn"`: se emitió un `SchemaDriftWarning` y el analizador continuó |
+| `schema_drift` | `ignored` | deriva bajo `on_drift="ignore"` |
+
+Se escribe una fila `schema_drift` **sea cual sea** la política `on_drift`, de
+modo que `connector_health()` detecta la deriva del servicio de origen incluso
+en las ejecuciones donde un respaldo o una política permisiva la ocultaron al
+invocador. Ese es precisamente el propósito del canario: un proveedor que
+renombró silenciosamente una clave JSON aparece como un recuento de derivas en
+aumento y no como una serie que se acortó de forma inexplicable.
+
+La telemetría nunca interrumpe la descarga que la emitió: una escritura fallida
+se reporta como `UserWarning` y los datos se devuelven igualmente.
 
 ## Interruptor de emergencia
 

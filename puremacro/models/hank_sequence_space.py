@@ -44,11 +44,9 @@ import warnings
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from puremacro.plot import _palette
 from puremacro.reports import _df_to_latex, _df_to_markdown, _df_to_typst
 
 # Two-state idiosyncratic productivity process shared by every household block
@@ -588,6 +586,10 @@ class FakeNewsResult:
 
     def plot(self, style: str = "publication", figsize: tuple[float, float] = (10.5, 4.2)):
         """Plot heatmaps of the Fake News matrix F and Sequence-Space Jacobian J."""
+        import matplotlib.pyplot as plt
+
+        from puremacro.plot import _palette
+
         cmap = "coolwarm" if style != "grayscale" else "gray"
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
 
@@ -676,6 +678,10 @@ class FiscalTransferResult:
 
     def plot(self, style: str = "publication", figsize: tuple[float, float] = (10.5, 4.2)):
         """Plot consumption impulse response and decile incidence bar chart."""
+        import matplotlib.pyplot as plt
+
+        from puremacro.plot import _palette
+
         colors = _palette(3) if style == "grayscale" else ["#1f77b4", "#ff7f0e", "#2ca02c"]
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
 
@@ -990,6 +996,10 @@ class NonlinearHANKResult:
         The figure title reports the final market-clearing residual ``||H||_inf``,
         the tolerance and the iteration count.
         """
+        import matplotlib.pyplot as plt
+
+        from puremacro.plot import _palette
+
         colors = _palette(3) if style == "grayscale" else ["#1f77b4", "#d62728", "#2ca02c"]
         fig, axes = plt.subplots(2, 2, figsize=figsize)
         t_grid = np.arange(self.horizon)
@@ -2184,6 +2194,10 @@ class TwoAssetSequenceSpaceHANKResult:
         return _df_to_typst(self.to_frame(), **kwargs)
 
     def plot(self, figsize: tuple[float, float] = (12.0, 7.0)):
+        import matplotlib.pyplot as plt
+
+        from puremacro.plot import _palette
+
         fig, axes = plt.subplots(2, 3, figsize=figsize)
         ax = axes.ravel()
         t_grid = np.arange(self.horizon)

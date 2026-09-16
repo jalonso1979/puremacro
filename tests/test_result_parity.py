@@ -404,6 +404,56 @@ def test_vfi_problem_solve_returns_elevated_solution():
     assert len(sol.to_frame()) == 20
 
 
+def test_vfi_solution_multi_asset_ragged_grids_to_frame_and_plot():
+    """Multi-asset (and multi-shock) VFISolution with unequal grid lengths: to_frame() emits
+    per-component state/policy columns and plot() falls back to the flat index axis,
+    instead of raising on np.asarray of a ragged list."""
+    a1 = np.linspace(0.0, 1.0, 4)
+    a2 = np.linspace(0.0, 2.0, 3)
+    z_grid = np.array([0.9, 1.1])
+    P_z = np.array([[0.9, 0.1], [0.1, 0.9]])
+
+    def ret_fn(ap1, ap2, x1, x2, z, xp=np):
+        c = z + 1.02 * (x1 + x2) - ap1 - ap2
+        return xp.where(c > 0, xp.log(xp.maximum(c, 1e-10)), -1e10)
+
+    sol = VFIProblem(a_grid=[a1, a2], z_grid=z_grid, P_z=P_z, return_fn=ret_fn,
+                     beta=0.9, options={"tol": 1e-6}).solve()
+    assert sol.endo_shape == (4, 3)
+
+    df = sol.to_frame()
+    assert len(df) == 12 * 2
+    assert {"a_idx", "z_idx", "a_0", "a_1", "z", "V", "policy_aprime", "aprime_0", "aprime_1"} <= set(df.columns)
+    assert "a" not in df.columns and "aprime_val" not in df.columns
+    # State columns unravel the flat endogenous index in C order (component 1 fastest)
+    a_flat = df["a_idx"].to_numpy()
+    np.testing.assert_array_equal(df["a_0"].to_numpy(), a1[a_flat // 3])
+    np.testing.assert_array_equal(df["a_1"].to_numpy(), a2[a_flat % 3])
+    # Policy columns agree with policy_components()
+    c0, c1 = sol.policy_components()
+    np.testing.assert_array_equal(df["aprime_0"].to_numpy(), a1[c0.ravel()])
+    np.testing.assert_array_equal(df["aprime_1"].to_numpy(), a2[c1.ravel()])
+
+    fig = sol.plot(show=False)
+    assert isinstance(fig, matplotlib.figure.Figure)
+    assert fig.axes[0].get_xlabel() == "Asset Index (a_idx)"
+    assert isinstance(sol.summary(), pd.DataFrame)
+    assert "#table(" in sol.to_typst()
+
+    # Multi-shock exogenous grids get z_<m> columns
+    def ret_fn_z(ap, x, z1, z2, xp=np):
+        c = z1 * z2 + x - ap
+        return xp.where(c > 0, xp.log(xp.maximum(c, 1e-10)), -1e10)
+
+    sol_z = VFIProblem(a_grid=np.linspace(0.0, 1.0, 5), z_grid=[np.array([0.9, 1.1]), np.array([0.5, 1.0, 1.5])],
+                       P_z=np.full((6, 6), 1.0 / 6.0), return_fn=ret_fn_z, beta=0.9,
+                       options={"tol": 1e-6}).solve()
+    df_z = sol_z.to_frame()
+    assert {"a", "z_0", "z_1", "aprime_val"} <= set(df_z.columns)
+    assert len(df_z) == 5 * 6
+    assert sol_z.plot(show=False) is not None
+
+
 # ---------------------------------------------------------------------------
 # 4. Elevated HJBSolution & solve_hjb_achdou
 # ---------------------------------------------------------------------------

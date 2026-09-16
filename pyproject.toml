@@ -97,6 +97,15 @@ backend = [
 cuda = [
   "cupy-cuda12x>=13",  # NVIDIA only; pick the wheel matching your CUDA toolkit
 ]
+# The PyTorch-backed trade GE solver (puremacro.trade.gpu: solve_trade_equilibrium_gpu,
+# select_compute_device) runs on CUDA, Apple MPS or CPU tensors, with an MLX path on
+# Apple Silicon. `cuda` above (cupy) serves only puremacro._backend and does not power
+# trade.gpu: without torch, select_compute_device("cuda") raises at call time. torch
+# >= 2.1 for torch.func (vmap/jacrev) and torch.linalg.solve.
+gpu = [
+  "torch>=2.1",
+  "mlx>=0.9; sys_platform == 'darwin'",
+]
 notebooks = [
   "jupytext>=1.16",
   "nbconvert>=7",

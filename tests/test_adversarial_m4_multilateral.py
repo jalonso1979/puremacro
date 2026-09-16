@@ -36,6 +36,8 @@ from puremacro.trade.scenarios import (
 )
 from puremacro.trade._results import TradeCalibrationResult
 
+from conftest import mat_file_is_readable
+
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -51,7 +53,8 @@ def computation_dir() -> Path | None:
         Path.cwd() / "IO" / "computation" / "7_TIO_77c_vf",
     ]
     for c in candidates:
-        if c.is_dir() and (c / "results_77c_11s_base.mat").is_file():
+        if (c.is_dir() and mat_file_is_readable(c / "results_77c_11s_base.mat")
+                and mat_file_is_readable(c / "data_77c_11s.mat")):
             return c
     return None
 

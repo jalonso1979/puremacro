@@ -193,6 +193,23 @@ _MUST_EXECUTE: dict[str, tuple[str, ...]] = {
         "puremacro.fetch.realtime.panel:vintage_panel",
         "puremacro.fetch.realtime.catalog:resolve_spec",
     ),
+    # Latin America real-time connectors (3.4.0). The fetch tests patch
+    # urllib.request.urlopen, so the registry is what proves the connectors'
+    # own fetch paths, JSON parsers, schema canary and cartridge round-trip
+    # run rather than the patch.
+    "tests/test_realtime_latam.py": (
+        "puremacro.fetch.realtime.banxico:fetch_banxico_vintages",
+        "puremacro.fetch.realtime.banxico:parse_banxico_json",
+        "puremacro.fetch.realtime.inegi:fetch_inegi_vintages",
+        "puremacro.fetch.realtime.inegi:parse_inegi_json",
+        "puremacro.fetch.realtime.bcb:fetch_bcb_vintages",
+        "puremacro.fetch.realtime.bcb:parse_bcb_json",
+        "puremacro.fetch.realtime.bcch:fetch_bcch_vintages",
+        "puremacro.fetch.realtime.bcch:parse_bcch_json",
+        "puremacro.fetch.realtime.canary:validate_payload",
+        "puremacro.fetch.realtime.cartridge:pack_realtime_cartridge",
+        "puremacro.fetch.realtime.cartridge:load_realtime_cartridge",
+    ),
 }
 
 

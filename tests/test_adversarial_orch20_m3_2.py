@@ -167,10 +167,10 @@ def test_dml_result_near_zero_se_and_negative_theta():
 
     ltx = res.to_latex()
     assert "policy\\_rate\\_shock" in ltx
-    assert "core_inflation" in ltx
+    assert "core\\_inflation" in ltx
 
     typ = res.to_typst()
-    assert "[policy_rate_shock]" in typ
+    assert "[policy\\_rate\\_shock]" in typ
 
 
 def test_dml_result_multidimensional_treatments():
@@ -215,8 +215,8 @@ def test_dml_result_multidimensional_treatments():
     assert "spread\\_10y" in ltx
 
     typ = res_multi.to_typst()
-    assert "[policy_rate]" in typ
-    assert "[spread_10y]" in typ
+    assert "[policy\\_rate]" in typ
+    assert "[spread\\_10y]" in typ
 
     ax1 = res_multi.plot(kind="forest")
     assert ax1 is not None

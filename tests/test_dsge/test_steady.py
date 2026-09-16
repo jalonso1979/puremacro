@@ -1,7 +1,9 @@
 """Tests for puremacro.dsge.steady — robust block solver, DM diagnosis, and homotopy.
 
 Validations:
-- Validation 6: RBC and SW07 steady state matches hybr bit-identically.
+- Validation 6: RBC and SW07 steady state from the block solver matches hybr to
+  solver tolerance (bit-identity is not a contract between two algorithms; see
+  the note in test_validation_6_rbc_steady_state_bit_identical).
 - Validation 7: 50-equation recursive model where hybr from default guess fails
   and block solver succeeds.
 - Validation 8: Dulmage-Mendelsohn report on an overdetermined/structurally
@@ -32,8 +34,19 @@ from puremacro.dsge.steady import (
 
 
 # ===========================================================================
-# Validation 6: RBC and SW07 bit-identical between block and hybr
+# Validation 6: RBC and SW07 agree between block and hybr to solver tolerance
 # ===========================================================================
+
+# Why not bit-identical: the block path (Brent/secant on singleton blocks,
+# scipy hybr on each coupled block) and the direct hybr path reach the same
+# fixed point by different arithmetic. Which last bit each lands on is a
+# property of the LAPACK build underneath scipy: the two coincided on
+# macOS/Accelerate and differed on the Linux CI runners, where the old
+# `np.array_equal` assert was red although both residuals were < 1e-12. The
+# contract worth holding is agreement to the solver tolerance.
+STEADY_ATOL_RBC = 1e-10   # both residuals < 1e-12 on O(1) values
+STEADY_RTOL_SW07 = 1e-8   # both residuals < 1e-8 on O(1)-O(10) values
+
 
 def growth_equations(xp, x, e, p):
     """Canonical neoclassical growth / RBC equations."""
@@ -45,7 +58,11 @@ def growth_equations(xp, x, e, p):
 
 
 def test_validation_6_rbc_steady_state_bit_identical():
-    """Validation 6a: RBC steady state from block solver matches hybr bit-identically."""
+    """Validation 6a: RBC steady state from block solver matches hybr to tolerance.
+
+    The name is kept for continuity with the validation log; the assertion is
+    tolerance-based for the reason given above STEADY_ATOL_RBC.
+    """
     params = dict(alpha=0.33, beta=0.98, rho=0.90)
     guess = dict(c=0.5, k=0.1, z=1.0)
     variables = ["c", "k", "z"]
@@ -72,9 +89,11 @@ def test_validation_6_rbc_steady_state_bit_identical():
     assert info_block["max_residual"] < 1e-12
     assert info_hybr["max_residual"] < 1e-12
 
-    # Must be bit-identical
-    assert np.array_equal(ss_block, ss_hybr)
-    assert np.max(np.abs(ss_block - ss_hybr)) == 0.0
+    # The block solver really decomposed (no silent fallback to direct hybr),
+    # so this compares two different algorithms.
+    assert info_block.get("solve_algo") == "block"
+    assert not info_block.get("fallback_from_block", False)
+    np.testing.assert_allclose(ss_block, ss_hybr, rtol=0.0, atol=STEADY_ATOL_RBC)
 
     # Also check end-to-end via dsge.build()
     m_block = build(
@@ -96,13 +115,18 @@ def test_validation_6_rbc_steady_state_bit_identical():
         solve_algo="hybr",
     )
 
-    assert np.array_equal(m_block.steady_state.to_numpy(), m_hybr.steady_state.to_numpy())
-    assert np.array_equal(m_block.solution.G, m_hybr.solution.G)
-    assert np.array_equal(m_block.solution.F, m_hybr.solution.F)
+    np.testing.assert_allclose(
+        m_block.steady_state.to_numpy(), m_hybr.steady_state.to_numpy(),
+        rtol=0.0, atol=STEADY_ATOL_RBC,
+    )
+    # G and F come out of the QZ decomposition at the steady state, so a 1e-16
+    # difference upstream shows up a few ulps later here.
+    np.testing.assert_allclose(m_block.solution.G, m_hybr.solution.G, rtol=1e-8, atol=1e-10)
+    np.testing.assert_allclose(m_block.solution.F, m_hybr.solution.F, rtol=1e-8, atol=1e-10)
 
 
 def test_validation_6_sw07_steady_state_bit_identical():
-    """Validation 6b: SW07 steady state from block solver matches hybr bit-identically."""
+    """Validation 6b: SW07 steady state from block solver matches hybr to tolerance."""
     mod_path = Path(dsge.__file__).parent / "_references" / "sw07_pfeifer.mod"
     assert mod_path.is_file(), f"SW07 reference file missing: {mod_path}"
 
@@ -133,9 +157,7 @@ def test_validation_6_sw07_steady_state_bit_identical():
     assert info_block["max_residual"] < 1e-8
     assert info_hybr["max_residual"] < 1e-8
 
-    # Must be bit-identical
-    assert np.array_equal(ss_block, ss_hybr)
-    assert np.max(np.abs(ss_block - ss_hybr)) == 0.0
+    np.testing.assert_allclose(ss_block, ss_hybr, rtol=STEADY_RTOL_SW07, atol=1e-8)
 
 
 # ===========================================================================
