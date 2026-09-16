@@ -273,7 +273,10 @@ def to_latex_selected_country_table(
     legacy_compat : bool, default True
         If True, reproduces the exact verbatim text of MATLAB Resultadosl.m
         matching headlinePaper/selected_country_impacts.tex byte-for-byte
-        (including the 7-column net exports row).
+        (including the 7-column net exports row). The legacy layout only
+        applies to the canonical 5-scenario batch; a batch with any other
+        number of counterfactual scenarios always gets the clean layout with
+        the ``& Base`` column, because the MATLAB text is undefined for it.
         If False, outputs clean 7-column LaTeX headers (& Base) to prevent
         LaTeX overfull alignment tab errors.
 
@@ -626,6 +629,9 @@ def to_latex_selected_country_with_row(
     """Render selected country impacts table with ROW and EUR as a LaTeX string.
 
     Replicates MATLAB Resultadosl.m:574-629 and selected_country_impacts_with_ROW.tex.
+    ``legacy_compat=True`` reproduces that text only for the canonical 5-scenario
+    batch; any other number of counterfactual scenarios always gets the clean
+    layout with the ``& Base`` column.
     """
     targets = ["CAN", "CHN", "EUR", "MEX", "USA", "ROW"]
     tbl = generate_selected_country_table(

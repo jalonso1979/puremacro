@@ -478,7 +478,10 @@ class AllenArkolakisModel:
         damping : float, default 0.35
             Damping relaxation parameter \\lambda \\in (0, 1].
         backend : str, default 'numpy'
-            Hardware acceleration backend ('numpy', 'mlx', 'cupy').
+            Hardware acceleration backend ('numpy', 'mlx', 'cupy'). Apple MLX runs
+            the contraction in float32 (Metal has no float64) down to a 1e-6
+            floor and the solution is then polished in float64 NumPy so that
+            ``tol`` is honoured; ``converged`` refers to the requested ``tol``.
 
         Returns
         -------
@@ -524,6 +527,35 @@ class AllenArkolakisModel:
         # Initial conditions: uniform population and unit wages
         w = np.ones(N, dtype=float)
         L = np.full(N, L_bar / N, dtype=float)
+        w, L, converged, iteration, max_residual = self._iterate_numpy(
+            w, L, kernel_P, tol=tol, max_iter=max_iter, damping=damping
+        )
+        return self._finalize(w, L, kernel_P, converged, iteration, max_residual)
+
+    def _iterate_numpy(
+        self,
+        w: np.ndarray,
+        L: np.ndarray,
+        kernel_P: np.ndarray,
+        tol: float,
+        max_iter: int,
+        damping: float,
+    ) -> tuple[np.ndarray, np.ndarray, bool, int, float]:
+        """Float64 damped fixed-point contraction from a warm start ``(w, L)``.
+
+        Returns ``(w, L, converged, iterations, max_residual)``; ``converged`` is
+        True only when the wage/population change and the utility dispersion
+        both fall below ``tol`` (and 1e-7 respectively).
+        """
+        N = self.N
+        theta = self.theta
+        alpha = self.alpha
+        beta = self.beta
+        L_bar = self.total_population
+        A_bar = self.fundamental_productivity
+        a_bar = self.fundamental_amenity
+        w = np.asarray(w, dtype=float).copy()
+        L = np.asarray(L, dtype=float).copy()
 
         converged = False
         iteration = 0
@@ -596,6 +628,26 @@ class AllenArkolakisModel:
             if max_residual < tol and utility_dispersion < 1e-7:
                 converged = True
                 break
+
+        return w, L, converged, iteration, max_residual
+
+    def _finalize(
+        self,
+        w: np.ndarray,
+        L: np.ndarray,
+        kernel_P: np.ndarray,
+        converged: bool,
+        iteration: int,
+        max_residual: float,
+    ) -> AllenArkolakisResult:
+        """Final-pass allocations, welfare and trade shares at ``(w, L)``."""
+        N = self.N
+        theta = self.theta
+        alpha = self.alpha
+        beta = self.beta
+        L_bar = self.total_population
+        A_bar = self.fundamental_productivity
+        a_bar = self.fundamental_amenity
 
         # Final pass allocations
         A = A_bar * (L ** alpha)
@@ -719,42 +771,20 @@ class AllenArkolakisModel:
         L_np = to_numpy(L).astype(np.float64)
         L_np = L_bar * (L_np / np.sum(L_np))
         w_np = w_np / np.mean(w_np)
-
-        A_np = self.fundamental_productivity * (L_np ** alpha)
         kernel_P_np = self.trade_costs ** (-theta)
-        P_pow_neg_theta_np = np.dot((w_np / A_np) ** (-theta), kernel_P_np)
-        P_np = P_pow_neg_theta_np ** (-1.0 / theta)
-        CMA_np = P_pow_neg_theta_np
-        FMA_np = np.dot(kernel_P_np, (P_np ** theta) * w_np * L_np)
-        real_wages_np = w_np / P_np
 
-        u_i_np = self.fundamental_amenity * (L_np ** beta) * (w_np / P_np)
-        welfare = float(np.mean(u_i_np))
-        spatial_utility_variance = float(np.std(u_i_np) / max(welfare, 1e-12))
-        labor_conservation_res = float(np.abs(np.sum(L_np) - L_bar))
+        # A float32 device (mlx) can only certify the fixed point to its own floor
+        # (device_tol / device_udisp_tol). Whenever that floor is coarser than the
+        # requested tolerance, or the device loop did not converge, finish with the
+        # float64 NumPy contraction warm-started at the device solution so that
+        # ``tol`` is honoured and ``converged`` is truthful.
+        if (not converged) or device_tol > tol or device_udisp_tol > 1e-7:
+            w_np, L_np, converged, polish_iters, max_residual = self._iterate_numpy(
+                w_np, L_np, kernel_P_np, tol=tol, max_iter=max_iter, damping=damping
+            )
+            iteration += polish_iters
 
-        trade_shares = np.zeros((N, N), dtype=float)
-        for i in range(N):
-            trade_shares[i, :] = kernel_P_np[:, i] * ((w_np / A_np) ** (-theta)) / CMA_np[i]
-            trade_shares[i, :] = trade_shares[i, :] / np.sum(trade_shares[i, :])
-
-        return AllenArkolakisResult(
-            wages=w_np,
-            population=L_np,
-            price_index=P_np,
-            real_wages=real_wages_np,
-            welfare=welfare,
-            trade_shares=trade_shares,
-            consumer_market_access=CMA_np,
-            firm_market_access=FMA_np,
-            converged=converged,
-            iterations=iteration,
-            max_residual=max_residual,
-            labor_conservation_residual=labor_conservation_res,
-            spatial_utility_variance=spatial_utility_variance,
-            region_names=self.region_names,
-            coordinates=self.coordinates,
-        )
+        return self._finalize(w_np, L_np, kernel_P_np, converged, iteration, max_residual)
 
     def solve_counterfactual(
         self,
