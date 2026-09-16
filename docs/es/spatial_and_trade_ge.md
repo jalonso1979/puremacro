@@ -375,6 +375,35 @@ AllenArkolakisModel.simulate_climate_shock(
 
 ---
 
+## 7. Datos de calibración incluidos y atribución
+
+Desde la versión 4.0.0 la matriz insumo-producto interpaís (ICIO) de la OCDE
+viaja dentro del paquete, de modo que `load_icio_data()` no necesita argumento
+ni ningún archivo externo a su instalación:
+
+```python
+from puremacro.trade.data import load_icio_data, bundled_icio_path
+
+matrix = load_icio_data()          # (850, 1078) float64, 77 países x 11 sectores
+print(bundled_icio_path().name)    # icio_77c_11s.npz
+```
+
+La matriz se redistribuye conforme a las condiciones de uso de la OCDE, que
+permiten la reutilización con atribución. **Si publica resultados calculados a
+partir de ella, cite las tablas insumo-producto interpaís de la OCDE**, no a
+puremacro; la OCDE no está afiliada a este proyecto ni lo respalda. La licencia
+MIT de puremacro cubre su propio código, no estos datos de terceros.
+
+Los resultados de referencia de MATLAB con los que se comparan las pruebas de
+paridad se incluyen junto a ella y se obtienen con
+`load_reference_solution(scenario)`, `available_reference_scenarios()` y
+`load_reference_workbook_sheet(sheet)`. Son copias literales, así que esas
+comparaciones siguen siendo una verificación externa y no puremacro
+calificando su propia salida.
+
+El aviso completo, con la procedencia y el SHA-256 de cada archivo, está en
+`puremacro/trade/_datafiles/SOURCES.md`, que se instala con el paquete.
+
 ## Referencias bibliográficas
 
 - Allen, T., & Arkolakis, C. (2014). "Trade and the Topography of the Spatial Economy." *The Quarterly Journal of Economics*, 129(3), 1085–1140.

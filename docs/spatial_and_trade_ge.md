@@ -374,6 +374,34 @@ AllenArkolakisModel.simulate_climate_shock(
 
 ---
 
+## 7. Bundled calibration data and attribution
+
+Since 4.0.0 the OECD Inter-Country Input-Output matrix ships inside the
+package, so `load_icio_data()` needs no argument and no file outside your
+installation:
+
+```python
+from puremacro.trade.data import load_icio_data, bundled_icio_path
+
+matrix = load_icio_data()          # (850, 1078) float64, 77 countries x 11 sectors
+print(bundled_icio_path().name)    # icio_77c_11s.npz
+```
+
+The matrix is redistributed under the OECD terms of use, which permit reuse
+with attribution. **If you publish results computed from it, credit the OECD
+Inter-Country Input-Output tables**, not puremacro; the OECD is not affiliated
+with this project and does not endorse it. puremacro's MIT licence covers its
+own code, not this third-party data.
+
+The MATLAB reference outputs the parity suites compare against ship alongside
+it, reachable through `load_reference_solution(scenario)`,
+`available_reference_scenarios()` and `load_reference_workbook_sheet(sheet)`.
+They are verbatim copies, so those comparisons remain an external check rather
+than puremacro grading its own output.
+
+The full notice, including each file's provenance and SHA-256, is in
+`puremacro/trade/_datafiles/SOURCES.md`, which is installed with the package.
+
 ## References
 
 - Allen, T., & Arkolakis, C. (2014). "Trade and the Topography of the Spatial Economy." *The Quarterly Journal of Economics*, 129(3), 1085–1140.

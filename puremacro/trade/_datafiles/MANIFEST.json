@@ -9,5 +9,10 @@
   "sha256": "f664e3fd4998cc51f235af5e04811fc9b3d18a81b19648c82dc39dd31e023267",
   "source": "OECD Inter-Country Input-Output (ICIO) tables, 77 countries x 11 composite sectors",
   "converted_from": "data_77c_11s.mat (MATLAB v5)",
-  "note": "Bit-exact float64 conversion; np.array_equal against the MATLAB array verified at conversion time."
+  "note": "Bit-exact float64 conversion; np.array_equal against the MATLAB array verified at conversion time.",
+  "publisher": "Organisation for Economic Co-operation and Development (OECD)",
+  "source_url": "https://www.oecd.org/sti/ind/inter-country-input-output-tables.htm",
+  "license": "OECD terms of use \u2014 reuse and redistribution permitted with attribution to the OECD",
+  "attribution": "Work using this matrix should credit the OECD Inter-Country Input-Output tables. The OECD is not affiliated with puremacro and does not endorse it.",
+  "not_covered_by": "puremacro's MIT licence covers its code, not this third-party data. See SOURCES.md in this directory."
 }

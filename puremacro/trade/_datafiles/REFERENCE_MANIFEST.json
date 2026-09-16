@@ -44,5 +44,7 @@
   "naming": "<scenario>__<array>",
   "sha256": "69dd852e70f57c3e53f484ea37a754c49f73a6f140477d72e58fff312812ac33",
   "provenance": "Extracted verbatim from the MATLAB results_77c_11s_*.mat reference outputs of the sectoral-misallocation computation; values are unmodified copies (dtype included), so these remain an EXTERNAL check on puremacro, not puremacro's own output.",
-  "note": "results_77c_11s_t10_54.mat is a dataless placeholder in the author's storage and could not be extracted; tests needing that scenario skip."
+  "note": "results_77c_11s_t10_54.mat is a dataless placeholder in the author's storage and could not be extracted; tests needing that scenario skip.",
+  "license": "MIT, same as puremacro's own code (author: Jorge Alonso-Ortiz)",
+  "see_also": "SOURCES.md in this directory"
 }

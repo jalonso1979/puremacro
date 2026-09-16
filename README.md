@@ -1048,6 +1048,21 @@ All notebooks strictly adhere to the Pyodide contract and the 7-section pedagogi
   Σ, BK violations, and ill-conditioned bootstrap draws raise or warn
   with a message naming the calling function and the likely cause.
 
+## Bundled data and attribution
+
+puremacro is MIT-licensed, but since 4.0.0 the wheel also carries the **OECD
+Inter-Country Input-Output matrix** so `puremacro.trade` calibrates without
+asking you for a file. That data is redistributed under the OECD terms of use,
+which permit reuse with attribution.
+
+**If you publish results computed from it, cite the OECD Inter-Country
+Input-Output tables**, not puremacro. The OECD is not affiliated with this
+project and does not endorse it. The MIT licence covers puremacro's code, not
+this third-party data.
+
+The full notice, with each file's provenance and SHA-256, ships as
+`puremacro/trade/_datafiles/SOURCES.md`.
+
 ## Status
 
 Production release, shipping **3.4.0**. `docs/1.0_path.md` § 5 lists which

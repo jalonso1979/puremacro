@@ -792,6 +792,22 @@ Todos los cuadernos cumplen estrictamente el contrato con Pyodide y la arquitect
 - **Objetos de resultado como dataclass congelado** para cualquier estimador que devuelva 3 o más campos o diagnósticos no triviales (véase `ARCHITECTURE.md` § Result-object standard). Los DataFrames con columnas nombradas quedan exentos.
 - **Errores de diagnóstico en lugar de resultados silenciosos incorrectos** — `X'X` singular, Σ no definida positiva, violaciones de la condición de Blanchard-Kahn y replicaciones bootstrap mal condicionadas generan excepciones o advertencias que identifican la función invocante y la causa probable.
 
+## Datos incluidos y atribución
+
+puremacro se distribuye con licencia MIT, pero desde la versión 4.0.0 el wheel
+incluye además la **matriz insumo-producto interpaís (ICIO) de la OCDE**, para
+que `puremacro.trade` se calibre sin pedirle ningún archivo. Esos datos se
+redistribuyen conforme a las condiciones de uso de la OCDE, que permiten la
+reutilización con atribución.
+
+**Si publica resultados calculados a partir de ellos, cite las tablas
+insumo-producto interpaís de la OCDE**, no a puremacro. La OCDE no está
+afiliada a este proyecto ni lo respalda. La licencia MIT cubre el código de
+puremacro, no estos datos de terceros.
+
+El aviso completo, con la procedencia y el SHA-256 de cada archivo, se instala
+como `puremacro/trade/_datafiles/SOURCES.md`.
+
 ## Estado
 
 Versión de producción, distribuyendo **3.4.0**. `docs/1.0_path.md` § 5 enumera qué subpaquetes están dentro de la promesa del gate de publicación y cuáles son experimentales.

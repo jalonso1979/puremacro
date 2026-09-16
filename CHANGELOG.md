@@ -2,6 +2,31 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## 4.0.1 (2026-09-16)
+
+### Added — attribution for the data 4.0.0 started redistributing
+
+4.0.0 bundled the OECD Inter-Country Input-Output matrix inside the wheel so
+`puremacro.trade` calibrates without asking for a file. It shipped without
+saying whose data it is. This release adds that notice; no code changed.
+
+- `puremacro/trade/_datafiles/SOURCES.md` ships with the package and records,
+  per file, the publisher, the source page, the terms, what was changed and
+  the SHA-256. It states plainly that puremacro's MIT licence covers its code
+  and **not** the third-party matrix.
+- The OECD matrix is redistributed under the OECD terms of use, which permit
+  reuse with attribution. **Work published from it should cite the OECD
+  Inter-Country Input-Output tables, not puremacro.** The OECD is not
+  affiliated with this project and does not endorse it.
+- The three JSON manifests gained `license`, `publisher`, `source_url` and
+  `attribution` fields, so the provenance is machine-readable too.
+- README (both languages) and the quantitative trade guide (both languages)
+  now carry the same notice, so a reader meets it before running a
+  counterfactual rather than after publishing one.
+
+The reference solutions and workbook sheets are the author's own MATLAB
+outputs and stay under puremacro's MIT licence.
+
 ## 4.0.0 (2026-09-16)
 
 ### Milestone 4.0: MATLAB removed from the reproduction path

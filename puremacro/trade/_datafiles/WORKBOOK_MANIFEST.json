@@ -22,5 +22,7 @@
   },
   "naming": "<sheet with spaces->_ and %->pct>__values, stored as a string grid to preserve headers",
   "sha256": "7ee96d344025c81d6948c1e1bdb7e1c8ea7790befbe38b95e30875f5c241a6ed",
-  "provenance": "Verbatim cell values of the MATLAB results.xls workbook of the sectoral-misallocation computation, so the Geary-Khamis parity check stays an EXTERNAL comparison."
+  "provenance": "Verbatim cell values of the MATLAB results.xls workbook of the sectoral-misallocation computation, so the Geary-Khamis parity check stays an EXTERNAL comparison.",
+  "license": "MIT, same as puremacro's own code (author: Jorge Alonso-Ortiz)",
+  "see_also": "SOURCES.md in this directory"
 }
