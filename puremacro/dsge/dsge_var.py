@@ -14,7 +14,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Sequence
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy.linalg
@@ -356,6 +355,8 @@ class DSGEVARResult:
         -------
         tuple of (Figure, Axes)
         """
+        import matplotlib.pyplot as plt
+
         if ax is None:
             fig, target_ax = plt.subplots(figsize=kwargs.pop("figsize", (8, 4.8)))
         else:

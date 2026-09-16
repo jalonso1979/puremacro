@@ -58,7 +58,6 @@ from .pruning import (
     canonical_growth_2nd_order,
 )
 from .macro import DynareMacroError, Scope, preprocess_macro
-from .widgets import InteractiveIRFResult, interactive_irf
 from .dynare import (
     DynareFeatureError,
     build_dynare, parse_mod, load_mod, load_dynare_mod, solve_dynare_2nd_order,
@@ -220,7 +219,7 @@ from . import smets_wouters  # re-export for back-compat with 0.50.0 callers
 from . import gertler_karadi
 from . import load_dynare, parity
 from . import hank
-from . import macro, widgets
+from . import macro
 from . import news
 from . import markov_switching
 from . import particle_filter
@@ -251,3 +250,24 @@ particle_filter.multinomial_resample = multinomial_resample
 
 
 
+
+
+def __getattr__(name: str):
+    """Defer the interactive-widget entry points until first use.
+
+    ``puremacro.dsge.widgets`` builds Matplotlib slider/button figures, so
+    importing it eagerly pulled the whole plotting stack into every
+    ``import puremacro.dsge``.  Exposing ``InteractiveIRFResult`` and
+    ``interactive_irf`` through :pep:`562` module ``__getattr__`` keeps the
+    public names available while leaving Matplotlib unimported until one of
+    them is actually touched.
+    """
+    if name in ("InteractiveIRFResult", "interactive_irf", "widgets"):
+        import importlib
+
+        _widgets = importlib.import_module(f"{__name__}.widgets")
+        globals()["widgets"] = _widgets
+        globals()["interactive_irf"] = _widgets.interactive_irf
+        globals()["InteractiveIRFResult"] = _widgets.InteractiveIRFResult
+        return globals()[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

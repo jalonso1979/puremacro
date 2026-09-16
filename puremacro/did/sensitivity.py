@@ -79,7 +79,6 @@ import warnings
 from dataclasses import dataclass
 from typing import Any, Callable, Sequence
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy.optimize
@@ -360,6 +359,8 @@ class HonestDiDResult:
         matplotlib.axes.Axes or tuple of (Figure, Axes)
             The generated plot.
         """
+        import matplotlib.pyplot as plt
+
         sub = self._subset(horizon)
         if len(sub) == 0:
             raise ValueError("No data found to plot for specified horizon.")

@@ -22,15 +22,18 @@ import math
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Sequence
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy.linalg
 import scipy.special
-from matplotlib.figure import Figure
 
-from puremacro.plot import _new_ax
 from puremacro.reports import _df_to_latex, _df_to_markdown, _df_to_typst
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from matplotlib.figure import Figure
+    from matplotlib.axes import Axes
 
 
 # ---------------------------------------------------------------------------
@@ -219,6 +222,8 @@ class ParticleFilterResult:
         matplotlib.figure.Figure
             The generated figure.
         """
+        import matplotlib.pyplot as plt
+
         if isinstance(variables, str):
             vars_to_plot = [variables]
         elif variables is not None:

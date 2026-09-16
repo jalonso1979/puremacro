@@ -11,11 +11,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math
-from typing import Any, Callable, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Callable, Mapping, Sequence
+
+if TYPE_CHECKING:
+    from matplotlib.figure import Figure
 import warnings
 
-import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
 import numpy as np
 import pandas as pd
 from scipy import stats
@@ -127,6 +128,8 @@ class BayesianEstimationResult:
         -------
         matplotlib.figure.Figure
         """
+        import matplotlib.pyplot as plt
+
         k = len(self.param_names)
         if k == 1:
             n_cols, n_rows = 1, 1
@@ -212,6 +215,8 @@ class BayesianEstimationResult:
         -------
         matplotlib.figure.Figure
         """
+        import matplotlib.pyplot as plt
+
         k = len(self.param_names)
         if k == 1:
             n_cols, n_rows = 1, 1

@@ -34,7 +34,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy.linalg
@@ -470,6 +469,8 @@ class MSDSGEResult:
         -------
         fig, axes : matplotlib.figure.Figure, np.ndarray
         """
+        import matplotlib.pyplot as plt
+
         shock_name = shock if shock is not None else (self.shocks[0] if self.shocks else "shock_0")
         if isinstance(shock_name, int):
             shock_name = self.shocks[shock_name] if 0 <= shock_name < len(self.shocks) else f"shock_{shock_name}"
