@@ -37,7 +37,7 @@ If you ever see two PyPI workflows again, one of them is wrong.
 
 | gate | what it proves | notes |
 |---|---|---|
-| 1 test baseline | pytest `FAILED` + `ERROR` node ids == `tests/known_failures.json` | the whitelist holds the statsmodels-parity tests that are red on statsmodels 0.15 (23 entries: `TestCollinearity` and `test_poisson_matches_statsmodels_glm`). CI installs the `dev` pin `<0.15`, where only two of them are red, so there the gate passes *with warning — previously-red now green*. Setup errors count since 3.4.0; before that a fixture raising `FileNotFoundError` was invisible here. ~20 min |
+| 1 test baseline | pytest `FAILED` + `ERROR` node ids == `tests/known_failures.json` | the whitelist holds the statsmodels-parity tests that are red on statsmodels 0.15 (23 entries: `TestCollinearity` and `test_poisson_matches_statsmodels_glm`). CI installs the `dev` pin `<0.15`, where only two of them are red, so there the gate passes *with warning — previously-red now green*. Setup errors count since 3.4.0; before that a fixture raising `FileNotFoundError` was invisible here. **~47 min** on an unloaded 12-core laptop, ~50 min on CI; the wall-clock budget is 5400 s, overridable with `PUREMACRO_BASELINE_TIMEOUT_S`. |
 | 2 Pyodide contract | `tests/test_pyodide_compat.py` green | static check of the import contract |
 | 3 public API snapshot | regenerated API == `tests/fixtures/public_api_snapshot.json` | the fixture is the count (404 modules with `__all__`, 285 result classes at 3.4.0); the gate prints every symbol that moved |
 | 4 version sync | `pyproject.toml` == `puremacro/__init__.py` == `CHANGELOG.md` == `CITATION.cff` == the wheel pin in `playground/jupyter_lite_config.json` | all five |

@@ -132,6 +132,12 @@ def compare_failures(failing: set[str], whitelist: set[str]) -> dict:
     }
 
 
+#: Wall-clock budget for Gate 1's full-suite run.  The suite takes ~47 min
+#: locally and ~50 min on CI, so the previous hard-coded 1800s could never
+#: finish and reported a green suite as a gate failure.
+PYTEST_BASELINE_TIMEOUT_S = float(os.environ.get("PUREMACRO_BASELINE_TIMEOUT_S", 5400))
+
+
 def run_pytest_collect_failures(repo_root: Path) -> set[str]:
     """Run the full suite (minus network) and return the red-nodeid set.
 
@@ -143,7 +149,12 @@ def run_pytest_collect_failures(repo_root: Path) -> set[str]:
     Raises:
         RuntimeError: if pytest itself errors out (collection error, internal error,
             usage error) rather than running tests normally.
-        subprocess.TimeoutExpired: if the run exceeds the 600s budget.
+        subprocess.TimeoutExpired: if the run exceeds ``PYTEST_BASELINE_TIMEOUT_S``.
+
+    The budget is wall-clock, not CPU: the suite passed 13,900 tests in about
+    47 minutes on an unloaded 12-core laptop and 50 minutes on CI, so the old
+    1800s ceiling made this gate impossible to pass and reported a green suite
+    as ``FAIL``. Override with ``PUREMACRO_BASELINE_TIMEOUT_S`` on a slower box.
     """
     cmd = [
         sys.executable, "-m", "pytest",
@@ -153,7 +164,8 @@ def run_pytest_collect_failures(repo_root: Path) -> set[str]:
         "--no-header",
     ]
     proc = subprocess.run(
-        cmd, cwd=repo_root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=1800,
+        cmd, cwd=repo_root, capture_output=True, text=True, encoding="utf-8",
+        errors="replace", timeout=PYTEST_BASELINE_TIMEOUT_S,
     )
     if proc.returncode not in (0, 1):
         raise RuntimeError(
@@ -202,7 +214,11 @@ def gate_test_baseline(repo_root: Path) -> dict:
         return {
             "name": "test_baseline",
             "passed": False,
-            "report": "  Gate 1 (test baseline): FAIL — pytest exceeded 1800s timeout",
+            "report": (
+                f"  Gate 1 (test baseline): FAIL — pytest exceeded "
+                f"{PYTEST_BASELINE_TIMEOUT_S:.0f}s timeout (raise "
+                f"PUREMACRO_BASELINE_TIMEOUT_S if this box is slower)"
+            ),
             "new": set(),
             "recovered": set(),
         }
