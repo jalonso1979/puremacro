@@ -136,10 +136,13 @@ Three properties are worth knowing before you reach for one:
   runs MLX on the CPU stream, because float32 residuals make its
   finite-difference Jacobian diverge.
 - **Failure is loud and non-fatal.** A backend that is not installed, an
-  array namespace that will not import, an exception on the device, or an
-  accelerated solve that does not converge each emit a `RuntimeWarning`
-  and fall back to NumPy. An accelerated result that did not converge is
-  never returned silently.
+  array namespace that will not import, or an exception on the device each
+  emit a `RuntimeWarning` and fall back to NumPy. An accelerated result
+  that did not converge is never returned either, but the two solvers
+  handle that differently: `solve_trade_equilibrium` warns and repeats the
+  whole solve with the NumPy reference, while `AllenArkolakisModel`
+  finishes the device solution with the float64 NumPy contraction above —
+  no warning, because `converged` is then the NumPy verdict at your `tol`.
 
 ```python
 from puremacro._backend import available_backends

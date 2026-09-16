@@ -136,9 +136,14 @@ Conviene conocer tres propiedades antes de recurrir a ellos:
   mantiene float64 en todo momento y ejecuta MLX en el flujo de CPU, porque los
   residuos en float32 hacen divergir su jacobiano por diferencias finitas.
 - **El fallo es explícito y no fatal.** Un backend no instalado, un espacio de
-  nombres de arreglos que no puede importarse, una excepción en el dispositivo o
-  una resolución acelerada que no converge emiten un `RuntimeWarning` y recurren
-  a NumPy. Un resultado acelerado que no convergió nunca se devuelve en silencio.
+  nombres de arreglos que no puede importarse o una excepción en el dispositivo
+  emiten un `RuntimeWarning` y recurren a NumPy. Un resultado acelerado que no
+  convergió tampoco se devuelve nunca, pero cada solucionador lo resuelve de
+  distinta manera: `solve_trade_equilibrium` advierte y repite la resolución
+  completa con la implementación de referencia en NumPy, mientras que
+  `AllenArkolakisModel` remata la solución del dispositivo con la contracción
+  float64 de NumPy descrita arriba — sin advertencia, porque entonces
+  `converged` es el veredicto de NumPy a la tolerancia `tol` solicitada.
 
 ```python
 from puremacro._backend import available_backends
