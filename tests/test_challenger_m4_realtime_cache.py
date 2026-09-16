@@ -96,7 +96,7 @@ class TestCredentialsSecurityAndPrecedence:
         monkeypatch.setenv("PUREMACRO_CREDENTIALS_FILE", str(cfg_file))
         monkeypatch.setenv("BANXICO_API_KEY", "ENV_KEY")
         # Clear config cache
-        credentials._CONFIG_CACHE = None
+        monkeypatch.setattr(credentials, "_CONFIG_CACHE", None)
 
         res = credentials.get("banxico", explicit="EXP_KEY")
         assert res == "EXP_KEY"
@@ -104,7 +104,7 @@ class TestCredentialsSecurityAndPrecedence:
     def test_precedence_env_vars_order(self, monkeypatch):
         """First listed env_var in spec must take precedence over subsequent ones."""
         # For banxico: ("BANXICO_API_KEY", "BMX_TOKEN", "PUREMACRO_BANXICO_API_KEY")
-        credentials._CONFIG_CACHE = None
+        monkeypatch.setattr(credentials, "_CONFIG_CACHE", None)
         monkeypatch.setenv("BMX_TOKEN", "SECOND_TOKEN")
         monkeypatch.setenv("PUREMACRO_BANXICO_API_KEY", "THIRD_TOKEN")
         assert credentials.get("banxico") == "SECOND_TOKEN"
@@ -114,7 +114,7 @@ class TestCredentialsSecurityAndPrecedence:
 
     def test_precedence_empty_env_var_falls_through(self, monkeypatch):
         """Empty environment variable must fall through to next env var."""
-        credentials._CONFIG_CACHE = None
+        monkeypatch.setattr(credentials, "_CONFIG_CACHE", None)
         monkeypatch.setenv("BANXICO_API_KEY", "")
         monkeypatch.setenv("BMX_TOKEN", "FALLTHROUGH_TOKEN")
         assert credentials.get("banxico") == "FALLTHROUGH_TOKEN"
@@ -127,7 +127,7 @@ class TestCredentialsSecurityAndPrecedence:
         monkeypatch.delenv("BANXICO_API_KEY", raising=False)
         monkeypatch.delenv("BMX_TOKEN", raising=False)
         monkeypatch.delenv("PUREMACRO_BANXICO_API_KEY", raising=False)
-        credentials._CONFIG_CACHE = None
+        monkeypatch.setattr(credentials, "_CONFIG_CACHE", None)
 
         with pytest.raises(MissingCredentialError) as exc_info:
             credentials.require("banxico")
@@ -141,7 +141,7 @@ class TestCredentialsSecurityAndPrecedence:
         """status() table must never reveal actual secret keys."""
         secret = "SUPER_SECRET_TOKEN_XYZ_12345"
         monkeypatch.setenv("INEGI_API_KEY", secret)
-        credentials._CONFIG_CACHE = None
+        monkeypatch.setattr(credentials, "_CONFIG_CACHE", None)
 
         st = credentials.status()
         assert isinstance(st, pd.DataFrame)
@@ -156,22 +156,32 @@ class TestCredentialsSecurityAndPrecedence:
         assert inegi_row["configured"] is True or inegi_row["configured"] == True
         assert inegi_row["source"] == "env:INEGI_API_KEY"
 
-    def test_bcch_password_only_anomaly(self, monkeypatch):
-        """Test the semantic asymmetry when only BCCH_API_PASS is set.
-        
-        In credentials.SERVICES['bcch'].env_vars:
-          ('BCCH_API_USER', 'BCCH_API_PASS', 'BCCH_API_KEY', 'PUREMACRO_BCCH_API_KEY')
-        If user only sets BCCH_API_PASS, credentials.get('bcch') returns the password.
-        """
-        monkeypatch.delenv("BCCH_API_USER", raising=False)
-        monkeypatch.setenv("BCCH_API_PASS", "my_secret_pass")
-        monkeypatch.delenv("BCCH_API_KEY", raising=False)
-        monkeypatch.delenv("PUREMACRO_BCCH_API_KEY", raising=False)
-        credentials._CONFIG_CACHE = None
+    def test_bcch_password_alone_is_not_a_credential(self, monkeypatch, tmp_path):
+        """Regression for the BCCh password-only anomaly.
 
-        # credentials.get('bcch') returns BCCH_API_PASS
-        cred = credentials.get("bcch")
-        assert cred == "my_secret_pass"
+        BCCH_API_PASS used to sit in credentials.SERVICES['bcch'].env_vars, so
+        with only the password set credentials.get('bcch') returned it and the
+        connector sent it as the *user*. The two halves are now resolved
+        separately: get() is the user, get_password() the password, and
+        require() insists on both.
+        """
+        monkeypatch.setenv("PUREMACRO_CREDENTIALS_FILE", str(tmp_path / "absent.toml"))
+        for var in ("BCCH_API_USER", "PUREMACRO_BCCH_API_USER",
+                    "BCCH_API_KEY", "PUREMACRO_BCCH_API_KEY"):
+            monkeypatch.delenv(var, raising=False)
+        monkeypatch.setenv("BCCH_API_PASS", "my_secret_pass")
+        monkeypatch.setattr(credentials, "_CONFIG_CACHE", None)
+
+        assert "BCCH_API_PASS" not in SERVICES["bcch"].env_vars
+        assert credentials.get("bcch") is None
+        assert credentials.get_password("bcch") == "my_secret_pass"
+        st = status().set_index("service")
+        assert bool(st.loc["bcch", "configured"]) is False
+        assert "my_secret_pass" not in st.to_string()
+        with pytest.raises(MissingCredentialError) as exc_info:
+            require_credential("bcch")
+        assert "BCCH_API_USER" in str(exc_info.value)
+        assert "BCCH_API_PASS" in str(exc_info.value)
 
     def test_inegi_missing_credential_in_fetch(self, monkeypatch, tmp_path):
         """fetch_inegi_vintages without token or cache must raise MissingCredentialError."""
@@ -179,7 +189,7 @@ class TestCredentialsSecurityAndPrecedence:
         close_conn()
         monkeypatch.delenv("INEGI_API_KEY", raising=False)
         monkeypatch.delenv("PUREMACRO_INEGI_API_KEY", raising=False)
-        credentials._CONFIG_CACHE = None
+        monkeypatch.setattr(credentials, "_CONFIG_CACHE", None)
 
         with pytest.raises(MissingCredentialError):
             fetch_inegi_vintages("735848", token=None, use_cache=True)
@@ -628,11 +638,12 @@ class TestEmpiricalDefectsAndDiscrepancies:
         assert res.iloc[0]["value"] == 10.75
         close_conn()
 
-    def test_readonly_database_query_fails_on_bootstrap(self, tmp_path):
-        """FINDING: get_conn() fails with OperationalError on read-only databases.
-        
-        Even when only querying data, get_conn() attempts PRAGMA journal_mode=WAL
-        and schema DDL, failing if the database file is read-only.
+    def test_readonly_database_can_still_be_queried(self, tmp_path):
+        """Regression: get_conn() used to fail on a read-only cache file.
+
+        It ran PRAGMA journal_mode=WAL and the schema DDL even when the caller
+        only wanted to read, so a cache on a read-only volume was unusable.
+        The file is now opened read-only: reads work, writes still raise.
         """
         db_path = tmp_path / "readonly_cache.db"
         close_conn()
@@ -649,12 +660,25 @@ class TestEmpiricalDefectsAndDiscrepancies:
 
         # Set read-only file permissions
         os.chmod(db_path, 0o444)
-        try:
-            with pytest.raises(sqlite3.OperationalError, match="attempt to write a readonly database"):
-                conn_ro = get_conn(db_path)
-        finally:
+        if os.access(db_path, os.W_OK):
             os.chmod(db_path, 0o666)
+            pytest.skip("file permissions do not restrict this account (root?)")
+        try:
+            conn_ro = get_conn(db_path)
+            res = query_realtime_vintages("banxico", "MEX", "SF61745", conn=conn_ro)
+            assert len(res) == 1
+            assert res.iloc[0]["value"] == 10.0
+            with pytest.raises(sqlite3.OperationalError, match="readonly"):
+                store_realtime_vintages(pd.DataFrame([{
+                    "provider": "banxico", "country": "MEX", "series_id": "SF61745",
+                    "date": "2026-02-01", "vintage": "2026-02-01", "value": 11.0,
+                }]), conn=conn_ro)
+            # Telemetry degrades to a warning rather than an exception.
+            with pytest.warns(UserWarning, match="record_connector_event failed"):
+                record_connector_event("banxico", "success", "none", conn=conn_ro)
+        finally:
             close_conn()
+            os.chmod(db_path, 0o666)
 
     def test_catalog_claimed_policy_rate_aliases_missing(self):
         """Verify all policy_rate aliases (including central_bank_rate, target_rate, overnight_rate) resolve."""
@@ -667,13 +691,34 @@ class TestEmpiricalDefectsAndDiscrepancies:
         for alias in aliases:
             assert canonical_variable(alias) == "policy_rate"
 
-    def test_bcch_httperror_leaks_password_in_exc_url(self):
-        """FINDING: BCCH_SIETE_URL formats username and password into query parameters,
-        meaning HTTPError and URLError contain raw credentials in exc.url.
-        """
+    def test_bcch_fetch_scrubs_password_from_exception_url(self, tmp_path, monkeypatch):
+        """Regression: the BCCh password travels in the query string (the API
+        requires it) and urllib copies the URL onto HTTPError/URLError. The
+        connector now redacts it from the exception it re-raises and from the
+        warning it emits when it falls back to the cache."""
+        monkeypatch.setenv("PUREMACRO_HTTP_CACHE_DIR", str(tmp_path))
+        close_conn()
+        monkeypatch.setenv("BCCH_API_USER", "analyst@bank.cl")
         secret_pass = "SENSITIVE_CHILE_PASSWORD_123"
-        url = BCCH_SIETE_URL.format(user="analyst@bank.cl", password=secret_pass, series_id="F032")
-        err = urllib.error.HTTPError(url, 401, "Unauthorized", {}, None)
+        monkeypatch.setenv("BCCH_API_PASS", secret_pass)
+        monkeypatch.setattr(credentials, "_CONFIG_CACHE", None)
+        assert "{password}" in BCCH_SIETE_URL and "pass=" in BCCH_SIETE_URL
 
-        assert secret_pass in getattr(err, "url")
+        seen = {}
+
+        def unauthorized(req, timeout=None):
+            seen["url"] = req.full_url
+            raise urllib.error.HTTPError(req.full_url, 401, "Unauthorized", {}, None)
+
+        try:
+            with patch("urllib.request.urlopen", side_effect=unauthorized):
+                with pytest.raises(urllib.error.HTTPError) as exc_info:
+                    fetch_bcch_vintages("F032", use_cache=False)
+            assert secret_pass in seen["url"]                 # sent to the API...
+            err = exc_info.value
+            assert secret_pass not in err.url                  # ...but not re-raised
+            assert secret_pass not in (err.filename or "")
+            assert "pass=***" in err.url
+        finally:
+            close_conn()
 

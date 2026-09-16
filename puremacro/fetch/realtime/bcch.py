@@ -1,43 +1,108 @@
 """Banco Central de Chile (BCCh) SIETE API real-time connector.
 
-Retrieves Chilean macroeconomic time series (quarterly real GDP F032.PIB.VOL.Z.Z.18.Z.Z.0.Q,
-CPI inflation F073.IPC.VAR.Z.Z.C.M, TPM policy rate F022.TPM.TPO.D001.NO.Z.D,
-IMACEC economic activity F032.IMC.IND.Z.Z.EP18.Z.Z.0.M) from the BCCh SIETE REST API:
-    https://si3.bcentral.cl/SieteRestWS/SieteRestWS.asmx/GetSeries
+Retrieves Chilean series from the Base de Datos Estadísticos SIETE
+REST service (user + password in the query string)::
 
-Captures snapshots into the persistent SQLite `realtime_vintages` cache table,
-enabling offline reproducibility and historical vintage tracking.
+    https://si3.bcentral.cl/SieteRestWS/SieteRestWS.ashx?user=..&pass=..&function=GetSeries&timeseries=..&firstdate=..&lastdate=..
+
+The body is ``{"Codigo": 0, "Descripcion": "", "Series": {"descripEsp":
+.., "seriesId": .., "Obs": [{"indexDateString": "dd-MM-yyyy", "value":
+"123.4", "statusCode": "OK"}]}}`` with ``value`` ``"NaN"`` where the
+observation is missing. Catalogued series (TPM policy rate, IMACEC,
+IPC, quarterly GDP) are in
+:data:`puremacro.fetch.realtime.catalog.BCCH_SERIES`.
+
+SIETE overwrites series in place, so a *vintage* here is a **snapshot
+date**: every fetch is stored in the local SQLite ``realtime_vintages``
+table stamped with the day it was taken, and later calls return every
+stored snapshot as one vintage each. Revision history therefore starts
+with the first local snapshot.
+
+Credentials are a two-part pair resolved by :mod:`puremacro.credentials`:
+the user from ``BCCH_API_USER`` (or ``[bcch].user`` in the TOML file)
+and the password from ``BCCH_API_PASS`` (or ``[bcch].password``). The
+password travels in the query string because the API requires it; this
+module scrubs it from the warnings it emits and from the URL urllib
+attaches to its errors.
 """
 from __future__ import annotations
 
-import datetime as dt
-import json
-import os
-import re
-import urllib.error
+import math
+import urllib.parse
 import urllib.request
-import warnings
-from typing import Any
 
 import pandas as pd
 
 from ... import credentials
-from ..._cache_db import query_realtime_vintages, record_connector_event, store_realtime_vintages
 from ._base import (
     VINTAGE_COLUMNS,
     VintagePanel,
     normalize_vintage_frame,
     register_provider,
 )
-from .canary import SchemaCanary, SchemaDriftError
-from .catalog import BCCH_SERIES, SeriesSpec, register_catalog
+from ._snapshot import (
+    cached_snapshots,
+    empty_snapshot,
+    fetch_snapshot_vintages,
+    finish_snapshot,
+    load_json,
+    warn_skipped,
+)
+from .canary import SchemaCanary, _bcch_observations
+from .catalog import BCCH_SERIES, register_catalog
 
+BCCH_SIETE_ENDPOINT = "https://si3.bcentral.cl/SieteRestWS/SieteRestWS.ashx"
+
+#: The documented ``GetSeries`` request. Requests are built with
+#: :func:`_build_bcch_url` so every value is URL-encoded; the template
+#: records the parameter names.
 BCCH_SIETE_URL = (
-    "https://si3.bcentral.cl/SieteRestWS/SieteRestWS.asmx/GetSeries?"
-    "user={user}&password={password}&timeseries={series_id}&function=GetSeries"
+    BCCH_SIETE_ENDPOINT + "?user={user}&pass={password}&function=GetSeries"
+    "&timeseries={series_id}&firstdate={firstdate}&lastdate={lastdate}"
 )
 
 _UA = "puremacro (real-time vintage reader)"
+
+
+def _build_bcch_url(
+    series_id: str,
+    user: str,
+    password: str,
+    firstdate: str | None = None,
+    lastdate: str | None = None,
+) -> str:
+    """The ``GetSeries`` URL with every parameter URL-encoded.
+
+    ``firstdate`` / ``lastdate`` are ``yyyy-mm-dd``; the official client
+    always sends both and leaves them empty for the whole series.
+    """
+    query = urllib.parse.urlencode({
+        "user": user,
+        "pass": password,
+        "function": "GetSeries",
+        "timeseries": series_id,
+        "firstdate": firstdate or "",
+        "lastdate": lastdate or "",
+    })
+    return f"{BCCH_SIETE_ENDPOINT}?{query}"
+
+
+def _redactor(user: str, password: str):
+    """Scrub the password (raw and URL-encoded) and the user from text."""
+    secrets = []
+    for value in (password, user):
+        if value:
+            secrets.append(value)
+            for encoded in (urllib.parse.quote_plus(value), urllib.parse.quote(value)):
+                if encoded != value:
+                    secrets.append(encoded)
+
+    def redact(text: str) -> str:
+        for secret in secrets:
+            text = text.replace(secret, "***")
+        return text
+
+    return redact
 
 
 def parse_bcch_json(
@@ -45,91 +110,70 @@ def parse_bcch_json(
     *,
     series_id: str = "",
     vintage_date: str | pd.Timestamp | None = None,
+    on_drift: str = "raise",
 ) -> pd.DataFrame:
-    """Parse BCCh SIETE API JSON response into tidy [date, vintage, value] DataFrame.
+    """Parse a BCCh SIETE JSON response into a tidy ``[date, vintage, value]`` frame.
 
     Parameters
     ----------
     raw : bytes | str | dict
-        The JSON response from BCCh SIETE API.
+        The JSON response from the BCCh SIETE API.
     series_id : str
-        The SIETE series identifier.
+        The SIETE series identifier (for messages only).
     vintage_date : str | pd.Timestamp | None
-        Vintage date to stamp. Defaults to current date.
+        Snapshot date to stamp on every row. Defaults to today.
+    on_drift : {"raise", "warn", "ignore"}
+        Schema-canary policy; see :mod:`puremacro.fetch.realtime.canary`.
 
     Returns
     -------
     pd.DataFrame
-        DataFrame with columns ["date", "vintage", "value"].
+        Columns ``["date", "vintage", "value"]``. Observations reported
+        as ``"NaN"`` (missing) are dropped silently; rows whose date or
+        value cannot be read are dropped with a warning counting them.
+        Both ``Series.Obs`` (what SIETE emits) and the lowercase ``obs``
+        spelling are read.
     """
-    if isinstance(raw, (bytes, bytearray)):
-        text = raw.decode("utf-8-sig", errors="ignore")
-        if not text.strip():
-            return pd.DataFrame(columns=["date", "vintage", "value"])
-        data = json.loads(text)
-    elif isinstance(raw, str):
-        if not raw.strip():
-            return pd.DataFrame(columns=["date", "vintage", "value"])
-        data = json.loads(raw)
-    elif isinstance(raw, dict):
-        data = raw
-    else:
-        return pd.DataFrame(columns=["date", "vintage", "value"])
-
+    data = load_json(raw)
     if not data:
-        return pd.DataFrame(columns=["date", "vintage", "value"])
+        return empty_snapshot()
 
-    ok, reason = SchemaCanary.validate_bcch(data)
-    if not ok:
-        raise SchemaDriftError(f"BCCh schema drift: {reason}")
+    SchemaCanary.check("bcch", data, on_drift=on_drift)
 
-    series_data = data.get("Series", {})
-    if isinstance(series_data, dict):
-        obs_list = series_data.get("obs", [])
-    elif "obs" in data:
-        obs_list = data["obs"]
-    else:
-        obs_list = []
+    obs_list, _key = _bcch_observations(data) if isinstance(data, dict) else (None, None)
+    if not isinstance(obs_list, list) or not obs_list:
+        return empty_snapshot()
 
-    if not obs_list:
-        return pd.DataFrame(columns=["date", "vintage", "value"])
-
-    records = []
+    records: list[tuple[pd.Timestamp, float]] = []
+    skipped = 0
     for obs in obs_list:
-        d_str = obs.get("indexDateString", "").strip()
-        v_str = obs.get("value", "")
-        if not d_str or v_str is None:
+        if not isinstance(obs, dict):
+            skipped += 1
+            continue
+        d_str = str(obs.get("indexDateString") or "").strip()
+        v_raw = obs.get("value")
+        if not d_str or v_raw is None or str(v_raw).strip() == "":
             continue
         try:
-            val = float(str(v_str).replace(",", "."))
+            val = float(str(v_raw).replace(",", "."))
         except (ValueError, TypeError):
+            skipped += 1
             continue
+        if math.isnan(val):
+            continue                        # SIETE's marker for no data
 
-        # Parse date: DD-MM-YYYY or YYYY-MM-DD
+        # Parse date: DD-MM-YYYY (documented) or ISO
         try:
             if "-" in d_str and len(d_str.split("-")[0]) == 2:
                 d = pd.to_datetime(d_str, format="%d-%m-%Y")
             else:
                 d = pd.to_datetime(d_str)
         except Exception:
+            skipped += 1
             continue
         records.append((d, val))
-
-    if not records:
-        return pd.DataFrame(columns=["date", "vintage", "value"])
-
-    if vintage_date is not None:
-        v_stamp = pd.to_datetime(vintage_date)
-    else:
-        v_stamp = pd.Timestamp.now(tz=None).normalize()
-
-    rows = [(d, v_stamp, val) for d, val in records]
-    df = pd.DataFrame(rows, columns=["date", "vintage", "value"])
-    return (
-        df.drop_duplicates(subset=["date", "vintage"], keep="last")
-        .sort_values(["date", "vintage"])
-        .reset_index(drop=True)
-    )
+    warn_skipped("parse_bcch_json", skipped, len(obs_list))
+    return finish_snapshot(records, vintage_date)
 
 
 def fetch_bcch_vintages(
@@ -137,77 +181,72 @@ def fetch_bcch_vintages(
     *,
     user: str | None = None,
     password: str | None = None,
+    firstdate: str | None = None,
+    lastdate: str | None = None,
     vintage_date: str | None = None,
     timeout: float = 60.0,
     use_cache: bool = True,
+    history: bool = True,
+    on_drift: str = "raise",
 ) -> pd.DataFrame:
-    """Fetch time series from BCCh SIETE API or retrieve cached vintages.
+    """Fetch one SIETE series and return its locally stored snapshot vintages.
 
     Parameters
     ----------
     series_id : str
-        BCCh series ID (e.g. 'F032.PIB.VOL.Z.Z.18.Z.Z.0.Q' for GDP).
+        BCCh series ID (e.g. ``'F022.TPM.TPO.D001.NO.Z.D'`` for the TPM).
     user : str | None
-        SIETE user email. Resolved from env/credentials if omitted.
+        SIETE user (the registered e-mail). Resolved from
+        :mod:`puremacro.credentials` (``BCCH_API_USER`` or
+        ``[bcch].user``) if omitted.
     password : str | None
-        SIETE user password. Resolved from env/credentials if omitted.
+        SIETE password. Resolved from ``BCCH_API_PASS`` or
+        ``[bcch].password`` if omitted. Without both parts the stored
+        snapshots are returned when there are any (and ``use_cache`` is
+        True); otherwise ``MissingCredentialError``.
+    firstdate, lastdate : str | None
+        Optional ``yyyy-mm-dd`` window; empty means the whole series.
     vintage_date : str | None
-        Vintage date stamp to assign.
+        Snapshot date to stamp on *this* fetch. Defaults to today. It is
+        a capture date, not a publication date.
     timeout : float
         HTTP request timeout in seconds.
     use_cache : bool
-        Whether to check and update the SQLite cache.
+        ``True`` stores the snapshot in the SQLite ``realtime_vintages``
+        table and falls back to stored snapshots when the fetch fails.
+        ``False`` neither reads nor writes the cache: the live snapshot
+        is returned, and a failure is raised.
+    history : bool
+        ``True`` (default) returns every snapshot stored locally for
+        this series — one vintage per snapshot date, today's included.
+        ``False`` returns only the snapshot just fetched.
+    on_drift : {"raise", "warn", "ignore"}
+        Schema-canary policy. With ``"raise"`` a drifted payload falls
+        back to the cached snapshots (with a ``SchemaDriftWarning``)
+        when any exist.
 
     Returns
     -------
     pd.DataFrame
-        DataFrame with columns ["date", "vintage", "value"].
+        Columns ``["date", "vintage", "value"]``.
     """
-    u = user or os.environ.get("BCCH_API_USER") or credentials.get("bcch")
-    p = password or os.environ.get("BCCH_API_PASS") or ""
-
-    if not u:
-        cached = query_realtime_vintages("bcch", "CHL", series_id)
-        if not cached.empty:
-            return cached[["date", "vintage", "value"]]
-        credentials.require("bcch")
-
-    url = BCCH_SIETE_URL.format(user=u, password=p, series_id=series_id)
-    headers = {"User-Agent": _UA}
-    req = urllib.request.Request(url, headers=headers)
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            body = resp.read()
-        df = parse_bcch_json(body, series_id=series_id, vintage_date=vintage_date)
-        if df.empty and use_cache:
-            cached = query_realtime_vintages("bcch", "CHL", series_id)
+    u = credentials.get("bcch", explicit=user)
+    p = credentials.get_password("bcch", explicit=password)
+    if not (u and p):
+        if use_cache:
+            cached = cached_snapshots("bcch", "CHL", series_id)
             if not cached.empty:
-                warnings.warn(
-                    f"fetch_bcch_vintages received empty observations; falling back to cached vintages.",
-                    UserWarning,
-                    stacklevel=2,
-                )
-                record_connector_event("bcch", "fallback", "sqlite_cache")
-                return cached[["date", "vintage", "value"]]
-        if use_cache and not df.empty:
-            store_df = df.copy()
-            store_df["provider"] = "bcch"
-            store_df["country"] = "CHL"
-            store_df["series_id"] = series_id
-            store_realtime_vintages(store_df)
-            record_connector_event("bcch", "success", "none")
-        return df
-    except Exception as exc:
-        cached = query_realtime_vintages("bcch", "CHL", series_id)
-        if not cached.empty:
-            warnings.warn(
-                f"fetch_bcch_vintages failed ({exc}); falling back to cached vintages.",
-                UserWarning,
-                stacklevel=2,
-            )
-            record_connector_event("bcch", "fallback", "sqlite_cache")
-            return cached[["date", "vintage", "value"]]
-        raise
+                return cached
+        credentials.require("bcch", explicit=user)
+
+    url = _build_bcch_url(series_id, u, p, firstdate, lastdate)
+    req = urllib.request.Request(url, headers={"User-Agent": _UA})
+    return fetch_snapshot_vintages(
+        provider="bcch", country="CHL", series_id=series_id, request=req,
+        parser=parse_bcch_json, timeout=timeout, use_cache=use_cache,
+        history=history, on_drift=on_drift, vintage_date=vintage_date,
+        redact=_redactor(u, p),
+    )
 
 
 def fetch_bcch_panel(
@@ -218,6 +257,8 @@ def fetch_bcch_panel(
     password: str | None = None,
     timeout: float = 60.0,
     use_cache: bool = True,
+    history: bool = True,
+    on_drift: str = "raise",
     **_ignored,
 ) -> VintagePanel:
     """Registry entry point for Banco Central de Chile."""
@@ -238,6 +279,8 @@ def fetch_bcch_panel(
                     password=password,
                     timeout=timeout,
                     use_cache=use_cache,
+                    history=history,
+                    on_drift=on_drift,
                 )
             except Exception as exc:
                 failed[f"{country}:{variable}"] = f"{type(exc).__name__}: {exc}"
@@ -270,6 +313,7 @@ def _register() -> None:
 
 
 __all__ = [
+    "BCCH_SIETE_ENDPOINT",
     "BCCH_SIETE_URL",
     "parse_bcch_json",
     "fetch_bcch_vintages",

@@ -2,23 +2,37 @@
 infrastructure.
 
 A single SQLite file at ``~/.cache/puremacro/cache.db`` (overridable
-via ``$PUREMACRO_HTTP_CACHE_DIR``) hosts three tables:
+via ``$PUREMACRO_HTTP_CACHE_DIR``) hosts five tables:
 
 - ``http_cache`` — replaces the flat-file HTTP cache; backs
   ``puremacro._http_cache.cache_read``/``cache_write``.
 - ``alfred_vintages`` — persistent FRED-ALFRED vintage panel; backs
   ``puremacro.vintages.AlfredVintageStore``.
+- ``connector_events`` — fetch telemetry (``record_connector_event``,
+  ``puremacro.narrative.sources._telemetry.log_event``).
+- ``realtime_vintages`` — local snapshot history of the central-bank
+  connectors (Banxico, INEGI, BCB, BCCh), one row per (series,
+  observation, snapshot date).
 - ``schema_version`` — registry for future migrations.
+
+Bootstrap is additive (``CREATE TABLE IF NOT EXISTS`` + ``INSERT OR
+IGNORE``), so a cache file written by an earlier release gains the
+newer tables on first open and keeps its rows.
 
 WAL journal mode is enabled so multiple notebooks against the same DB
 do not block each other on writes. One ``sqlite3.Connection`` per
-process is kept alive in a module-level singleton.
+process is kept alive in a module-level singleton. A cache file the
+process cannot write (read-only permissions, a mounted snapshot) is
+opened read-only: reads work, writes raise ``sqlite3.OperationalError``
+as usual, and the callers that write only opportunistically (telemetry,
+snapshot storage) degrade to a warning.
 """
 from __future__ import annotations
 
 import os
 import sqlite3
 from pathlib import Path
+from typing import Any
 
 
 _DDL_HTTP_CACHE = """
@@ -135,27 +149,56 @@ _CONN: sqlite3.Connection | None = None
 _CONN_PATH: Path | None = None
 
 
+def _connect_readonly(target: Path) -> sqlite3.Connection:
+    """Open ``target`` read-only (SQLite URI ``mode=ro``).
+
+    No WAL switch and no schema bootstrap: both are writes. Reads work;
+    writes raise ``sqlite3.OperationalError`` exactly as they would on
+    any read-only database.
+    """
+    uri = target.resolve().as_uri() + "?mode=ro"
+    conn = sqlite3.connect(
+        uri, uri=True, timeout=30.0, isolation_level=None,
+        check_same_thread=False,
+    )
+    conn.execute("PRAGMA foreign_keys=ON")
+    return conn
+
+
 def get_conn(db_path: Path | None = None) -> sqlite3.Connection:
     """Return the module-level singleton SQLite connection.
 
     Lazily opens on first call. Enables WAL mode and bootstraps the
     schema. If called twice with different ``db_path`` arguments
     (e.g., in tests), closes the previous connection and opens a new one.
+
+    A database file the process cannot write is opened read-only
+    instead of failing on the WAL switch, so a cache on a read-only
+    volume can still be queried.
     """
     global _CONN, _CONN_PATH
-    target = db_path or default_db_path()
+    target = Path(db_path) if db_path is not None else default_db_path()
     if _CONN is not None and _CONN_PATH == target:
         return _CONN
     if _CONN is not None:
         _CONN.close()
     target.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(
-        target, timeout=30.0, isolation_level=None, check_same_thread=False,
-    )
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA synchronous=NORMAL")
-    conn.execute("PRAGMA foreign_keys=ON")
-    bootstrap_schema(conn)
+    if target.exists() and not os.access(target, os.W_OK):
+        conn = _connect_readonly(target)
+    else:
+        conn = sqlite3.connect(
+            target, timeout=30.0, isolation_level=None, check_same_thread=False,
+        )
+        try:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA synchronous=NORMAL")
+            conn.execute("PRAGMA foreign_keys=ON")
+            bootstrap_schema(conn)
+        except sqlite3.OperationalError as exc:
+            conn.close()
+            if "readonly" not in str(exc).lower():
+                raise
+            conn = _connect_readonly(target)
     _CONN = conn
     _CONN_PATH = target
     return _CONN
@@ -306,6 +349,10 @@ def query_realtime_vintages(
 ) -> Any:
     """Query `realtime_vintages` for a given provider, country, and series_id.
 
+    Every stored snapshot is returned, one ``vintage`` per snapshot
+    date; ``vintage_date`` is an *as-of* cutoff that keeps snapshots
+    taken on or before it.
+
     Returns DataFrame with columns:
     date, vintage, value, provider, country, series_id
     """
@@ -347,16 +394,34 @@ def record_connector_event(
     *,
     conn: sqlite3.Connection | None = None,
 ) -> None:
-    """Log an event into connector_events table."""
+    """Log an event into the ``connector_events`` table.
+
+    Telemetry never breaks a fetch: a locked, read-only or unreachable
+    database emits a ``UserWarning`` and returns. The
+    ``PUREMACRO_NARRATIVE_TELEMETRY=0`` kill-switch turns the call into
+    a no-op (explicit ``conn`` included), matching
+    ``puremacro.narrative.sources._telemetry.log_event``.
+    """
     import time
-    c = conn or get_conn()
+    import warnings
+
+    if os.environ.get("PUREMACRO_NARRATIVE_TELEMETRY", "1") == "0":
+        return
     ts = int(time.time())
-    c.execute(
-        "INSERT INTO connector_events (ts, source, outcome, fallback_used) "
-        "VALUES (?, ?, ?, ?)",
-        (ts, source, outcome, fallback_used),
-    )
-    c.commit()
+    try:
+        c = conn or get_conn()
+        c.execute(
+            "INSERT INTO connector_events (ts, source, outcome, fallback_used) "
+            "VALUES (?, ?, ?, ?)",
+            (ts, source, outcome, fallback_used),
+        )
+        c.commit()
+    except (sqlite3.Error, OSError) as exc:
+        warnings.warn(
+            f"puremacro._cache_db.record_connector_event failed "
+            f"({source}/{outcome}): {exc}",
+            UserWarning, stacklevel=2,
+        )
 
 
 __all__ = [

@@ -9,6 +9,17 @@ Resolves keys in priority order:
 Lookup is side-effect-free. Use ``get()`` when missing == valid;
 use ``require()`` when missing == error (raises
 ``MissingCredentialError`` with a researcher-actionable message).
+``get_credential`` / ``require_credential`` are aliases of the two.
+
+Two-part credentials
+--------------------
+Some services (Banco Central de Chile's SIETE API) authenticate with a
+user *and* a password rather than one token. For those,
+``get()``/``require()`` resolve the **user** (``BCCH_API_USER`` or
+``[bcch].user`` — ``[bcch].api_key`` is still read for compatibility)
+and :func:`get_password` resolves the **password** (``BCCH_API_PASS``
+or ``[bcch].password``). ``require()`` insists on both; a password
+alone never satisfies a lookup. See :data:`PASSWORD_ENV_VARS`.
 
 Use ``status()`` from a notebook to see which services are configured
 without leaking the actual key values.
@@ -79,10 +90,17 @@ SERVICES: dict[str, ServiceCredentialSpec] = {
     ),
     "bcch": ServiceCredentialSpec(
         name="bcch",
-        env_vars=("BCCH_API_USER", "BCCH_API_PASS", "BCCH_API_KEY", "PUREMACRO_BCCH_API_KEY"),
+        env_vars=("BCCH_API_USER", "PUREMACRO_BCCH_API_USER"),
         signup_url="https://si3.bcentral.cl/estadisticas/principal1/registro/index.html",
-        description="Banco Central de Chile Base de Datos Estadísticos (SIETE API)",
+        description="Banco Central de Chile Base de Datos Estadísticos (SIETE API; user + password)",
     ),
+}
+
+#: Services whose credential is a (user, password) pair. ``env_vars``
+#: in :data:`SERVICES` name the *user*; these name the *password*. The
+#: TOML file carries them as ``[service].user`` and ``[service].password``.
+PASSWORD_ENV_VARS: dict[str, tuple[str, ...]] = {
+    "bcch": ("BCCH_API_PASS", "PUREMACRO_BCCH_API_PASS"),
 }
 
 
@@ -126,6 +144,16 @@ def _load_config() -> dict[str, Any]:
     return _CONFIG_CACHE
 
 
+def _config_section(service: str) -> dict[str, Any]:
+    section = _load_config().get(service)
+    return section if isinstance(section, dict) else {}
+
+
+def _config_keys(service: str) -> tuple[str, ...]:
+    """TOML keys that carry the token (or the user, for a pair service)."""
+    return ("user", "api_key") if service in PASSWORD_ENV_VARS else ("api_key",)
+
+
 class MissingCredentialError(RuntimeError):
     """Raised by `require()` when a fetcher needs an API key and none is found.
 
@@ -133,11 +161,20 @@ class MissingCredentialError(RuntimeError):
         "<description> needs an API key. Checked env vars (in order):
          <var1>, <var2>. Checked config file: <path> (<found|not found>).
          Get a free key at: <signup_url>"
+
+    For a two-part service the first sentence reads "needs a user and a
+    password" and the env-var list names both parts:
+        "Checked env vars (in order): <user vars> (user); <password
+         vars> (password)."
     """
 
 
 def get(service: str, *, explicit: str | None = None) -> str | None:
-    """Resolve an API key for `service` (None if not found)."""
+    """Resolve an API key for `service` (None if not found).
+
+    For a two-part service (see :data:`PASSWORD_ENV_VARS`) this is the
+    *user*; the password comes from :func:`get_password`.
+    """
     if service not in SERVICES:
         raise KeyError(
             f"Unknown service {service!r}. Known: {sorted(SERVICES.keys())}"
@@ -149,17 +186,59 @@ def get(service: str, *, explicit: str | None = None) -> str | None:
         v = os.environ.get(var)
         if v:
             return v
-    cfg = _load_config()
-    return cfg.get(service, {}).get("api_key") or None
+    section = _config_section(service)
+    for key in _config_keys(service):
+        v = section.get(key)
+        if v:
+            return str(v)
+    return None
+
+
+def get_password(service: str, *, explicit: str | None = None) -> str | None:
+    """Resolve the password half of a two-part credential (None if not found).
+
+    Same precedence as :func:`get`: explicit argument, then the env vars
+    in :data:`PASSWORD_ENV_VARS`, then ``[service].password`` in the
+    TOML file. Services without a password part always resolve to None.
+    """
+    if service not in SERVICES:
+        raise KeyError(
+            f"Unknown service {service!r}. Known: {sorted(SERVICES.keys())}"
+        )
+    if explicit:
+        return explicit
+    for var in PASSWORD_ENV_VARS.get(service, ()):
+        v = os.environ.get(var)
+        if v:
+            return v
+    v = _config_section(service).get("password")
+    return str(v) if v else None
 
 
 def require(service: str, *, explicit: str | None = None) -> str:
-    """Like `get(service)` but raises `MissingCredentialError` on miss."""
+    """Like `get(service)` but raises `MissingCredentialError` on miss.
+
+    For a two-part service both the user and the password must resolve;
+    the user is returned.
+    """
     key = get(service, explicit=explicit)
-    if key:
+    needs_password = service in PASSWORD_ENV_VARS
+    if key and (not needs_password or get_password(service)):
         return key
     spec = SERVICES[service]
     cfg_path = default_config_path()
+    if needs_password:
+        cfg_status = (
+            "found but no [{0}].user / [{0}].password".format(service)
+            if cfg_path.exists() else "not found"
+        )
+        raise MissingCredentialError(
+            f"{spec.description} needs a user and a password. "
+            f"Checked env vars (in order): {', '.join(spec.env_vars)} (user); "
+            f"{', '.join(PASSWORD_ENV_VARS[service])} (password). "
+            f"Checked config file: {cfg_path} ({cfg_status}). "
+            f"Register at: {spec.signup_url}"
+        )
     cfg_status = "found but no [{}].api_key".format(service) if cfg_path.exists() else "not found"
     raise MissingCredentialError(
         f"{spec.description} needs an API key. "
@@ -171,8 +250,11 @@ def require(service: str, *, explicit: str | None = None) -> str:
 
 def status() -> pd.DataFrame:
     """Return one row per service: ['service', 'configured', 'source',
-       'description', 'signup_url']. Never includes the actual key value."""
-    cfg = _load_config()
+       'description', 'signup_url']. Never includes the actual key value.
+
+       A two-part service counts as configured only when both the user
+       and the password resolve; ``source`` says which part is missing.
+    """
     rows = []
     for name, spec in SERVICES.items():
         source = "missing"
@@ -182,9 +264,17 @@ def status() -> pd.DataFrame:
                 source = f"env:{var}"
                 configured = True
                 break
-        if not configured and cfg.get(name, {}).get("api_key"):
-            source = "config_file"
-            configured = True
+        if not configured:
+            section = _config_section(name)
+            if any(section.get(k) for k in _config_keys(name)):
+                source = "config_file"
+                configured = True
+        if configured and name in PASSWORD_ENV_VARS and not get_password(name):
+            configured = False
+            source = (
+                f"{source} (no password: set "
+                f"{' or '.join(PASSWORD_ENV_VARS[name])} or [{name}].password)"
+            )
         rows.append({
             "service": name,
             "configured": configured,
@@ -202,10 +292,12 @@ require_credential = require
 __all__ = [
     "ServiceCredentialSpec",
     "SERVICES",
+    "PASSWORD_ENV_VARS",
     "MissingCredentialError",
     "default_config_path",
     "get",
     "get_credential",
+    "get_password",
     "require",
     "require_credential",
     "status",
