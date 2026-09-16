@@ -558,7 +558,7 @@ print(runtime.report())
 #  backends   : numpy
 ```
 
-La detección es heurística — ninguna API dice «esto es Juno» —, así que cada campo puede fijarse con `PUREMACRO_HOST`, `PUREMACRO_DEVICE`, `PUREMACRO_SOCKETS` o `PUREMACRO_PARQUET`.
+La detección es heurística — ninguna API dice «esto es Juno» —, así que cada campo puede fijarse con `PUREMACRO_HOST`, `PUREMACRO_DEVICE`, `PUREMACRO_SOCKETS`, `PUREMACRO_PARQUET` o `PUREMACRO_THREADS`. Esta última decide si los motores de remuestreo construyen un grupo de hilos: con `PUREMACRO_THREADS=0` todos ejecutan el bucle simple, que es lo que necesita un núcleo de navegador. Cuando no hay hilos disponibles, `n_jobs` se ignora en vez de lanzar un error.
 
 #### Las tres cosas que fallan, y qué hacer al respecto
 

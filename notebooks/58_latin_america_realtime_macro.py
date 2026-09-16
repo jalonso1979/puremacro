@@ -367,6 +367,6 @@ assert custom_ms is None or hasattr(custom_ms, "verdict"), "Test result must hav
 # `puremacro` provides an extensive regional and real-time macroeconomic ecosystem:
 # - `puremacro.fetch.realtime`: First-class real-time vintage data connectors for Banxico, INEGI, BCB, and BCCh (`VintagePanel`, `pack_realtime_cartridge`, `load_realtime_cartridge`).
 # - `puremacro.fetch.realtime.catalog`: Canonical variable resolution across Latin American central banks and statistical agencies (`canonical_variable`, `resolve_spec`).
-# - `puremacro.vintages.mankiw_shapiro`: Econometric news versus noise hypothesis testing and revision variance decomposition (`MankiwShapiroResult`).
+# - `puremacro.vintages`: Econometric news versus noise hypothesis testing and revision variance decomposition (`mankiw_shapiro`, `MankiwShapiroResult`).
 # - `puremacro.nowcast.dfm`: Dynamic Factor Model nowcasting incorporating real-time ragged-edge vintages and release-day news surprises.
 # - `puremacro.pocket`: Cryptographically authenticated portable `.pmz` data cartridges for offline, browser, and Pyodide environments.

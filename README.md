@@ -718,7 +718,11 @@ print(runtime.report())
 
 Detection is heuristic — no API tells you "this is Juno" — so every field
 can be pinned with `PUREMACRO_HOST`, `PUREMACRO_DEVICE`,
-`PUREMACRO_SOCKETS` or `PUREMACRO_PARQUET`.
+`PUREMACRO_SOCKETS`, `PUREMACRO_PARQUET` or `PUREMACRO_THREADS`. The last
+one decides whether the bootstrap engines build a thread pool at all: set
+`PUREMACRO_THREADS=0` and every resampling engine runs the plain loop, which
+is what a browser kernel needs. When threads are unavailable, `n_jobs` is
+ignored rather than raising.
 
 #### The three things that break, and what to do about them
 

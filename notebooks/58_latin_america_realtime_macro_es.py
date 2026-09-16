@@ -367,6 +367,6 @@ assert custom_ms is None or hasattr(custom_ms, "verdict"), "Test result must hav
 # `puremacro` proporciona un extenso ecosistema macroeconómico regional y de tiempo real:
 # - `puremacro.fetch.realtime`: Conectores nativos de datos en tiempo real para Banxico, INEGI, BCB y BCCh (`VintagePanel`, `pack_realtime_cartridge`, `load_realtime_cartridge`).
 # - `puremacro.fetch.realtime.catalog`: Resolución de variables canónicas para bancos centrales e institutos estadísticos de América Latina (`canonical_variable`, `resolve_spec`).
-# - `puremacro.vintages.mankiw_shapiro`: Contraste de hipótesis de noticias frente a ruido y descomposición de varianza de revisiones (`MankiwShapiroResult`).
+# - `puremacro.vintages`: Contraste de hipótesis de noticias frente a ruido y descomposición de varianza de revisiones (`mankiw_shapiro`, `MankiwShapiroResult`).
 # - `puremacro.nowcast.dfm`: Nowcasting con modelos de factores dinámicos incorporando calendarios desbalanceados y noticias en tiempo real.
 # - `puremacro.pocket`: Cartuchos de datos `.pmz` portátiles con autenticación criptográfica para entornos offline, navegadores y Pyodide.

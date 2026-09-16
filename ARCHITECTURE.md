@@ -171,9 +171,13 @@ puremacro/
 ├── reports.py             ← table / report builders
 │
 │ ── data pipelines (entire new category vs the 0.4.0 doc) ─────────
-├── fetch/                 ← Public-data fetchers, all routed through
-│   │                        ._http (UA override, SSL fallback, 30s
-│   │                        timeout). Modules for FRED / ALFRED / SDMX
+├── fetch/                 ← Public-data fetchers. Most route through
+│   │                        ._http (UA override, SSL fallback, 60s
+│   │                        timeout); the four Latin American real-time
+│   │                        connectors (banxico, inegi, bcb, bcch) call
+│   │                        urllib directly, so they get no HTTP cache
+│   │                        and no SSL fallback.
+│   │                        Modules for FRED / ALFRED / SDMX
 │   │                        (OECD / Eurostat / ECB / IMF SDMX-Central),
 │   │                        FRED-states, EPU / GPR / WUI / JLN /
 │   │                        Fernald, OECD-MEI / OECD-QNA / OECD-energy
