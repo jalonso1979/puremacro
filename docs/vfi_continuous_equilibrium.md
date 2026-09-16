@@ -6,6 +6,22 @@
 
 In macroeconomic models with uninsurable idiosyncratic earnings risk (e.g., Aiyagari 1994, Huggett 1993), households optimize over a continuous asset continuum $k \in [\underline{k}, \bar{k}]$. While Monte Carlo simulation of a finite panel of households introduces sampling chatter and slow $O(1/\sqrt{N})$ stochastic error, Young's non-stochastic method projects continuous decision rules onto a fine piecewise-linear density representation. This guarantees exact conservation of probability mass ($\sum \mu^* = 1.0 \pm 10^{-12}$) and local mean asset holdings, enabling rapid general equilibrium price determination via gradient-free root finding.
 
+> **This page is the discrete-time route.** Time is discrete: a policy
+> function $g(k, z)$ is solved first, and this module projects it onto a
+> fine histogram to obtain the invariant *probability mass* $\mu^*$.
+> puremacro also ships a **continuous-time** route —
+> `solve_hjb_achdou`, `solve_kfe_achdou` and
+> `solve_aiyagari_continuous_hjb` — where an implicit upwind scheme
+> solves the Hamilton-Jacobi-Bellman equation and the adjoint
+> Kolmogorov Forward Equation $A^\top g = 0$ returns a *density* $g$ in
+> one linear solve, with no policy-function iteration and no lottery
+> weights. The two are different discretizations of the same economics
+> and are not interchangeable: $\mu^*$ here is mass per node and sums to
+> 1, whereas $g$ there is a density and integrates to 1 (on a
+> non-uniform grid, node mass divided by cell width, normalized with
+> trapezoid quadrature weights). See
+> [`docs/vfi_hjb_continuous.md`](vfi_hjb_continuous.md).
+
 ---
 
 ## 1. Theoretical & Algorithmic Framework

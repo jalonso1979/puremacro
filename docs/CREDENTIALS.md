@@ -17,6 +17,11 @@ puremacro reads its key. It resolves keys in priority order:
 4. **None** — `get()` returns `None`; `require()` raises
    `MissingCredentialError` with a researcher-actionable message.
 
+One service authenticates with a **user and a password** rather than a
+single token (Banco Central de Chile). For those, `get()` / `require()`
+resolve the *user* and `get_password()` resolves the *password*; see
+[Two-part credentials](#two-part-credentials-bcch).
+
 ## Quickstart
 
 ```python
@@ -60,6 +65,16 @@ api_key = "sk-..."
 
 [census]
 api_key = "..."
+
+[banxico]
+api_key = "..."
+
+[inegi]
+api_key = "..."
+
+[bcch]
+user = "..."
+password = "..."
 ```
 
 Missing sections fall back to env vars. The file is read once per
@@ -75,11 +90,50 @@ through to env-vars-only — never blocks credential resolution.
 | `anthropic` | `narrative.scoring.llm` (Anthropic provider)   | https://console.anthropic.com/settings/keys              |
 | `openai`    | `narrative.scoring.llm` (OpenAI provider)      | https://platform.openai.com/api-keys                     |
 | `census`    | (forward-declared; no current consumer)        | https://api.census.gov/data/key_signup.html              |
+| `banxico`   | `fetch.realtime.banxico`                       | https://www.banxico.org.mx/SieAPIRest/service/v1/token_req.html |
+| `inegi`     | `fetch.realtime.inegi`                         | https://www.inegi.org.mx/app/api/indicadores/desarrolladores/jsonxml/ |
+| `bcch`      | `fetch.realtime.bcch`                          | https://si3.bcentral.cl/estadisticas/principal1/registro/index.html |
 
 > ⚠️ The `census` service is forward-declared (registered in
 > `SERVICES` for future direct Census API connectors, e.g., ACS or
 > per-state BFS series not mirrored on FRED). Current `fetch.census_bfs`
 > pulls Census BFS data via FRED — see the `fred` row above.
+
+### Real-time Latin American connectors
+
+The three services added in 3.4.0 back the snapshot connectors described
+in [`docs/real_time_data.md`](real_time_data.md). Banco Central do Brasil
+(`bcb`) needs no credential at all and therefore has no entry.
+
+| Service | Env vars (in resolution order) | TOML keys | Where the credential travels |
+|---|---|---|---|
+| `banxico` | `BANXICO_API_KEY`, `BMX_TOKEN`, `PUREMACRO_BANXICO_API_KEY` | `[banxico].api_key` | the `Bmx-Token` **request header** |
+| `inegi` | `INEGI_API_KEY`, `PUREMACRO_INEGI_API_KEY` | `[inegi].api_key` | a segment of the **URL path** |
+| `bcch` | user: `BCCH_API_USER`, `PUREMACRO_BCCH_API_USER` · password: `BCCH_API_PASS`, `PUREMACRO_BCCH_API_PASS` | `[bcch].user`, `[bcch].password` (`[bcch].api_key` still read as the user, for compatibility) | both in the **query string** (`user=`, `pass=`) |
+
+Because the INEGI token sits in the path and the BCCh pair in the query
+string, either can end up in a URL that an exception or a log line
+carries. The BCCh connector scrubs the user and the password — raw and
+URL-encoded — from its warnings and from the URL urllib hangs on its
+errors; treat any URL you print yourself as a secret.
+
+### Two-part credentials (`bcch`)
+
+```python
+import puremacro.credentials as creds
+
+creds.get("bcch")           # the USER   (BCCH_API_USER / [bcch].user)
+creds.get_password("bcch")  # the PASSWORD (BCCH_API_PASS / [bcch].password)
+creds.require("bcch")       # raises unless BOTH resolve
+```
+
+`PASSWORD_ENV_VARS` names the services whose credential is a pair. A
+password alone never satisfies a lookup: with only `BCCH_API_PASS` set,
+`get("bcch")` returns `None` and `status()` reports `bcch` as not
+configured. With only the user set, `status()` reports the half that is
+missing — `env:BCCH_API_USER (no password: set BCCH_API_PASS or
+PUREMACRO_BCCH_API_PASS or [bcch].password)` — and `require("bcch")`
+raises naming both lists.
 
 ## For implementers (adding a new fetcher)
 

@@ -2,7 +2,12 @@
 
 # Global Macro Data Ecosystem
 
-`puremacro` provides a unified, keyless, and cached data ecosystem for international macroeconomic research, policy analysis, and forecasting. All collectors operate through unified caching (`puremacro.fetch._http.cached_get`), adhere to strict Pyodide safety (zero module-scope `requests` imports), and return standardized long-form DataFrames (`code, date, variable, value, source`).
+`puremacro` provides a unified, largely keyless, and cached data ecosystem for international macroeconomic research, policy analysis, and forecasting. Collectors adhere to strict Pyodide safety (zero module-scope `requests` imports) and return standardized long-form DataFrames (`code, date, variable, value, source`).
+
+Two HTTP contracts coexist, and the difference is observable:
+
+- **Sections 1-5 below, and the archive-backed real-time providers** (`oecd_stes`, `alfred`, `bundesbank`, `ons`, `statcan`, `ecb_rtd`) go through `puremacro.fetch._http.cached_get`, so they inherit the shared HTTP cache, the User-Agent override, the SSL fallback and the 30-second timeout, and every URL they touch shows up in `puremacro.cache.http_list_urls()`.
+- **The four Latin American snapshot connectors** (`banxico`, `inegi`, `bcb`, `bcch`, added in 3.4.0) do **not**. They build a `urllib.request.Request` and call `urllib.request.urlopen` directly with a 60-second timeout, because the credential has to be placed per-provider (a header, a path segment, a query pair) and because their caching layer is a different one: the `realtime_vintages` SQLite table, which stores parsed snapshots rather than response bodies. Consequently they never appear in `http_list_urls()`, `use_cache=False` bypasses the snapshot store rather than an HTTP cache, and the `_http` failure semantics do not apply to them. Their own failure semantics — fall back to the stored snapshots, warn, and record telemetry — are in [`docs/real_time_data.md`](real_time_data.md) and [`docs/CONNECTOR_HEALTH.md`](CONNECTOR_HEALTH.md).
 
 In addition to individual series fetchers, high-level **modular panel builders** (`puremacro.build_climate_panel` and `puremacro.build_financial_panel`) assemble multi-country, multi-frequency datasets with automated frequency rollups and missing-data tracking.
 
@@ -222,11 +227,46 @@ print(panel.head())
 
 ---
 
-## 6. Architectural Guarantees & Offline Testing
+## 6. Latin American Real-Time Ecosystem (`puremacro.fetch.realtime`)
+
+Added in 3.4.0: four national connectors for Mexico, Brazil and Chile,
+covering quarterly real GDP, consumer prices, the monthly activity index
+(IGAE / IBC-Br / IMACEC) and the central bank's policy rate.
+
+```python
+from puremacro.fetch.realtime import available_providers, providers_for, vintage_catalog
+
+available_providers()
+# ['alfred', 'banxico', 'bcb', 'bcch', 'bundesbank', 'ecb_rtd',
+#  'inegi', 'oecd_stes', 'ons', 'statcan']
+
+providers_for("MEX", "cpi")        # ['banxico', 'inegi']
+providers_for("MEX", "gdp_real")   # ['alfred', 'inegi', 'oecd_stes']
+vintage_catalog("bcch")[["variable", "series_id", "freq", "units"]]
+```
+
+| Provider | Institution | Country | Credential |
+|---|---|---|---|
+| `banxico` | Banco de México, SIE API | MX | token (`Bmx-Token` header) |
+| `inegi` | INEGI Banco de Indicadores / BIE | MX | token (URL path) |
+| `bcb` | Banco Central do Brasil, SGS | BR | none |
+| `bcch` | Banco Central de Chile, SIETE | CL | user + password (query string) |
+
+**These are snapshot connectors, not archives.** Each service publishes
+only the edition current at the moment of the call, so the vintage date
+is the day this machine captured the series; revision history builds up
+only across repeated captures on different days. Full treatment,
+including the `.pmz` cartridge workflow and the news-vs-noise test, is in
+[`docs/real_time_latam.md`](real_time_latam.md) and
+[`docs/real_time_data.md`](real_time_data.md).
+
+---
+
+## 7. Architectural Guarantees & Offline Testing
 
 1. **Pyodide & Zero-Network Safety**:
    Importing `puremacro`, `puremacro.fetch`, or any panel builder never triggers network calls or requires `requests` at module scope.
 2. **Deterministic Offline Fixtures**:
    Every collector includes recorded mock fixtures in `tests/data/`, allowing unit tests and CI suites to execute 100% offline without live network dependencies.
 3. **Unified Caching**:
-   Live calls store timestamped cache entries under `data/raw/` with automatic TTL management and stale-data warnings.
+   Live calls store timestamped cache entries under `data/raw/` with automatic TTL management and stale-data warnings. The exception is the four Latin American snapshot connectors of section 6, which cache parsed snapshots in the `realtime_vintages` SQLite table instead of caching HTTP responses — see [`docs/CACHE_DB.md`](CACHE_DB.md).

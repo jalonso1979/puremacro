@@ -35,6 +35,7 @@ browser user agent, and every field can be pinned when it guesses wrong:
 | `PUREMACRO_DEVICE` | `workstation` / `tablet` / `browser` / `unknown` |
 | `PUREMACRO_SOCKETS` | force the socket verdict |
 | `PUREMACRO_PARQUET` | force the parquet verdict |
+| `PUREMACRO_THREADS` | force the threads verdict |
 
 `runtime.capabilities()` returns the same information as a frozen dataclass, and
 records which fields came from an override in `.overridden`.
@@ -178,6 +179,42 @@ exactly what it always was and a script that runs on your laptop produces the
 same numbers after this feature landed. Only parameters that change *cost* are
 clamped (`n_boot`, `n_draws`, `n_grid`, `n_sim`); `horizon` changes what is
 being estimated, so it is deliberately left alone.
+
+### `n_jobs` falls back to a plain loop
+
+Under Pyodide there are no working OS threads, and `ThreadPoolExecutor` there
+either refuses to start or silently runs nothing. Five bootstrap engines take
+`n_jobs` — `wild_bootstrap`, `wild_bootstrap_var`, `block_bootstrap`,
+`cum_irf_block_bootstrap` and `bootstrap_bands` — and all five route through one
+place that decides between the pool and the loop:
+
+- Each engine draws **all** of its random material up front with your generator
+  and then maps a pure per-replication function over it. `Executor.map`
+  preserves input order, so the pool and the loop return **identical** output;
+  only the wall clock differs.
+- Before an executor is constructed, the engine asks
+  `runtime.capabilities().threads`. When the answer is no — a Pyodide/WASM
+  kernel, or `PUREMACRO_THREADS=0` — it runs the loop and builds no executor at
+  all. Your `n_jobs` is then simply ignored; nothing raises.
+- If the pool is attempted and cannot start (`RuntimeError`, `OSError` or
+  `ValueError` out of `ThreadPoolExecutor`), a **`RuntimeWarning`** names the
+  engine and says the replications are being evaluated serially instead.
+- `n_jobs=0` raises `ValueError` before anything runs; a negative `n_jobs`
+  means every CPU core; `n_jobs=1` is the loop.
+- An exception raised inside your per-replication function is never swallowed.
+  It propagates unchanged from either path, so a failing refit is reported
+  rather than quietly retried.
+
+`PUREMACRO_THREADS` is a **boolean override, not a thread count**. Like the
+other capability overrides it is true only for `1`, `true`, `yes` or `on`;
+anything else — including `PUREMACRO_THREADS=8` — reads as *no threads* and
+turns every `n_jobs` into a serial loop. To pick a worker count, pass `n_jobs`.
+
+```python
+from puremacro import runtime
+runtime.capabilities().threads      # the verdict all five engines gate on
+runtime.capabilities().overridden   # ('threads',) when the env var set it
+```
 
 ## 5. Offloading Heavy Compute to Google Colab
 

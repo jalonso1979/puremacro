@@ -109,6 +109,47 @@ $$\alpha + \beta \le \frac{\theta}{1 + \theta} \quad \text{and} \quad \alpha \le
 | **Primary Use Cases** | Free trade agreements, tariff wars, NAFTA/USMCA | High-speed rail, highway corridors, climate shocks |
 | **Convergence Rate** | 10–30 iterations ($< 0.01$ s) | 20–50 iterations ($< 0.005$ s) |
 
+### 2.1 Hardware backends (`backend=`, 3.4.0)
+
+Both fixed-point solvers accept a `backend` keyword — `"numpy"`
+(the default), `"mlx"` (Apple Silicon) or `"cupy"` (NVIDIA):
+
+```python
+aa_res = aa_model.solve_equilibrium(backend="mlx")
+cf_res = aa_model.solve_counterfactual(trade_costs_new=tau_new, backend="mlx")
+```
+
+`puremacro.trade.solve_trade_equilibrium(..., backend=...)` takes the
+same keyword and offloads the two per-iteration bilateral-flow
+contractions.
+
+Three properties are worth knowing before you reach for one:
+
+- **NumPy is the oracle.** Every accelerated path is checked against the
+  NumPy reference, never the other way round. `numpy` is always
+  available and keeps the Pyodide contract intact.
+- **`tol` still means `tol`.** Metal has no float64, so the MLX
+  contraction in `AllenArkolakisModel` runs in float32 down to a 1e-6
+  floor; the result is then polished with the float64 NumPy contraction
+  warm-started at the device solution, so `converged` refers to the
+  `tol` you asked for. The trade solver keeps float64 throughout and
+  runs MLX on the CPU stream, because float32 residuals make its
+  finite-difference Jacobian diverge.
+- **Failure is loud and non-fatal.** A backend that is not installed, an
+  array namespace that will not import, an exception on the device, or an
+  accelerated solve that does not converge each emit a `RuntimeWarning`
+  and fall back to NumPy. An accelerated result that did not converge is
+  never returned silently.
+
+```python
+from puremacro._backend import available_backends
+available_backends()          # ('numpy', 'numba', 'mlx') on this machine
+```
+
+GPU tariff counterfactuals — batched Jacobians, homotopy continuation,
+and the optional `torch` / `mlx` solvers — are a separate surface
+documented in [`docs/trade_gpu.md`](trade_gpu.md).
+
 ---
 
 ## 3. Canonical Calibration & Spatial Specifications
@@ -274,6 +315,17 @@ AllenArkolakisModel.solve_equilibrium(
     tol: float = 1e-8,
     max_iter: int = 2500,
     damping: float = 0.35,
+    backend: str = "numpy",          # 'numpy' | 'mlx' | 'cupy'
+) -> AllenArkolakisResult
+
+AllenArkolakisModel.solve_counterfactual(
+    trade_costs_new: np.ndarray | None = None,
+    productivity_new: np.ndarray | None = None,
+    amenity_new: np.ndarray | None = None,
+    tol: float = 1e-8,
+    max_iter: int = 2500,
+    damping: float = 0.35,
+    backend: str = "numpy",
 ) -> AllenArkolakisResult
 
 AllenArkolakisModel.simulate_infrastructure_shock(

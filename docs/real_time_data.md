@@ -33,12 +33,54 @@ United States.
 | `ons` | UK | 746, back to 1961 | publication month + release stage |
 | `statcan` | CA | 55, from 2012-11 | **the real release date** (Daily) |
 | `ecb_rtd` | EA, JP, US | version history from 2001 | ECB dissemination timestamp |
+| `banxico` | MX | one per capture day | the local snapshot date |
+| `inegi` | MX | one per capture day | the local snapshot date |
+| `bcb` | BR | one per capture day | the local snapshot date |
+| `bcch` | CL | one per capture day | the local snapshot date |
 
 ```python
 from puremacro.fetch import vintage_catalog, available_providers
 available_providers()
 vintage_catalog("oecd_stes").head()
 ```
+
+Besides the national-accounts aggregates, the catalogue carries two
+monthly-or-daily variables the Latin American connectors are built
+around: `policy_rate` (aliases `tpm`, `selic`, `tasa_objetivo`,
+`interest_rate`, `target_rate`, ...) and `activity`, the monthly
+activity index (aliases `igae`, `imacec`, `ibc_br`). `canonical_variable`
+maps any accepted spelling onto the canonical name.
+
+### The four Latin American connectors
+
+`banxico`, `inegi`, `bcb` and `bcch` are **snapshot** connectors, not
+archives. Each service publishes only the edition that is current when
+you ask, so a vintage date here is the day *this machine* captured the
+series and wrote it to the `realtime_vintages` table of the cache DB.
+Revision history therefore accumulates only across repeated captures on
+different days: one fetch gives one vintage, and a panel assembled on a
+single afternoon has nothing to run a revision test on.
+
+| Provider | Country | Series | Credential |
+|---|---|---|---|
+| `banxico` | MX | `policy_rate` SF61745, `cpi` SP1, `activity` SR17631 | token, sent as the `Bmx-Token` header |
+| `inegi` | MX | `gdp_real` 735848, `cpi` 628197, `activity` 736184 | token, embedded in the URL path |
+| `bcb` | BR | `gdp_real` 22099, `cpi` 433, `policy_rate` 432, `activity` 24363 | none (open endpoint) |
+| `bcch` | CL | `gdp_real` F032.PIB.FLU.R.CLP.EP18.Z.Z.0.T, `cpi` F074.IPC.IND.Z.Z.C.M, `policy_rate` F022.TPM.TPO.D001.NO.Z.D, `activity` F032.IMC.IND.Z.Z.EP18.Z.Z.0.M | user **and** password, sent in the query string |
+
+Catalogue entries whose identifier could not be checked against the live
+service carry the marker `VERIFY ONLINE` in their `note` column, so a
+guessed id is visible rather than silently authoritative:
+
+```python
+from puremacro.fetch import vintage_catalog
+vintage_catalog("inegi")[["variable", "series_id", "freq", "note"]]
+```
+
+Credentials are documented in [`docs/CREDENTIALS.md`](CREDENTIALS.md),
+the snapshot table in [`docs/CACHE_DB.md`](CACHE_DB.md), and the whole
+workflow — capture, cartridge, revision test — in
+[`docs/real_time_latam.md`](real_time_latam.md).
 
 ### Finding the OECD archive
 
@@ -83,6 +125,11 @@ A few specifics worth knowing:
   by this library to keep same-month editions ordered.
 - **ECB** silently ignores the SDMX `asOf` parameter, and returns only
   the current vintage unless `includeHistory=true` is set.
+- **Banxico, INEGI, BCB and BCCh** stamp a **snapshot date**, not a
+  release date: the day this machine fetched the series. Ordering
+  editions is still safe, but the first edition of a reference period is
+  the first one *you captured*, not the office's first estimate, and no
+  edition predates your first fetch.
 
 ## Some archive editions are not seasonally adjusted
 
@@ -194,8 +241,19 @@ between "this country publishes no vintages" and "this table went
 stale".
 
 Countries deliberately not covered by a provider, and why, are in
-`puremacro.fetch.realtime.catalog.known_gaps()`. Mexico is a good
-example: neither Banxico's SIE nor INEGI's BIE retains previously
-published editions of quarterly GDP — both overwrite in place — so
-Mexican vintages come from the OECD archive, which holds 329 monthly
-editions of INEGI's series.
+`puremacro.fetch.realtime.catalog.known_gaps()`, keyed `provider:ISO3`.
+Most entries record what ALFRED does not archive for a country — a
+discontinued series, or only a year-on-year growth rate where a level is
+needed. Spain is the entry about a national office rather than a mirror:
+neither INE nor the Banco de España publishes a machine-readable vintage
+archive for quarterly GDP, so `oecd_stes` is the historical source.
+
+Mexico is the case worth stating carefully, because it is two answers
+rather than one. Neither Banxico's SIE nor INEGI's BIE retains
+previously published editions — both overwrite in place — so the
+`banxico` and `inegi` connectors are snapshot connectors: they give
+today's edition plus whatever history your own captures have
+accumulated. For *historical* Mexican editions the OECD archive remains
+the source, and `providers_for("MEX", "gdp_real")` accordingly returns
+`['alfred', 'inegi', 'oecd_stes']`. The same split applies to Brazil
+(`bcb`) and Chile (`bcch`).

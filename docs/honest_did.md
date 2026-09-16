@@ -10,6 +10,8 @@ In empirical policy evaluations, the core identification assumption is **paralle
 
 The "Honest DiD" approach replaces binary pre-trend tests with **formal sensitivity analysis**, deriving robust confidence intervals and identified sets under bounded potential post-treatment violations of parallel trends.
 
+Sensitivity analysis answers "how wrong may parallel trends be before the conclusion changes"; the complementary question — what a selection-on-observables design buys once the controls are high-dimensional — is in [`docs/causal_dml.md`](causal_dml.md).
+
 ---
 
 ## 1. Econometric Framework

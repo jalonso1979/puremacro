@@ -36,23 +36,45 @@ Las demostraciones `56` a `58` presentan los motores de vanguardia de `puremacro
     La matriz $(\rho + 1/\Delta) I - A(v^n)$ es estrictamente diagonal dominante con elementos fuera de la diagonal negativos, garantizando existencia, unicidad y estabilidad incondicional para cualquier $\Delta > 0$.
   - **Ecuación Adjunta de Kolmogorov hacia Adelante (KFE)**:
     $$A(v^*)^\top g = 0, \quad \text{s.a.} \quad \sum_{j=1}^J \sum_{i=1}^I g_{j, i} \Delta a_i = 1.0$$
-    Sustituir una fila por la condición de normalización asegura la conservación de masa a nivel de máquina ($|\sum g_i \Delta a_i - 1| \le 10^{-15}$).
+    Sustituir una fila por la condición de normalización asegura la conservación de masa hasta el umbral del cuaderno ($|\sum g_i \Delta a_i - 1| \le 10^{-12}$; la ejecución anterior alcanza $1{,}1 \times 10^{-16}$). En una malla no uniforme el vector nulo es la *masa* por nodo, y `solve_kfe_achdou` la divide entre los pesos de cuadratura del ancho de celda, de modo que lo que se obtiene es una *densidad*.
   - **Equilibrio General Continuo de Aiyagari**:
     $$K^s(r) = \sum_{j, i} a_i g_{j, i} \Delta a_i = K^d(r) = \left( \frac{r + \delta}{\alpha \bar{Z}} \right)^{\frac{1}{\alpha - 1}}$$
 - **Intuición Económica**: Los modelos de tiempo discreto requieren una agregación temporal fina y sufren de fluctuaciones en la frontera del endeudamiento. La formulación en tiempo continuo reemplaza las elecciones discretas con una función de deriva suave $s(a, z)$. Las diferencias finitas upwind reflejan la dirección física de los flujos de activos: los hogares que acumulan activos miran hacia adelante ($v_{i+1} - v_i$), mientras que aquellos que desacumulan activos miran hacia atrás ($v_i - v_{i-1}$), eliminando oscilaciones no físicas. Dado que el generador de transición $A$ es un generador de Markov infinitesimal, su adjunto $A^\top$ entrega la densidad estacionaria exacta de riqueza $g(a, z)$ en una única resolución lineal, preservando la conservación de masa sin ruido de simulación de Monte Carlo.
 - **Código Desarrollado**:
-  ```text
+  ```python
+  import numpy as np
   from puremacro.vfi import solve_hjb_achdou, solve_aiyagari_continuous_hjb
 
-  # Solucionador implícito HJB en tiempo continuo
-  sol_hjb = solve_hjb_achdou(r=0.03, gamma=2.0, rho=0.05, a_min=0.0, a_max=30.0, n_a=100)
+  # Solucionador implícito HJB en tiempo continuo (atención a los nombres de
+  # los parámetros: r_rate / w_rate / rho_val / gamma_r / Na, no r / w / rho /
+  # gamma / n_a)
+  sol = solve_hjb_achdou(
+      r_rate=0.03, w_rate=1.0, rho_val=0.05, gamma_r=2.0,
+      Na=100, a_min=0.0, a_max=30.0, tol=1e-8, max_iter=100,
+  )
+  sol.converged, sol.n_iter          # True, 9
+  sol.V.shape, sol.c_policy.shape    # (100, 2), (100, 2)
+  sol.mass_residual                  # 1.11e-16  (umbral de la KFE: <= 1e-12)
 
-  # Equilibrio General Continuo de Aiyagari
-  sol_ge = solve_aiyagari_continuous_hjb(gamma=2.0, rho=0.05, alpha=0.33, delta=0.05)
+  da = sol.a_grid[1] - sol.a_grid[0]
+  mass = float(np.sum(sol.g_dist * da))   # 1.0 — la densidad es `g_dist`
+
+  # Equilibrio general continuo de Aiyagari: bisección en r hasta Ks(r) = Kd(r)
+  ge = solve_aiyagari_continuous_hjb(
+      alpha=0.33, delta=0.05, rho_val=0.05, gamma_r=2.0,
+      Na=40, a_max=25.0, tol_ge=1e-4, max_iter_ge=30,
+  )
+  ge.converged, ge.r_star, ge.K_star      # True, 0.018879, 6.2190
   ```
-- **Lectura de Resultados y Visualizaciones**: Tablero hero de 4 paneles: (1) Funciones de valor convergidas $v_j(a)$ que exhiben estricta concavidad; (2) Políticas óptimas de consumo $c_j(a)$ con quiebres en la propensión marginal a consumir cerca de $\underline{a}$; (3) Trayectorias de deriva $s_j(a)$ mostrando desacumulación para ingresos bajos y acumulación para ingresos altos; (4) Densidad estacionaria de riqueza $g(a, z)$ mostrando el pico característico de masa precautoria en el límite de crédito.
-- **Tu Turno y Aserciones Interactivas**: Parámetros interactivos `gamma_custom = 1.50`, `a_min_custom = 0.0`, `r_test = 0.025` con aserciones `sol_custom.converged`, `np.isclose(sol_custom.g.sum() * da, 1.0, atol=1e-10)`, `r_star > 0.0`.
-- **Literatura y Referencias Cruzadas**: Achdou, Han, Lasry, Lions y Moll (2022), Aiyagari (1994), Huggett (1993). Guía de usuario: [`docs/es/vfi_continuous_equilibrium.md`](vfi_continuous_equilibrium.md).
+  Desde la 3.4.0, `solve_hjb_achdou` incorpora el término de conmutación de
+  ingresos de Poisson entre dos estados que el solucionador explícito de la
+  3.3.0 omitía (generador simétrico, $\lambda = 0{,}1$ por omisión), de modo que
+  los estados de productividad ya no son problemas independientes de ingreso
+  determinista; `tol_ge` gobierna la bisección de equilibrio general y
+  `ge.converged` reporta $|K^s - K^d| \le$ `tol_ge`.
+- **Lectura de Resultados y Visualizaciones**: Tablero hero de 4 paneles: (1) Políticas óptimas de consumo $c_j(a)$ por estado de ingreso, con quiebres en la propensión marginal a consumir cerca de $\underline{a}$; (2) Deriva del ahorro $s(a, z) = r a + w z - c(a, z)$, con desacumulación para ingresos bajos y acumulación para ingresos altos; (3) Distribución estacionaria de riqueza obtenida de la KFE adjunta, con el pico característico de masa precautoria en el límite de crédito; (4) Vaciado del mercado de activos de Aiyagari, $K^s(r)$ frente a $K^d(r)$ en torno a $r^*$.
+- **Tu Turno y Aserciones Interactivas**: Parámetros interactivos `rho_custom = 0.05`, `gamma_custom = 2.0`, `Na_custom = 50`, `a_max_custom = 30.0`, con una nueva resolución vía `solve_hjb_achdou`; aserciones `sol_custom.converged`, `sol_custom.n_iter <= 25`, `sol_custom.mass_residual <= 1e-12` y `abs(mass_custom - 1.0) <= 1e-12`, donde `mass_custom = np.sum(sol_custom.g_dist * da_custom)`.
+- **Literatura y Referencias Cruzadas**: Achdou, Han, Lasry, Lions y Moll (2022), Aiyagari (1994), Huggett (1993). Guías de usuario: [`docs/es/vfi_hjb_continuous.md`](vfi_hjb_continuous.md) (el solucionador en tiempo continuo) y [`docs/es/vfi_continuous_equilibrium.md`](vfi_continuous_equilibrium.md) (la vía del histograma en tiempo discreto).
 
 ### `57_multiconstraint_occbin_and_dml_es`
 - **Fuente**: `notebooks/57_multiconstraint_occbin_and_dml_es.py` (Inglés: `.py`, compilado: `.ipynb`)
@@ -67,20 +89,43 @@ Las demostraciones `56` a `58` presentan los motores de vanguardia de `puremacro
     El score ortogonal de Neyman elimina el sesgo de regularización de los estimadores de aprendizaje automático $\hat{\ell}(X)$ y $\hat{m}(X)$:
     $$\psi(W; \theta, \eta) = (Y - \ell(X)) - \theta (D - m(X))$$
     El ajuste cruzado de $K$ particiones elimina el sesgo de sobreajuste, produciendo estimaciones $\sqrt{N}$-consistentes y asintóticamente normales $\hat{\theta} \sim \mathcal{N}(\theta_0, \sigma^2 / N)$.
-- **Intuición Económica**: Ante una contracción profunda, los hogares reducen su endeudamiento contra su límite crediticio mientras el banco central reduce la tasa de interés a cero. Cuando ambas restricciones operan simultáneamente (Régimen 3), la economía sufre una amplificación no lineal severa: la política monetaria no puede acomodar la caída mientras los hogares no pueden endeudarse para suavizar consumo. En la etapa empírica, MCO estándar fracasa por sesgo de variables omitidas ante 100 controles macroeconómicos (+42.5% de sesgo). DML ortogonaliza la política y el producto respecto a los factores de confusión, recuperando el parámetro estructural con cobertura estadística exacta.
+- **Intuición Económica**: Ante una contracción profunda, los hogares reducen su endeudamiento contra su límite crediticio mientras el banco central reduce la tasa de interés a cero. Cuando ambas restricciones operan simultáneamente (Régimen 3), la economía sufre una amplificación no lineal severa: la política monetaria no puede acomodar la caída mientras los hogares no pueden endeudarse para suavizar consumo. En la etapa empírica el cuaderno contrasta tres estimadores sobre un panel sintético con $N = 500$, $p = 30$ controles y un efecto verdadero $\theta_0 = 1{,}75$: MCO sobre todos los controles ($\hat\theta = 1{,}686$, IC al 95 % $[1{,}570, 1{,}801]$), un Lasso ingenuo que penaliza la variable de política $D$ junto con $X$ ($\hat\theta = 1{,}582$ — atenuación por encogimiento, sin un intervalo de confianza que merezca citarse) y DML ($\hat\theta = 1{,}699$, IC al 95 % $[1{,}581, 1{,}817]$). El estimador que fracasa es el Lasso ingenuo; lo que aporta DML es el derecho a emplear un ajuste penalizado de los parámetros de nuisance *y* aun así reportar un intervalo válido, gracias al ajuste cruzado y al score ortogonal de Neyman. Conviene precisar el alcance de esa garantía: los aprendices de nuisance incluidos (`lasso`, `ridge` — no hay red elástica) son **lineales en las columnas de $X$ que usted suministra**, de modo que DML elimina la confusión que sea lineal en esas columnas. La confusión no lineal exige añadir una expansión de base a $X$, o pasar un aprendiz propio mediante `learner=`.
 - **Código Desarrollado**:
-  ```text
-  from puremacro.dsge import OccBinConstraint, OccBinMultiConstraint, solve_multiconstraint_occbin
-  from puremacro.dml import DoubleMLPLR
+  ```python
+  import numpy as np
+  from puremacro.dsge import (
+      build_dynare, OccBinConstraint, solve_multiconstraint_occbin, OccBinResult,
+  )
+  from puremacro.causal import dml_plr, DoubleMLPLR, LassoCoordinateDescent, RidgeGCV
 
-  # 1. Solución OccBin multirrestricción
-  occ_res = solve_multiconstraint_occbin(model, constraints=[zlb_c, borrow_c], shock=shock)
+  # 1. OccBin multirrestricción: un modelo restringido por restricción,
+  #    emparejados por clave
+  res_occ = solve_multiconstraint_occbin(
+      m_unconstrained=m_ref,
+      m_constrained_dict={"zlb": m_zlb, "borrowing": m_borr},
+      shock_seq=shocks_mat,                      # (horizon, n_shocks)
+      constraints={"zlb": c_zlb, "borrowing": c_borr},
+      horizon=40,
+  )
+  regimes = np.asarray(res_occ.regimes)          # máscara: 1 = ZLB, 2 = tope, 3 = ambas
+  res_occ.converged, regimes[:8]                 # True, [3 1 1 0 0 0 0 0]
 
-  # 2. Regresión parcialmente lineal con DML
-  dml_res = DoubleMLPLR(Y, D, X, n_folds=5, estimator="lasso").fit()
+  # 2. Regresión parcialmente lineal con DML (N = 500, p = 30, theta_0 = 1.75)
+  res_dml_lasso = dml_plr(Y_outcome, D_treat, X_mat, n_folds=5,
+                          learner="lasso", random_state=42)
+  res_dml_ridge = dml_plr(Y_outcome, D_treat, X_mat, n_folds=5,
+                          learner="ridge", random_state=42)
+  res_dml_lasso.theta, res_dml_lasso.ci_lower, res_dml_lasso.ci_upper
+  #                                              # 1.6989, 1.5813, 1.8165
   ```
-- **Lectura de Resultados y Visualizaciones**: Tablero hero de 4 paneles: (1) Cronología de regímenes discretos que rastrea la duración de la crisis conjunta ZLB-crédito; (2) Comparación de FIR lineal frente a trayectoria lineal a tramos con quiebre no lineal; (3) Dispersión de residuos por pliegues de validación cruzada; (4) Densidad de distribución muestral comparando DML frente al sesgo de MCO.
-- **Tu Turno y Aserciones Interactivas**: Parámetros interactivos `shock_g_custom = -0.05`, `n_folds_custom = 5`, `alpha_custom = 0.05` con aserciones `res_custom.converged`, `np.abs(dml_custom.theta - theta_true) < 0.20`, `dml_custom.p_value < 0.01`.
+  `DoubleMLPLR(n_folds=5, learner="lasso").fit(Y, D, X)` es la forma de clase del
+  mismo estimador: los datos se pasan a `.fit()`, no al constructor, y el
+  argumento es `learner=`, no `estimator=`. No existe ninguna clase
+  `OccBinMultiConstraint` ni módulo `puremacro.dml`; el solucionador
+  multirrestricción es `puremacro.dsge.solve_multiconstraint_occbin` y DML reside
+  en `puremacro.causal`.
+- **Lectura de Resultados y Visualizaciones**: Tablero hero de 4 paneles: (1) Trayectoria de la tasa de interés, OccBin frente a la simulación lineal sin restricciones; (2) Secuencia de regímenes estructurales activos a lo largo del tiempo (la máscara de bits); (3) Comparación de estimadores causales con bandas de confianza: efecto verdadero, MCO, Lasso ingenuo, DML-Lasso y DML-Ridge; (4) Residuos ortogonalizados de Neyman con la pendiente de política ajustada.
+- **Tu Turno y Aserciones Interactivas**: Parámetros interactivos `shock_g_custom = -0.06`, `shock_b_custom = 0.05`, `b_bar_custom = 0.020`, `n_folds_custom = 5`, `learner_custom = "lasso"` con aserciones `res_custom_occ.converged` y `res_custom_dml.ci_lower <= theta_true <= res_custom_dml.ci_upper`.
 - **Literatura y Referencias Cruzadas**: Guerrieri e Iacoviello (2015), Chernozhukov et al. (2018), Belloni, Chernozhukov y Hansen (2014). Guías de usuario: [`docs/es/dsge_higher_order.md`](dsge_higher_order.md), [`docs/es/forecast.md`](forecast.md).
 
 ### `58_latin_america_realtime_macro_es`
@@ -96,26 +141,45 @@ Las demostraciones `56` a `58` presentan los motores de vanguardia de `puremacro
     Bajo ruido clásico de medición, la publicación preliminar es una aproximación ruidosa del PIB verdadero: $H_0: \alpha = 0, \beta = 1$.
   - **Inferencia HAC Newey-West**: Estimación robusta de covarianza para heterocedasticidad y autocorrelación en los residuos de revisión.
   - **Cartuchos Criptográficos `.pmz` Fuera de Línea**: Archivos `.pmz` portátiles y autocontenidos con verificación de integridad SHA-256, validación de esquema y desempaquetado instantáneo sin conexión a red.
+  - **Aquí las añadas son fechas de instantánea.** Banxico, INEGI, BCB y BCCh publican únicamente la edición vigente en el momento de la consulta; sobrescriben en el sitio. El panel del cuaderno es, por tanto, sintético, y frente a los conectores en vivo una fecha de añada es el día en que se capturó la serie: el historial de revisiones se acumula solo a lo largo de capturas repetidas en días distintos.
 - **Intuición Económica**: Las cifras preliminares publicadas a los 30–45 días del cierre del trimestre se basan en muestras incompletas y modelos de nowcasting. Conforme arriba información dura (declaraciones tributarias, balances contables), las agencias revisan los datos. En economías emergentes de América Latina (México, Brasil, Chile), discernir si las revisiones son noticias o ruido determina si los formuladores de política deben reaccionar de inmediato a las señales preliminares o descontarlas como volatilidad transitoria. Los resultados empíricos confirman que las revisiones están dominadas por noticias, ratificando que los bancos centrales entregan estimaciones racionales en tiempo real.
 - **Código Desarrollado**:
-  ```text
-  from puremacro.realtime import (
-      build_revision_triangle,
-      mankiw_shapiro_test,
-      export_realtime_cartridge,
+  ```python
+  from puremacro.fetch.realtime import (
+      VintagePanel,
+      pack_realtime_cartridge,
       load_realtime_cartridge,
   )
 
-  # Construcción del triángulo de revisiones y prueba de Mankiw-Shapiro
-  tri = build_revision_triangle(vintage_df)
-  news_res, noise_res = mankiw_shapiro_test(tri)
+  # `df_raw` es el marco largo ordenado: country, variable, date, vintage,
+  # value, provider, series_id, units
+  panel_raw = VintagePanel(df_raw)
 
-  # Empaquetado en cartucho criptográfico offline
-  export_realtime_cartridge(cartridge_file, panel, metadata={"region": "América Latina"})
+  # Empaquetado en un cartucho .pmz offline y recarga con verificación SHA-256
+  pack_realtime_cartridge(
+      panel_raw, cartridge_file,
+      source="Banxico, INEGI, BCB, BCCh Regional Real-Time Ecosystem",
+      vintage="2026-04-01",
+  )
+  panel = load_realtime_cartridge(cartridge_file, verify=True)
+
+  # Los triángulos de revisiones y el par de Mankiw-Shapiro son métodos del panel
+  panel.coverage()                            # qué se recuperó, por (país, variable)
+  panel.as_of("2025-06-01")                   # el conjunto de información en esa fecha
+  panel.triangle("MEX", "gdp_real")           # períodos de referencia x añadas
+  panel.revisions("MEX", "gdp_real")          # preliminar / final / revisión
+  ms = panel.news_or_noise("MEX", "gdp_real") # MankiwShapiroResult
+  ms.verdict, ms.beta_on_preliminary, ms.p_beta_on_final
+  panel.news_or_noise_panel()                 # todas las series, una tabla ordenada
   ```
-- **Lectura de Resultados y Visualizaciones**: Tablero hero de 4 paneles: (1) Mapa de calor triangular que ilustra las revisiones en tiempo real según trimestre y rezago de publicación; (2) Líneas espagueti de trayectorias de estimación del PIB desde el primer reporte hasta la cifra definitiva; (3) Histograma de magnitudes de revisión con ajuste normal y diagnósticos de asimetría; (4) Diagrama de dispersión de Mankiw-Shapiro con rectas de regresión y bandas de confianza robustas HAC.
-- **Tu Turno y Aserciones Interactivas**: Parámetros interactivos `country_custom = "brazil"`, `hac_lags_custom = 4`, `ci_level_custom = 0.95` con aserciones `tri_custom.shape[0] > 0`, `news_custom.p_value > 0.05`, `noise_custom.p_value < 0.05`.
-- **Literatura y Referencias Cruzadas**: Mankiw y Shapiro (1986), Croushore y Stark (2001), Faust, Rogers y Wright (2005). Guía de usuario: [`docs/es/real_time_data.md`](real_time_data.md).
+  No existe un módulo `puremacro.realtime` ni funciones `build_revision_triangle`,
+  `mankiw_shapiro_test` o `export_realtime_cartridge`: los auxiliares de cartucho
+  son `pack_realtime_cartridge` / `load_realtime_cartridge` en
+  `puremacro.fetch.realtime`, y la maquinaria de revisiones vive en `VintagePanel`
+  (con el contraste subyacente en `puremacro.vintages.mankiw_shapiro`).
+- **Lectura de Resultados y Visualizaciones**: Tablero hero de 4 paneles: (1) Tasas de política monetaria de los bancos centrales latinoamericanos; (2) Mapa de calor triangular del triángulo de revisiones $\mathbf{T}[t, v]$ para el PIB real de México; (3) Estimaciones preliminares frente a definitivas del PIB a lo largo de los períodos de referencia; (4) Diagrama de dispersión de Mankiw-Shapiro de las revisiones sobre la publicación preliminar, anotado con el veredicto.
+- **Tu Turno y Aserciones Interactivas**: Parámetros interactivos `country_custom = "MEX"`, `var_custom = "gdp_real"`, `as_of_custom = "2025-06-01"`, `signif_custom = 0.05` con aserciones `country_custom in panel.countries`, `var_custom in panel.variables`, `not custom_asof.empty`, `len(custom_rev) > 0` y `hasattr(custom_ms, "verdict")`.
+- **Literatura y Referencias Cruzadas**: Mankiw y Shapiro (1986), Croushore y Stark (2001), Faust, Rogers y Wright (2005). Guías de usuario: [`docs/es/real_time_latam.md`](real_time_latam.md) (los cuatro conectores) y [`docs/es/real_time_data.md`](real_time_data.md).
 
 ---
 
