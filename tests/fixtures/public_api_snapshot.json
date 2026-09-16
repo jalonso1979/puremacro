@@ -312,6 +312,7 @@
       "csminwel",
       "decompose_news",
       "discretionary_policy",
+      "dynare_results",
       "estimate_dsge",
       "estimate_dsge_bayesian",
       "estimate_dsge_var",
@@ -326,7 +327,6 @@
       "interactive_irf",
       "klein_solve",
       "laplace_mdd",
-      "load_dynare",
       "load_dynare_dr",
       "load_dynare_mod",
       "load_dynare_moments",
@@ -2704,6 +2704,10 @@
       "RAW_45_SECTOR_CODES",
       "RAW_45_SECTOR_NAMES",
       "RAW_6_FINAL_DEMAND_CODES",
+      "available_reference_scenarios",
+      "bundled_icio_path",
+      "bundled_reference_path",
+      "bundled_workbook_path",
       "get_country_codes",
       "get_eu_country_codes",
       "get_final_demand_codes",
@@ -2713,7 +2717,9 @@
       "get_sector_codes",
       "get_sector_names",
       "load_icio_data",
-      "load_raw_45sector_icio"
+      "load_raw_45sector_icio",
+      "load_reference_solution",
+      "load_reference_workbook_sheet"
     ],
     "puremacro.trade.equilibrium": [
       "EquilibriumVariables",
@@ -4196,6 +4202,18 @@
       "resid",
       "shock_names"
     ],
+    "puremacro.dsge.dynare_results.DynareFEVD": [
+      "horizons",
+      "shares",
+      "shock_names",
+      "var_names"
+    ],
+    "puremacro.dsge.dynare_results.DynareIRF": [
+      "horizon",
+      "ir",
+      "shock_names",
+      "var_names"
+    ],
     "puremacro.dsge.gensys.GensysSolution": [
       "G",
       "Impact",
@@ -4224,18 +4242,6 @@
       "eigenvalues",
       "eu",
       "residual"
-    ],
-    "puremacro.dsge.load_dynare.DynareFEVD": [
-      "horizons",
-      "shares",
-      "shock_names",
-      "var_names"
-    ],
-    "puremacro.dsge.load_dynare.DynareIRF": [
-      "horizon",
-      "ir",
-      "shock_names",
-      "var_names"
     ],
     "puremacro.dsge.marginal.HarmonicMeanResult": [
       "by_truncation",
