@@ -39,7 +39,7 @@ from ._results import (
 from .dsge_var import DSGEVARResult, estimate_dsge_var
 from .hank import HANKModel, load_hank_mod, solve_hank_bridge
 from .parity import verify_dynare_parity, compare_model_to_dynare, run_parity_suite
-from .load_dynare import load_dynare_dr, load_dynare_moments, load_irfs, load_fevd
+from .dynare_results import load_dynare_dr, load_dynare_moments, load_irfs, load_fevd
 from .conditional import conditional_forecast
 from .shock_groups import shock_groups_decomposition
 from .bayesian import bayesian_irf, prior_predictive
@@ -196,7 +196,7 @@ __all__ = [
     "verify_dynare_parity", "compare_model_to_dynare", "run_parity_suite",
     "load_dynare_dr", "load_dynare_moments", "load_irfs", "load_fevd",
     "ParityDashboardResult", "ModelParityResult",
-    "load_dynare", "parity",
+    "dynare_results", "parity",
     # --- 3.0.0: Sequence-Space HANK Bridge -------------------------------
     "HANKModel", "HANKResult", "load_hank_mod", "solve_hank_bridge",
     "hank",
@@ -217,7 +217,7 @@ __all__ = [
 ]
 from . import smets_wouters  # re-export for back-compat with 0.50.0 callers
 from . import gertler_karadi
-from . import load_dynare, parity
+from . import dynare_results, parity
 from . import hank
 from . import macro
 from . import news

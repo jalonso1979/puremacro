@@ -130,16 +130,19 @@ under 1.9.0, "Fixed — affects results published in every release from
 
 Stated here rather than left for a user to discover:
 
-- **`matlab/` — partly.** The MATLAB companion toolbox is a separate
-  implementation, so a Python fix does not reach it. Two were ported by
-  hand: `+puremacro/+var/proxy.m` carried the identical proxy-SVAR
-  metric error and is corrected, and `+puremacro/+var/estimate.m` now
-  raises on non-finite input. **Any proxy-SVAR impulse response that
-  toolbox produced before 2026-09-02 is wrong and should be re-run.**
-  The other five estimators in the table above have **not** been audited
-  there; where the toolbox implements them, assume the same defects
-  until checked. See
-  [`matlab/README.md`](https://github.com/jalonso1979/puremacro/blob/main/matlab/README.md).
+- **`matlab/` — removed in 4.0.0.** The MATLAB companion toolbox was a
+  separate implementation, so a Python fix never reached it. Two estimators
+  were ported by hand before removal: `+puremacro/+var/proxy.m` carried the
+  identical proxy-SVAR metric error and was corrected, and
+  `+puremacro/+var/estimate.m` was made to raise on non-finite input. The
+  other five estimators in the table above were **never audited there**.
+  Because an unaudited parallel implementation of a corrected estimator is a
+  standing hazard, and because the toolbox required proprietary software that
+  puremacro otherwise does not, it was deleted in 4.0.0 rather than carried
+  forward. **If you ever ran that toolbox, treat its output as unverified and
+  re-run it with the Python package. Any proxy-SVAR impulse response it
+  produced before 2026-09-02 is wrong.** The code remains in git history at
+  tag `v3.4.0` if you need to consult it.
 - **This repository's own notebooks have been re-executed.**
   `notebooks/14_tax_multiplier_three_ways`,
   `notebooks/17_identification_spec_curve`, their `_es` twins,

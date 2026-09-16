@@ -13,12 +13,9 @@ machine-specific hardcoded paths.
 """
 from __future__ import annotations
 
-import os
-from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-import scipy.io as sio
 
 from puremacro.trade import (
     TradeCalibrationResult,
@@ -32,8 +29,39 @@ from puremacro.trade import (
     solve_trade_equilibrium,
     unpack_equilibrium_vector,
 )
+from puremacro.trade.data import load_icio_data, load_reference_solution
 
-from conftest import mat_file_is_readable
+
+# ---------------------------------------------------------------------------
+# Bundled MATLAB reference solutions
+# ---------------------------------------------------------------------------
+#
+# The ICIO source matrix and the reference equilibria ship inside
+# ``puremacro.trade`` as verbatim copies of the MATLAB inputs and outputs, so
+# these checks need neither MATLAB nor any file outside the installation.
+#
+# The bundle carries XN_sol, c_sol, pfd_sol, xx_sol, w_sol, ytot_sol, T_sol,
+# r_sol, p_sol, tau_a and taufd_a per scenario.  It does NOT carry ``ff`` (the
+# MATLAB residual vector) or the retaliatory tariff tensors ``tauf`` /
+# ``tauf_fd``, so the residual- and post-processing-parity checks below skip by
+# name.  Those arrays are an external check on puremacro and must not be
+# regenerated with puremacro itself; bundling them alongside the others is what
+# re-enables these tests.
+
+def reference_or_skip(scenario: str, *required: str) -> dict[str, np.ndarray]:
+    """Bundled reference arrays for ``scenario``, or a skip naming what is absent."""
+    try:
+        arrays = load_reference_solution(scenario)
+    except KeyError:
+        pytest.skip(f"No bundled reference solution for scenario {scenario!r}")
+    missing = [name for name in required if name not in arrays]
+    if missing:
+        pytest.skip(
+            f"Reference array(s) {', '.join(missing)} for scenario {scenario!r} are not "
+            "part of the reference solutions bundled with puremacro "
+            f"(bundled: {', '.join(sorted(arrays))})"
+        )
+    return arrays
 
 
 # ---------------------------------------------------------------------------
@@ -92,32 +120,9 @@ def synthetic_2c_2s_calib() -> TradeCalibrationResult:
 
 
 @pytest.fixture(scope="module")
-def matlab_benchmark_dir() -> Path | None:
-    """Discover directory containing reference MATLAB .mat files."""
-    candidates = [
-        Path(os.environ.get("IO_COMPUTATION_DIR", "")),
-        Path(__file__).resolve().parent.parent.parent / "IO" / "computation" / "7_TIO_77c_vf",
-        Path(__file__).resolve().parents[2] / "IO" / "computation" / "7_TIO_77c_vf",
-        Path.cwd() / "computation" / "7_TIO_77c_vf",
-        Path.cwd() / "IO" / "computation" / "7_TIO_77c_vf",
-    ]
-    for c in candidates:
-        if (c.exists() and mat_file_is_readable(c / "results_77c_11s_base.mat")
-                and mat_file_is_readable(c / "data_77c_11s.mat")):
-            return c
-    return None
-
-
-@pytest.fixture(scope="module")
-def empirical_calib(matlab_benchmark_dir: Path | None) -> TradeCalibrationResult:
-    """Calibrate full 77-country 11-sector empirical model from data_77c_11s.mat."""
-    if matlab_benchmark_dir is None:
-        pytest.skip("Reference benchmark directory not found.")
-    data_path = matlab_benchmark_dir / "data_77c_11s.mat"
-    if not mat_file_is_readable(data_path):
-        pytest.skip("data_77c_11s.mat missing or unreadable.")
-    data = sio.loadmat(str(data_path))["data"]
-    return calibrate_trade_model(data, ns=11, nc=77, nfd=3, validate=True)
+def empirical_calib() -> TradeCalibrationResult:
+    """Calibrate full 77-country 11-sector empirical model from the bundled ICIO data."""
+    return calibrate_trade_model(load_icio_data(), ns=11, nc=77, nfd=3, validate=True)
 
 
 # ---------------------------------------------------------------------------
@@ -281,13 +286,11 @@ class TestResidualValidation:
     """Validate that MATLAB .mat solution vectors yield near-zero residuals in Python."""
 
     def test_baseline_residual_parity(
-        self, empirical_calib: TradeCalibrationResult, matlab_benchmark_dir: Path | None
+        self, empirical_calib: TradeCalibrationResult
     ) -> None:
         """Verify xx_sol_77c_11s_base.mat evaluated in Python satisfies tolerance < 2.5e-3."""
-        if matlab_benchmark_dir is None:
-            pytest.skip("Benchmark directory not found.")
         calib = empirical_calib
-        mat = sio.loadmat(str(matlab_benchmark_dir / "results_77c_11s_base.mat"))
+        mat = reference_or_skip("base", "ff", "tau_a", "taufd_a", "tauf", "tauf_fd", "xx_sol")
         xx_mat = mat["xx_sol"].ravel()
         ff_mat = mat["ff"].ravel()
 
@@ -314,13 +317,11 @@ class TestResidualValidation:
         assert np.sum(np.abs(ff_py)) < 2.5e-3
 
     def test_t10_residual_parity(
-        self, empirical_calib: TradeCalibrationResult, matlab_benchmark_dir: Path | None
+        self, empirical_calib: TradeCalibrationResult
     ) -> None:
         """Verify xx_sol_77c_11s_t10.mat evaluated in Python satisfies tolerance < 2.5e-3."""
-        if matlab_benchmark_dir is None:
-            pytest.skip("Benchmark directory not found.")
         calib = empirical_calib
-        mat = sio.loadmat(str(matlab_benchmark_dir / "results_77c_11s_t10.mat"))
+        mat = reference_or_skip("t10", "ff", "tau_a", "taufd_a", "tauf", "tauf_fd", "xx_sol")
         xx_mat = mat["xx_sol"].ravel()
         ff_mat = mat["ff"].ravel()
 
@@ -345,13 +346,11 @@ class TestResidualValidation:
         assert np.sum(np.abs(ff_py)) < 2.5e-3
 
     def test_t10_precedence_divergence(
-        self, empirical_calib: TradeCalibrationResult, matlab_benchmark_dir: Path | None
+        self, empirical_calib: TradeCalibrationResult
     ) -> None:
         """Verify that replicate_matlab_precedence=False diverges from MATLAB solution."""
-        if matlab_benchmark_dir is None:
-            pytest.skip("Benchmark directory not found.")
         calib = empirical_calib
-        mat = sio.loadmat(str(matlab_benchmark_dir / "results_77c_11s_t10.mat"))
+        mat = reference_or_skip("t10", "tau_a", "taufd_a", "tauf", "tauf_fd", "xx_sol")
         xx_mat = mat["xx_sol"].ravel()
 
         ff_false = compute_equilibrium_residuals(
@@ -375,13 +374,11 @@ class TestSolveParity:
     """Verify solve_trade_equilibrium reproduces MATLAB benchmark solutions within 10^-4."""
 
     def test_solve_baseline_parity(
-        self, empirical_calib: TradeCalibrationResult, matlab_benchmark_dir: Path | None
+        self, empirical_calib: TradeCalibrationResult
     ) -> None:
         """Verify baseline solve reproduces xx_sol_77c_11s_base.mat within relative error < 1e-4."""
-        if matlab_benchmark_dir is None:
-            pytest.skip("Benchmark directory not found.")
         calib = empirical_calib
-        mat = sio.loadmat(str(matlab_benchmark_dir / "results_77c_11s_base.mat"))
+        mat = reference_or_skip("base", "xx_sol")
         xx_expected = mat["xx_sol"].ravel()
 
         res = solve_trade_equilibrium(calib, method="newton", tol=2.5e-3)
@@ -397,13 +394,11 @@ class TestSolveParity:
         assert np.allclose(res.r_sol, 1.0, atol=1e-10)
 
     def test_solve_t10_warm_start_parity(
-        self, empirical_calib: TradeCalibrationResult, matlab_benchmark_dir: Path | None
+        self, empirical_calib: TradeCalibrationResult
     ) -> None:
         """Verify t10 solve starting from xx_sol_77c_11s_t10 confirms convergence < 1e-4."""
-        if matlab_benchmark_dir is None:
-            pytest.skip("Benchmark directory not found.")
         calib = empirical_calib
-        mat = sio.loadmat(str(matlab_benchmark_dir / "results_77c_11s_t10.mat"))
+        mat = reference_or_skip("t10", "tau_a", "taufd_a", "tauf", "tauf_fd", "xx_sol")
         xx_expected = mat["xx_sol"].ravel()
 
         res = solve_trade_equilibrium(
@@ -423,13 +418,11 @@ class TestSolveParity:
         assert max_rel_error < 1e-4
 
     def test_postprocessing_t10_parity(
-        self, empirical_calib: TradeCalibrationResult, matlab_benchmark_dir: Path | None
+        self, empirical_calib: TradeCalibrationResult
     ) -> None:
         """Verify post-processing reproduces US tariff collections and terms of trade."""
-        if matlab_benchmark_dir is None:
-            pytest.skip("Benchmark directory not found.")
         calib = empirical_calib
-        mat = sio.loadmat(str(matlab_benchmark_dir / "results_77c_11s_t10.mat"))
+        mat = reference_or_skip("t10", "tau_a", "taufd_a", "tauf", "tauf_fd", "xx_sol")
         xx_sol = mat["xx_sol"].ravel()
 
         flows = compute_postprocessing_flows(

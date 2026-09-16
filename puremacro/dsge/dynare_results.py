@@ -1,6 +1,7 @@
-"""Bridge from Dynare *_results.mat to numpy arrays matching the SVAR output shape.
+"""Bridge from a Dynare ``oo_`` results structure to numpy arrays.
 
-Dynare writes a struct oo_ at solution time. We read it with scipy.io.loadmat
+Dynare writes a struct ``oo_`` at solution time. puremacro consumes it as a plain
+Python dict
 (no MATLAB engine or Octave dependency).
 
 Key Dynare fields we consume:
@@ -20,9 +21,16 @@ from typing import Any, Sequence
 
 import numpy as np
 import pandas as pd
-from scipy.io import loadmat
 
 from ._results import Dynare2ndDR, DynareDR
+
+
+_PATH_INPUT_REMOVED = (
+    "Reading MATLAB .mat files was removed in puremacro 4.0.0: the package no "
+    "longer depends on MATLAB or on any file format it owns. Load the results "
+    "yourself and pass the mapping, e.g. "
+    "`scipy.io.loadmat(path, squeeze_me=True, struct_as_record=False)`."
+)
 
 
 @dataclass
@@ -41,11 +49,19 @@ class DynareFEVD:
     horizons: list[int]
 
 
-def _oo_as_dict(mat_path: Path) -> dict:
-    """Load the .mat, return oo_ as a plain dict (handles scipy's mat_struct wrappers)."""
-    raw = loadmat(str(mat_path), squeeze_me=True, struct_as_record=False)
+def _oo_as_dict(results: dict) -> dict:
+    """Return ``oo_`` as a plain dict (handles scipy's mat_struct wrappers).
+
+    ``results`` is the already-loaded Dynare results mapping. puremacro stopped
+    reading MATLAB ``.mat`` files itself in 4.0.0; a caller who has one loads it
+    with their own tool and passes the resulting dict.
+    """
+    if not isinstance(results, dict):
+        raise TypeError(_PATH_INPUT_REMOVED if isinstance(results, (str, Path)) else
+                        f"Expected a Dynare results dict, got {type(results).__name__}")
+    raw = results
     if "oo_" not in raw:
-        raise KeyError(f"{mat_path} does not contain oo_ — is this a Dynare results file?")
+        raise KeyError("results mapping does not contain oo_ — is this a Dynare results structure?")
     oo = raw["oo_"]
     if hasattr(oo, "_fieldnames"):
         return {name: getattr(oo, name) for name in oo._fieldnames}
@@ -71,13 +87,13 @@ def _get_irf_series(irfs_dict: dict, var: str, shock: str) -> np.ndarray:
 
 
 def load_irfs(
-    mat_path: str | Path,
+    results: dict,
     *,
     var_names: list[str],
     shock_names: list[str],
     horizon: int,
 ) -> DynareIRF:
-    oo = _oo_as_dict(Path(mat_path))
+    oo = _oo_as_dict(results)
     if "irfs" not in oo:
         raise KeyError("oo_ has no 'irfs' field")
     irfs = _irfs_as_dict(oo["irfs"])
@@ -95,13 +111,13 @@ def load_irfs(
 
 
 def load_fevd(
-    mat_path: str | Path,
+    results: dict,
     *,
     var_names: list[str],
     shock_names: list[str],
     horizons: list[int],
 ) -> DynareFEVD:
-    oo = _oo_as_dict(Path(mat_path))
+    oo = _oo_as_dict(results)
     n_vars = len(var_names)
     n_shocks = len(shock_names)
     H = len(horizons)
@@ -191,7 +207,7 @@ def _unfold_ghxx(ghxx_raw: np.ndarray, n_v: int, n_x: int) -> np.ndarray:
 
 
 def load_dynare_dr(
-    mat_path_or_dict: str | Path | dict,
+    results: dict,
     *,
     order: int = 1,
     var_names: Sequence[str] | None = None,
@@ -202,8 +218,10 @@ def load_dynare_dr(
 
     Parameters
     ----------
-    mat_path_or_dict : str | Path | dict
-        Path to Dynare results .mat file or raw results dictionary.
+    results : dict
+        The Dynare results mapping, i.e. the object holding ``oo_``. Since
+        4.0.0 puremacro does not read MATLAB files, so the caller loads it and
+        passes it in; a path raises ``TypeError``.
     order : int, default 1
         Perturbation order: 1 (returns DynareDR) or 2 (returns Dynare2ndDR).
     var_names : sequence of str, optional
@@ -213,22 +231,22 @@ def load_dynare_dr(
     shock_names : sequence of str, optional
         Names of exogenous shocks.
     """
-    if isinstance(mat_path_or_dict, (str, Path)):
-        p = Path(mat_path_or_dict)
-        if not p.exists():
-            raise FileNotFoundError(f"Dynare results file not found: {p}")
-        raw = loadmat(str(p), squeeze_me=True, struct_as_record=False)
-    elif isinstance(mat_path_or_dict, dict):
-        raw = mat_path_or_dict
+    if isinstance(results, (str, Path)):
+        raise TypeError(_PATH_INPUT_REMOVED)
+    if isinstance(results, dict):
+        raw = results
     else:
-        raise TypeError(f"Expected str, Path, or dict, got {type(mat_path_or_dict)}")
+        raise TypeError(f"Expected a Dynare results dict, got {type(results).__name__}")
 
     if "oo_" not in raw:
-        raise KeyError(f"'{mat_path_or_dict}' does not contain 'oo_' structure (is this a Dynare results file?)")
+        raise KeyError(
+            "results mapping does not contain an 'oo_' structure "
+            f"(top-level keys: {sorted(k for k in raw if not str(k).startswith('__'))[:10]})"
+        )
 
     oo = _to_plain_dict(raw["oo_"])
     if "dr" not in oo or oo["dr"] is None:
-        raise KeyError(f"'{mat_path_or_dict}' does not contain 'oo_.dr' structure")
+        raise KeyError("results mapping does not contain an 'oo_.dr' structure")
     dr = _to_plain_dict(oo["dr"])
 
     # Extract M_ metadata if available
@@ -396,20 +414,16 @@ def load_dynare_dr(
     )
 
 
-def load_dynare_moments(mat_path_or_dict: str | Path | dict) -> dict[str, np.ndarray]:
+def load_dynare_moments(results: dict) -> dict[str, np.ndarray]:
     """Parse theoretical moments and autocorrelations from Dynare results."""
-    if isinstance(mat_path_or_dict, (str, Path)):
-        p = Path(mat_path_or_dict)
-        if not p.exists():
-            raise FileNotFoundError(f"Dynare results file not found: {p}")
-        raw = loadmat(str(p), squeeze_me=True, struct_as_record=False)
-    elif isinstance(mat_path_or_dict, dict):
-        raw = mat_path_or_dict
-    else:
-        raise TypeError(f"Expected str, Path, or dict, got {type(mat_path_or_dict)}")
+    if isinstance(results, (str, Path)):
+        raise TypeError(_PATH_INPUT_REMOVED)
+    if not isinstance(results, dict):
+        raise TypeError(f"Expected a Dynare results dict, got {type(results).__name__}")
+    raw = results
 
     if "oo_" not in raw:
-        raise KeyError(f"'{mat_path_or_dict}' does not contain 'oo_' structure (is this a Dynare results file?)")
+        raise KeyError("results mapping does not contain 'oo_' (is this a Dynare results structure?)")
 
     oo = _to_plain_dict(raw["oo_"])
     out: dict[str, np.ndarray] = {}

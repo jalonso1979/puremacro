@@ -1,0 +1,48 @@
+{
+  "file": "trade_reference_solutions.npz",
+  "scenarios_present": [
+    "base",
+    "t10",
+    "t10_125",
+    "t10_145",
+    "t10_25",
+    "t10_75"
+  ],
+  "scenarios_unavailable": [
+    "t10_54"
+  ],
+  "arrays_per_scenario": [
+    "XN_sol",
+    "c_sol",
+    "pfd_sol",
+    "xx_sol",
+    "w_sol",
+    "ytot_sol",
+    "T_sol",
+    "r_sol",
+    "p_sol",
+    "tau_a",
+    "taufd_a",
+    "ff",
+    "tauf",
+    "tauf_fd"
+  ],
+  "arrays_base_only": [
+    "a",
+    "afd",
+    "alpha",
+    "beta",
+    "KT",
+    "LT",
+    "invforT",
+    "tax",
+    "tax_fd",
+    "theta",
+    "ytot",
+    "data_calibra"
+  ],
+  "naming": "<scenario>__<array>",
+  "sha256": "69dd852e70f57c3e53f484ea37a754c49f73a6f140477d72e58fff312812ac33",
+  "provenance": "Extracted verbatim from the MATLAB results_77c_11s_*.mat reference outputs of the sectoral-misallocation computation; values are unmodified copies (dtype included), so these remain an EXTERNAL check on puremacro, not puremacro's own output.",
+  "note": "results_77c_11s_t10_54.mat is a dataless placeholder in the author's storage and could not be extracted; tests needing that scenario skip."
+}

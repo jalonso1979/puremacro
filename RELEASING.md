@@ -97,7 +97,8 @@ Everything here is local and reversible until step 7.
    mistake is free. Build from a clean export, not from the live tree: setuptools seeds
    the sdist from a stale, gitignored `puremacro.egg-info/SOURCES.txt` when one is
    present, and a live-tree build here once produced a 110 MB sdist carrying
-   `playground/dist/`, `tests/`, `notebooks/` and `matlab/`, plus a 9 MB wheel with 63
+   `playground/dist/`, `tests/` and `notebooks/` (and `matlab/`, removed in 4.0.0),
+   plus a 9 MB wheel with 63
    research PNGs — nothing like the 4 MB / 3.4 MB artifacts `release.yml` ships from a
    fresh checkout.
    ```bash

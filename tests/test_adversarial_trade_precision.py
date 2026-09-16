@@ -22,63 +22,77 @@ and adversarially stress-test:
 from __future__ import annotations
 
 from dataclasses import replace
-import os
-from pathlib import Path
 import sys
 import warnings
 
 import numpy as np
 import pytest
-import scipy.io as sio
 
 from puremacro.trade.calibration import calibrate_trade_model
-from puremacro.trade.data import get_country_codes, get_sector_codes, load_icio_data
+from puremacro.trade.data import (
+    get_country_codes,
+    get_sector_codes,
+    load_icio_data,
+    load_reference_solution,
+)
 
-from conftest import load_or_skip, mat_file_is_readable
+from conftest import load_or_skip
 
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 
+# The 77x11 ICIO matrix ships inside ``puremacro.trade``, so ``load_icio_data``
+# needs no file outside the installation.  A broken install could still lose it,
+# and a setup ERROR on every test is the wrong signal there, so the loader keeps
+# turning an unavailable-data failure into a skip.
+#
+# The bundled MATLAB reference solutions carry the *equilibrium* arrays (XN_sol,
+# c_sol, pfd_sol, xx_sol, w_sol, ytot_sol, T_sol, r_sol, p_sol, tau_a, taufd_a).
+# They do NOT carry the baseline *calibration* arrays this suite compares against
+# (a, afd, alpha, beta, KT, LT, invforT, tax, ytot), which are an external check
+# on puremacro and must not be regenerated with puremacro itself.  Every test that
+# needs them takes ``matlab_base_arrays`` and skips by name until they are bundled.
+_MATLAB_CALIBRATION_ARRAYS = (
+    "a", "afd", "alpha", "beta", "KT", "LT", "invforT", "tax", "ytot",
+)
+
+
 def _load_icio_or_skip():
-    """The 77x11 ICIO matrix lives outside the repository (../IO or IO_DATA_PATH).
+    """Return the bundled 77x11 ICIO matrix, or skip if it cannot be read.
 
     Without it ``load_icio_data`` raises FileNotFoundError, which a module
-    fixture turns into a setup ERROR on all sixteen tests. A clean checkout
-    (CI included) has no such tree, so the honest outcome there is a skip.
+    fixture turns into a setup ERROR on all sixteen tests; a skip is the honest
+    outcome for an installation that is missing its own data file.
     """
     return load_or_skip(load_icio_data)
 
 
 @pytest.fixture(scope="module")
 def reference_data():
-    """Load raw ICIO matrix and reference MATLAB results."""
+    """Bundled raw ICIO matrix and the Python calibration derived from it."""
     raw_data = _load_icio_or_skip()
     calib = calibrate_trade_model(raw_data, nc=77, ns=11, nfd=3)
+    return raw_data, calib
 
-    # Resolve results_77c_11s_base.mat path portably
-    candidates = [
-        Path(os.environ.get("IO_COMPUTATION_DIR", "")) / "results_77c_11s_base.mat",
-        Path(__file__).resolve().parents[2] / "IO" / "computation" / "7_TIO_77c_vf" / "results_77c_11s_base.mat",
-        Path.cwd() / "computation" / "7_TIO_77c_vf" / "results_77c_11s_base.mat",
-        Path.cwd() / "IO" / "computation" / "7_TIO_77c_vf" / "results_77c_11s_base.mat",
-    ]
-    mat_path = None
-    for c in candidates:
-        if mat_file_is_readable(c):
-            mat_path = c
-            break
 
-    if mat_path is None:
-        pytest.skip(f"results_77c_11s_base.mat not found in candidates: {candidates}")
-
-    mat = sio.loadmat(str(mat_path))
-    return raw_data, calib, mat
+@pytest.fixture(scope="module")
+def matlab_base_arrays():
+    """Baseline MATLAB *calibration* arrays, or a skip naming what is absent."""
+    arrays = load_reference_solution("base")
+    missing = [n for n in _MATLAB_CALIBRATION_ARRAYS if n not in arrays]
+    if missing:
+        pytest.skip(
+            f"MATLAB baseline calibration array(s) {', '.join(missing)} are not part of "
+            "the reference solutions bundled with puremacro "
+            f"(bundled: {', '.join(sorted(arrays))})"
+        )
+    return arrays
 
 
 def test_reference_fixture_skips_without_the_private_icio_data(monkeypatch):
-    """A checkout without ../IO must skip this module, not ERROR sixteen times."""
+    """An installation without the bundled ICIO data must skip, not ERROR sixteen times."""
 
     def _missing(*_args, **_kwargs):
         raise FileNotFoundError("Could not automatically locate data_77c_11s.mat")
@@ -106,9 +120,12 @@ class TestCalibratedArrayPrecisionParity:
         ("tax", "tax", 1e-14, 1e-12),
         ("ytot", "ytot", 1e-4, 1e-12),
     ])
-    def test_calibrated_array_precision(self, reference_data, arr_name, mat_key, max_abs_tol, max_rel_tol):
+    def test_calibrated_array_precision(
+        self, reference_data, matlab_base_arrays, arr_name, mat_key, max_abs_tol, max_rel_tol
+    ):
         """Assert both absolute and relative discrepancies are strictly below thresholds."""
-        _, calib, mat = reference_data
+        _, calib = reference_data
+        mat = matlab_base_arrays
         py_arr = getattr(calib, arr_name)
         mat_arr = mat[mat_key]
 
@@ -128,9 +145,10 @@ class TestCalibratedArrayPrecisionParity:
             f"Array '{arr_name}' relative error {rel_diff:.4e} exceeds {max_rel_tol:.4e}"
         )
 
-    def test_pointwise_relative_error_all_9_arrays(self, reference_data):
+    def test_pointwise_relative_error_all_9_arrays(self, reference_data, matlab_base_arrays):
         """Assert pointwise relative error is strictly < 1e-12 across all non-zero elements."""
-        _, calib, mat = reference_data
+        _, calib = reference_data
+        mat = matlab_base_arrays
         array_map = {
             "a": (calib.a, mat["a"]),
             "afd": (calib.afd, mat["afd"]),
@@ -152,9 +170,10 @@ class TestCalibratedArrayPrecisionParity:
                     f"Pointwise relative error for '{name}' {max_pointwise_rel:.4e} exceeds 1e-12 threshold."
                 )
 
-    def test_cobb_douglas_alpha_exact_identity(self, reference_data):
+    def test_cobb_douglas_alpha_exact_identity(self, reference_data, matlab_base_arrays):
         """Verify capital share alpha is exactly bit-level identical to MATLAB."""
-        _, calib, mat = reference_data
+        _, calib = reference_data
+        mat = matlab_base_arrays
         np.testing.assert_array_equal(calib.alpha, mat["alpha"])
 
 
@@ -167,7 +186,7 @@ class TestMacroBalanceAcross847Pairs:
 
     def test_market_clearing_supply_equals_demand_847(self, reference_data):
         """Assert supply equals intermediate plus final demand within 1e-12 relative discrepancy."""
-        raw_data, calib, _ = reference_data
+        raw_data, calib = reference_data
         nc, ns, nfd = 77, 11, 3
         n_ind = ns * nc
 
@@ -205,7 +224,7 @@ class TestMacroBalanceAcross847Pairs:
 
     def test_cost_value_added_column_share_balance_847(self, reference_data):
         """Assert total outlay shares (intermediates + taxes + labor + capital) sum to 1.0."""
-        raw_data, calib, _ = reference_data
+        raw_data, calib = reference_data
         nc, ns = 77, 11
         n_ind = ns * nc
 
@@ -233,7 +252,7 @@ class TestMacroBalanceAcross847Pairs:
 
     def test_world_current_account_zero_balance(self, reference_data):
         """Assert world current account (sum of invforT) equals zero to machine precision."""
-        _, calib, _ = reference_data
+        _, calib = reference_data
         world_ca = float(np.sum(calib.invforT))
         world_gdp = float(np.sum(calib.ytot))
         rel_ca = abs(world_ca) / world_gdp
@@ -311,9 +330,10 @@ class TestMaskedDivisionAdversarialStress:
         assert 0.999 < calib.alpha[0, 0, 0] <= 1.0
         assert 0.0 <= calib.alpha[0, 1, 0] < 0.001
 
-    def test_negative_investment_drawdown_exact_locations(self, reference_data):
+    def test_negative_investment_drawdown_exact_locations(self, reference_data, matlab_base_arrays):
         """Verify negative afd entries occur strictly in Category 1 for LTU, UKR, VNM."""
-        _, calib, mat = reference_data
+        _, calib = reference_data
+        mat = matlab_base_arrays
         neg_mask = calib.afd < 0.0
 
         # Exactly 3 negative entries in the 847 x 3 x 77 tensor
@@ -332,7 +352,7 @@ class TestMaskedDivisionAdversarialStress:
 
     def test_validation_catches_adversarial_corruptions(self, reference_data):
         """Assert TradeCalibrationResult.validate() actively rejects corrupted parameter states."""
-        _, calib, _ = reference_data
+        _, calib = reference_data
 
         # 1. Negative entry in Consumption (Category 0)
         bad_afd_c0 = calib.afd.copy()

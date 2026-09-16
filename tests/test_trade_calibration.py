@@ -2,12 +2,10 @@
 from __future__ import annotations
 
 from dataclasses import FrozenInstanceError
-import os
 from pathlib import Path
 import pytest
 import numpy as np
 import pandas as pd
-import scipy.io as sio
 
 from puremacro.trade._results import (
     GearyKhamisResult,
@@ -28,9 +26,8 @@ from puremacro.trade.data import (
     get_sector_codes,
     get_sector_names,
     load_icio_data,
+    load_reference_solution,
 )
-
-from conftest import mat_file_is_readable
 
 
 # ---------------------------------------------------------------------------
@@ -106,40 +103,39 @@ def toy_calibration_result(toy_icio_matrix) -> TradeCalibrationResult:
     )
 
 
-@pytest.fixture(scope="module")
-def matlab_benchmark_dir() -> Path | None:
-    """Locate the reference MATLAB computation directory if available."""
-    candidates = [
-        Path(os.environ.get("IO_COMPUTATION_DIR", "")),
-        Path(__file__).resolve().parent.parent.parent / "IO" / "computation" / "7_TIO_77c_vf",
-        Path(__file__).resolve().parents[2] / "IO" / "computation" / "7_TIO_77c_vf",
-        Path.cwd() / "computation" / "7_TIO_77c_vf",
-        Path.cwd() / "IO" / "computation" / "7_TIO_77c_vf",
-    ]
-    for c in candidates:
-        if c.exists() and mat_file_is_readable(c / "results_77c_11s_base.mat") \
-                and mat_file_is_readable(c / "data_77c_11s.mat"):
-            return c
-    return None
+# The 77-country ICIO matrix and the MATLAB reference solutions ship inside
+# ``puremacro.trade``, so nothing below reads a file outside the installation.
+#
+# The bundled reference solutions carry the *equilibrium* arrays (XN_sol, c_sol,
+# pfd_sol, xx_sol, w_sol, ytot_sol, T_sol, r_sol, p_sol, tau_a, taufd_a).  They do
+# NOT carry the baseline *calibration* arrays below, which are what the
+# machine-precision parity suite compares against.  Those are an external check on
+# puremacro and must not be regenerated with puremacro itself, so the parity tests
+# skip by name until they are bundled too.
+_MATLAB_CALIBRATION_ARRAYS = (
+    "a", "afd", "alpha", "beta", "KT", "LT", "invforT",
+    "tax", "tax_fd", "theta", "ytot", "data_calibra",
+)
 
 
 @pytest.fixture(scope="module")
-def matlab_base_results(matlab_benchmark_dir) -> dict[str, np.ndarray] | None:
-    """Load results_77c_11s_base.mat if available; skips integration test otherwise."""
-    if matlab_benchmark_dir is None:
-        pytest.skip("Reference results_77c_11s_base.mat not found in workspace.")
-    mat_path = matlab_benchmark_dir / "results_77c_11s_base.mat"
-    return sio.loadmat(str(mat_path))
+def matlab_base_results() -> dict[str, np.ndarray]:
+    """Baseline MATLAB *calibration* arrays, or a skip naming what is absent."""
+    arrays = load_reference_solution("base")
+    missing = [n for n in _MATLAB_CALIBRATION_ARRAYS if n not in arrays]
+    if missing:
+        pytest.skip(
+            f"MATLAB baseline calibration array(s) {', '.join(missing)} are not part of "
+            "the reference solutions bundled with puremacro "
+            f"(bundled: {', '.join(sorted(arrays))})"
+        )
+    return arrays
 
 
 @pytest.fixture(scope="module")
-def matlab_raw_data(matlab_benchmark_dir) -> np.ndarray | None:
-    """Load data_77c_11s.mat if available; skips integration test otherwise."""
-    if matlab_benchmark_dir is None:
-        pytest.skip("Reference data_77c_11s.mat not found in workspace.")
-    data_path = matlab_benchmark_dir / "data_77c_11s.mat"
-    mat = sio.loadmat(str(data_path))
-    return mat["data"]
+def matlab_raw_data() -> np.ndarray:
+    """The 77-country 11-sector ICIO matrix bundled with puremacro."""
+    return load_icio_data()
 
 
 # ---------------------------------------------------------------------------
@@ -378,7 +374,7 @@ class TestTradeDataModule:
         fds = get_final_demand_codes()
         assert fds == ["C", "I", "Cx"]
 
-    def test_icio_data_container_and_properties(self, matlab_raw_data):
+    def test_icio_data_container_and_properties(self):
         """Verify ICIOData container slices and accounting identities."""
         icio = load_icio_data(return_structured=True)
         assert isinstance(icio, ICIOData)
@@ -403,7 +399,7 @@ class TestTradeDataModule:
         max_diff = np.max(np.abs(col_outlay - row_sales))
         assert max_diff < 2e-4
 
-    def test_load_icio_data_calibration_validation(self, matlab_raw_data):
+    def test_load_icio_data_calibration_validation(self):
         """Verify calibrate_trade_model(load_icio_data()).validate() passes cleanly."""
         raw = load_icio_data()
         calib = calibrate_trade_model(raw)
@@ -422,10 +418,9 @@ class TestMatlabCalibrationParity:
     """Integration test suite asserting < 1e-12 relative difference against results_77c_11s_base.mat."""
 
     @pytest.fixture(autouse=True)
-    def setup_parity(self, matlab_raw_data, matlab_base_results):
+    def setup_parity(self, matlab_raw_data):
         """Run Python calibration on 77c x 11s ICIO data."""
         self.py_calib = calibrate_trade_model(matlab_raw_data, nc=77, ns=11, nfd=3)
-        self.mat = matlab_base_results
 
     def _assert_relative_error(self, actual: np.ndarray, expected: np.ndarray, name: str, tol: float = 1e-12):
         """Assert maximum relative discrepancy is strictly below machine-precision threshold."""
@@ -440,67 +435,67 @@ class TestMatlabCalibrationParity:
             f"(max_abs={max_abs:.3e}, max_val={denom:.3e})"
         )
 
-    def test_parity_alpha_capital_share(self):
+    def test_parity_alpha_capital_share(self, matlab_base_results):
         """Assert exact machine parity for alpha (capital share = 1/3)."""
-        self._assert_relative_error(self.py_calib.alpha, self.mat["alpha"], "alpha", tol=1e-12)
+        self._assert_relative_error(self.py_calib.alpha, matlab_base_results["alpha"], "alpha", tol=1e-12)
 
-    def test_parity_tax_production_rates(self):
+    def test_parity_tax_production_rates(self, matlab_base_results):
         """Assert machine precision parity for net production tax rates."""
-        self._assert_relative_error(self.py_calib.tax, self.mat["tax"], "tax", tol=1e-12)
+        self._assert_relative_error(self.py_calib.tax, matlab_base_results["tax"], "tax", tol=1e-12)
 
-    def test_parity_beta_tfp_scale(self):
+    def test_parity_beta_tfp_scale(self, matlab_base_results):
         """Assert machine precision parity for Cobb-Douglas TFP scale beta."""
-        self._assert_relative_error(self.py_calib.beta, self.mat["beta"], "beta", tol=1e-12)
+        self._assert_relative_error(self.py_calib.beta, matlab_base_results["beta"], "beta", tol=1e-12)
 
-    def test_parity_capital_endowment_KT(self):
+    def test_parity_capital_endowment_KT(self, matlab_base_results):
         """Assert exact machine parity for capital endowments KT."""
-        self._assert_relative_error(self.py_calib.k_endow, self.mat["KT"], "k_endow (KT)", tol=1e-12)
+        self._assert_relative_error(self.py_calib.k_endow, matlab_base_results["KT"], "k_endow (KT)", tol=1e-12)
 
-    def test_parity_labor_endowment_LT(self):
+    def test_parity_labor_endowment_LT(self, matlab_base_results):
         """Assert exact machine parity for labor endowments LT."""
-        self._assert_relative_error(self.py_calib.l_endow, self.mat["LT"], "l_endow (LT)", tol=1e-12)
+        self._assert_relative_error(self.py_calib.l_endow, matlab_base_results["LT"], "l_endow (LT)", tol=1e-12)
 
-    def test_parity_invforT_current_account(self):
+    def test_parity_invforT_current_account(self, matlab_base_results):
         """Assert machine precision parity for net foreign transfers invforT."""
-        self._assert_relative_error(self.py_calib.invforT, self.mat["invforT"], "invforT", tol=1e-12)
+        self._assert_relative_error(self.py_calib.invforT, matlab_base_results["invforT"], "invforT", tol=1e-12)
 
-    def test_parity_ytot_gross_output(self):
+    def test_parity_ytot_gross_output(self, matlab_base_results):
         """Assert machine precision parity for baseline gross output ytot."""
-        self._assert_relative_error(self.py_calib.ytot, self.mat["ytot"], "ytot", tol=1e-12)
+        self._assert_relative_error(self.py_calib.ytot, matlab_base_results["ytot"], "ytot", tol=1e-12)
 
-    def test_parity_intermediate_coefficients_a(self):
+    def test_parity_intermediate_coefficients_a(self, matlab_base_results):
         """Assert machine precision parity for input-output technical coefficients a."""
-        self._assert_relative_error(self.py_calib.a, self.mat["a"], "a", tol=1e-12)
+        self._assert_relative_error(self.py_calib.a, matlab_base_results["a"], "a", tol=1e-12)
 
-    def test_parity_final_demand_coefficients_afd(self):
+    def test_parity_final_demand_coefficients_afd(self, matlab_base_results):
         """Assert machine precision parity for final demand sourcing coefficients afd."""
-        self._assert_relative_error(self.py_calib.afd, self.mat["afd"], "afd", tol=1e-12)
+        self._assert_relative_error(self.py_calib.afd, matlab_base_results["afd"], "afd", tol=1e-12)
 
-    def test_parity_expenditure_shares_theta(self):
+    def test_parity_expenditure_shares_theta(self, matlab_base_results):
         """Assert machine precision parity for final demand expenditure shares theta."""
-        if self.py_calib.theta is not None and "theta" in self.mat:
-            self._assert_relative_error(self.py_calib.theta, self.mat["theta"], "theta", tol=1e-12)
+        if self.py_calib.theta is not None and "theta" in matlab_base_results:
+            self._assert_relative_error(self.py_calib.theta, matlab_base_results["theta"], "theta", tol=1e-12)
 
-    def test_parity_final_demand_tax_rates(self):
+    def test_parity_final_demand_tax_rates(self, matlab_base_results):
         """Assert machine precision parity for final demand tax rates tax_fd."""
-        if self.py_calib.tax_fd is not None and "tax_fd" in self.mat:
-            self._assert_relative_error(self.py_calib.tax_fd, self.mat["tax_fd"], "tax_fd", tol=1e-12)
+        if self.py_calib.tax_fd is not None and "tax_fd" in matlab_base_results:
+            self._assert_relative_error(self.py_calib.tax_fd, matlab_base_results["tax_fd"], "tax_fd", tol=1e-12)
 
-    def test_parity_reconstructed_table_data_calibra(self):
+    def test_parity_reconstructed_table_data_calibra(self, matlab_base_results):
         """Assert machine precision parity for reconstructed table data_calibra."""
-        if self.py_calib.data_calibra is not None and "data_calibra" in self.mat:
+        if self.py_calib.data_calibra is not None and "data_calibra" in matlab_base_results:
             self._assert_relative_error(
-                self.py_calib.data_calibra, self.mat["data_calibra"], "data_calibra", tol=1e-12
+                self.py_calib.data_calibra, matlab_base_results["data_calibra"], "data_calibra", tol=1e-12
             )
 
-    def test_negative_investment_division_edge_case(self):
+    def test_negative_investment_division_edge_case(self, matlab_base_results):
         """Verify that negative investment consumption (Bulgaria) does not cause zeroed tax rate."""
         # Bulgaria is index 5 (ARG=0, AUS=1, AUT=2, BEL=3, BGD=4, BGR=5)
         bgr_idx = 5
         tax_fd_inv_bgr = self.py_calib.tax_fd[0, 1, bgr_idx]
         assert tax_fd_inv_bgr != 0.0, "Bulgaria investment tax rate should not be zeroed out!"
         assert tax_fd_inv_bgr < 0.0, "Bulgaria investment tax rate should be negative due to c < 0."
-        expected_tax_fd = self.mat["tax_fd"][0, 1, bgr_idx]
+        expected_tax_fd = matlab_base_results["tax_fd"][0, 1, bgr_idx]
         np.testing.assert_allclose(tax_fd_inv_bgr, expected_tax_fd, rtol=1e-12)
 
     def test_empirical_calibration_validation_clean(self):
@@ -519,7 +514,7 @@ class TestMatlabCalibrationParity:
         assert checks["alpha_bounds"] is True
         assert checks["global_transfer_balance"] is True
 
-    def test_inventory_disinvestment_edge_case(self):
+    def test_inventory_disinvestment_edge_case(self, matlab_base_results):
         """Verify that negative afd entries exist in Category 1 for LTU, UKR, VNM and match MATLAB."""
         neg_mask = self.py_calib.afd < 0.0
         assert np.any(neg_mask), "Empirical afd must contain negative entries due to inventory disinvestment"
@@ -535,7 +530,7 @@ class TestMatlabCalibrationParity:
         np.testing.assert_allclose(np.sum(self.py_calib.afd, axis=0), 1.0, atol=1e-12)
 
         # Verify exact machine parity against MATLAB benchmark afd
-        np.testing.assert_allclose(self.py_calib.afd[neg_mask], self.mat["afd"][neg_mask], atol=1e-12)
+        np.testing.assert_allclose(self.py_calib.afd[neg_mask], matlab_base_results["afd"][neg_mask], atol=1e-12)
 
 
 # ---------------------------------------------------------------------------

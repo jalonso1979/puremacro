@@ -21,7 +21,6 @@ Conforms strictly to the puremacro Pyodide runtime contract.
 """
 from __future__ import annotations
 
-import os
 from pathlib import Path
 import matplotlib
 
@@ -31,7 +30,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytest
-import scipy.io as sio
 from matplotlib.figure import Figure
 
 from puremacro.trade._results import (
@@ -40,7 +38,11 @@ from puremacro.trade._results import (
     TradeCalibrationResult,
     TradeEquilibriumResult,
 )
-from puremacro.trade.data import CANONICAL_COUNTRY_CODES
+from puremacro.trade.data import (
+    CANONICAL_COUNTRY_CODES,
+    available_reference_scenarios,
+    load_reference_solution,
+)
 from puremacro.trade.geary_khamis import compute_geary_khamis
 from puremacro.trade.plot import (
     plot_country_impacts,
@@ -63,35 +65,40 @@ from puremacro.trade.tables import (
     to_latex_weighted_mean_by_scenario_table,
 )
 
-from conftest import icio_reference_dir_is_complete, mat_file_is_readable
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+#
+# The reference equilibria ship inside ``puremacro.trade`` as verbatim copies of
+# the MATLAB ``results_77c_11s_*.mat`` outputs, so nothing here reads a file
+# outside the installation.  Two gaps remain, and both skip by name:
+#   * scenario ``t10_54`` has no bundled reference (its MATLAB source is a
+#     dataless placeholder), and every published table below carries a t10_54
+#     column, so the 77-country batch fixture skips;
+#   * the canonical ``.tex`` reference tables are MATLAB outputs that are not
+#     bundled either, so byte-for-byte parity skips on that too.
+
+_BATCH_SCENARIOS = ["base", "t10", "t10_25", "t10_54", "t10_125", "t10_145"]
+
+
+def reference_tex_or_skip(name: str) -> Path:
+    """Path to a canonical LaTeX reference table, or a precise skip.
+
+    puremacro bundles the reference *equilibrium arrays*, not the MATLAB ``.tex``
+    outputs they were tabulated into, so byte-for-byte parity cannot run from a
+    plain checkout.
+    """
+    pytest.skip(
+        f"Canonical LaTeX reference table {name!r} is not bundled with puremacro; "
+        "only the results_77c_11s_*.mat equilibrium arrays are."
+    )
 
 @pytest.fixture(autouse=True)
 def close_figures():
     """Ensure all figures are closed after each test to prevent memory leaks."""
     yield
     plt.close("all")
-
-
-@pytest.fixture(scope="module")
-def matlab_benchmark_dir() -> Path | None:
-    """Discover directory containing reference MATLAB .mat and .tex files."""
-    candidates = [
-        Path(os.environ.get("IO_COMPUTATION_DIR", "")),
-        Path(__file__).resolve().parents[2] / "IO" / "computation" / "7_TIO_77c_vf",
-        Path(__file__).resolve().parents[1] / "IO" / "computation" / "7_TIO_77c_vf",
-        Path.cwd() / "computation" / "7_TIO_77c_vf",
-        Path.cwd() / "IO" / "computation" / "7_TIO_77c_vf",
-    ]
-    for c in candidates:
-        if (c.exists() and mat_file_is_readable(c / "data_77c_11s.mat")
-                and icio_reference_dir_is_complete(c)):
-            return c
-    return None
 
 
 @pytest.fixture(scope="module")
@@ -141,32 +148,20 @@ def synthetic_batch_result() -> ScenarioBatchResult:
 
 
 @pytest.fixture(scope="module")
-def benchmark_batch_result(matlab_benchmark_dir: Path | None) -> ScenarioBatchResult | None:
-    """Full 77-country benchmark batch result loaded from reference .mat files."""
-    if matlab_benchmark_dir is None:
-        return None
+def benchmark_batch_result() -> ScenarioBatchResult | None:
+    """Full 77-country benchmark batch result built from the bundled reference solutions."""
+    available = available_reference_scenarios()
+    missing = [s for s in _BATCH_SCENARIOS if s not in available]
+    if missing:
+        pytest.skip(
+            "Every published table below carries a column for each scenario, and "
+            f"there is no bundled reference solution for {', '.join(missing)}; "
+            f"bundled scenarios: {available}"
+        )
 
-    base_mat = sio.loadmat(str(matlab_benchmark_dir / "results_77c_11s_base.mat"))
-    base_eq = TradeEquilibriumResult(
-        x_sol=base_mat["xx_sol"].flatten(),
-        p_sol=base_mat["p_sol"],
-        y_sol=base_mat["ytot_sol"],
-        r_sol=base_mat["r_sol"],
-        w_sol=base_mat["w_sol"],
-        T_sol=base_mat["T_sol"],
-        XN_sol=base_mat["XN_sol"].flatten(),
-        c_sol=base_mat["c_sol"],
-        pfd_sol=base_mat["pfd_sol"],
-        country_codes=CANONICAL_COUNTRY_CODES,
-    )
-
-    scens = ["t10", "t10_25", "t10_54", "t10_125", "t10_145"]
-    res_dict = {"base": base_eq}
-    gk_dict = {}
-
-    for s in scens:
-        mat = sio.loadmat(str(matlab_benchmark_dir / f"results_77c_11s_{s}.mat"))
-        eq = TradeEquilibriumResult(
+    def _equilibrium(scenario: str) -> TradeEquilibriumResult:
+        mat = load_reference_solution(scenario)
+        return TradeEquilibriumResult(
             x_sol=mat["xx_sol"].flatten(),
             p_sol=mat["p_sol"],
             y_sol=mat["ytot_sol"],
@@ -178,6 +173,15 @@ def benchmark_batch_result(matlab_benchmark_dir: Path | None) -> ScenarioBatchRe
             pfd_sol=mat["pfd_sol"],
             country_codes=CANONICAL_COUNTRY_CODES,
         )
+
+    base_eq = _equilibrium("base")
+
+    scens = ["t10", "t10_25", "t10_54", "t10_125", "t10_145"]
+    res_dict = {"base": base_eq}
+    gk_dict = {}
+
+    for s in scens:
+        eq = _equilibrium(s)
         res_dict[s] = eq
         gk = compute_geary_khamis(eq, base_eq, matlab_compat=True)
         gk_dict[s] = gk
@@ -286,16 +290,9 @@ def test_plot_save_path_functionality(synthetic_batch_result, tmp_path):
 # 3. Exact Benchmark Parity Tests (Matching headlinePaper LaTeX Files)
 # ---------------------------------------------------------------------------
 
-def test_selected_country_impacts_exact_byte_match(
-    benchmark_batch_result, matlab_benchmark_dir: Path | None
-):
+def test_selected_country_impacts_exact_byte_match(benchmark_batch_result):
     """Assert byte-for-byte exact equality with selected_country_impacts.tex."""
-    if benchmark_batch_result is None or matlab_benchmark_dir is None:
-        pytest.skip("Benchmark reference directory not available.")
-
-    ref_file = matlab_benchmark_dir / "selected_country_impacts.tex"
-    if not ref_file.exists():
-        pytest.skip(f"Reference file {ref_file} not found.")
+    ref_file = reference_tex_or_skip("selected_country_impacts.tex")
 
     expected_tex = ref_file.read_text(encoding="utf-8")
     generated_tex = to_latex_selected_country(
@@ -305,16 +302,9 @@ def test_selected_country_impacts_exact_byte_match(
     assert generated_tex == expected_tex
 
 
-def test_mean_by_scenario_exact_byte_match(
-    benchmark_batch_result, matlab_benchmark_dir: Path | None
-):
+def test_mean_by_scenario_exact_byte_match(benchmark_batch_result):
     """Assert byte-for-byte exact equality with mean_by_scenario.tex."""
-    if benchmark_batch_result is None or matlab_benchmark_dir is None:
-        pytest.skip("Benchmark reference directory not available.")
-
-    ref_file = matlab_benchmark_dir / "mean_by_scenario.tex"
-    if not ref_file.exists():
-        pytest.skip(f"Reference file {ref_file} not found.")
+    ref_file = reference_tex_or_skip("mean_by_scenario.tex")
 
     expected_tex = ref_file.read_text(encoding="utf-8")
     generated_tex = to_latex_mean_by_scenario(benchmark_batch_result, legacy_compat=True)
@@ -322,16 +312,9 @@ def test_mean_by_scenario_exact_byte_match(
     assert generated_tex == expected_tex
 
 
-def test_weighted_mean_by_scenario_exact_byte_match(
-    benchmark_batch_result, matlab_benchmark_dir: Path | None
-):
+def test_weighted_mean_by_scenario_exact_byte_match(benchmark_batch_result):
     """Assert byte-for-byte exact equality with weighted_mean_by_scenario.tex."""
-    if benchmark_batch_result is None or matlab_benchmark_dir is None:
-        pytest.skip("Benchmark reference directory not available.")
-
-    ref_file = matlab_benchmark_dir / "weighted_mean_by_scenario.tex"
-    if not ref_file.exists():
-        pytest.skip(f"Reference file {ref_file} not found.")
+    ref_file = reference_tex_or_skip("weighted_mean_by_scenario.tex")
 
     expected_tex = ref_file.read_text(encoding="utf-8")
     generated_tex = to_latex_weighted_mean_by_scenario(benchmark_batch_result, legacy_compat=True)
@@ -339,16 +322,9 @@ def test_weighted_mean_by_scenario_exact_byte_match(
     assert generated_tex == expected_tex
 
 
-def test_selected_country_impacts_with_row_exact_byte_match(
-    benchmark_batch_result, matlab_benchmark_dir: Path | None
-):
+def test_selected_country_impacts_with_row_exact_byte_match(benchmark_batch_result):
     """Assert byte-for-byte exact equality with selected_country_impacts_with_ROW.tex."""
-    if benchmark_batch_result is None or matlab_benchmark_dir is None:
-        pytest.skip("Benchmark reference directory not available.")
-
-    ref_file = matlab_benchmark_dir / "selected_country_impacts_with_ROW.tex"
-    if not ref_file.exists():
-        pytest.skip(f"Reference file {ref_file} not found.")
+    ref_file = reference_tex_or_skip("selected_country_impacts_with_ROW.tex")
 
     expected_tex = ref_file.read_text(encoding="utf-8")
     generated_tex = to_latex_selected_country_with_row(benchmark_batch_result, legacy_compat=True)
@@ -356,13 +332,8 @@ def test_selected_country_impacts_with_row_exact_byte_match(
     assert generated_tex == expected_tex
 
 
-def test_weighted_mean_by_scenario_numerical_parity(
-    benchmark_batch_result, matlab_benchmark_dir: Path | None
-):
+def test_weighted_mean_by_scenario_numerical_parity(benchmark_batch_result):
     """Assert numerical values match weighted_mean_by_scenario.tex."""
-    if benchmark_batch_result is None:
-        pytest.skip("Benchmark reference directory not available.")
-
     tbl = generate_weighted_mean_by_scenario_table(benchmark_batch_result)
     assert tbl.loc["GDP growth (%)", "t10"] == "-0.705 (0.199)"
     assert tbl.loc["GDP growth (%)", "t10_25"] == "-1.197 (0.317)"
@@ -385,9 +356,6 @@ def test_weighted_mean_by_scenario_numerical_parity(
 
 def test_selected_country_impacts_clean_latex(benchmark_batch_result):
     """Verify that legacy_compat=False produces valid column headers (& Base)."""
-    if benchmark_batch_result is None:
-        pytest.skip("Benchmark reference directory not available.")
-
     clean_tex = to_latex_selected_country(benchmark_batch_result, legacy_compat=False)
     assert r"\begin{tabular}{lrrrrrr}" in clean_tex
     assert r"Country & t10 & t10\_25 & t10\_54 & t10\_125 & t10\_145 & Base \\" in clean_tex

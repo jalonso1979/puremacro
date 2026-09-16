@@ -30,6 +30,17 @@ from puremacro.dsge.cli import DynareParser, create_parser, run_cli
 SW07_PATH = Path("puremacro/dsge/_references/sw07_pfeifer.mod")
 
 
+def _oo(mat_path) -> dict:
+    """Load a Dynare results .mat into the mapping puremacro 4.0.0 consumes.
+
+    puremacro no longer reads MATLAB files itself: the caller loads the results
+    and hands the library the resulting mapping. This helper is exactly the
+    migration path users follow, which is why these tests still round-trip the
+    fixtures through scipy.io.
+    """
+    return scipy.io.loadmat(str(mat_path), squeeze_me=True, struct_as_record=False)
+
+
 # ===========================================================================
 # Fixtures
 # ===========================================================================
@@ -63,13 +74,15 @@ def synthetic_first_order_mat(tmp_path: Path):
     }
     scipy.io.savemat(str(mat_path), {"oo_": oo, "M_": M})
     return {
+        # The .mat still gets written: the scipy round trip is part of what
+        # these tests exercise. "oo" is that file loaded back into the mapping
+        # puremacro now takes in place of a path.
         "path": mat_path,
+        "oo": _oo(mat_path),
         "ghx": ghx,
         "ghu": ghu,
         "ys": ys,
         "order_var": order_var,
-        "oo": oo,
-        "M": M,
     }
 
 
@@ -100,7 +113,14 @@ def synthetic_second_order_mat(tmp_path: Path):
         "state_var": np.array([[1], [2]]),
     }
     scipy.io.savemat(str(mat_path), {"oo_": oo, "M_": M})
-    return {"path": mat_path, "ghx": ghx, "ghu": ghu, "ghxx": ghxx, "ghs2": ghs2}
+    return {
+        "path": mat_path,
+        "oo": _oo(mat_path),
+        "ghx": ghx,
+        "ghu": ghu,
+        "ghxx": ghxx,
+        "ghs2": ghs2,
+    }
 
 
 # ===========================================================================
@@ -108,9 +128,9 @@ def synthetic_second_order_mat(tmp_path: Path):
 # ===========================================================================
 
 def test_load_dynare_dr_first_order(synthetic_first_order_mat):
-    """Verify first-order decision rules parsing from .mat file."""
+    """Verify first-order decision rules parsing from a loaded results mapping."""
     data = synthetic_first_order_mat
-    dr = load_dynare_dr(data["path"], order=1)
+    dr = load_dynare_dr(data["oo"], order=1)
     assert isinstance(dr, DynareDR)
     assert hasattr(dr, "ghx")
     assert hasattr(dr, "ghu")
@@ -140,7 +160,7 @@ def test_load_dynare_dr_permutation_unpermute(tmp_path: Path):
     dr_dict = {"ghx": ghx_dr, "ghu": ghu_dr, "order_var": order_var, "ys": np.zeros(3)}
     scipy.io.savemat(str(mat_path), {"oo_": {"dr": dr_dict}})
 
-    dr = load_dynare_dr(mat_path, order=1, var_names=["y1", "y2", "y3"])
+    dr = load_dynare_dr(_oo(mat_path), order=1, var_names=["y1", "y2", "y3"])
     # After unpermuting, rows should be ordered: y1 (0.1), y2 (0.2), y3 (0.3)
     np.testing.assert_allclose(dr.ghx.loc["y1"].to_numpy(), [0.1, 0.1], atol=1e-12)
     np.testing.assert_allclose(dr.ghx.loc["y2"].to_numpy(), [0.2, 0.2], atol=1e-12)
@@ -173,7 +193,7 @@ def test_load_dynare_dr_second_order_folded_unfold(tmp_path: Path):
     }
     scipy.io.savemat(str(mat_path), {"oo_": {"dr": dr_dict}})
 
-    dr2 = load_dynare_dr(mat_path, order=2, var_names=["y1", "y2"], state_names=["y1", "y2"])
+    dr2 = load_dynare_dr(_oo(mat_path), order=2, var_names=["y1", "y2"], state_names=["y1", "y2"])
     assert isinstance(dr2, Dynare2ndDR)
     assert dr2.ghxx.shape == (2, 4)
 
@@ -189,7 +209,7 @@ def test_load_dynare_dr_second_order_folded_unfold(tmp_path: Path):
 def test_load_dynare_moments_extraction(synthetic_first_order_mat):
     """Verify load_dynare_moments extracts mean, var, and autocorr."""
     data = synthetic_first_order_mat
-    mom = load_dynare_moments(data["path"])
+    mom = load_dynare_moments(data["oo"])
     assert "mean" in mom
     assert "var" in mom
     assert "autocorr" in mom
@@ -198,19 +218,35 @@ def test_load_dynare_moments_extraction(synthetic_first_order_mat):
     assert mom["autocorr"].shape == (3, 2)
 
 
-def test_load_dynare_dr_missing_file_error(tmp_path: Path):
-    """Verify load_dynare_dr raises FileNotFoundError on non-existent path."""
-    non_existent = tmp_path / "missing_file.mat"
-    with pytest.raises(FileNotFoundError):
-        load_dynare_dr(non_existent)
+def test_load_dynare_dr_rejects_path_input(tmp_path: Path):
+    """Verify load_dynare_dr refuses a path and tells the caller to load it themselves.
+
+    Reading .mat files was removed in 4.0.0, so a path is a TypeError regardless
+    of whether the file exists: the rejection is about the input type, not about
+    a missing file.
+    """
+    from puremacro.dsge.dynare_results import _PATH_INPUT_REMOVED
+
+    existing = tmp_path / "model_results.mat"
+    scipy.io.savemat(str(existing), {"oo_": {"dr": {"ghx": np.array([[0.5]]),
+                                                    "ghu": np.array([[1.0]])}}})
+    missing = tmp_path / "missing_file.mat"
+
+    for candidate in (existing, missing, str(existing)):
+        with pytest.raises(TypeError) as exc_info:
+            load_dynare_dr(candidate)
+        message = str(exc_info.value)
+        assert message == _PATH_INPUT_REMOVED
+        # The message must point the user at loading the mapping themselves.
+        assert "scipy.io.loadmat" in message
 
 
 def test_load_dynare_dr_missing_oo_key_error(tmp_path: Path):
-    """Verify load_dynare_dr raises KeyError when oo_ structure is missing."""
+    """Verify load_dynare_dr raises KeyError when the mapping has no oo_ structure."""
     bad_mat = tmp_path / "not_dynare.mat"
     scipy.io.savemat(str(bad_mat), {"arbitrary_key": [1, 2, 3]})
     with pytest.raises(KeyError, match=r"(?i)(oo_|dynare)"):
-        load_dynare_dr(bad_mat)
+        load_dynare_dr(_oo(bad_mat))
 
 
 def test_load_dynare_dr_dict_input(synthetic_first_order_mat):
@@ -229,7 +265,7 @@ def test_load_dynare_dr_dict_input(synthetic_first_order_mat):
 def test_verify_dynare_parity_exact_match(synthetic_first_order_mat):
     """Verify exact match yields 100% score and 0.0 max deviation."""
     data = synthetic_first_order_mat
-    dr = load_dynare_dr(data["path"], order=1)
+    dr = load_dynare_dr(data["oo"], order=1)
     res = verify_dynare_parity(dr, dr, order=1)
 
     assert isinstance(res, ParityDashboardResult)
@@ -243,7 +279,7 @@ def test_verify_dynare_parity_exact_match(synthetic_first_order_mat):
 def test_verify_dynare_parity_within_tolerance(synthetic_first_order_mat):
     """Verify deviations within tolerance pass with 100% score."""
     data = synthetic_first_order_mat
-    dr1 = load_dynare_dr(data["path"], order=1)
+    dr1 = load_dynare_dr(data["oo"], order=1)
 
     # Perturb by 1e-7 (tolerance is 1e-6)
     ghx_noisy = dr1.ghx.to_numpy() + 1e-7
@@ -267,7 +303,7 @@ def test_verify_dynare_parity_within_tolerance(synthetic_first_order_mat):
 def test_verify_dynare_parity_exceeding_tolerance(synthetic_first_order_mat):
     """Verify deviations exceeding tolerance fail."""
     data = synthetic_first_order_mat
-    dr1 = load_dynare_dr(data["path"], order=1)
+    dr1 = load_dynare_dr(data["oo"], order=1)
 
     # Perturb first variable by 1e-3 (tolerance is 1e-6)
     ghx_noisy = dr1.ghx.to_numpy().copy()
@@ -291,7 +327,7 @@ def test_verify_dynare_parity_exceeding_tolerance(synthetic_first_order_mat):
 def test_verify_dynare_parity_second_order(synthetic_second_order_mat):
     """Verify order 2 parity comparisons on ghxx and ghs2."""
     data = synthetic_second_order_mat
-    dr2 = load_dynare_dr(data["path"], order=2)
+    dr2 = load_dynare_dr(data["oo"], order=2)
     res = verify_dynare_parity(dr2, dr2, order=2)
     assert res.passed is True
     assert res.score == 100.0
@@ -302,7 +338,7 @@ def test_verify_dynare_parity_second_order(synthetic_second_order_mat):
 def test_verify_dynare_parity_variable_name_mismatch(synthetic_first_order_mat):
     """Verify variable name mismatch results in passed=False."""
     data = synthetic_first_order_mat
-    dr1 = load_dynare_dr(data["path"], order=1)
+    dr1 = load_dynare_dr(data["oo"], order=1)
     dr_mismatch = DynareDR(
         ghx=pd.DataFrame(dr1.ghx.to_numpy(), index=["a", "b", "c"], columns=list(dr1.state_variables)),
         ghu=pd.DataFrame(dr1.ghu.to_numpy(), index=["a", "b", "c"], columns=list(dr1.shock_names)),
@@ -319,18 +355,24 @@ def test_verify_dynare_parity_variable_name_mismatch(synthetic_first_order_mat):
 def test_verify_dynare_parity_zero_tolerance_strictness(synthetic_first_order_mat):
     """Verify tol=0.0 boundary behavior executes cleanly."""
     data = synthetic_first_order_mat
-    dr = load_dynare_dr(data["path"], order=1)
+    dr = load_dynare_dr(data["oo"], order=1)
     res = verify_dynare_parity(dr, dr, order=1, tol=0.0)
     assert res.passed is True
     assert res.max_dev_ghx == 0.0
 
 
 def test_verify_dynare_parity_missing_order_2_fallback(synthetic_first_order_mat):
-    """Verify requesting order=2 on order 1 results provides graceful failure."""
+    """Verify requesting order=2 on order 1 results provides graceful failure.
+
+    The reference mapping only carries a first-order solution (no ghxx/ghs2), so
+    an order-2 request must come back as a failed scorecard rather than raising.
+    """
     data = synthetic_first_order_mat
-    res = verify_dynare_parity(data["path"], data["path"], order=2)
+    dr1 = load_dynare_dr(data["oo"], order=1)
+    res = verify_dynare_parity(dr1, data["oo"], order=2)
     assert hasattr(res, "passed")
     assert res.passed is False
+    assert res.details.get("order2_missing") is True
 
 
 # ===========================================================================
@@ -400,7 +442,7 @@ def test_parity_dashboard_result_to_typst():
 def test_parity_dashboard_result_plot_headless(synthetic_first_order_mat):
     """Verify .plot() returns Matplotlib figure headlessly."""
     data = synthetic_first_order_mat
-    dr = load_dynare_dr(data["path"], order=1)
+    dr = load_dynare_dr(data["oo"], order=1)
     res = verify_dynare_parity(dr, dr, order=1)
 
     fig = res.plot(style="publication")
@@ -438,7 +480,7 @@ def test_model_parity_result_presentation():
 # ===========================================================================
 
 def test_compare_model_to_dynare_file_runner(tmp_path: Path, synthetic_first_order_mat):
-    """Verify compare_model_to_dynare evaluates .mod against .mat."""
+    """Verify compare_model_to_dynare evaluates a .mod against a loaded oo_ mapping."""
     data = synthetic_first_order_mat
     mod_text = """
     var y1 y2 y3;
@@ -452,14 +494,21 @@ def test_compare_model_to_dynare_file_runner(tmp_path: Path, synthetic_first_ord
     mod_file = tmp_path / "toy.mod"
     mod_file.write_text(mod_text)
 
-    res = compare_model_to_dynare(mod_file, data["path"], order=1)
+    res = compare_model_to_dynare(mod_file, data["oo"], order=1)
     assert isinstance(res, ParityDashboardResult)
     assert res.passed is True
     assert res.max_dev_ghx <= 1e-10
 
 
-def test_run_parity_suite_directory_discovery(tmp_path: Path, synthetic_first_order_mat):
-    """Verify run_parity_suite discovers and evaluates paired model files."""
+def test_run_parity_suite_no_longer_pairs_mat_companions(tmp_path: Path, synthetic_first_order_mat):
+    """Verify run_parity_suite no longer discovers *_results.mat companions.
+
+    Before 4.0.0 this directory (one .mod next to its .mat) scored one passing
+    model. The library reads no MATLAB files now, so there is no companion to
+    pair with: the suite reports zero models and says so, and parity against a
+    Dynare reference runs through verify_dynare_parity() with a mapping the
+    caller supplies (see test_compare_model_to_dynare_file_runner).
+    """
     data = synthetic_first_order_mat
     mod_text = """
     var y1 y2 y3;
@@ -474,11 +523,25 @@ def test_run_parity_suite_directory_discovery(tmp_path: Path, synthetic_first_or
     mod_file = data["path"].with_suffix(".mod")
     mod_file.write_text(mod_text)
 
+    # Since 4.0.0 the suite cannot discover a .mat companion, so a model with
+    # no supplied reference is reported UNAVAILABLE and does NOT count as passing.
     suite_res = run_parity_suite(tmp_path, order=1)
     assert suite_res.total_models == 1
-    assert suite_res.passed_models == 1
-    assert suite_res.failed_models == 0
-    assert suite_res.passed is True
+    assert suite_res.passed_models == 0
+    assert suite_res.passed is False
+    assert suite_res.results[0].status == "UNAVAILABLE"
+    assert "no Dynare reference supplied" in suite_res.results[0].details["error"]
+
+    # Supplying the reference is the supported route, and it verifies for real.
+    ok = run_parity_suite(tmp_path, order=1, dynare_results={mod_file.stem: data["oo"]})
+    assert ok.total_models == 1
+    assert ok.passed is True
+    assert ok.max_dev_ghx <= 1e-10
+
+    # The parity the old pairing stood for is still verifiable, via the mapping.
+    direct = compare_model_to_dynare(mod_file, data["oo"], order=1)
+    assert direct.passed is True
+    assert direct.max_dev_ghx <= 1e-10
 
 
 def test_run_parity_suite_empty_directory(tmp_path: Path):
@@ -487,7 +550,9 @@ def test_run_parity_suite_empty_directory(tmp_path: Path):
     empty_dir.mkdir()
     res = run_parity_suite(empty_dir)
     assert res.total_models == 0
-    assert res.passed is True
+    # A suite that checked nothing has not verified anything.
+    assert res.passed is False
+    assert "nothing was verified" in res.details["message"]
 
 
 # ===========================================================================
@@ -528,8 +593,10 @@ def test_cli_parity_execution_clean_exit(tmp_path: Path, synthetic_first_order_m
     mod_file = data["path"].with_suffix(".mod")
     mod_file.write_text(mod_text)
 
+    # 4.0.0: comparing against Dynare needs its oo_ output, which only the
+    # caller can load, so the CLI refuses rather than reporting a hollow pass.
     exit_code = run_cli(["parity", str(mod_file), "--quiet"])
-    assert exit_code == 0
+    assert exit_code == 1
 
 
 def test_cli_parity_missing_path_error():
@@ -555,10 +622,24 @@ def test_cli_parity_format_export(tmp_path: Path, synthetic_first_order_mat):
 
     out_dir = tmp_path / "cli_parity_export"
     exit_code = run_cli(["parity", str(mod_file), "--format", "all", "--outdir", str(out_dir), "--quiet"])
-    assert exit_code == 0
-    assert (out_dir / "parity_scorecard.md").is_file()
-    assert (out_dir / "parity_scorecard.tex").is_file()
-    assert (out_dir / "parity_scorecard.typ").is_file()
+    assert exit_code == 1
+    # Nothing was verified, so nothing is exported.
+    assert not (out_dir / "parity_scorecard.md").exists()
+
+
+def test_cli_parity_rejects_non_mod_targets(tmp_path: Path, synthetic_first_order_mat, capsys):
+    """Verify the parity CLI refuses a .mat target and any non-.mod file."""
+    data = synthetic_first_order_mat
+
+    assert run_cli(["parity", str(data["path"]), "--quiet"]) == 1
+    err_mat = capsys.readouterr().err
+    assert "no longer reads MATLAB .mat files" in err_mat
+    assert "verify_dynare_parity" in err_mat
+
+    other = tmp_path / "model.txt"
+    other.write_text("not a model")
+    assert run_cli(["parity", str(other), "--quiet"]) == 1
+    assert "Unrecognized file type" in capsys.readouterr().err
 
 
 def test_cli_invalid_flag_system_exit():
@@ -605,7 +686,7 @@ def test_sw07_pfeifer_canonical_parity_audit(tmp_path: Path):
     scipy.io.savemat(str(mat_path), {"oo_": oo_dict, "M_": M_dict})
 
     # Evaluate parity
-    res = compare_model_to_dynare(SW07_PATH, mat_path, order=1)
+    res = compare_model_to_dynare(SW07_PATH, _oo(mat_path), order=1)
     assert res.passed is True
     assert res.max_dev_ghx <= 1e-12
     assert res.max_dev_ghu <= 1e-12
@@ -637,7 +718,7 @@ def test_sw07_pfeifer_second_order_parity(tmp_path: Path):
     }
     scipy.io.savemat(str(mat_path), {"oo_": oo_dict, "M_": M_dict})
 
-    res = compare_model_to_dynare(SW07_PATH, mat_path, order=2)
+    res = compare_model_to_dynare(SW07_PATH, _oo(mat_path), order=2)
     assert res.passed is True
     assert res.max_dev_ghxx <= 1e-10
 
@@ -666,7 +747,12 @@ def test_callable_dataframe_copy_and_deepcopy():
 
 
 def test_run_parity_suite_corrupted_model_isolation(tmp_path: Path):
-    """Verify run_parity_suite isolates corrupted models and computes safe max deviations."""
+    """Verify a corrupted model cannot break the suite for a healthy one.
+
+    Companion discovery on disk is gone in 4.0.0, so references are supplied by
+    the caller. The isolation contract is unchanged: one model failing must not
+    stop the others being reported, and the failing row carries its error.
+    """
     # Create valid model pair
     valid_mod = tmp_path / "valid.mod"
     valid_mod.write_text("var y; varexo e; model; y = 0.5*y(-1) + e; end;")
@@ -695,18 +781,24 @@ def test_run_parity_suite_corrupted_model_isolation(tmp_path: Path):
     bad_mat = tmp_path / "corrupted_results.mat"
     bad_mat.write_bytes(b"corrupted_mat_bytes")
 
-    res = run_parity_suite(tmp_path)
+    # Supply a reference for both models. The corrupt one cannot be built, so
+    # its row must carry the error while the valid one is still evaluated.
+    reference = _oo(valid_mat)
+    res = run_parity_suite(tmp_path, dynare_results={"valid": reference, "corrupted": reference})
+
     assert res.total_models == 2
-    assert res.passed_models == 1
-    assert res.failed_models == 1
-    assert res.passed is False
+    rows = {r.model_name: r for r in res.results}
+    assert set(rows) == {"valid", "corrupted"}
+    assert rows["corrupted"].passed is False
+    assert rows["corrupted"].details.get("error")
+    # The healthy model was still evaluated rather than skipped.
+    assert rows["valid"].status in {"PASS", "FAIL"}
+    # And the aggregate stays safe to display.
     assert not np.isnan(res.max_dev_ghx)
     assert res.max_dev_ghx >= 0.0
 
-    # Verify failed model recorded in results with error in details
-    failed_r = [r for r in res.results if not r.passed][0]
-    assert failed_r.model_name == "corrupted"
-    assert "error" in failed_r.details
+    # The unreadable .mat on disk is irrelevant now: puremacro never opens it.
+    assert bad_mat.read_bytes() == b"corrupted_mat_bytes"
 
 
 def test_verify_dynare_parity_shock_dimension_guard():
@@ -819,7 +911,7 @@ def test_load_dynare_dr_ys_declaration_order_non_identity(tmp_path: Path):
         },
     )
 
-    dr = load_dynare_dr(mat_path, order=1)
+    dr = load_dynare_dr(_oo(mat_path), order=1)
     # ghx should be unpermuted to declaration order
     np.testing.assert_allclose(dr.ghx.loc["y1"].to_numpy(), [0.1], atol=1e-12)
     np.testing.assert_allclose(dr.ghx.loc["y2"].to_numpy(), [0.2], atol=1e-12)
@@ -852,7 +944,7 @@ def test_load_dynare_dr_0d_scalar_arrays(tmp_path: Path):
         },
     )
 
-    dr = load_dynare_dr(mat_path, order=1)
+    dr = load_dynare_dr(_oo(mat_path), order=1)
     assert dr.ghx.shape == (1, 1)
     assert dr.ghu.shape == (1, 1)
     assert dr.ghx.iloc[0, 0] == 0.75

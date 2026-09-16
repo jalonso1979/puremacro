@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Sequence
 
 import numpy as np
-import scipy.io as sio
 
 # ---------------------------------------------------------------------------
 # Canonical Registries
@@ -275,46 +274,141 @@ def _load_raw_table(file_path: Path) -> np.ndarray:
     return np.loadtxt(file_path, delimiter=delim, dtype=np.float64)
 
 
-def _resolve_data_path(custom_path: str | Path | None = None) -> Path:
-    """Resolve absolute path to data_77c_11s.mat from arguments or environment."""
-    if custom_path is not None:
-        p = Path(custom_path)
-        if p.is_dir():
-            p = p / "data_77c_11s.mat"
-        if p.exists():
-            return p
-        raise FileNotFoundError(f"Specified ICIO data file not found: {p}")
+def bundled_icio_path() -> Path:
+    """Absolute path to the ICIO matrix bundled inside the installed package.
 
-    # Check environment variables
-    env_vars = ["IO_DATA_PATH", "IO_COMPUTATION_DIR"]
-    for var in env_vars:
-        val = os.environ.get(var)
-        if val:
-            p = Path(val)
-            if p.is_dir():
-                p = p / "data_77c_11s.mat"
-            if p.exists():
-                return p
+    puremacro ships the 77-country, 11-sector OECD ICIO transaction matrix as a
+    compressed ``.npz`` so the trade model reproduces without MATLAB and without
+    any file outside the distribution. Before 4.0.0 this matrix was read from
+    ``data_77c_11s.mat`` somewhere above the checkout, so every trade parity test
+    silently skipped for anyone but the author.
+    """
+    return Path(__file__).resolve().parent / "_datafiles" / "icio_77c_11s.npz"
 
-    # Canonical search candidates
-    here = Path(__file__).resolve()
-    candidates = [
-        here.parents[3] / "IO" / "computation" / "7_TIO_77c_vf" / "data_77c_11s.mat",
-        here.parents[2] / "IO" / "computation" / "7_TIO_77c_vf" / "data_77c_11s.mat",
-        here.parents[4] / "IO" / "computation" / "7_TIO_77c_vf" / "data_77c_11s.mat",
-        Path.cwd() / "computation" / "7_TIO_77c_vf" / "data_77c_11s.mat",
-        Path.cwd() / "IO" / "computation" / "7_TIO_77c_vf" / "data_77c_11s.mat",
-        Path.cwd() / "data_77c_11s.mat",
-    ]
 
-    for c in candidates:
-        if c.exists():
-            return c
+def bundled_workbook_path() -> Path:
+    """Absolute path to the bundled MATLAB ``results.xls`` sheet values."""
+    return Path(__file__).resolve().parent / "_datafiles" / "trade_results_workbook.npz"
 
-    raise FileNotFoundError(
-        "Could not automatically locate 'data_77c_11s.mat'. Please specify the file "
-        "path via `load_icio_data(path=...)` or set the IO_DATA_PATH environment variable."
-    )
+
+def load_reference_workbook_sheet(sheet: str) -> np.ndarray:
+    """Return one sheet of the MATLAB ``results.xls`` reference workbook.
+
+    Verbatim cell values, stored as a string grid so the published headers
+    survive, which keeps the Geary-Khamis comparison an *external* check.
+
+    Parameters
+    ----------
+    sheet : str
+        ``'growth GDP%'``, ``'inflaction%'`` or ``'xn_over_gd%'`` (the spelling
+        is the workbook's own).
+    """
+    path = bundled_workbook_path()
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"Bundled reference workbook missing at {path}; reinstall puremacro."
+        )
+    key = sheet.replace(" ", "_").replace("%", "pct") + "__values"
+    with np.load(path, allow_pickle=False) as bundle:
+        if key not in bundle.files:
+            available = sorted(n.removesuffix("__values") for n in bundle.files)
+            raise KeyError(f"No bundled sheet {sheet!r}; available: {available}")
+        return np.asarray(bundle[key])
+
+
+def bundled_reference_path() -> Path:
+    """Absolute path to the bundled MATLAB-derived reference solutions."""
+    return Path(__file__).resolve().parent / "_datafiles" / "trade_reference_solutions.npz"
+
+
+def available_reference_scenarios() -> list[str]:
+    """Tariff scenarios whose reference solution ships with puremacro."""
+    path = bundled_reference_path()
+    if not path.is_file():
+        return []
+    with np.load(path) as bundle:
+        return sorted({name.split("__", 1)[0] for name in bundle.files})
+
+
+def load_reference_solution(scenario: str = "base") -> dict[str, np.ndarray]:
+    """Return the reference equilibrium arrays for one tariff scenario.
+
+    These are verbatim copies of the MATLAB ``results_77c_11s_*.mat`` outputs of
+    the sectoral-misallocation computation, so comparing puremacro against them
+    remains an *external* check rather than a self-referential golden. They ship
+    with the package, so the parity suites no longer need MATLAB or any file
+    outside the distribution.
+
+    Parameters
+    ----------
+    scenario : str, default 'base'
+        One of :func:`available_reference_scenarios`, e.g. ``'base'`` or ``'t10'``.
+
+    Raises
+    ------
+    KeyError
+        If the scenario has no bundled reference. ``t10_54`` is the known gap:
+        its source file is a dataless placeholder in the author's storage.
+    """
+    path = bundled_reference_path()
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"Bundled trade reference solutions missing at {path}; reinstall puremacro."
+        )
+    with np.load(path) as bundle:
+        prefix = f"{scenario}__"
+        arrays = {
+            name[len(prefix):]: np.asarray(bundle[name])
+            for name in bundle.files
+            if name.startswith(prefix)
+        }
+    if not arrays:
+        raise KeyError(
+            f"No bundled reference for scenario {scenario!r}; "
+            f"available: {available_reference_scenarios()}"
+        )
+    return arrays
+
+
+def _load_icio_array(custom_path: str | Path | None = None) -> np.ndarray:
+    """Return the (850, 1078) ICIO matrix as float64.
+
+    With no argument the bundled dataset is used. ``custom_path`` accepts a
+    ``.npz`` written by numpy (key ``data``, or the single stored array) or a
+    delimited text table; MATLAB ``.mat`` input was removed in 4.0.0.
+    """
+    if custom_path is None:
+        target = bundled_icio_path()
+        if not target.is_file():
+            raise FileNotFoundError(
+                f"Bundled ICIO dataset missing at {target}. A source checkout or "
+                "wheel should always carry it; reinstall puremacro."
+            )
+    else:
+        target = Path(custom_path)
+        if target.is_dir():
+            for name in ("icio_77c_11s.npz", "data_77c_11s.npz"):
+                if (target / name).is_file():
+                    target = target / name
+                    break
+        # Check the suffix before existence: someone migrating from 3.x passes a
+        # .mat path, and "file not found" would send them hunting for the file
+        # rather than telling them the format is gone.
+        if target.suffix == ".mat":
+            raise ValueError(
+                "MATLAB .mat input is no longer supported (removed in 4.0.0). "
+                "Convert it once with "
+                "`numpy.savez_compressed(out, data=scipy.io.loadmat(src)['data'])`, "
+                "or omit `path` to use the dataset bundled with puremacro."
+            )
+        if not target.is_file():
+            raise FileNotFoundError(f"Specified ICIO data file not found: {target}")
+
+    if target.suffix == ".npz":
+        with np.load(target) as bundle:
+            key = "data" if "data" in bundle.files else bundle.files[0]
+            return np.asarray(bundle[key], dtype=np.float64)
+    return _load_raw_table(target)
 
 
 def _resolve_raw_45_path(custom_path: str | Path | None = None) -> Path:
@@ -490,7 +584,9 @@ def load_icio_data(
     Parameters
     ----------
     path : str or Path, optional
-        Path to ``data_77c_11s.mat`` or ``data_2020_SML.csv``. If omitted, searches default locations.
+        Path to a ``.npz`` or delimited text table. If omitted, the dataset
+        bundled with puremacro is used, so no file outside the installation is
+        needed. MATLAB ``.mat`` input was removed in 4.0.0.
     return_structured : bool, default False
         If True, returns an :class:`ICIOData` container exposing slicing properties.
         If False, returns the raw float64 array of shape (850, 1078) or (3468, 3696).
@@ -519,12 +615,7 @@ def load_icio_data(
             return_structured=return_structured,
         )
 
-    mat_file = _resolve_data_path(path)
-    mat = sio.loadmat(str(mat_file))
-    if "data" not in mat:
-        raise KeyError(f"Expected key 'data' in {mat_file}, found keys: {list(mat.keys())}")
-
-    raw_data = np.asarray(mat["data"], dtype=np.float64)
+    raw_data = _load_icio_array(path)
 
     if return_structured:
         return ICIOData(
@@ -538,6 +629,12 @@ def load_icio_data(
 
 
 __all__ = [
+    "bundled_icio_path",
+    "bundled_reference_path",
+    "bundled_workbook_path",
+    "load_reference_workbook_sheet",
+    "available_reference_scenarios",
+    "load_reference_solution",
     "CANONICAL_COUNTRY_CODES",
     "EU_COUNTRY_CODES",
     "CANONICAL_SECTOR_CODES",

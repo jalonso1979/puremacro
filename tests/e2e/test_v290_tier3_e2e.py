@@ -192,20 +192,31 @@ def _require_prior_predictive():
     pytest.skip("Milestone 3: prior_predictive pending implementation in puremacro.dsge.bayesian")
 
 
+def _oo_mapping(mat_path) -> dict:
+    """Load a Dynare results file the way callers must since puremacro 4.0.0.
+
+    The package stopped reading MATLAB files in 4.0.0, so the caller loads the
+    mapping and passes it in.
+    """
+    import scipy.io
+
+    return scipy.io.loadmat(str(mat_path), squeeze_me=True, struct_as_record=False)
+
+
 def _require_load_dynare_dr():
-    """Resolve load_dynare_dr from puremacro.dsge.load_dynare or dsge."""
-    for mod in [getattr(dsge, "load_dynare", None), dsge]:
+    """Resolve load_dynare_dr from puremacro.dsge (module renamed in 4.0.0)."""
+    for mod in [getattr(dsge, "dynare_results", None), dsge]:
         if mod and hasattr(mod, "load_dynare_dr"):
             return getattr(mod, "load_dynare_dr")
-    pytest.skip("Milestone 4: load_dynare_dr pending implementation in puremacro.dsge.load_dynare")
+    pytest.skip("load_dynare_dr not available from puremacro.dsge")
 
 
 def _require_load_dynare_moments():
-    """Resolve load_dynare_moments from puremacro.dsge.load_dynare or dsge."""
-    for mod in [getattr(dsge, "load_dynare", None), dsge]:
+    """Resolve load_dynare_moments from puremacro.dsge (module renamed in 4.0.0)."""
+    for mod in [getattr(dsge, "dynare_results", None), dsge]:
         if mod and hasattr(mod, "load_dynare_moments"):
             return getattr(mod, "load_dynare_moments")
-    pytest.skip("Milestone 4: load_dynare_moments pending implementation in puremacro.dsge.load_dynare")
+    pytest.skip("load_dynare_moments not available from puremacro.dsge")
 
 
 def _require_compare_model_to_dynare():
@@ -850,7 +861,7 @@ class TestTier1FeatureCoverage:
         load_dr = _require_load_dynare_dr()
         mat_data = synthetic_dynare_results_mat
         
-        dr = load_dr(mat_data["path"], order=1)
+        dr = load_dr(_oo_mapping(mat_data["path"]), order=1)
         assert hasattr(dr, "ghx")
         assert hasattr(dr, "ghu")
         np.testing.assert_allclose(dr.ghx, mat_data["ghx"], atol=1e-12)
@@ -861,7 +872,7 @@ class TestTier1FeatureCoverage:
         load_mom = _require_load_dynare_moments()
         mat_data = synthetic_dynare_results_mat
         
-        mom = load_mom(mat_data["path"])
+        mom = load_mom(_oo_mapping(mat_data["path"]))
         assert "mean" in mom
         assert "var" in mom
         assert "autocorr" in mom
@@ -887,7 +898,7 @@ class TestTier1FeatureCoverage:
         mod_file = tmp_path / "toy_parity.mod"
         mod_file.write_text(mod_text)
         
-        res = compare_fn(mod_file, synthetic_dynare_results_mat["path"], order=1)
+        res = compare_fn(mod_file, _oo_mapping(synthetic_dynare_results_mat["path"]), order=1)
         assert hasattr(res, "max_dev_ghx")
         assert hasattr(res, "passed")
 
@@ -1204,22 +1215,27 @@ class TestTier2BoundaryAndCornerCases:
     # Feature 4: Dynare Parity Dashboard & CLI (R4)
     # -----------------------------------------------------------------------
 
-    def test_t2_f04_missing_or_corrupted_mat_file_handling(self, tmp_path):
-        """Verify load_dynare_dr raises FileNotFoundError when .mat file does not exist."""
+    def test_t2_f04_path_input_is_rejected_with_a_migration_message(self, tmp_path):
+        """A filesystem path is no longer accepted; 4.0.0 reads no MATLAB files.
+
+        Before 4.0.0 the loader opened the path itself and raised
+        FileNotFoundError for a missing file. It now takes the already-loaded
+        mapping, so any path is a TypeError that names the replacement.
+        """
         load_dr = _require_load_dynare_dr()
-        non_existent = tmp_path / "ghost_results.mat"
-        
-        with pytest.raises((FileNotFoundError, IOError)):
-            load_dr(non_existent)
+        ghost = tmp_path / "ghost_results.mat"
+
+        with pytest.raises(TypeError, match=r"(?i)no longer reads MATLAB|loadmat"):
+            load_dr(ghost)
 
     def test_t2_f04_missing_oo_struct_key_error(self, tmp_path):
-        """Verify load_dynare_dr raises KeyError when .mat file lacks oo_ structure."""
+        """Verify load_dynare_dr raises KeyError when the mapping lacks oo_."""
         load_dr = _require_load_dynare_dr()
         bad_mat = tmp_path / "not_dynare.mat"
         scipy.io.savemat(str(bad_mat), {"unrelated_var": [1, 2, 3]})
-        
+
         with pytest.raises(KeyError, match=r"(?i)(oo_|dynare)"):
-            load_dr(bad_mat)
+            load_dr(_oo_mapping(bad_mat))
 
     def test_t2_f04_mismatched_variable_names_in_parity(self, synthetic_dynare_results_mat, tmp_path):
         """Verify compare_model_to_dynare detects variable names mismatch between .mod and .mat."""
@@ -1240,7 +1256,7 @@ class TestTier2BoundaryAndCornerCases:
         mod_path = tmp_path / "mismatch.mod"
         mod_path.write_text(mismatched_mod)
         
-        res = compare_fn(mod_path, synthetic_dynare_results_mat["path"])
+        res = compare_fn(mod_path, _oo_mapping(synthetic_dynare_results_mat["path"]))
         assert hasattr(res, "passed")
         assert res.passed is False
 
@@ -1260,7 +1276,7 @@ class TestTier2BoundaryAndCornerCases:
         mod_path = tmp_path / "strict.mod"
         mod_path.write_text(mod_text)
         
-        res = compare_fn(mod_path, synthetic_dynare_results_mat["path"], tol_dr=0.0)
+        res = compare_fn(mod_path, _oo_mapping(synthetic_dynare_results_mat["path"]), tol_dr=0.0)
         assert hasattr(res, "max_dev_ghx")
 
     def test_t2_f04_missing_second_order_dr_graceful_fallback(self, synthetic_dynare_results_mat, tmp_path):
@@ -1279,7 +1295,7 @@ class TestTier2BoundaryAndCornerCases:
         mod_path = tmp_path / "order2_check.mod"
         mod_path.write_text(mod_text)
         
-        res = compare_fn(mod_path, synthetic_dynare_results_mat["path"], order=2)
+        res = compare_fn(mod_path, _oo_mapping(synthetic_dynare_results_mat["path"]), order=2)
         assert hasattr(res, "passed")
 
     def test_t2_f04_cli_invalid_arguments_and_missing_path(self):

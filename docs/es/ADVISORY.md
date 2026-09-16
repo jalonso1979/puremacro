@@ -130,17 +130,20 @@ bajo 1.9.0, "Fixed — affects results published in every release from
 
 Se dice aquí en vez de dejar que un usuario lo descubra:
 
-- **`matlab/` — en parte.** La caja de herramientas de MATLAB es una
-  implementación aparte, así que una corrección en Python no la alcanza.
-  Dos se portaron a mano: `+puremacro/+var/proxy.m` tenía el mismo error
-  de métrica en el proxy-SVAR y está corregido, y
-  `+puremacro/+var/estimate.m` ahora lanza excepción ante entradas no
-  finitas. **Toda respuesta a impulso proxy-SVAR que esa caja produjo
-  antes del 2026-09-02 es incorrecta y debe volver a correrse.** Los
-  otros cinco estimadores del cuadro **no** han sido auditados ahí;
-  donde la caja los implemente, suponga los mismos defectos hasta
-  comprobarlo. Vea
-  [`matlab/README.md`](https://github.com/jalonso1979/puremacro/blob/main/matlab/README.md).
+- **`matlab/` — eliminada en 4.0.0.** La caja de herramientas de MATLAB era
+  una implementación separada, así que ninguna corrección de Python llegaba a
+  ella. Antes de eliminarla se portaron dos estimadores a mano:
+  `+puremacro/+var/proxy.m` arrastraba el mismo error de métrica en el SVAR
+  con proxy y quedó corregido, y `+puremacro/+var/estimate.m` ahora falla ante
+  entradas no finitas. Los otros cinco estimadores del cuadro anterior **nunca
+  se auditaron allí**. Como una implementación paralela sin auditar de un
+  estimador ya corregido es un riesgo permanente, y como esa caja de
+  herramientas exigía software propietario que puremacro no requiere, se
+  eliminó en 4.0.0 en lugar de mantenerla. **Si alguna vez ejecutó esa caja de
+  herramientas, considere sus resultados no verificados y vuelva a calcularlos
+  con el paquete de Python. Toda función de impulso-respuesta de SVAR con
+  proxy que haya producido antes del 2026-09-02 es incorrecta.** El código
+  permanece en el historial de git en la etiqueta `v3.4.0`.
 - **Los cuadernos de este repositorio ya se volvieron a ejecutar.**
   `notebooks/14_tax_multiplier_three_ways`,
   `notebooks/17_identification_spec_curve`, sus gemelos `_es`,

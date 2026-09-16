@@ -84,8 +84,10 @@ puremacro/
 │                            stripped-down API.
 │
 ├── dsge/                  ← klein.py (QZ solver, BK condition); also a
-│                            load_dynare.py (Phase 5 absorb) for reading
-│                            *_results.mat from Dynare. build.py (1.2.0)
+│                            dynare_results.py that turns a Dynare ``oo_``
+│                            mapping into decision rules. Since 4.0.0 the
+│                            caller loads it; puremacro reads no MATLAB
+│                            files and imports no scipy.io. build.py (1.2.0)
 │                            takes equilibrium conditions as a Python
 │                            function, differentiates them by complex step
 │                            and hands the matrices to klein_solve.

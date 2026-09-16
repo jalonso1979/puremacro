@@ -251,12 +251,18 @@ $$\Delta_{max}(A, B) = \max_{i,j} |A_{ij} - B_{ij}|$$
 
 ```python
 # requires: standalone snippet
+import scipy.io
+
 from puremacro.dsge.parity import verify_dynare_parity, run_parity_suite
+
+# puremacro 4.0.0 no lee archivos de MATLAB: cargue usted mismo la estructura
+# oo_ de Dynare y pase el diccionario. Todo lo demás no cambia.
+oo = scipy.io.loadmat("sw07_results.mat", squeeze_me=True, struct_as_record=False)
 
 # Verificación de un modelo individual
 report = verify_dynare_parity(
     puremacro_model="sw07.mod",
-    dynare_output="sw07_results.mat",
+    dynare_output=oo,
     order=2,
 )
 print(report.to_markdown())
@@ -270,8 +276,12 @@ assert suite_report.passed
 
 El paquete proporciona el comando CLI nativo `puremacro-dynare parity`:
 
+Desde 4.0.0 la interfaz de línea de comandos acepta únicamente modelos
+`.mod`; ya no busca un archivo `*_results.mat` asociado. La comparación con
+la salida de Dynare se hace desde Python, donde usted decide cómo cargarla.
+
 ```bash
-# Verificar un archivo .mod individual frente a su archivo .mat correspondiente
+# Resolver un archivo .mod individual y emitir el informe
 puremacro-dynare parity models/sw07.mod --order 2
 
 # Evaluar todos los modelos de un directorio y exportar la tarjeta de evaluación en LaTeX

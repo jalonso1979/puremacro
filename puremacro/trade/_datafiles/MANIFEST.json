@@ -1,0 +1,13 @@
+{
+  "file": "icio_77c_11s.npz",
+  "array": "data",
+  "shape": [
+    850,
+    1078
+  ],
+  "dtype": "float64",
+  "sha256": "f664e3fd4998cc51f235af5e04811fc9b3d18a81b19648c82dc39dd31e023267",
+  "source": "OECD Inter-Country Input-Output (ICIO) tables, 77 countries x 11 composite sectors",
+  "converted_from": "data_77c_11s.mat (MATLAB v5)",
+  "note": "Bit-exact float64 conversion; np.array_equal against the MATLAB array verified at conversion time."
+}

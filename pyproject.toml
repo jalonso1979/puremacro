@@ -8,7 +8,7 @@ name = "puremacro"
 # defined by the project release contract: `version = "X.Y.Z"` in pyproject.toml,
 # puremacro/__init__.py (`__version__`), the top `## X.Y.Z` heading in
 # CHANGELOG.md, and `version:` in CITATION.cff.
-version = "3.4.0"
+version = "4.0.0"
 description = "Pyodide-compatible empirical macro toolbox: SVAR + LP + GARCH + inference"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -154,6 +154,11 @@ include = ["puremacro*"]
 # they did before 1.2.0.
 "puremacro.datasets" = ["data/*.csv"]
 "puremacro.validation.goldens" = ["*.json"]
+# The OECD ICIO transaction matrix the trade model calibrates from, shipped as a
+# compressed .npz so `puremacro.trade` reproduces with no MATLAB and no file
+# outside the distribution. Before 3.5.0 it was read from a `.mat` above the
+# checkout, so every trade parity test skipped for anyone but the author.
+"puremacro.trade" = ["_datafiles/*.npz", "_datafiles/*.json"]
 "puremacro.replication.data" = ["*.csv"]
 
 [tool.mypy]

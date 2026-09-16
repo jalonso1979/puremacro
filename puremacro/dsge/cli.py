@@ -28,7 +28,7 @@ class DynareParser(argparse.ArgumentParser):
             "path",
             nargs="?",
             default=".",
-            help="Path to .mod file, *_results.mat file, or directory of models. Default: .",
+            help="Path to a .mod file or a directory of models. Default: .",
         )
         self._parity_parser.add_argument(
             "--order",
@@ -151,35 +151,30 @@ def run_parity_cli(args: argparse.Namespace) -> int:
         sys.stderr.write(f"Error: Path '{target_path}' not found.\n")
         return 1
 
-    from puremacro.dsge.parity import compare_model_to_dynare, run_parity_suite
+    if target_path.is_file() and target_path.suffix == ".mat":
+        sys.stderr.write(
+            "Error: puremacro 4.0.0 no longer reads MATLAB .mat files. Load the "
+            "Dynare oo_ structure yourself and call "
+            "puremacro.dsge.verify_dynare_parity(model, oo_dict).\n"
+        )
+        return 1
+    if target_path.is_file() and target_path.suffix != ".mod":
+        sys.stderr.write(
+            f"Error: Unrecognized file type '{target_path.suffix}'; expected .mod\n"
+        )
+        return 1
 
-    if target_path.is_file():
-        if target_path.suffix == ".mod":
-            mat_candidates = [
-                target_path.with_name(f"{target_path.stem}_results.mat"),
-                target_path.with_suffix(".mat"),
-                target_path.parent / "results" / f"{target_path.stem}_results.mat",
-            ]
-            mat_path = next((m for m in mat_candidates if m.exists()), None)
-            if mat_path is None:
-                sys.stderr.write(f"Error: No matching results .mat file found for {target_path}.\n")
-                return 1
-            res = compare_model_to_dynare(target_path, mat_path, order=args.order, tol=args.tol)
-        elif target_path.suffix == ".mat":
-            mod_candidates = [
-                target_path.with_suffix(".mod"),
-                target_path.with_name(f"{target_path.stem.replace('_results', '')}.mod"),
-            ]
-            mod_path = next((m for m in mod_candidates if m.exists()), None)
-            if mod_path is None:
-                sys.stderr.write(f"Error: No matching .mod file found for {target_path}.\n")
-                return 1
-            res = compare_model_to_dynare(mod_path, target_path, order=args.order, tol=args.tol)
-        else:
-            sys.stderr.write(f"Error: Unrecognized file type '{target_path.suffix}'; expected .mod or .mat\n")
-            return 1
-    else:
-        res = run_parity_suite(target_path, order=args.order, tol=args.tol)
+    # Comparing against Dynare needs its oo_ output, which only the caller can
+    # load now that puremacro reads no MATLAB files. Rather than run a suite
+    # that can verify nothing and report success, say so and fail.
+    sys.stderr.write(
+        "Error: `puremacro-dynare parity` cannot compare against Dynare from the "
+        "command line since 4.0.0, because puremacro no longer reads "
+        "*_results.mat. Load each reference yourself and call:\n"
+        "    from puremacro.dsge import run_parity_suite\n"
+        "    run_parity_suite(directory, dynare_results={'model_stem': oo_dict})\n"
+    )
+    return 1
 
     if not args.quiet:
         sys.stdout.write(res.summary() + "\n")

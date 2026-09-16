@@ -25,14 +25,11 @@ zero dev-dependencies in the runtime path.
 """
 from __future__ import annotations
 
-import os
-from pathlib import Path
 import time
 from typing import Any
 import numpy as np
 import pandas as pd
 import pytest
-import scipy.io as sio
 
 from puremacro.trade import (
 
@@ -57,29 +54,61 @@ from puremacro.trade import (
     solve_multilateral_ppp,
     solve_trade_equilibrium,
 )
-
-from conftest import icio_reference_dir_is_complete, mat_file_is_readable
+from puremacro.trade.data import (
+    load_reference_workbook_sheet,
+    available_reference_scenarios,
+    load_icio_data,
+    load_reference_solution,
+)
 
 
 # ---------------------------------------------------------------------------
-# Fixtures
+# Bundled MATLAB reference solutions
 # ---------------------------------------------------------------------------
+#
+# The reference equilibria ship inside ``puremacro.trade`` as verbatim copies of
+# the MATLAB ``results_77c_11s_*.mat`` outputs, so every check below runs from a
+# plain checkout with no MATLAB and no file outside the installation.  Scenario
+# ``t10_54`` is the single gap: its MATLAB source is a dataless placeholder in
+# the author's storage, so anything that genuinely needs it skips by name.
 
-@pytest.fixture(scope="module")
-def matlab_benchmark_dir() -> Path | None:
-    """Discover directory containing reference MATLAB .mat and .xls files."""
-    candidates = [
-        Path(os.environ.get("IO_COMPUTATION_DIR", "")),
-        Path(__file__).resolve().parent.parent.parent / "IO" / "computation" / "7_TIO_77c_vf",
-        Path(__file__).resolve().parents[2] / "IO" / "computation" / "7_TIO_77c_vf",
-        Path.cwd() / "computation" / "7_TIO_77c_vf",
-        Path.cwd() / "IO" / "computation" / "7_TIO_77c_vf",
-    ]
-    for c in candidates:
-        if (c.exists() and mat_file_is_readable(c / "data_77c_11s.mat")
-                and icio_reference_dir_is_complete(c)):
-            return c
-    return None
+def reference_or_skip(scenario: str) -> dict[str, np.ndarray]:
+    """Bundled reference arrays for ``scenario``, or a precise skip."""
+    try:
+        return load_reference_solution(scenario)
+    except KeyError:
+        pytest.skip(
+            f"No bundled reference solution for scenario {scenario!r}; "
+            f"bundled scenarios: {available_reference_scenarios()}"
+        )
+
+
+def require_scenarios(*scenarios: str) -> None:
+    """Skip unless every named scenario has a bundled reference solution."""
+    available = available_reference_scenarios()
+    missing = [s for s in scenarios if s not in available]
+    if missing:
+        pytest.skip(
+            "No bundled reference solution for scenario(s) "
+            f"{', '.join(missing)}; bundled scenarios: {available}"
+        )
+
+
+def _equilibrium_from_reference(scenario: str) -> TradeEquilibriumResult:
+    """Build a TradeEquilibriumResult from one bundled reference solution."""
+    mat = load_reference_solution(scenario)
+    return TradeEquilibriumResult(
+        x_sol=mat["xx_sol"].flatten(),
+        p_sol=mat["p_sol"],
+        y_sol=mat["ytot_sol"],
+        r_sol=mat["r_sol"],
+        w_sol=mat["w_sol"],
+        T_sol=mat["T_sol"],
+        XN_sol=mat["XN_sol"].flatten(),
+        c_sol=mat["c_sol"],
+        pfd_sol=mat["pfd_sol"],
+        country_codes=CANONICAL_COUNTRY_CODES,
+    )
 
 
 @pytest.fixture(scope="module")
@@ -247,13 +276,8 @@ class TestTariffMatrixParity:
             assert s in SCENARIOS
             assert isinstance(SCENARIOS[s], TariffScenario)
 
-    def test_tariff_matrices_exact_parity_against_all_mat_files(
-        self, matlab_benchmark_dir: Path | None
-    ) -> None:
+    def test_tariff_matrices_exact_parity_against_all_mat_files(self) -> None:
         """Assert zero discrepancy against reference .mat files across all 7 scenarios."""
-        if matlab_benchmark_dir is None:
-            pytest.skip("Reference benchmark directory not found.")
-
         # Construct a dummy calibration object containing canonical country and sector codes
         nc, ns, nfd = 77, 11, 3
         calib = TradeCalibrationResult(
@@ -271,11 +295,14 @@ class TestTariffMatrixParity:
         )
 
         scenario_names = ["base", "t10", "t10_25", "t10_54", "t10_75", "t10_125", "t10_145"]
+        available = available_reference_scenarios()
+        checked = 0
         for s_name in scenario_names:
-            mat_path = matlab_benchmark_dir / f"results_77c_11s_{s_name}.mat"
-            if not mat_path.exists():
+            if s_name not in available:
+                # t10_54 has no bundled reference (dataless MATLAB placeholder).
                 continue
-            mat = sio.loadmat(str(mat_path))
+            mat = load_reference_solution(s_name)
+            checked += 1
             ref_tau_a = mat["tau_a"]
             ref_taufd_a = mat["taufd_a"]
 
@@ -291,6 +318,10 @@ class TestTariffMatrixParity:
             assert max_diff_tau == 0.0, f"Discrepancy in tau for scenario {s_name}: {max_diff_tau}"
             assert max_diff_taufd == 0.0, f"Discrepancy in tau_fd for scenario {s_name}: {max_diff_taufd}"
 
+        assert checked == len(available), (
+            f"Expected to check every bundled scenario ({available}), checked {checked}"
+        )
+
 
 # ---------------------------------------------------------------------------
 # Tier 3: Geary-Khamis Numerical Parity Tests vs MATLAB results.xls & .mat
@@ -299,40 +330,44 @@ class TestTariffMatrixParity:
 class TestGearyKhamisNumericalParity:
     """Verify Geary-Khamis numerical parity against results.xls and .mat benchmarks."""
 
-    def test_geary_khamis_parity_against_results_xls(
-        self, matlab_benchmark_dir: Path | None
-    ) -> None:
-        """Assert maximum relative error < 10^-11 across all 77 countries and 5 published scenarios."""
-        if matlab_benchmark_dir is None:
-            pytest.skip("Reference benchmark directory not found.")
+    def test_geary_khamis_parity_against_results_xls(self) -> None:
+        """Assert maximum error < 1e-10 across all 77 countries and the published scenarios.
 
-        xls_path = matlab_benchmark_dir / "results.xls"
-        if not xls_path.exists():
-            pytest.skip("results.xls not found.")
+        Compares Geary-Khamis real GDP growth, inflation and XN/GDP -- recomputed
+        from the reference ``c_sol``/``pfd_sol``/``w_sol``/``XN_sol`` arrays --
+        against the MATLAB ``results.xls`` sheets, which ship with puremacro as
+        verbatim cell values so this stays an external comparison.
 
-        df_growth_mat = pd.read_excel(str(xls_path), sheet_name="growth GDP%", header=None).values
-        df_inf_mat = pd.read_excel(str(xls_path), sheet_name="inflaction%", header=None).values
-        df_xn_mat = pd.read_excel(str(xls_path), sheet_name="xn_over_gd%", header=None).values
+        ``t10_54`` is excluded: its ``results_77c_11s_t10_54.mat`` is a dataless
+        placeholder in the author's storage, so the equilibrium arrays for that
+        column do not exist to recompute from.
+        """
+        growth_mat = load_reference_workbook_sheet("growth GDP%").astype(float)
+        inf_mat = load_reference_workbook_sheet("inflaction%").astype(float)
+        xn_mat = load_reference_workbook_sheet("xn_over_gd%").astype(float)
 
-        base_mat = sio.loadmat(str(matlab_benchmark_dir / "results_77c_11s_base.mat"))
-        c_base_raw = base_mat["c_sol"].copy()
-        xn_base = base_mat["XN_sol"].flatten()
-
-        c_base_restored = restore_capital_formation(c_base_raw, xn_base, matlab_compat=True)
+        base_mat = reference_or_skip("base")
+        c_base_restored = restore_capital_formation(
+            base_mat["c_sol"].copy(), base_mat["XN_sol"].flatten(), matlab_compat=True
+        )
         gdp_base = np.sum(c_base_restored[0], axis=0)
 
+        # Column order of the workbook; t10_54 keeps its column index so the
+        # remaining scenarios still line up with the published sheets.
         scens = ["t10", "t10_25", "t10_54", "t10_125", "t10_145"]
+        available = set(available_reference_scenarios())
+        checked = 0
         for s_idx, s_name in enumerate(scens):
-            mat_path = matlab_benchmark_dir / f"results_77c_11s_{s_name}.mat"
-            mat = sio.loadmat(str(mat_path))
-            c_sol_raw = mat["c_sol"].copy()
+            if s_name not in available:
+                continue
+            mat = load_reference_solution(s_name)
+            c_sol_restored = restore_capital_formation(
+                mat["c_sol"].copy(), mat["XN_sol"].flatten(), matlab_compat=True
+            )
             pfd_sol = mat["pfd_sol"].copy()
             w_sol = mat["w_sol"].copy()
             xn_sol = mat["XN_sol"].flatten()
 
-            c_sol_restored = restore_capital_formation(c_sol_raw, xn_sol, matlab_compat=True)
-
-            # Solve Geary-Khamis matching MATLAB Resultadosl.m tol=1e-9
             pi, ppp, conv, _ = solve_multilateral_ppp(
                 p=pfd_sol[0], q=c_sol_restored[0], method="iterative", tol=1e-9
             )
@@ -341,46 +376,40 @@ class TestGearyKhamisNumericalParity:
             real_gdp = np.sum(c_sol_restored[0] * pi[:, np.newaxis], axis=0)
             growth = ((real_gdp / gdp_base) - 1.0) * 100.0
 
-            # Parity check on GDP growth
-            max_abs_diff = float(np.max(np.abs(growth - df_growth_mat[:, s_idx])))
-            max_rel_diff = float(np.max(np.abs((growth - df_growth_mat[:, s_idx]) / np.maximum(np.abs(growth), 1e-6))))
-
+            max_abs_diff = float(np.max(np.abs(growth - growth_mat[:, s_idx])))
+            max_rel_diff = float(np.max(np.abs(
+                (growth - growth_mat[:, s_idx]) / np.maximum(np.abs(growth), 1e-6)
+            )))
             assert max_abs_diff < 1e-10, f"Absolute error exceeded in {s_name}: {max_abs_diff}"
             assert max_rel_diff < 1e-10, f"Relative error exceeded in {s_name}: {max_rel_diff}"
 
-            # Check inflation and XN/GDP
             w = w_sol[0, 0, :]
             p_dom = pfd_sol[0] / w[np.newaxis, :]
             gdp_dom = np.sum(p_dom * c_sol_restored[0], axis=0)
-            cpi = gdp_dom / gdp_base
-            infl = (cpi - 1.0) * 100.0
+            infl = ((gdp_dom / gdp_base) - 1.0) * 100.0
 
             xn_full = np.zeros(77)
             xn_full[:76] = xn_sol[:76]
             xn_full[76] = np.sum(xn_sol[:76])
             xn_over_gdp = 100.0 * xn_full / gdp_dom
 
-            max_inf_diff = float(np.max(np.abs(infl - df_inf_mat[:, s_idx])))
-            max_xn_diff = float(np.max(np.abs(xn_over_gdp - df_xn_mat[:, s_idx])))
+            assert float(np.max(np.abs(infl - inf_mat[:, s_idx]))) < 1e-10, s_name
+            assert float(np.max(np.abs(xn_over_gdp - xn_mat[:, s_idx]))) < 1e-10, s_name
+            checked += 1
 
-            assert max_inf_diff < 1e-10, f"Inflation error in {s_name}: {max_inf_diff}"
-            assert max_xn_diff < 1e-10, f"XN/GDP error in {s_name}: {max_xn_diff}"
+        assert checked == 4, f"expected 4 comparable scenarios, checked {checked}"
 
-    def test_geary_khamis_linear_vs_iterative_parity(
-        self, matlab_benchmark_dir: Path | None
-    ) -> None:
+    def test_geary_khamis_linear_vs_iterative_parity(self) -> None:
         """Verify that direct linear solve matches iterative solve to machine precision (< 1e-12)."""
-        if matlab_benchmark_dir is None:
-            pytest.skip("Reference benchmark directory not found.")
-
-        base_mat = sio.loadmat(str(matlab_benchmark_dir / "results_77c_11s_base.mat"))
+        base_mat = reference_or_skip("base")
         c_base = restore_capital_formation(base_mat["c_sol"], base_mat["XN_sol"], matlab_compat=True)
 
+        available = available_reference_scenarios()
         for s_name in ["t10", "t10_25", "t10_54", "t10_75", "t10_125", "t10_145"]:
-            mat_path = matlab_benchmark_dir / f"results_77c_11s_{s_name}.mat"
-            if not mat_path.exists():
+            if s_name not in available:
+                # t10_54 has no bundled reference (dataless MATLAB placeholder).
                 continue
-            mat = sio.loadmat(str(mat_path))
+            mat = load_reference_solution(s_name)
             c_sol = restore_capital_formation(mat["c_sol"], mat["XN_sol"], matlab_compat=True)
             pfd_sol = mat["pfd_sol"]
 
@@ -390,22 +419,13 @@ class TestGearyKhamisNumericalParity:
             np.testing.assert_allclose(pi_iter, pi_lin, rtol=1e-10, atol=1e-10)
             np.testing.assert_allclose(ppp_iter, ppp_lin, rtol=1e-10, atol=1e-10)
 
-    def test_intermediate_scenario_t10_75_parity(
-        self, matlab_benchmark_dir: Path | None
-    ) -> None:
+    def test_intermediate_scenario_t10_75_parity(self) -> None:
         """Verify real GDP growth for intermediate scenario t10_75 against reference .mat solution."""
-        if matlab_benchmark_dir is None:
-            pytest.skip("Reference benchmark directory not found.")
-
-        t75_path = matlab_benchmark_dir / "results_77c_11s_t10_75.mat"
-        if not t75_path.exists():
-            pytest.skip("results_77c_11s_t10_75.mat not found.")
-
-        base_mat = sio.loadmat(str(matlab_benchmark_dir / "results_77c_11s_base.mat"))
+        base_mat = reference_or_skip("base")
         c_base = restore_capital_formation(base_mat["c_sol"], base_mat["XN_sol"], matlab_compat=True)
         gdp_base = np.sum(c_base[0], axis=0)
 
-        mat75 = sio.loadmat(str(t75_path))
+        mat75 = reference_or_skip("t10_75")
         c_sol = restore_capital_formation(mat75["c_sol"], mat75["XN_sol"], matlab_compat=True)
         pfd_sol = mat75["pfd_sol"]
 
@@ -429,47 +449,19 @@ class TestGearyKhamisNumericalParity:
 class TestPaperTableReproduction:
     """Verify exact reproduction of selected_country_impacts.tex and mean_by_scenario.tex."""
 
-    def test_selected_country_table_exact_match(
-        self, matlab_benchmark_dir: Path | None
-    ) -> None:
+    def test_selected_country_table_exact_match(self) -> None:
         """Assert exact match for selected_country_impacts.tex across all 5 published scenarios."""
-        if matlab_benchmark_dir is None:
-            pytest.skip("Reference benchmark directory not found.")
-
-        # Build mock TradeEquilibriumResults from .mat files
+        # Build mock TradeEquilibriumResults from the bundled reference solutions
         scens = ["base", "t10", "t10_25", "t10_54", "t10_125", "t10_145"]
+        require_scenarios(*scens)
         results_dict: dict[str, TradeEquilibriumResult] = {}
         gk_dict: dict[str, GearyKhamisResult] = {}
 
-        base_mat = sio.loadmat(str(matlab_benchmark_dir / "results_77c_11s_base.mat"))
-        base_eq = TradeEquilibriumResult(
-            x_sol=base_mat["xx_sol"].flatten(),
-            p_sol=base_mat["p_sol"],
-            y_sol=base_mat["ytot_sol"],
-            r_sol=base_mat["r_sol"],
-            w_sol=base_mat["w_sol"],
-            T_sol=base_mat["T_sol"],
-            XN_sol=base_mat["XN_sol"].flatten(),
-            c_sol=base_mat["c_sol"],
-            pfd_sol=base_mat["pfd_sol"],
-            country_codes=CANONICAL_COUNTRY_CODES,
-        )
+        base_eq = _equilibrium_from_reference("base")
         results_dict["base"] = base_eq
 
         for s_name in scens:
-            mat = sio.loadmat(str(matlab_benchmark_dir / f"results_77c_11s_{s_name}.mat"))
-            eq = TradeEquilibriumResult(
-                x_sol=mat["xx_sol"].flatten(),
-                p_sol=mat["p_sol"],
-                y_sol=mat["ytot_sol"],
-                r_sol=mat["r_sol"],
-                w_sol=mat["w_sol"],
-                T_sol=mat["T_sol"],
-                XN_sol=mat["XN_sol"].flatten(),
-                c_sol=mat["c_sol"],
-                pfd_sol=mat["pfd_sol"],
-                country_codes=CANONICAL_COUNTRY_CODES,
-            )
+            eq = _equilibrium_from_reference(s_name)
             results_dict[s_name] = eq
             gk = compute_geary_khamis(eq, base_eq, matlab_compat=True)
             if s_name == "base":
@@ -523,46 +515,18 @@ class TestPaperTableReproduction:
             [-0.07, -0.12, -0.16, -0.24, -0.27],
         )
 
-    def test_mean_by_scenario_table_exact_match(
-        self, matlab_benchmark_dir: Path | None
-    ) -> None:
+    def test_mean_by_scenario_table_exact_match(self) -> None:
         """Assert exact string matches for mean_by_scenario.tex."""
-        if matlab_benchmark_dir is None:
-            pytest.skip("Reference benchmark directory not found.")
-
         scens = ["base", "t10", "t10_25", "t10_54", "t10_125", "t10_145"]
+        require_scenarios(*scens)
         results_dict: dict[str, TradeEquilibriumResult] = {}
         gk_dict: dict[str, GearyKhamisResult] = {}
 
-        base_mat = sio.loadmat(str(matlab_benchmark_dir / "results_77c_11s_base.mat"))
-        base_eq = TradeEquilibriumResult(
-            x_sol=base_mat["xx_sol"].flatten(),
-            p_sol=base_mat["p_sol"],
-            y_sol=base_mat["ytot_sol"],
-            r_sol=base_mat["r_sol"],
-            w_sol=base_mat["w_sol"],
-            T_sol=base_mat["T_sol"],
-            XN_sol=base_mat["XN_sol"].flatten(),
-            c_sol=base_mat["c_sol"],
-            pfd_sol=base_mat["pfd_sol"],
-            country_codes=CANONICAL_COUNTRY_CODES,
-        )
+        base_eq = _equilibrium_from_reference("base")
         results_dict["base"] = base_eq
 
         for s_name in scens:
-            mat = sio.loadmat(str(matlab_benchmark_dir / f"results_77c_11s_{s_name}.mat"))
-            eq = TradeEquilibriumResult(
-                x_sol=mat["xx_sol"].flatten(),
-                p_sol=mat["p_sol"],
-                y_sol=mat["ytot_sol"],
-                r_sol=mat["r_sol"],
-                w_sol=mat["w_sol"],
-                T_sol=mat["T_sol"],
-                XN_sol=mat["XN_sol"].flatten(),
-                c_sol=mat["c_sol"],
-                pfd_sol=mat["pfd_sol"],
-                country_codes=CANONICAL_COUNTRY_CODES,
-            )
+            eq = _equilibrium_from_reference(s_name)
             results_dict[s_name] = eq
             gk = compute_geary_khamis(eq, base_eq, matlab_compat=True)
             if s_name == "base":
@@ -608,33 +572,23 @@ class TestPaperTableReproduction:
 class TestWarmStartedBatchSolve:
     """Verify warm-started batch solve runs in under 60 seconds with error < 10^-4."""
 
-    def test_warm_started_batch_performance(
-        self, matlab_benchmark_dir: Path | None
-    ) -> None:
+    def test_warm_started_batch_performance(self) -> None:
         """Execute full batch warm-started from reference solutions in < 60s."""
-        if matlab_benchmark_dir is None:
-            pytest.skip("Reference benchmark directory not found.")
-
-        data_mat = sio.loadmat(str(matlab_benchmark_dir / "data_77c_11s.mat"))["data"]
+        data_mat = load_icio_data()
         calib = calibrate_trade_model(data_mat, ns=11, nc=77, nfd=3)
 
-        base_mat = sio.loadmat(str(matlab_benchmark_dir / "results_77c_11s_base.mat"))
-        base_eq = TradeEquilibriumResult(
-            x_sol=base_mat["xx_sol"].flatten(),
-            p_sol=base_mat["p_sol"],
-            y_sol=base_mat["ytot_sol"],
-            r_sol=base_mat["r_sol"],
-            w_sol=base_mat["w_sol"],
-            T_sol=base_mat["T_sol"],
-            XN_sol=base_mat["XN_sol"].flatten(),
-            c_sol=base_mat["c_sol"],
-            pfd_sol=base_mat["pfd_sol"],
-            country_codes=CANONICAL_COUNTRY_CODES,
-        )
+        base_eq = _equilibrium_from_reference("base")
 
-        scen_names = ["base", "t10", "t10_25", "t10_54", "t10_75", "t10_125", "t10_145"]
+        # t10_54 has no bundled reference (dataless MATLAB placeholder), so the
+        # batch is warm-started from the six scenarios that do ship.
+        available = available_reference_scenarios()
+        scen_names = [
+            s for s in ["base", "t10", "t10_25", "t10_54", "t10_75", "t10_125", "t10_145"]
+            if s in available
+        ]
+        assert len(scen_names) >= 2, f"Too few bundled reference scenarios: {scen_names}"
         initial_guesses = {
-            s: sio.loadmat(str(matlab_benchmark_dir / f"results_77c_11s_{s}.mat"))["xx_sol"].flatten()
+            s: load_reference_solution(s)["xx_sol"].flatten()
             for s in scen_names
         }
 
@@ -662,17 +616,12 @@ class TestWarmStartedBatchSolve:
             rel_err = np.max(np.abs((sol_x - ref_x) / np.maximum(np.abs(ref_x), 1e-4)))
             assert rel_err < 1e-4, f"Scenario {s} relative error {rel_err} exceeds 1e-4"
 
-    def test_continuation_single_newton_step(
-        self, matlab_benchmark_dir: Path | None
-    ) -> None:
+    def test_continuation_single_newton_step(self) -> None:
         """Verify warm-started continuation from base to t10 runs 1 Newton step in < 60s."""
-        if matlab_benchmark_dir is None:
-            pytest.skip("Reference benchmark directory not found.")
-
-        data_mat = sio.loadmat(str(matlab_benchmark_dir / "data_77c_11s.mat"))["data"]
+        data_mat = load_icio_data()
         calib = calibrate_trade_model(data_mat, ns=11, nc=77, nfd=3)
 
-        base_mat = sio.loadmat(str(matlab_benchmark_dir / "results_77c_11s_base.mat"))
+        base_mat = reference_or_skip("base")
         base_x = base_mat["xx_sol"].flatten()
 
         t0 = time.perf_counter()

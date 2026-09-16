@@ -1,7 +1,7 @@
 """Automated Dynare Parity Verification Harness for puremacro 2.9.0.
 
 Provides rigorous automated validation comparing puremacro DSGE solutions against
-official Dynare results (*_results.mat).
+an official Dynare ``oo_`` results structure supplied as a Python dict.
 """
 from __future__ import annotations
 
@@ -18,7 +18,15 @@ from ._results import (
     ModelParityResult,
     ParityDashboardResult,
 )
-from .load_dynare import load_dynare_dr, load_dynare_moments
+from .dynare_results import load_dynare_dr, load_dynare_moments
+
+_MAT_INPUT_REMOVED = (
+    "puremacro 4.0.0 no longer reads MATLAB .mat files. Pass the Dynare oo_ "
+    "results as a Python dict, e.g. "
+    "`scipy.io.loadmat(path, squeeze_me=True, struct_as_record=False)`, or "
+    "build the model with puremacro's own pure-Python .mod parser "
+    "(`puremacro.dsge.build_dynare`)."
+)
 
 
 DEFAULT_TOLERANCES: dict[str, float] = {
@@ -58,7 +66,8 @@ def verify_dynare_parity(
     puremacro_model : LinearModel | PrunedDSGESolution | DynareDR | str | Path
         Solved puremacro model instance or path to a .mod file.
     dynare_output : DynareDR | Dynare2ndDR | dict | str | Path
-        Dynare decision rules, results dict, or path to *_results.mat file.
+        Dynare decision rules or an ``oo_`` results dict. Reading MATLAB
+        ``.mat`` files was removed in 4.0.0.
     order : {1, 2}, default 1
         Perturbation order to compare.
     tol : float | dict[str, float], optional
@@ -79,32 +88,9 @@ def verify_dynare_parity(
         p_mod = Path(puremacro_model)
         model_name = p_mod.stem
         if p_mod.suffix == ".mat":
-            try:
-                pm_dr = load_dynare_dr(p_mod, order=order)
-                pm_model = pm_dr
-            except KeyError as exc:
-                if order >= 2 and ("ghxx" in str(exc) or "ghs2" in str(exc)):
-                    runtime_sec = time.perf_counter() - t0
-                    return ParityDashboardResult(
-                        passed=False,
-                        score=0.0,
-                        model_name=model_name,
-                        total_models=1,
-                        passed_models=0,
-                        failed_models=1,
-                        tolerances=tolerances,
-                        max_dev_ghx=np.nan,
-                        max_dev_ghu=np.nan,
-                        max_dev_ghxx=np.nan,
-                        max_dev_ghs2=np.nan,
-                        max_dev_moments=np.nan,
-                        max_dev_dr=np.nan,
-                        details={"error": str(exc), "runtime_sec": runtime_sec, "order2_missing": True},
-                    )
-                raise
-        else:
-            from .dynare import load_mod
-            pm_model = load_mod(p_mod, order=order)
+            raise TypeError(_MAT_INPUT_REMOVED)
+        from .dynare import load_mod
+        pm_model = load_mod(p_mod, order=order)
     else:
         pm_model = puremacro_model
         if hasattr(pm_model, "name") and pm_model.name:
@@ -135,33 +121,7 @@ def verify_dynare_parity(
     # 2. Resolve Dynare output
     dyn_moments: dict[str, np.ndarray] = {}
     if isinstance(dynare_output, (str, Path)):
-        p_mat = Path(dynare_output)
-        try:
-            dyn_dr = load_dynare_dr(p_mat, order=order)
-        except KeyError as exc:
-            if order >= 2 and ("ghxx" in str(exc) or "ghs2" in str(exc)):
-                runtime_sec = time.perf_counter() - t0
-                return ParityDashboardResult(
-                    passed=False,
-                    score=0.0,
-                    model_name=model_name,
-                    total_models=1,
-                    passed_models=0,
-                    failed_models=1,
-                    tolerances=tolerances,
-                    max_dev_ghx=np.nan,
-                    max_dev_ghu=np.nan,
-                    max_dev_ghxx=np.nan,
-                    max_dev_ghs2=np.nan,
-                    max_dev_moments=np.nan,
-                    max_dev_dr=np.nan,
-                    details={"error": str(exc), "runtime_sec": runtime_sec, "order2_missing": True},
-                )
-            raise
-        try:
-            dyn_moments = load_dynare_moments(p_mat)
-        except Exception:
-            dyn_moments = {}
+        raise TypeError(_MAT_INPUT_REMOVED)
     elif isinstance(dynare_output, (DynareDR, Dynare2ndDR)):
         dyn_dr = dynare_output
     elif isinstance(dynare_output, dict):
@@ -434,25 +394,63 @@ def compare_model_to_dynare(
 def run_parity_suite(
     test_dir: str | Path,
     *,
+    dynare_results: Mapping[str, dict] | None = None,
     pattern: str = "*.mod",
     order: int = 1,
     tol: float | Mapping[str, float] | None = None,
 ) -> ParityDashboardResult:
-    """Run batch parity verification across a directory of model files."""
+    """Run batch parity verification across a directory of model files.
+
+    Parameters
+    ----------
+    test_dir : str or Path
+        Directory of ``.mod`` models, or a single model file.
+    dynare_results : mapping of str to dict, optional
+        Dynare ``oo_`` structures to compare against, keyed by model stem
+        (``sw07`` for ``sw07.mod``). Required since 4.0.0: puremacro no longer
+        reads MATLAB files, so it cannot discover a ``*_results.mat`` companion
+        on disk. Load each reference however you like and pass the mapping.
+
+    Notes
+    -----
+    A model with no entry in ``dynare_results`` is reported ``UNAVAILABLE`` and
+    is **not** counted as passing. If nothing could be compared at all the
+    result is ``passed=False``: a suite that checked nothing has not verified
+    anything, and saying otherwise would turn a green dashboard into a lie.
+    """
     root = Path(test_dir)
     mod_files = sorted(root.glob(pattern)) if root.is_dir() else ([root] if root.is_file() else [])
+    references: Mapping[str, dict] = dynare_results or {}
     results: list[ModelParityResult] = []
+    unavailable: list[str] = []
 
     for mod in mod_files:
-        mat_candidates = [
-            mod.with_name(f"{mod.stem}_results.mat"),
-            mod.with_suffix(".mat"),
-            mod.parent / "results" / f"{mod.stem}_results.mat",
-        ]
-        mat_path = next((m for m in mat_candidates if m.exists()), None)
-        if mat_path is not None:
+        reference = references.get(mod.stem)
+        if reference is None:
+            unavailable.append(mod.stem)
+            results.append(ModelParityResult(
+                model_name=mod.stem,
+                order=order,
+                n_vars=0,
+                n_shocks=0,
+                passed=False,
+                status="UNAVAILABLE",
+                max_dev_ghx=np.nan,
+                max_dev_ghu=np.nan,
+                max_dev_ghxx=np.nan,
+                max_dev_ghs2=np.nan,
+                max_dev_moments=np.nan,
+                max_dev_dr=np.nan,
+                score=0.0,
+                runtime_sec=0.0,
+                details={"error": (
+                    f"no Dynare reference supplied for {mod.stem!r}; pass one via "
+                    "run_parity_suite(..., dynare_results={'" + mod.stem + "': oo_dict})"
+                )},
+            ))
+        else:
             try:
-                res = compare_model_to_dynare(mod, mat_path, order=order, tol=tol)
+                res = compare_model_to_dynare(mod, reference, order=order, tol=tol)
                 m_res = ModelParityResult(
                     model_name=res.model_name,
                     order=order,
@@ -495,13 +493,15 @@ def run_parity_suite(
 
     if not results:
         return ParityDashboardResult(
-            passed=True,
-            score=100.0,
+            passed=False,
+            score=0.0,
             model_name=root.name,
             total_models=0,
             passed_models=0,
             failed_models=0,
-            details={"message": "No matching .mod/.mat pairs discovered"},
+            details={"message": (
+                f"no models matched {pattern!r} under {root}; nothing was verified"
+            )},
         )
 
     total_m = len(results)

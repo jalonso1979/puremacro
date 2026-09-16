@@ -16,13 +16,15 @@ Conforms strictly to the puremacro Pyodide runtime contract.
 from __future__ import annotations
 
 import math
-import os
-from pathlib import Path
 import numpy as np
 import pytest
-import scipy.io as sio
 
-from puremacro.trade.data import CANONICAL_COUNTRY_CODES, CANONICAL_SECTOR_CODES
+from puremacro.trade.data import (
+    CANONICAL_COUNTRY_CODES,
+    CANONICAL_SECTOR_CODES,
+    available_reference_scenarios,
+    load_reference_solution,
+)
 from puremacro.trade.geary_khamis import (
     compute_geary_khamis,
     restore_capital_formation,
@@ -36,27 +38,26 @@ from puremacro.trade.scenarios import (
 )
 from puremacro.trade._results import TradeCalibrationResult
 
-from conftest import icio_reference_dir_is_complete, mat_file_is_readable
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 
-@pytest.fixture(scope="module")
-def computation_dir() -> Path | None:
-    """Discover directory containing reference MATLAB .mat files."""
-    candidates = [
-        Path(os.environ.get("IO_COMPUTATION_DIR", "")),
-        Path(__file__).resolve().parents[2] / "IO" / "computation" / "7_TIO_77c_vf",
-        Path.cwd() / "computation" / "7_TIO_77c_vf",
-        Path.cwd() / "IO" / "computation" / "7_TIO_77c_vf",
-    ]
-    for c in candidates:
-        if (c.is_dir() and mat_file_is_readable(c / "data_77c_11s.mat")
-                and icio_reference_dir_is_complete(c)):
-            return c
-    return None
+def reference_or_skip(scenario: str) -> dict[str, np.ndarray]:
+    """Bundled MATLAB reference arrays for ``scenario``, or a precise skip.
+
+    The arrays ship inside ``puremacro.trade``, so these checks need neither
+    MATLAB nor any file outside the installation.  ``t10_54`` is the one
+    scenario with no bundled reference (its MATLAB source is a dataless
+    placeholder), and only that parametrisation skips.
+    """
+    try:
+        return load_reference_solution(scenario)
+    except KeyError:
+        pytest.skip(
+            f"No bundled reference solution for scenario {scenario!r}; "
+            f"bundled scenarios: {available_reference_scenarios()}"
+        )
 
 
 @pytest.fixture(scope="module")
@@ -94,14 +95,10 @@ class TestAdditiveConsistency:
     @pytest.mark.parametrize("matlab_compat", [True, False])
     @pytest.mark.parametrize("method", ["linear", "iterative"])
     def test_additive_consistency_benchmark_scenarios(
-        self, computation_dir, scen_name, matlab_compat, method
+        self, scen_name, matlab_compat, method
     ):
         """Verify additive consistency invariant on all 7 benchmark scenarios."""
-        if computation_dir is None:
-            pytest.skip("Benchmark directory not found.")
-
-        mat_path = computation_dir / f"results_77c_11s_{scen_name}.mat"
-        mat = sio.loadmat(str(mat_path))
+        mat = reference_or_skip(scen_name)
         p = mat["pfd_sol"].reshape(3, 77)
         c_raw = mat["c_sol"].reshape(3, 77)
         xn = mat["XN_sol"].ravel()
@@ -209,13 +206,9 @@ class TestSolverEquivalence:
     @pytest.mark.parametrize("scen_name", [
         "base", "t10", "t10_25", "t10_54", "t10_75", "t10_125", "t10_145"
     ])
-    def test_solver_equivalence_benchmark_scenarios(self, computation_dir, scen_name):
+    def test_solver_equivalence_benchmark_scenarios(self, scen_name):
         """Assert < 10^-12 discrepancy between iterative and linear on benchmark data."""
-        if computation_dir is None:
-            pytest.skip("Benchmark directory not found.")
-
-        mat_path = computation_dir / f"results_77c_11s_{scen_name}.mat"
-        mat = sio.loadmat(str(mat_path))
+        mat = reference_or_skip(scen_name)
         p = mat["pfd_sol"].reshape(3, 77)
         c_raw = mat["c_sol"].reshape(3, 77)
         xn = mat["XN_sol"].ravel()
@@ -467,13 +460,9 @@ class TestBoundaryAndInactiveHandling:
         with pytest.raises(ValueError, match="strictly positive for all categories"):
             solve_multilateral_ppp(p, q, method="iterative")
 
-    def test_negative_capital_formation_real_world_bgr(self, computation_dir):
+    def test_negative_capital_formation_real_world_bgr(self):
         """Verify stability on real-world negative gross capital formation in Bulgaria (BGR)."""
-        if computation_dir is None:
-            pytest.skip("Benchmark directory not found.")
-
-        mat_path = computation_dir / "results_77c_11s_base.mat"
-        mat = sio.loadmat(str(mat_path))
+        mat = reference_or_skip("base")
         p = mat["pfd_sol"].reshape(3, 77)
         c_raw = mat["c_sol"].reshape(3, 77)
         xn = mat["XN_sol"].ravel()

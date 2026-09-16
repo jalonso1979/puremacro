@@ -2,6 +2,78 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## 4.0.0 (2026-09-16)
+
+### Milestone 4.0: MATLAB removed from the reproduction path
+
+puremacro now reproduces every result it documents using Python and the
+installed package alone. Nothing it needs lives in a MATLAB file, in a
+proprietary tool, or in a directory above your checkout. This is a major
+release because achieving that removed public API.
+
+### Removed — MATLAB as a dependency
+
+- **The `matlab/` companion toolbox is gone.** It was a separate
+  implementation, so Python fixes never reached it, and five of its seven
+  estimators had never been audited against the corrections documented in the
+  correctness advisory. An unaudited parallel implementation of a corrected
+  estimator is a standing hazard, and it required proprietary software the
+  Python package does not. **If you ever ran it, treat its output as
+  unverified and re-run with the Python package; any proxy-SVAR impulse
+  response it produced before 2026-09-02 is wrong.** The code remains in git
+  history at tag `v3.4.0`.
+- **puremacro no longer reads MATLAB `.mat` files anywhere.** `scipy.io` is
+  no longer imported by any module.
+  - `puremacro.dsge.load_dynare` is renamed `puremacro.dsge.dynare_results`.
+    `load_dynare_dr`, `load_dynare_moments`, `load_irfs` and `load_fevd` keep
+    their names and are still exported from `puremacro.dsge`, but they now
+    take the Dynare `oo_` structure as a **Python dict** rather than a path.
+    Load it with whatever tool you like and pass the mapping; parity checking
+    against Dynare is unchanged once you do.
+  - `verify_dynare_parity` and `compare_model_to_dynare` reject path input
+    with a message naming the replacement. `run_parity_suite` and the
+    `puremacro-dynare` CLI no longer scan for `*_results.mat` companions.
+  - `load_icio_data(path=...)` accepts `.npz` and delimited text; a `.mat`
+    path raises with a one-line conversion recipe.
+
+### Added — the trade dataset ships with the package
+
+- **The OECD ICIO transaction matrix is bundled.** The 77-country,
+  11-sector matrix travels inside the wheel as a compressed `.npz`, verified
+  bit-identical to the MATLAB source at conversion time. `load_icio_data()`
+  with no argument returns it, so the trade model calibrates out of the box.
+- **The MATLAB reference outputs are bundled too**, via
+  `puremacro.trade.data.load_reference_solution(scenario)`,
+  `available_reference_scenarios()` and
+  `load_reference_workbook_sheet(sheet)`. These carry the equilibrium arrays,
+  the calibration arrays the precision suites compare against, and the three
+  `results.xls` sheets behind the Geary-Khamis check. Every one is a verbatim
+  copy, dtype included, verified bit-identical to its MATLAB original at
+  conversion time, so comparing puremacro against them is still an *external*
+  check rather than a self-referential golden.
+- Together these move the trade suites from "skipped for everyone but the
+  author" to genuinely running on any checkout. A clean checkout with no
+  research data anywhere above it now runs **152 trade tests**, up from 69,
+  and gets byte-identical results to a run on the author's machine. Before
+  this release the data lived above the repository, so a clean checkout
+  silently skipped them and CI reported errors instead.
+
+### Known issues
+
+- **Scenario `t10_54` has no bundled reference.** Its MATLAB source is a
+  dataless placeholder in the author's storage that reads zero bytes, so the
+  25 tests comparing that scenario skip with an explicit reason, and the
+  Geary-Khamis workbook check covers four of its five published columns. They
+  are not fabricated or regenerated from puremacro's own output, which would
+  turn an external validation into a tautology. Restoring that one file and
+  re-running the bundler is all it would take.
+- **The wheel is larger.** Shipping the calibration data takes it from about
+  3.4 MB to roughly 15 MB. That is the price of a package that can reproduce
+  its own published tables without asking you for a file.
+- The deprecations that name 4.0.0 as their removal release
+  (`puremacro.lp.garch_utils`, `puremacro.sigma.sigma_numpy.SigmaObject`) are
+  **not** removed here. They still emit `FutureWarning` and keep working.
+
 ## 3.4.0 (2026-09-15)
 
 ### Milestone 3.4: Result-Object Export Parity, Implicit Continuous HJB-KFE Solvers, Hardened Multi-Constraint OccBin, Causal DML & Latin America Real-Time Macro Connectors

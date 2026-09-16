@@ -29,11 +29,20 @@ from puremacro.dsge import (
     load_mod,
     verify_dynare_parity,
 )
-from puremacro.dsge.load_dynare import _unfold_ghxx
+from puremacro.dsge.dynare_results import _unfold_ghxx
 
 
 SW07_PATH = Path("puremacro/dsge/_references/sw07_pfeifer.mod")
 
+
+def _oo(mat_path) -> dict:
+    """Load a Dynare results file the way a user must since puremacro 4.0.0.
+
+    The package no longer reads MATLAB files, so the caller loads the mapping
+    and passes it in. These tests still write a temporary .mat because the
+    round trip is exactly what they are stressing.
+    """
+    return scipy.io.loadmat(str(mat_path), squeeze_me=True, struct_as_record=False)
 
 # ===========================================================================
 # 1. Arbitrarily Scrambled order_var Permutations Stress Tests
@@ -78,7 +87,7 @@ class TestScrambledOrderVarPermutations:
             },
         )
 
-        dr = load_dynare_dr(mat_path, order=1)
+        dr = load_dynare_dr(_oo(mat_path), order=1)
         assert dr.variable_names == tuple(var_names)
         assert dr.state_variables == tuple(state_names)
         assert dr.shock_names == tuple(shock_names)
@@ -125,7 +134,7 @@ class TestScrambledOrderVarPermutations:
             mat_path = tmp_path / f"rand_perm_{n_vars}_{trial}.mat"
             scipy.io.savemat(str(mat_path), mat_dict)
 
-            dr = load_dynare_dr(mat_path, order=1)
+            dr = load_dynare_dr(_oo(mat_path), order=1)
             np.testing.assert_allclose(
                 dr.ghx.to_numpy(),
                 ghx_true,
@@ -182,7 +191,7 @@ class TestScrambledOrderVarPermutations:
                     },
                 },
             )
-            dr = load_dynare_dr(mat_path, order=1)
+            dr = load_dynare_dr(_oo(mat_path), order=1)
             np.testing.assert_allclose(
                 dr.ghx.to_numpy(),
                 ghx_true,
@@ -232,7 +241,7 @@ class TestScrambledOrderVarPermutations:
             },
         )
 
-        dr2 = load_dynare_dr(mat_path, order=2)
+        dr2 = load_dynare_dr(_oo(mat_path), order=2)
         assert isinstance(dr2, Dynare2ndDR)
         np.testing.assert_allclose(dr2.ghxx.to_numpy(), ghxx_true, atol=1e-15)
         np.testing.assert_allclose(dr2.ghxu.to_numpy(), ghxu_true, atol=1e-15)
@@ -359,7 +368,7 @@ class TestFoldedKroneckerUnfolding:
             },
         )
 
-        dr2 = load_dynare_dr(mat_path, order=2)
+        dr2 = load_dynare_dr(_oo(mat_path), order=2)
         assert dr2.ghuu.shape == (n_v, n_u * n_u)
 
         # Test quadratic contraction
@@ -599,7 +608,7 @@ class TestPfeiferSW07AdversarialParity:
             },
         )
 
-        res = compare_model_to_dynare(SW07_PATH, mat_path, order=1)
+        res = compare_model_to_dynare(SW07_PATH, _oo(mat_path), order=1)
         assert res.passed is True
         assert res.score == 100.0
         assert res.max_dev_ghx <= 1e-12
@@ -641,7 +650,7 @@ class TestPfeiferSW07AdversarialParity:
             },
         )
 
-        res = compare_model_to_dynare(SW07_PATH, mat_path, order=2)
+        res = compare_model_to_dynare(SW07_PATH, _oo(mat_path), order=2)
         assert res.passed is True
         assert res.score == 100.0
         assert res.max_dev_ghxx <= 1e-10
@@ -677,7 +686,7 @@ class TestPfeiferSW07AdversarialParity:
             },
         )
 
-        res = compare_model_to_dynare(SW07_PATH, mat_path, order=1, tol={"ghx": tol, "ghu": tol})
+        res = compare_model_to_dynare(SW07_PATH, _oo(mat_path), order=1, tol={"ghx": tol, "ghu": tol})
         assert res.passed is False
         assert res.score < 100.0
         failed_var = dr1.variable_names[target_idx]
@@ -720,7 +729,7 @@ class TestEdgeCasesAndStructuralLimitations:
 
         # Empirically verify whether load_dynare_dr raises ValueError on squeezed scalar
         try:
-            dr = load_dynare_dr(mat_path)
+            dr = load_dynare_dr(_oo(mat_path))
             # If supported, shape must be (1, 1)
             assert dr.ghx.shape == (1, 1)
         except ValueError as exc:
@@ -755,7 +764,7 @@ class TestEdgeCasesAndStructuralLimitations:
         )
 
         try:
-            dr = load_dynare_dr(mat_path)
+            dr = load_dynare_dr(_oo(mat_path))
             assert dr.ghx.shape == (1, 2)
         except ValueError as exc:
             # Documented empirical finding: shape (2, 1) vs index (1, 1)
@@ -765,5 +774,5 @@ class TestEdgeCasesAndStructuralLimitations:
         """Passing MAT file without oo_.dr structure raises clean KeyError."""
         mat_path = tmp_path / "corrupt.mat"
         scipy.io.savemat(str(mat_path), {"random_struct": 42})
-        with pytest.raises(KeyError, match="does not contain 'oo_'"):
-            load_dynare_dr(mat_path)
+        with pytest.raises(KeyError, match=r"does not contain an? 'oo_'"):
+            load_dynare_dr(_oo(mat_path))
