@@ -228,16 +228,31 @@ def test_gate3_snapshot_diff_result_classes(tmp_path):
     assert "BarResult.y" in r["report"]
 
 
+
+def _summary_count_matches_reported_gates(out: str) -> bool:
+    """The "all N gates PASS" line must agree with the number of gates printed.
+
+    Asserting a literal N breaks every time a gate is added (Gate 7 did exactly
+    that), so compare the summary against the gate lines the run emitted.
+    """
+    import re as _re
+
+    summary = _re.search(r"all (\d+) gates pass", out.lower())
+    assert summary is not None, f"no summary line in:\n{out}"
+    reported = len(_re.findall(r"^\s*gate \d+[^\n]*:\s*pass", out.lower(), _re.M))
+    return int(summary.group(1)) == reported
+
 def test_main_emits_summary_pass(capsys, monkeypatch):
     # Force all gates to be no-ops returning pass.
     monkeypatch.setattr(release_check, "gate_test_baseline", lambda _r: {"name": "test_baseline", "passed": True, "report": "  Gate 1: PASS"})
     monkeypatch.setattr(release_check, "gate_pyodide", lambda _r: {"name": "pyodide", "passed": True, "report": "  Gate 2: PASS"})
     monkeypatch.setattr(release_check, "gate_snapshot", lambda _r: {"name": "public_api_snapshot", "passed": True, "report": "  Gate 3: PASS"})
     monkeypatch.setattr(release_check, "gate_version_sync", lambda **kw: {"name": "version_sync", "passed": True, "report": "  Gate 4: PASS"})
+    monkeypatch.setattr(release_check, "gate_min_python_syntax", lambda *a, **kw: {"name": "min_python_syntax", "passed": True, "report": "  Gate 7: PASS"})
     rc = release_check.main([])
     captured = capsys.readouterr()
     assert rc == 0
-    assert "all gates PASS" in captured.out.lower() or "all 4 gates pass" in captured.out.lower()
+    assert _summary_count_matches_reported_gates(captured.out)
 
 
 def test_main_emits_summary_fail(capsys, monkeypatch):
@@ -315,11 +330,12 @@ def test_gate5_stale_json_warns(tmp_path):
 
 
 def test_main_summary_5_gates_with_examples_flag(capsys, monkeypatch):
-    """When --examples is passed and all 5 gates pass, summary line says 5."""
+    """With --examples, the summary count matches the gates actually run."""
     monkeypatch.setattr(release_check, "gate_test_baseline", lambda _r: {"name": "test_baseline", "passed": True, "report": "  Gate 1: PASS"})
     monkeypatch.setattr(release_check, "gate_pyodide", lambda _r: {"name": "pyodide", "passed": True, "report": "  Gate 2: PASS"})
     monkeypatch.setattr(release_check, "gate_snapshot", lambda _r: {"name": "public_api_snapshot", "passed": True, "report": "  Gate 3: PASS"})
     monkeypatch.setattr(release_check, "gate_version_sync", lambda **kw: {"name": "version_sync", "passed": True, "report": "  Gate 4: PASS"})
+    monkeypatch.setattr(release_check, "gate_min_python_syntax", lambda *a, **kw: {"name": "min_python_syntax", "passed": True, "report": "  Gate 7: PASS"})
     monkeypatch.setattr(
         release_check, "gate_examples_gallery",
         lambda _p, *, examples_source_dir: {"name": "examples_gallery", "passed": True, "report": "  Gate 5: PASS"},
@@ -327,7 +343,7 @@ def test_main_summary_5_gates_with_examples_flag(capsys, monkeypatch):
     rc = release_check.main(["--examples"])
     captured = capsys.readouterr()
     assert rc == 0
-    assert "all 5 gates pass" in captured.out.lower()
+    assert _summary_count_matches_reported_gates(captured.out)
 
 
 def test_gate6_pass(monkeypatch, tmp_path):
@@ -360,11 +376,12 @@ def test_gate6_fail(monkeypatch):
 
 
 def test_main_summary_with_pyodide_flag(capsys, monkeypatch):
-    """When --examples --pyodide is passed and all 6 gates pass, summary says 6."""
+    """With --examples --pyodide, the summary count matches the gates run."""
     monkeypatch.setattr(release_check, "gate_test_baseline", lambda _r: {"name": "test_baseline", "passed": True, "report": "  Gate 1: PASS"})
     monkeypatch.setattr(release_check, "gate_pyodide", lambda _r: {"name": "pyodide", "passed": True, "report": "  Gate 2: PASS"})
     monkeypatch.setattr(release_check, "gate_snapshot", lambda _r: {"name": "public_api_snapshot", "passed": True, "report": "  Gate 3: PASS"})
     monkeypatch.setattr(release_check, "gate_version_sync", lambda **kw: {"name": "version_sync", "passed": True, "report": "  Gate 4: PASS"})
+    monkeypatch.setattr(release_check, "gate_min_python_syntax", lambda *a, **kw: {"name": "min_python_syntax", "passed": True, "report": "  Gate 7: PASS"})
     monkeypatch.setattr(
         release_check, "gate_examples_gallery",
         lambda _p, *, examples_source_dir: {"name": "examples_gallery", "passed": True, "report": "  Gate 5: PASS"},
@@ -376,4 +393,4 @@ def test_main_summary_with_pyodide_flag(capsys, monkeypatch):
     rc = release_check.main(["--examples", "--pyodide"])
     captured = capsys.readouterr()
     assert rc == 0
-    assert "all 6 gates pass" in captured.out.lower()
+    assert _summary_count_matches_reported_gates(captured.out)

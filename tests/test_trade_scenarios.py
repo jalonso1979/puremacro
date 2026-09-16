@@ -35,6 +35,7 @@ import pytest
 import scipy.io as sio
 
 from puremacro.trade import (
+
     CANONICAL_COUNTRY_CODES,
     CANONICAL_SCENARIOS,
     CANONICAL_SECTOR_CODES,
@@ -57,6 +58,8 @@ from puremacro.trade import (
     solve_trade_equilibrium,
 )
 
+from conftest import mat_file_is_readable
+
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -73,7 +76,8 @@ def matlab_benchmark_dir() -> Path | None:
         Path.cwd() / "IO" / "computation" / "7_TIO_77c_vf",
     ]
     for c in candidates:
-        if c.exists() and (c / "results_77c_11s_base.mat").exists():
+        if (c.exists() and mat_file_is_readable(c / "results_77c_11s_base.mat")
+                and mat_file_is_readable(c / "data_77c_11s.mat")):
             return c
     return None
 

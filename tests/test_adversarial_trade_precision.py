@@ -34,6 +34,8 @@ import scipy.io as sio
 from puremacro.trade.calibration import calibrate_trade_model
 from puremacro.trade.data import get_country_codes, get_sector_codes, load_icio_data
 
+from conftest import load_or_skip, mat_file_is_readable
+
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -46,10 +48,7 @@ def _load_icio_or_skip():
     fixture turns into a setup ERROR on all sixteen tests. A clean checkout
     (CI included) has no such tree, so the honest outcome there is a skip.
     """
-    try:
-        return load_icio_data()
-    except FileNotFoundError as e:
-        pytest.skip(f"private ICIO data unavailable: {e}")
+    return load_or_skip(load_icio_data)
 
 
 @pytest.fixture(scope="module")
@@ -67,7 +66,7 @@ def reference_data():
     ]
     mat_path = None
     for c in candidates:
-        if c.is_file():
+        if mat_file_is_readable(c):
             mat_path = c
             break
 

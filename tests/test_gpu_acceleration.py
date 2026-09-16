@@ -41,6 +41,8 @@ from puremacro.trade.gpu.mlx_solver import solve_trade_equilibrium_mlx
 from puremacro.trade.gpu.solver_gpu import solve_trade_equilibrium_gpu
 from puremacro.trade.scenarios import build_tariff_matrices
 
+from conftest import load_or_skip
+
 
 _ACCEL_BACKEND = "torch" if has_torch() else ("mlx" if has_mlx() else None)
 needs_accelerator = pytest.mark.skipif(
@@ -51,11 +53,8 @@ needs_accelerator = pytest.mark.skipif(
 @pytest.fixture(scope="module")
 def calib_45s():
     """Calibrate full 45-sector 77-country empirical trade model (skip if the private CSV is absent)."""
-    try:
-        raw = load_raw_45sector_icio()
-    except (FileNotFoundError, OSError) as exc:
-        pytest.skip(f"Private 45-sector OECD ICIO file not available: {exc}")
-    return calibrate_trade_model(raw, ns=45, nc=77, nfd=3)
+    raw = load_or_skip(load_raw_45sector_icio)
+    return load_or_skip(calibrate_trade_model, raw, ns=45, nc=77, nfd=3)
 
 
 @pytest.fixture(scope="module")

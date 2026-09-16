@@ -44,6 +44,7 @@ from puremacro.trade._results import (
 from puremacro.trade.data import CANONICAL_COUNTRY_CODES
 from puremacro.trade.geary_khamis import compute_geary_khamis
 from puremacro.trade.tables import (
+
     export_latex_tables,
     generate_mean_by_scenario_table,
     generate_selected_country_table,
@@ -54,6 +55,8 @@ from puremacro.trade.tables import (
     to_latex_selected_country_with_row,
     to_latex_weighted_mean_by_scenario,
 )
+
+from conftest import mat_file_is_readable
 
 
 # ---------------------------------------------------------------------------
@@ -70,7 +73,8 @@ def computation_dir() -> Path:
         Path.cwd() / "IO" / "computation" / "7_TIO_77c_vf",
     ]
     for c in candidates:
-        if c.is_dir() and (c / "results_77c_11s_base.mat").is_file():
+        if (c.is_dir() and mat_file_is_readable(c / "results_77c_11s_base.mat")
+                and mat_file_is_readable(c / "data_77c_11s.mat")):
             return c
     pytest.skip("Reference computation directory not found.")
 
