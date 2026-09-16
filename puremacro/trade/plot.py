@@ -13,16 +13,14 @@ Conforms strictly to the puremacro Pyodide runtime contract:
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Sequence
+
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from matplotlib.figure import Figure
 
 from puremacro.trade._results import ScenarioBatchResult
-from puremacro.trade.data import CANONICAL_COUNTRY_CODES, EU_COUNTRY_CODES
-
 
 _GRAYS = ["0.15", "0.40", "0.60", "0.25", "0.75", "0.50", "0.30", "0.70"]
 _MARKERS = ["o", "s", "^", "v", "D", "P", "X", "*"]
@@ -194,11 +192,11 @@ def plot_scenario_distributions(
     ax.boxplot(
         data_list,
         patch_artist=True,
-        boxprops=dict(facecolor="0.85", color="black"),
-        medianprops=dict(color="black", linewidth=1.5),
-        whiskerprops=dict(color="black", linestyle="--"),
-        capprops=dict(color="black"),
-        flierprops=dict(marker="o", markerfacecolor="0.5", markersize=3, alpha=0.6),
+        boxprops={"facecolor": "0.85", "color": "black"},
+        medianprops={"color": "black", "linewidth": 1.5},
+        whiskerprops={"color": "black", "linestyle": "--"},
+        capprops={"color": "black"},
+        flierprops={"marker": "o", "markerfacecolor": "0.5", "markersize": 3, "alpha": 0.6},
     )
 
     # Universally safe tick setting across all matplotlib versions
@@ -440,13 +438,14 @@ def plot_terms_of_trade_vs_welfare(
     ax.axvline(0, color="gray", linestyle=":", linewidth=0.8)
     ax.set_xlabel("Terms of Trade Change (%)", fontweight="bold")
     ax.set_ylabel("Real GDP Growth (%) [Geary-Khamis]", fontweight="bold")
+    safe_scenario = scenario.replace('_', r'\_')
     ax.set_title(
-        f"Terms of Trade vs. Welfare Impact ({scenario.replace('_', r'\_')})",
+        f"Terms of Trade vs. Welfare Impact ({safe_scenario})",
         fontsize=11,
         fontweight="bold",
     )
     ax.grid(True, linestyle=":", alpha=0.5)
-    handles, labels = ax.get_legend_handles_labels()
+    _handles, labels = ax.get_legend_handles_labels()
     if labels:
         ax.legend(frameon=True, fontsize=8)
 
