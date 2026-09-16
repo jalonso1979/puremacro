@@ -11,18 +11,17 @@ Conforms strictly to the puremacro Pyodide runtime contract:
 - All functions accept an optional `ax` for grid composition and return `matplotlib.figure.Figure`.
 - 100% compliant with modern matplotlib (3.9+ and 3.11).
 """
+
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Sequence
+
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from matplotlib.figure import Figure
 
 from puremacro.trade._results import ScenarioBatchResult
-from puremacro.trade.data import CANONICAL_COUNTRY_CODES, EU_COUNTRY_CODES
-
 
 _GRAYS = ["0.15", "0.40", "0.60", "0.25", "0.75", "0.50", "0.30", "0.70"]
 _MARKERS = ["o", "s", "^", "v", "D", "P", "X", "*"]
@@ -51,6 +50,7 @@ def _resolve_ax(
 # ---------------------------------------------------------------------------
 # 1. Country Impacts Multi-Panel / Grouped Bar Plot
 # ---------------------------------------------------------------------------
+
 
 def plot_country_impacts(
     batch_res: ScenarioBatchResult,
@@ -104,7 +104,9 @@ def plot_country_impacts(
         gdp_sub = tbl.loc["GDP growth (%)"]
         for i, s in enumerate(scenarios):
             vals = [gdp_sub.loc[c, s] for c in c_list]
-            ax.bar(x + i * width, vals, width, label=s.replace("_", r"\_"), color=colors[i])
+            ax.bar(
+                x + i * width, vals, width, label=s.replace("_", r"\_"), color=colors[i]
+            )
         ax.set_xticks(x + width * (n_scen - 1) / 2)
         ax.set_xticklabels(c_list)
         ax.axhline(0, color="gray", linestyle="--", linewidth=0.8)
@@ -153,6 +155,7 @@ def plot_country_impacts(
 # 2. Cross-Country Scenario Distributions Plot
 # ---------------------------------------------------------------------------
 
+
 def plot_scenario_distributions(
     batch_res: ScenarioBatchResult,
     metric: str = "real_gdp_growth",
@@ -194,11 +197,11 @@ def plot_scenario_distributions(
     ax.boxplot(
         data_list,
         patch_artist=True,
-        boxprops=dict(facecolor="0.85", color="black"),
-        medianprops=dict(color="black", linewidth=1.5),
-        whiskerprops=dict(color="black", linestyle="--"),
-        capprops=dict(color="black"),
-        flierprops=dict(marker="o", markerfacecolor="0.5", markersize=3, alpha=0.6),
+        boxprops={"facecolor": "0.85", "color": "black"},
+        medianprops={"color": "black", "linewidth": 1.5},
+        whiskerprops={"color": "black", "linestyle": "--"},
+        capprops={"color": "black"},
+        flierprops={"marker": "o", "markerfacecolor": "0.5", "markersize": 3, "alpha": 0.6},
     )
 
     # Universally safe tick setting across all matplotlib versions
@@ -238,6 +241,7 @@ def plot_scenario_distributions(
 # ---------------------------------------------------------------------------
 # 3. Non-Linear Tariff Escalation Curve
 # ---------------------------------------------------------------------------
+
 
 def plot_tariff_escalation_curve(
     batch_res: ScenarioBatchResult,
@@ -347,6 +351,7 @@ def plot_tariff_escalation_curve(
 # 4. Terms of Trade vs. Welfare Scatter Plot
 # ---------------------------------------------------------------------------
 
+
 def plot_terms_of_trade_vs_welfare(
     batch_res: ScenarioBatchResult,
     scenario: str = "t10",
@@ -384,7 +389,11 @@ def plot_terms_of_trade_vs_welfare(
 
     eq_res = batch_res[scenario]
     gdp_growth = np.asarray(batch_res.real_gdp_table[scenario], dtype=float)
-    all_codes = list(batch_res.country_codes) if batch_res.country_codes else list(batch_res.real_gdp_table.index)
+    all_codes = (
+        list(batch_res.country_codes)
+        if batch_res.country_codes
+        else list(batch_res.real_gdp_table.index)
+    )
 
     # Extract or approximate terms of trade change
     if eq_res.terms_of_trade is not None:
@@ -393,7 +402,11 @@ def plot_terms_of_trade_vs_welfare(
         # GE wage relative to world numeraire proxy for terms of trade
         w_curr = eq_res.w_sol.ravel()
         base_res = batch_res.scenarios.get(batch_res.baseline_scenario)
-        w_base = base_res.w_sol.ravel() if base_res and base_res.w_sol is not None else np.ones_like(w_curr)
+        w_base = (
+            base_res.w_sol.ravel()
+            if base_res and base_res.w_sol is not None
+            else np.ones_like(w_curr)
+        )
         tot_pct = (w_curr / w_base - 1.0) * 100.0
     else:
         tot_pct = np.zeros_like(gdp_growth)
@@ -440,13 +453,14 @@ def plot_terms_of_trade_vs_welfare(
     ax.axvline(0, color="gray", linestyle=":", linewidth=0.8)
     ax.set_xlabel("Terms of Trade Change (%)", fontweight="bold")
     ax.set_ylabel("Real GDP Growth (%) [Geary-Khamis]", fontweight="bold")
+    scenario_label = scenario.replace("_", r"\_")
     ax.set_title(
-        f"Terms of Trade vs. Welfare Impact ({scenario.replace('_', r'\_')})",
+        f"Terms of Trade vs. Welfare Impact ({scenario_label})",
         fontsize=11,
         fontweight="bold",
     )
     ax.grid(True, linestyle=":", alpha=0.5)
-    handles, labels = ax.get_legend_handles_labels()
+    _handles, labels = ax.get_legend_handles_labels()
     if labels:
         ax.legend(frameon=True, fontsize=8)
 
