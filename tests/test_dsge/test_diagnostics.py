@@ -1,7 +1,9 @@
 """Tests for puremacro.dsge diagnostics, residual evaluation, and eigenvalue spectrum."""
 from __future__ import annotations
 
+import importlib.util
 import sys
+import types
 from pathlib import Path
 
 import matplotlib
@@ -52,11 +54,38 @@ def growth_model():
 
 # --- Fertility Model Helper (Broken BGP endpoint replication) ----------------
 
+_FERTILITY_HELPER_NAME = "_puremacro_tests_fertility_bk_common"
+
+
+def _load_fertility_helper():
+    """Load docs/research/fertility_bk_diagnosis/scripts/common.py under a private name.
+
+    ``sys.path.insert(0, scripts_dir); import common`` binds the generic name
+    ``common`` in ``sys.modules``: whichever module of that name was imported
+    first anywhere in the pytest session wins, and this helper is then silently
+    replaced by a stranger. Loading it by path under a unique name cannot
+    collide and leaves ``sys.path`` alone.
+    """
+    if _FERTILITY_HELPER_NAME in sys.modules:
+        return sys.modules[_FERTILITY_HELPER_NAME]
+    path = (
+        Path(__file__).resolve().parents[2]
+        / "docs" / "research" / "fertility_bk_diagnosis" / "scripts" / "common.py"
+    )
+    spec = importlib.util.spec_from_file_location(_FERTILITY_HELPER_NAME, path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[_FERTILITY_HELPER_NAME] = module
+    try:
+        spec.loader.exec_module(module)
+    except BaseException:
+        sys.modules.pop(_FERTILITY_HELPER_NAME, None)
+        raise
+    return module
+
+
 def _build_broken_fertility_model():
     """Build the Alonso-Ortiz fertility model at the broken BGP calibration point."""
-    fert_script_dir = Path(__file__).resolve().parents[2] / "docs/research/fertility_bk_diagnosis/scripts"
-    sys.path.insert(0, str(fert_script_dir))
-    import common as cm
+    cm = _load_fertility_helper()
 
     params = cm.build_params()
     z_ss = cm.z_from_params(params)
@@ -79,6 +108,16 @@ def _build_broken_fertility_model():
         strict=False,
         method="central",
     )
+
+
+def test_fertility_helper_loads_even_when_common_is_already_taken(monkeypatch):
+    """The helper must not depend on the generic name ``common`` being free."""
+    monkeypatch.setitem(sys.modules, "common", types.ModuleType("common"))
+    monkeypatch.delitem(sys.modules, _FERTILITY_HELPER_NAME, raising=False)
+    cm = _load_fertility_helper()
+    assert cm.__name__ == _FERTILITY_HELPER_NAME
+    assert hasattr(cm, "build_params") and hasattr(cm, "VAR_NAMES")
+    assert sys.modules["common"].__dict__.get("build_params") is None
 
 
 # --- 1. check() Tests ---------------------------------------------------------

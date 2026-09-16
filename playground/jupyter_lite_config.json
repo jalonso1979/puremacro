@@ -1,7 +1,7 @@
 {
   "PipliteAddon": {
     "piplite_urls": [
-      "./wheels/puremacro-1.9.0-py3-none-any.whl"
+      "./wheels/puremacro-3.4.0-py3-none-any.whl"
     ]
   }
 }

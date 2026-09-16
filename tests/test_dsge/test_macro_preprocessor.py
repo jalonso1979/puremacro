@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import math
+import re
 from pathlib import Path
 import pytest
 
@@ -544,7 +545,17 @@ def test_math_builtins():
 res = @{EXP_V}, @{LOG_V}, @{SQRT_V}, @{CBRT_V}, @{ABS_V}, @{SIGN_V}, @{ROUND_V}, @{FLOOR_V}, @{CEIL_V}, @{MAX_V}, @{MIN_V};
 """
     out = preprocess_macro(src).strip()
-    assert "res = 1, 1, 4, 3, 5, -1, 4, 3, 4, 10, -1;" in out
+    m = re.search(r"^res = (.*);$", out, re.MULTILINE)
+    assert m, out
+    values = [float(v) for v in m.group(1).split(", ")]
+    # cbrt goes through libm's cbrt(), which is not correctly rounded on every
+    # platform: glibc (the Linux CI runners) returns 3.0000000000000004 for
+    # cbrt(27.0) where Apple's libm returns 3.0, and the macro processor
+    # prints the double it is handed. That entry is checked to tolerance; the
+    # other ten are exact integers on every platform and stay exact.
+    cbrt_value = values.pop(3)
+    assert cbrt_value == pytest.approx(3.0, abs=1e-12)
+    assert values == [1, 1, 4, 5, -1, 4, 3, 4, 10, -1]
 
 
 def test_statistical_builtins():
