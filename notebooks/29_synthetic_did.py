@@ -145,7 +145,7 @@ fig, axes = plt.subplots(1, 2, figsize=(7.6, 3.6), gridspec_kw={"width_ratios": 
 ax = axes[0]
 time_axis = np.arange(T_periods)
 ax.plot(time_axis, treated_traj, color="0.00", lw=2.0, label="Treated Unit ($Y_{1,t}$)")
-ax.plot(time_axis, synthetic_path, color="0.40", ls="--", lw=1.8, label="SDID Synthetic Control ($\sum \hat{\omega}_i Y_{i,t}$)")
+ax.plot(time_axis, synthetic_path, color="0.40", ls="--", lw=1.8, label=r"SDID Synthetic Control ($\sum \hat{\omega}_i Y_{i,t}$)")
 ax.plot(time_axis, unweighted_control_path, color="0.75", ls=":", lw=1.5, label="Unweighted Controls (Naive DiD)")
 ax.axvline(T_treat - 0.5, color="0.60", ls="-.", lw=1.0, label="Treatment Date")
 
@@ -180,12 +180,12 @@ plt.show()
 fig, ax = plt.subplots(figsize=(6.0, 2.8))
 
 pre_times = np.arange(T_treat)
-ax.bar(pre_times, res_sdid.lambda_w, color="0.35", edgecolor="0.00", width=0.6, label="Time Weights $\hat{\lambda}_t$")
+ax.bar(pre_times, res_sdid.lambda_w, color="0.35", edgecolor="0.00", width=0.6, label=r"Time Weights $\hat{\lambda}_t$")
 ax.axhline(1.0 / T_treat, color="0.60", ls="--", label=f"Uniform Weight (1/{T_treat})")
 
-ax.set_title("Pre-Treatment Time Weights $\hat{\lambda}_t$", loc="left", fontsize=10, fontweight="bold")
+ax.set_title(r"Pre-Treatment Time Weights $\hat{\lambda}_t$", loc="left", fontsize=10, fontweight="bold")
 ax.set_xlabel("Pre-Treatment Period $t$")
-ax.set_ylabel("Weight $\hat{\lambda}_t$")
+ax.set_ylabel(r"Weight $\hat{\lambda}_t$")
 ax.set_xticks(pre_times)
 ax.legend(loc="upper right", fontsize=8.5)
 
