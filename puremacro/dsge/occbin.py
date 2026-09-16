@@ -10,9 +10,22 @@ under perfect foresight via backward recursion over piecewise-linear regimes.
 
 Scope and honest limitations
 ----------------------------
-* **Two regimes only.** A reference (unconstrained) regime and one alternative
-  (constrained) regime. Models with several simultaneously occasionally
-  binding constraints are out of scope.
+* **One constraint in** :func:`solve_occbin`, **K constraints in**
+  :func:`solve_multiconstraint_occbin`. The single-constraint solver works
+  with a reference (unconstrained) regime and one alternative (constrained)
+  regime. The multi-constraint solver takes one constrained model per
+  constraint and builds the ``2**K`` regimes itself: regime ``r`` is a
+  **bitmask**, bit ``k`` of ``r`` is set exactly when constraint ``k`` (the
+  ``k``-th entry of the model mapping/sequence, ``k = 0`` first) binds, so
+  with ``K = 2`` the regimes are ``0`` (both slack), ``1`` (first only),
+  ``2`` (second only) and ``3`` (both). ``OccBinResult.regimes`` reports that
+  bitmask per period. The system for regime ``r`` is the reference system
+  with **every** row in which constrained model ``k`` differs from the
+  reference spliced in, for each set bit ``k``; two constrained models must
+  therefore not rewrite the same equation row, and the solver raises when
+  they do. :func:`solve_occbin` forwards a mapping or sequence of models and
+  constraints to the multi-constraint solver, whose ``converged`` contract
+  and warnings are the same as below.
 * **Perfect foresight.** Every row of ``shock_sequence`` is *anticipated at
   t = 1*: agents in period 1 know the whole shock path. The backward
   recursion folds the shocks into the period-by-period drift
@@ -67,6 +80,7 @@ Scope and honest limitations
 """
 from __future__ import annotations
 
+import sys
 import warnings
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping, Sequence
@@ -98,7 +112,8 @@ class OccBinConstraint:
         It must name a model variable, and it is **required** when the
         alternative regime pegs ``variable`` to a constant in an equation that
         does not determine ``variable`` in the reference regime --
-        :func:`solve_occbin` raises rather than run a vacuous relax test.
+        :func:`solve_occbin` and :func:`solve_multiconstraint_occbin` raise
+        rather than run a vacuous relax test.
     relax_threshold : float, optional
         Threshold for the relax condition. Defaults to ``threshold``.
     relax_operator : {'>', '>=', '<', '<='}, optional
@@ -467,7 +482,11 @@ class OccBinResult:
     regimes : list[int]
         Regime indicator for each period (0 = reference regime, 1 = constrained
         regime). This is the regime sequence the returned path was actually
-        solved under, whether or not it is a verified fixed point.
+        solved under, whether or not it is a verified fixed point. For a
+        result of :func:`solve_multiconstraint_occbin` the entry is a bitmask:
+        bit ``k`` is set exactly when constraint ``k`` (in the order of the
+        constrained-model mapping/sequence) binds in that period, so with two
+        constraints ``3`` means both bind and ``2`` means only the second one.
     binding_periods : int
         Total number of periods in which the constraint binds, i.e.
         ``sum(regimes)``. Spells need not start at t = 1 and need not be
@@ -1039,6 +1058,190 @@ def _safe_solve(A: np.ndarray, B: np.ndarray) -> np.ndarray:
         return sol
 
 
+def _stacklevel_outside_module() -> int:
+    """``stacklevel`` that attributes a warning to the first frame outside this module.
+
+    :func:`solve_occbin` forwards mapping/sequence inputs to
+    :func:`solve_multiconstraint_occbin`; with a fixed ``stacklevel=2`` the
+    non-convergence warning raised there would point at the dispatch line
+    inside this file rather than at the user's call. Walking past every frame
+    whose globals belong to this module gives the right level for a direct
+    call (2) and for the forwarded one (3) alike.
+    """
+    level = 1
+    frame = sys._getframe(1)
+    while frame is not None and frame.f_globals.get("__name__") == __name__:
+        level += 1
+        frame = frame.f_back
+    return level
+
+
+# ---------------------------------------------------------------------------
+# Switching-equation resolution shared by the single- and multi-constraint solvers
+# ---------------------------------------------------------------------------
+
+
+_ROW_DIFF_TOL = 1e-8
+
+
+def _differing_rows(ref_mats: tuple, cons_mats: tuple, tol: float = _ROW_DIFF_TOL) -> np.ndarray:
+    """Rows of the canonical system in which the constrained regime differs from the reference.
+
+    Both arguments are ``(A_+, A_0, A_-, B_u, c, ...)`` tuples; only the first
+    five entries are read. A row counts as differing when any of its five
+    blocks moves by more than ``tol`` (row norm, or absolute value for ``c``).
+    """
+    A_p_0, A_0_0, A_m_0, B_u_0, c_0 = ref_mats[:5]
+    A_p_1, A_0_1, A_m_1, B_u_1, c_1 = cons_mats[:5]
+    return np.where(
+        (np.linalg.norm(A_0_0 - A_0_1, axis=1) > tol)
+        | (np.linalg.norm(A_p_0 - A_p_1, axis=1) > tol)
+        | (np.linalg.norm(A_m_0 - A_m_1, axis=1) > tol)
+        | (np.linalg.norm(B_u_0 - B_u_1, axis=1) > tol)
+        | (np.abs(np.asarray(c_0, dtype=float) - np.asarray(c_1, dtype=float)) > tol)
+    )[0]
+
+
+def _pegged_rows(cons_mats: tuple, rows: Sequence[int], idx_var: int) -> list[int]:
+    """Rows among ``rows`` in which the constrained regime pegs variable ``idx_var`` to a constant.
+
+    A peg is a row whose contemporaneous block has a single non-negligible
+    entry, on ``idx_var``, and whose lead, lag and shock blocks are all
+    negligible, i.e. the equation reads ``a * x_t + c = 0``.
+    """
+    A_p_1, A_0_1, A_m_1, B_u_1 = cons_mats[:4]
+    pegged: list[int] = []
+    for r in rows:
+        a_r = float(A_0_1[r, idx_var])
+        if abs(a_r) <= 1e-12:
+            continue
+        others = A_0_1[r].copy()
+        others[idx_var] = 0.0
+        scale = 1e-10 * max(1.0, abs(a_r))
+        if (
+            np.max(np.abs(others)) <= scale
+            and np.max(np.abs(A_p_1[r])) <= scale
+            and np.max(np.abs(A_m_1[r])) <= scale
+            and np.max(np.abs(B_u_1[r])) <= scale
+        ):
+            pegged.append(int(r))
+    return pegged
+
+
+def _resolve_switching_row(
+    ref_mats: tuple,
+    cons_mats: tuple,
+    constraint: OccBinConstraint,
+    variables: Sequence[str],
+    caller: str,
+    label: str = "",
+    relax_hint: str = "",
+) -> tuple[int | None, np.ndarray]:
+    """Identify the reference-regime row the shadow value of ``constraint`` is solved out of.
+
+    Returns ``(eq_row, diff_rows)``. ``eq_row`` is the index of the reference
+    equation that determines ``constraint.variable`` and that the constrained
+    regime replaces (a ZLB-style peg), or ``None`` when no differing row
+    contains the variable in the reference regime (a trigger-style constraint,
+    whose simulated value is its own notional value). ``diff_rows`` is the
+    array of all rows in which the two regimes differ.
+
+    The rules are the ones :func:`solve_occbin` documents, and both solvers
+    call this helper so that ``solve_occbin(ref, m, c)`` and
+    ``solve_occbin(ref, [m], [c])`` resolve a constraint identically:
+
+    * ``constraint.variable`` and ``constraint.relax_variable`` must name model
+      variables;
+    * among the differing rows that contain the variable in the reference,
+      the one the constrained regime turns into a peg of that variable is
+      preferred (that is the equation the peg replaces); otherwise the first
+      such row is used, so a constrained model that rewrites several rows
+      still gets its notional value from the right equation;
+    * when no differing row contains the variable, the variable must still
+      appear somewhere in the reference system, and if the constrained regime
+      pegs it to a constant in a row that does not determine it in the
+      reference, ``relax_variable`` is required (the default relax test would
+      compare the pegged value against its own bound).
+
+    ``label`` is inserted after "the alternative regime" in error messages
+    (e.g. ``" for constrained model 'zlb'"``) and ``relax_hint`` is appended
+    to the pegged-row message, so the multi-constraint solver can name the
+    offending model.
+    """
+    variables = list(variables)
+    if constraint.variable not in variables:
+        raise ValueError(
+            f"{caller}: constraint variable {constraint.variable!r} not found in model variables: {variables}"
+        )
+    idx_var = variables.index(constraint.variable)
+
+    # Resolve the relax (shadow / multiplier) variable up front: a name that is
+    # not a model variable used to be dropped silently, which turns an explicit
+    # relax rule into the default one without telling anybody.
+    if constraint.relax_variable is not None and constraint.relax_variable not in variables:
+        raise ValueError(
+            f"{caller}: relax_variable {constraint.relax_variable!r} of the constraint on "
+            f"{constraint.variable!r}{label} is not a model variable; expected one of {variables}"
+        )
+
+    A_0_0 = ref_mats[1]
+    diff_rows = _differing_rows(ref_mats, cons_mats)
+    has_var = np.abs(A_0_0[:, idx_var]) > 1e-12
+    switching_rows = [int(r) for r in diff_rows if has_var[r]]
+
+    if switching_rows:
+        # The constrained regime replaces the equation that determines the
+        # constrained variable (a ZLB-style peg): its notional value has to be
+        # recovered from the reference-regime equation. When several
+        # differing rows contain the variable, the one the alternative regime
+        # pegs it in is the equation the peg replaced; scanning only the
+        # first such row would make the answer depend on the order in which
+        # the model's equations happen to be written.
+        pegged_switching = _pegged_rows(cons_mats, switching_rows, idx_var)
+        return (pegged_switching[0] if pegged_switching else switching_rows[0]), diff_rows
+
+    if not np.any(has_var):
+        raise ValueError(
+            f"{caller}: the constrained variable {constraint.variable!r} does not appear "
+            f"contemporaneously in any equation of the reference model (every entry of column "
+            f"{idx_var} of its contemporaneous Jacobian is negligible), so neither its notional "
+            f"value nor the binding test is defined. Check the reference model, or constrain a "
+            f"variable the model actually determines."
+        )
+
+    # No switching equation pins the constrained variable, i.e. the
+    # constrained regime leaves that variable endogenously determined by the
+    # same equation (a trigger-style constraint such as "public credit policy
+    # kicks in once the spread exceeds x"). Its simulated value is then already
+    # its notional value, and no shadow needs solving out.
+    #
+    # A trap that the rule above cannot see. If the alternative regime pegs
+    # the constrained variable to a constant in a row that does NOT determine
+    # it in the reference regime, then there is nothing to solve the notional
+    # value out of and the default relax test compares the simulated value --
+    # pinned AT the bound by that very peg -- against the bound. That test is
+    # vacuous: it answers "the constraint has just relaxed" in every binding
+    # period, whatever the economics, so the spell can never be longer than
+    # the iteration's own transient. Such a constraint needs an explicit
+    # `relax_variable` (the multiplier, or the instrument that enforces the
+    # peg, tested against zero); refuse to guess.
+    if constraint.relax_variable is None:
+        pegged = _pegged_rows(cons_mats, [int(r) for r in diff_rows], idx_var)
+        if pegged:
+            raise ValueError(
+                f"{caller}: the alternative regime{label} pegs {constraint.variable!r} to a "
+                f"constant in equation row(s) {pegged}, but that row does not determine "
+                f"{constraint.variable!r} in the reference model, so there is no reference "
+                f"equation to solve its notional value out of. The relax test would then "
+                f"compare the pegged value against the very bound it is pegged to and "
+                f"relax in every period. Set OccBinConstraint.relax_variable to the "
+                f"multiplier or the instrument that enforces the peg (with "
+                f"relax_threshold=0.0 and the sign that means 'the constraint would have "
+                f"to push the wrong way'), so the exit condition is testable.{relax_hint}"
+            )
+    return None, diff_rows
+
+
 # ---------------------------------------------------------------------------
 # OccBin Solver
 # ---------------------------------------------------------------------------
@@ -1102,9 +1305,13 @@ def solve_occbin(
     ------
     ValueError
         If ``horizon`` or ``max_iter`` is not a positive integer, if the
-        constrained variable is not a model variable, or if it appears in no
-        equation of the reference model (so neither its notional value nor the
-        binding test is defined).
+        constrained variable (or ``relax_variable``) is not a model variable,
+        if the constrained variable appears in no equation of the reference
+        model (so neither its notional value nor the binding test is defined),
+        or if the alternative regime pegs it in a row that does not determine
+        it in the reference model and no ``relax_variable`` is given. When a
+        mapping or sequence is passed, :func:`solve_multiconstraint_occbin`
+        additionally requires one constraint per constrained model.
     """
     if not isinstance(horizon, (int, np.integer)) or int(horizon) < 1:
         raise ValueError(f"solve_occbin: horizon must be an integer >= 1, got {horizon!r}")
@@ -1161,100 +1368,20 @@ def solve_occbin(
         idx_s = variables.index(s)
         P_0[:, idx_s] = dr.ghx[s].values
 
-    # Find the row index of the constrained variable
-    if constraint.variable not in variables:
-        raise ValueError(f"constraint variable {constraint.variable!r} not found in model variables: {variables}")
-    idx_var = variables.index(constraint.variable)
-
-    # Resolve the relax (shadow / multiplier) variable up front: a name that is
-    # not a model variable used to be dropped silently, which turns an explicit
-    # relax rule into the default one without telling anybody.
-    relax_idx = None
-    if constraint.relax_variable is not None:
-        if constraint.relax_variable not in variables:
-            raise ValueError(
-                f"solve_occbin: relax_variable {constraint.relax_variable!r} is not a model "
-                f"variable; expected one of {variables}"
-            )
-        relax_idx = variables.index(constraint.relax_variable)
-
     # Identify the equation row that determines the constrained variable in the
-    # reference regime.  It must (a) differ between the two regimes -- that is
-    # what makes it the switching equation -- and (b) actually contain the
-    # constrained variable, otherwise the shadow (notional) value solved out of
-    # it below is meaningless.  Scanning only A_0/c/B_u, or taking the first
-    # differing row without checking (b), makes the answer depend on the order
-    # in which the model's equations happen to be written.
-    diff_rows = np.where(
-        (np.linalg.norm(A_0_0 - A_0_1, axis=1) > 1e-8)
-        | (np.linalg.norm(A_p_0 - A_p_1, axis=1) > 1e-8)
-        | (np.linalg.norm(A_m_0 - A_m_1, axis=1) > 1e-8)
-        | (np.linalg.norm(B_u_0 - B_u_1, axis=1) > 1e-8)
-        | (np.abs(c_0 - c_1) > 1e-8)
-    )[0]
-    has_var = np.abs(A_0_0[:, idx_var]) > 1e-12
-    switching_rows = [int(r) for r in diff_rows if has_var[r]]
-    if switching_rows:
-        # The constrained regime replaces the equation that determines the
-        # constrained variable (a ZLB-style peg): its notional value has to be
-        # recovered from the reference-regime equation.
-        eq_row = switching_rows[0]
-    elif np.any(has_var):
-        # No switching equation pins the constrained variable, i.e. the
-        # constrained regime leaves that variable endogenously determined by
-        # the same equation (a trigger-style constraint such as "public credit
-        # policy kicks in once the spread exceeds x"). Its simulated value is
-        # then already its notional value, and no shadow needs solving out.
-        eq_row = None
-    else:
-        raise ValueError(
-            f"solve_occbin: the constrained variable {constraint.variable!r} does not appear "
-            f"contemporaneously in any equation of the reference model (every entry of column "
-            f"{idx_var} of its contemporaneous Jacobian is negligible), so neither its notional "
-            f"value nor the binding test is defined. Check the reference model, or constrain a "
-            f"variable the model actually determines."
-        )
-
-    # A trap that the eq_row rule above cannot see. If the alternative regime
-    # pegs the constrained variable to a constant in a row that does NOT
-    # determine it in the reference regime, then eq_row is None (nothing to
-    # solve the notional value out of) and the default relax test compares the
-    # simulated value -- pinned AT the bound by that very peg -- against the
-    # bound. That test is vacuous: it answers "the constraint has just
-    # relaxed" in every binding period, whatever the economics, so the spell
-    # can never be longer than the iteration's own transient. Such a
-    # constraint needs an explicit `relax_variable` (the multiplier, or the
-    # instrument that enforces the peg, tested against zero); refuse to guess.
-    if eq_row is None and relax_idx is None:
-        pegged = []
-        for r in diff_rows:
-            if has_var[r]:
-                continue
-            a_r = float(A_0_1[r, idx_var])
-            if abs(a_r) <= 1e-12:
-                continue
-            others = A_0_1[r].copy()
-            others[idx_var] = 0.0
-            scale = 1e-10 * max(1.0, abs(a_r))
-            if (
-                np.max(np.abs(others)) <= scale
-                and np.max(np.abs(A_p_1[r])) <= scale
-                and np.max(np.abs(A_m_1[r])) <= scale
-                and np.max(np.abs(B_u_1[r])) <= scale
-            ):
-                pegged.append(int(r))
-        if pegged:
-            raise ValueError(
-                f"solve_occbin: the alternative regime pegs {constraint.variable!r} to a "
-                f"constant in equation row(s) {pegged}, but that row does not determine "
-                f"{constraint.variable!r} in the reference model, so there is no reference "
-                f"equation to solve its notional value out of. The relax test would then "
-                f"compare the pegged value against the very bound it is pegged to and "
-                f"relax in every period. Set OccBinConstraint.relax_variable to the "
-                f"multiplier or the instrument that enforces the peg (with "
-                f"relax_threshold=0.0 and the sign that means 'the constraint would have "
-                f"to push the wrong way'), so the exit condition is testable."
-            )
+    # reference regime (the switching equation), or None for a trigger-style
+    # constraint; validate the constraint's variable names on the way. The
+    # rules live in _resolve_switching_row so that the multi-constraint solver
+    # resolves a constraint exactly the same way.
+    eq_row, _ = _resolve_switching_row(
+        (A_p_0, A_0_0, A_m_0, B_u_0, c_0),
+        (A_p_1, A_0_1, A_m_1, B_u_1, c_1),
+        constraint,
+        variables,
+        caller="solve_occbin",
+    )
+    idx_var = variables.index(constraint.variable)
+    relax_idx = variables.index(constraint.relax_variable) if constraint.relax_variable is not None else None
 
     # 3. Backward recursion engine for an arbitrary regime sequence.
     #
@@ -1862,42 +1989,122 @@ def solve_differentiable_occbin(
 # ---------------------------------------------------------------------------
 
 
+def _resolve_user_constraints(
+    model_items: Sequence[tuple[Any, Any]],
+    constraints: OccBinConstraint | Mapping[Any, OccBinConstraint] | Sequence[OccBinConstraint] | None,
+    caller: str,
+) -> dict[Any, OccBinConstraint]:
+    """Pair user-supplied constraint definitions with the constrained models, key by key.
+
+    Returns ``{model_key: OccBinConstraint}``, empty when ``constraints`` is
+    ``None`` (every constraint is then auto-detected from its model). Any other
+    input must pair one-to-one with the models: a mapping must carry exactly
+    the model keys, a sequence exactly one entry per model in the same order,
+    and a bare :class:`OccBinConstraint` is accepted only with a single model.
+    A mismatch raises ``ValueError``: silently handing the unmatched models to
+    the auto-detector used to replace the user's threshold by a guessed one
+    without any notice.
+    """
+    keys = [k for k, _ in model_items]
+    if constraints is None:
+        return {}
+    if isinstance(constraints, OccBinConstraint):
+        if len(keys) != 1:
+            raise ValueError(
+                f"{caller}: a single OccBinConstraint was given for {len(keys)} constrained "
+                f"models {keys}; pass one constraint per model, as a mapping with the same keys "
+                f"or a sequence in the same order."
+            )
+        resolved = {keys[0]: constraints}
+    elif isinstance(constraints, Mapping):
+        missing = [k for k in keys if k not in constraints]
+        unmatched = [k for k in constraints if k not in keys]
+        if missing or unmatched:
+            raise ValueError(
+                f"{caller}: the keys of `constraints` {list(constraints)} do not match the "
+                f"constrained-model keys {keys} (models without a constraint: {missing}; "
+                f"constraints without a model: {unmatched}). Pass one OccBinConstraint per model "
+                f"under the model's key, or constraints=None to auto-detect all of them."
+            )
+        resolved = {k: constraints[k] for k in keys}
+    elif isinstance(constraints, (list, tuple)):
+        if len(constraints) != len(keys):
+            raise ValueError(
+                f"{caller}: {len(constraints)} constraint(s) were given for {len(keys)} constrained "
+                f"model(s) {keys}; pass exactly one OccBinConstraint per model, in the same order."
+            )
+        resolved = dict(zip(keys, constraints))
+    else:
+        raise TypeError(
+            f"{caller}: `constraints` must be an OccBinConstraint, a mapping or sequence of "
+            f"them, or None; got {type(constraints).__name__}"
+        )
+    for key, c_obj in resolved.items():
+        if not isinstance(c_obj, OccBinConstraint):
+            raise TypeError(
+                f"{caller}: the constraint for model {key!r} must be an OccBinConstraint, "
+                f"got {type(c_obj).__name__}"
+            )
+    return resolved
+
+
 def _auto_detect_constraint(
     ref_model: Any,
     cons_model: Any,
-    default_name: str = "constraint",
+    default_name: Any = "constraint",
     user_constraint: OccBinConstraint | None = None,
-) -> tuple[OccBinConstraint, int, tuple]:
-    """Identify switching equation row and constraint definition for a constrained model."""
-    A_p_0, A_0_0, A_m_0, B_u_0, c_0, ss_0, variables, shocks = _extract_model_matrices(ref_model)
-    A_p_1, A_0_1, A_m_1, B_u_1, c_1, ss_1, _, _ = _extract_model_matrices(
-        cons_model, ref_model=ref_model
-    )
+    caller: str = "solve_multiconstraint_occbin",
+) -> tuple[OccBinConstraint, int | None, tuple]:
+    """Resolve the constraint definition and switching row for one constrained model.
 
-    diff_rows = np.where(
-        (np.linalg.norm(A_0_0 - A_0_1, axis=1) > 1e-8)
-        | (np.linalg.norm(A_p_0 - A_p_1, axis=1) > 1e-8)
-        | (np.linalg.norm(A_m_0 - A_m_1, axis=1) > 1e-8)
-        | (np.linalg.norm(B_u_0 - B_u_1, axis=1) > 1e-8)
-        | (np.abs(c_0 - c_1) > 1e-8)
-    )[0]
+    Returns ``(constraint, eq_row, cons_mats)``: the constraint (the user's,
+    or one deduced from the model when ``user_constraint`` is None), the
+    reference-regime row its shadow value is solved out of (``None`` for a
+    trigger-style constraint, whose simulated value is its own notional
+    value) and the constrained model's ``(A_+, A_0, A_-, B_u, c)`` matrices.
+    Every row in which ``cons_model`` differs from ``ref_model`` is spliced
+    into the binding regimes by :func:`_build_multi_regime_matrices`;
+    ``eq_row`` only serves the shadow-value computation. The switching row
+    and the validation follow :func:`_resolve_switching_row`, i.e. the rules
+    of :func:`solve_occbin`, including its refusal of a pegged variable whose
+    relax test would be vacuous.
 
+    Auto-detection reads the constraint off the constrained model: the first
+    differing row that pegs a variable to a constant (or, failing that, the
+    first differing row) names the variable, ``-c / a`` is the threshold, and
+    the operator follows the model key ('zlb'/'floor' -> '<', 'borrow'/'cap'/
+    'collateral' -> '>') or else the sign of the threshold. It is a heuristic
+    for the common peg layouts; pass explicit constraints for anything else.
+    """
+    ref_mats = _extract_model_matrices(ref_model)
+    cons_mats = tuple(_extract_model_matrices(cons_model, ref_model=ref_model)[:5])
+    A_0_0 = ref_mats[1]
+    variables = list(ref_mats[6])
+    A_0_1, c_1 = cons_mats[1], cons_mats[4]
+
+    diff_rows = _differing_rows(ref_mats, cons_mats)
     if len(diff_rows) == 0:
         raise ValueError(
             f"No differing equations found between reference model and constrained model '{default_name}'."
         )
+    label = f" for constrained model '{default_name}'"
 
     if user_constraint is not None:
-        if user_constraint.variable not in variables:
-            raise ValueError(f"Constraint variable '{user_constraint.variable}' not in model variables: {variables}")
-        idx_var = variables.index(user_constraint.variable)
-        has_var = np.abs(A_0_0[:, idx_var]) > 1e-12
-        switching = [int(r) for r in diff_rows if has_var[r]]
-        eq_row = switching[0] if switching else int(diff_rows[0])
-        return user_constraint, eq_row, (A_p_1, A_0_1, A_m_1, B_u_1, c_1)
+        eq_row, _ = _resolve_switching_row(
+            ref_mats, cons_mats, user_constraint, variables, caller=caller, label=label
+        )
+        return user_constraint, eq_row, cons_mats
 
-    # Auto-detect: find which variable is pegged or determined by the differing row
+    # Auto-detect: prefer the differing row in which the constrained regime
+    # pegs a variable to a constant. A constrained model that also rewrites
+    # other equations (an IS curve that changes at the ZLB, say) must not have
+    # its constraint read off whichever of those rows happens to come first.
     eq_row = int(diff_rows[0])
+    for r in diff_rows:
+        row_abs = np.abs(A_0_1[r, :])
+        if np.max(row_abs) > 1e-12 and _pegged_rows(cons_mats, [int(r)], int(np.argmax(row_abs))):
+            eq_row = int(r)
+            break
     row_abs = np.abs(A_0_1[eq_row, :])
     if np.max(row_abs) > 1e-12:
         idx_var = int(np.argmax(row_abs))
@@ -1911,7 +2118,7 @@ def _auto_detect_constraint(
         var_name = variables[idx_var]
         thresh = 0.0
 
-    name_lower = default_name.lower()
+    name_lower = str(default_name).lower()
     if "zlb" in name_lower or "floor" in name_lower or thresh < 0:
         op = "<"
     elif "borrow" in name_lower or "cap" in name_lower or "collateral" in name_lower or thresh > 0:
@@ -1920,23 +2127,54 @@ def _auto_detect_constraint(
         op = "<"
 
     constraint = OccBinConstraint(variable=var_name, threshold=thresh, operator=op)
-    return constraint, eq_row, (A_p_1, A_0_1, A_m_1, B_u_1, c_1)
+    eq_row, _ = _resolve_switching_row(
+        ref_mats,
+        cons_mats,
+        constraint,
+        variables,
+        caller=caller,
+        label=label,
+        relax_hint=(
+            f" Auto-detection cannot name that variable: pass an explicit OccBinConstraint "
+            f"for '{default_name}' instead of constraints=None."
+        ),
+    )
+    return constraint, eq_row, cons_mats
 
 
 def _build_multi_regime_matrices(
     ref_matrices: tuple,
-    constraint_info: list[tuple[OccBinConstraint, int, tuple]],
+    constraint_info: Sequence[tuple[OccBinConstraint, int | None, tuple]],
 ) -> dict[int, tuple]:
-    """Construct (A_p, A_0, A_m, B_u, c) for all 2^K regimes."""
+    """Construct ``(A_+, A_0, A_-, B_u, c)`` for all ``2**K`` regimes.
+
+    Regime ``r`` is a bitmask over the ``K`` constraints (bit ``k`` set means
+    constraint ``k`` binds). Its system is the reference system with EVERY
+    row in which constrained model ``k`` differs from the reference replaced
+    by that model's row, for each set bit ``k``. Splicing the switching row
+    alone is not enough: a constrained model may rewrite several equations,
+    and dropping the others silently changes the economics (or, when the peg
+    is not the first differing row, drops the peg itself). Two constrained
+    models that rewrite the same row are incompatible and raise ``ValueError``.
+    """
     A_p_0, A_0_0, A_m_0, B_u_0, c_0 = ref_matrices[:5]
     K = len(constraint_info)
     n_regimes = 2 ** K
 
-    eq_rows = [info[1] for info in constraint_info]
-    if len(eq_rows) != len(set(eq_rows)):
-        raise ValueError(
-            f"Incompatible constraint regimes: multiple constraints modify the same equation row ({eq_rows})."
-        )
+    row_sets: list[list[int]] = []
+    for _, eq_row, cons_mats in constraint_info:
+        rows = {int(r) for r in _differing_rows(ref_matrices, cons_mats)}
+        if eq_row is not None:
+            rows.add(int(eq_row))
+        row_sets.append(sorted(rows))
+    for i in range(K):
+        for j in range(i + 1, K):
+            overlap = sorted(set(row_sets[i]) & set(row_sets[j]))
+            if overlap:
+                raise ValueError(
+                    f"Incompatible constraint regimes: multiple constraints modify the same "
+                    f"equation row(s) {overlap} (constraints {i} and {j})."
+                )
 
     regime_matrices = {}
     for r in range(n_regimes):
@@ -1944,16 +2182,17 @@ def _build_multi_regime_matrices(
         A0_r = A_0_0.copy()
         Am_r = A_m_0.copy()
         Bu_r = B_u_0.copy()
-        c_r = c_0.copy()
+        c_r = np.array(c_0, dtype=float, copy=True)
 
         for k in range(K):
             if (r >> k) & 1:
-                _, eq, (Ap_k, A0_k, Am_k, Bu_k, c_k) = constraint_info[k]
-                Ap_r[eq, :] = Ap_k[eq, :]
-                A0_r[eq, :] = A0_k[eq, :]
-                Am_r[eq, :] = Am_k[eq, :]
-                Bu_r[eq, :] = Bu_k[eq, :]
-                c_r[eq] = c_k[eq]
+                Ap_k, A0_k, Am_k, Bu_k, c_k = constraint_info[k][2][:5]
+                rows = row_sets[k]
+                Ap_r[rows, :] = Ap_k[rows, :]
+                A0_r[rows, :] = A0_k[rows, :]
+                Am_r[rows, :] = Am_k[rows, :]
+                Bu_r[rows, :] = Bu_k[rows, :]
+                c_r[rows] = np.asarray(c_k, dtype=float)[rows]
 
         regime_matrices[r] = (Ap_r, A0_r, Am_r, Bu_r, c_r)
 
@@ -1968,18 +2207,27 @@ def solve_multiconstraint_occbin(
     horizon: int = 40,
     max_iter: int = 50,
 ) -> OccBinResult:
-    """Solve multi-constraint OccBin across 2^K regimes (up to 4 regimes for K<=2).
+    """Solve a model with K occasionally binding constraints across its ``2**K`` regimes.
 
     Parameters
     ----------
     m_unconstrained : LinearModel
         The unconstrained reference model.
     m_constrained_dict : Mapping[str, LinearModel | Callable] or Sequence
-        Dictionary mapping constraint identifiers to their constrained regime models.
+        One constrained model per constraint: the model in which that
+        constraint (and only that one) binds. Every row in which a
+        constrained model differs from the reference is spliced into the
+        regimes where its constraint binds, so two constrained models must
+        not rewrite the same equation. A sequence is keyed ``constraint_0,
+        constraint_1, ...``.
     shock_seq : np.ndarray
         Anticipated structural shock sequence of shape (n_shocks,) or (horizon, n_shocks).
     constraints : Mapping[str, OccBinConstraint] or Sequence, optional
-        Definitions of the occasionally binding constraints. If None, automatically deduced.
+        One :class:`OccBinConstraint` per constrained model: a mapping with
+        exactly the model keys, a sequence in the model order, or a single
+        constraint when there is a single model. If None, every constraint is
+        deduced from its model (the pegged variable, ``-c / a`` as threshold,
+        an operator read off the key or the threshold's sign).
     horizon : int, default 40
         Simulation horizon.
     max_iter : int, default 50
@@ -1988,7 +2236,39 @@ def solve_multiconstraint_occbin(
     Returns
     -------
     OccBinResult
-        Container holding multi-regime simulation trajectory and diagnostics.
+        ``result.regimes[t]`` is a bitmask: bit ``k`` is set when constraint
+        ``k`` (the ``k``-th model) binds in period ``t``, so with two
+        constraints ``3`` means both bind and ``2`` only the second.
+        ``result.constraints`` maps each model key to the constraint actually
+        used and ``result.shadow_path`` adds one ``<variable>_shadow`` column
+        per constraint.
+
+    Notes
+    -----
+    ``result.converged`` follows the :func:`solve_occbin` contract: it is
+    ``True`` only when the regime iteration reached a fixed point, the
+    returned path respects every constraint where that is meaningful for its
+    style (a peg in every period, a trigger in every period declared slack
+    for it) and every constraint is slack in the final period, so that the
+    terminal condition is verified. Otherwise the function returns
+    ``converged=False`` and emits one ``UserWarning`` naming every reason
+    (``max_iter`` exhausted, a regime cycle that damping could not break, a
+    violated bound, a constraint still binding at ``T``); the path is then
+    the one solved under ``result.regimes``, a diagnostic rather than a
+    solution.
+
+    Raises
+    ------
+    ValueError
+        If ``horizon``/``max_iter`` are not positive integers, no constrained
+        model is given, ``constraints`` cannot be paired one-to-one with the
+        models (mismatched keys, wrong length, one constraint for several
+        models), a constraint names an unknown variable or ``relax_variable``,
+        a constrained model does not differ from the reference, two
+        constrained models rewrite the same equation row, or the alternative
+        regime pegs a variable in a row that does not determine it in the
+        reference model without a ``relax_variable`` (the relax test would be
+        vacuous, exactly as in :func:`solve_occbin`).
     """
     if not isinstance(horizon, (int, np.integer)) or int(horizon) < 1:
         raise ValueError(f"solve_multiconstraint_occbin: horizon must be an integer >= 1, got {horizon!r}")
@@ -2014,36 +2294,28 @@ def solve_multiconstraint_occbin(
     if K == 0:
         raise ValueError("solve_multiconstraint_occbin requires at least one constrained model.")
 
-    # Standardize constraints parameter
-    user_constraints_dict: dict[str, OccBinConstraint] = {}
-    if constraints is not None:
-        if isinstance(constraints, Mapping):
-            user_constraints_dict = dict(constraints)
-        elif isinstance(constraints, (list, tuple)):
-            for i, c in enumerate(constraints):
-                key = model_items[i][0] if i < len(model_items) else f"constraint_{i}"
-                user_constraints_dict[key] = c
-        elif isinstance(constraints, OccBinConstraint):
-            user_constraints_dict[model_items[0][0]] = constraints
+    # Pair the user's constraints with the models, key by key; anything that
+    # does not pair one-to-one is an error, never a silent auto-detection.
+    user_constraints_dict = _resolve_user_constraints(
+        model_items, constraints, "solve_multiconstraint_occbin"
+    )
 
     # Build constraint info for each constraint
     constraint_info = []
     final_constraints: dict[str, OccBinConstraint] = {}
     for name, c_model in model_items:
-        u_c = user_constraints_dict.get(name, None)
         c_obj, eq_row, cons_mats = _auto_detect_constraint(
-            m_unconstrained, c_model, default_name=name, user_constraint=u_c
+            m_unconstrained,
+            c_model,
+            default_name=name,
+            user_constraint=user_constraints_dict.get(name),
+            caller="solve_multiconstraint_occbin",
         )
         constraint_info.append((c_obj, eq_row, cons_mats))
         final_constraints[name] = c_obj
 
-    # Check for incompatible constraint regimes
-    eq_rows = [info[1] for info in constraint_info]
-    if len(eq_rows) != len(set(eq_rows)):
-        raise ValueError(
-            f"Incompatible constraint regimes: multiple constraints replace the exact same equation row ({eq_rows})."
-        )
-
+    # Splice every differing row of each constrained model into its regimes;
+    # raises when two constrained models rewrite the same equation row.
     regime_matrices = _build_multi_regime_matrices(ref_matrices, constraint_info)
 
     # Standardize shock sequence
@@ -2124,7 +2396,10 @@ def solve_multiconstraint_occbin(
         shadow_vals = np.zeros((K, horizon))
         for k in range(K):
             c_obj, eq_row, idx_var, relax_idx = c_indices[k]
-            a_var = float(A_0_0[eq_row, idx_var])
+            # eq_row is None for a trigger-style constraint: no switching
+            # equation pins the variable, so its simulated value is its own
+            # notional value (the else branch below).
+            a_var = float(A_0_0[eq_row, idx_var]) if eq_row is not None else 0.0
             if abs(a_var) > 1e-12:
                 row_others = A_0_0[eq_row].copy()
                 row_others[idx_var] = 0.0
@@ -2166,6 +2441,7 @@ def solve_multiconstraint_occbin(
     regime = np.zeros(horizon, dtype=int)
     history: set[tuple[int, ...]] = {tuple(regime.tolist())}
     fixed_point = False
+    cycled_to: np.ndarray | None = None
     iteration = 0
 
     for iteration in range(1, max_iter + 1):
@@ -2178,7 +2454,8 @@ def solve_multiconstraint_occbin(
 
         key = tuple(upd.tolist())
         if key in history:
-            # Oscillatory chattering detected: apply damping
+            # Oscillatory chattering detected: apply damping (accept only the
+            # first period that changed) if that yields an unvisited guess.
             diff_t = np.where(upd != regime)[0]
             if len(diff_t) > 0:
                 damped = regime.copy()
@@ -2188,25 +2465,86 @@ def solve_multiconstraint_occbin(
                     history.add(damped_key)
                     regime = damped
                     continue
+            # No unvisited guess left. The path in hand was solved under
+            # `regime`, which the solver's own binding test has just rejected,
+            # so this is NOT a solution -- report it instead of picking a winner.
+            cycled_to = upd
             break
 
         history.add(key)
         regime = upd
     else:
+        # max_iter exhausted; `regime` holds the last update, re-simulate it so
+        # that the returned path and the reported regime sequence agree.
         sim_X, shadow_vals = simulate_path(regime)
 
     regimes_list = [int(v) for v in regime]
-    terminal_slack = (regimes_list[-1] == 0)
-    if not terminal_slack:
-        converged = False
-        warnings.warn(
-            f"solve_multiconstraint_occbin: constraint still binds at terminal period T={horizon} "
-            f"(regime={regimes_list[-1]}). Terminal condition P_{{T+1}} = P_0 is unverified; increase horizon.",
-            UserWarning,
-            stacklevel=2,
+    reasons: list[str] = []
+
+    if cycled_to is not None:
+        solved_for = [int(t) + 1 for t in np.flatnonzero(regime)]
+        rejected_to = [int(t) + 1 for t in np.flatnonzero(cycled_to)]
+        reasons.append(
+            f"the regime iteration cycled at iteration {iteration}: the path was solved with "
+            f"a constraint binding in period(s) {solved_for[:12]}"
+            f"{' ...' if len(solved_for) > 12 else ''}, but the solver's own binding test on "
+            f"that very path returns {rejected_to[:12]}"
+            f"{' ...' if len(rejected_to) > 12 else ''}, a guess already visited that damping "
+            f"could not move away from, so no regime sequence is a fixed point"
         )
-    else:
-        converged = bool(fixed_point)
+    elif not fixed_point:
+        reasons.append(
+            f"the regime iteration did not reach a fixed point within max_iter={max_iter}"
+        )
+
+    # Post-hoc verification of the returned path against every constraint,
+    # mirroring solve_occbin: a peg-style constraint (eq_row is not None, its
+    # reference equation determines the variable and the alternative regime
+    # pins it AT the bound) must hold in every period; a trigger-style one
+    # (eq_row is None) is meant to sit beyond its threshold while active, so
+    # only the periods declared slack for it are tested.
+    regime_arr = np.asarray(regimes_list)
+    for k in range(K):
+        c_obj, eq_row, idx_var, _ = c_indices[k]
+        thresh = float(c_obj.threshold)
+        bound_tol = 1e-8 * max(1.0, abs(thresh))
+        checked = (
+            np.arange(horizon) if eq_row is not None else np.flatnonzero(((regime_arr >> k) & 1) == 0)
+        )
+        col = sim_X[checked, idx_var]
+        if c_obj.operator in ("<", "<="):
+            violated = checked[col < thresh - bound_tol]
+        else:
+            violated = checked[col > thresh + bound_tol]
+        if violated.size:
+            vals = sim_X[violated, idx_var]
+            worst = float(vals.min() if c_obj.operator in ("<", "<=") else vals.max())
+            reasons.append(
+                f"the returned path violates {c_obj!r} in period(s) "
+                f"{[int(t) + 1 for t in violated[:12]]}"
+                f"{' ...' if violated.size > 12 else ''} "
+                f"(worst {c_obj.variable}={worst:.6g} against threshold {thresh:.6g})"
+            )
+
+    if regimes_list[-1] != 0:
+        reasons.append(
+            f"constraint still binds at terminal period T={horizon} (regime={regimes_list[-1]}), "
+            f"so the terminal condition P_{{T+1}} = P_0 -- that the reference regime resumes "
+            f"after the horizon -- is assumed rather than verified; increase horizon"
+        )
+
+    converged = bool(fixed_point) and not reasons
+    if reasons:
+        # Attributed to the user's call whether they called this function or
+        # reached it through solve_occbin's mapping/sequence dispatch.
+        warnings.warn(
+            "solve_multiconstraint_occbin did not produce a verified solution (converged=False): "
+            + "; ".join(reasons)
+            + ". The returned path is the one solved under `result.regimes` and is a "
+            "diagnostic, not a solution.",
+            UserWarning,
+            stacklevel=_stacklevel_outside_module(),
+        )
 
     period_index = pd.RangeIndex(1, horizon + 1, name="t")
     sim_df = pd.DataFrame(sim_X, columns=variables, index=period_index)
@@ -2325,34 +2663,25 @@ def piecewise_kalman_filter(
         model_items = [("c_0", m_constrained_dict)]
 
     K = len(model_items)
-    user_constraints_dict: dict[str, OccBinConstraint] = {}
-    if constraints is not None:
-        if isinstance(constraints, Mapping):
-            user_constraints_dict = dict(constraints)
-        elif isinstance(constraints, (list, tuple)):
-            for i, c in enumerate(constraints):
-                key = model_items[i][0] if i < len(model_items) else f"c_{i}"
-                user_constraints_dict[key] = c
-        elif isinstance(constraints, OccBinConstraint):
-            user_constraints_dict[model_items[0][0]] = constraints
+    # Pair the user's constraints with the models, key by key; a mismatch is
+    # an error rather than a silent auto-detection with a guessed threshold.
+    user_constraints_dict = _resolve_user_constraints(model_items, constraints, "piecewise_kalman_filter")
 
     constraint_info = []
     final_constraints: dict[str, OccBinConstraint] = {}
     for name, c_model in model_items:
-        u_c = user_constraints_dict.get(name, None)
         c_obj, eq_row, cons_mats = _auto_detect_constraint(
-            m_unconstrained, c_model, default_name=name, user_constraint=u_c
+            m_unconstrained,
+            c_model,
+            default_name=name,
+            user_constraint=user_constraints_dict.get(name),
+            caller="piecewise_kalman_filter",
         )
         constraint_info.append((c_obj, eq_row, cons_mats))
         final_constraints[name] = c_obj
 
-    # Check for incompatible constraint regimes
-    eq_rows = [info[1] for info in constraint_info]
-    if len(eq_rows) != len(set(eq_rows)):
-        raise ValueError(
-            f"Incompatible constraint regimes: multiple constraints modify the same equation row ({eq_rows})."
-        )
-
+    # Splice every differing row of each constrained model into its regimes;
+    # raises when two constrained models rewrite the same equation row.
     regime_matrices = _build_multi_regime_matrices(ref_matrices, constraint_info)
 
     # Reference decision rule
@@ -2495,7 +2824,9 @@ def piecewise_kalman_filter(
             shadow_vals_h = np.zeros((K, horizon))
             for k in range(K):
                 c_obj, eq_row, idx_var, relax_idx = c_indices[k]
-                a_var = float(A_0_0[eq_row, idx_var])
+                # eq_row is None for a trigger-style constraint: the simulated
+                # value is then its own notional value (else branch below).
+                a_var = float(A_0_0[eq_row, idx_var]) if eq_row is not None else 0.0
                 if abs(a_var) > 1e-12:
                     row_others = A_0_0[eq_row].copy()
                     row_others[idx_var] = 0.0
