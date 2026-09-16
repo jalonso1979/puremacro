@@ -213,7 +213,7 @@ them in the same pass (§6.5).
 
 `paper/paper.md` carries `orcid: 0000-0002-5941-9928`, the only "Jorge Alonso Ortiz"
 (ITAM) record in the public ORCID registry as of 2026-09-13. Confirm it is yours and
-delete the AUTHOR comment above the front matter.
+delete the AUTHOR comment that follows the front matter.
 
 ### 6.3 The public history is short — disclose it, do not rewrite it
 

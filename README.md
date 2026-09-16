@@ -296,11 +296,12 @@ print(f"|K^s - K^d| = {abs(ge.excess_capital):.2e} <= tol_ge = 1e-4")
 ```
 `g_dist` is a **density**, not node mass: on a non-uniform `a_grid` the node mass is
 divided by the cell width, so `sum_i g_i w_i = 1` with the trapezoid quadrature weights
-`w`. The two-state income switching is new in 3.4; the 3.3.0 explicit solver had no
-income process.
+`w`. The Poisson switching between the states of `e_grid` is new in 3.4: the 3.3.0
+explicit solver carried the same two income states but no switching term, so they were
+independent deterministic-income problems.
 
 ### 11. Montiel Olea-Pflueger Weak-IV Inference (puremacro 3.4)
-`lp_iv` reports the effective F-statistic with its critical values, and inverts the Anderson-Rubin set in closed form (bounded interval, two rays, the whole line, or empty) instead of scanning a fixed grid:
+`lp_iv` reports the effective F-statistic with its critical values, and inverts the Anderson-Rubin set exactly instead of scanning a fixed grid — the closed-form tail limit classifies it as a bounded interval, two rays, the whole line or empty, and the endpoints are Brent roots (a closed-form quadratic when there is a single instrument):
 ```python
 import numpy as np
 import pandas as pd
@@ -330,7 +331,10 @@ print(res[["h", "beta", "se", "mop_f", "ar_lo", "ar_hi", "ar_set_type"]]
 #  3 0.093 0.260 81.220 -0.481  0.548     bounded
 ```
 The errors are heteroskedasticity- and autocorrelation-robust (Newey-West with the
-horizon's bandwidth). **Cluster-robust weak-IV inference is not implemented.**
+horizon's bandwidth). **`lp_iv` has no cluster argument: neither the effective F it
+reports nor the Anderson-Rubin set it inverts is cluster-robust.** Only
+`inference.weak_iv.olea_pflueger_f(x, z, cluster=...)` takes clusters, and it returns
+the effective F alone — there is no cluster-robust confidence set anywhere.
 
 ### 12. Latin American Real-Time Macro Data (puremacro 3.4)
 Banco de México, INEGI, Banco Central do Brasil and Banco Central de Chile join the real-time providers. The catalog, the series identifiers and the vintage semantics all resolve offline, before any request is made:
@@ -477,12 +481,12 @@ lines are hardware-specific: with neither framework installed, `has_torch()` and
 
 **Causal ML, continuous-time HJB, multi-constraint OccBin & regional real time (puremacro 3.4)**
 
-- **Double / Debiased Machine Learning** (`causal.dml`) — Chernozhukov et al. (2018) partially linear regression with Neyman-orthogonal Robinson scores, $K$-fold cross-fitting and pure-NumPy penalized learners (`LassoCoordinateDescent`, `RidgeGCV`); the entry points are `dml_plr` and `DoubleMLPLR`, and the learners are **lasso and ridge only**. `DMLResult` carries `.summary()`, `.plot()`, `.to_latex()`, `.to_typst()` and `.to_markdown()`; see `docs/causal_dml.md`.
-- **Implicit continuous-time HJB & adjoint KFE** (`vfi.hjb_achdou`) — Achdou, Han, Lasry, Lions & Moll (2022) implicit upwind M-matrix scheme solved with `scipy.sparse.linalg.spsolve`, two-state Poisson income switching (default intensity $\lambda = 0.1$, new in 3.4), and the stationary density from $A^\top g = 0$. `solve_kfe_achdou` returns a **density** — node mass divided by the cell width — normalized with trapezoid quadrature weights, so it integrates to one on non-uniform grids too. `solve_aiyagari_continuous_hjb` closes the loop in general equilibrium, with `tol_ge` governing convergence and `converged` meaning $|K^s - K^d| \le$ `tol_ge`; see `docs/vfi_hjb_continuous.md`.
+- **Double / Debiased Machine Learning** (`causal.dml`) — Chernozhukov et al. (2018) partially linear regression with Neyman-orthogonal Robinson scores, $K$-fold cross-fitting and pure-NumPy penalized learners (`LassoCoordinateDescent`, `RidgeGCV`); the entry points are `dml_plr` and `DoubleMLPLR`, and the learners are **lasso and ridge only**. `DMLResult` carries `.summary()`, `.plot()`, `.to_latex()`, `.to_typst()` and `.to_markdown()`.
+- **Implicit continuous-time HJB & adjoint KFE** (`vfi.hjb_achdou`) — Achdou, Han, Lasry, Lions & Moll (2022) implicit upwind M-matrix scheme solved with `scipy.sparse.linalg.spsolve`, two-state Poisson income switching (default intensity $\lambda = 0.1$, new in 3.4), and the stationary density from $A^\top g = 0$. `solve_kfe_achdou` returns a **density** — node mass divided by the cell width — normalized with trapezoid quadrature weights, so it integrates to one on non-uniform grids too. `solve_aiyagari_continuous_hjb` closes the loop in general equilibrium, with `tol_ge` governing convergence and `converged` meaning $|K^s - K^d| \le$ `tol_ge`.
 - **Multi-constraint OccBin** (`dsge.solve_multiconstraint_occbin`) — $M \ge 2$ simultaneous occasionally binding constraints (a zero lower bound and a collateral limit at once). Shipped in 2.8.0; 3.4 extends and hardens it: the regime splice carries **every** differing row, `result.regimes[t]` is a bitmask (bit $k$ set when constraint $k$ binds, so `3` means both bind), non-convergence returns `converged=False` *with* a `UserWarning` naming each reason, and a constraint that cannot be paired one-to-one with its model raises `ValueError`.
-- **Montiel Olea-Pflueger weak-IV inference** (`lp.iv`, `inference.weak_iv`) — the effective $F$-statistic with critical values from the MOP closed form $\mathrm{cv} = \chi^2_{K,\,1-\alpha}(K/\tau)/K$ (23.11 and 15.06 for $K = 1$ at $\tau$ = 10% and 20%), and a multi-instrument Anderson-Rubin set inverted exactly — bounded interval, two rays, the whole line, or empty — rather than read off a grid. Errors are heteroskedasticity- and autocorrelation-robust; **cluster-robust weak-IV inference is not implemented**. `la_lp_iv` is re-exported from `puremacro.lp`.
-- **Latin American real-time connectors** (`fetch.realtime.{banxico,inegi,bcb,bcch}`) — Banco de México (SIE), INEGI (BIE), Banco Central do Brasil (SGS) and Banco Central de Chile (SIETE), with separate user and password resolution for BCCh (`PASSWORD_ENV_VARS`, `get_password`), a configurable schema-drift canary (`DRIFT_POLICIES`, `handle_drift`), `use_cache=False` that really bypasses the cache, and offline `.pmz` cartridges. **These four sources publish only the current edition, so their vintage date is the local snapshot date and revision history accumulates only across repeated captures on different days.** Catalog entries not yet confirmed against the live API are marked `VERIFY_ONLINE`; see `docs/real_time_latam.md`.
-- **GPU / Apple-Silicon trade solvers** (`trade.gpu`) — Torch and MLX paths for the Caliendo-Parro equilibrium, imported lazily so `import puremacro.trade` pulls in neither. Tariff defaults match the NumPy solver, the batched-Jacobian layout is validated rather than inferred from a magic batch size, and the tests skip (not fail) when torch / mlx or the private ICIO data are absent; see `docs/trade_gpu.md`.
+- **Montiel Olea-Pflueger weak-IV inference** (`lp.iv`, `inference.weak_iv`) — the effective $F$-statistic with critical values from the MOP closed form $\mathrm{cv} = \chi^2_{K,\,1-\alpha}(K/\tau)/K$ (23.11 and 15.06 for $K = 1$ at $\tau$ = 10% and 20%), and a multi-instrument Anderson-Rubin set inverted exactly — bounded interval, two rays, the whole line, or empty — rather than read off a grid. Errors are heteroskedasticity- and autocorrelation-robust; **`lp_iv` takes no clusters and no confidence set is cluster-robust** (`inference.weak_iv.olea_pflueger_f` accepts a `cluster` argument for the effective F alone). `la_lp_iv` is re-exported from `puremacro.lp`.
+- **Latin American real-time connectors** (`fetch.realtime.{banxico,inegi,bcb,bcch}`) — Banco de México (SIE), INEGI (BIE), Banco Central do Brasil (SGS) and Banco Central de Chile (SIETE), with separate user and password resolution for BCCh (`PASSWORD_ENV_VARS`, `get_password`), a configurable schema-drift canary (`DRIFT_POLICIES`, `handle_drift`), `use_cache=False` that really bypasses the cache, and offline `.pmz` cartridges. **These four sources publish only the current edition, so their vintage date is the local snapshot date and revision history accumulates only across repeated captures on different days.** Catalog entries not yet confirmed against the live API are marked `VERIFY_ONLINE`.
+- **GPU / Apple-Silicon trade solvers** (`trade.gpu`) — Torch and MLX paths for the Caliendo-Parro equilibrium, imported lazily so `import puremacro.trade` pulls in neither. Tariff defaults match the NumPy solver, the batched-Jacobian layout is validated rather than inferred from a magic batch size, and the tests skip (not fail) when torch / mlx or the private ICIO data are absent.
 
 **Narrative econometrics** (`narrative.*`)
 
@@ -551,7 +555,7 @@ helper. Coverage is constrained by what Wayback has snapshotted.
   publication or edition date, while **the four Latin American sources publish
   only the current edition, so their vintage date is the local snapshot date**
   and revision history accumulates only across repeated captures on different
-  days. See `docs/real_time_data.md` and `docs/real_time_latam.md`.
+  days. See `docs/real_time_data.md`.
 - **Modular panel builders** (`build_panel`, `build_subnational_panel`, `build_climate_panel`, `build_financial_panel`) — single
   entry points that materialise quarterly / monthly cross-country,
   US-state, climate/energy, and macro-financial panels from the fetchers,
@@ -996,10 +1000,6 @@ All notebooks strictly adhere to the Pyodide contract and the 7-section pedagogi
 ## Documentation
 
 - **`docs/quickstart.md`** — 2-minute quickstart covering core estimators and publication workflows.
-- **`docs/causal_dml.md`** — Double / Debiased Machine Learning: Robinson orthogonal scores, cross-fitting, the lasso and ridge learners, and the `DMLResult` export surface.
-- **`docs/vfi_hjb_continuous.md`** — Implicit upwind continuous-time HJB, the adjoint KFE density on non-uniform grids, and continuous-time Aiyagari general equilibrium.
-- **`docs/real_time_latam.md`** — Latin American real-time connectors (Banco de México, INEGI, Banco Central do Brasil, Banco Central de Chile), snapshot-date vintages, credentials and the schema-drift canary.
-- **`docs/trade_gpu.md`** — Torch and MLX trade-equilibrium solvers: device selection, the batched Jacobian, and parity with the NumPy path.
 - **`docs/vfi_continuous_projection.md`** — Continuous state-space dynamic programming: Chebyshev polynomial collocation and Finite Element Galerkin projection with Fischer-Burmeister borrowing constraints.
 - **`docs/vfi_splines_and_sparse_grids.md`** — Shape-preserving cubic B-splines, Schumaker quadratic splines, and Smolyak high-dimensional sparse grids ($d \in [2, 6]$).
 - **`docs/dcegm.md`** — Discrete Choice Endogenous Grid Method (DC-EGM) with fast Upper Envelope filtering for non-convex dynamic programming.
