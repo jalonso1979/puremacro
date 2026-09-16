@@ -9,13 +9,17 @@ url: "https://jalonso1979.github.io/puremacro/"
 authors:
   - family-names: "Alonso Ortiz"
     given-names: "Jorge"
+    orcid: "https://orcid.org/0000-0002-5941-9928"
     affiliation: "Instituto Tecnológico Autónomo de México (ITAM), Mexico City, Mexico"
 keywords:
   - "macroeconomics"
   - "econometrics"
   - "vector autoregression"
+  - "local projections"
   - "HANK"
   - "nowcasting"
+  - "real-time data"
+  - "causal inference"
   - "climate macroeconomics"
   - "DICE"
   - "pyodide"
@@ -23,8 +27,10 @@ keywords:
 abstract: >-
   puremacro is a self-contained, zero-C-extension macroeconomic computing library
   built in pure Python and NumPy. It unifies structural models (Sequence-Space HANK,
-  DMP search-and-matching, continuous-time HJB), high-dimensional econometrics
+  DMP search-and-matching, continuous-time HJB solved with implicit upwind schemes
+  and adjoint Kolmogorov forward equations), high-dimensional econometrics
   (FAVAR, Minnesota BVAR, Narrative Signs), mixed-frequency nowcasting, penalized
-  forecasting (Elastic Net, Adaptive Lasso), and climate-macro integration (DICE).
-  It runs identically in local environments, cloud clusters, and client-side in
-  the browser via Pyodide.
+  forecasting (Elastic Net, Adaptive Lasso), debiased machine learning for causal
+  inference, real-time vintage data from ten statistical agencies and central
+  banks, and climate-macro integration (DICE). It runs identically in local
+  environments, cloud clusters, and client-side in the browser via Pyodide.

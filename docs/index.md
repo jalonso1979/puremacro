@@ -32,7 +32,7 @@
    - **Fake News Algorithm**: Fast $\mathcal{O}(T^2)$ computation of sequence-space consumption Jacobians via expectation vectors and cumulation identities.
    - **HANK Sequence-Space Bridge**: Declare `hetagent_block` directly inside standard Dynare `.mod` files.
    - **Targeted Fiscal Transfers**: Dynamic consumption IRFs and cumulative fiscal multipliers across wealth deciles.
-   - **Continuous-Time HJB**: Achdou et al. (2022) finite difference upwind schemes for continuous-time heterogeneous agents.
+   - **Continuous-Time HJB**: Achdou et al. (2022) **implicit** upwind finite-difference M-matrix schemes, the adjoint Kolmogorov forward equation for the stationary density, and continuous-time Aiyagari general equilibrium.
 
 3. **Econometric Engines & Local Projections**:
    - **Unified `LPResult`**: Standardized Local Projections (`lp_hac`, `lp_iv`, `lp_state_dep`, `panel_lp`) with Newey-West HAC, fixed-$b$, and Driscoll-Kraay standard errors.
@@ -52,10 +52,18 @@
    - **International Financial Stability**: Sovereign yield curves (10Y/2Y), central bank policy rates, BIS credit-to-GDP gaps, and real property prices ([Guide](data_ecosystem.md)).
    - **Modular Panel Builders**: One-call constructors `build_climate_panel` and `build_financial_panel` with automated frequency harmonization (M$\to$Q, A$\to$Q).
 
-6. **Publication-Grade Reporting**:
+6. **Causal ML, Continuous-Time Heterogeneous Agents & Regional Real Time (puremacro 3.4)**:
+   - **Double / Debiased Machine Learning**: Chernozhukov et al. (2018) partially linear regression with Neyman-orthogonal Robinson scores, $K$-fold cross-fitting, and pure-NumPy penalized learners — lasso and ridge only, no elastic net.
+   - **Implicit HJB, Adjoint KFE & Continuous Aiyagari GE**: Sparse M-matrix policy iteration, a stationary density normalized with trapezoid quadrature weights so it integrates to one on non-uniform grids, and a general-equilibrium loop whose `converged` flag means $|K^s - K^d| \le$ `tol_ge`.
+   - **Multi-Constraint OccBin**: $M \ge 2$ simultaneous occasionally binding constraints, with a regime bitmask (bit $k$ set when constraint $k$ binds) and non-convergence reported as `converged=False` plus a warning naming each reason ([Guide](dsge_build.md)).
+   - **Montiel Olea-Pflueger Weak-IV Inference**: Effective $F$-statistic critical values from the closed form $\chi^2_{K,\,1-\alpha}(K/\tau)/K$, and multi-instrument Anderson-Rubin sets inverted exactly rather than on a grid ([Guide](lp.md)).
+   - **Latin American Real-Time Connectors**: Banco de México, INEGI, Banco Central do Brasil and Banco Central de Chile. These four sources publish only the current edition, so their vintage date is the local *snapshot* date and revision history accumulates only across repeated captures on different days.
+   - **GPU / Apple-Silicon Trade Solvers**: Torch and MLX paths for the Caliendo-Parro equilibrium, imported lazily and matching the NumPy solver's tariff defaults.
+
+7. **Publication-Grade Reporting**:
    - Zero-dependency, camera-ready table export directly to **LaTeX** (`.to_latex()`), **Typst** (`.to_typst()`), and **Markdown** (`.to_markdown()`), complete with standard errors and significance stars ([Guide](reporting.md)).
 
-7. **Running Anywhere**:
+8. **Running Anywhere**:
    - Full Pyodide/WebAssembly compatibility for tablets and browser notebooks ([Guide](tablet.md)), with automatic Google Colab offloading (`runtime.colab`), chunked long-run execution (`longrun`), and portable `.pmz` data cartridges (`pocket`).
 
 ---

@@ -27,6 +27,14 @@ bibliography: paper.bib
      public ORCID registry (checked 2026-09-13); confirm it is yours. Set `date` to
      the day you submit. -->
 
+<!-- This draft is NOT pinned to an old release: it tracks the current one, 3.4.0.
+     Every count in the text (modules, lines, tests, swept library modules,
+     validation checks, notebook pairs, commits) was recomputed from the 3.4.0 tree
+     on 2026-09-16, and `scorecard.png` was re-verified against `validation.scorecard()`
+     on the same tree — 107 checks, 15 subsystems, 19 external / 29 analytical /
+     59 internal, all passing, identical to 3.3.0. Re-run the commands in
+     RELEASING.md §6.5 before submitting. -->
+
 # Summary
 
 `puremacro` is a Python library for empirical macroeconomics and for solving
@@ -117,7 +125,7 @@ tests, not a feature that can be added to another project's dependency graph.
 Matplotlib (plus requests, in the data layer) at module scope; anything else, from
 Parquet support to optional accelerators, is optional and imported only when
 available. Two tests enforce the rule against the packages most likely to leak in.
-The first imports each of the 530 library modules (examples, teaching helpers,
+The first imports each of the 547 library modules (examples, teaching helpers,
 text-scraping sources and optional Numba kernels are excluded) and fails if
 statsmodels, linearmodels, arch or the scraping packages bs4, pdfplumber and pypdf
 have entered `sys.modules`. The second repeats the sweep in a subprocess in which
@@ -148,16 +156,22 @@ the one tested in CI.
 problems slower than in JIT-compiled toolkits, and derivatives that other libraries
 obtain by automatic differentiation must be coded by hand. The browser is a
 best-effort target rather than a supported one: Parquet and Excel files need
-engines that not every Pyodide distribution provides. Under Pyodide 314.0.5 in
-Node.js the full validation gallery passes, and an opt-in release gate installs
-the package as the playground does and runs a 31-test smoke subset of the suite.
+engines that not every Pyodide distribution provides. A headless harness in the
+repository runs the library in Node.js against a pinned Pyodide, and an opt-in
+release gate installs the package there exactly as the playground does and runs a
+31-test smoke subset of the suite.
 
-**Scale.** Version 3.3.0 comprises about 730 modules and 220,000 lines of Python,
-exercised by about 12,700 tests that CI runs on Linux, macOS and Windows under
+<!-- AUTHOR: re-run `python tools/release_check.py --pyodide` on the submitted
+     commit and, if the full validation gallery passes there, say so and name the
+     Pyodide version it reported. -->
+
+**Scale.** Version 3.4.0 comprises about 750 modules and 231,000 lines of Python,
+exercised by about 14,300 tests that CI runs on Linux, macOS and Windows under
 Python 3.11–3.13. Before a release is tagged, a script checks the suite against a
 recorded baseline, the import invariant, a snapshot of the public API that must be
-regenerated deliberately when the interface changes, and that the version string
-agrees across the package metadata, changelog and citation file.
+regenerated deliberately when the interface changes, that every shipped file still
+parses on the oldest supported Python, and that the version string agrees across
+the package metadata, changelog and citation file.
 
 ## Verification
 
@@ -182,7 +196,7 @@ holds the interest rate below the rate of time preference, and the rate falls as
 income risk rises. Most model solvers (sequence-space, continuous-time, spatial,
 trade and climate) are covered by unit tests but not yet by gallery checks.
 
-![The validation gallery of `puremacro` 3.3.0: 107 checks in 15 subsystems, by kind of reference; all pass. *External reference*: stored outputs of statsmodels, arch, linearmodels or esda, SciPy computed at run time, or a published table. *Analytical result*: a closed form, or an effect planted in simulated data. *Internal consistency*: agreement between alternative algorithms, identities that correct output must satisfy, or recovery of parameters from simulated data. Regenerate with `python paper/make_scorecard_fig.py`.\label{fig:scorecard}](scorecard.png){ width=80% }
+![The validation gallery of `puremacro` 3.4.0: 107 checks in 15 subsystems, by kind of reference; all pass. *External reference*: stored outputs of statsmodels, arch, linearmodels or esda, SciPy computed at run time, or a published table. *Analytical result*: a closed form, or an effect planted in simulated data. *Internal consistency*: agreement between alternative algorithms, identities that correct output must satisfy, or recovery of parameters from simulated data. Regenerate with `python paper/make_scorecard_fig.py`.\label{fig:scorecard}](scorecard.png){ width=80% }
 
 # Research impact statement
 
@@ -199,13 +213,12 @@ on evidence a reviewer can check.
 material on it. The course's 22 Spanish lesson notebooks are in the repository
 (`notebooks/course`), and 20 of them call `puremacro` directly.
 
-*Reproducible material.* The repository contains 58 bilingual (English/Spanish)
-pairs of worked-example notebooks; all but one of them, with the lesson notebooks,
-are also published as a JupyterLite [@jupyterlite] site that runs them in the
-browser.
+*Reproducible material.* The repository contains 60 bilingual (English/Spanish)
+pairs of worked-example notebooks; all of them, with the lesson notebooks, are also
+published as a JupyterLite [@jupyterlite] site that runs them in the browser.
 
 <!-- AUTHOR: the live site's install failure (the 3.2.1 wheel required openpyxl
-     while PyPI fallback is disabled) is fixed in 3.3.0. After the next Pages
+     while PyPI fallback is disabled) is fixed since 3.3.0. After the next Pages
      deploy, run the first cell of a notebook in a browser to confirm, then delete
      this comment. -->
 
@@ -218,7 +231,7 @@ guidelines, and CI on three operating systems.
 Generative AI was used extensively in writing `puremacro`, its documentation and
 this paper. Anthropic's Claude models, used through the Claude Code agent (Claude
 Opus 5, Claude Fable 5 and Claude Fable 5.1), generated or co-wrote much of the
-code, tests, documentation and notebooks: 109 of the 211 commits in the public
+code, tests, documentation and notebooks: 111 of the 214 commits in the public
 repository carry a Claude co-author trailer. Google's Jules coding agent
 contributed 20 pull requests (refactoring, performance and test improvements),
 each reviewed and merged by the author. Claude also drafted and revised this
