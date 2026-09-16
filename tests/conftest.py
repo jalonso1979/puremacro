@@ -168,3 +168,25 @@ def load_or_skip(loader, *args, **kwargs):
         if type(exc).__name__ == "MatReadError":
             pytest.skip(f"private ICIO data unreadable: {exc}")
         raise
+
+
+def icio_reference_dir_is_complete(path) -> bool:
+    """True when every MATLAB reference file in ``path`` can actually be read.
+
+    The byte-parity and paper-reproduction suites compare against a *set* of
+    reference files (one per tariff scenario), so a directory where some are
+    readable and others are evicted cloud placeholders cannot support any of
+    their claims.  Checking only one file let a partially materialised
+    directory through: on 2026-09-16 every reference was readable except
+    ``results_77c_11s_t10_54.mat``, and the 29 tests that need it failed with
+    ``MatReadError`` instead of skipping.
+    """
+    from pathlib import Path
+
+    p = Path(path)
+    if not p.is_dir():
+        return False
+    refs = sorted(p.glob("results_77c_11s_*.mat")) + sorted(p.glob("xx_sol_77c_11s_*.mat"))
+    if not refs:
+        return False
+    return all(mat_file_is_readable(f) for f in refs)
