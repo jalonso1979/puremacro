@@ -17,13 +17,9 @@ puremacro's cached data layer.
 """
 from __future__ import annotations
 
-import datetime as dt
-from typing import Sequence
+from collections.abc import Sequence
 
-import numpy as np
 import pandas as pd
-
-from ._codes import is_country
 
 _SCHEMA_COLS = ["code", "date", "variable", "value", "sa_source", "source"]
 _EMPTY = pd.DataFrame(
@@ -65,7 +61,7 @@ def _harmonize_annual_to_quarterly(
         q_var = var[:-2] + "_q" if var.endswith("_a") else f"{var}_q"
 
         if harmonization == "repeat":
-            for _, row in grp_sorted.iterrows():
+            for row in grp_sorted.to_dict('records'):
                 yr = row["date"].year
                 val = float(row["value"])
                 src = f"resampled_from_A:{row['source']}"

@@ -23,12 +23,9 @@ puremacro's cached data layer.
 """
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
-import numpy as np
 import pandas as pd
-
-from ._codes import is_country
 
 _SCHEMA_COLS = ["code", "date", "variable", "value", "sa_source", "source"]
 _EMPTY = pd.DataFrame(
@@ -134,7 +131,7 @@ def _project_quarterly_to_monthly(
 
     records: list[dict[str, object]] = []
 
-    for _, row in df_q.iterrows():
+    for row in df_q.to_dict('records'):
         base_date = pd.Timestamp(row["date"])
         yr = base_date.year
         q_month = base_date.month
@@ -233,7 +230,7 @@ def build_financial_panel(
 
     # 1. Sovereign Yields & Spreads (monthly)
     try:
-        from .fetch.financial import fetch_sovereign_yields, compute_sovereign_spreads
+        from .fetch.financial import compute_sovereign_spreads, fetch_sovereign_yields
         b_code = benchmark_code.strip().upper()
         yield_codes: list[str] | None
         if codes is not None and include_spreads and b_code not in codes:
