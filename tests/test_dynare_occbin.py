@@ -617,3 +617,208 @@ def test_occbin_simulated_path_is_indexed_from_period_one():
     np.testing.assert_allclose(
         res.simulated_path.loc[1].values, res.simulated_path.iloc[0].values
     )
+
+
+def test_occbin_late_shock_unconstrained_matches_linear_perfect_foresight(nk_model_setup):
+    """A shock dated t > 1 with no binding spell must still propagate -- as perfect foresight.
+
+    Regression: the ``T_star == 0`` branch of the old scalar-spell recursion handed back a
+    zero shock loading for every period after the first, so any innovation dated t > 1 was
+    silently discarded and the solver returned an identically zero path with
+    ``converged=True``.
+
+    Convention, stated plainly so the next reader is not misled: ``solve_occbin`` is a
+    *perfect-foresight* solver. Every row of ``shock_sequence`` is announced at t = 1 (see
+    the module docstring), so a shock dated t = 4 already moves the period-1 response --
+    the path is NOT flat until the shock lands. That is Guerrieri-Iacoviello behaviour, not
+    a leak. To simulate an *unanticipated* shock at date s, re-run the solver from s.
+    """
+    ref = nk_model_setup["ref_model"]
+    cons = nk_model_setup["cons_model"]
+    constraint = nk_model_setup["constraint"]
+    horizon = 20
+    n_shocks = len(nk_model_setup["shocks"])
+
+    # Same small demand shock, once at t=1 and once at t=4. Too small to reach the ZLB,
+    # so both runs are the pure linear perfect-foresight path.
+    early = np.zeros((horizon, n_shocks))
+    early[0, 1] = -0.002
+    late = np.zeros((horizon, n_shocks))
+    late[3, 1] = -0.002
+
+    res_early = solve_occbin(ref, cons, constraint, shock_sequence=early, horizon=horizon)
+    res_late = solve_occbin(ref, cons, constraint, shock_sequence=late, horizon=horizon)
+
+    assert res_early.converged is True and res_late.converged is True
+    assert res_early.binding_periods == 0
+    assert res_late.binding_periods == 0
+    assert res_late.regimes == [0] * horizon
+
+    # 1. The late shock must do something at all -- this is the discarded-shock regression.
+    assert np.abs(res_late["y"].values).max() > 1e-8, "shock dated t > 1 was discarded"
+
+    # 2. It must do it from t=1 onward, because it is announced at t=1. The old test
+    #    asserted these three periods were exactly zero, which is the *unanticipated*
+    #    convention and is not what this solver implements.
+    assert np.abs(res_late.simulated_path.values[:3]).max() > 1e-5, (
+        "the pre-arrival response is missing: a shock announced at t=1 for t=4 must move "
+        "the path before it lands under perfect foresight"
+    )
+
+    # 3. With no binding spell, OccBin must reproduce the *linear* perfect-foresight path
+    #    exactly. The benchmark is the independently stacked system solved with the
+    #    reference-regime matrices in every period -- no shared code with the backward
+    #    recursion under test.
+    for res, seq in ((res_early, early), (res_late, late)):
+        oracle = _stacked_occbin_oracle(ref, cons, constraint, seq, horizon)
+        assert oracle is not None
+        reg_o, path_o = oracle
+        assert not reg_o.any(), "the benchmark must be the all-slack (purely linear) path"
+        np.testing.assert_allclose(res.simulated_path.values, path_o, atol=1e-12)
+
+    # 4. The model is linear and time-invariant, so once the shock has landed the late run
+    #    is the early run shifted by three periods. (Only the pre-arrival stretch differs.)
+    for var in nk_model_setup["variables"]:
+        np.testing.assert_allclose(
+            res_late[var].values[3:], res_early[var].values[: horizon - 3], atol=1e-12
+        )
+
+
+def test_occbin_shock_inside_spell_respects_the_bound(nk_model_setup):
+    """A shock landing inside a binding spell must not push the variable off its bound.
+
+    Regression: the shock loading was assigned by date rather than by regime, so for
+    1 < t <= T* an innovation was transmitted through the reference-regime matrix. In
+    the ZLB model that let a policy shock -- absent from the pegged-rate equation -- move
+    the nominal rate straight through its own floor while the solver still reported the
+    spell as binding and converged.
+    """
+    ref = nk_model_setup["ref_model"]
+    cons = nk_model_setup["cons_model"]
+    constraint = nk_model_setup["constraint"]
+    r_ss = nk_model_setup["params"]["r_ss"]
+    horizon = 20
+    n_shocks = len(nk_model_setup["shocks"])
+
+    base = np.zeros((horizon, n_shocks))
+    base[0, 1] = -0.025
+    res_base = solve_occbin(ref, cons, constraint, shock_sequence=base, horizon=horizon)
+    assert res_base.binding_periods >= 4, "fixture must produce a multi-period spell"
+
+    # Policy shock strictly inside the spell, where the rate is pegged at -r_ss
+    inside = base.copy()
+    inside[2, 0] = -0.005
+    assert 2 < res_base.binding_periods
+    res = solve_occbin(ref, cons, constraint, shock_sequence=inside, horizon=horizon)
+
+    # The bound holds over the whole spell ...
+    assert np.all(res["r"].values[: res.binding_periods] >= -r_ss - 1e-10)
+    # ... and, since the constrained regime does not contain eps_r, the pegged stretch is
+    # bit-for-bit what it was without the shock.
+    np.testing.assert_allclose(
+        res["r"].values[: res.binding_periods],
+        res_base["r"].values[: res_base.binding_periods][: res.binding_periods],
+        atol=1e-12,
+    )
+
+
+def test_occbin_bound_holds_for_shocks_arriving_within_the_spell(nk_model_setup):
+    """Sweep the arrival date of a second demand shock inside the spell; the floor holds.
+
+    Arrivals 0-5 land while the constraint is still binding, so they only lengthen the
+    single spell the solver tracks. The floor must hold in every one of those runs, with
+    no warning.
+    """
+    ref = nk_model_setup["ref_model"]
+    cons = nk_model_setup["cons_model"]
+    constraint = nk_model_setup["constraint"]
+    r_ss = nk_model_setup["params"]["r_ss"]
+    horizon = 24
+    n_shocks = len(nk_model_setup["shocks"])
+
+    for arrival in range(0, 6):
+        seq = np.zeros((horizon, n_shocks))
+        seq[0, 1] = -0.020
+        seq[arrival, 1] += -0.010
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")          # any re-binding warning fails the test
+            res = solve_occbin(ref, cons, constraint, shock_sequence=seq, horizon=horizon)
+        assert res.converged is True, f"failed to converge for arrival {arrival}"
+        assert np.all(res["r"].values >= -r_ss - 1e-10), (
+            f"ZLB floor violated when the shock arrives at index {arrival}: "
+            f"min r = {res['r'].values.min()}"
+        )
+
+
+def test_occbin_solves_two_disjoint_binding_spells(nk_model_setup):
+    """A second, disjoint spell must be SOLVED -- not warned about, not silently mishandled.
+
+    Regression: the old duration loop counted only the periods that bound consecutively
+    from t = 1, so a constraint that bound again after the first spell had ended could not
+    be represented at all. The best that design could do was warn ("binds again at period
+    ...") and hand back a path that breached the bound over the second spell.
+
+    2.5.0 carries a full boolean regime vector instead of a scalar spell length, so
+    disjoint spells are inside the design and the property worth pinning is the stronger
+    one: the solver finds the two-spell fixed point, quietly and correctly. The original
+    intent -- a second spell must not be silently mishandled -- is preserved and tightened.
+
+    Construction: a deep demand contraction announced for t = 1 pins the rate at the floor;
+    two contractionary policy shocks announced for t = 6 and t = 7 lift it off for exactly
+    those quarters; the still-depressed demand then pushes it back to the floor at t = 8.
+    """
+    ref = nk_model_setup["ref_model"]
+    cons = nk_model_setup["cons_model"]
+    constraint = nk_model_setup["constraint"]
+    r_ss = nk_model_setup["params"]["r_ss"]
+    horizon = 40
+    n_shocks = len(nk_model_setup["shocks"])
+
+    seq = np.zeros((horizon, n_shocks))
+    seq[0, 1] = -0.060          # eps_g: deep demand contraction -> first ZLB spell
+    seq[5, 0] = 0.050           # eps_r: transitory tightening, lifts the rate off the floor
+    seq[6, 0] = 0.050
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")      # a warning of any kind fails the test
+        res = solve_occbin(ref, cons, constraint, shock_sequence=seq, horizon=horizon)
+
+    assert res.converged is True
+
+    # 1. The regime vector really does contain two separated runs of 1s.
+    reg = np.array(res.regimes)
+    spells = []
+    for t, v in enumerate(reg):
+        if v == 1 and (t == 0 or reg[t - 1] == 0):
+            spells.append([t, t])
+        elif v == 1:
+            spells[-1][1] = t
+    assert len(spells) == 2, f"expected two disjoint spells, got {spells}"
+    (a0, a1), (b0, b1) = spells
+    assert a1 - a0 + 1 >= 2 and b1 - b0 + 1 >= 2, f"both spells must be multi-period: {spells}"
+    assert b0 - a1 >= 2, f"the spells must be separated by slack periods: {spells}"
+
+    # ``binding_periods`` is a count over the whole vector, not a leading spell length.
+    assert res.binding_periods == int(reg.sum()) == (a1 - a0 + 1) + (b1 - b0 + 1)
+
+    # 2. Every period the regime calls binding really satisfies the constrained equation
+    #    (the peg r = -r_ss), and no period at all breaches the floor.
+    r_path = res.simulated_path["r"].values
+    np.testing.assert_allclose(r_path[reg == 1], -r_ss, atol=1e-10)
+    assert np.all(r_path >= -r_ss - 1e-12), f"floor breached: min r = {r_path.min()}"
+
+    # 3. No period declared slack has tripped the constraint, and complementary slackness
+    #    holds in both directions: the notional rate is below the floor exactly where the
+    #    solver says the constraint binds -- including the second spell.
+    shadow = res.shadow_path["r_shadow"].values
+    assert np.all(r_path[reg == 0] > -r_ss + 1e-12), "a period declared slack sits on the bound"
+    assert np.all(shadow[reg == 1] < -r_ss), "the constraint binds where it need not"
+    assert np.all(shadow[reg == 0] >= -r_ss - 1e-12), "the constraint is slack where it should bind"
+
+    # 4. Independent confirmation: the same two-spell regime and path come out of the
+    #    stacked system, which shares no code with the backward recursion.
+    oracle = _stacked_occbin_oracle(ref, cons, constraint, seq, horizon)
+    assert oracle is not None
+    reg_o, path_o = oracle
+    np.testing.assert_array_equal(reg, reg_o)
+    np.testing.assert_allclose(res.simulated_path.values, path_o, atol=1e-12)
