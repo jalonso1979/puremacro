@@ -1,3 +1,7 @@
 ## 2026-08-31 - Memory reallocation in numpy simulation loops
 **Learning:** Calling `np.concatenate` to manage rolling history buffers in tight simulation loops (like for Generalized IRF trajectories across `H` steps and `M` parallel histories) is a significant bottleneck due to constant reallocation and copying of the whole buffer, even though the arrays are relatively small per iteration. Pre-allocating the full future length works but increases peak memory. Simply slicing and re-assigning inplace (`buf[:, :-1] = buf[:, 1:]` and `buf[:, -1] = y`) gives ~15% speedup vs `np.concatenate` without the overhead and memory jump of full pre-allocation.
 **Action:** When shifting time buffers inplace in high-throughput hot loops with Numpy, use slicing and inplace assignment instead of `np.concatenate` to minimize reallocation.
+
+## 2024-05-18 - Pandas vectorized row expansion
+**Learning:** When expanding rows in pandas DataFrames via `pd.concat([df] * N)`, the resulting DataFrame is stacked sequentially (i.e. block-duplicated: row1, row2, row3, row1, row2, row3, ...). If you assign new arrays (like months [1,4,7,10]) directly to the concatenated DataFrame, you must use `np.repeat([1, 4, 7, 10], len(df))` rather than `np.tile`, so that all elements in block 1 get the first value, block 2 the second, and so on.
+**Action:** When vectorizing pandas DataFrame row expansions via `pd.concat([df] * N)`, use `np.repeat` instead of `np.tile` for generated array assignments to ensure correct alignment with the block-duplicated rows.

@@ -174,6 +174,11 @@
     "size_bytes": 2863,
     "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.ALL.MT.CE.AR5?format=json&date=2020:2010&per_page=15000"
   },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.ALL.MT.CE.AR5_format_json_date_2020_2026_per_page_15000": {
+    "fetched_at": "2026-09-16T13:12:38.707982+00:00",
+    "size_bytes": 1600,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.ALL.MT.CE.AR5?format=json&date=2020:2026&per_page=15000"
+  },
   "api.worldbank.org/v2_country_USA_indicator_EN.GHG.ALL.MT.CE.AR5_format_json_date_2025_2010_per_page_15000": {
     "fetched_at": "2026-09-11T18:07:06.202776+00:00",
     "size_bytes": 4118,
@@ -203,6 +208,11 @@
     "fetched_at": "2026-09-11T18:08:40.047836+00:00",
     "size_bytes": 2862,
     "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.CH4.MT.CE.AR5?format=json&date=2020:2010&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.CH4.MT.CE.AR5_format_json_date_2020_2026_per_page_15000": {
+    "fetched_at": "2026-09-16T13:12:39.098077+00:00",
+    "size_bytes": 1601,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.CH4.MT.CE.AR5?format=json&date=2020:2026&per_page=15000"
   },
   "api.worldbank.org/v2_country_USA_indicator_EN.GHG.CH4.MT.CE.AR5_format_json_date_2025_2010_per_page_15000": {
     "fetched_at": "2026-09-11T18:07:06.829995+00:00",
@@ -234,6 +244,11 @@
     "size_bytes": 2951,
     "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.CO2.MT.CE.AR5?format=json&date=2020:2010&per_page=15000"
   },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.CO2.MT.CE.AR5_format_json_date_2020_2026_per_page_15000": {
+    "fetched_at": "2026-09-16T13:12:38.290787+00:00",
+    "size_bytes": 1648,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.CO2.MT.CE.AR5?format=json&date=2020:2026&per_page=15000"
+  },
   "api.worldbank.org/v2_country_USA_indicator_EN.GHG.CO2.MT.CE.AR5_format_json_date_2025_2010_per_page_15000": {
     "fetched_at": "2026-09-11T18:07:05.677404+00:00",
     "size_bytes": 4246,
@@ -264,6 +279,11 @@
     "size_bytes": 3139,
     "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.CO2.PC.CE.AR5?format=json&date=2020:2010&per_page=15000"
   },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.CO2.PC.CE.AR5_format_json_date_2020_2026_per_page_15000": {
+    "fetched_at": "2026-09-16T13:12:37.903168+00:00",
+    "size_bytes": 1743,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.CO2.PC.CE.AR5?format=json&date=2020:2026&per_page=15000"
+  },
   "api.worldbank.org/v2_country_USA_indicator_EN.GHG.CO2.PC.CE.AR5_format_json_date_2025_2010_per_page_15000": {
     "fetched_at": "2026-09-11T18:07:05.311493+00:00",
     "size_bytes": 4512,
@@ -293,6 +313,11 @@
     "fetched_at": "2026-09-11T18:08:40.339791+00:00",
     "size_bytes": 2929,
     "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.N2O.MT.CE.AR5?format=json&date=2020:2010&per_page=15000"
+  },
+  "api.worldbank.org/v2_country_USA_indicator_EN.GHG.N2O.MT.CE.AR5_format_json_date_2020_2026_per_page_15000": {
+    "fetched_at": "2026-09-16T13:12:39.471325+00:00",
+    "size_bytes": 1636,
+    "url": "https://api.worldbank.org/v2/country/USA/indicator/EN.GHG.N2O.MT.CE.AR5?format=json&date=2020:2026&per_page=15000"
   },
   "api.worldbank.org/v2_country_USA_indicator_EN.GHG.N2O.MT.CE.AR5_format_json_date_2025_2010_per_page_15000": {
     "fetched_at": "2026-09-11T18:07:07.255402+00:00",
@@ -505,7 +530,7 @@
     "url": "https://sdmx.oecd.org/public/rest/data/OECD.ENV.EPI,DSD_AIR_GHG@DF_AIR_GHG,/USA.A.GHG.1A1+1A2+1A3+1A4b+_T.T_CO2E?startPeriod=2018&format=csvfilewithlabels"
   },
   "sdmx.oecd.org/public_rest_data_OECD.ENV.EPI_DSD_AIR_GHG_DF_AIR_GHG__USA.A.GHG.1A1_1A2_1A3_1A4b__T.T_CO2E_startPeri_ea0e9e7f": {
-    "fetched_at": "2026-09-11T18:08:38.689859+00:00",
+    "fetched_at": "2026-09-16T13:12:37.486360+00:00",
     "size_bytes": 4517,
     "url": "https://sdmx.oecd.org/public/rest/data/OECD.ENV.EPI,DSD_AIR_GHG@DF_AIR_GHG,/USA.A.GHG.1A1+1A2+1A3+1A4b+_T.T_CO2E?startPeriod=2020&format=csvfilewithlabels"
   },

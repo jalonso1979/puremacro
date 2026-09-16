@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
-from typing import Sequence
+from collections.abc import Sequence
 
 import numpy as np
 import pandas as pd
@@ -138,7 +138,7 @@ def fetch_wdi_emissions(
     if codes is not None and len(codes) == 0:
         return _EMPTY.copy()
 
-    requested_codes = set(c.strip().upper() for c in codes) if codes is not None else None
+    requested_codes = {c.strip().upper() for c in codes} if codes is not None else None
 
     # Determine indicators to query
     if indicators is None:
@@ -288,7 +288,7 @@ def fetch_oecd_ghg(
     if codes is not None and len(codes) == 0:
         return _EMPTY.copy()
 
-    requested_codes = set(c.strip().upper() for c in codes) if codes is not None else None
+    requested_codes = {c.strip().upper() for c in codes} if codes is not None else None
 
     # Resolve sector codes
     if sectors is None:
@@ -440,29 +440,36 @@ def fetch_emissions_panel(
         return merged.sort_values(["code", "variable", "date"]).reset_index(drop=True)
 
     # Quarterly expansion: expand each annual observation into 4 quarterly periods
-    q_records: list[dict[str, object]] = []
-    for _, row in merged.iterrows():
-        base_year = row["date"].year
-        var_name = str(row["variable"])
-        q_var = var_name[:-2] + "_q" if var_name.endswith("_a") else var_name + "_q"
-        q_source = f"resampled_from_A:{row['source']}"
-
-        for m in (1, 4, 7, 10):
-            q_records.append({
-                "code": row["code"],
-                "date": pd.Timestamp(f"{base_year}-{m:02d}-01"),
-                "variable": q_var,
-                "value": row["value"],
-                "sa_source": row["sa_source"],
-                "source": q_source,
-            })
-
-    if not q_records:
+    # Vectorized performance optimization replacing iterrows -> list append
+    m_len = len(merged)
+    if m_len == 0:
         return _EMPTY.copy()
 
-    q_df = pd.DataFrame(q_records, columns=["code", "date", "variable", "value", "sa_source", "source"])
+    # Repeat each row 4 times. pd.concat([df]*4) produces A,B,C, A,B,C, A,B,C...
+    q_df = pd.concat([merged] * 4, ignore_index=True)
+
+    # Use np.repeat to generate block-aligned assignments like [1,1,1, 4,4,4, 7,7,7...]
+    months = np.repeat([1, 4, 7, 10], m_len)
+    years = q_df["date"].dt.year
+
+    # Fast datetime construction
+    q_df["date"] = pd.to_datetime({
+        "year": years,
+        "month": months,
+        "day": 1
+    })
+
+    # Vectorized string ops
+    is_a = q_df["variable"].str.endswith("_a")
+    q_df["variable"] = np.where(
+        is_a,
+        q_df["variable"].str[:-2] + "_q",
+        q_df["variable"] + "_q"
+    )
+    q_df["source"] = "resampled_from_A:" + q_df["source"]
+
     q_df = q_df.sort_values(["code", "variable", "date"]).reset_index(drop=True)
     return q_df
 
 
-__all__ = ["fetch_wdi_emissions", "fetch_oecd_ghg", "fetch_emissions_panel"]
+__all__ = ["fetch_emissions_panel", "fetch_oecd_ghg", "fetch_wdi_emissions"]
