@@ -9,14 +9,17 @@ Challenger 1 Suite targeting:
    - Asymmetric jump rates (lambda_1 = 0.5, lambda_2 = 0.05)
    - Verifying convergence in < 25 iterations, monotonicity, concavity, and borrowing constraints.
 2. Analytical cake-eating and CRRA unconstrained benchmarks:
-   - Direct execution of solve_hjb_achdou on closed-form CRRA problem (r = rho, w = 0).
+   - Deterministic-income CRRA problem with w > 0 and r != rho (closed form
+     c = mu (a + w e / r)) under exact Neumann boundary data: the solver has no
+     closed-form branch to echo, so the check is falsifiable (first-order grid
+     convergence, and the v_prime_boundary parameter is shown to be live).
    - Empirical validation of consumption slope dc/da ~ rho/gamma in cake eating.
-   - Falsifiable replacement for the tautological check in test_hjb_implicit.py:120-144.
 3. Adjoint KFE mass conservation & multi-state non-uniform grids:
    - Strongly non-uniform asset grid (power grid with aspect ratio > 50).
    - 4-state asymmetric Markov income process.
-   - Exact mass conservation |sum g_i Delta a_i - 1| < 10^-12 and strict non-negativity min g >= 0.
-   - Marginal state distribution consistency with generator stationary distribution.
+   - Exact mass conservation |sum g_i w_i - 1| < 10^-12 and strict non-negativity min g >= 0.
+   - Density invariants: weighted marginal sum_i g_ik w_i equals the generator's
+     stationary distribution and the node mass g * w solves A^T pi = 0.
 4. Continuous Aiyagari General Equilibrium:
    - Strict monotonicity of excess capital demand bracket Z(r) = Ks(r) - Kd(r) on [r_min, rho).
    - Market clearing root clearance |Ks - Kd| < 10^-4.
@@ -123,43 +126,69 @@ def test_hjb_implicit_extreme_calibration():
 
 
 def test_analytical_crra_unconstrained_benchmark():
-    """Verify solve_hjb_achdou against closed-form analytical CRRA solution:
+    """Verify solve_hjb_achdou against a closed form the solver cannot short-circuit.
 
-    When r = rho and w = 0, household Euler equation implies c_dot / c = (r - rho) / gamma = 0.
-    Exact consumption rule: c(a) = rho * a
-    Exact value function: V(a) = (rho^-gamma / (1 - gamma)) * a^(1 - gamma).
+    Deterministic income (Ne = 1, no jumps), w > 0 and r != rho. Absent a binding
+    constraint the CRRA household consumes a constant fraction of total wealth
+    X(a) = a + w e / r:
+        c(a) = mu X,   mu = (rho - (1 - gamma) r) / gamma,
+        V(a) = mu^(-gamma) X^(1 - gamma) / (1 - gamma),   s(a) = (r - rho) / gamma * X.
+    The exact marginal utilities at a_min and a_max are imposed as Neumann data via
+    ``v_prime_boundary``. With w > 0 the solver has no closed-form branch to echo
+    (its initial guess u(r a + w e) / rho is not the fixed point), so the policy
+    must converge to the closed form at first order in the grid spacing.
     """
-    rho = 0.05
-    gamma = 2.0
-    Na = 100
-    a_grid = np.linspace(1.0, 10.0, Na)
+    rho, gamma, r, w = 0.05, 2.0, 0.03, 1.0
+    mu = (rho - (1.0 - gamma) * r) / gamma
+    rel_c_err = {}
+    for Na in (100, 400):
+        a_grid = np.linspace(1.0, 20.0, Na)
+        X = a_grid + w / r
+        c_exact = mu * X
+        V_exact = mu ** (-gamma) * X ** (1.0 - gamma) / (1.0 - gamma)
+        s_exact = (r - rho) / gamma * X
+        sol = solve_hjb_achdou(
+            r_rate=r,
+            w_rate=w,
+            rho_val=rho,
+            gamma_r=gamma,
+            a_grid=a_grid,
+            e_grid=np.array([1.0]),
+            A_z=np.zeros((1, 1)),
+            compute_kfe=False,
+            v_prime_boundary=((mu * X[0]) ** (-gamma), (mu * X[-1]) ** (-gamma)),
+            max_iter=50,
+            tol=1e-9,
+        )
+        assert sol.converged is True
+        # The solver genuinely iterates: the initial guess is not the fixed point
+        assert 1 < sol.n_iter <= 25
 
-    sol = solve_hjb_achdou(
-        r_rate=rho,
-        w_rate=0.0,
-        rho_val=rho,
-        gamma_r=gamma,
-        a_grid=a_grid,
-        e_grid=np.array([1.0]),
-        A_z=np.zeros((1, 1)),
-        compute_kfe=False,
-        max_iter=50,
-        tol=1e-8,
+        rel_c_err[Na] = float(np.max(np.abs(sol.c_policy[:, 0] - c_exact) / c_exact))
+        rel_V_err = float(np.max(np.abs(sol.V[:, 0] - V_exact) / np.abs(V_exact)))
+        assert rel_c_err[Na] < 5e-3, f"Na={Na}: consumption error {rel_c_err[Na]:.2e}"
+        assert rel_V_err < 2e-3, f"Na={Na}: value error {rel_V_err:.2e}"
+        # r < rho: wealth decumulates everywhere at the closed-form rate
+        assert np.all(sol.s_drift[:, 0] < 0.0)
+        np.testing.assert_allclose(sol.s_drift[:, 0], s_exact, rtol=2e-2)
+
+    # First-order convergence: quadrupling Na cuts the error by ~4
+    assert rel_c_err[400] < 0.35 * rel_c_err[100], rel_c_err
+
+    # The boundary data are live: doubling both marginal utilities makes the household
+    # consume less at the constraint (higher v' <=> lower c = (v')^(-1/gamma))
+    a_grid = np.linspace(1.0, 20.0, 200)
+    X = a_grid + w / r
+    common = dict(
+        r_rate=r, w_rate=w, rho_val=rho, gamma_r=gamma, a_grid=a_grid,
+        e_grid=np.array([1.0]), A_z=np.zeros((1, 1)), compute_kfe=False, tol=1e-9,
     )
-
-    assert sol.converged is True
-    assert sol.n_iter <= 5
-
-    # Exact closed-form formulas
-    c_exact = rho * a_grid
-    K = (rho ** (-gamma)) / (1.0 - gamma)
-    V_exact = K * (a_grid ** (1.0 - gamma))
-
-    # Test consumption policy matches closed-form solution to machine precision
-    np.testing.assert_allclose(sol.c_policy[:, 0], c_exact, rtol=1e-12, atol=1e-12)
-
-    # Test value function matches closed-form solution to floating-point precision
-    np.testing.assert_allclose(sol.V[:, 0], V_exact, rtol=1e-12, atol=1e-12)
+    v_lo, v_hi = (mu * X[0]) ** (-gamma), (mu * X[-1]) ** (-gamma)
+    sol_exact = solve_hjb_achdou(v_prime_boundary=(v_lo, v_hi), **common)
+    sol_doubled = solve_hjb_achdou(v_prime_boundary=(2.0 * v_lo, 2.0 * v_hi), **common)
+    assert sol_doubled.converged is True
+    assert sol_doubled.c_policy[0, 0] < sol_exact.c_policy[0, 0] - 0.1
+    assert float(np.max(np.abs(sol_doubled.c_policy - sol_exact.c_policy))) > 0.1
 
 
 def test_cake_eating_marginal_propensity():
@@ -264,12 +293,23 @@ def test_kfe_mass_conservation_nonuniform_grid_and_multi_state():
     assert res < 1e-12
     np.testing.assert_allclose(g_direct, g, atol=1e-14)
 
-    # 4. Consistency with stationary Markov chain distribution:
-    # A^T g = 0 implies the discrete state probabilities sum_i g_{i, k} satisfy A_z^T p = 0
-    discrete_marginal = np.sum(g, axis=0)
-    discrete_marginal_norm = discrete_marginal / np.sum(discrete_marginal)
+    # 4. Density invariants on the non-uniform grid. solve_kfe_achdou returns a DENSITY
+    # (node mass / cell width), so the weighted marginal sum_i g_{i,k} w_i with the
+    # cell-width quadrature weights w_i = (Delta a_{i-1} + Delta a_i) / 2 (end spacings
+    # repeated; w == Delta a on a uniform grid) must equal the stationary distribution of
+    # A_z on ANY grid, and the node mass pi = g * w must solve the KFE A^T pi = 0 itself,
+    # not merely the post-solve normalisation.
+    w = 0.5 * (np.insert(da, 0, da[0]) + np.append(da, da[-1]))
     p_z_expected = _stationary_markov_distribution(A_z)
-    np.testing.assert_allclose(discrete_marginal_norm, p_z_expected, atol=1e-12)
+    weighted_marginal = np.sum(g * w[:, None], axis=0)
+    np.testing.assert_allclose(weighted_marginal, p_z_expected, atol=1e-12)
+    pi_vec = (g * w[:, None]).ravel(order="F")
+    assert abs(np.sum(pi_vec) - 1.0) < 1e-12
+    assert np.max(np.abs(sol.A_generator.T @ pi_vec)) < 1e-12
+    # The unweighted column sum is NOT the marginal on a non-uniform grid: that identity
+    # only holds for a node mass, which is what the pre-fix solver wrongly returned as g
+    unweighted = np.sum(g, axis=0) / np.sum(g)
+    assert np.max(np.abs(unweighted - p_z_expected)) > 1e-2
 
     # On uniform grid, the continuous integral sum_i g_{i, k} Delta a matches p_z to machine precision
     a_uniform = np.linspace(0.0, 50.0, Na)

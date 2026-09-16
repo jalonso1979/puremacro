@@ -24,8 +24,6 @@ import warnings
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy.sparse as sp
@@ -644,6 +642,8 @@ class ContinuousStationaryDistribution:
         self, figsize: Tuple[float, float] = (10, 4), show: bool = False, **kwargs
     ) -> matplotlib.figure.Figure:
         """Plot the marginal asset density, CDF, and Lorenz curve."""
+        import matplotlib.pyplot as plt
+
         fig, axes = plt.subplots(1, 2, figsize=figsize, constrained_layout=True)
 
         mu_k = self.marginal_assets()
@@ -991,6 +991,8 @@ class AiyagariContinuousEquilibrium:
         self, figsize: Tuple[float, float] = (10, 4), show: bool = False, **kwargs
     ) -> matplotlib.figure.Figure:
         """Plot the equilibrium policy function and asset distribution."""
+        import matplotlib.pyplot as plt
+
         fig, axes = plt.subplots(1, 2, figsize=figsize, constrained_layout=True)
 
         k_grid = self.distribution.asset_grid

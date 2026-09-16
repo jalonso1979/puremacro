@@ -13,6 +13,26 @@ from puremacro.vfi.returnfn import build_return_tensor
 from puremacro.vfi.solve import solve_vfi
 
 
+def _grid_components(grid: Any, n: int) -> list[np.ndarray] | None:
+    """1-D component grids of a state whose flat size is ``n``, or None.
+
+    ``grid`` is a single 1-D array (one component) or a list/tuple of 1-D arrays
+    (multi-asset / multi-shock product grid in C order, as flattened by
+    ``build_return_tensor``). Ragged lists are handled without ``np.asarray``.
+    """
+    if grid is None:
+        return None
+    if isinstance(grid, (list, tuple)):
+        comps = [np.asarray(g, dtype=float).ravel() for g in grid]
+        if not comps or int(np.prod([c.size for c in comps])) != n:
+            return None
+        return comps
+    arr = np.asarray(grid)
+    if arr.ndim == 1 and arr.size == n:
+        return [arr]
+    return None
+
+
 @dataclass(frozen=True)
 class VFISolution:
     """Solved value function and greedy policy (always returned as numpy)."""
@@ -51,27 +71,45 @@ class VFISolution:
         return pd.DataFrame(records).set_index("Metric")
 
     def to_frame(self) -> pd.DataFrame:
-        """Tabulate state indices/values, value function, and policy choices as a DataFrame."""
+        """Tabulate state indices/values, value function, and policy choices as a DataFrame.
+
+        Single-asset problems get ``a`` and ``aprime_val`` columns. Multi-asset
+        problems (``a_grid`` given as a list of grids, possibly of unequal length)
+        get one ``a_<k>`` state column and one ``aprime_<k>`` policy column per
+        component, unravelled over ``endo_shape`` in C order; multi-shock problems
+        likewise get ``z_<m>`` columns.
+        """
         n_a, n_z = self.V.shape
         a_idx, z_idx = np.meshgrid(np.arange(n_a), np.arange(n_z), indexing="ij")
-        data: dict[str, Any] = {
-            "a_idx": a_idx.ravel(),
-            "z_idx": z_idx.ravel(),
-        }
-        if self.a_grid is not None:
-            a_arr = np.asarray(self.a_grid)
-            if a_arr.ndim == 1 and len(a_arr) == n_a:
-                data["a"] = a_arr[a_idx.ravel()]
-        if self.z_grid is not None:
-            z_arr = np.asarray(self.z_grid)
-            if z_arr.ndim == 1 and len(z_arr) == n_z:
-                data["z"] = z_arr[z_idx.ravel()]
+        a_flat = a_idx.ravel()
+        z_flat = z_idx.ravel()
+        pol_flat = self.policy_aprime.ravel()
+        data: dict[str, Any] = {"a_idx": a_flat, "z_idx": z_flat}
+        a_comps = _grid_components(self.a_grid, n_a)
+        z_comps = _grid_components(self.z_grid, n_z)
+        if a_comps is not None:
+            if len(a_comps) == 1:
+                data["a"] = a_comps[0][a_flat]
+            else:
+                a_shape = tuple(c.size for c in a_comps)
+                for k, sub in enumerate(np.unravel_index(a_flat, a_shape)):
+                    data[f"a_{k}"] = a_comps[k][sub]
+        if z_comps is not None:
+            if len(z_comps) == 1:
+                data["z"] = z_comps[0][z_flat]
+            else:
+                z_shape = tuple(c.size for c in z_comps)
+                for m, sub in enumerate(np.unravel_index(z_flat, z_shape)):
+                    data[f"z_{m}"] = z_comps[m][sub]
         data["V"] = self.V.ravel()
-        data["policy_aprime"] = self.policy_aprime.ravel()
-        if self.a_grid is not None:
-            a_arr = np.asarray(self.a_grid)
-            if a_arr.ndim == 1 and len(a_arr) == n_a:
-                data["aprime_val"] = a_arr[self.policy_aprime.ravel()]
+        data["policy_aprime"] = pol_flat
+        if a_comps is not None:
+            if len(a_comps) == 1:
+                data["aprime_val"] = a_comps[0][pol_flat]
+            else:
+                a_shape = tuple(c.size for c in a_comps)
+                for k, sub in enumerate(np.unravel_index(pol_flat, a_shape)):
+                    data[f"aprime_{k}"] = a_comps[k][sub]
         if self.policy_d is not None:
             data["policy_d"] = self.policy_d.ravel()
         return pd.DataFrame(data)
@@ -96,6 +134,10 @@ class VFISolution:
         show: bool = False,
     ) -> Any:
         """Headless and WASM-safe plot of value functions and policy functions.
+
+        Multi-asset solutions (``a_grid`` given as a list of grids) are drawn
+        against the flat endogenous index, since the product grid has no single
+        asset axis; multi-shock solutions are labelled by ``z_idx``.
 
         Parameters
         ----------
@@ -126,20 +168,23 @@ class VFISolution:
             ax_p = None
             fig = ax_v.get_figure()
 
-        if self.a_grid is not None and np.asarray(self.a_grid).ndim == 1 and len(np.asarray(self.a_grid)) == n_a:
-            a_x = np.asarray(self.a_grid)
+        a_comps = _grid_components(self.a_grid, n_a)
+        z_comps = _grid_components(self.z_grid, n_z)
+        if a_comps is not None and len(a_comps) == 1:
+            a_x = a_comps[0]
             x_label = "Asset (a)"
         else:
             a_x = np.arange(n_a)
             x_label = "Asset Index (a_idx)"
+        if z_comps is not None and len(z_comps) == 1:
+            z_vals = z_comps[0]
+            z_labels = [f"z = {z_vals[iz]:.2f}" for iz in range(n_z)]
+        else:
+            z_labels = [f"z_idx = {iz}" for iz in range(n_z)]
 
         # Value Function Panel
         for iz in range(n_z):
-            if self.z_grid is not None and np.asarray(self.z_grid).ndim == 1 and len(np.asarray(self.z_grid)) == n_z:
-                label = f"z = {self.z_grid[iz]:.2f}"
-            else:
-                label = f"z_idx = {iz}"
-            ax_v.plot(a_x, self.V[:, iz], label=label)
+            ax_v.plot(a_x, self.V[:, iz], label=z_labels[iz])
         ax_v.set_title("Value Function V(a, z)")
         ax_v.set_xlabel(x_label)
         ax_v.set_ylabel("V")
@@ -149,13 +194,8 @@ class VFISolution:
         # Policy Function Panel
         if ax_p is not None:
             for iz in range(n_z):
-                if self.z_grid is not None and np.asarray(self.z_grid).ndim == 1 and len(np.asarray(self.z_grid)) == n_z:
-                    label = f"z = {self.z_grid[iz]:.2f}"
-                    pol_y = a_x[self.policy_aprime[:, iz]]
-                else:
-                    label = f"z_idx = {iz}"
-                    pol_y = self.policy_aprime[:, iz]
-                ax_p.plot(a_x, pol_y, label=label)
+                pol_y = a_x[self.policy_aprime[:, iz]]
+                ax_p.plot(a_x, pol_y, label=z_labels[iz])
             ax_p.plot(a_x, a_x, "k--", alpha=0.5, label="45° line")
             ax_p.set_title("Policy Function a'(a, z)")
             ax_p.set_xlabel(x_label)
