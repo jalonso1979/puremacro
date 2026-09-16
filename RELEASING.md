@@ -2,9 +2,11 @@
 
 How to cut a release. Read §1 once; after that §3 is the whole procedure.
 
-*Last verified against a real release: **1.3.1**, 2026-08-20. The gate table, CI matrix
-and counts below were brought up to date for 3.4.0 on 2026-09-15 from the tree, not from a
-release run — the next tag is the next verification.*
+*Last verified against a real release: **1.3.1**, 2026-08-20 — that is the last time
+someone walked this document end to end while actually cutting a tag. The gate table, CI
+matrix and counts below were re-checked against the tree on 2026-09-16 for 3.4.0 (the
+latest tag is `v3.3.0`; 3.4.0 is not tagged yet), which verifies the numbers but **not**
+the procedure. The next tag is the next verification of the procedure.*
 
 ## 1. What the setup actually is
 
@@ -182,29 +184,36 @@ fix that only shipped in 1.3.1.
 before submitting — they have tightened at least once.*
 
 `paper/paper.md` (+ `paper.bib`, `scorecard.png`) is drafted but **is not currently
-submittable**. Four things stand between it and the submit button, in rough order of effort.
+submittable**. The length and section requirements (§6.1) and the ORCID (§6.2) were
+closed in the 3.3.0–3.4.0 rewrite and are kept below as the record of what the paper now
+has to keep true. What is left is §6.3: the public repository's first commit is dated
+2026-07-20, so the roughly six months of public history JOSS looks for are not there
+until early 2027. Until then the paper is a draft that has to stay in step with the
+release it describes (§6.5).
 
-### 6.1 The paper is too short and missing sections
+### 6.1 Length and sections — done, keep it that way
 
-JOSS now asks for **750–1750 words**; the draft is **~500**. It also now requires six
-sections, and the draft has three of them:
+JOSS asks for **750–1750 words**. The rewritten draft is **~1,670** (body text, front
+matter and HTML comments excluded), and it carries all six required sections:
 
 | section | state |
 |---|---|
 | Summary | ✓ |
 | Statement of need | ✓ |
-| State of the field | ✗ — needs an explicit comparison with statsmodels, linearmodels, EconML, Dynare/`sequence-jacobian`, and a build-vs-contribute justification |
-| Software design | ✗ — the pure-NumPy/Pyodide constraint and what it cost is exactly this section |
-| Research impact | ✗ — publications, courses or external users that actually use it |
-| AI usage disclosure | ✗ — required, and non-trivially true here |
+| State of the field | ✓ — statsmodels / arch / linearmodels as oracles, Dynare, `sequence-jacobian`, HARK, QuantEcon.py, and the build-vs-contribute argument |
+| Software design | ✓ — the import invariant, the stored-oracle strategy, graceful degradation, and the costs |
+| Research impact statement | ✓ — teaching use at ITAM, reproducible material, community readiness |
+| AI usage disclosure | ✓ — drafted; the AUTHOR comment in that section still has to be worked through before submitting |
 
-The present `# Features` section is not one of the six; fold it into *Software design* or
-*State of the field*.
+There is no longer a `# Features` section. The draft tracks **3.4.0**: whenever the module
+count, line count, test count, validation-check count or notebook count moves, refresh
+them in the same pass (§6.5).
 
-### 6.2 The ORCID is a placeholder
+### 6.2 The ORCID
 
-`paper/paper.md` still reads `orcid: 0000-0000-0000-0000`. Register at
-<https://orcid.org> and put the real one in.
+`paper/paper.md` carries `orcid: 0000-0002-5941-9928`, the only "Jorge Alonso Ortiz"
+(ITAM) record in the public ORCID registry as of 2026-09-13. Confirm it is yours and
+delete the AUTHOR comment above the front matter.
 
 ### 6.3 The public history is short — disclose it, do not rewrite it
 
@@ -253,7 +262,35 @@ When you do get there, note that Zenodo archives on a **GitHub Release**, not on
 This repo has tags through `v3.3.0` but only one Release (`v1.0.0`), so
 `gh release create vX.Y.Z --generate-notes` is a step you will need.
 
-### 6.5 Then submit
+### 6.5 Refresh the paper's numbers with every release it claims to describe
+
+`paper/paper.md` quotes counts that move under it. Recompute all of them in one pass and
+edit the text; each was last refreshed for 3.4.0 on 2026-09-16.
+
+```bash
+# modules and lines (the "Scale" paragraph)
+git ls-files 'puremacro/*.py' 'puremacro/**/*.py' | wc -l
+git ls-files 'puremacro/*.py' 'puremacro/**/*.py' | xargs cat | wc -l
+# tests collected (the same paragraph)
+PYTHONPATH=. python -m pytest --collect-only -q tests/ | tail -1
+# library modules in the import sweep ("An import invariant")
+PYTHONPATH=. python -c "import sys; sys.path.insert(0,'tests'); \
+from test_pyodide_compat import _shippable_modules as m; print(len(m()))"
+# validation gallery: checks, subsystems, and the figure's legend counts
+PYTHONPATH=. python -c "import puremacro.validation as v; s=v.scorecard(); \
+print(len(s), s['subsystem'].nunique(), s['mechanism'].value_counts().to_dict(), bool(s['passed'].all()))"
+# bilingual showcase pairs ("Reproducible material")
+ls notebooks/[0-9][0-9]_*.py | grep -v '_es\.py$' | wc -l
+# commit counts (the AI usage disclosure)
+git rev-list --count origin/main
+git log origin/main -i --grep='co-authored-by: claude' --oneline | wc -l
+```
+
+If the mechanism split (`package` + `scipy` + `published` = external reference,
+`analytical`, `internal`) or the subsystem counts move, `scorecard.png` is stale too:
+regenerate it with `python paper/make_scorecard_fig.py` before touching the caption.
+
+### 6.6 Then submit
 
 ```bash
 # preview the compiled paper exactly as JOSS will build it

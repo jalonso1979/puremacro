@@ -244,6 +244,145 @@ print(f"GE espacial convergente: {res.converged}")
 print(f"Variación del bienestar agregado: {res.welfare_pct:+.4f}%")
 ```
 
+### 9. Aprendizaje Automático Doble / Desesgado (puremacro 3.4)
+Estime un efecto de tratamiento con controles macroeconómicos de alta dimensión mediante la regresión parcialmente lineal de Chernozhukov et al. (2018): puntajes ortogonales de Robinson con validación cruzada por bloques, aprendices penalizados en NumPy puro y objetos de resultado que exportan a LaTeX, Typst y Markdown. Los aprendices son **únicamente lasso y ridge**; no hay aprendiz de red elástica:
+```python
+import numpy as np
+from puremacro.causal import dml_plr
+
+# 500 observaciones, 50 controles; el efecto de tratamiento verdadero es 1.5.
+rng = np.random.default_rng(0)
+n, p = 500, 50
+X = rng.normal(size=(n, p))
+beta = np.r_[1.0, 0.5, 0.25, np.zeros(p - 3)]
+D = X @ beta + rng.normal(size=n)
+Y = 1.5 * D + X @ beta + rng.normal(size=n)
+
+res = dml_plr(Y, D, X, n_folds=5, learner="lasso")
+print(f"theta = {res.theta:.4f}  ee = {res.se:.4f}")
+print(f"IC 95% = [{res.ci_lower:.4f}, {res.ci_upper:.4f}]")
+# theta = 1.4959  ee = 0.0485
+# IC 95% = [1.4009, 1.5909]
+```
+La clase tras `dml_plr` es `DoubleMLPLR`. Entradas con NaN o infinitos, más bloques que
+observaciones y arreglos de más de dos dimensiones generan `ValueError`; un bloque de
+entrenamiento con `n_train <= p + 1` emite un `UserWarning` en lugar de devolver una
+estimación silenciosamente no identificada. Un aprendiz pasado como instancia se copia
+en profundidad por bloque, de modo que los bloques nunca comparten estado ajustado, y
+`.to_latex()` compila sólo con `booktabs`.
+
+### 10. HJB Implícito en Tiempo Continuo, KFE Adjunta y EG de Aiyagari (puremacro 3.4)
+Resuelva el sistema implícito de M-matriz *upwind* de Achdou, Han, Lasry, Lions y Moll (2022), luego la ecuación de Kolmogorov hacia adelante adjunta para la densidad estacionaria en la misma malla y, finalmente, el equilibrio general de Aiyagari en tiempo continuo:
+```python
+from puremacro.vfi import solve_hjb_achdou, solve_aiyagari_continuous_hjb
+
+# HJB implícito con cambio de ingreso de Poisson de dos estados (lambda = 0.1 por
+# defecto), más la densidad estacionaria g(a, z) de la KFE adjunta en la misma malla.
+sol = solve_hjb_achdou(r_rate=0.03, w_rate=1.0, rho_val=0.05, Na=200, a_max=20.0)
+print(f"Iteraciones HJB: {sol.n_iter}   |masa - 1| = {sol.mass_residual:.1e}")
+print(f"g_dist es una densidad de forma {sol.g_dist.shape} (masa por unidad de a)")
+
+# `converged` significa |K^s - K^d| <= tol_ge, y tol_ge gobierna el bucle de EG.
+ge = solve_aiyagari_continuous_hjb(Na=120, a_max=20.0, tol_ge=1e-4)
+print(f"EG convergente: {ge.converged}   r* = {ge.r_star:.6f}   K* = {ge.K_star:.4f}")
+print(f"|K^s - K^d| = {abs(ge.excess_capital):.2e} <= tol_ge = 1e-4")
+# Iteraciones HJB: 9   |masa - 1| = 0.0e+00
+# g_dist es una densidad de forma (200, 2) (masa por unidad de a)
+# EG convergente: True   r* = 0.020571   K* = 5.9977
+# |K^s - K^d| = 2.41e-07 <= tol_ge = 1e-4
+```
+`g_dist` es una **densidad**, no masa nodal: en una malla `a_grid` no uniforme la masa
+del nodo se divide entre el ancho de la celda, de modo que `sum_i g_i w_i = 1` con los
+pesos de cuadratura trapezoidal `w`. El cambio de ingreso de dos estados es nuevo en
+3.4; el solver explícito de 3.3.0 no tenía proceso de ingreso.
+
+### 11. Inferencia con Instrumentos Débiles de Montiel Olea-Pflueger (puremacro 3.4)
+`lp_iv` informa el estadístico F efectivo con sus valores críticos e invierte el conjunto de Anderson-Rubin en forma cerrada (intervalo acotado, dos semirrectas, toda la recta o vacío) en lugar de recorrer una malla fija:
+```python
+import numpy as np
+import pandas as pd
+from puremacro.lp import lp_iv
+from puremacro.lp.iv import mop_critical_values
+
+# La forma cerrada tras la tabla MOP: cv = chi2_{K, 1-alpha}(K / tau) / K.
+cv10, cv20 = mop_critical_values(1)
+print(f"K=1: sesgo máximo del 10% {cv10:.2f}, del 20% {cv20:.2f}")
+
+rng = np.random.default_rng(7)
+T = 240
+z1, z2 = rng.normal(size=T), rng.normal(size=T)
+u = rng.normal(size=T)
+x = 0.8 * z1 + 0.5 * z2 + u
+y = np.cumsum(0.4 * x + u + rng.normal(size=T))
+df = pd.DataFrame({"y": y, "x": x, "z1": z1, "z2": z2})
+
+res = lp_iv(df, y="y", x="x", z=["z1", "z2"], horizon=3, weak_iv_robust=True)
+print(res[["h", "beta", "se", "mop_f", "ar_lo", "ar_hi", "ar_set_type"]]
+      .round(3).to_string(index=False))
+# K=1: sesgo máximo del 10% 23.11, del 20% 15.06
+#  h  beta    se  mop_f  ar_lo  ar_hi ar_set_type
+#  0 0.347 0.123 89.978  0.095  0.546     bounded
+#  1 0.155 0.187 88.555 -0.257  0.495     bounded
+#  2 0.186 0.244 84.872 -0.188  0.481     bounded
+#  3 0.093 0.260 81.220 -0.481  0.548     bounded
+```
+Los errores son robustos a heterocedasticidad y autocorrelación (Newey-West con el ancho
+de banda del horizonte). **La inferencia con instrumentos débiles robusta a conglomerados
+no está implementada.**
+
+### 12. Datos Macroeconómicos en Tiempo Real de América Latina (puremacro 3.4)
+Banco de México, INEGI, Banco Central do Brasil y Banco Central de Chile se suman a los proveedores en tiempo real. El catálogo, los identificadores de serie y la semántica de las añadas se resuelven sin conexión, antes de cualquier solicitud:
+```python
+from puremacro.fetch.realtime import (
+    available_providers, vintage_catalog, resolve_series, VINTAGE_SEMANTICS,
+)
+
+print(available_providers())
+
+cat = vintage_catalog()
+latam = cat[cat["provider"].isin(["banxico", "inegi", "bcb", "bcch"])]
+print(latam.query("variable == 'cpi'")[["provider", "country", "series_id", "freq"]]
+           .to_string(index=False))
+print(resolve_series("banxico", "MEX", "cpi"))
+print(VINTAGE_SEMANTICS["bcch"][:82])
+# ['alfred', 'banxico', 'bcb', 'bcch', 'bundesbank', 'ecb_rtd', 'inegi', 'oecd_stes', 'ons', 'statcan']
+# provider country            series_id freq
+#  banxico     MEX                  SP1    M
+#      bcb     BRA                  433    M
+#     bcch     CHL F074.IPC.IND.Z.Z.C.M    M
+#    inegi     MEX               628197    M
+# SP1
+# Banco Central de Chile Base de Datos Estadísticos (SIETE API). Upstream overwrites
+```
+**Estas cuatro fuentes publican únicamente la edición vigente de cada serie, así que su
+fecha de añada es la fecha de *captura* local: el día en que esta máquina descargó la
+serie y la almacenó.** El historial de revisiones, por tanto, sólo se acumula con
+capturas repetidas en días distintos; no es un archivo de publicaciones como ALFRED o el
+libro del ONS. Las entradas del catálogo que no pudieron confirmarse contra la API en
+vivo están marcadas con `VERIFY_ONLINE`.
+
+### 13. Equilibrio General Comercial en GPU / Apple Silicon (puremacro 3.4)
+Los solvers de comercio en Torch y MLX se importan de forma perezosa, de modo que nada pesado se carga hasta que usted pide un dispositivo, y sus aranceles por defecto ahora coinciden con los del solver de NumPy:
+```python
+import sys
+import puremacro.trade.gpu as gpu
+
+print("torch en sys.modules:", "torch" in sys.modules)
+print("matplotlib en sys.modules:", "matplotlib" in sys.modules)
+print("has_torch:", gpu.has_torch(), " has_mlx:", gpu.has_mlx())
+print("dispositivo:", gpu.detect_device())
+print("seleccionado:", gpu.select_compute_device())
+# torch en sys.modules: False
+# matplotlib en sys.modules: False
+# has_torch: True  has_mlx: True
+# dispositivo: <DeviceInfo: torch:mps (Apple Metal (arm), 36.0 GB, f32-only, UMA)>
+# seleccionado: ('torch', 'mps')
+```
+La salida anterior proviene de un intérprete recién iniciado en una máquina Apple Silicon.
+Las tres últimas líneas dependen del hardware: sin ninguno de los dos marcos instalado,
+`has_torch()` y `has_mlx()` devuelven `False` y las pruebas de GPU se omiten en lugar de
+fallar.
+
 ---
 
 ## Contenido
@@ -293,6 +432,15 @@ print(f"Variación del bienestar agregado: {res.welfare_pct:+.4f}%")
 - **Álgebra exacta de sombreros de Caliendo-Parro (2015)** (`trade.caliendo_parro`, `spatial.caliendo_parro`) — Equilibrio general comercial multipaís y multisectorial con encadenamientos insumo-producto, bienes intermedios y aranceles resuelto sin necesidad de estimar fundamentos no observados (`CaliendoParroModel`).
 - **Equilibrio espacial de Allen-Arkolakis (2014)** (`spatial.allen_arkolakis`, `trade.allen_arkolakis`) — Equilibrio general geográfico continuo con costes de transporte bilateral tipo iceberg, movilidad laboral, aglomeración marshalliana ($\alpha$) y congestión de amenidades ($\beta$) (`AllenArkolakisModel`).
 
+**ML causal, HJB en tiempo continuo, OccBin multirrestricción y tiempo real regional (puremacro 3.4)**
+
+- **Aprendizaje automático doble / desesgado** (`causal.dml`) — Regresión parcialmente lineal de Chernozhukov et al. (2018) con puntajes ortogonales de Neyman-Robinson, validación cruzada por $K$ bloques y aprendices penalizados en NumPy puro (`LassoCoordinateDescent`, `RidgeGCV`); los puntos de entrada son `dml_plr` y `DoubleMLPLR`, y los aprendices son **únicamente lasso y ridge**. `DMLResult` incluye `.summary()`, `.plot()`, `.to_latex()`, `.to_typst()` y `.to_markdown()`. Véase `docs/es/causal_dml.md`.
+- **HJB implícito en tiempo continuo y KFE adjunta** (`vfi.hjb_achdou`) — Esquema implícito de M-matriz *upwind* de Achdou, Han, Lasry, Lions y Moll (2022) resuelto con `scipy.sparse.linalg.spsolve`, con cambio de ingreso de Poisson de dos estados (intensidad $\lambda = 0.1$ por defecto, nuevo en 3.4) y la densidad estacionaria de $A^\top g = 0$. `solve_kfe_achdou` devuelve una **densidad** —masa nodal dividida entre el ancho de la celda— normalizada con pesos de cuadratura trapezoidal, de modo que integra a uno también en mallas no uniformes. `solve_aiyagari_continuous_hjb` cierra el modelo en equilibrio general, con `tol_ge` gobernando la convergencia y `converged` significando $|K^s - K^d| \le$ `tol_ge`. Véase `docs/es/vfi_hjb_continuous.md`.
+- **OccBin multirrestricción** (`dsge.solve_multiconstraint_occbin`) — $M \ge 2$ restricciones de desigualdad ocasionalmente activas de forma simultánea (una cota inferior cero y un límite de colateral a la vez). Se publicó en 2.8.0; 3.4 la amplía y endurece: el empalme de regímenes arrastra **todas** las filas que difieren, `result.regimes[t]` es una máscara de bits (el bit $k$ se activa cuando la restricción $k$ está activa, así que `3` significa que ambas lo están), la no convergencia devuelve `converged=False` *con* un `UserWarning` que nombra cada motivo, y una restricción que no puede emparejarse uno a uno con su modelo genera `ValueError`.
+- **Inferencia con instrumentos débiles de Montiel Olea-Pflueger** (`lp.iv`, `inference.weak_iv`) — El estadístico $F$ efectivo con valores críticos de la forma cerrada MOP $\mathrm{cv} = \chi^2_{K,\,1-\alpha}(K/\tau)/K$ (23.11 y 15.06 para $K = 1$ con $\tau$ = 10% y 20%), y un conjunto de Anderson-Rubin multiinstrumental invertido de forma exacta —intervalo acotado, dos semirrectas, toda la recta o vacío— en lugar de leerse de una malla. Los errores son robustos a heterocedasticidad y autocorrelación; **la inferencia robusta a conglomerados no está implementada**. `la_lp_iv` se reexporta desde `puremacro.lp`.
+- **Conectores en tiempo real de América Latina** (`fetch.realtime.{banxico,inegi,bcb,bcch}`) — Banco de México (SIE), INEGI (BIE), Banco Central do Brasil (SGS) y Banco Central de Chile (SIETE), con resolución separada de usuario y contraseña para el BCCh (`PASSWORD_ENV_VARS`, `get_password`), un canario de deriva de esquema configurable (`DRIFT_POLICIES`, `handle_drift`), `use_cache=False` que realmente omite la caché y cartuchos `.pmz` sin conexión. **Estas cuatro fuentes publican únicamente la edición vigente, así que su fecha de añada es la fecha de captura local y el historial de revisiones sólo se acumula con capturas repetidas en días distintos.** Las entradas del catálogo aún no confirmadas contra la API en vivo están marcadas con `VERIFY_ONLINE`. Véase `docs/es/real_time_latam.md`.
+- **Solvers comerciales en GPU / Apple Silicon** (`trade.gpu`) — Rutas Torch y MLX para el equilibrio de Caliendo-Parro, importadas de forma perezosa, de modo que `import puremacro.trade` no arrastra ninguna de las dos. Los aranceles por defecto coinciden con los del solver de NumPy, la disposición del jacobiano por lotes se valida en lugar de inferirse de un tamaño de lote mágico, y las pruebas se omiten (no fallan) cuando faltan torch / mlx o los datos privados ICIO. Véase `docs/es/trade_gpu.md`.
+
 **Econometría narrativa** (`narrative.*`)
 
 Pipeline de variables instrumentales narrativas para política fiscal, mercado laboral e incertidumbre: esquemas canónicos `NarrativeEvent` / `NarrativeInstrument`, deduplicación, clasificadores por palabras clave y puntuación manual, construcción de panel, cargadores de replicación para conjuntos de datos canónicos (Romer-Romer, Mertens-Ravn). El clasificador basado en LLM (`narrative.scoring.llm`) y los módulos de fuentes HTTP (`narrative.sources.*`) operan fuera de Pyodide como canales laterales.
@@ -318,7 +466,7 @@ Los conectores bloqueados por WAF / protección anti-bot (EUR-Lex, Parlamento Eu
   depende del trimestre de anclaje. Otras siete fuentes candidatas no aportan
   ni un trimestre, y el motivo queda registrado en `LONG_PANEL_KNOWN_GAPS`.
   Véase `docs/long_panel.md`.
-- **Datos en tiempo real** (`fetch.vintage_panel`, `fetch.realtime.*`) — las *ediciones* publicadas de una serie, con seis proveedores tras una sola llamada: el archivo de revisiones OCDE-STES (42 economías, ediciones mensuales desde 1999), ALFRED, la base Gerda del Bundesbank, el libro de tiempo real del ONS (746 ediciones desde 1961), las tablas de vintages de Statistics Canada y la base del BCE/EABCN. Incluye el instrumental de revisiones: triángulos de revisión, primera y última estimación, `r_t = y_f - y_p`, y el contraste de noticia frente a ruido de Mankiw-Shapiro (`vintages.mankiw_shapiro`). Cada proveedor documenta qué significa exactamente su fecha de edición, porque no coinciden entre sí. Véase `docs/real_time_data.md`.
+- **Datos en tiempo real** (`fetch.vintage_panel`, `fetch.realtime.*`) — las *ediciones* publicadas de una serie, con diez proveedores tras una sola llamada: el archivo de revisiones OCDE-STES (42 economías, ediciones mensuales desde 1999), ALFRED, la base Gerda del Bundesbank, el libro de tiempo real del ONS (746 ediciones desde 1961), las tablas de vintages de Statistics Canada, la base del BCE/EABCN y los cuatro conectores latinoamericanos añadidos en 3.4 (Banco de México, INEGI, Banco Central do Brasil, Banco Central de Chile). Incluye el instrumental de revisiones: triángulos de revisión, primera y última estimación, `r_t = y_f - y_p`, y el contraste de noticia frente a ruido de Mankiw-Shapiro (`vintages.mankiw_shapiro`). Cada proveedor documenta qué significa exactamente su fecha de edición, porque no coinciden entre sí: los primeros seis llevan una fecha genuina de publicación o de edición, mientras que **las cuatro fuentes latinoamericanas publican únicamente la edición vigente, así que su fecha de añada es la fecha de captura local** y el historial de revisiones sólo se acumula con capturas repetidas en días distintos. Véanse `docs/es/real_time_data.md` y `docs/es/real_time_latam.md`.
 - **Constructores modulares de panel** (`build_panel`, `build_subnational_panel`, `build_climate_panel`, `build_financial_panel`) — puntos de entrada únicos que materializan paneles trimestrales y mensuales de países, estados de EE. UU., clima/energía y macrofinancieros a partir de los captadores, con agregaciones automáticas de frecuencia (M→Q, A→Q), etiquetado de regímenes, ajuste estacional (X-13 / STL como alternativa) y seguimiento de datos faltantes.
 - **Ecosistema de datos macro globales** (`fetch.emissions`, `fetch.energy_transition`, `fetch.commodities`, `fetch.financial`) — captadores sin clave y en caché para emisiones de gases de efecto invernadero del Banco Mundial WDI y OCDE SDMX por sector; generación eléctrica por fuente y cuotas de transición limpia; conjuntos ampliados de precios de referencia de materias primas del Banco Mundial Pink Sheet y FMI (energía, metales, agricultura, fertilizantes); e indicadores de estabilidad financiera internacional (rendimientos soberanos, tasas de política monetaria, brechas crédito/PIB del BIS, precios de vivienda y condiciones financieras). Véase `docs/es/data_ecosystem.md`.
 - **Instrumentos** (`instruments.*`) — registro de instrumentos, composición y cargadores externos (ruta de clave API de FRED); columna vertebral de la maquinaria LP-IV.
@@ -590,6 +738,7 @@ Si proviene de Stata, MATLAB/Dynare o statsmodels:
 | **GE Gravitacional Espacial** | — | Replicación Allen-Arkolakis | — | `spatial.AllenArkolakisModel.from_coordinates(...)` |
 
 Las replicaciones de extremo a extremo de artículos canónicos y cuadernos pedagógicos se encuentran en `notebooks/` y `puremacro/examples/`:
+- **ML causal, HJB en tiempo continuo y tiempo real regional**: HJB implícito con KFE adjunta y EG de Aiyagari (`56`), OccBin multirrestricción acoplado con DML (`57`) y añadas macroeconómicas en tiempo real de América Latina (`58`).
 - **DP continuo, Deep Macro y GE espacial**: Chebyshev vs FEM Galerkin (`51`), dinámica de transición continua bajo choques MIT (`52`), sensibilidades analíticas IFT exactas y estimación GMM (`53`), PINNs de Deep Macro con 10 estados (`54`) y GE cuantitativo espacial de comercio e infraestructura (`55`).
 - **Escaparates de política aplicada**: Postura de política monetaria de bancos centrales y abanicos de proyección (`47`), nowcasting DFM en tiempo real y descomposición de noticias (`48`), GaR macroprudencial y conectividad sistémica (`49`), y multiplicadores fiscales trimétodo con DSA soberano (`50`).
 - **Frontera DSGE y HANK**: Recursión exacta del gradiente analítico de Kalman (`43`), puente espacio-secuencial HANK desde `.mod` (`44`), política discrecional óptima vs compromiso y shocks de noticias (`45`), y filtrado de partículas con MS-DSGE (`46`).
@@ -599,6 +748,10 @@ Todos los cuadernos cumplen estrictamente el contrato con Pyodide y la arquitect
 ## Documentación
 
 - **`docs/es/quickstart.md`** — Guía de inicio rápido en 2 minutos cubriendo estimadores principales y exportación para publicaciones.
+- **`docs/es/causal_dml.md`** — Aprendizaje automático doble / desesgado: puntajes ortogonales de Robinson, validación cruzada por bloques, los aprendices lasso y ridge, y la superficie de exportación de `DMLResult`.
+- **`docs/es/vfi_hjb_continuous.md`** — HJB implícito *upwind* en tiempo continuo, la densidad de la KFE adjunta en mallas no uniformes y el equilibrio general de Aiyagari en tiempo continuo.
+- **`docs/es/real_time_latam.md`** — Conectores en tiempo real de América Latina (Banco de México, INEGI, Banco Central do Brasil, Banco Central de Chile), añadas por fecha de captura, credenciales y el canario de deriva de esquema.
+- **`docs/es/trade_gpu.md`** — Solvers de equilibrio comercial en Torch y MLX: selección de dispositivo, jacobiano por lotes y paridad con la ruta de NumPy.
 - **`docs/es/vfi_continuous_projection.md`** — Programación dinámica en espacio de estados continuo: colocación con polinomios de Chebyshev y proyección Galerkin por elementos finitos con restricciones de endeudamiento de Fischer-Burmeister.
 - **`docs/es/vfi_splines_and_sparse_grids.md`** — B-splines cúbicos que preservan forma, splines cuadráticos de Schumaker y mallas dispersas de Smolyak en alta dimensión ($d \in [2, 6]$).
 - **`docs/es/dcegm.md`** — Método de Malla Endógena con Elección Discreta (DC-EGM) con filtrado rápido de Upper Envelope para programación dinámica no convexa.
@@ -608,7 +761,7 @@ Todos los cuadernos cumplen estrictamente el contrato con Pyodide y la arquitect
 - **`docs/es/deep_macro.md`** — Deep Macro y Redes Neuronales Informadas por la Física (PINNs) en puro NumPy para modelos dinámicos de ultra alta dimensión (10+ estados continuos) mediante muestreo ergódico.
 - **`docs/es/spatial_and_trade_ge.md`** — Economía espacial cuantitativa y equilibrio general de comercio internacional: álgebra exacta de sombreros de Caliendo-Parro (2015) y geografía económica de Allen-Arkolakis (2014).
 - **`docs/es/data_ecosystem.md`** — Ecosistema de datos macro globales: emisiones, transición energética, materias primas, estabilidad financiera internacional y constructores modulares de panel (`build_climate_panel`, `build_financial_panel`).
-- **`docs/es/notebooks.md`** — Catálogo completo de cuadernos (00–55), arquitectura pedagógica de 7 secciones y suites de política aplicada.
+- **`docs/es/notebooks.md`** — Catálogo completo de cuadernos (00–58), arquitectura pedagógica de 7 secciones y suites de política aplicada.
 - **`docs/es/dsge_build.md`** — Modelos DSGE desde ecuaciones, cargador de archivos `.mod`, poda de 2do orden, CLI `puremacro-dynare`, OccBin ZLB, relajación no lineal y MCMC bayesiano.
 - **`docs/es/models.md`** — Modelos estructurales: HANK en el espacio de secuencias, algoritmo Fake News, transferencias focalizadas y búsqueda y emparejamiento DMP.
 - **`docs/es/narrative_sign_svar.md`**, **`docs/es/honest_did.md`**, **`docs/es/smooth_lp.md`**, **`docs/es/hank_nonlinear.md`**, **`docs/es/gertler_karadi.md`**, **`docs/es/bvar_sv.md`** — las seis guías de las funciones 2.3.
@@ -640,8 +793,8 @@ Todos los cuadernos cumplen estrictamente el contrato con Pyodide y la arquitect
 
 ## Estado
 
-Versión de producción, distribuyendo **3.3.0**. `docs/1.0_path.md` § 5 enumera qué subpaquetes están dentro de la promesa del gate de publicación y cuáles son experimentales.
+Versión de producción, distribuyendo **3.4.0**. `docs/1.0_path.md` § 5 enumera qué subpaquetes están dentro de la promesa del gate de publicación y cuáles son experimentales.
 
-La CI está activa y corre en cada push: la suite sobre tres sistemas operativos y tres versiones de Python, el contrato con Pyodide, mypy, la guardia de deriva contra referencias, `mkdocs build --strict`, el despliegue del playground y una publicación en PyPI disparada por etiqueta mediante trusted publishing. Véase `.github/workflows/`. Aun así ejecute `python tools/release_check.py` localmente antes de etiquetar: los gates 5 y 6 son opcionales y la CI no los corre.
+La CI está activa y corre en cada push: la suite sobre tres sistemas operativos y tres versiones de Python (3.11, 3.12 y 3.13), el contrato con Pyodide, mypy, la guardia de deriva contra referencias, `mkdocs build --strict`, el despliegue del playground y una publicación en PyPI disparada por etiqueta mediante trusted publishing. Véase `.github/workflows/`. Aun así ejecute `python tools/release_check.py` localmente antes de etiquetar: los gates 5 y 6 son opcionales y la CI no los corre.
 
 Cuando una versión publicada devolvió un número equivocado, queda registrado en **[`docs/es/ADVISORY.md`](docs/es/ADVISORY.md)**, junto con la condición bajo la cual el error se anula, para que pueda descartar su propia estimación.

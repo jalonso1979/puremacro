@@ -32,7 +32,7 @@
    - **Algoritmo de Noticias Falsas (Fake News)**: Cálculo acelerado $\mathcal{O}(T^2)$ de jacobianos de consumo en el espacio de secuencias mediante vectores de expectativa e identidades de acumulación.
    - **Puente HANK en Espacio de Secuencias**: Declaración directa del bloque `hetagent_block` en archivos `.mod` estándar de Dynare.
    - **Transferencias Fiscales Focalizadas**: Respuestas dinámicas de consumo y multiplicadores acumulados por deciles de riqueza.
-   - **HJB en Tiempo Continuo**: Esquemas upwind en diferencias finitas de Achdou et al. (2022) para modelos de agentes heterogéneos en tiempo continuo.
+   - **HJB en Tiempo Continuo**: Esquemas **implícitos** de M-matriz upwind en diferencias finitas de Achdou et al. (2022), la ecuación de Kolmogorov hacia adelante adjunta para la densidad estacionaria y el equilibrio general de Aiyagari en tiempo continuo ([Guía](vfi_hjb_continuous.md)).
 
 3. **Motores Econométricos y Proyecciones Locales**:
    - **`LPResult` Unificado**: Proyecciones locales estandarizadas (`lp_hac`, `lp_iv`, `lp_state_dep`, `panel_lp`) con errores estándar Newey-West HAC, fixed-$b$ y Driscoll-Kraay.
@@ -52,10 +52,18 @@
    - **Estabilidad Financiera Internacional**: Curvas de rendimiento soberano (10Y/2Y), tasas de política monetaria, brechas de crédito del BPI (BIS) y precios reales de vivienda ([Guía](data_ecosystem.md)).
    - **Constructores Modulares de Paneles**: Funciones de alto nivel `build_climate_panel` y `build_financial_panel` con armonización temporal automatizada (M$\to$Q, A$\to$Q).
 
-6. **Generación de Informes y Publicación**:
+6. **ML Causal, Agentes Heterogéneos en Tiempo Continuo y Tiempo Real Regional (puremacro 3.4)**:
+   - **Aprendizaje Automático Doble / Desesgado**: Regresión parcialmente lineal de Chernozhukov et al. (2018) con puntajes ortogonales de Neyman-Robinson, validación cruzada por $K$ bloques y aprendices penalizados en NumPy puro —únicamente lasso y ridge, sin red elástica— ([Guía](causal_dml.md)).
+   - **HJB Implícito, KFE Adjunta y EG de Aiyagari Continuo**: Iteración de política sobre una M-matriz dispersa, una densidad estacionaria normalizada con pesos de cuadratura trapezoidal que integra a uno también en mallas no uniformes, y un bucle de equilibrio general cuyo indicador `converged` significa $|K^s - K^d| \le$ `tol_ge` ([Guía](vfi_hjb_continuous.md)).
+   - **OccBin Multirrestricción**: $M \ge 2$ restricciones ocasionalmente activas simultáneas, con máscara de bits de régimen (el bit $k$ se activa cuando la restricción $k$ está activa) y no convergencia reportada como `converged=False` más una advertencia que nombra cada motivo ([Guía](dsge_build.md)).
+   - **Inferencia con Instrumentos Débiles de Montiel Olea-Pflueger**: Valores críticos del estadístico $F$ efectivo a partir de la forma cerrada $\chi^2_{K,\,1-\alpha}(K/\tau)/K$, y conjuntos de Anderson-Rubin multiinstrumentales invertidos de forma exacta y no sobre una malla ([Guía](lp.md)).
+   - **Conectores en Tiempo Real de América Latina**: Banco de México, INEGI, Banco Central do Brasil y Banco Central de Chile. Estas cuatro fuentes publican únicamente la edición vigente, así que su fecha de añada es la fecha de *captura* local y el historial de revisiones sólo se acumula con capturas repetidas en días distintos ([Guía](real_time_latam.md)).
+   - **Solvers Comerciales en GPU / Apple Silicon**: Rutas Torch y MLX para el equilibrio de Caliendo-Parro, importadas de forma perezosa y con los mismos aranceles por defecto que el solver de NumPy ([Guía](trade_gpu.md)).
+
+7. **Generación de Informes y Publicación**:
    - Exportación de tablas con calidad de imprenta directamente a **LaTeX** (`.to_latex()`), **Typst** (`.to_typst()`) y **Markdown** (`.to_markdown()`), con errores estándar y estrellas de significancia ([Guía](reporting.md)).
 
-7. **Ejecución en Cualquier Dispositivo**:
+8. **Ejecución en Cualquier Dispositivo**:
    - Compatibilidad completa con Pyodide/WebAssembly para tabletas y navegadores ([Guía](tablet.md)), descarga de cómputo a Google Colab (`runtime.colab`), ejecución segmentada (`longrun`) y cartuchos portátiles `.pmz` (`pocket`).
 
 ---
