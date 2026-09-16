@@ -15,7 +15,7 @@
 #
 # **¿Cómo resuelven los macroeconomistas cuantitativos los modelos de agentes heterogéneos en tiempo continuo sin las severas restricciones de paso temporal de los esquemas explícitos, y cómo permite la ecuación de Kolmogorov Forward adjunta obtener la distribución estacionaria exacta de riqueza y los precios de equilibrio general?**
 #
-# En la macroeconomía cuantitativa moderna, la formulación en tiempo continuo de modelos con agentes heterogéneos (Achdou, Han, Lasry, Lions y Moll 2022) proporciona una notable claridad analítica y gran eficiencia computacional. A diferencia de los modelos en tiempo discreto donde los agentes toman decisiones en bloques temporales rígidos, en tiempo continuo los agentes ajustan sus balances continuamente sujetos a choques de productividad de Poisson no asegurables y restricciones de endeudamiento ($a \ge 0$). Sin embargo, resolver las ecuaciones de Hamilton-Jacobi-Bellman (HJB) en tiempo continuo mediante diferencias finitas explícitas exige incrementos temporales minúsculos ($\Delta t \sim \mathcal{O}((\Delta a)^2)$) para preservar la estabilidad bajo la condición de Courant-Friedrichs-Lewy (CFL), lo que requiere miles de pasos y con frecuencia diverge en los puntos de quiebre.
+# En la macroeconomía cuantitativa moderna, la formulación en tiempo continuo de modelos con agentes heterogéneos (Achdou, Han, Lasry, Lions y Moll 2022) proporciona una notable claridad analítica y gran eficiencia computacional. A diferencia de los modelos en tiempo discreto donde los agentes toman decisiones en bloques temporales rígidos, en tiempo continuo los agentes ajustan sus balances continuamente sujetos a choques de productividad de Poisson no asegurables y restricciones de endeudamiento ($a \ge 0$). Sin embargo, resolver las ecuaciones de Hamilton-Jacobi-Bellman (HJB) en tiempo continuo mediante diferencias finitas explícitas exige incrementos temporales minúsculos: la HJB de aquí es una ecuación de primer orden en la deriva, de modo que la condición de Courant-Friedrichs-Lewy (CFL) obliga a $\Delta t \sim \mathcal{O}(\Delta a)$, lo que requiere miles de pasos y con frecuencia diverge en los puntos de quiebre.
 #
 # El esquema canónico implícito con diferenciación contra el viento (upwind) elude la condición CFL discretizando el generador infinitesimal en una $M$-matriz dispersa y diagonalmente dominante. Dado que una $M$-matriz posee una inversa estrictamente no negativa, la función de valor se actualiza de manera monótona e incondicional, alcanzando convergencia con precisión de máquina en 10 a 20 iteraciones. Además, la distribución estacionaria transversal de riqueza $g(a, z)$ se resuelve directamente como el espacio nulo del operador generador transpuesto adjunto ($A^T g = 0$), conservando la masa total de probabilidad con precisión de máquina ($\sim 10^{-16}$) sin ruido de simulación estocástica. Este cuaderno demuestra la secuencia completa de agentes heterogéneos en tiempo continuo: iteración de políticas de valor con HJB implícito, resolución de la distribución de riqueza mediante KFE adjunta, validación analítica de extracción de pastel (cake-eating) y vaciado de mercado de factores en equilibrio general continuo de Aiyagari.
 
@@ -41,7 +41,7 @@
 #
 # **Intuición.** En tiempo continuo, los hogares ajustan sus ahorros continuamente en lugar de realizar saltos discretos trimestrales o anuales. Cuando un hogar enfrenta choques no asegurables de ingreso laboral y un límite estricto de endeudamiento ($a \ge 0$), la función de valor exhibe una marcada curvatura cerca de la restricción: conforme los activos se aproximan a cero, el valor marginal de la riqueza $V'(a)$ se eleva abruptamente para evitar que el hogar caiga en la región prohibida de activos negativos.
 #
-# En un esquema numérico explícito, el paso temporal $\Delta t$ debe elegirse lo suficientemente pequeño para que ninguna masa de probabilidad ni valor se propague a través de más de una celda espacial por iteración. Cuando la malla de activos se refina para capturar el quiebre de endeudamiento ($\Delta a \to 0$), el límite de estabilidad explícito impone $\Delta t \le \frac{(\Delta a)^2}{2}$, forzando decenas de miles de iteraciones minúsculas y generando frecuentemente oscilaciones numéricas. El esquema implícito upwind elimina este cuello de botella por completo. Al evaluar la función de valor futura de forma implícita a través de la matriz generadora dispersa $A$, cada iteración resuelve un sistema lineal $(\rho I - A) V^{n+1} = u(c^n)$ utilizando factorizaciones dispersas veloces. La propiedad de $M$-matriz garantiza que el operador inverso sea estrictamente positivo, preservando la monotonicidad y permitiendo converger en menos de 15 iteraciones.
+# En un esquema numérico explícito, el paso temporal $\Delta t$ debe elegirse lo suficientemente pequeño para que ninguna masa de probabilidad ni valor se propague a través de más de una celda espacial por iteración. El transporte a lo largo de la deriva de ahorro $s(a, z)$ es una advección de primer orden, así que cuando la malla de activos se refina para capturar el quiebre de endeudamiento ($\Delta a \to 0$) el límite de estabilidad explícito impone $\Delta t \le \Delta a / \max_{a, z} |s(a, z)|$ — lineal en $\Delta a$, no cuadrático —, forzando miles de iteraciones minúsculas y generando frecuentemente oscilaciones numéricas. El esquema implícito upwind elimina este cuello de botella por completo. Al evaluar la función de valor futura de forma implícita a través de la matriz generadora dispersa $A$, cada iteración resuelve un sistema lineal $(\rho I - A) V^{n+1} = u(c^n)$ utilizando factorizaciones dispersas veloces. La propiedad de $M$-matriz garantiza que el operador inverso sea estrictamente positivo, preservando la monotonicidad y permitiendo converger en menos de 15 iteraciones.
 #
 # Adicionalmente, el marco de tiempo continuo establece una dualidad entre el problema de valor HJB del hogar y la distribución transversal de riqueza. Mientras que la función de valor avanza hacia atrás en el tiempo mediante el generador infinitesimal $A$, la densidad de riqueza $g(a, z)$ evoluciona hacia adelante mediante el operador adjunto $A^T$. La distribución estacionaria de riqueza se calcula así directamente como el autovector asociado al autovalor cero de $A^T$, conservando la masa de probabilidad con precisión de máquina ($\sim 10^{-16}$) sin ruido de simulación estocástica de Monte Carlo. En equilibrio general, la tasa de interés $r^*$ equilibra el capital precautorio agregado acumulado por los hogares con la productividad marginal del capital demandado por las firmas competitivas.
 
@@ -219,6 +219,7 @@ print(f"  Converged              : {ge_res.converged}")
 print(f"  Equilibrium Rate (r*)  : {ge_res.r_star:.6f} ({ge_res.r_star * 100:.3f}%)")
 print(f"  Equilibrium Wage (w*)  : {ge_res.w_star:.4f}")
 print(f"  Aggregate Capital (K*) : {ge_res.K_star:.4f}")
+print(f"  Aggregate Labor (L*)   : {ge_res.L_star:.4f}")
 print(f"  Excess Capital Supply  : {ge_res.excess_capital:.2e}")
 print(f"  GE Wall Time           : {t_ge:.4f} s")
 
@@ -228,18 +229,32 @@ assert abs(ge_res.excess_capital) < 1e-4, f"Excess capital {ge_res.excess_capita
 assert 0.005 < ge_res.r_star < rho_val, "Equilibrium interest rate must satisfy 0 < r* < rho"
 assert ge_res.K_star > 0.0, "Equilibrium capital must be strictly positive"
 
-# Compute capital supply and demand curves across a grid of interest rates for hero figure
+# Compute capital supply and demand curves across a grid of interest rates for hero figure.
+# Firm demand must be scaled by the SAME aggregate labor supply L* the general
+# equilibrium solver uses (L* = sum_j z_j pi_j, the stationary mean of the income
+# process), otherwise K^d is the capital-labor ratio K/L and the plotted curves
+# cross away from the equilibrium rate r* marked on the panel.
+L_star = ge_res.L_star
 r_grid = np.linspace(0.010, 0.035, 6)
 ks_curve = []
 kd_curve = []
 for r_val in r_grid:
-    w_val = (1.0 - alpha) * (alpha / (r_val + delta)) ** (alpha / (1.0 - alpha))
+    k_over_l = (alpha / (r_val + delta)) ** (1.0 / (1.0 - alpha))
+    w_val = (1.0 - alpha) * k_over_l ** alpha
     s_temp = solve_hjb_achdou(r_rate=r_val, w_rate=w_val, Na=40, a_max=25.0, tol=1e-6)
     da_t = s_temp.a_grid[1] - s_temp.a_grid[0]
     ks_val = float(np.sum(s_temp.a_grid[:, None] * s_temp.g_dist * da_t))
-    kd_val = float((alpha / (r_val + delta)) ** (1.0 / (1.0 - alpha)))
+    kd_val = float(L_star * k_over_l)
     ks_curve.append(ks_val)
     kd_curve.append(kd_val)
+
+# The sampled curves must bracket the equilibrium rate the solver returned.
+excess_curve = np.asarray(ks_curve) - np.asarray(kd_curve)
+r_cross = float(np.interp(0.0, excess_curve, r_grid))
+print(f"Capital Market Clearing Curves (L* = {L_star:.4f}):")
+print(f"  Sampled Crossing Rate  : {r_cross:.6f} ({r_cross * 100:.3f}%)")
+print(f"  Solver Equilibrium r*  : {ge_res.r_star:.6f} ({ge_res.r_star * 100:.3f}%)")
+assert abs(r_cross - ge_res.r_star) < 5e-4, "Plotted Ks/Kd crossing must agree with the solver's r*"
 
 # %%
 # --- Hero Visualizations: Policy, Drift, Distribution, and Market Clearing ---
@@ -291,10 +306,10 @@ plt.show()
 #
 # **Lectura de los resultados.** Los resultados computacionales ilustran los mecanismos matemáticos y económicos del modelado con agentes heterogéneos en tiempo continuo:
 #
-# 1. **Eficiencia y Convergencia del Solucionador Implícito (Experimento 1):** El esquema canónico implícito upwind converge a una tolerancia de $10^{-8}$ en exactamente 8 iteraciones, requiriendo menos de 0.02 segundos. La estructura de $M$-matriz elude por completo la restricción de Courant-Friedrichs-Lewy (CFL). En el límite de endeudamiento $a = 0$, la deriva de ahorro satisface estrictamente $s(0, z) \ge 0$, verificando que los hogares jamás violan la restricción de endeudamiento.
-# 2. **Densidad Adjunta Exacta y Conservación de Masa (Experimento 2):** La distribución estacionaria de riqueza $g(a, z)$ obtenida a partir del generador transpuesto $A^T g = 0$ alcanza un error de conservación de masa de $| \sum g_i \Delta a_i - 1.0 | = 2.22 \times 10^{-16}$, coincidiendo con la precisión de máquina. La distribución transversal exhibe una marcada concentración en el límite de endeudamiento $a = 0$ para hogares de baja productividad, acompañada de una cola extendida hacia la derecha para hogares de alta productividad, generando un coeficiente de Gini de riqueza agregado cercano a $0.46$.
+# 1. **Eficiencia y Convergencia del Solucionador Implícito (Experimento 1):** El esquema canónico implícito upwind converge a una tolerancia de $10^{-8}$ en exactamente 8 iteraciones, en unos pocos milisegundos de tiempo de reloj. La estructura de $M$-matriz elude por completo la restricción de Courant-Friedrichs-Lewy (CFL). En el límite de endeudamiento $a = 0$, la deriva de ahorro satisface estrictamente $s(0, z) \ge 0$ — el valor impreso es $s(0, z_{\mathrm{low}}) = 0$ exactamente —, verificando que los hogares jamás violan la restricción de endeudamiento.
+# 2. **Densidad Adjunta Exacta y Conservación de Masa (Experimento 2):** La distribución estacionaria de riqueza $g(a, z)$ obtenida a partir del generador transpuesto $A^T g = 0$ integra a $1.0000000000000000$ con los pesos de cuadratura de la malla, un residuo de masa de $0.00 \times 10^{0}$ — exacto hasta el último bit de la doble precisión, porque el solucionador renormaliza la masa nodal después de la resolución dispersa. La densidad alcanza su máximo exactamente en el límite de endeudamiento $a = 0$ en el estado de baja productividad y es acampanada en el estado de alta productividad, con su máximo bien dentro de la malla; el coeficiente de Gini de riqueza agregado resultante es $0.3542$.
 # 3. **Precisión frente al Modelo Analítico de Referencia (Experimento 3):** En el problema de extracción de pastel no restringido ($r=0, w=0$), la política numérica coincide con la regla analítica en forma cerrada $c(a) = (\rho/\gamma)a$ con un error relativo máximo de $0.0073$ ($0.73\%$), confirmando la alta exactitud numérica sobre dominios suaves.
-# 4. **Vaciado del Mercado de Activos en Equilibrio General (Experimento 4):** La bisección de equilibrio general de Aiyagari continuo converge en ~1.5 segundos a una tasa de interés de equilibrio de $r^* = 1.888\%$ ($0.01888$) y un salario real de $w^* = 1.342$. Como predice la teoría macroeconómica, $r^* < \rho = 5.00\%$ debido a que los hogares acumulan ahorros precautorios de amortiguamiento frente al riesgo idiosincrásico de ingresos no asegurable, situando el acervo de capital de equilibrio por encima del nivel de mercados completos.
+# 4. **Vaciado del Mercado de Activos en Equilibrio General (Experimento 4):** La búsqueda de raíz del equilibrio general de Aiyagari continuo converge en unas pocas centésimas de segundo a una tasa de interés de equilibrio de $r^* = 1.888\%$ ($0.018879$), un salario real de $w^* = 1.4495$ y un capital agregado de $K^* = 6.2190$. La demanda de las firmas en el panel de vaciado de mercado es $K^d(r) = L^* \left( \alpha / (r + \delta) \right)^{1/(1-\alpha)}$, evaluada con la misma oferta agregada de trabajo que emplea el solucionador, $L^* = \sum_j z_j \pi_j = 0.6$; el cuaderno interpola la curva muestreada de exceso de demanda y verifica que su cero queda a menos de $5 \times 10^{-4}$ de $r^*$, de modo que el cruce graficado y la línea punteada de $r^*$ coinciden. Como predice la teoría macroeconómica, $r^* < \rho = 5.00\%$ debido a que los hogares acumulan ahorros precautorios de amortiguamiento frente al riesgo idiosincrásico de ingresos no asegurable, situando el acervo de capital de equilibrio por encima del nivel de mercados completos.
 
 # %%
 # Your turn: customize discount rate, risk aversion, and grid resolution
@@ -348,7 +363,7 @@ assert abs(mass_custom - 1.0) <= 1e-12, "Total probability mass must equal 1.0"
 assert ks_custom > 0.0, "Custom aggregate capital must be strictly positive"
 
 # %% [markdown]
-# **Prompts.**
+# **Indicaciones.**
 # 1. *Básico:* Incremente la aversión al riesgo `gamma_custom` de $2.0$ a $3.0$. Observe cómo se intensifica el motivo de ahorro precautorio, deprimiendo el consumo en niveles bajos de riqueza y aumentando la acumulación agregada de capital $K^s$.
 # 2. *Intermedio:* Eleve la tasa de descuento `rho_custom` de $0.05$ a $0.07$. Verifique que hogares menos pacientes mantienen menos activos, desplazando la distribución estacionaria de riqueza hacia la izquierda rumbo a la restricción de endeudamiento.
 # 3. *Avanzado:* Refine la malla `Na_custom` de $50$ a $100$. Compruebe que la resolución lineal implícita escala de manera lineal en memoria y tiempo mientras preserva la masa total de probabilidad con precisión de máquina ($\le 10^{-14}$).

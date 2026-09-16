@@ -15,7 +15,7 @@
 #
 # **How do quantitative macroeconomists solve continuous-time heterogeneous-agent models without the severe time-step constraints of explicit stepping, and how does the adjoint Kolmogorov Forward Equation yield the exact stationary wealth distribution and general equilibrium prices?**
 #
-# In modern quantitative macroeconomics, continuous-time formulation of heterogeneous-agent models (Achdou, Han, Lasry, Lions & Moll 2022) provides profound analytical clarity and computational tractability. In contrast to discrete-time models where agents make decisions over lumpy periods, continuous-time agents adjust their balance sheets continuously subject to uninsurable Poisson earnings shocks and borrowing constraints ($a \ge 0$). However, solving continuous-time Hamilton-Jacobi-Bellman (HJB) equations with explicit finite differences requires vanishingly small time increments ($\Delta t \sim \mathcal{O}((\Delta a)^2)$) to maintain numerical stability under the Courant-Friedrichs-Lewy (CFL) condition, requiring thousands of steps and often diverging at borrowing kinks.
+# In modern quantitative macroeconomics, continuous-time formulation of heterogeneous-agent models (Achdou, Han, Lasry, Lions & Moll 2022) provides profound analytical clarity and computational tractability. In contrast to discrete-time models where agents make decisions over lumpy periods, continuous-time agents adjust their balance sheets continuously subject to uninsurable Poisson earnings shocks and borrowing constraints ($a \ge 0$). However, solving continuous-time Hamilton-Jacobi-Bellman (HJB) equations with explicit finite differences requires vanishingly small time increments — the HJB here is a first-order drift equation, so the Courant-Friedrichs-Lewy (CFL) condition binds at $\Delta t \sim \mathcal{O}(\Delta a)$ — requiring thousands of steps and often diverging at borrowing kinks.
 #
 # The canonical implicit upwind finite-difference scheme circumvents the CFL condition by discretizing the infinitesimal generator into a sparse, diagonally dominant $M$-matrix. Because an $M$-matrix has a strictly non-negative inverse, the value function updates monotonically and unconditionally, achieving machine-precision convergence in 10 to 20 iterations. Furthermore, the stationary cross-sectional wealth distribution $g(a, z)$ is solved directly as the null space of the adjoint transpose generator ($A^T g = 0$), preserving total probability mass to machine precision ($\sim 10^{-16}$) without simulation noise. This notebook demonstrates the full continuous-time heterogeneous-agent pipeline: implicit HJB value policy iteration, adjoint KFE wealth distribution solving, analytical cake-eating validation, and continuous Aiyagari general equilibrium factor price determination.
 
@@ -41,7 +41,7 @@
 #
 # **Intuition.** In continuous time, households adjust their savings continuously rather than in discrete quarterly or annual jumps. When a household faces uninsurable labor income shocks and a hard borrowing limit ($a \ge 0$), the value function exhibits strong curvature near the borrowing constraint: as assets approach zero, the marginal value of wealth $V'(a)$ rises steeply to prevent the household from drifting into the forbidden negative-asset territory.
 #
-# In an explicit numerical scheme, the time step $\Delta t$ must be chosen small enough that no probability mass or value propagates across more than one spatial grid cell per iteration. When the asset grid is refined to resolve the borrowing kink ($\Delta a \to 0$), the explicit stability limit requires $\Delta t \le \frac{(\Delta a)^2}{2}$, forcing tens of thousands of tiny iterations and often triggering numerical oscillations. The implicit upwind scheme eliminates this bottleneck entirely. By evaluating the future value function implicitly through the sparse generator matrix $A$, each iteration solves a linear system $(\rho I - A) V^{n+1} = u(c^n)$ using fast sparse matrix factorizations. The $M$-matrix property guarantees that the inverse operator is strictly positive, preserving monotonicity and enabling convergence in fewer than 15 iterations.
+# In an explicit numerical scheme, the time step $\Delta t$ must be chosen small enough that no probability mass or value propagates across more than one spatial grid cell per iteration. Transport along the savings drift $s(a, z)$ is a first-order advection, so when the asset grid is refined to resolve the borrowing kink ($\Delta a \to 0$) the explicit stability limit requires $\Delta t \le \Delta a / \max_{a, z} |s(a, z)|$ — linear in $\Delta a$, not quadratic — forcing thousands of tiny iterations and often triggering numerical oscillations. The implicit upwind scheme eliminates this bottleneck entirely. By evaluating the future value function implicitly through the sparse generator matrix $A$, each iteration solves a linear system $(\rho I - A) V^{n+1} = u(c^n)$ using fast sparse matrix factorizations. The $M$-matrix property guarantees that the inverse operator is strictly positive, preserving monotonicity and enabling convergence in fewer than 15 iterations.
 #
 # Furthermore, the continuous-time framework establishes a duality between the household's HJB value problem and the cross-sectional wealth distribution. While the value function flows backward in time via the infinitesimal generator $A$, the wealth density $g(a, z)$ flows forward via the adjoint operator $A^T$. The stationary wealth distribution is thus computed directly as the eigenvector associated with the zero eigenvalue of $A^T$, conserving total probability mass to machine precision ($\sim 10^{-16}$) without stochastic Monte Carlo simulation noise. In general equilibrium, the interest rate $r^*$ balances the aggregate precautionary capital accumulated by households against the marginal productivity of capital demanded by competitive firms.
 
@@ -219,6 +219,7 @@ print(f"  Converged              : {ge_res.converged}")
 print(f"  Equilibrium Rate (r*)  : {ge_res.r_star:.6f} ({ge_res.r_star * 100:.3f}%)")
 print(f"  Equilibrium Wage (w*)  : {ge_res.w_star:.4f}")
 print(f"  Aggregate Capital (K*) : {ge_res.K_star:.4f}")
+print(f"  Aggregate Labor (L*)   : {ge_res.L_star:.4f}")
 print(f"  Excess Capital Supply  : {ge_res.excess_capital:.2e}")
 print(f"  GE Wall Time           : {t_ge:.4f} s")
 
@@ -228,18 +229,32 @@ assert abs(ge_res.excess_capital) < 1e-4, f"Excess capital {ge_res.excess_capita
 assert 0.005 < ge_res.r_star < rho_val, "Equilibrium interest rate must satisfy 0 < r* < rho"
 assert ge_res.K_star > 0.0, "Equilibrium capital must be strictly positive"
 
-# Compute capital supply and demand curves across a grid of interest rates for hero figure
+# Compute capital supply and demand curves across a grid of interest rates for hero figure.
+# Firm demand must be scaled by the SAME aggregate labor supply L* the general
+# equilibrium solver uses (L* = sum_j z_j pi_j, the stationary mean of the income
+# process), otherwise K^d is the capital-labor ratio K/L and the plotted curves
+# cross away from the equilibrium rate r* marked on the panel.
+L_star = ge_res.L_star
 r_grid = np.linspace(0.010, 0.035, 6)
 ks_curve = []
 kd_curve = []
 for r_val in r_grid:
-    w_val = (1.0 - alpha) * (alpha / (r_val + delta)) ** (alpha / (1.0 - alpha))
+    k_over_l = (alpha / (r_val + delta)) ** (1.0 / (1.0 - alpha))
+    w_val = (1.0 - alpha) * k_over_l ** alpha
     s_temp = solve_hjb_achdou(r_rate=r_val, w_rate=w_val, Na=40, a_max=25.0, tol=1e-6)
     da_t = s_temp.a_grid[1] - s_temp.a_grid[0]
     ks_val = float(np.sum(s_temp.a_grid[:, None] * s_temp.g_dist * da_t))
-    kd_val = float((alpha / (r_val + delta)) ** (1.0 / (1.0 - alpha)))
+    kd_val = float(L_star * k_over_l)
     ks_curve.append(ks_val)
     kd_curve.append(kd_val)
+
+# The sampled curves must bracket the equilibrium rate the solver returned.
+excess_curve = np.asarray(ks_curve) - np.asarray(kd_curve)
+r_cross = float(np.interp(0.0, excess_curve, r_grid))
+print(f"Capital Market Clearing Curves (L* = {L_star:.4f}):")
+print(f"  Sampled Crossing Rate  : {r_cross:.6f} ({r_cross * 100:.3f}%)")
+print(f"  Solver Equilibrium r*  : {ge_res.r_star:.6f} ({ge_res.r_star * 100:.3f}%)")
+assert abs(r_cross - ge_res.r_star) < 5e-4, "Plotted Ks/Kd crossing must agree with the solver's r*"
 
 # %%
 # --- Hero Visualizations: Policy, Drift, Distribution, and Market Clearing ---
@@ -291,10 +306,10 @@ plt.show()
 #
 # **Read the output.** The computational results illustrate the mathematical and economic mechanisms of continuous-time heterogeneous-agent modeling:
 #
-# 1. **Implicit Solver Efficiency & Convergence (Experiment 1):** The canonical implicit upwind scheme converges to tolerance $10^{-8}$ in exactly 8 iterations, taking less than 0.02 seconds. The $M$-matrix structure completely bypasses the Courant-Friedrichs-Lewy (CFL) constraint. At the borrowing boundary $a = 0$, the savings drift strictly satisfies $s(0, z) \ge 0$, verifying that households never violate the borrowing constraint.
-# 2. **Exact Adjoint Density & Mass Conservation (Experiment 2):** The stationary wealth distribution $g(a, z)$ solved from the transpose generator $A^T g = 0$ achieves mass conservation error $| \sum g_i \Delta a_i - 1.0 | = 2.22 \times 10^{-16}$, matching machine precision. The cross-sectional distribution displays pronounced concentration at the borrowing limit $a = 0$ for low-productivity households, accompanied by a right-skewed tail for high-productivity households, generating an aggregate wealth Gini coefficient of approximately $0.46$.
+# 1. **Implicit Solver Efficiency & Convergence (Experiment 1):** The canonical implicit upwind scheme converges to tolerance $10^{-8}$ in exactly 8 iterations, in a few milliseconds of wall time. The $M$-matrix structure completely bypasses the Courant-Friedrichs-Lewy (CFL) constraint. At the borrowing boundary $a = 0$, the savings drift strictly satisfies $s(0, z) \ge 0$ — the printed value is $s(0, z_{\mathrm{low}}) = 0$ exactly — verifying that households never violate the borrowing constraint.
+# 2. **Exact Adjoint Density & Mass Conservation (Experiment 2):** The stationary wealth distribution $g(a, z)$ solved from the transpose generator $A^T g = 0$ integrates to $1.0000000000000000$ against the grid's quadrature weights, a mass residual of $0.00 \times 10^{0}$ — exact to the last bit of double precision, because the solver renormalizes the node mass after the sparse solve. The density peaks exactly at the borrowing limit $a = 0$ in the low-productivity state and is hump-shaped in the high-productivity state, peaking well inside the grid; the resulting aggregate wealth Gini coefficient is $0.3542$.
 # 3. **Analytical Benchmark Precision (Experiment 3):** On the unconstrained cake-eating problem ($r=0, w=0$), the numerical policy matches the closed-form analytical consumption rule $c(a) = (\rho/\gamma)a$ with a maximum relative error of $0.0073$ ($0.73\%$), confirming high numerical accuracy on smooth domains.
-# 4. **General Equilibrium Asset Market Clearing (Experiment 4):** The continuous Aiyagari general equilibrium bisection converges in ~1.5 seconds to market-clearing interest rate $r^* = 1.888\%$ ($0.01888$) and real wage $w^* = 1.342$. As predicted by macroeconomic theory, $r^* < \rho = 5.00\%$ because households accumulate precautionary buffer-stock savings against uninsurable idiosyncratic earnings risk, driving the equilibrium capital stock above the complete-markets level.
+# 4. **General Equilibrium Asset Market Clearing (Experiment 4):** The continuous Aiyagari general equilibrium root solve converges in a few hundredths of a second to market-clearing interest rate $r^* = 1.888\%$ ($0.018879$), real wage $w^* = 1.4495$ and aggregate capital $K^* = 6.2190$. Firm demand in the market-clearing panel is $K^d(r) = L^* \left( \alpha / (r + \delta) \right)^{1/(1-\alpha)}$ evaluated at the same aggregate labor supply the solver uses, $L^* = \sum_j z_j \pi_j = 0.6$; the notebook interpolates the sampled excess-demand curve and asserts that its zero sits within $5 \times 10^{-4}$ of $r^*$, so the plotted crossing and the dotted $r^*$ line agree. As predicted by macroeconomic theory, $r^* < \rho = 5.00\%$ because households accumulate precautionary buffer-stock savings against uninsurable idiosyncratic earnings risk, driving the equilibrium capital stock above the complete-markets level.
 
 # %%
 # Your turn: customize discount rate, risk aversion, and grid resolution
