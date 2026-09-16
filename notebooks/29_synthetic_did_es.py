@@ -1,9 +1,12 @@
 # ---
 # jupyter:
 #   jupytext:
+#     formats: ipynb,py:percent
 #     text_representation:
 #       extension: .py
 #       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.5
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -145,7 +148,7 @@ fig, axes = plt.subplots(1, 2, figsize=(7.6, 3.6), gridspec_kw={"width_ratios": 
 ax = axes[0]
 time_axis = np.arange(T_periods)
 ax.plot(time_axis, treated_traj, color="0.00", lw=2.0, label="Unidad Tratada ($Y_{1,t}$)")
-ax.plot(time_axis, synthetic_path, color="0.40", ls="--", lw=1.8, label="Control Sintético SDID ($\sum \hat{\omega}_i Y_{i,t}$)")
+ax.plot(time_axis, synthetic_path, color="0.40", ls="--", lw=1.8, label=r"Control Sintético SDID ($\sum \hat{\omega}_i Y_{i,t}$)")
 ax.plot(time_axis, unweighted_control_path, color="0.75", ls=":", lw=1.5, label="Controles no Ponderados (DiD Ingenuo)")
 ax.axvline(T_treat - 0.5, color="0.60", ls="-.", lw=1.0, label="Inicio de Tratamiento")
 
@@ -178,12 +181,12 @@ plt.show()
 fig, ax = plt.subplots(figsize=(6.0, 2.8))
 
 pre_times = np.arange(T_treat)
-ax.bar(pre_times, res_sdid.lambda_w, color="0.35", edgecolor="0.00", width=0.6, label="Ponderaciones Temporales $\hat{\lambda}_t$")
+ax.bar(pre_times, res_sdid.lambda_w, color="0.35", edgecolor="0.00", width=0.6, label=r"Ponderaciones Temporales $\hat{\lambda}_t$")
 ax.axhline(1.0 / T_treat, color="0.60", ls="--", label=f"Ponderación Uniforme (1/{T_treat})")
 
-ax.set_title("Ponderaciones Temporales Pre-Tratamiento $\hat{\lambda}_t$", loc="left", fontsize=10, fontweight="bold")
+ax.set_title(r"Ponderaciones Temporales Pre-Tratamiento $\hat{\lambda}_t$", loc="left", fontsize=10, fontweight="bold")
 ax.set_xlabel("Período Pre-Tratamiento $t$")
-ax.set_ylabel("Ponderación $\hat{\lambda}_t$")
+ax.set_ylabel(r"Ponderación $\hat{\lambda}_t$")
 ax.set_xticks(pre_times)
 ax.legend(loc="upper right", fontsize=8.5)
 
