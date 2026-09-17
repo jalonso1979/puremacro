@@ -14,6 +14,33 @@ sin volver a correrla) y qué hacer.
 
 ---
 
+## 2026-09-16 — tres estimadores, versiones hasta 4.0.1 inclusive
+
+**Corregido en 4.0.2.** Se encontraron cuando un sitio de curso volvió a derivar
+los números de puremacro por su cuenta: un filtro HP aplicado en el dominio del
+tiempo, un MC2E en forma matricial y una cadena de Markov resuelta con 80 dígitos.
+
+| Estimador | Qué estaba mal | No afectado cuando | Dirección del error |
+|---|---|---|---|
+| `theoretical_moments(hp_filter=...)` vía `dsge._moments.spectral_moments` (2.9.0–4.0.1) | Ponderaba la densidad espectral con la función de transferencia `H(w)` del filtro HP en lugar de su cuadrado | Momentos teóricos sin filtrar o con filtro pasa-banda, y momentos simulados de `stoch_simul(hp_filter=...)`, que filtran en el dominio del tiempo | Varianzas y autocovarianzas filtradas **sobreestimadas**: +22% de varianza (+10.5% de desviación estándar) para un AR(1) con rho = 0.9 y lambda = 1600; las volatilidades relativas y las correlaciones se movieron con ellas |
+| `lp.lp_iv` (0.92.0–4.0.1), `lp.lp_state_dep_iv` (2.0.0–4.0.1), `lp.la_lp_iv` (4.0.0–4.0.1) | La varianza de la segunda etapa usaba el residuo `y - X_hat beta` (regresor ajustado) en lugar de `y - X beta` | Nunca para `se`, `lo`, `hi`; las estimaciones puntuales, la F de primera etapa, la F de Montiel Olea–Pflueger y los conjuntos de Anderson–Rubin eran correctos | **En cualquier sentido**, en `2 beta cov(u, v) + beta^2 var(v)`: las bandas nominales de 90% cubrieron el valor verdadero 100% de las veces con `beta = 1`, `cov(u, v) = 0.8`, y 69% con `beta = -1` |
+| `vfi.markov_stationary` (0.92.0–4.0.1), `dsge.markov_switching.markov_stationary` (3.1.0–4.0.1) | Tomaba el eigenvector de `P'` del eigenvalor más cercano a 1 | Los estados se comunican con probabilidades muy por encima de ~1e-12, como en las mallas usuales de Tauchen y Rouwenhorst | Una mezcla arbitraria cuando varios eigenvalores redondean a 1: **error de 6e-5** en una cadena de dos estados con probabilidad de cambio de 1e-13, una **probabilidad de -0.23** en `tauchen(7, 0.995, 0.1, m=5)`; la copia de `dsge` regresaba una distribución uniforme sin avisar |
+
+### Qué hay que volver a correr
+
+- **Cualquier cuadro de momentos teóricos con filtro HP**, por ejemplo una
+  comparación à la Kydland–Prescott de un modelo DSGE con los datos. Los momentos
+  simulados eran correctos, así que un cuadro que mezclaba ambos comparaba cosas
+  distintas.
+- **Cualquier banda o estadístico t de `lp_iv`, `la_lp_iv` o `lp_state_dep_iv`.**
+  Que fuera demasiado ancha o demasiado angosta depende del signo de
+  `beta cov(u, v)`, así que no se corrige reescalando: hay que volver a estimar.
+- **Distribuciones estacionarias de discretizaciones muy persistentes** (Tauchen
+  con rho de alrededor de 0.95 o más y malla amplia) o de modelos con cambio de
+  régimen markoviano con regímenes casi absorbentes.
+
+---
+
 ## 2026-09-03 — doce más, versiones hasta 1.9.0 inclusive
 
 **Corregido en 1.10.0.** Una auditoría posterior

@@ -14,6 +14,32 @@ without re-running it), and what to do.
 
 ---
 
+## 2026-09-16 — three estimators, versions up to and including 4.0.1
+
+**Fixed in 4.0.2.** Found while a course site re-derived puremacro's numbers
+independently: an HP filter applied in the time domain, a matrix-form 2SLS, and a
+Markov chain solved in 80-digit arithmetic.
+
+| Estimator | What was wrong | Unaffected when | Direction of the error |
+|---|---|---|---|
+| `theoretical_moments(hp_filter=...)` via `dsge._moments.spectral_moments` (2.9.0–4.0.1) | Weighted the spectral density by the HP cycle filter's transfer function `H(w)` instead of its square | Unfiltered or band-pass theoretical moments, and simulated moments from `stoch_simul(hp_filter=...)`, which filter in the time domain | Filtered variances and autocovariances **overstated**: +22% variance (+10.5% s.d.) for an AR(1) with rho = 0.9 at lambda = 1600; relative volatilities and correlations shifted with them |
+| `lp.lp_iv` (0.92.0–4.0.1), `lp.lp_state_dep_iv` (2.0.0–4.0.1), `lp.la_lp_iv` (4.0.0–4.0.1) | The second-stage variance used the residual `y - X_hat beta` (fitted regressor) instead of `y - X beta` | Never for `se`, `lo`, `hi`; point estimates, first-stage F, the Montiel Olea–Pflueger F and the Anderson–Rubin sets were right | **Either way**, by `2 beta cov(u, v) + beta^2 var(v)`: nominal 90% bands covered the truth 100% of the time with `beta = 1`, `cov(u, v) = 0.8`, and 69% with `beta = -1` |
+| `vfi.markov_stationary` (0.92.0–4.0.1), `dsge.markov_switching.markov_stationary` (3.1.0–4.0.1) | Took the eigenvector of `P'` for the eigenvalue nearest 1 | States communicate through probabilities well above ~1e-12, as on ordinary Tauchen and Rouwenhorst grids | An arbitrary mixture when several eigenvalues round to 1: **6e-5 off** on a two-state chain with switching probability 1e-13, a **probability of -0.23** on `tauchen(7, 0.995, 0.1, m=5)`; the `dsge` copy fell back to a uniform distribution without a warning |
+
+### What to re-run
+
+- **Any HP-filtered theoretical moment table**, e.g. a Kydland–Prescott
+  comparison of a DSGE model with data. Simulated moments were right, so a
+  table that mixed the two compared unlike quantities.
+- **Any `lp_iv`, `la_lp_iv` or `lp_state_dep_iv` band or t-statistic.** Whether
+  it was too wide or too narrow depends on the sign of `beta cov(u, v)`, so it
+  cannot be corrected by rescaling; re-run.
+- **Stationary distributions of very persistent discretizations** (Tauchen with
+  rho at or above about 0.95 and a wide grid) or of Markov-switching models with
+  near-absorbing regimes.
+
+---
+
 ## 2026-09-03 — twelve more, versions up to and including 1.9.0
 
 **Fixed in 1.10.0.** A follow-up audit asked, of

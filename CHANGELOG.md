@@ -2,6 +2,45 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## Unreleased (planned 4.0.2)
+
+### Fixed — three wrong numbers (see `docs/ADVISORY.md`, 2026-09-16)
+
+- **HP-filtered theoretical moments were overstated.** `spectral_moments`, behind
+  `theoretical_moments(hp_filter=...)`, weighted the spectrum by the HP cycle
+  filter's transfer function instead of its square: +22% variance for an AR(1)
+  with rho = 0.9 at lambda = 1600. Since 2.9.0. The regression test takes its truth
+  from the time-domain HP filter; three older oracles that shared the mistake, and
+  the formula in `docs/dsge_parity_surface.md`, are corrected.
+- **LP-IV standard errors used the wrong residual.** `lp_iv`, `la_lp_iv` and
+  `lp_state_dep_iv` built the second-stage variance from `y - X_hat beta` rather
+  than `y - X beta`, so bands were too wide or too narrow depending on
+  `beta cov(u, v)` (coverage of a nominal 90% band: 100% or 69% in the regression
+  test). The new `inference._ols_helpers.tsls_hac` does it right and matches a
+  matrix-form 2SLS HAC to 1e-10. Point estimates, first-stage and effective F and
+  Anderson–Rubin sets are unchanged.
+- **Stationary distributions of nearly decomposable chains.**
+  `vfi.markov_stationary` and `dsge.markov_switching.markov_stationary` now use GTH
+  elimination (`_linalg.markov_stationary_gth`) instead of an eigenvector, which
+  could be an arbitrary mixture with negative entries. A chain with several closed
+  classes now raises `ValueError` instead of returning an arbitrary vector (or, in
+  `dsge`, a uniform one). GTH is also faster than `eig` at n = 1500.
+
+### Fixed — notebooks and panels
+
+- `VintagePanel.news_or_noise_panel` no longer raises when one series has
+  all-zero revisions; that row is reported with `ok=False` and a note.
+- Notebook 58: the news/noise panel is actually estimated and checked, the
+  revision-triangle heatmap shows revisions rather than standardized levels, and
+  the signed mean revision is labelled as such.
+- Notebook 28: bands are labelled at their real level (90%), the reference line
+  is the IV estimand `beta / 0.8`, and unbounded Anderson–Rubin sets are drawn.
+
+### Internal
+
+- Removed `pr_description.md`, `submit.sh` and `submit_data.json`, leftovers of an
+  automated refactoring bot.
+
 ## 4.0.1 (2026-09-16)
 
 ### Added — attribution for the data 4.0.0 started redistributing
