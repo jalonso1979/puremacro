@@ -196,7 +196,9 @@ def spectral_moments(
             raise ValueError(f"hp_lambda must be positive, got {hp_lambda}")
         cos_w = np.cos(omega)
         term = 4.0 * float(hp_lambda) * ((1.0 - cos_w) ** 2)
-        gain2 = term / (1.0 + term)
+        # term / (1 + term) is the HP cycle filter's transfer function H(omega), which is real;
+        # the spectrum of the filtered series is |H|^2 times the input spectrum, so square it.
+        gain2 = (term / (1.0 + term)) ** 2
     elif filter_type == "bandpass":
         gain2 = np.ones_like(omega)
     else:

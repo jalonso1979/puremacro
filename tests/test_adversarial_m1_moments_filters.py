@@ -70,16 +70,24 @@ def rbc_model():
 def test_adversarial_hp_closed_form_white_noise():
     """Verify HP filter theoretical variance matches closed-form analytical solution.
 
-    For white noise with unit variance, the theoretical HP filter variance has
-    the exact analytical closed form:
-        Var_hp = 1 - (1 / sqrt(1 + 16*lambda)) * sqrt((sqrt(1 + 16*lambda) + 1) / 2).
+    For white noise with unit variance the HP cycle variance is (1/pi) int_0^pi H(w)^2 dw,
+    with H = t / (1 + t) and t = 4 lambda (1 - cos w)^2. Writing
+        g(mu) = sqrt((s + 1) / 2) / s,   s = sqrt(1 + 16 mu),
+    for (1/pi) int_0^pi dw / (1 + t), the exact closed form is
+        Var_hp = 1 - g(lambda) + lambda g'(lambda).
+    Before 4.0.2 this test used 1 - g(lambda), the integral of the *unsquared* gain H,
+    which is the same mistake spectral_moments made; tests/test_hp_spectral_gain.py checks
+    the corrected value against the time-domain HP filter.
     Verify that spectral_moments (both for nx=0 and for AR(1) with rho=0) matches
     this closed-form solution to relative error < 1e-10 across 8 orders of lambda.
     """
     lambdas = [0.1, 1.0, 10.0, 100.0, 1600.0, 14400.0, 1e5, 1e6]
     for lamb in lambdas:
         sA = np.sqrt(1.0 + 16.0 * lamb)
-        var_closed = 1.0 - (1.0 / sA) * np.sqrt(0.5 * (sA + 1.0))
+        rA = np.sqrt(0.5 * (sA + 1.0))
+        g = rA / sA
+        g_prime = (-rA / sA**2 + 1.0 / (4.0 * sA * rA)) * 8.0 / sA
+        var_closed = 1.0 - g + lamb * g_prime
 
         # Static model (nx = 0)
         G = np.zeros((0, 0))
@@ -91,8 +99,11 @@ def test_adversarial_hp_closed_form_white_noise():
             G, N, Mx, Mu, sig_u, lags=1, filter_type="hp", hp_lambda=lamb, n_quad=128
         )
         rel_err_static = abs(g0_static[0, 0] - var_closed) / var_closed
-        assert rel_err_static < 1e-10, (
-            f"Static nx=0 lambda={lamb}: relative error {rel_err_static:.3e} exceeds 1e-10"
+        # The squared gain turns over more sharply than the gain, so 128 Gauss-Legendre nodes
+        # reach ~5e-10 at lambda = 1e6 (and < 1e-12 at quarterly lambdas).
+        tol = 1e-9 if lamb >= 1e6 else 1e-10
+        assert rel_err_static < tol, (
+            f"Static nx=0 lambda={lamb}: relative error {rel_err_static:.3e} exceeds {tol:.0e}"
         )
 
         # Dynamic model with rho = 0
@@ -104,8 +115,8 @@ def test_adversarial_hp_closed_form_white_noise():
             G_ar, N_ar, Mx_ar, Mu_ar, sig_u, lags=1, filter_type="hp", hp_lambda=lamb, n_quad=128
         )
         rel_err_ar = abs(g0_ar[0, 0] - var_closed) / var_closed
-        assert rel_err_ar < 1e-10, (
-            f"Dynamic rho=0 lambda={lamb}: relative error {rel_err_ar:.3e} exceeds 1e-10"
+        assert rel_err_ar < tol, (
+            f"Dynamic rho=0 lambda={lamb}: relative error {rel_err_ar:.3e} exceeds {tol:.0e}"
         )
 
 
@@ -131,7 +142,7 @@ def test_adversarial_hp_quadrature_ar1_fine_grid(rho, hp_lambda):
 
     def integrand(w):
         cos_w = np.cos(w)
-        gain2 = 4.0 * hp_lambda * (1.0 - cos_w)**2 / (1.0 + 4.0 * hp_lambda * (1.0 - cos_w)**2)
+        gain2 = (4.0 * hp_lambda * (1.0 - cos_w)**2 / (1.0 + 4.0 * hp_lambda * (1.0 - cos_w)**2)) ** 2
         psd = (1.0 / (2.0 * np.pi)) / (1.0 + rho**2 - 2.0 * rho * cos_w)
         return 2.0 * gain2 * psd
 

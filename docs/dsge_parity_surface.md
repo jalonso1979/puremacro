@@ -51,7 +51,7 @@ Puremacro integrates this spectral density using $n_{quad} = 256$ Gauss-Legendre
 #### Supported Spectral Filters
 
 1. **Hodrick-Prescott Filter (`hp_filter = lambda`)**:
-   $$|\Phi_{HP}(\omega)|^2 = \frac{4\lambda (1 - \cos\omega)^2}{1 + 4\lambda (1 - \cos\omega)^2}$$
+   $$|\Phi_{HP}(\omega)|^2 = \left(\frac{4\lambda (1 - \cos\omega)^2}{1 + 4\lambda (1 - \cos\omega)^2}\right)^2$$
    where $\lambda = 1600$ for quarterly data, $\lambda = 6.25$ for annual data, and $\lambda = 129600$ for monthly data.
 2. **Frequency Bandpass Filter (`bandpass_filter = [low, high]`)**:
    Ideal bandpass filter retaining periodicities between periods $p_{high} = 2\pi/\omega_{low}$ and $p_{low} = 2\pi/\omega_{high}$ (e.g. $[6, 32]$ quarters for business cycles):

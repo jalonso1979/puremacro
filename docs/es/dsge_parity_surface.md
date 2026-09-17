@@ -51,7 +51,7 @@ Puremacro aproxima esta integración espectral empleando $n_{quad} = 256$ nodos 
 #### Filtros espectrales soportados
 
 1. **Filtro de Hodrick-Prescott (`hp_filter = lambda`)**:
-   $$|\Phi_{HP}(\omega)|^2 = \frac{4\lambda (1 - \cos\omega)^2}{1 + 4\lambda (1 - \cos\omega)^2}$$
+   $$|\Phi_{HP}(\omega)|^2 = \left(\frac{4\lambda (1 - \cos\omega)^2}{1 + 4\lambda (1 - \cos\omega)^2}\right)^2$$
    donde habitualmente $\lambda = 1600$ para frecuencia trimestral, $\lambda = 6.25$ para anual y $\lambda = 129600$ para mensual.
 2. **Filtro de paso de banda o Baxter-King (`bandpass_filter = [low, high]`)**:
    Filtro ideal de paso de banda que preserva oscilaciones entre periodicidades $p_{high} = 2\pi/\omega_{low}$ y $p_{low} = 2\pi/\omega_{high}$ (por ejemplo, $[6, 32]$ trimestres para ciclos económicos):

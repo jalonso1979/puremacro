@@ -370,7 +370,8 @@ def canonical_nk_setup():
 def synthetic_spectral_hp_oracle():
     """Closed-form Gauss-Legendre quadrature numerical oracle for HP-filtered AR(1) variance."""
     def compute_hp_variance(rho: float, sigma_u: float, lamb: float, n_points: int = 256) -> float:
-        # Transfer function: |H_hp(w)|^2 = 4*lambda*(1 - cos(w))^2 / (1 + 4*lambda*(1 - cos(w))^2)
+        # Transfer function: H_hp(w) = 4*lambda*(1 - cos(w))^2 / (1 + 4*lambda*(1 - cos(w))^2), real;
+        # the variance weights the spectrum by its square.
         # Spectral density of AR(1): S(w) = sigma_u^2 / (2*pi * (1 + rho^2 - 2*rho*cos(w)))
         # Variance = 2 * int_0^pi S(w) * |H_hp(w)|^2 dw
         nodes, weights = np.polynomial.legendre.leggauss(n_points)
@@ -379,7 +380,7 @@ def synthetic_spectral_hp_oracle():
         dw = 0.5 * np.pi
         
         cos_w = np.cos(w)
-        h_sq = 4.0 * lamb * (1.0 - cos_w)**2 / (1.0 + 4.0 * lamb * (1.0 - cos_w)**2)
+        h_sq = (4.0 * lamb * (1.0 - cos_w)**2 / (1.0 + 4.0 * lamb * (1.0 - cos_w)**2)) ** 2
         s_y = (sigma_u**2) / (2.0 * np.pi * (1.0 + rho**2 - 2.0 * rho * cos_w))
         
         integral = np.sum(weights * s_y * h_sq) * dw
