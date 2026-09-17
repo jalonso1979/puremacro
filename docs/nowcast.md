@@ -23,11 +23,14 @@ throws away precisely the rows the nowcast is about.
 those two problems, plus combination and scoring helpers for judging the
 result.
 
-| function | model | you hand it | ragged edge handled by |
+| function / class | model | you hand it | ragged edge handled by |
 |---|---|---|---|
 | `nowcast_gdp` | EM-PCA factors + factor VAR + quarterly bridge regression | a monthly frame **and** a quarterly GDP series | iterative PCA imputation; all-NaN months and the rest of the target quarter by the factor VAR |
-| `kalman_dfm` | Doz-Giannone-Reichlin (2011) two-step DFM | one frame, one frequency | exact Kalman smoother |
+| `kalman_dfm` / `DynamicFactorModel` | Doz-Giannone-Reichlin (2011) two-step & EM DFM | one frame, one frequency | exact Kalman smoother |
 | `mf_var` | Mariano-Murasawa (2003) mixed-frequency VAR | one monthly frame with the quarterly column stamped once per quarter | exact Kalman smoother |
+| `realtime_nowcast` | Latin America central bank orchestrator + news decomposition | country code + panel data | Kalman smoother & factor VAR |
+
+For central bank integration (Banxico, INEGI, BCB, BCCh, ALFRED), analytical Bańbura & Modugno (2014) news decomposition, PIT density evaluation, and institutional fan charts, see [Latin America Real-Time Nowcasting & News Decomposition](nowcast_latam_news.md).
 
 Nothing on this page touches the network. Every block below runs on the
 synthetic panel built here — a one-factor DGP with ten indicators, a ragged

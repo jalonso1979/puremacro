@@ -10,11 +10,14 @@ El PIB es una magnitud trimestral que se publica con retraso considerable — en
 
 `puremacro.nowcast` proporciona tres estimadores que resuelven estos desafíos:
 
-| Función | Modelo | Entradas requeridas | Tratamiento del borde irregular |
+| Función / Clase | Modelo | Entradas requeridas | Tratamiento del borde irregular |
 |---|---|---|---|
 | `nowcast_gdp` | Factores EM-PCA + VAR de factores + regresión puente trimestral | Panel mensual **y** serie trimestral de PIB | Imputación iterativa por PCA; los meses sin ninguna observación y el resto del trimestre objetivo, con el VAR de factores |
-| `kalman_dfm` | DFM en dos etapas (Doz-Giannone-Reichlin 2011) | Un panel en una sola frecuencia | Suavizador exacto de Kalman |
+| `kalman_dfm` / `DynamicFactorModel` | DFM en dos etapas y EM (Doz-Giannone-Reichlin 2011; Bańbura-Modugno 2014) | Un panel en una sola frecuencia | Suavizador exacto de Kalman |
 | `mf_var` | VAR de frecuencias mixtas (Mariano-Murasawa 2003) | Panel mensual con el dato trimestral estampado una vez por trimestre | Suavizador exacto de Kalman |
+| `realtime_nowcast` | Orquestador de bancos centrales para América Latina + noticias | Código de país + panel de datos | Suavizador de Kalman y VAR de factores |
+
+Para la integración institucional con bancos centrales (Banxico, INEGI, BCB, BCCh, ALFRED), descomposición analítica de noticias de Bańbura y Modugno (2014), evaluación PIT y gráficos de abanico, consulte [Nowcasting en tiempo real de América Latina y descomposición de noticias](nowcast_latam_news.md).
 
 Todo el código se ejecuta sin dependencias de red. Los bloques de esta página usan un panel sintético con un factor, diez indicadores, un último mes incompleto y 39 trimestres de PIB determinados por el promedio trimestral del factor:
 
