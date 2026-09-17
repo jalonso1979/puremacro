@@ -60,13 +60,12 @@ Requiere Python 3.11 o posterior.
 git clone --depth 1 --filter=blob:none --sparse https://github.com/jalonso1979/puremacro.git
 cd puremacro
 git sparse-checkout set curso/notebooks
-python -m pip install "puremacro>=4.0.1,<5" openpyxl jupyterlab
+python -m pip install "puremacro[io]>=4.0.1,<5" statsmodels arch jupyterlab
 cd curso/notebooks
 jupyter lab
 ```
 
-Un `git clone https://github.com/jalonso1979/puremacro.git` completo también funciona. T03_B
-necesita además `pip install arch`. T03_E usa un modelo de lenguaje local si lo
+Un `git clone https://github.com/jalonso1979/puremacro.git` completo también funciona. T03_E usa un modelo de lenguaje local si lo
 encuentra (`pip install "puremacro[local-llm]"` u Ollama); sin él corre con un
 motor simulado que avisa y no extrae eventos, que es lo que muestran sus salidas
 guardadas. Ningún cuaderno necesita red: las descargas en vivo son opcionales y,
@@ -150,13 +149,12 @@ Requires Python 3.11 or later.
 git clone --depth 1 --filter=blob:none --sparse https://github.com/jalonso1979/puremacro.git
 cd puremacro
 git sparse-checkout set curso/notebooks
-python -m pip install "puremacro>=4.0.1,<5" openpyxl jupyterlab
+python -m pip install "puremacro[io]>=4.0.1,<5" statsmodels arch jupyterlab
 cd curso/notebooks
 jupyter lab
 ```
 
-A full `git clone https://github.com/jalonso1979/puremacro.git` also works. T03_B also needs
-`pip install arch`. T03_E uses a local language model if it finds one
+A full `git clone https://github.com/jalonso1979/puremacro.git` also works. T03_E uses a local language model if it finds one
 (`pip install "puremacro[local-llm]"` or Ollama); without one it runs on a mock
 engine that prints a notice and extracts no events, which is what its saved outputs
 show. No notebook needs the network: live downloads are optional and, by default,
