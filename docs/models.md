@@ -24,15 +24,21 @@ New Keynesian economy, and it returns in **0.21 s**.
 | module | import path | what it solves |
 |---|---|---|
 | `hank_sequence_space` | `puremacro.models` | one-asset HANK: EGM steady state, exact $\mathcal{O}(T^2)$ Fake News algorithm, targeted fiscal transfers, and GE transition by one `T x T` linear solve |
+| `trade_policy` | `puremacro.models` | Caliendo-Parro quantitative trade general equilibrium simulator with bilateral tariffs and market clearing |
+| `monetary_transmission` | `puremacro.models` | HANK vs. RANK monetary policy and balance-sheet transmission with Kaplan-Moll-Violante decomposition |
 | `dmp_regime_dependent` | `puremacro.models` | representative-firm DMP, Hall sticky wages, regime-dependent vacancy cost and TFP bump |
 | `nested_dmp` (package) | `puremacro.models.nested_dmp` | heterogeneous-firm DMP with Bayesian beliefs about the policy rule: steady state, perfect-foresight IRF, IRF-matching estimation, recursive stochastic solve, welfare sweep |
 | `smm` | `puremacro.models.smm` | moment loader and objective for estimating `dmp_regime_dependent` against local-projection IRFs |
+
+For quantitative counterfactual simulations and static browser-native laboratories (`curso/site/labs/`), see the dedicated guide: [Macroeconomic Policy Simulators & Interactive Browser Labs](policy_simulators.md).
 
 `puremacro.models.__all__` re-exports:
 `DMPParameters`, `DMPState`, `dmp_steady_state`, `dmp_irf`,
 `SequenceSpaceHANKResult`, `solve_hank_sequence_space`,
 `FakeNewsResult`, `FiscalTransferResult`,
-`fake_news_algorithm`, and `simulate_targeted_transfer`. `nested_dmp` and `smm`
+`fake_news_algorithm`, `simulate_targeted_transfer`,
+`TradePolicySimulator`, `TradePolicySimulationResult`,
+`MonetaryTransmissionSimulator`, and `MonetaryTransmissionResult`. `nested_dmp` and `smm`
 are reached by their own paths.
 
 ## What the sequence-space method buys

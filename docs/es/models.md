@@ -20,15 +20,21 @@ Esto simula un choque monetario contractivo de 25 puntos básicos en una econom�
 | Módulo | Ruta de importación | Qué resuelve |
 |---|---|---|
 | `hank_sequence_space` | `puremacro.models` | HANK de un activo: estado estacionario por EGM, algoritmo exacto Fake News en $\mathcal{O}(T^2)$, transferencias fiscales focalizadas y transición de equilibrio general mediante un sistema lineal $T \times T$ |
+| `trade_policy` | `puremacro.models` | Simulador cuantitativo de política comercial de Caliendo-Parro con aranceles bilaterales y vaciado de mercado |
+| `monetary_transmission` | `puremacro.models` | Transmisión de política monetaria y macroprudencial HANK vs. RANK con descomposición Kaplan-Moll-Violante |
 | `dmp_regime_dependent` | `puremacro.models` | Modelo DMP con empresa representativa, salarios rígidos de Hall, coste de vacantes dependiente del régimen y choque de PTF |
 | `nested_dmp` (paquete) | `puremacro.models.nested_dmp` | DMP con empresas heterogéneas y creencias bayesianas sobre la regla de política: estado estacionario, FRI con previsión perfecta, estimación por coincidencia de FRI, solución estocástica recursiva y análisis de bienestar |
 | `smm` | `puremacro.models.smm` | Cargador de momentos y función objetivo para estimar `dmp_regime_dependent` frente a FRI de proyecciones locales |
+
+Para simulaciones contrafactuales cuantitativas y laboratorios interactivos en el navegador (`curso/site/labs/`), consulte la guía: [Simuladores de política macroeconómica y laboratorios interactivos](policy_simulators.md).
 
 `puremacro.models.__all__` reexporta:
 `DMPParameters`, `DMPState`, `dmp_steady_state`, `dmp_irf`,
 `SequenceSpaceHANKResult`, `solve_hank_sequence_space`,
 `FakeNewsResult`, `FiscalTransferResult`,
-`fake_news_algorithm` y `simulate_targeted_transfer`.
+`fake_news_algorithm`, `simulate_targeted_transfer`,
+`TradePolicySimulator`, `TradePolicySimulationResult`,
+`MonetaryTransmissionSimulator` y `MonetaryTransmissionResult`.
 
 ## Ventajas del método en el espacio de secuencias
 
