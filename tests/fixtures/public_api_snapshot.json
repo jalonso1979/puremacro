@@ -1268,7 +1268,8 @@
       "wild_bootstrap_var"
     ],
     "puremacro.inference._ols_helpers": [
-      "ols_hac"
+      "ols_hac",
+      "tsls_hac"
     ],
     "puremacro.inference.collinearity": [
       "vif"
