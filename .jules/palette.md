@@ -1,0 +1,3 @@
+## 2024-05-15 - Accessibility in IPython HTML Outputs
+**Learning:** Decorative emojis (like 🚀 or ↗) and anchor tags opening in new tabs within inline HTML outputs for Jupyter environments (e.g., IPython.display.HTML) require explicit accessibility attributes just like standard web interfaces. Screen readers may misinterpret these otherwise.
+**Action:** When creating Python string templates for HTML rendering (e.g., interactive Jupyter dialogs), always wrap decorative characters with `<span aria-hidden="true">` and ensure `target="_blank"` links include `rel="noopener noreferrer"` and explicit `aria-label`s.
