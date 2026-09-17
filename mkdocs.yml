@@ -67,16 +67,19 @@ nav:
           - Modern Difference-in-Differences: did.md
           - Honest DiD Sensitivity: honest_did.md
           - Double / Debiased Machine Learning: causal_dml.md
+          - Double ML for Treatment Effects & IV (IRM & DML-IV): dml_irm_iv.md
           - Spatial Econometrics: spatial.md
           - Global VAR (GVAR): gvar.md
           - DSGE Estimation & Diagnostics: dsge_estimation.md
           - GDP Nowcasting: nowcast.md
+          - Latin America Real-Time Nowcasting & News: nowcast_latam_news.md
           - Penalized Forecasting: forecast.md
       - Publication & Reporting:
           - Manuscript Tables & Exports: reporting.md
       - Structural Models:
           - Sequence-Space HANK: models.md
           - Non-Linear HANK Transitions: hank_nonlinear.md
+          - Macroeconomic Policy Simulators & Browser Labs: policy_simulators.md
           - Gertler-Karadi (2011) DSGE: gertler_karadi.md
           - Climate Macro (DICE): climate.md
           - DSGE Sketchpad & Dynare: dsge_build.md
@@ -129,16 +132,19 @@ nav:
           - Diferencias en diferencias modernas: es/did.md
           - Sensibilidad en DiD honesto: es/honest_did.md
           - Aprendizaje automático doble / desesgado: es/causal_dml.md
+          - Doble ML para efectos de tratamiento e instrumentos (IRM y DML-IV): es/dml_irm_iv.md
           - Econometría espacial: es/spatial.md
           - VAR global (GVAR): es/gvar.md
           - Estimación y diagnósticos DSGE: es/dsge_estimation.md
           - Nowcasting del PIB: es/nowcast.md
+          - Nowcasting en tiempo real de América Latina y descomposición de noticias: es/nowcast_latam_news.md
           - Pronóstico penalizado: es/forecast.md
       - Publicación e informes:
           - Tablas y exportación de manuscritos: es/reporting.md
       - Modelos estructurales:
           - HANK en el espacio de secuencias: es/models.md
           - Transiciones no lineales en HANK: es/hank_nonlinear.md
+          - Simuladores de política macroeconómica y laboratorios interactivos: es/policy_simulators.md
           - DSGE de Gertler-Karadi (2011): es/gertler_karadi.md
           - Macroeconomía del clima (DICE): es/climate.md
           - Cuaderno de bocetos DSGE y Dynare: es/dsge_build.md

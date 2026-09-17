@@ -20,6 +20,115 @@ Following `notebooks/_TEMPLATE.md`, deepened and frontier showcase notebooks adh
 6. **Your Turn**: An interactive exploratory exercise with `# ← change this` knobs, runnable defaults with assertions, and graded challenge prompts.
 7. **How Comprehensive Is This?**: Contextual cross-references connecting the showcase to related `puremacro` entry points and literature.
 
+## Latin America Nowcasting, Interactive DML & Quantitative Policy Simulators (puremacro 3.5)
+
+Showcases `59` through `61` demonstrate `puremacro`'s frontier Latin American real-time nowcasting with Bańbura-Modugno (2014) news attribution and Berkowitz (2001) density evaluation, high-dimensional causal inference via Interactive Double Machine Learning (IRM & DML-IV) with regularized logistic coordinate descent and Montiel Olea & Pflueger effective $F$ diagnostics, and quantitative macroeconomic policy simulators across 77-country 11-sector OECD ICIO trade general equilibrium and sequence-space HANK monetary transmission.
+
+### `59_latam_realtime_nowcast_and_news`
+- **Source**: `notebooks/59_latam_realtime_nowcast_and_news.py` (Spanish: `_es.py`, compiled: `.ipynb`)
+- **Motivating Economic Question**: How can central banks and economic research desks across Latin America nowcast quarterly GDP growth in real time from ragged-edge monthly indicator panels, decompose nowcast updates into release surprises and statistical revisions using the exact Bańbura & Modugno (2014) identity, and validate predictive density calibration using Berkowitz (2001) PIT uniformity tests?
+- **Governing Math & Algorithms**:
+  - **Dynamic Factor Model in State-Space Form**: Standardized indicators $X_t = \Lambda F_t + \xi_t$ driven by latent factors $F_t = \sum_{l=1}^p A_l F_{t-l} + u_t$. Estimated via Doz, Giannone, and Reichlin (2011) two-step principal components and Kalman filter/smoother over unbalanced ragged edges.
+  - **Bańbura & Modugno (2014) Exact News Attribution**:
+    $$\Delta \hat{y}_{t^*|v} \equiv \hat{y}_{t^*|v} - \hat{y}_{t^*|v-1} = \sum_{j \in \mathcal{I}_{\text{new}}} \omega_j \cdot I_{j, v} + \sum_{k \in \mathcal{I}_{\text{rev}}} \omega_k \cdot R_{k, v}$$
+    Weights $\omega$ are determined by Kalman filter gain and state autocovariances, satisfying the exact identity with zero residual ($|\Delta \hat{y}_{t^*|v} - \sum \text{Impact}| < 10^{-10}$).
+  - **Predictive Density Evaluation via Berkowitz (2001) LR Test**: Probability Integral Transform $p_t = \Phi((y_t - \mu_t)/\sigma_t)$ transformed to normal errors $z_t = \Phi^{-1}(p_t)$ with autoregression $(z_t - \mu) = \rho (z_{t-1} - \mu) + \varepsilon_t$ tested under $H_0: \mu = 0, \sigma_\varepsilon^2 = 1, \rho = 0$ yielding likelihood ratio statistic $\text{LR} \sim \chi^2(3)$.
+  - **Latin America Data Cartridges**: Real-time connectors for Mexico (INEGI, Banxico) and Brazil (BCB) packaged into offline `.pmz` containers with SHA-256 integrity verification.
+- **Economic Intuition**: Asynchronous publication schedules produce an unbalanced ragged edge. The Dynamic Factor Model estimates underlying activity despite missing observations. When new figures arrive, Bańbura-Modugno news attribution isolates whether updates reflect genuine economic surprises or retrospective agency revisions. Calibrated fan charts ensure credible density forecasts.
+- **Worked Code**:
+  ```python
+  import numpy as np
+  from puremacro.fetch.realtime import VintagePanel, pack_realtime_cartridge, load_realtime_cartridge
+  from puremacro.nowcast import (
+      DynamicFactorModel, realtime_nowcast, banbura_modugno_news,
+      fan_chart, pit_uniformity_test,
+  )
+
+  # Dynamic Factor Model nowcasting with ragged edge
+  dfm = DynamicFactorModel(n_factors=2, factor_lags=1)
+  dfm.fit(X_train)
+  nowcast_res = dfm.nowcast(target_series=y_gdp, X_eval=X_ragged)
+
+  # Exact Bańbura-Modugno news decomposition
+  news_res = banbura_modugno_news(dfm, y_target=y_gdp, vintage_old=p_old, vintage_new=p_new)
+  news_res.total_revision, news_res.decomposition_error  # error < 1e-10
+
+  # Density calibration evaluation
+  pit_res = pit_uniformity_test(realizations=y_realized, means=mu_seq, stds=sigma_seq)
+  pit_res.lr_stat, pit_res.p_value
+  ```
+- **Read the Output & Visualizations**: 4-Panel hero dashboard: (1) Real-time GDP nowcast path with fan chart ribbons; (2) Exact Bańbura-Modugno news attribution waterfall; (3) Indicator surprise contributions by sector; (4) Berkowitz PIT empirical CDF with 95% Kolmogorov-Smirnov confidence bands.
+- **Your Turn Interactive Knobs & Asserts**: Knobs for factor dimensions, lag orders, and indicator subsets with assertion gates validating convergence and zero decomposition error.
+- **Literature & Cross-References**: Bańbura & Modugno (2014), Giannone, Reichlin & Small (2008), Berkowitz (2001). User guides: [`docs/nowcast_latam_news.md`](nowcast_latam_news.md) and [`docs/real_time_latam.md`](real_time_latam.md).
+
+### `60_interactive_dml_irm_and_iv`
+- **Source**: `notebooks/60_interactive_dml_irm_and_iv.py` (Spanish: `_es.py`, compiled: `.ipynb`)
+- **Motivating Economic Question**: How do economists estimate the causal impact of voluntary savings programs—such as 401(k) pension eligibility and participation—on net wealth accumulation when eligibility and take-up depend on dozens of non-linear socio-demographic confounders, and how can Double Machine Learning recover unbiased Average Treatment Effects (ATE), Treatment on the Treated (ATT), and Instrumental Variable (DML-IV) estimates without regularization bias?
+- **Governing Math & Algorithms**:
+  - **Interactive Regression Model (IRM)**: Potential outcomes $(Y(1), Y(0)) \perp D \mid X$ with conditional response functions $Y = g_0(D, X) + U$ and propensity score $D = m_0(X) + V$.
+  - **Doubly Robust Neyman-Orthogonal Scores for ATE & ATT**:
+    $$\psi_{\text{ATE}}(W; \theta, \eta) = g(1, X) - g(0, X) + \frac{D (Y - g(1, X))}{m(X)} - \frac{(1 - D) (Y - g(0, X))}{1 - m(X)} - \theta$$
+    $$\psi_{\text{ATT}}(W; \theta, \eta) = \frac{D (Y - g(0, X))}{\mathbb{P}(D = 1)} - \frac{m(X)(1 - D)(Y - g(0, X))}{\mathbb{P}(D = 1)(1 - m(X))} - \theta$$
+  - **Pure-NumPy Regularized Logistic Coordinate Descent**: Soft-thresholding updates $\beta_j^{\text{new}} = S(c_j \beta_j - g_j, \lambda)/c_j$ using surrogate curvature upper bound $c_j = \frac{1}{4N} \sum_i X_{ij}^2$, with BIC penalty selection and automatic overlap trimming to $[\varepsilon, 1-\varepsilon]$.
+  - **Double ML Instrumental Variables (DML-IV)**: Cross-fitted 2SLS on orthogonal residuals with Montiel Olea & Pflueger (2013) effective $F_{\text{eff}}$ weak-instrument diagnostics.
+- **Economic Intuition**: Heterogeneous treatment effects and confounding invalidate constant-effect linear regressions, while naive Lasso introduces severe attenuation bias. DML-IRM pairs regularized non-linear machine learning with Neyman-orthogonal scores and $K$-fold cross-fitting, preserving $\sqrt{N}$-consistent causal inference. When actual program participation is endogenous, DML-IV exploits institutional eligibility as an instrument, verifying identification strength via effective $F$.
+- **Worked Code**:
+  ```python
+  import numpy as np
+  from puremacro.causal import (
+      DoubleMLIRM, DoubleMLIV, dml_irm, dml_iv,
+      LogisticCoordinateDescent,
+  )
+
+  # DML-IRM: Average Treatment Effect & Treatment on the Treated
+  irm_ate = DoubleMLIRM(ml_g="lasso", ml_m="logistic", n_folds=5, score="ATE", trimming_threshold=0.01)
+  res_ate = irm_ate.fit(Y=net_assets, D=e401, X=df_controls)
+  res_ate.theta, res_ate.se, res_ate.n_trimmed
+
+  # DML-IV: Endogenous treatment with Montiel Olea-Pflueger F-statistic
+  res_iv = dml_iv(Y=net_assets, D=p401, Z=e401, X=df_controls, n_folds=5)
+  res_iv.theta, res_iv.first_stage_effective_f, res_iv.weak_instrument
+  ```
+- **Read the Output & Visualizations**: 4-Panel hero dashboard: (1) Propensity score overlap distributions with trimming thresholds; (2) Cross-estimator causal benchmark (OLS vs Naive Lasso vs DML-ATE vs DML-ATT vs DML-IV); (3) Montiel Olea-Pflueger first-stage orthogonal residual scatter; (4) Coordinate descent regularization tuning path.
+- **Your Turn Interactive Knobs & Asserts**: Knobs for trimming threshold $\varepsilon$, fold count $K$, and penalization penalties with assertions validating bounds and confidence intervals.
+- **Literature & Cross-References**: Chernozhukov et al. (2018), Belloni, Chernozhukov & Hansen (2014), Montiel Olea & Pflueger (2013). User guide: [`docs/dml_irm_iv.md`](dml_irm_iv.md).
+
+### `61_quantitative_policy_simulators`
+- **Source**: `notebooks/61_quantitative_policy_simulators.py` (Spanish: `_es.py`, compiled: `.ipynb`)
+- **Motivating Economic Question**: How do bilateral trade disputes and tariff escalations propagate across global input-output linkages to alter terms of trade, sectoral allocation, and real wages in general equilibrium, and how does household wealth and income heterogeneity govern the transmission of monetary policy between hand-to-mouth consumers and unconstrained asset holders?
+- **Governing Math & Algorithms**:
+  - **Ricardian Trade Policy General Equilibrium (Caliendo & Parro 2015)**: Exact hat algebra on multi-country multi-sector input-output tables:
+    $$\hat{\pi}_{ni}^j = \left( \frac{\hat{\kappa}_{ni}^j \hat{c}_i^j}{\hat{P}_n^j} \right)^{-\theta_j}, \quad \hat{c}_i^j = \hat{w}_i^{\gamma_i^j} \prod_{k=1}^J (\hat{P}_i^k)^{\gamma_i^{j, k}}$$
+    Solves for equilibrium wage adjustments $\{\hat{w}_i\}$ and goods market clearing, decomposing national welfare changes into terms of trade, input-output efficiency, and tariff revenue.
+  - **Sequence-Space Monetary Transmission & KMV Decomposition (Kaplan et al. 2018; Auclert et al. 2021)**: Linearized dynamic consumption response $d\mathbf{C} = \mathbf{J}^{C, r} d\mathbf{r} + \mathbf{J}^{C, Y} d\mathbf{Y}$. In RANK, $\mathbf{J}^{C, Y} = 0$ (100% direct intertemporal substitution). In HANK, hand-to-mouth consumers with steep MPCs drive large indirect general equilibrium labor income multipliers:
+    $$\text{Indirect Share} = \frac{(\mathbf{J}^{C, Y} d\mathbf{Y})_0}{dC_0} \times 100\%$$
+- **Economic Intuition**: Tariffs generate multi-sector cost cascades through imported intermediates and induce trade diversion toward third countries. Caliendo-Parro exact hat algebra computes these general equilibrium adjustments without estimating structural parameters. In monetary policy, empirical wealth concentration means liquidity-constrained households drive aggregate consumption through indirect income channels rather than direct interest-rate intertemporal smoothing.
+- **Worked Code**:
+  ```python
+  import numpy as np
+  from puremacro.trade.data import load_icio_data
+  from puremacro.models import (
+      TradePolicySimulator, MonetaryTransmissionSimulator,
+  )
+
+  # 1. 77-Country 11-Sector OECD ICIO Trade Policy GE Simulation
+  trade_sim = TradePolicySimulator(load_icio_data(return_structured=True))
+  trade_res = trade_sim.simulate_tariff_shock(
+      tariffs={"USA": {"CHN": {"MANU": 0.25}}, "CHN": {"USA": {"MANU": 0.25}}},
+  )
+  trade_res.welfare_change["USA"], trade_res.welfare_change["MEX"]
+
+  # 2. Sequence-Space HANK vs RANK Monetary Transmission
+  mon_sim = MonetaryTransmissionSimulator()
+  mon_res = mon_sim.simulate_monetary_shock(r_path=dr_seq)
+  mon_res.direct_effect, mon_res.indirect_effect, mon_res.indirect_share
+  ```
+- **Read the Output & Visualizations**: 4-Panel hero dashboard: (1) General equilibrium welfare impacts across countries; (2) Sectoral bilateral trade diversion and terms-of-trade shifts; (3) HANK vs RANK consumption impulse response trajectories; (4) Kaplan-Moll-Violante direct vs indirect consumption decomposition across wealth deciles.
+- **Your Turn Interactive Knobs & Asserts**: Knobs for retaliatory tariff rates, trade elasticities, and hand-to-mouth population shares with assertion gates validating goods market clearing and consumption decomposition.
+- **Literature & Cross-References**: Caliendo & Parro (2015), Kaplan, Moll & Violante (2018), Auclert et al. (2021). User guide: [`docs/policy_simulators.md`](policy_simulators.md).
+
+---
+
 ## Continuous HJB/KFE, Multi-Constraint OccBin & Latin America Macro Showcases (puremacro 3.4)
 
 Showcases `56` through `58` demonstrate `puremacro`'s frontier continuous-time Hamilton-Jacobi-Bellman (HJB) implicit upwind solvers with adjoint Kolmogorov Forward Equations (KFE), multi-constraint piecewise-linear DSGE perturbation (OccBin $M \ge 2$) coupled with Double / Debiased Machine Learning (DML-PLR), and portable Latin American real-time macroeconomic vintage cartridges (`.pmz`) with Mankiw-Shapiro (1986) news vs. noise econometrics.
@@ -460,6 +569,9 @@ Showcases `47` through `50` bridge theoretical macroeconometrics with applied ce
 | `56_implicit_hjb_and_continuous_kfe` | Continuous-time HJB implicit upwind solver, adjoint KFE stationary wealth density & Aiyagari GE | `56_implicit_hjb_and_continuous_kfe_es` |
 | `57_multiconstraint_occbin_and_dml` | Multi-constraint OccBin ($M \ge 2$: ZLB + credit limits) & Double Machine Learning (DML-PLR) | `57_multiconstraint_occbin_and_dml_es` |
 | `58_latin_america_realtime_macro` | Latin American real-time GDP vintages, portable `.pmz` cartridges & Mankiw-Shapiro news vs noise | `58_latin_america_realtime_macro_es` |
+| `59_latam_realtime_nowcast_and_news` | Latin America DFM GDP nowcasting, Bańbura-Modugno news decomposition & Berkowitz density PIT | `59_latam_realtime_nowcast_and_news_es` |
+| `60_interactive_dml_irm_and_iv` | Interactive Double ML: IRM (ATE/ATT) with regularized logistic CD, propensity overlap & DML-IV | `60_interactive_dml_irm_and_iv_es` |
+| `61_quantitative_policy_simulators` | Quantitative policy simulators: 77-country OECD ICIO trade GE & sequence-space HANK monetary transmission | `61_quantitative_policy_simulators_es` |
 
 ---
 

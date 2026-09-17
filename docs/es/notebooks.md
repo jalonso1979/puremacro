@@ -20,6 +20,115 @@ Siguiendo `notebooks/_TEMPLATE.md`, los cuadernos profundizados y de frontera si
 6. **Tu Turno**: Ejercicio exploratorio interactivo con controles `# ← modifica esto`, valores por defecto funcionales con aserciones y retos graduados.
 7. **¿Qué tan Exhaustivo es Esto?**: Referencias contextuales que vinculan la demostración con otros módulos de `puremacro` y la literatura.
 
+## Nowcasting de América Latina, DML Interactivo y Simuladores Cuantitativos de Política (puremacro 3.5)
+
+Las demostraciones `59` a `61` presentan las capacidades de vanguardia de `puremacro` en nowcasting en tiempo real para América Latina con atribución de noticias de Bańbura-Modugno (2014) y evaluación de densidades de Berkowitz (2001), inferencia causal en alta dimensión mediante Aprendizaje Automático Doble Interactivo (IRM y DML-IV) con descenso por coordenadas logístico regularizado y diagnósticos de $F$ efectiva de Montiel Olea y Pflueger, y simuladores cuantitativos de política macroeconómica en equilibrio general comercial con la matriz ICIO de la OCDE (77 países, 11 sectores) y transmisión monetaria en HANK en el espacio de secuencias.
+
+### `59_latam_realtime_nowcast_and_news_es`
+- **Fuente**: `notebooks/59_latam_realtime_nowcast_and_news_es.py` (Inglés: `.py`, compilado: `.ipynb`)
+- **Pregunta Económica Motivadora**: ¿Cómo pueden los bancos centrales y departamentos de estudios económicos de América Latina realizar el nowcasting del crecimiento trimestral del PIB en tiempo real a partir de paneles de indicadores mensuales con extremos irregulares (*ragged edges*), descomponer las actualizaciones del pronóstico en sorpresas de publicación y revisiones estadísticas usando la identidad exacta de Bańbura y Modugno (2014), y validar la calibración de la densidad predictiva mediante pruebas de uniformidad PIT de Berkowitz (2001)?
+- **Matemáticas y Algoritmos Rectores**:
+  - **Modelo de Factores Dinámicos en Forma Estado-Espacio**: Indicadores estandarizados $X_t = \Lambda F_t + \xi_t$ explicados por factores latentes $F_t = \sum_{l=1}^p A_l F_{t-l} + u_t$. Estimación en dos etapas mediante componentes principales y filtro/suavizador de Kalman (Doz, Giannone y Reichlin 2011) sobre paneles desbalanceados.
+  - **Atribución Exacta de Noticias de Bańbura y Modugno (2014)**:
+    $$\Delta \hat{y}_{t^*|v} \equiv \hat{y}_{t^*|v} - \hat{y}_{t^*|v-1} = \sum_{j \in \mathcal{I}_{\text{new}}} \omega_j \cdot I_{j, v} + \sum_{k \in \mathcal{I}_{\text{rev}}} \omega_k \cdot R_{k, v}$$
+    Las ponderaciones $\omega$ provienen de la ganancia de Kalman y autocovarianzas de estado, satisfaciendo la identidad matemática exacta con residuo cero ($|\Delta \hat{y}_{t^*|v} - \sum \text{Impacto}| < 10^{-10}$).
+  - **Evaluación de Densidad Predictiva con Prueba de Razón de Verosimilitud de Berkowitz (2001)**: Transformada Integral de Probabilidad $p_t = \Phi((y_t - \mu_t)/\sigma_t)$ transformada a errores normales $z_t = \Phi^{-1}(p_t)$ con autorregresión $(z_t - \mu) = \rho (z_{t-1} - \mu) + \varepsilon_t$ evaluada bajo $H_0: \mu = 0, \sigma_\varepsilon^2 = 1, \rho = 0$ con estadístico $\text{LR} \sim \chi^2(3)$.
+  - **Cartuchos de Datos para América Latina**: Conectores en tiempo real para México (INEGI, Banxico) y Brasil (BCB) empaquetados en contenedores portátiles fuera de línea `.pmz` con verificación criptográfica SHA-256.
+- **Intuición Económica**: Los desfases asíncronos en los calendarios estadísticos generan un extremo irregular. El Modelo de Factores Dinámicos extrae las fluctuaciones comunes pese a los valores faltantes. Al publicarse nuevos datos, la descomposición de Bańbura-Modugno discrimina si la revisión del pronóstico obedece a sorpresas genuinas respecto a las expectativas del modelo o a ajustes retrospectivos de los institutos de estadística. Los abanicos de densidad calibrados ofrecen intervalos creíbles para las decisiones de política.
+- **Código Desarrollado**:
+  ```python
+  import numpy as np
+  from puremacro.fetch.realtime import VintagePanel, pack_realtime_cartridge, load_realtime_cartridge
+  from puremacro.nowcast import (
+      DynamicFactorModel, realtime_nowcast, banbura_modugno_news,
+      fan_chart, pit_uniformity_test,
+  )
+
+  # Nowcasting con DFM bajo paneles irregulares
+  dfm = DynamicFactorModel(n_factors=2, factor_lags=1)
+  dfm.fit(X_train)
+  nowcast_res = dfm.nowcast(target_series=y_gdp, X_eval=X_ragged)
+
+  # Descomposición exacta de noticias Bańbura-Modugno
+  news_res = banbura_modugno_news(dfm, y_target=y_gdp, vintage_old=p_old, vintage_new=p_new)
+  news_res.total_revision, news_res.decomposition_error  # error < 1e-10
+
+  # Calibración de densidades mediante prueba de Berkowitz
+  pit_res = pit_uniformity_test(realizations=y_realized, means=mu_seq, stds=sigma_seq)
+  pit_res.lr_stat, pit_res.p_value
+  ```
+- **Lectura de Resultados y Visualizaciones**: Tablero hero de 4 paneles: (1) Trayectoria del nowcast del PIB en tiempo real con abanicos de incertidumbre; (2) Cascada de atribución de noticias de Bańbura-Modugno; (3) Contribuciones de sorpresas por indicador y sector; (4) Curva empírica de PIT de Berkowitz frente a la diagonal uniforme con bandas al 95 % de Kolmogorov-Smirnov.
+- **Tu Turno y Aserciones Interactivas**: Parámetros de dimensión de factores, orden de rezagos y subconjuntos de indicadores con aserciones de convergencia e identidad exacta de descomposición.
+- **Literatura y Referencias Cruzadas**: Bańbura y Modugno (2014), Giannone, Reichlin y Small (2008), Berkowitz (2001). Guías de usuario: [`docs/es/nowcast_latam_news.md`](nowcast_latam_news.md) y [`docs/es/real_time_latam.md`](real_time_latam.md).
+
+### `60_interactive_dml_irm_and_iv_es`
+- **Fuente**: `notebooks/60_interactive_dml_irm_and_iv_es.py` (Inglés: `.py`, compilado: `.ipynb`)
+- **Pregunta Económica Motivadora**: ¿Cómo estiman los economistas el impacto causal de programas de ahorro voluntario —como la elegibilidad y participación en planes de pensiones 401(k)— sobre la riqueza financiera neta cuando la asignación depende de decenas de variables de confusión sociodemográficas no lineales, y cómo puede el Aprendizaje Automático Doble recuperar estimaciones no sesgadas del Efecto Medio del Tratamiento (ATE), del Efecto en los Tratados (ATT) y con Variables Instrumentales (DML-IV) sin sesgo de regularización?
+- **Matemáticas y Algoritmos Rectores**:
+  - **Modelo de Regresión Interactiva (IRM)**: Resultados potenciales $(Y(1), Y(0)) \perp D \mid X$ con funciones estructurales $Y = g_0(D, X) + U$ y propensión $D = m_0(X) + V$.
+  - **Scores Ortogonales de Neyman Doblemente Robustos para ATE y ATT**:
+    $$\psi_{\text{ATE}}(W; \theta, \eta) = g(1, X) - g(0, X) + \frac{D (Y - g(1, X))}{m(X)} - \frac{(1 - D) (Y - g(0, X))}{1 - m(X)} - \theta$$
+    $$\psi_{\text{ATT}}(W; \theta, \eta) = \frac{D (Y - g(0, X))}{\mathbb{P}(D = 1)} - \frac{m(X)(1 - D)(Y - g(0, X))}{\mathbb{P}(D = 1)(1 - m(X))} - \theta$$
+  - **Descenso por Coordenadas Logístico Regularizado en NumPy Puro**: Actualizaciones por umbralización suave $\beta_j^{\text{nueva}} = S(c_j \beta_j - g_j, \lambda)/c_j$ con cota superior de curvatura subrogada $c_j = \frac{1}{4N} \sum_i X_{ij}^2$, selección de penalización por BIC y truncamiento de solapamiento en $[\varepsilon, 1-\varepsilon]$.
+  - **Variables Instrumentales con Doble ML (DML-IV)**: MC2E con ajuste cruzado sobre residuos ortogonales y diagnósticos de instrumento débil mediante el estadístico $F_{\text{eff}}$ de Montiel Olea y Pflueger (2013).
+- **Intuición Económica**: La heterogeneidad en las respuestas y la presencia de variables de confusión invalidan los modelos lineales de efecto constante, mientras que un Lasso ingenuo introduce atenuación por encogimiento. DML-IRM combina modelos no lineales regularizados con scores ortogonales de Neyman y ajuste cruzado en $K$ particiones, preservando la normalidad asintótica y consistencia $\sqrt{N}$. Cuando la participación en el programa es endógena, DML-IV emplea la elegibilidad como instrumento excluido, evaluando formalmente la potencia del instrumento con el estadístico $F$ efectivo.
+- **Código Desarrollado**:
+  ```python
+  import numpy as np
+  from puremacro.causal import (
+      DoubleMLIRM, DoubleMLIV, dml_irm, dml_iv,
+      LogisticCoordinateDescent,
+  )
+
+  # DML-IRM: Efecto Medio del Tratamiento y sobre los Tratados
+  irm_ate = DoubleMLIRM(ml_g="lasso", ml_m="logistic", n_folds=5, score="ATE", trimming_threshold=0.01)
+  res_ate = irm_ate.fit(Y=activos_netos, D=e401, X=df_controles)
+  res_ate.theta, res_ate.se, res_ate.n_trimmed
+
+  # DML-IV: Tratamiento endógeno con F de Montiel Olea-Pflueger
+  res_iv = dml_iv(Y=activos_netos, D=p401, Z=e401, X=df_controles, n_folds=5)
+  res_iv.theta, res_iv.first_stage_effective_f, res_iv.weak_instrument
+  ```
+- **Lectura de Resultados y Visualizaciones**: Tablero hero de 4 paneles: (1) Distribución de solapamiento de puntajes de propensión y cotas de truncamiento; (2) Comparación de estimadores causales (MCO ingenuo vs Lasso ingenuo vs DML-ATE vs DML-ATT vs DML-IV); (3) Diagrama de dispersión de la primera etapa residual de Montiel Olea-Pflueger; (4) Curva de calibración de la penalización $\ell_1$ de la propensión.
+- **Tu Turno y Aserciones Interactivas**: Parámetros de truncamiento $\varepsilon$, número de particiones $K$ y penalizaciones de regularización con aserciones sobre cotas e intervalos de confianza.
+- **Literatura y Referencias Cruzadas**: Chernozhukov et al. (2018), Belloni, Chernozhukov y Hansen (2014), Montiel Olea y Pflueger (2013). Guía de usuario: [`docs/es/dml_irm_iv.md`](dml_irm_iv.md).
+
+### `61_quantitative_policy_simulators_es`
+- **Fuente**: `notebooks/61_quantitative_policy_simulators_es.py` (Inglés: `.py`, compilado: `.ipynb`)
+- **Pregunta Económica Motivadora**: ¿Cómo se propagan las disputas comerciales bilaterales y las escaladas arancelarias a través de los encadenamientos insumo-producto globales para alterar los términos de intercambio, la asignación sectorial y los salarios reales en equilibrio general, y cómo gobierna la heterogeneidad de riqueza e ingreso la transmisión de la política monetaria entre consumidores restringidos y tenedores de activos?
+- **Matemáticas y Algoritmos Rectores**:
+  - **Equilibrio General de Política Comercial Ricardiana (Caliendo y Parro 2015)**: Álgebra de cambios proporcionales exactos (*exact hat algebra*) sobre matrices insumo-producto internacionales:
+    $$\hat{\pi}_{ni}^j = \left( \frac{\hat{\kappa}_{ni}^j \hat{c}_i^j}{\hat{P}_n^j} \right)^{-\theta_j}, \quad \hat{c}_i^j = \hat{w}_i^{\gamma_i^j} \prod_{k=1}^J (\hat{P}_i^k)^{\gamma_i^{j, k}}$$
+    Resuelve el sistema de vaciado de mercados de bienes y factores determinando $\{\hat{w}_i\}$, descomponiendo el bienestar nacional en términos de intercambio, encadenamientos insumo-producto e ingresos arancelarios.
+  - **Transmisión Monetaria en Espacio de Secuencias y Descomposición KMV (Kaplan et al. 2018; Auclert et al. 2021)**: Respuesta dinámica linealizada del consumo $d\mathbf{C} = \mathbf{J}^{C, r} d\mathbf{r} + \mathbf{J}^{C, Y} d\mathbf{Y}$. En RANK, $\mathbf{J}^{C, Y} = 0$ (100 % sustitución intertemporal directa). En HANK, los hogares mano a la boca con elevadas propensiones marginales a consumir generan amplios multiplicadores indirectos de ingreso laboral:
+    $$\text{Proporción Indirecta} = \frac{(\mathbf{J}^{C, Y} d\mathbf{Y})_0}{dC_0} \times 100\%$$
+- **Intuición Económica**: Los aranceles estatutarios producen desvío de comercio y cascadas de costos a lo largo de las cadenas de valor intermedias. El solucionador de Caliendo-Parro computa estos ajustes sin requerir la estimación de parámetros estructurales no observables. En el ámbito monetario, la concentración de riqueza líquida implica que los hogares con restricciones de liquidez transmiten la política a través de contracciones indirectas en el ingreso del trabajo y no mediante la suavización intertemporal de tasas de interés.
+- **Código Desarrollado**:
+  ```python
+  import numpy as np
+  from puremacro.trade.data import load_icio_data
+  from puremacro.models import (
+      TradePolicySimulator, MonetaryTransmissionSimulator,
+  )
+
+  # 1. Simulación de EG comercial sobre matriz ICIO OCDE (77 países, 11 sectores)
+  trade_sim = TradePolicySimulator(load_icio_data(return_structured=True))
+  trade_res = trade_sim.simulate_tariff_shock(
+      tariffs={"USA": {"CHN": {"MANU": 0.25}}, "CHN": {"USA": {"MANU": 0.25}}},
+  )
+  trade_res.welfare_change["USA"], trade_res.welfare_change["MEX"]
+
+  # 2. Transmisión monetaria en HANK vs RANK en espacio de secuencias
+  mon_sim = MonetaryTransmissionSimulator()
+  mon_res = mon_sim.simulate_monetary_shock(r_path=dr_seq)
+  mon_res.direct_effect, mon_res.indirect_effect, mon_res.indirect_share
+  ```
+- **Lectura de Resultados y Visualizaciones**: Tablero hero de 4 paneles: (1) Impacto en bienestar en equilibrio general por país; (2) Desvío sectorial de comercio bilateral y términos de intercambio; (3) Trayectorias de impulso-respuesta del consumo en HANK frente a RANK; (4) Descomposición directa e indirecta de Kaplan-Moll-Violante por deciles de riqueza.
+- **Tu Turno y Aserciones Interactivas**: Parámetros interactivos de aranceles de represalia, elasticidades comerciales y participación de hogares mano a la boca con aserciones de vaciado de mercados y descomposición del consumo.
+- **Literatura y Referencias Cruzadas**: Caliendo y Parro (2015), Kaplan, Moll y Violante (2018), Auclert et al. (2021). Guía de usuario: [`docs/es/policy_simulators.md`](policy_simulators.md).
+
+---
+
 ## Demostraciones de HJB/KFE Continuo, OccBin Multirrestricción y Macro en Tiempo Real de América Latina (puremacro 3.4)
 
 Las demostraciones `56` a `58` presentan los motores de vanguardia de `puremacro` en resolución de Hamilton-Jacobi-Bellman (HJB) en tiempo continuo mediante esquema implícito upwind con ecuaciones de Kolmogorov hacia adelante (KFE) adjuntas, perturbación DSGE lineal a tramos multirrestricción (OccBin $M \ge 2$) combinada con Aprendizaje Automático Doble / Desesgado (DML-PLR), y cartuchos criptográficos portátiles `.pmz` de datos en tiempo real de América Latina con econometría de noticias frente a ruido de Mankiw-Shapiro (1986).
@@ -463,6 +572,9 @@ Las demostraciones `47` a `50` conectan la macroeconometría teórica con la pr�
 | `56_implicit_hjb_and_continuous_kfe_es` | Solucionador implícito HJB en tiempo continuo, densidad estacionaria KFE adjunta y GE de Aiyagari | `56_implicit_hjb_and_continuous_kfe` |
 | `57_multiconstraint_occbin_and_dml_es` | OccBin multirrestricción ($M \ge 2$: ZLB + límites de crédito) y Aprendizaje Automático Doble (DML-PLR) | `57_multiconstraint_occbin_and_dml` |
 | `58_latin_america_realtime_macro_es` | Vintages del PIB en tiempo real de América Latina, cartuchos `.pmz` y noticias vs ruido Mankiw-Shapiro | `58_latin_america_realtime_macro` |
+| `59_latam_realtime_nowcast_and_news_es` | Nowcasting DFM del PIB para América Latina, descomposición de noticias Bańbura-Modugno y PIT Berkowitz | `59_latam_realtime_nowcast_and_news` |
+| `60_interactive_dml_irm_and_iv_es` | Aprendizaje Automático Doble interactivo: IRM (ATE/ATT) con DC logístico, solapamiento y DML-IV | `60_interactive_dml_irm_and_iv` |
+| `61_quantitative_policy_simulators_es` | Simuladores cuantitativos: EG comercial ICIO OCDE (77 países) y transmisión monetaria HANK en secuencias | `61_quantitative_policy_simulators` |
 
 ---
 
