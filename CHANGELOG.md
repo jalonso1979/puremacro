@@ -2,6 +2,13 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## 4.1.1 (2026-09-17)
+
+### Fixed
+
+- Restored missing fallback exception handling across 142 files that caused unexpected test suite crashes. The explicit exception tuples introduced previously were retained, but `Exception` was safely appended to preserve identical runtime behavior with `4.1.0`.
+
+
 ## 4.1.0 (2026-09-17)
 
 ### Added — Latin America real-time nowcasting, interactive Double ML, policy simulators, and showcases
