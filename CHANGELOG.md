@@ -2,7 +2,44 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
-## Unreleased (planned 4.0.2)
+## 4.1.0 (2026-09-17)
+
+### Added — Latin America real-time nowcasting, interactive Double ML, policy simulators, and showcases
+
+- **Latin America Real-Time Nowcasting & News Attribution**:
+  - `puremacro.nowcast.realtime_nowcast` integrates real-time vintage data from
+    Banxico, INEGI, Banco Central do Brasil (SGS), and Banco Central de Chile
+    with the Kalman Dynamic Factor Model (`DynamicFactorModel`) and MF-VAR.
+  - `puremacro.nowcast.news.banbura_modugno_news` implements the exact analytical
+    Bańbura & Modugno (2014) news-versus-noise decomposition:
+    `\Delta \hat{y}_{t|v} - \hat{y}_{t|v-1} = \sum_i \omega_i \cdot \text{news}_{i, v}`,
+    quantifying release surprises and revision impacts to numerical precision (< 1e-14).
+  - Forecast evaluation in `puremacro.nowcast.evaluation` provides CRPS, log scores,
+    Berkowitz (2001) LR and Kolmogorov-Smirnov PIT uniformity tests, and fan charts.
+- **Interactive Double Machine Learning (IRM & DML-IV)**:
+  - `puremacro.causal.dml.DoubleMLIRM`: Interactive Regression Model estimating
+    Average Treatment Effects (ATE) and Treatment on the Treated (ATT) with
+    Neyman-orthogonal scores, stratified cross-fitting, and automated overlap trimming.
+  - `puremacro.causal.dml.LogisticCoordinateDescent`: Pure-NumPy coordinate descent solver
+    for L1, L2, and elastic-net regularized logistic classification via Böhning-Lindsay
+    surrogate upper bounds, requiring zero external dependencies or C-extensions.
+  - `puremacro.causal.dml.DoubleMLIV`: Instrumental variables estimator for endogenous
+    treatments with high-dimensional controls and Montiel Olea & Pflueger effective F-statistics.
+  - Interactive diagnostics: `.plot_overlap()`, `.plot_coefficients()`, and penalty tuning curves.
+- **Quantitative Policy Simulators & Browser Labs**:
+  - `puremacro.models.trade_policy.TradePolicySimulator`: General equilibrium trade
+    policy simulator evaluating bilateral tariffs, real wage shifts, and terms-of-trade
+    effects on the bundled 77-country OECD ICIO transaction matrix.
+  - `puremacro.models.monetary_transmission.MonetaryTransmissionSimulator`: Sequence-space
+    HANK vs. RANK policy simulator with Kaplan-Moll-Violante direct/indirect consumption
+    decomposition across empirical MPC deciles.
+  - Interactive browser labs in `curso/site/labs/`: `comercio-aranceles.html` (tariff war
+    laboratory) and `politica-monetaria-hank.html` (HANK vs. RANK laboratory).
+- **Showcase Notebooks 59, 60, and 61**:
+  - Notebook 59: *Latin America Real-Time Nowcast & Bańbura-Modugno News Attribution* (`59_latam_realtime_nowcast_and_news.py` / `_es.py`).
+  - Notebook 60: *Interactive Double ML with High-Dimensional Causal Controls* (`60_interactive_dml_irm_and_iv.py` / `_es.py`).
+  - Notebook 61: *Quantitative Macro Policy Simulators (Trade Wars & HANK Transmission)* (`61_quantitative_policy_simulators.py` / `_es.py`).
+  - Built and committed with executed outputs (.ipynb) via `tools/build_notebooks.py`.
 
 ### Fixed — three wrong numbers (see `docs/ADVISORY.md`, 2026-09-16)
 
