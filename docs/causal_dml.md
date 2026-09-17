@@ -10,6 +10,8 @@
 4. `LassoCoordinateDescent` — an $\ell_1$ learner (cyclical coordinate descent along a regularization path, model selected by BIC or AIC).
 5. `RidgeGCV` — an $\ell_2$ learner (SVD closed form, penalty selected by generalized cross-validation).
 
+For heterogeneous treatment effects (ATE/ATT) via the Interactive Regression Model (`DoubleMLIRM`), regularized logistic classification (`LogisticCoordinateDescent`), overlap trimming, and instrumental variables (`DoubleMLIV`), see the dedicated guide: [Double ML for Treatment Effects & IV (IRM & DML-IV)](dml_irm_iv.md).
+
 Everything is pure NumPy / SciPy / pandas / Matplotlib in float64, needs no network access and runs unchanged in Pyodide. It complements the other causal pages, [Modern Difference-in-Differences](did.md) and [Honest DiD sensitivity analysis](honest_did.md), and is showcased end to end in notebook 57 (`notebooks/57_multiconstraint_occbin_and_dml.py`), where a policy multiplier is estimated with high-dimensional macroeconomic controls and compared with naive OLS and naive lasso.
 
 ---

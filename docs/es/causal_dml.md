@@ -10,6 +10,8 @@
 4. `LassoCoordinateDescent` — un aprendiz (*learner*) $\ell_1$ (descenso cíclico por coordenadas a lo largo de una trayectoria de regularización, con el modelo seleccionado por BIC o AIC).
 5. `RidgeGCV` — un aprendiz $\ell_2$ (forma cerrada vía SVD, con la penalización seleccionada por validación cruzada generalizada).
 
+Para efectos de tratamiento heterogéneos (ATE/ATT) mediante el Modelo de Regresión Interactiva (`DoubleMLIRM`), clasificación logística regularizada (`LogisticCoordinateDescent`), recorte de propensiones y variables instrumentales (`DoubleMLIV`), consulte la guía especializada: [Aprendizaje Automático Doble para Efectos de Tratamiento e Instrumentos (IRM y DML-IV)](dml_irm_iv.md).
+
 Todo es NumPy / SciPy / pandas / Matplotlib puro en float64, no requiere acceso a la red y se ejecuta sin cambios en Pyodide. Complementa las demás páginas causales, [Diferencias en Diferencias Modernas](did.md) y [Análisis de sensibilidad en diferencias en diferencias honesto](honest_did.md), y se muestra de principio a fin en el cuaderno 57 (`notebooks/57_multiconstraint_occbin_and_dml.py`, con versión en español en `notebooks/57_multiconstraint_occbin_and_dml_es.py`), donde se estima un multiplicador de política con controles macroeconómicos de alta dimensión y se compara con MCO ingenuo y con lasso ingenuo.
 
 ---
