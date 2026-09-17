@@ -1157,7 +1157,7 @@ def bvar_sv(
     # OLS starting point for B (shared by all chains)
     try:
         B_init, *_ = np.linalg.lstsq(X, Y_dep, rcond=None)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         B_init = np.zeros((k, n))
     # The sampler truncates the coefficient posterior to the stationary region,
     # so the chains must start inside it: shrink the OLS lag coefficients (rows

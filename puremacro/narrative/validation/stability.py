@@ -113,7 +113,7 @@ class NarrativeStabilityReport:
                 else:
                     rho = float("nan")
                 n = int(len(aligned_idx))
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                 rho = float("nan")
                 n = 0
             rows.append({"cell_id": i, **cell, "rho": rho, "n": n})

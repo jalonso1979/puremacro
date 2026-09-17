@@ -212,7 +212,7 @@ class NarrativeSpecificationCurve:
             lp_res = lp_iv(df2, y=self.y, x=x_col, z="_z",
                            horizons=[self.horizon // 2, self.horizon],
                            n_lags=2, alpha=0.10)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             return []
 
         h4 = self.horizon // 2
@@ -227,7 +227,7 @@ class NarrativeSpecificationCurve:
                 df[x_col].values,
                 df[self.y].values,
             )
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             wiv = {"n_obs": 0, "first_stage_f_cd": np.nan,
                    "first_stage_f_kp": np.nan, "AR_p_value_at_2sls": np.nan,
                    "beta_2sls": np.nan}

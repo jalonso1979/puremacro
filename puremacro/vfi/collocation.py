@@ -517,7 +517,7 @@ class CollocationSolution:
             has_value = True
             try:
                 self.value(s_dense[:2])
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                 has_value = False
 
             n_cols = 3 if has_value else 2
@@ -850,7 +850,7 @@ def _solve_collocation_euler(
                         high = 0.999 * f_ki
                     try:
                         kp_next[i] = brentq(eq_i, low, high)
-                    except Exception:
+                    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                         kp_next[i] = 0.5 * f_ki
 
                 theta_curr = basis.fit(kp_next, backend=backend)
@@ -897,7 +897,7 @@ def _solve_collocation_euler(
             A_mat = np.eye(len(s)) - problem.beta * (Phi_next @ Phi_inv)
             V_nodes = np.linalg.solve(A_mat, u_nodes)
             value_coefficients = Phi_inv @ V_nodes
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, TypeError, Exception):
         pass
 
     metadata = {

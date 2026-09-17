@@ -195,7 +195,7 @@ def _diagnosis(A, B) -> str:
                 left=False, right=False, homogeneous_eigvals=True,
             )
         both_vanish = int(np.sum((np.abs(alpha) < 1e-12) & (np.abs(beta) < 1e-12)))
-    except Exception:      # diagnosis must never mask the failure it explains
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):      # diagnosis must never mask the failure it explains
         both_vanish = 0
     tail = (
         f" {both_vanish} eigenvalue(s) have both alpha and beta vanishing, "

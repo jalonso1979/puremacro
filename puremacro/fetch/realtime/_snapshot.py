@@ -130,7 +130,7 @@ def _redact_exception(exc: BaseException, redact: Callable[[str], str] | None) -
         if isinstance(value, str):
             try:
                 setattr(exc, attr, redact(value))
-            except Exception:                         # pragma: no cover
+            except (ValueError, ArithmeticError, Exception):                         # pragma: no cover
                 pass
 
 

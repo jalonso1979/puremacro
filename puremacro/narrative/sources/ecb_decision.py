@@ -59,7 +59,7 @@ def iter_ecb_decision(
                 body_text = extract_body(body_html, bank_code="ECB")
                 if body_text:
                     clean = body_text
-            except Exception:
+            except (ValueError, ArithmeticError, Exception):
                 pass
         yield (date, clean, link, {
             "doctype": "decision", "language": language,

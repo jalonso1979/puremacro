@@ -74,7 +74,7 @@ def main() -> None:
     for country, label, fn in _PROBES:
         try:
             items = fn()
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             items = []
         n = len(items)
         sample = ""

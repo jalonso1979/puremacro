@@ -273,7 +273,7 @@ def favar(
             irf_Zb = irf(A_b, P_b, horizon=horizon)
             irf_Xb = (irf_Zb[:, :, 0] @ Lambda.T) * X_std
             boot_irfs[b] = irf_Xb
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             boot_irfs[b] = irf_panel_orig
 
     alpha_lo = (1.0 - ci) / 2.0

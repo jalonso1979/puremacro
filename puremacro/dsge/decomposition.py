@@ -388,7 +388,7 @@ class ShockDecompResult:
                 spacing = float(np.median(np.diff(np.asarray(pos, dtype=float))))
                 if np.isfinite(spacing) and spacing > 0.0:
                     width = 0.8 * spacing
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, Exception):
                 pass
 
         fig, ax = _new_ax(None, figsize=(8.0, 4.4))
@@ -773,7 +773,7 @@ def compute_shock_decomposition(
         # Stationary covariance initialization
         try:
             Sigma_s = scipy.linalg.solve_discrete_lyapunov(A, B @ Qm @ B.T)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             Sigma_s = 10.0 * np.eye(n_s)
         a0 = np.zeros(n_s + n_u)
         P0 = scipy.linalg.block_diag(Sigma_s, Qm)
@@ -786,7 +786,7 @@ def compute_shock_decomposition(
         a_smooth = out["a_smooth"]
         u_hat = a_smooth[:, n_s:]
         s_0_hat = s_0 if initial_state is not None else a_smooth[0, :n_s]
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         # Fallback with slightly higher measurement variance ridge for stability
         ssm.H = 1e-10 * np.eye(n_obs)
         out = kalman_smoother(Y_obs, ssm, a0=a0, P0=P0)

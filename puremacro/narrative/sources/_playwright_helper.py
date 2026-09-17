@@ -71,7 +71,7 @@ def _do_fetch(url, wait_for, timeout_ms, viewport, locale):
             page.goto(url, timeout=timeout_ms)
             try:
                 page.wait_for_load_state(wait_for, timeout=timeout_ms)
-            except Exception:
+            except (ValueError, ArithmeticError, Exception):
                 pass  # be tolerant of long-lived connections
             html = page.content()
             ctx.close()

@@ -238,13 +238,13 @@ def extended_path(
         with np.errstate(all="ignore"):
             try:
                 res_zero = float(np.max(np.abs(eq_fn(zeros, zeros, zeros, zero_shocks))))
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                 res_zero = float("inf")
 
             if res_zero < 1e-6:
                 try:
                     res_cand = float(np.max(np.abs(eq_fn(candidate_ss, candidate_ss, candidate_ss, zero_shocks))))
-                except Exception:
+                except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                     res_cand = float("inf")
                 if res_cand > 1e-6:
                     y_ss_arr = zeros
@@ -370,7 +370,7 @@ def extended_path(
             else:
                 x_ep = np.zeros(model.n_states, dtype=float)
             companion_m = (G_ep, N_ep, Mx_ep, v_idx_ep)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             companion_m = None
 
     for t in range(total_periods):
@@ -390,7 +390,7 @@ def extended_path(
                     x_term = x_ep_next
                 y_end_t = (Mx_ep @ x_term)[v_idx_ep]
                 x_ep = x_ep_next
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                 y_end_t = None
         else:
             y_end_t = None

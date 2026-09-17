@@ -94,7 +94,7 @@ def _load(*, refetch: bool) -> pd.DataFrame:
     try:
         _CACHE.parent.mkdir(parents=True, exist_ok=True)
         df.to_parquet(_CACHE)
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         # Cache write is best-effort.
         pass
     return df

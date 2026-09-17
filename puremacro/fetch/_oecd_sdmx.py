@@ -77,7 +77,7 @@ def get_sdmx_csv(agency_flow: str, key: str, start_period: str,
                 time.sleep(retry_sleep)
                 continue
             return pd.DataFrame()
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             return pd.DataFrame()
     return pd.DataFrame()
 

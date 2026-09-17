@@ -93,7 +93,7 @@ def _walk_series(slug: str, *, max_pages: int = 60,
         url = _SERIES_LISTING_TPL.format(slug=slug, n="" if page == 1 else page)
         try:
             html = safe_get_text(url)
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             break
         any_match = False
         for m in listing_rx.finditer(html):
@@ -116,7 +116,7 @@ def _fetch_paper_metadata(slug: str, paper_id: str) -> dict:
     url = _PAPER_TPL.format(slug=slug, paper_id=paper_id)
     try:
         html = safe_get_text(url)
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return {}
     out: dict[str, str] = {"repec_url": url}
     if (m := _REPEC_TITLE_RX.search(html)):
@@ -176,7 +176,7 @@ def iter_oecd_surveys(
             if meta.get("date"):
                 try:
                     date = pd.Timestamp(meta["date"])
-                except Exception:
+                except (ValueError, ArithmeticError, Exception):
                     pass
         if pd.isna(date):
             # Fallback: try to pull a 4-digit year out of the title.

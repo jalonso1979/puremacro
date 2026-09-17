@@ -234,7 +234,7 @@ class NarrativeCorpus:
                 ev = classifier(d)
                 if ev is not None:
                     events.append(ev)
-            except Exception:
+            except (ValueError, ArithmeticError, Exception):
                 continue
         return events
 
@@ -345,7 +345,7 @@ def _harvest_source(
             count += 1
             if max_docs_per_source is not None and count >= max_docs_per_source:
                 break
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         pass
 
 

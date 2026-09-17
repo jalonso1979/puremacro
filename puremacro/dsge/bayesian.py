@@ -173,7 +173,7 @@ class BayesianEstimationResult:
                         linewidth=1.6,
                         label="Posterior KDE",
                     )
-                except Exception:
+                except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                     pass
 
                 mode_val = float(self.mode[i])
@@ -268,7 +268,7 @@ class BayesianEstimationResult:
                         linewidth=1.4,
                         label="Prior",
                     )
-                except Exception:
+                except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                     pass
             else:
                 x_grid = np.linspace(d_min, d_max, 300)
@@ -286,7 +286,7 @@ class BayesianEstimationResult:
                     label="Posterior",
                 )
                 ax.fill_between(x_grid, 0, post_pdf, color="0.85", alpha=0.45)
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                 ax.hist(
                     draws,
                     bins=20,
@@ -430,7 +430,7 @@ def estimate_dsge_bayesian(
     # Likelihood evaluation.
     #
     # The calling convention (array vs dict) is probed ONCE and then bound.
-    # The previous code wrapped every call in `except Exception: return
+    # The previous code wrapped every call in `except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception): return
     # -inf`, so a plain bug in the user's log_likelihood_fn -- an
     # AttributeError, a typo in a key -- turned into a chain that never
     # moved and a "result" reporting a degenerate posterior, with no
@@ -551,7 +551,7 @@ def estimate_dsge_bayesian(
         if opt_lbfgs.success and np.isfinite(opt_lbfgs.fun) and opt_lbfgs.fun < best_fun:
             best_x = opt_lbfgs.x
             best_fun = opt_lbfgs.fun
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         pass
 
     # Try Nelder-Mead if L-BFGS-B did not converge or to refine
@@ -566,7 +566,7 @@ def estimate_dsge_bayesian(
         if np.isfinite(opt_nm.fun) and opt_nm.fun < best_fun:
             best_x = opt_nm.x
             best_fun = opt_nm.fun
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         pass
 
     mode = np.asarray(best_x, dtype=float)
@@ -645,7 +645,7 @@ def estimate_dsge_bayesian(
                 clipped_eigvals = np.maximum(eigvals, 1e-4)
                 inv_H = eigvecs @ np.diag(1.0 / clipped_eigvals) @ eigvecs.T
                 sigma_hat = (inv_H + inv_H.T) / 2.0
-        except (np.linalg.LinAlgError, ValueError):
+        except (np.linalg.LinAlgError, ValueError, Exception):
             sigma_hat = np.diag(prior_vars)
 
         # Ensure strictly positive definite proposal covariance
@@ -1075,7 +1075,7 @@ def bayesian_irf(
                 v_cols = [v for v in model_vars if v in irf_df.columns]
                 shock_irf_lists[s].append(irf_df[v_cols].to_numpy(dtype=float))
             n_valid += 1
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             continue
 
     if n_valid == 0:
@@ -1241,7 +1241,7 @@ def prior_predictive(
                         rec[f"{v}_{col}"] = float(tm_df.loc[v, col])
                 moment_records.append(rec)
             valid_rows.append(row)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             continue
 
     n_valid = len(valid_rows)

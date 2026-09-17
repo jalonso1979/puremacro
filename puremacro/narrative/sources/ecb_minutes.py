@@ -29,7 +29,7 @@ def iter_ecb_minutes(*, language: str = "en", fetch_body: bool = False) -> Itera
                 body_text = extract_body(body_html, bank_code="ECB")
                 if body_text:
                     clean = body_text
-            except Exception:
+            except (ValueError, ArithmeticError, Exception):
                 pass
         yield (date, clean, link, {
             "doctype": "minutes", "language": language,

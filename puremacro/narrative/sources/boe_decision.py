@@ -23,7 +23,7 @@ def iter_boe_decision(*, fetch_body: bool = False) -> Iterator[tuple]:
                 body_text = extract_body(body_html, bank_code="BOE")
                 if body_text:
                     clean = body_text
-            except Exception:
+            except (ValueError, ArithmeticError, Exception):
                 pass
         yield (date, clean, link, {
             "doctype": "decision", "language": "en",

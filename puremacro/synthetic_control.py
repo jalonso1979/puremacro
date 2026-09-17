@@ -253,7 +253,7 @@ def synthetic_control(
                 gaps[placebo_unit] = (
                     Y_post[placebo_unit].values - synth_post_p
                 ).tolist()
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, RuntimeError, Exception):
                 continue
         placebo_gaps = pd.DataFrame(gaps, index=post_period)
 

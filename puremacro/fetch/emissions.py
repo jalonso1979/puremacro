@@ -84,7 +84,7 @@ def _cached_get(url: str, *, refresh: bool = False, timeout: int = 60) -> bytes:
     try:
         from ._http import cached_get
         return cached_get(url, refresh=refresh, timeout=timeout)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         return b""
 
 
@@ -95,7 +95,7 @@ def _get_oecd_csv(
     try:
         from ._oecd_sdmx import get_sdmx_csv
         return get_sdmx_csv(agency_flow, key, start_period, refresh=refresh)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         return pd.DataFrame()
 
 
@@ -200,7 +200,7 @@ def fetch_wdi_emissions(
                 continue
             try:
                 val = float(raw_val)
-            except (ValueError, TypeError):
+            except (ValueError, TypeError, Exception):
                 continue
 
             # Date resolution
@@ -209,7 +209,7 @@ def fetch_wdi_emissions(
                 continue
             try:
                 rec_year = int(str(raw_date)[:4])
-            except (ValueError, TypeError):
+            except (ValueError, TypeError, Exception):
                 continue
             if rec_year < start_year or (end_year is not None and rec_year > end_year):
                 continue
@@ -337,7 +337,7 @@ def fetch_oecd_ghg(
             continue
         try:
             val = float(obs_val)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, Exception):
             continue
 
         # Scale factor: UNIT_MULT=3 means thousands of tonnes = kilotonnes (kt).
@@ -347,7 +347,7 @@ def fetch_oecd_ghg(
             try:
                 m = float(unit_mult)
                 val = val * (10.0 ** (m - 3.0))
-            except (ValueError, TypeError):
+            except (ValueError, TypeError, Exception):
                 pass
 
         time_period = str(row.get("TIME_PERIOD", "")).strip()
@@ -355,7 +355,7 @@ def fetch_oecd_ghg(
             continue
         try:
             rec_year = int(time_period[:4])
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, Exception):
             continue
         if rec_year < start_year or (end_year is not None and rec_year > end_year):
             continue

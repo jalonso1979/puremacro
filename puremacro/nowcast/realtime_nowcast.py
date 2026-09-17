@@ -474,7 +474,7 @@ def realtime_nowcast(
                             "nowcast": float(val),
                             "forecast_sd": forecast_sd,
                         })
-                except Exception:
+                except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                     pass
 
     df_v_history = pd.DataFrame(v_history_records) if v_history_records else pd.DataFrame(
@@ -486,7 +486,7 @@ def realtime_nowcast(
     if compute_news_vs_noise and vp is not None:
         try:
             news_noise_res = vp.news_or_noise(country_clean, target_var)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             news_noise_res = None
 
     return RealtimeNowcastResult(

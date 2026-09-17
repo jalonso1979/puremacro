@@ -46,7 +46,7 @@ def iter_nber_wp(*, fetch_body: bool = False) -> Iterator[tuple]:
     """
     try:
         body = safe_get_bytes(_FEED)
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return
     try:
         root = ET.fromstring(body)

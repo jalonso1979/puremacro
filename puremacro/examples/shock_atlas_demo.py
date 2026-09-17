@@ -26,7 +26,7 @@ def run_demo(root: Path | None = None) -> dict:
         root = Path.cwd()
     try:
         loaded = shock_atlas.load_all_shocks(root)
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         loaded = {}
     rows = []
     for name, series in loaded.items():

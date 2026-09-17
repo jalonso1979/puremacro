@@ -51,7 +51,7 @@ def _fetch_section(section: str, quantidade: int = 1000) -> list[dict]:
         r = requests.get(url, headers={"User-Agent": _USER_AGENT}, timeout=30)
         r.raise_for_status()
         return r.json().get("conteudo", [])
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return []
 
 
@@ -108,7 +108,7 @@ def _maybe_fetch_pdf_body(item: dict, *, fetch_body: bool) -> str | None:
     pdf_url = _encode_url(_absolutize(pdf_url))
     try:
         pdf_bytes = safe_get_bytes(pdf_url)
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return None
     return extract_body_from_pdf(pdf_bytes)
 

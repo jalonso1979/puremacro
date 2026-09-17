@@ -465,11 +465,11 @@ def load_klems_panel(
                 paths['k'],
                 usecols=_k_base_cols + _k_extra,
             )
-        except (ValueError, KeyError):
+        except (ValueError, KeyError, Exception):
             # Some optional columns absent — load base + price, fill missing.
             try:
                 k = pd.read_csv(paths['k'], usecols=_k_base_cols + _k_price_cols)
-            except (ValueError, KeyError):
+            except (ValueError, KeyError, Exception):
                 k = pd.read_csv(paths['k'], usecols=_k_base_cols)
             for _c in _k_price_cols:
                 if _c not in k.columns:
@@ -479,7 +479,7 @@ def load_klems_panel(
                     if _c not in k.columns:
                         k[_c] = np.nan
         lab = pd.read_csv(paths['lab'])
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         return _EMPTY.copy()
 
     # Drop EU/EA aggregates from national accounts (kept full-sector for the

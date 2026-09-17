@@ -56,11 +56,11 @@ def iter_ratedoc_listing(
     try:
         body = (safe_get_bytes(url, user_agent=user_agent)
                 if user_agent else safe_get_bytes(url))
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return
     try:
         entries = parse_listing(body)
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return
     fetcher = fetch_body or (
         (lambda u: safe_get_text(u, user_agent=user_agent))
@@ -71,7 +71,7 @@ def iter_ratedoc_listing(
             continue
         try:
             text = fetcher(item_url)
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             continue
         clean = strip_html(text) if "<" in text and ">" in text else text
         if not clean:

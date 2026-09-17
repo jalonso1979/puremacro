@@ -211,7 +211,7 @@ def main() -> tuple[NewsIRFResult, NewsDecompositionResult]:
         )
         fig_copy.savefig(repo_out / "dsge_news_shocks.png", dpi=150, bbox_inches="tight")
         plt.close(fig_copy)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         pass
 
     print("\nNews shocks analysis completed successfully.")

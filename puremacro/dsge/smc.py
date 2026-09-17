@@ -623,11 +623,11 @@ def smc_estimate(
             par_dict = {name: float(theta_vec[j]) for j, name in enumerate(param_names)}
             try:
                 res = log_lik(par_dict)
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, Exception):
                 res = log_lik(theta_vec)
             val = float(res)
             return val if np.isfinite(val) else -np.inf
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             return -np.inf
 
     def eval_lp(theta_vec: np.ndarray) -> float:
@@ -1027,7 +1027,7 @@ class SMCSampler:
                 kf = kalman_filter(y_arr, ssm, a0=a0, P0=P0)
                 ll = float(kf["loglik"])
                 return ll if np.isfinite(ll) else -np.inf
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                 return -np.inf
 
         self._log_lik = dsge_log_lik
@@ -1187,7 +1187,7 @@ def bootstrap_particle_filter(
         Q = np.eye(n_e)
     try:
         L_Q = scipy.linalg.cholesky(Q + 1e-10 * np.eye(n_e), lower=True)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         L_Q = np.eye(n_e)
 
     # 3. Measurement error covariance R

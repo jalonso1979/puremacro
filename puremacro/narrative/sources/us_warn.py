@@ -86,7 +86,7 @@ def _load_ca_live(*, refetch: bool) -> pd.DataFrame:
     for url in _CA_XLSX_URLS:
         try:
             raw = safe_get_bytes(url)
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             continue
         if not raw:
             continue
@@ -99,12 +99,12 @@ def _load_ca_live(*, refetch: bool) -> pd.DataFrame:
                     header=_CA_HEADER_ROW,
                     engine="openpyxl",
                 )
-            except (ValueError, KeyError):
+            except (ValueError, KeyError, Exception):
                 df = pd.read_excel(BytesIO(raw), engine="openpyxl")
             df.columns = [_normalize_col(c) for c in df.columns]
             df["_source_url"] = url
             frames.append(df)
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             continue
     if not frames:
         return pd.DataFrame()
@@ -112,7 +112,7 @@ def _load_ca_live(*, refetch: bool) -> pd.DataFrame:
     try:
         _CACHE_ROOT.mkdir(parents=True, exist_ok=True)
         out.to_parquet(_CA_CACHE)
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         # Cache write is best-effort; don't fail the iterator if the
         # parquet engine is missing or the cache dir is read-only.
         pass
@@ -199,13 +199,13 @@ def _load_ca_historical(*, refetch: bool) -> pd.DataFrame:
     for url in _CA_HISTORICAL_PDF_URLS:
         try:
             raw = safe_get_bytes(url)
-        except Exception:
+        except (ValueError, ArithmeticError, RuntimeError, Exception):
             continue
         if not raw:
             continue
         try:
             raw_rows = _extract_pdf_rows(raw)
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             continue
         if not raw_rows:
             continue
@@ -218,7 +218,7 @@ def _load_ca_historical(*, refetch: bool) -> pd.DataFrame:
     try:
         _CACHE_ROOT.mkdir(parents=True, exist_ok=True)
         out.to_parquet(_CA_HIST_CACHE)
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         pass
     return out
 
@@ -392,13 +392,13 @@ def _load_ny_historical(*, refetch: bool) -> pd.DataFrame:
     for url in _NY_HISTORICAL_HTML_URLS:
         try:
             raw = safe_get_bytes(url, user_agent=_NY_USER_AGENT)
-        except Exception:
+        except (ValueError, ArithmeticError, RuntimeError, Exception):
             continue
         if not raw:
             continue
         try:
             page_rows = _parse_ny_archive_html(raw, source_url=url)
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             continue
         rows.extend(page_rows)
     if not rows:
@@ -407,7 +407,7 @@ def _load_ny_historical(*, refetch: bool) -> pd.DataFrame:
     try:
         _CACHE_ROOT.mkdir(parents=True, exist_ok=True)
         out.to_parquet(_NY_HIST_CACHE)
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         pass
     return out
 
@@ -420,7 +420,7 @@ def _load_ny_live(*, refetch: bool) -> pd.DataFrame:
     for url in _NY_CSV_URLS:
         try:
             raw = safe_get_bytes(url, user_agent=_NY_USER_AGENT)
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             continue
         if not raw:
             continue
@@ -429,7 +429,7 @@ def _load_ny_live(*, refetch: bool) -> pd.DataFrame:
             df.columns = [_normalize_col(c) for c in df.columns]
             df["_source_url"] = url
             frames.append(df)
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             continue
     if not frames:
         return pd.DataFrame()
@@ -437,7 +437,7 @@ def _load_ny_live(*, refetch: bool) -> pd.DataFrame:
     try:
         _CACHE_ROOT.mkdir(parents=True, exist_ok=True)
         out.to_parquet(_NY_CACHE)
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         # Cache write is best-effort (parquet engine may be missing).
         pass
     return out
@@ -892,7 +892,7 @@ def _bln_gcs_states() -> frozenset:
     try:
         states = pd.read_parquet(_BLN_GCS_CACHE, columns=["state"])["state"].unique()
         return frozenset(states.tolist())
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return frozenset()
 
 
@@ -949,7 +949,7 @@ def _bln_states() -> frozenset:
     try:
         states = pd.read_parquet(_BLN_CACHE, columns=["state"])["state"].unique()
         return frozenset(states.tolist())
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return frozenset()
 
 

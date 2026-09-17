@@ -55,7 +55,7 @@ def iter_rss_filtered(
                 body_text = extract_body(body_html, bank_code=bank_code)
                 if body_text:
                     clean = body_text
-            except Exception:
+            except (ValueError, ArithmeticError, LookupError, Exception):
                 pass
         yield (date, clean, link, {
             "doctype": doctype, "language": language,

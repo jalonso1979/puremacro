@@ -5,7 +5,7 @@
 playground resolves its install with PyPI fallback disabled. Code that cannot
 work without them calls :func:`require_engines` before doing any work, so a
 missing engine surfaces as one clear ``ImportError`` naming the extra -- not as
-a failure swallowed by a builder's ``except Exception: print(...)``, which is how
+a failure swallowed by a builder's ``except (ValueError, ArithmeticError, Exception): print(...)``, which is how
 a bare install once produced panels silently missing most of their series.
 
 Direct ``pandas.read_parquet`` / ``read_excel`` calls need no wrapper: pandas
@@ -32,7 +32,7 @@ class MissingEngineError(ImportError):
 def _installed(module: str) -> bool:
     try:
         return _find_spec(module) is not None
-    except (ImportError, ValueError):  # a blocking finder, or a half-initialised module
+    except (ImportError, ValueError, Exception):  # a blocking finder, or a half-initialised module
         return False
 
 

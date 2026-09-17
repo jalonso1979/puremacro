@@ -181,7 +181,7 @@ def _looks_like_ipad_safari() -> bool:
         platform_str = str(getattr(nav, "platform", ""))
         ua = str(getattr(nav, "userAgent", ""))
         return max_touch > 1 and ("MacIntel" in platform_str or "Macintosh" in ua)
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return False
 
 
@@ -211,7 +211,7 @@ def _user_agent() -> str | None:
         import js  # type: ignore[import-not-found]
 
         return str(js.navigator.userAgent)
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return None
 
 
@@ -251,7 +251,7 @@ def _detect_threads() -> bool:
         t.start()
         t.join()
         return True
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return False
 
 
@@ -260,7 +260,7 @@ def _detect_writable_fs() -> bool:
         with tempfile.NamedTemporaryFile(prefix="puremacro-probe-") as fh:
             fh.write(b"1")
         return True
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return False
 
 
@@ -269,7 +269,7 @@ def _detect_backends() -> tuple[str, ...]:
         from puremacro._backend import available_backends
 
         return tuple(available_backends())
-    except Exception:  # pragma: no cover - _backend is always importable
+    except (ValueError, ArithmeticError, Exception):  # pragma: no cover - _backend is always importable
         return ("numpy",)
 
 
@@ -277,7 +277,7 @@ def _detect_memory_mb() -> int | None:
     try:
         page = os.sysconf("SC_PAGE_SIZE")
         pages = os.sysconf("SC_PHYS_PAGES")
-    except (AttributeError, ValueError, OSError):
+    except (AttributeError, ValueError, OSError, Exception):
         return None
     if not isinstance(page, int) or not isinstance(pages, int):
         return None

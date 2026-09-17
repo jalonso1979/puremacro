@@ -49,12 +49,12 @@ def _backend_or_none():
     if os.environ.get("ANTHROPIC_API_KEY"):
         try:
             return AnthropicBackend()
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             return None
     if os.environ.get("OPENAI_API_KEY"):
         try:
             return OpenAIBackend()
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             return None
     return None
 

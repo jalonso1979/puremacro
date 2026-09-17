@@ -205,7 +205,7 @@ def main() -> tuple[DiscretionaryPolicyResult, PolicyResult]:
         fig_copy = res_disc.plot(compare_commitment=True, periods=16).figure
         fig_copy.savefig(repo_out / "dsge_optimal_discretion.png", dpi=150, bbox_inches="tight")
         plt.close(fig_copy)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         pass
 
     print("\nOptimal policy analysis completed successfully.")

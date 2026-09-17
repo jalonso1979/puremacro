@@ -201,7 +201,7 @@ def _evaluate_policy(
                 return res
             if res.size == N_k:
                 return res.reshape(N_k)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
             pass
         # Fallback: point-by-point
         return np.array([float(pol_fn(k)) for k in k_arr], dtype=np.float64)
@@ -218,7 +218,7 @@ def _evaluate_policy(
             return res_arr.reshape((N_k, n_z))
         if res_arr.shape == (N_k, n_z):
             return res_arr
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
         pass
 
     # Check if pol_fn accepts (K_mesh, Z_mesh)
@@ -227,7 +227,7 @@ def _evaluate_policy(
         res_arr = np.asarray(res, dtype=np.float64)
         if res_arr.shape == (N_k, n_z):
             return res_arr
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, TypeError, KeyError, LookupError, AssertionError, RuntimeError, OSError, ConnectionError, Exception):
         pass
 
     # Check if pol_fn accepts (k_arr, z_val)
@@ -240,7 +240,7 @@ def _evaluate_policy(
             if len(val_arr) == N_k:
                 cols.append(val_arr)
                 continue
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
             pass
 
         try:
@@ -250,7 +250,7 @@ def _evaluate_policy(
             if len(val_arr) == N_k:
                 cols.append(val_arr)
                 continue
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
             pass
 
         # If pol_fn only accepts 1 argument pol(k) and n_z == 1
@@ -261,7 +261,7 @@ def _evaluate_policy(
                 if len(val_arr) == N_k:
                     cols.append(val_arr)
                     continue
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
                 pass
 
         # Point by point fallback
@@ -269,7 +269,7 @@ def _evaluate_policy(
             col = np.array([float(pol_fn(k, zm)) for k in k_arr], dtype=np.float64)
             cols.append(col)
             continue
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
             pass
 
         if n_z == 1:
@@ -277,7 +277,7 @@ def _evaluate_policy(
                 col = np.array([float(pol_fn(k)) for k in k_arr], dtype=np.float64)
                 cols.append(col)
                 continue
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
                 pass
 
     if len(cols) == n_z:
@@ -1017,7 +1017,7 @@ class AiyagariContinuousEquilibrium:
                 pol = sol.policy(eval_pts)
                 ax1.plot(eval_pts, pol, lw=2, color="tab:blue", label="$a'(a)$")
                 ax1.plot(eval_pts, eval_pts, color="gray", ls="--", alpha=0.7, label="$a'=a$")
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
                 pass
         ax1.set_title("Equilibrium Asset Policy $a'(a, z)$")
         ax1.set_xlabel("Current Assets $a$")

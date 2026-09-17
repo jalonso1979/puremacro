@@ -300,7 +300,7 @@ def sdid_multi_cohort(
                 if len(b_atts) > 0 and b_sizes.sum() > 0:
                     w_b = b_sizes / b_sizes.sum()
                     boot_atts[b] = float(np.sum(w_b * b_atts))
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                 continue
     if n_boot > 0 and np.isfinite(boot_atts).any():
         se = float(np.nanstd(boot_atts, ddof=0))

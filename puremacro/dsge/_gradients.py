@@ -241,7 +241,7 @@ def kalman_score(
         try:
             P_curr = scipy.linalg.solve_discrete_lyapunov(T_mat, RQR)
             P_curr = 0.5 * (P_curr + P_curr.T)
-        except (np.linalg.LinAlgError, scipy.linalg.LinAlgError, ValueError):
+        except (np.linalg.LinAlgError, scipy.linalg.LinAlgError, ValueError, Exception):
             P_curr = np.eye(m) * 1e6
     else:
         P_curr = np.asarray(P0, dtype=float).copy()
@@ -286,7 +286,7 @@ def kalman_score(
             try:
                 dP_sol = scipy.linalg.solve_discrete_lyapunov(T_mat, rhs_dP)
                 dP_curr[j] = 0.5 * (dP_sol + dP_sol.T)
-            except (np.linalg.LinAlgError, scipy.linalg.LinAlgError, ValueError):
+            except (np.linalg.LinAlgError, scipy.linalg.LinAlgError, ValueError, Exception):
                 dP_curr[j] = np.zeros((m, m))
 
     log2pi = math.log(2.0 * math.pi)
@@ -776,7 +776,7 @@ def log_posterior_and_gradient(
             )
         else:
             m_curr = model_template
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         return -math.inf, np.zeros(len(names))
 
     # 3. Build state-space and sensitivities
@@ -784,7 +784,7 @@ def log_posterior_and_gradient(
         ssm = make_state_space_from_varobs(m_curr, varobs)
         sens = build_state_space_sensitivities(m_curr, varobs, names)
         ll, g_ll = kalman_score(y_data, ssm, sens)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         return -math.inf, np.zeros(len(names))
 
     if not math.isfinite(ll):

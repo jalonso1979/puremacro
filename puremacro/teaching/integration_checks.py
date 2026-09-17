@@ -85,20 +85,20 @@ def unit_root_table(series: dict[str, pd.Series]) -> pd.DataFrame:
             continue
         try:
             a = adf_test(s.values, regression="c")
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             a = {"p_value": float("nan")}
         try:
             k = kpss_test(s.values, regression="c")
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             k = {"p_value": float("nan")}
         sd = s.diff().dropna()
         try:
             a_d = adf_test(sd.values, regression="c") if len(sd) >= 20 else {"p_value": float("nan")}
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             a_d = {"p_value": float("nan")}
         try:
             k_d = kpss_test(sd.values, regression="c") if len(sd) >= 20 else {"p_value": float("nan")}
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             k_d = {"p_value": float("nan")}
         rows.append({
             "variable": name,
@@ -122,7 +122,7 @@ def johansen_rank(df: pd.DataFrame, p: int = 2) -> int | None:
         return None
     try:
         out = _pm_johansen(df, p=p)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         return None
     # Different versions of puremacro have used 'r_hat' or 'rank_5pct'.
     if isinstance(out, dict):

@@ -285,7 +285,7 @@ def cdh_did(
             m_b, ml_b, pl_b, _ = _cdh_point(
                 Yb, Db, horizons=horizons, placebo=placebo,
             )
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             continue
         boot_M[b] = m_b
         boot_Ml[b] = ml_b

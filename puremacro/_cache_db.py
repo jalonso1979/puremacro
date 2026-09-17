@@ -308,7 +308,7 @@ def store_realtime_vintages(
         else:
             try:
                 val_float = float(val)
-            except (ValueError, TypeError):
+            except (ValueError, TypeError, Exception):
                 continue
         try:
             parsed_obs = pd.to_datetime(row[date_col])
@@ -317,7 +317,7 @@ def store_realtime_vintages(
                 continue
             obs_d = parsed_obs.strftime("%Y-%m-%d")
             vin_d = parsed_vin.strftime("%Y-%m-%d")
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             continue
         records.append((
             str(row["provider"]),

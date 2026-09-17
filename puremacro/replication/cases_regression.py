@@ -222,7 +222,7 @@ def _eval_romer_romer_tax_multiplier() -> dict[str, float]:
     fiscal = load_csv("tax14_us_fiscal")
     try:
         shocks = load_csv("tax_shocks_rr2010")
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         shocks = load_csv("tax14_narrative_tax_shocks")
 
     fiscal["date"] = pd.to_datetime(fiscal["date"])

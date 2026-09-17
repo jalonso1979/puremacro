@@ -211,7 +211,7 @@ def _resolve_handle(handle: str) -> dict | None:
     url = _PROFILE_URL.format(actor=handle)
     try:
         resp = safe_get_json(url)
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return None
     if not isinstance(resp, dict) or "did" not in resp:
         return None
@@ -231,7 +231,7 @@ def _iter_actor_feed(did: str, *, max_posts: int) -> Iterator[dict]:
         url = _FEED_URL.format(actor=did, limit=100, cursor=cursor_qs)
         try:
             resp = safe_get_json(url)
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             return
         if not isinstance(resp, dict):
             return
@@ -305,7 +305,7 @@ def iter_bluesky_posts(
             )
             try:
                 _raw_text = safe_get_text(_first_url)
-            except Exception:
+            except (ValueError, ArithmeticError, Exception):
                 _raw_text = ""
             try:
                 assert_landmarks(

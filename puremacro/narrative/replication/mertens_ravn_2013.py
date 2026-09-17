@@ -72,20 +72,20 @@ def mertens_ravn_csv_to_events(df: pd.DataFrame, *, kind: str) -> list[Narrative
             return None
         try:
             return pd.Period(s, freq="Q").to_timestamp()
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             try:
                 return pd.Period(pd.Timestamp(s), freq="Q").to_timestamp()
-            except Exception:
+            except (ValueError, ArithmeticError, Exception):
                 return None
 
     out: list[NarrativeEvent] = []
     for _, row in df.iterrows():
         try:
             date = pd.Period(str(row[date_col]), freq="Q").to_timestamp()
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             try:
                 date = pd.Timestamp(row[date_col])
-            except Exception:
+            except (ValueError, ArithmeticError, Exception):
                 continue
         v = float(row[val_col])
         if v == 0.0 or pd.isna(v):

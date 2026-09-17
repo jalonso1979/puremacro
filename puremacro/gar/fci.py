@@ -155,7 +155,7 @@ def fci_rolling(
         try:
             res = fci(sub, tightening_columns=tightening_columns,
                       handle_nan="zero")
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             continue
         out.iloc[end - 1] = float(res["index"].iloc[-1])
     return out

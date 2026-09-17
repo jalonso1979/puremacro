@@ -489,7 +489,7 @@ def banbura_modugno_news(
         J = [None] * (T - 1)
         for t in range(T - 1):
             try:
-                J[t] = P_filt[t] @ A.T @ np.linalg.pinv(P_pred[t + 1])
+                J[t] = P_filt[t] @ A.T @ np.linalg.pinv(P_pred[t + 1], rcond=1e-10)
             except np.linalg.LinAlgError:
                 J[t] = np.zeros((m, m))
 
@@ -522,7 +522,7 @@ def banbura_modugno_news(
 
         # Gain matrix K (m x n_u)
         try:
-            K = Sigma_alpha_I @ np.linalg.pinv(Sigma_I)
+            K = Sigma_alpha_I @ np.linalg.pinv(Sigma_I, rcond=1e-10)
         except np.linalg.LinAlgError:
             K = np.zeros((m, n_u))
 

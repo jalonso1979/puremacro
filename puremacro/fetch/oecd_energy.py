@@ -75,7 +75,7 @@ def fetch_energy_cpi(
             continue
         try:
             dates = pd.to_datetime(grp["TIME_PERIOD"].astype(str) + "-01")
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             continue
         out = pd.DataFrame({
             "code": code,

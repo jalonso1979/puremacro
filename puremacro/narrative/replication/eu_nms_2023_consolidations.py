@@ -180,7 +180,7 @@ def eu_nms_csv_to_events(
         else:
             try:
                 year = pd.Period(year_val, freq="Q").year
-            except Exception:
+            except (ValueError, ArithmeticError, Exception):
                 year = pd.Timestamp(year_val).year
 
         year_value_pairs: list[tuple[int, float]] = []
@@ -203,7 +203,7 @@ def eu_nms_csv_to_events(
             gdp_val = row[gdp_col]
             try:
                 gdp_f = float(gdp_val)
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, Exception):
                 gdp_f = 0.0
             if gdp_f > 0:
                 magnitude_pct = abs(total_value) / gdp_f * 100.0

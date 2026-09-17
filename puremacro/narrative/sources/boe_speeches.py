@@ -137,7 +137,7 @@ def iter_boe_speeches(
     for page in range(1, max_pages + 1):
         try:
             html = _fetch_page(page, page_size=page_size)
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             return  # network failure → graceful exit
         new_in_page = 0
         for record in _parse_items(html):

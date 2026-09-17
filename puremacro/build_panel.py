@@ -253,7 +253,7 @@ def sa_audit(panel: pd.DataFrame) -> pd.DataFrame:
             stat, p = kruskal(*groups)
             flags.append({"code": code, "variable": var, "kw_stat": stat, "kw_p": p,
                           "sa_flag": "fail" if p < 0.05 else "pass"})
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             continue
     return pd.DataFrame(flags)
 
@@ -359,7 +359,7 @@ def compute_garch_sigma(panel: pd.DataFrame, proxy: str) -> pd.DataFrame:
             sigma: pd.Series = pd.Series(res.conditional_volatility / 100.0)
             # Align sigma to the date index of the input
             sigma.index = x.index
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             continue
         out = sigma.reset_index()
         out.columns = ["date", "value"]
@@ -530,7 +530,7 @@ def _fetch_qna_labor_logs(codes: Sequence[str] | None,
     empty = pd.DataFrame(columns=schema_cols)
     try:
         long = oecd_qna_panel.qna_labor(codes, start=start, sa="x13")
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         # Same contract as the route this replaced: a failed download degrades
         # to "this source contributed nothing", it does not take a build down.
         return empty
@@ -560,7 +560,7 @@ def build_all(
     refresh: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     # Check the file-format engines before any network or disk work. Every
-    # producer below runs inside `try/except Exception: print(...)`, so a
+    # producer below runs inside `try/except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception): print(...)`, so a
     # missing openpyxl or pyarrow would otherwise come back as a panel quietly
     # missing most of its series (the reason both were once base dependencies).
     from ._optional import require_engines

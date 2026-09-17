@@ -57,7 +57,7 @@ def _wedges_to_long(w: pd.DataFrame) -> pd.DataFrame:
         # qdate may already be parseable, but be safe with both formats.
         try:
             w["t"] = pd.to_datetime(w["qdate"], errors="coerce")
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             w["t"] = w["qdate"].apply(_to_quarter)
     elif "date" in w.columns:
         w["t"] = pd.to_datetime(w["date"])

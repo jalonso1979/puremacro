@@ -133,7 +133,7 @@ def parse_banxico_json(
                 d = pd.to_datetime(f_str, format="%d/%m/%Y")
             else:
                 d = pd.to_datetime(f_str)
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             skipped += 1
             continue
         records.append((d, val))

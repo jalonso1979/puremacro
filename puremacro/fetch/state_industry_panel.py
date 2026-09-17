@@ -73,7 +73,7 @@ def iter_national_industry_emp_q(
     for code in sectors:
         try:
             series = fetch_fred(code)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, RuntimeError, Exception):
             continue
         q = _monthly_to_quarterly(series)
         url = _FRED_BASE + code
@@ -443,7 +443,7 @@ def iter_county_urate_q(states: Iterable[str] | None = None) -> Iterator[tuple]:
             try:
                 u = fetch_fred(sid_u)
                 e = fetch_fred(sid_e)
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                 continue
             u = u.dropna().astype(float)
             e = e.dropna().astype(float)

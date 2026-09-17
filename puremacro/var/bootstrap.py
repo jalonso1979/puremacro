@@ -155,7 +155,7 @@ def bootstrap_bands(Y, p, identify_fn, horizon, n_boot=500, alpha=0.10,
             A_b, _, Sigma_b, _, _ = estimate_var(Y_all[b], p)
             B_b = identify_fn(A_b, Sigma_b, **id_kwargs)
             return irf(A_b, B_b, horizon)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             return np.full((horizon + 1, n, n), np.nan)
 
     from puremacro.inference._parallel import _map_draws  # lazy: avoid import cycle

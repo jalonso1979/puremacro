@@ -277,7 +277,7 @@ def main() -> DSGEVARResult:
     try:
         repo_out.mkdir(parents=True, exist_ok=True)
         fig.savefig(repo_out / "dsge_var_estimation.png", dpi=150, bbox_inches="tight")
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         pass
 
     print("\nDSGE-VAR estimation completed successfully.")

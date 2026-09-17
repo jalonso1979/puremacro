@@ -460,7 +460,7 @@ def _iter_modern(year: int, month: int, *,
     url = _modern_index_url(year, month)
     try:
         html = safe_get_text(url)
-    except Exception:
+    except (ValueError, ArithmeticError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
         html = ""
     if not html.strip():
         yield from _iter_archive(year, month, granularity=granularity)
@@ -792,7 +792,7 @@ def _archive_fomc_era_listing(year: int) -> dict[int, str]:
                       _FOMC_HISTORICAL_BASE.format(year=year)):
         try:
             html = safe_get_text(index_url)
-        except Exception:
+        except (ValueError, ArithmeticError, LookupError, KeyError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
             continue
         if not html.strip():
             continue
@@ -956,7 +956,7 @@ def _iter_archive(year: int, month: int, *,
     # serves a TOC stub — only accept a substantive parse.
     try:
         html = safe_get_text(_archive_page_url(year, month))
-    except Exception:
+    except (ValueError, ArithmeticError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
         html = ""
     if html.strip():
         # The (d) probe is speculative: a landmark mismatch here (e.g. a
@@ -984,7 +984,7 @@ def _iter_archive(year: int, month: int, *,
     if full_url:
         try:
             html = safe_get_text(full_url)
-        except Exception:
+        except (ValueError, ArithmeticError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
             html = ""
         if html.strip():
             assert_landmarks(
@@ -1078,7 +1078,7 @@ def iter_beige_book(
                         UserWarning, stacklevel=2,
                     )
                     continue
-                except Exception:
+                except (ValueError, ArithmeticError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
                     continue
 
     # Modern 1996+ releases — probe every month. The Beige Book comes out
@@ -1104,7 +1104,7 @@ def iter_beige_book(
                     UserWarning, stacklevel=2,
                 )
                 continue
-            except Exception:
+            except (ValueError, ArithmeticError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
                 continue
 
 

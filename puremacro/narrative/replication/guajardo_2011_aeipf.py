@@ -81,7 +81,7 @@ def _guajardo_extract_rows(df: pd.DataFrame) -> list[dict]:
         else:
             try:
                 year = pd.Period(year_val, freq="Q").year
-            except Exception:
+            except (ValueError, ArithmeticError, Exception):
                 year = pd.Timestamp(year_val).year
 
         raw_cat = str(row[cat_col]).lower().strip() if cat_col else "general"

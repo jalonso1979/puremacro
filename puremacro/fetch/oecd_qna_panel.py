@@ -335,7 +335,7 @@ def _fetch_ref_areas(flow: str, refresh: bool) -> list[str]:
         for kv in regions["keyValues"]:
             if kv["id"] == "REF_AREA":
                 return [str(v) for v in kv["values"]]
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, RuntimeError, Exception):
         # Availability is an optimisation, not a dependency: any failure
         # (offline, rate limit, a schema change at the OECD) degrades to the
         # frozen list rather than taking the caller's panel down with it.

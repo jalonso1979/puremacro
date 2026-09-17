@@ -156,7 +156,7 @@ def parse_bcch_json(
             continue
         try:
             val = float(str(v_raw).replace(",", "."))
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, Exception):
             skipped += 1
             continue
         if math.isnan(val):
@@ -168,7 +168,7 @@ def parse_bcch_json(
                 d = pd.to_datetime(d_str, format="%d-%m-%Y")
             else:
                 d = pd.to_datetime(d_str)
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             skipped += 1
             continue
         records.append((d, val))

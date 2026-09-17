@@ -948,7 +948,7 @@ def solve_dynare_2nd_order(
     A_hat = A_0 + A_plus @ g_x @ P_s
     try:
         g_xx = solve_generalized_sylvester_kronecker(A_hat, A_plus, h_x, K_xx_tensor)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, BlanchardKahnError, AssertionError, KeyError, LookupError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
         hx_kron = np.kron(h_x, h_x)
         sys_mat = np.kron(np.eye(n_x**2), A_hat) + np.kron(hx_kron.T, A_plus)
         rhs_xx = -K_xx_tensor.reshape(-1, order="F")
@@ -1319,7 +1319,7 @@ def solve_dynare_3rd_order(
              g_x, g_u, P_s, P_c, h_x, h_u) = _first_order_pieces(m, vars_list, shocks_list)
             A_plus = np.asarray(m._A_plus, dtype=float)
             A_0 = np.asarray(m._A_0, dtype=float)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
             pass
 
     # 3. Second-order systems
@@ -1341,7 +1341,7 @@ def solve_dynare_3rd_order(
     A_hat = A_0 + A_plus @ g_x @ P_s
     try:
         g_xx = solve_generalized_sylvester_kronecker(A_hat, A_plus, h_x, K_xx_tensor)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
         hx_kron = np.kron(h_x, h_x)
         sys_mat = np.kron(np.eye(n_x**2), A_hat) + np.kron(hx_kron.T, A_plus)
         rhs_xx = -K_xx_tensor.reshape(-1, order="F")
@@ -1435,7 +1435,7 @@ def solve_dynare_3rd_order(
     K_xxx = T_xxx + S_xxx + cross_chain
     try:
         g_xxx = solve_order3_sylvester_kronecker(A_hat, A_plus, h_x, K_xxx)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
         hx3 = np.kron(np.kron(h_x, h_x), h_x)
         sys_3 = np.kron(np.eye(n_x**3), A_hat) + np.kron(hx3.T, A_plus)
         rhs_3 = -K_xxx.reshape(-1, order="F")
@@ -1525,7 +1525,7 @@ def solve_dynare_3rd_order(
         K_x_ss = term_hss + term_xuu
         try:
             g_x_ss = solve_order1_sylvester(A_hat, A_plus, h_x, K_x_ss)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
             sys_1 = np.kron(np.eye(n_x), A_hat) + np.kron(h_x.T, A_plus)
             vec_gxss = scipy.linalg.lstsq(sys_1, -K_x_ss.reshape(-1, order="F"))[0]
             g_x_ss = vec_gxss.reshape((N, n_x), order="F")
@@ -1738,12 +1738,12 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
         try:
             object.__setattr__(eq_callable, "_dag", dag)
             object.__setattr__(eq_callable, "_compiled", compiled)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
             pass
         return res
-    except (ValueError, DynareMacroError, DynareFeatureError):
+    except (ValueError, DynareMacroError, DynareFeatureError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
         raise
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
         # Fall back to legacy regex parser
         pass
 
@@ -1802,7 +1802,7 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
                     val = float(eval(rhs_expr, eval_scope, params))
                     params[pname] = val
                     eval_scope[pname] = val
-                except Exception:
+                except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
                     pass
 
     # 6. Parse model block and local parameters (#name = expr;)
@@ -1829,7 +1829,7 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
                     val = float(eval(loc_expr, eval_scope, params))
                     params[loc_name] = val
                     eval_scope[loc_name] = val
-                except Exception:
+                except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
                     pass
         else:
             clean_eqs.append(line)
@@ -1922,7 +1922,7 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
                     cov_val = c_val * std1 * std2
                     shock_cov[i1, i2] = cov_val
                     shock_cov[i2, i1] = cov_val
-                except Exception:
+                except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
                     pass
                 continue
 
@@ -1935,7 +1935,7 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
                     i1, i2 = shocks.index(s1), shocks.index(s2)
                     shock_cov[i1, i2] = c_val
                     shock_cov[i2, i1] = c_val
-                except Exception:
+                except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
                     pass
                 continue
 
@@ -1949,7 +1949,7 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
                         s_idx = shocks.index(sname)
                         shock_cov[s_idx, s_idx] = s_val
                         variance_declared.add(sname)
-                    except Exception:
+                    except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
                         pass
                 continue
 
@@ -1964,7 +1964,7 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
                         s_idx = shocks.index(sname)
                         shock_cov[s_idx, s_idx] = s_val**2
                         variance_declared.add(sname)
-                    except Exception:
+                    except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
                         pass
                 continue
 
@@ -1984,7 +1984,7 @@ def parse_mod(mod_text: str, base_dir: Path | str | None = None) -> dict:
                         s_idx = shocks.index(current_shock)
                         shock_cov[s_idx, s_idx] = s_val**2
                         variance_declared.add(current_shock)
-                    except Exception:
+                    except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
                         pass
                 current_shock = None
                 continue

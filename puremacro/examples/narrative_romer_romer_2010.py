@@ -86,13 +86,13 @@ def run_demo() -> dict:
     try:
         rr = load_romer_romer_2010()
         used_rr_mirror = True
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         rr = _fallback_rr()
         used_rr_mirror = False
     try:
         ram = load_ramey_2011_defense()
         used_ram_mirror = True
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         ram = _fallback_ramey()
         used_ram_mirror = False
     cmp = compare_to(rr.quarterly, ram.quarterly, max_lag=8)

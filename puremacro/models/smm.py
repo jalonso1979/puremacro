@@ -266,7 +266,7 @@ def smm_objective(p: DMPParameters, empirical: MomentVector) -> float:
     """
     try:
         th = theoretical_moments(p)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         return 1e10  # parameter infeasible (e.g., DMP admissibility violation)
 
     # Time-series term — skip any empirical NaN moments (zero weight)

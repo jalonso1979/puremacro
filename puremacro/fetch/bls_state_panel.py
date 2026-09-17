@@ -72,7 +72,7 @@ def iter_state_urate_q(
         sid = f"{st}UR"
         try:
             series = fetch_fred(sid)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, RuntimeError, Exception):
             continue
         q = _monthly_series_to_quarterly(series)
         url = _FRED_BASE + sid
@@ -99,7 +99,7 @@ def iter_state_employment_q(
         sid = f"{st}NA"
         try:
             series = fetch_fred(sid)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             continue
         q = _monthly_series_to_quarterly(series)
         url = _FRED_BASE + sid
@@ -128,7 +128,7 @@ def iter_state_participation_q(
         sid = f"LBSSA{fips}"
         try:
             series = fetch_fred(sid)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             continue
         q = _monthly_series_to_quarterly(series)
         url = _FRED_BASE + sid

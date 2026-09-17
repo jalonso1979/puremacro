@@ -149,7 +149,7 @@ def verify_dynare_parity(
             raise
         try:
             dyn_moments = load_dynare_moments(dynare_output)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, LookupError, KeyError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
             dyn_moments = {}
     else:
         raise TypeError(f"Unrecognized dynare_output type: {type(dynare_output)}")
@@ -288,7 +288,7 @@ def verify_dynare_parity(
                 "tol_mean": tolerances.get("mean", 1e-5),
                 "tol_var": tolerances.get("var", 1e-5),
             }
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, LookupError, KeyError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
             pass
 
     # 6. Scorecard compilation

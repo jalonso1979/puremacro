@@ -46,11 +46,11 @@ def _resolve_url(*, refresh: bool = False) -> str:
     """The current workbook URL, from the landing page; fallback if unreadable."""
     try:
         page = cached_get(_LANDING, refresh=refresh, timeout=60)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, OSError, Exception):
         return _FALLBACK_URL
     try:
         text = page.decode("utf-8", errors="ignore")
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         return _FALLBACK_URL
     hit = _XLSX_RE.search(text)
     return hit.group(0) if hit else _FALLBACK_URL

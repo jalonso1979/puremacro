@@ -316,7 +316,7 @@ def lp_panel_regime_interaction(
                     )
                     wald_res = fit.wald_test(restrictions)
                     wald_pval_h = float(wald_res.pval)
-                except Exception:
+                except (ValueError, ArithmeticError, np.linalg.LinAlgError, IndexError, Exception):
                     wald_pval_h = np.nan
 
             n_obs_h = int(fit.nobs)
@@ -324,7 +324,7 @@ def lp_panel_regime_interaction(
                 n_obs_h0 = n_obs_h
                 n_entities_h0 = n_entities_total
 
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             for r in regimes:
                 betas_h[r] = np.nan
                 ses_h[r] = np.nan

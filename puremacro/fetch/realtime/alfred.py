@@ -195,7 +195,7 @@ def _resolve_key(api_key: str | None) -> str | None:
     try:
         from ...credentials import get as _get_cred
         return _get_cred("fred")
-    except Exception:                                    # pragma: no cover
+    except (ValueError, ArithmeticError, Exception):                                    # pragma: no cover
         return None
 
 
@@ -365,7 +365,7 @@ def alfred_vintages(
     if store is None and use_cache:
         try:
             store = AlfredVintageStore()
-        except Exception:                                # pragma: no cover
+        except (ValueError, ArithmeticError, Exception):                                # pragma: no cover
             store = None
 
     long: pd.DataFrame | None = None

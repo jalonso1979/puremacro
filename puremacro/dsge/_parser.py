@@ -1035,7 +1035,7 @@ class Parser:
             expr = self.parse_expression()
             try:
                 val = float(expr.eval({}, self.param_values))
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
                 val = float(expr.eval({}, {}))
             values.append(val)
             self._match("COMMA")
@@ -1328,7 +1328,7 @@ class Parser:
             if len(rows) > 1 and all(isinstance(r, (list, tuple, np.ndarray)) for r in rows):
                 try:
                     return np.asarray(rows, dtype=float)
-                except Exception:
+                except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
                     return rows
             elif len(rows) == 1 and isinstance(rows[0], list):
                 return rows[0]
@@ -1602,7 +1602,7 @@ class Parser:
                         val = pexpr.eval({}, eval_scope)
                         eval_scope[pname] = float(val)
                         progress = True
-                    except Exception:
+                    except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
                         pass
             if not progress:
                 break
@@ -1661,7 +1661,7 @@ class Parser:
                     try:
                         c_val = inlined_ast.eval({}, self.param_values)
                         inlined_ast = Const(c_val)
-                    except Exception:
+                    except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
                         inlined_ast = inlined_ast.simplify()
                 else:
                     inlined_ast = inlined_ast.simplify()
@@ -1747,7 +1747,7 @@ class Parser:
                 try:
                     val = i_expr.eval(init_scope, {**self.param_values, **init_scope})
                     init_scope[i_name] = float(val)
-                except Exception:
+                except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
                     pass
             guess = {v: init_scope[v] for v in self.variables if v in init_scope}
             for aux in aux_vars:
@@ -1762,7 +1762,7 @@ class Parser:
                 try:
                     val = h_expr.eval(h_scope, {**self.param_values, **h_scope})
                     h_scope[h_name] = float(val)
-                except Exception:
+                except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
                     pass
             histval_values = {
                 v: h_scope[v]
@@ -1777,7 +1777,7 @@ class Parser:
                 try:
                     val = e_expr.eval(e_scope, {**self.param_values, **e_scope})
                     e_scope[e_name] = float(val)
-                except Exception:
+                except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
                     pass
             endval_values = {
                 v: e_scope[v]
@@ -1849,21 +1849,21 @@ class Parser:
                         params=sorted(self.parameters),
                         variables=self.variables,
                     )
-                except Exception:
+                except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
                     pass
             if "estimated_params_init" in self.raw_text:
                 try:
                     estimated_params_init = parse_estimated_params_init(
                         self.raw_text, shocks=self.shocks, varobs=self.varobs
                     )
-                except Exception:
+                except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
                     pass
             if "estimated_params_bounds" in self.raw_text:
                 try:
                     estimated_params_bounds = parse_estimated_params_bounds(
                         self.raw_text, shocks=self.shocks, varobs=self.varobs
                     )
-                except Exception:
+                except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
                     pass
 
         is_linear = self.is_linear
@@ -1871,7 +1871,7 @@ class Parser:
             try:
                 from puremacro.dsge._utils import detect_linear_model
                 is_linear = detect_linear_model(self)
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
                 pass
 
         return ParsedModelDAG(

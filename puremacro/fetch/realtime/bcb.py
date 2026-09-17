@@ -50,11 +50,11 @@ def _parse_bcb_date(text: str) -> pd.Timestamp | None:
     """``dd/mm/yyyy`` as documented, with a permissive fallback for drift."""
     try:
         return pd.to_datetime(text, format="%d/%m/%Y")
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         pass
     try:
         return pd.to_datetime(text)
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return None
 
 

@@ -253,7 +253,7 @@ def build_financial_panel(
                 if not spreads_df.empty:
                     monthly_frames.append(spreads_df)
             monthly_frames.append(y_df)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         pass
 
     # 2. Policy Rates (monthly)
@@ -266,7 +266,7 @@ def build_financial_panel(
         )
         if not p_df.empty:
             monthly_frames.append(p_df)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         pass
 
     # 3. Financial Conditions (monthly, USA / WLD)
@@ -279,7 +279,7 @@ def build_financial_panel(
             )
             if not fc_df.empty:
                 monthly_frames.append(fc_df)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             pass
 
     # 4. BIS Macroprudential (quarterly)
@@ -292,7 +292,7 @@ def build_financial_panel(
         )
         if not bis_df.empty:
             quarterly_frames.append(bis_df)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         pass
 
     # 5. Global Commodities (code='WLD')
@@ -319,7 +319,7 @@ def build_financial_panel(
                         monthly_frames.append(comm_df)
                     else:
                         quarterly_frames.append(comm_df)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             pass
 
     # Harmonize to target frequency

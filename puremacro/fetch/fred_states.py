@@ -80,11 +80,11 @@ def fetch_state_income(refresh: bool = False) -> pd.DataFrame:
     for st in STATES:
         try:
             pi = fred.get_series(f"{st}OTOT").dropna()
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             pi = pd.Series(dtype=float)
         try:
             wage = fred.get_series(f"{st}WTOT").dropna()
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             wage = pd.Series(dtype=float)
         idx = pi.index.union(wage.index)
         df = pd.DataFrame({"state": st, "date": idx})
@@ -129,7 +129,7 @@ def fetch_state_employment_garch_sigma(refresh: bool = False) -> pd.DataFrame:
             fit = _arch_model(growth, mean="AR", lags=1, vol="GARCH", p=1, q=1,
                               dist="normal", rescale=False).fit(disp="off")
             sigma = pd.Series(fit.conditional_volatility).dropna()
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             continue
         for d, s in zip(sigma.index, sigma.values):
             rows.append({

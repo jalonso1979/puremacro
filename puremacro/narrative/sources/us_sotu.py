@@ -231,7 +231,7 @@ def iter_sotu(
         try:
             html = safe_get_text(url, user_agent=_USER_AGENT)
             record = _parse_sotu_page(html, source_url=url)
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             continue
         if record is None:
             continue

@@ -87,12 +87,12 @@ def build_diagnostics(panel: pd.DataFrame, *, freq: str) -> pd.DataFrame:
             try:
                 adf = adf_test(s.values, regression="c")
                 adf_stat, adf_p = float(adf["stat"]), float(adf["p_value"])
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, RuntimeError, Exception):
                 adf_stat, adf_p = np.nan, np.nan
             try:
                 kpss = kpss_test(s.values, regression="c")
                 kpss_stat, kpss_p = float(kpss["stat"]), float(kpss["p_value"])
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, RuntimeError, Exception):
                 kpss_stat, kpss_p = np.nan, np.nan
         else:
             adf_stat = adf_p = kpss_stat = kpss_p = np.nan

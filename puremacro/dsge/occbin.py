@@ -1708,7 +1708,7 @@ def solve_differentiable_occbin(
         try:
             sol = klein_solve(A_0_0, -A_m_0, n_pre=n_vars)
             P_0 = sol.P
-        except Exception:
+        except (np.linalg.LinAlgError, scipy.linalg.LinAlgError, ValueError, Exception):
             P_0 = np.zeros((n_vars, n_vars))
 
     # Find the row index of the constrained variable
@@ -1950,7 +1950,7 @@ def solve_differentiable_occbin(
                     gradient_dict[p_name] = float((lp_p - lp_m) / (2.0 * h))
                 else:
                     gradient_dict[p_name] = float(dX_dp[0, idx_var])
-            except Exception:
+            except (np.linalg.LinAlgError, scipy.linalg.LinAlgError, ValueError, Exception):
                 gradient_dict[p_name] = 0.0
 
         if sensitivities:
@@ -2709,7 +2709,7 @@ def piecewise_kalman_filter(
         P_filt = 0.5 * (P_filt + P_filt.T)
         if not np.all(np.isfinite(P_filt)) or np.any(np.linalg.eigvalsh(P_filt) < -1e-8):
             P_filt = 10.0 * np.eye(n_vars)
-    except Exception:
+    except (np.linalg.LinAlgError, scipy.linalg.LinAlgError, ValueError, Exception):
         P_filt = 10.0 * np.eye(n_vars)
 
     # Storage arrays

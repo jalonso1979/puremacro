@@ -63,7 +63,7 @@ def _head_or_get(url: str, *, want_body: bool, timeout: float = 15.0):
     try:
         r = requests.request(method, url, headers=headers, timeout=timeout,
                              allow_redirects=True)
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return 0, None
     if r.status_code != 200:
         return r.status_code, None

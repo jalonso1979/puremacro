@@ -138,7 +138,7 @@ def lp_sigma_iv(
                 cov_type="HAC", cov_kwds={"maxlags": int(hac_bandwidth_func(h))})
             beta_ols = float(ols.params[sigma])
             se_ols = float(ols.bse[sigma])
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             pass
         rows.append({"h": h, "beta_iv": beta_iv, "se_iv": se_iv,
                       "beta_ols": beta_ols, "se_ols": se_ols,
@@ -221,7 +221,7 @@ def panel_lp_sigma_iv(
             se_iv = float(iv.std_errors[sigma])
             try:
                 f_fs = float(iv.first_stage.diagnostics.loc[sigma, "f.stat"])  # type: ignore[attr-defined]  # IV2SLSResults not in stubs
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                 f_fs = np.nan
             try:
                 j_p = float(iv.j_stat.pval)  # type: ignore[attr-defined]  # IV2SLSResults not in stubs
@@ -361,7 +361,7 @@ def lp_two_shocks(
                     cov_type="HAC", cov_kwds={"maxlags": bw})
                 out[f"beta_{tag}"] = float(res.params[raw_col])
                 out[f"se_{tag}"] = float(res.bse[raw_col])
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                 out[f"beta_{tag}"] = np.nan
                 out[f"se_{tag}"] = np.nan
         rows.append(out)

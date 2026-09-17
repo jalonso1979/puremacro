@@ -252,7 +252,7 @@ def osr(
             for v in targets
         }
         loss_opt = float(sum(weights_dict.get(v, 0.0) * var_optimal[v] for v in targets))
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         m_opt = None
         var_optimal = {v: np.nan for v in targets}
         loss_opt = float(opt_res.fun)
@@ -622,7 +622,7 @@ def discretionary_policy(
         Q_lyap = G.T @ W_full @ G
         V_model = scipy.linalg.solve_discrete_lyapunov(A_lyap, Q_lyap)
         V_model = 0.5 * (V_model + V_model.T)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         for _ in range(100):
             V_next = G.T @ W_full @ G + beta * G.T @ V_model @ G
             V_next = 0.5 * (V_next + V_next.T)
@@ -648,7 +648,7 @@ def discretionary_policy(
         sigma_x = scipy.linalg.solve_discrete_lyapunov(G, N_mat @ sigma_u @ N_mat.T)
         sigma_x = 0.5 * (sigma_x + sigma_x.T)
         loss = float(np.trace(W_full @ sigma_x))
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         sigma_x = np.zeros((N, N))
         loss = np.nan
 
@@ -691,7 +691,7 @@ def discretionary_policy(
                 try:
                     kappa_val = float(kwargs[k_kw])
                     break
-                except (TypeError, ValueError):
+                except (TypeError, ValueError, Exception):
                     pass
 
     # 2. Check model._params and model.parameters mappings
@@ -710,7 +710,7 @@ def discretionary_policy(
                     try:
                         kappa_val = float(p_map[k_name])
                         break
-                    except (TypeError, ValueError):
+                    except (TypeError, ValueError, Exception):
                         pass
             if kappa_val is not None:
                 break
@@ -782,7 +782,7 @@ def discretionary_policy(
             )
             if commitment_res is not None and not np.isnan(commitment_res.loss):
                 stabilization_bias = float(loss - commitment_res.loss)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             commitment_res = None
             stabilization_bias = 0.0
 
@@ -1033,7 +1033,7 @@ def lq_commitment(
         sigma_s = 0.5 * (sigma_s + sigma_s.T)
         cov_X = F_full @ sigma_s @ F_full.T + L_full @ sigma_u @ L_full.T
         loss = float(np.trace(W @ cov_X[:N, :N]))
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         cov_X = np.zeros((total_vars, total_vars))
         loss = np.nan
 

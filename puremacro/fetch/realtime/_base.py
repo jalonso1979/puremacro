@@ -180,7 +180,7 @@ def fetch_with_backoff(
             retry_after = exc.headers.get("Retry-After") if exc.headers else None
             try:
                 delay = float(retry_after) if retry_after else base_delay * (2 ** k)
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, Exception):
                 delay = base_delay * (2 ** k)
             _sleep(min(delay, 60.0))
     raise last if last is not None else RuntimeError(f"could not fetch {url}")
@@ -361,7 +361,7 @@ class VintagePanel:
         try:
             from .catalog import canonical_variable
             return canonical_variable(variable)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             return variable
 
     def _resolve(self, country: str, variable: str | None) -> tuple[str, str]:

@@ -343,7 +343,7 @@ class DynamicFactorModelResult:
                 dt_idx = pd.to_datetime(self.index)
                 freq = pd.infer_freq(dt_idx) or "MS"
                 future_dates = pd.date_range(dt_idx[-1], periods=steps + 1, freq=freq)[1:]
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                 future_dates = [f"t+{h}" for h in range(1, steps + 1)]
         else:
             future_dates = [f"t+{h}" for h in range(1, steps + 1)]

@@ -226,13 +226,13 @@ def _celex_via_sparql(*, since: _date, until: _date,
         url = f"{_SPARQL_ENDPOINT}?{post_body}"
         try:
             text = safe_get_text(url, user_agent=_USER_AGENT)
-        except Exception:
+        except (ValueError, ArithmeticError, ConnectionError, Exception):
             continue
         if not text.strip():
             continue
         try:
             data = json.loads(text)
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             continue
         bindings = data.get("results", {}).get("bindings", [])
         for b in bindings:
@@ -269,7 +269,7 @@ def _celex_via_html_scrape(*, since: _date, until: _date,
             )
             try:
                 html = safe_get_text(url, user_agent=_USER_AGENT)
-            except Exception:
+            except (ValueError, ArithmeticError, Exception):
                 continue
             for celex in re.findall(rf"CELEX:?(3{year}{letter}\d+)", html):
                 if celex not in found:

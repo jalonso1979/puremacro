@@ -91,7 +91,7 @@ def colab_auth_snippet(
                 "if userdata is not None:",
                 "    try:",
                 f"        {sec} = userdata.get('{sec}')",
-                "    except Exception:",
+                "    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):",
                 "        pass",
                 f"if not {sec}:",
                 f"    {sec} = getpass.getpass('Please enter your {sec}: ')",
@@ -395,7 +395,7 @@ def load_colab_result(path_or_bytes: str | Path | bytes) -> Any:
         bio = io.BytesIO(path_or_bytes)
         try:
             return load_frame(bio)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             bio.seek(0)
             import pickle
             return pickle.load(bio)
@@ -407,13 +407,13 @@ def load_colab_result(path_or_bytes: str | Path | bytes) -> Any:
     # Try puremacro portable store first (.pmz / .npz)
     try:
         return load_frame(p)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         pass
     # A genuine puremacro.pocket cartridge (pocket.pack): return its frame
     try:
         from puremacro import pocket as _pocket
         return _pocket.load(p).frame()
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         pass
 
     # Try parquet if pyarrow is present
@@ -443,7 +443,7 @@ def show_colab_offload_dialog(
         from IPython import get_ipython  # type: ignore
         ip = get_ipython()
         in_kernel = ip is not None and ip.__class__.__name__ != "TerminalInteractiveShell"
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         in_kernel = False
     if not in_kernel:
         # Outside a Jupyter/Juno kernel the rich HTML card would only print its
@@ -478,7 +478,7 @@ def show_colab_offload_dialog(
         html_obj = HTML(html_content)
         display(html_obj)
         return html_obj
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         print(f"\n{title}")
         print("=" * len(title))
         print(f"Notebook generated at: {abs_path}\n")

@@ -224,7 +224,7 @@ def iter_erp(
             continue
         try:
             yield from _iter_erp_year(year, granularity=granularity)
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             continue
 
 

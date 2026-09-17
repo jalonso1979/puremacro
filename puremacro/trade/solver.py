@@ -300,10 +300,10 @@ def _sparse_lu_solve(
         try:
             lu = spla.splu(J_csc)
             delta = lu.solve(-f_val)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             try:
                 delta = spla.spsolve(J_csc, -f_val)
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                 delta = np.linalg.lstsq(J_csc.toarray(), -f_val, rcond=1e-10)[0]
 
         # Damping schedule matching MATLAB
@@ -776,28 +776,28 @@ def _condensed_schur_solve_impl(
         rhs_equil = -D_L * f_m
 
         # Solve equilibrated macro system: direct LAPACK LU square solve for pure Newton (mu <= 1e-6),
-        # or Levenberg-Marquardt damping on normal equations when descent damping is active (mu > 1e-6)
+        # or Levenberg-Marquardt damping using augmented least squares when descent damping is active (mu > 1e-6)
         if mu <= 1e-6:
             try:
                 sol_u = np.linalg.solve(J_equil, rhs_equil)
                 delta_m = D_R * sol_u
-            except Exception:
-                sol_u = np.linalg.lstsq(J_equil, rhs_equil, rcond=1e-12)[0]
+            except np.linalg.LinAlgError:
+                sol_u = np.linalg.lstsq(J_equil, rhs_equil, rcond=None)[0]
                 delta_m = D_R * sol_u
         else:
             try:
-                JT_J = J_equil.T @ J_equil
-                JT_rhs = J_equil.T @ rhs_equil
-                sol_u = np.linalg.solve(JT_J + mu * np.eye(n_m), JT_rhs)
+                J_aug = np.vstack([J_equil, np.sqrt(mu) * np.eye(n_m)])
+                rhs_aug = np.concatenate([rhs_equil, np.zeros(n_m)])
+                sol_u = np.linalg.lstsq(J_aug, rhs_aug, rcond=None)[0]
                 delta_m = D_R * sol_u
-            except Exception:
-                sol_u = np.linalg.lstsq(J_equil, rhs_equil, rcond=1e-12)[0]
+            except np.linalg.LinAlgError:
+                sol_u = np.linalg.lstsq(J_equil, rhs_equil, rcond=None)[0]
                 delta_m = D_R * sol_u
 
         if not np.all(np.isfinite(delta_m)):
             try:
-                delta_m = np.linalg.lstsq(J, -f_m, rcond=1e-6)[0]
-            except Exception:
+                delta_m = np.linalg.lstsq(J, -f_m, rcond=None)[0]
+            except np.linalg.LinAlgError:
                 delta_m = np.zeros_like(f_m)
 
         # Direction-preserving uniform scaling based on factor prices
@@ -1060,7 +1060,7 @@ def solve_trade_equilibrium(
         # Build structural sparsity pattern
         try:
             sparsity_pat = _build_cge_sparsity_pattern(calib, tau_a=tau_a)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             sparsity_pat = None
         x_sol, conv, iters, max_res, diff, res = _sparse_lu_solve(
             obj_fun, x_init, tol=tol, max_iter=max_iter, sparsity=sparsity_pat

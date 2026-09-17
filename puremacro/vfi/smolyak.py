@@ -1137,7 +1137,7 @@ def _solve_smolyak_euler(
         A_mat = np.eye(N) - beta * (Phi_next @ np.linalg.inv(Phi_nodes))
         V_nodes = np.linalg.solve(A_mat, u_nodes)
         value_coefficients = np.linalg.solve(Phi_nodes, V_nodes)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         pass
 
     metadata = {

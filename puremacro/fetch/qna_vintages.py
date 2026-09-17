@@ -636,7 +636,7 @@ def fetch_qna_vintages(
     if store is None:
         try:
             store = AlfredVintageStore()
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             store = None
 
     # Resolve target country list

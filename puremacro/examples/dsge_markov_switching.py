@@ -210,7 +210,7 @@ def main() -> tuple[MSDSGEResult, pd.DataFrame]:
         fig_copy, _ = res.plot(regime="Hawkish", girf=True, horizon=horizon, shock="monetary_policy")
         fig_copy.savefig(repo_out / "dsge_markov_switching.png", dpi=150, bbox_inches="tight")
         plt.close(fig_copy)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         pass
 
     print("\nMarkov-switching DSGE analysis completed successfully.")

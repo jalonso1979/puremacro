@@ -1137,7 +1137,7 @@ def _solve_spline_euler(
                 high = max(f_ki - 1e-5, 0.99 * f_ki)
                 try:
                     kp_next[i] = brentq(eq_i, low, high)
-                except Exception:
+                except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                     kp_next[i] = 0.5 * f_ki
             theta_curr = basis.fit(kp_next, backend=backend)
 
@@ -1186,7 +1186,7 @@ def _solve_spline_euler(
                 high = max(f_ki - 1e-5, 0.99 * f_ki)
                 try:
                     y_next[i] = brentq(eq_i, low, high)
-                except Exception:
+                except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                     y_next[i] = 0.5 * f_ki
             y_curr = y_next
 

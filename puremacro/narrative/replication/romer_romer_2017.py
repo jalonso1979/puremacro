@@ -59,10 +59,10 @@ def romer_romer_2017_csv_to_events(df: pd.DataFrame) -> list[NarrativeEvent]:
     for _, row in df.iterrows():
         try:
             date = pd.Period(str(row[date_col]), freq="Q").to_timestamp()
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             try:
                 date = pd.Timestamp(row[date_col])
-            except Exception:
+            except (ValueError, ArithmeticError, Exception):
                 continue
         country = str(row[country_col]).upper()
         country = _ISO2_TO_ISO3.get(country, country)

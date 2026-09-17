@@ -139,7 +139,7 @@ def _parse_inegi_period(tp: str, is_quarterly: bool = False) -> pd.Timestamp | N
                 else:
                     # Monthly
                     return pd.Timestamp(year, num, 1)
-            except (ValueError, TypeError):
+            except (ValueError, TypeError, Exception):
                 pass
 
     # Handle standard formats: YYYY-MM-DD, YYYY-MM, YYYY-Q#
@@ -147,7 +147,7 @@ def _parse_inegi_period(tp: str, is_quarterly: bool = False) -> pd.Timestamp | N
         if "Q" in token or "q" in token:
             return pd.Period(token.upper(), freq="Q").to_timestamp()
         return pd.to_datetime(token)
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return None
 
 
@@ -219,7 +219,7 @@ def parse_inegi_json(
             continue
         try:
             val = float(str(v_str).replace(",", ""))
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, Exception):
             skipped += 1
             continue
         d = _parse_inegi_period(tp, is_quarterly=is_quarterly)

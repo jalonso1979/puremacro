@@ -41,7 +41,7 @@ def _load_manifest() -> dict:
     try:
         if f.exists():
             return json.loads(f.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+    except (OSError, ValueError, RuntimeError, ConnectionRefusedError, Exception, KeyError, LookupError, AssertionError, TypeError, ConnectionError):
         pass
     return {}
 

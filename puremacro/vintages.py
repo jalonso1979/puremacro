@@ -104,7 +104,7 @@ def forecast_revision(
             continue
         try:
             out[pd.Timestamp(v)] = float(forecast_fn(snap))
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             out[pd.Timestamp(v)] = np.nan
     s = pd.Series(out).sort_index()
     s.index.name = "vintage"

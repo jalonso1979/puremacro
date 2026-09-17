@@ -211,7 +211,7 @@ def _read_fred_series(
     url = _FRED_CSV_URL.format(series_id=series_id)
     try:
         raw = cached_get(url, refresh=refresh, timeout=int(timeout))
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, ConnectionError, FileNotFoundError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, Exception):
         return pd.DataFrame(columns=["date", "value"])
 
     if not raw:
@@ -219,7 +219,7 @@ def _read_fred_series(
 
     try:
         df = pd.read_csv(io.BytesIO(raw))
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
         return pd.DataFrame(columns=["date", "value"])
 
     if df.empty or len(df.columns) < 2:
@@ -261,7 +261,7 @@ def _read_bis_csv(
     """Fetch and parse BIS SDMX-CSV with case-normalized column headers."""
     try:
         raw = cached_get(url, refresh=refresh, timeout=int(timeout))
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, ConnectionError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, Exception):
         return pd.DataFrame()
 
     if not raw:
@@ -269,7 +269,7 @@ def _read_bis_csv(
 
     try:
         df = pd.read_csv(io.BytesIO(raw))
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
         return pd.DataFrame()
 
     if df.empty:
@@ -287,7 +287,7 @@ def _parse_bis_date(s: pd.Series) -> pd.Series:
         clean_q = str_s.str.replace("-", "", regex=False)
         try:
             return pd.PeriodIndex(clean_q, freq="Q").to_timestamp()
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
             def _parse_single_q(val: str) -> pd.Timestamp:
                 m = re.match(r"^(\d{4})Q([1-4])$", str(val).strip(), re.IGNORECASE)
                 if m:

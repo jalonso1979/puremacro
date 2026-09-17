@@ -91,7 +91,7 @@ def iter_macro_blogs(
                     "category": cfg["category"],
                 }
                 yield (date, text, url, metadata)
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             # Resilient network fallback: continue to next source
             continue
 

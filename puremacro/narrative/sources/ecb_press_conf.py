@@ -26,7 +26,7 @@ def iter_ecb_press_conf(*, year: int | None = None) -> Iterator[tuple]:
     url = _LISTING_FMT.format(year=year)
     try:
         html = safe_get_text(url)
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return
     seen: set[str] = set()
     for m in _FILENAME_RX.finditer(html):
@@ -37,12 +37,12 @@ def iter_ecb_press_conf(*, year: int | None = None) -> Iterator[tuple]:
         seen.add(href)
         try:
             date = pd.Timestamp(f"20{ymd[:2]}-{ymd[2:4]}-{ymd[4:6]}")
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             continue
         item_url = f"https://www.ecb.europa.eu/press/pressconf/{year}/html/{href}"
         try:
             body_html = safe_get_text(item_url)
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             continue
         text = extract_body(body_html, bank_code="ECB")
         if len(text) < 200:

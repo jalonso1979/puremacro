@@ -95,7 +95,7 @@ def sdmx_get(
     url = _PROVIDERS[provider].format(dataflow=dataflow, key=key)
     try:
         raw = safe_get_bytes(url)
-    except Exception:
+    except (ValueError, ArithmeticError, OSError, Exception):
         raise RuntimeError(
             f"Could not fetch SDMX from {provider!r} (dataflow={dataflow!r}, "
             f"key={key!r}). Verify the dataflow ID at the provider's portal "

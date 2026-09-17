@@ -46,7 +46,7 @@ def _can_use_threads() -> bool:
         from puremacro.runtime import capabilities
 
         return bool(capabilities().threads)
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return False
 
 

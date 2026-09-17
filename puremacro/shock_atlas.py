@@ -126,7 +126,7 @@ def _load_romer_tax(root: Path) -> pd.Series:
                 df[c].astype(float)
                 val_col = c
                 break
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                 continue
     if val_col is None:
         raise ValueError(f"Could not find RR shock column in {list(df.columns)}")
@@ -152,7 +152,7 @@ def _load_ramey_defense(root: Path) -> pd.Series:
                 df[c].astype(float)
                 val_col = c
                 break
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                 continue
     if val_col is None:
         raise ValueError(f"Could not find Ramey news column in {list(df.columns)}")
@@ -175,7 +175,7 @@ def _load_mertens_ravn(root: Path) -> pd.Series:
             arr = df[c].astype(float)
             val_col = c
             break
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             continue
     if val_col is None:
         raise ValueError("No numeric column in Mertens-Ravn")

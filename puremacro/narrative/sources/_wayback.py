@@ -41,13 +41,13 @@ def wayback_snapshot_url(target: str, *,
     cdx_url = _CDX_URL.format(target=_up.quote(target, safe=""))
     try:
         text = safe_get_text(cdx_url, user_agent=user_agent)
-    except Exception:
+    except (ValueError, ArithmeticError, ConnectionError, Exception):
         return None
     if not text.strip():
         return None
     try:
         records = json.loads(text)
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return None
     if not isinstance(records, list) or len(records) < 2:
         return None

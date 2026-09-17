@@ -20,7 +20,7 @@ def iter_fed_speeches(*, fetch_body: bool = False) -> Iterator[tuple]:
     # delegating to the shared speeches iterator.
     try:
         raw_bytes = safe_get_bytes(_FEED_URL)
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return
     raw_text = raw_bytes.decode("utf-8", errors="replace")
     try:

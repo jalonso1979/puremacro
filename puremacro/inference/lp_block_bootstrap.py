@@ -122,7 +122,7 @@ def cum_irf_block_bootstrap(
                              n_lags=n_lags, controls=list(controls),
                              time_effects=time_effects)
             return res_b["beta"].to_numpy()
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             return np.full(len(horizons), np.nan)
 
     all_sampled = [rng.choice(entities, size=n_e, replace=True) for _ in range(B)]

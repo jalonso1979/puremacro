@@ -160,7 +160,7 @@ def fit_svar_country(
                 point, lo, hi = res[0], res[1], res[2]
         else:
             raise ValueError(f"unknown scheme {scheme!r}")
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         return None
 
     out_dict: dict = {"point": point, "lo": lo, "hi": hi, "scheme": scheme, "n_obs": Y.shape[0]}
@@ -447,7 +447,7 @@ def forest_plot_id_compare(
     default_markers = ["o", "s", "D", "^", "v", "<", ">", "P", "X"]
     try:
         default_colors = bw_colors(len(schemes))
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         default_colors = ["0.10", "0.45", "0.65", "0.30"][:len(schemes)] or ["0.10"]
     if schemes_styles is None:
         schemes_styles = {

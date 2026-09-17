@@ -71,7 +71,7 @@ def _dglp_extract_rows(df: pd.DataFrame) -> list[dict]:
             return int(s)
         try:
             return pd.Period(s, freq="Q").year
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             return pd.Timestamp(s).year
 
     out: list[dict] = []

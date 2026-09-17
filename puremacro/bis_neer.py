@@ -76,12 +76,12 @@ def fetch_bis_neer(
     url = _BIS_NEER_URL.format(cc=bis_code.upper())
     try:
         raw = safe_get_bytes(url, timeout=timeout)
-    except Exception:
+    except (ValueError, ArithmeticError, ConnectionError, TimeoutError, Exception):
         return _EMPTY.copy()
 
     try:
         df = pd.read_csv(io.BytesIO(raw))
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return _EMPTY.copy()
 
     # Locate TIME_PERIOD and OBS_VALUE columns (case-insensitive fallback).

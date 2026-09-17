@@ -72,7 +72,7 @@ def iter_boj_speeches(
         url = _INDEX_URL.format(year=year)
         try:
             html = safe_get_text(url)
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             continue  # year archive may not exist yet
         for m in _ROW_RX.finditer(html):
             date_raw = m.group("date")
@@ -90,7 +90,7 @@ def iter_boj_speeches(
                     body_text = extract_body(body_html, bank_code="BOJ")
                     if body_text and len(body_text) > 200:
                         text = body_text
-                except Exception:
+                except (ValueError, ArithmeticError, Exception):
                     pass  # fall back to title
             yield (dt, text, full_url, {
                 "doctype": "speech",

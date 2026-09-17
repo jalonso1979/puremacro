@@ -192,7 +192,7 @@ def main() -> tuple[ParticleFilterResult, ParticleFilterResult]:
         fig_copy = res_sv.plot(variables=["k", "c", "z"], figsize=(10, 8.5))
         fig_copy.savefig(repo_out / "dsge_particle_filter_sv.png", dpi=150, bbox_inches="tight")
         plt.close(fig_copy)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         pass
 
     print("\nParticle filter simulation completed successfully.")

@@ -104,7 +104,7 @@ def njit_fallback(*dargs, **dkwargs):
                         import numba
 
                         compiled = numba.njit(*jit_args, **jit_kwargs)(fn)
-                    except Exception:
+                    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                         compiled = None
             if compiled is not None:
                 return compiled(*args, **kwargs)

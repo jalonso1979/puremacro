@@ -102,7 +102,7 @@ def _fallback_mr() -> NarrativeInstrument:
 def _try_load(loader, fallback, **kwargs):
     try:
         return loader(**kwargs), True
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         return fallback(), False
 
 

@@ -40,13 +40,13 @@ def compute_state_iv_coefs(
             se = float(fit.std_errors[endog])
             try:
                 fstat = float(fit.first_stage.diagnostics.loc[endog, "f.stat"])  # type: ignore[attr-defined]  # IV2SLSResults not in stubs
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                 fstat = np.nan
             results.append({
                 "state": st, "beta": beta, "se": se,
                 "n": len(d), "first_stage_f": fstat,
             })
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             continue
     return pd.DataFrame(results)
 
@@ -95,7 +95,7 @@ def three_instrument_gmm(
     j_full_p = float(fit_full.j_stat.pval)  # type: ignore[attr-defined]  # IVGMMResults not in stubs
     try:
         fs_f = float(fit_full.first_stage.diagnostics.loc[endog, "f.stat"])  # type: ignore[attr-defined]  # IVGMMResults not in stubs
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         fs_f = np.nan
 
     incr_j = np.nan
@@ -114,7 +114,7 @@ def three_instrument_gmm(
             j_partial = float(fit_partial.j_stat.stat)  # type: ignore[attr-defined]  # IVGMMResults not in stubs
             incr_j = max(j_full - j_partial, 0.0)
             incr_p = float(_chi2.sf(incr_j, df=1))
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             pass
 
     return {
@@ -166,7 +166,7 @@ def bucket_iv_betas(
             fit = IV2SLS(df["y"], df[["const"]], df[["endog"]], df[["z"]]).fit(cov_type="robust")
             try:
                 fs_f = float(fit.first_stage.diagnostics.loc["endog", "f.stat"])  # type: ignore[attr-defined]  # IV2SLSResults not in stubs
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                 fs_f = np.nan
             rows.append({
                 "bucket": k,
@@ -175,7 +175,7 @@ def bucket_iv_betas(
                 "first_stage_f_k": fs_f,
                 "n_k": len(df),
             })
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             continue
     return pd.DataFrame(rows)
 

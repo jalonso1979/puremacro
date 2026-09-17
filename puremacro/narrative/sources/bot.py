@@ -55,14 +55,14 @@ def _fetch_page(page_index: int = 0, page_size: int = 500,
         r.raise_for_status()
         data = r.json()
         return data.get("results", []) if data.get("success") else []
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return []
 
 
 def _parse_date(raw: str) -> datetime | None:
     try:
         return datetime.strptime(raw, _DATE_FMT)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, Exception):
         return None
 
 

@@ -121,7 +121,7 @@ def calibrate_mu_to_f(params, *, f_target: float = 0.5, sigma_ref: float = 1.0,
             grid, erg = _dyn._fixed_grid(pf, sigma_ref=sigma_ref)
             ss = _dyn._grid_steady_state(pf, grid=grid, erg=erg, sigma=0.0, pi=pf.prior_pi0)
             return pf.mu * ss["theta"] ** (1.0 - pf.alpha) - f_target
-        except (ValueError, RuntimeError):
+        except (ValueError, RuntimeError, Exception):
             # Inner theta brentq has no bracket at this mu (too small to post vacancies).
             return None
 
@@ -259,7 +259,7 @@ def estimate_shape_match(params, targets, *, sigma0: float = 1.0,
     def obj(x):
         try:
             return fit_report(unpack(x), targets, sigma0=sigma0).shape_distance
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             return 1e12  # inadmissible / non-converging draw -> heavy penalty
 
     res = minimize(obj, x0, method="Nelder-Mead",

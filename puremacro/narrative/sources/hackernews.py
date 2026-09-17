@@ -67,7 +67,7 @@ def iter_hackernews(
             )
             r.raise_for_status()
             data = r.json()
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             return
         hits = data.get("hits", [])
         if not hits:
@@ -78,7 +78,7 @@ def iter_hackernews(
                 continue
             try:
                 dt = datetime.utcfromtimestamp(int(ts))
-            except (ValueError, TypeError):
+            except (ValueError, TypeError, Exception):
                 continue
             title = (h.get("title") or "").strip()
             story_text = (h.get("story_text") or "").strip()

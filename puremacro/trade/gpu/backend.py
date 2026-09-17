@@ -357,7 +357,7 @@ def _host_memory_gb() -> float | None:
 
         out = subprocess.check_output(["sysctl", "-n", "hw.memsize"], text=True).strip()
         return float(out) / (1024**3)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         return None
 
 
@@ -418,7 +418,7 @@ def get_memory_usage(
                 info["driver_mb"] = float(torch.mps.driver_allocated_memory() / (1024**2))
                 info["peak_mb"] = info["allocated_mb"]
                 return info
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                 pass
 
     elif mx is not None:
@@ -430,7 +430,7 @@ def get_memory_usage(
             info["peak_mb"] = float(get_peak() / (1024**2))
             info["cache_mb"] = float(get_cache() / (1024**2))
             return info
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             pass
 
     # CPU / OS level fallback
@@ -441,7 +441,7 @@ def get_memory_usage(
         scale = (1024**2) if platform.system() == "Darwin" else 1024.0
         info["allocated_mb"] = float(usage.ru_maxrss / scale)
         info["peak_mb"] = info["allocated_mb"]
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         info["allocated_mb"] = 0.0
         info["peak_mb"] = 0.0
 
@@ -482,7 +482,7 @@ def reset_peak_memory(
                 mx.clear_cache()
             elif hasattr(mx, "metal") and hasattr(mx.metal, "clear_cache"):
                 mx.metal.clear_cache()
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             pass
 
 

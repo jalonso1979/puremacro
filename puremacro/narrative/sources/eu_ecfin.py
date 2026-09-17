@@ -36,7 +36,7 @@ def iter_ecfin_press(
     url = feed_url or _FEED
     try:
         body = safe_get_bytes(url)
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return
     try:
         root = ET.fromstring(body)
@@ -53,7 +53,7 @@ def iter_ecfin_press(
         pub = item.findtext("pubDate", default=None)
         try:
             date = pd.to_datetime(pub) if pub else pd.NaT
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             date = pd.NaT
         if pd.isna(date):
             continue

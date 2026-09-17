@@ -262,7 +262,7 @@ def synthetic_did(
                                          n_treated=len(treated_units))
             boot_taus[b] = _sdid_tau(ome_b, lam_b, Y_d_pre_b, Y_d_post_b,
                                      Y_treated_pre, Y_treated_post)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             continue
 
     if n_boot > 0 and np.isfinite(boot_taus).any():

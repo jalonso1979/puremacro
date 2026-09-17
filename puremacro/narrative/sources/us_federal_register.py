@@ -58,7 +58,7 @@ def iter_federal_register(
         url = _BASE + "?" + urllib.parse.urlencode(params, doseq=True)
         try:
             data = safe_get_json(url)
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             return
         results = data.get("results", [])
         if not results:

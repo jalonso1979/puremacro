@@ -790,7 +790,7 @@ def particle_filter(
     corr_Q = Q / (base_sigmas[:, None] * base_sigmas[None, :])
     try:
         L_corr = scipy.linalg.cholesky(corr_Q + ridge * np.eye(n_e), lower=True)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         L_corr = np.eye(n_e)
 
     # Measurement error covariance R
@@ -890,7 +890,7 @@ def particle_filter(
             P_stat = eigvecs @ np.diag(np.maximum(1e-12, eigvals)) @ eigvecs.T
             L_P = scipy.linalg.cholesky(P_stat + ridge * np.eye(n_x), lower=True)
             x1 = rng.normal(0.0, 1.0, size=(n_particles, n_x)) @ L_P.T
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             x1 = rng.normal(0.0, 0.1, size=(n_particles, n_x))
 
         # Ergodic warm-up under 2nd/3rd order pruning

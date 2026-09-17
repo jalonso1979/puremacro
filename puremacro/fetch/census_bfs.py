@@ -119,7 +119,7 @@ def fetch_us(refresh: bool = False, *, api_key: str | None = None) -> pd.DataFra
         sid = f"{prefix}US"
         try:
             s = fred.get_series(sid).dropna()
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             continue
         rows.append(pd.DataFrame({
             "code": "USA", "date": s.index, "variable": var,

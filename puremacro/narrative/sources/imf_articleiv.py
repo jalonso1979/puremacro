@@ -64,7 +64,7 @@ def _fetch_repec_metadata(year: str, number: str) -> dict:
     url = _PAPER_TPL.format(year=year, number=str(number).zfill(3))
     try:
         html = safe_get_text(url)
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return {}
     out: dict[str, str] = {"repec_url": url}
     if (m := _REPEC_TITLE_RX.search(html)):
@@ -110,7 +110,7 @@ def _iter_listing_pages(
         url = _SERIES_LISTING_TPL.format(n="" if page == 1 else page)
         try:
             html = safe_get_text(url, timeout=timeout)
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             break
         any_match = False
         for m in _LISTING_ROW_RX.finditer(html):
@@ -194,7 +194,7 @@ def iter_imf_articleiv(
             if meta.get("date"):
                 try:
                     date = pd.Timestamp(meta["date"])
-                except Exception:
+                except (ValueError, ArithmeticError, Exception):
                     pass
 
         yield date, text, url

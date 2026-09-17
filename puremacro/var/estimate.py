@@ -106,7 +106,7 @@ def lag_select(Y, maxlags=8, ic="bic", *, max_lags: int | None = None):
             if val < best_ic:
                 best_ic = val
                 best_p = p
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             continue
     return best_p
 

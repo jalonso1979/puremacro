@@ -44,7 +44,7 @@ def fetch_xrate_monthly(
     df = df.drop_duplicates(subset=["REF_AREA", "TIME_PERIOD"], keep="first")
     try:
         dates = pd.to_datetime(df["TIME_PERIOD"].astype(str) + "-01")
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return _EMPTY.copy()
     out = pd.DataFrame({
         "code": df["REF_AREA"].values,

@@ -26,14 +26,14 @@ _UA = (
 def iter_fed_press_conf() -> Iterator[tuple]:
     try:
         html = safe_get_text(_LISTING_URL, user_agent=_UA)
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return
     seen: set[str] = set()
     for m in _FNAME_RX.finditer(html):
         ymd = m.group(1)
         try:
             date = pd.Timestamp(f"{ymd[:4]}-{ymd[4:6]}-{ymd[6:8]}")
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             continue
         href_start = max(0, m.start() - 200)
         snippet = html[href_start:m.end() + 5]
@@ -48,7 +48,7 @@ def iter_fed_press_conf() -> Iterator[tuple]:
         seen.add(item_url)
         try:
             pdf_bytes = safe_get_bytes(item_url, user_agent=_UA)
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             continue
         text = pdf_bytes.decode("latin-1", errors="ignore")
         text = re.sub(r"[^\x20-\x7e\n]+", " ", text)

@@ -95,7 +95,7 @@ def disk_cache(
         if pq.exists() and not _is_stale(pq, ttl_seconds):
             try:
                 return pd.read_parquet(pq)
-            except Exception:
+            except (ValueError, ArithmeticError, Exception):
                 pass
         if pkl.exists() and not _is_stale(pkl, ttl_seconds):
             with pkl.open("rb") as f:
@@ -109,7 +109,7 @@ def disk_cache(
                 value.to_frame(name=value.name or "value").to_parquet(pq, index=True)
             else:
                 value.to_parquet(pq, index=True)
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             # Fallback to pyarrow-free puremacro store (.pmz)
             from .runtime.store import save_frame
             pmz.parent.mkdir(parents=True, exist_ok=True)

@@ -936,7 +936,7 @@ def identification(
                     J2[:, j] = (psi2_plus - psi2_minus) / (2.0 * h)
                     JH[:, j] = (psiH_plus - psiH_minus) / (2.0 * h)
                     JS[:, j] = (psiS_plus - psiS_minus) / (2.0 * h)
-                except Exception:
+                except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                     use_central = False
 
             if not use_central:
@@ -946,7 +946,7 @@ def identification(
                     J2[:, j] = (psi2_plus - psi2_base) / h
                     JH[:, j] = (psiH_plus - psiH_base) / h
                     JS[:, j] = (psiS_plus - psiS_base) / h
-                except Exception:
+                except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                     psi1_minus, psi2_minus, psiH_minus, psiS_minus = _solve_perturbed(theta_0 - h)
                     J1[:, j] = (psi1_base - psi1_minus) / h
                     J2[:, j] = (psi2_base - psi2_minus) / h
@@ -1012,7 +1012,7 @@ def identification(
                 j2_mc_ranks.append(mc_res.j2_rank)
                 jh_mc_ranks.append(mc_res.jh_rank)
                 js_mc_ranks.append(mc_res.js_rank)
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                 continue
 
         if j1_mc_ranks:

@@ -47,10 +47,10 @@ def cloyne_csv_to_events(df: pd.DataFrame) -> list[NarrativeEvent]:
             return None
         try:
             return pd.Period(s, freq="Q").to_timestamp()
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             try:
                 return pd.Period(pd.Timestamp(s), freq="Q").to_timestamp()
-            except Exception:
+            except (ValueError, ArithmeticError, Exception):
                 return None
 
     out: list[NarrativeEvent] = []

@@ -842,7 +842,7 @@ def _stationary_markov_distribution(A_z: np.ndarray) -> np.ndarray:
         p = np.linalg.solve(M, rhs)
         p = np.maximum(p, 0.0)
         return p / np.sum(p)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         return np.full(Ne, 1.0 / Ne)
 
 

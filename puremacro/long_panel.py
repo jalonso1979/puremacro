@@ -127,13 +127,13 @@ def _fetch_stan_csv(country: str, var: str, agg: str, *, timeout: float = 30.0) 
     url = _OECD_STAN_URL.format(country=country, var=var, agg=agg)
     try:
         raw = safe_get_bytes(url, timeout=timeout)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, ConnectionError, Exception):
         return pd.DataFrame(columns=["year", "value"])
     if raw is None or len(raw) == 0:
         return pd.DataFrame(columns=["year", "value"])
     try:
         df = pd.read_csv(io.BytesIO(raw))
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         return pd.DataFrame(columns=["year", "value"])
     # OECD CSV format: look for time/period column + value column.
     time_col = next((c for c in df.columns if c.upper() in {"TIME_PERIOD", "TIME", "OBS_TIME"}), None)
@@ -225,7 +225,7 @@ def load_klems_legacy(
             continue
         try:
             sheet = pd.read_excel(path, sheet_name="TOT", engine="xlrd")
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             continue
         # KLEMS-legacy 'TOT' sheet: variable name in column 0, years as columns.
         sheet = sheet.rename(columns={sheet.columns[0]: "var"})
@@ -314,7 +314,7 @@ def build_g9_long_panel(
             sub["log_LS"] = np.log(sub["comp_total"]) - np.log(sub["va"])
             sub["vintage_LS"] = "klems2023"
             ls_klems2023 = sub[["code", "year", "log_LS", "vintage_LS"]]
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, TypeError, Exception):
         pass
 
     # ---- log_LS: OECD-STAN (priority 2) ----

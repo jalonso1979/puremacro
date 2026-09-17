@@ -69,7 +69,7 @@ class _RegimeDict(dict):
             k_int = int(key)
             if super().__contains__(k_int):
                 return super().__getitem__(k_int)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, Exception):
             pass
         raise KeyError(key)
 
@@ -82,7 +82,7 @@ class _RegimeDict(dict):
             k_int = int(key)  # type: ignore
             if super().__contains__(k_int):
                 return True
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, Exception):
             pass
         return False
 
@@ -670,7 +670,7 @@ def _compute_mss_operators(
                     rho_fwd = float(np.max(np.abs(eigs_fwd))) if eigs_fwd.size > 0 else 0.0
                     if rho_fwd > 1.0:
                         rho_mss = max(rho_M2, rho_fwd)
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                 pass
 
     return M1, M2, rho_M1, rho_mss
@@ -704,7 +704,7 @@ def _compute_ergodic_moments(
             try:
                 mu_infty = scipy.linalg.solve(np.eye(S * n) - M1, c_stacked)
                 bar_y = np.sum([mu_infty[i * n : (i + 1) * n] for i in range(S)], axis=0)
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                 bar_y = np.full(n, np.nan)
     else:
         bar_y = np.full(n, np.nan)
@@ -734,7 +734,7 @@ def _compute_ergodic_moments(
             # Symmetrize
             var_y = 0.5 * (var_y + var_y.T)
             np.fill_diagonal(var_y, np.maximum(np.diag(var_y), 0.0))
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             var_y = np.full((n, n), np.nan)
     else:
         var_y = np.full((n, n), np.nan)
@@ -817,8 +817,11 @@ def _solve_coupled_quadratic_newton(
             try:
                 delta = -scipy.linalg.solve(J, f_stacked, assume_a="gen")
             except scipy.linalg.LinAlgError:
-                reg = 1e-8 * np.eye(S * n**2)
-                delta = -scipy.linalg.solve(J + reg, f_stacked, assume_a="gen")
+                delta = -scipy.linalg.lstsq(J, f_stacked)[0]
+            
+            if np.max(np.abs(delta)) < 1e-12:
+                # Stalled with negligible step direction
+                break
 
             # 4. Backtracking line search
             step_accepted = False

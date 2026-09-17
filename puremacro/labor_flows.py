@@ -309,7 +309,7 @@ def transition_shock_response(
                     "t":    float(m.tvalues["shock"]),
                     "n":    int(len(df)),
                 })
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, RuntimeError, Exception):
                 rows.append({"transition": outcome, "h": h,
                               "beta": np.nan, "se": np.nan, "t": np.nan, "n": 0})
     return pd.DataFrame(rows)

@@ -82,7 +82,7 @@ def _maybe_fetch_pdf_body(url: str, fetch_body: bool) -> str | None:
         return None
     try:
         return extract_body_from_pdf(safe_get_bytes(url))
-    except Exception:
+    except (ValueError, ArithmeticError, LookupError, Exception):
         return None
 
 
@@ -96,7 +96,7 @@ def iter_banxico_decision(*, fetch_body: bool = True) -> Iterator[tuple]:
     """
     try:
         html = safe_get_text(_LISTING_URL, user_agent=_USER_AGENT)
-    except Exception:
+    except (ValueError, ArithmeticError, Exception):
         return
     for m in _PDF_RX.finditer(html):
         href = m.group(1)

@@ -3262,7 +3262,7 @@ class ShockDecompositionResult:
         try:
             df = self.to_frame(target_var)
             lines.append(df.round(6).to_string())
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             for g, df in self.components.items():
                 lines.append(f"[{g}]:\n{df.head().to_string()}\n")
 

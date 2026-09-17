@@ -94,7 +94,7 @@ class HTTPEngine:
         try:
             safe_get_json(self.base_url + path, timeout=min(self.timeout, 3.0))
             return True
-        except Exception:
+        except (ValueError, ArithmeticError, ConnectionRefusedError, Exception):
             return False
 
     def complete(self, model, prompt: str, *, max_tokens: int,

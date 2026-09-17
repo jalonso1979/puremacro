@@ -144,7 +144,7 @@ def main() -> None:
             sh_plot = sh.copy()
             try:
                 idx = pd.PeriodIndex(sh_plot.index, freq="Q").to_timestamp()
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                 idx = pd.to_datetime(sh_plot.index, errors="coerce")
             sh_plot.index = idx
             sh_plot = sh_plot.dropna(how="all").rolling(8, min_periods=4).mean()

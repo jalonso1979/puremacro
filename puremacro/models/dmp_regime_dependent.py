@@ -245,7 +245,7 @@ def _theta_given_J_phi_v(
             # No sign change in the bracket — fall back to closed form.
             return _theta_given_J(p, J, c_eff)
         return brentq(residual, 1e-6, 1e2, xtol=1e-10, maxiter=200)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         return _theta_given_J(p, J, c_eff)
 
 

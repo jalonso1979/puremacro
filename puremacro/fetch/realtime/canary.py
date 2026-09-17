@@ -62,7 +62,7 @@ def _brief(payload: Any, limit: int = 200) -> str:
     """
     try:
         text = json.dumps(payload, ensure_ascii=False, default=str)
-    except Exception:                                 # pragma: no cover
+    except (ValueError, ArithmeticError, Exception):                                 # pragma: no cover
         text = repr(payload)
     return text if len(text) <= limit else text[:limit] + "..."
 
@@ -105,7 +105,7 @@ def _record_drift(provider: str, fallback_used: str) -> None:
     try:
         from ... import _cache_db
         _cache_db.record_connector_event(provider, "schema_drift", fallback_used)
-    except Exception:                                 # pragma: no cover
+    except (ValueError, ArithmeticError, Exception):                                 # pragma: no cover
         pass
 
 
@@ -265,13 +265,13 @@ class SchemaCanary:
                     try:
                         pd.Period(tp.upper(), freq="Q")
                         valid_tp = True
-                    except Exception:
+                    except (ValueError, ArithmeticError, Exception):
                         valid_tp = False
                 else:
                     try:
                         pd.to_datetime(tp)
                         valid_tp = True
-                    except Exception:
+                    except (ValueError, ArithmeticError, Exception):
                         valid_tp = False
                 if not valid_tp:
                     return False, f"OBSERVATIONS[{i}] invalid TIME_PERIOD date format {tp!r}"
@@ -374,7 +374,7 @@ class SchemaCanary:
                     else:
                         pd.to_datetime(d_str)
                         valid_date = True
-                except Exception:
+                except (ValueError, ArithmeticError, Exception):
                     valid_date = False
                 if not valid_date:
                     return False, f"{key}[{i}] invalid indexDateString date format {d_str!r}"

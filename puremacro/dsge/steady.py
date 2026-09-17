@@ -299,7 +299,7 @@ def numeric_incidence_matrix(
             r_center = np.asarray(residual_fn(pt), dtype=float)
             if not np.all(np.isfinite(r_center)):
                 continue
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             continue
 
         for j in range(n_v):
@@ -308,7 +308,7 @@ def numeric_incidence_matrix(
             pt_plus[j] += h
             try:
                 r_plus = np.asarray(residual_fn(pt_plus), dtype=float)
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                 continue
 
             pt_minus = pt.copy()
@@ -316,7 +316,7 @@ def numeric_incidence_matrix(
             try:
                 r_minus = np.asarray(residual_fn(pt_minus), dtype=float)
                 diff = np.abs(r_plus - r_minus) / (2.0 * h)
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                 diff = np.abs(r_plus - r_center) / h
 
             if np.any(np.isnan(diff)):
@@ -334,7 +334,7 @@ def numeric_incidence_matrix(
                     d = abs(residual_fn(x_p)[i] - r0[i]) / h
                     if d > 1e-12:
                         incidence[i, j] = True
-                except Exception:
+                except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                     pass
 
     return incidence
@@ -444,7 +444,7 @@ def _solve_singleton_block(
                     a, b = min(x0, val_other), max(x0, val_other)
                     bracket = (a, b)
                     break
-            except Exception:
+            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                 continue
         if bracket is not None:
             break
@@ -454,7 +454,7 @@ def _solve_singleton_block(
             sol = scipy.optimize.root_scalar(g, bracket=bracket, method="brentq", xtol=1e-12, rtol=1e-12)
             if sol.converged:
                 return float(sol.root)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             pass
 
     # Try secant
@@ -463,7 +463,7 @@ def _solve_singleton_block(
         sol = scipy.optimize.root_scalar(g, x0=x0, x1=x1, method="secant", xtol=1e-12)
         if sol.converged and abs(g(sol.root)) <= max(tol, 1e-6):
             return float(sol.root)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         pass
 
     # Fallback to 1D hybr
@@ -530,7 +530,7 @@ def _solve_block_system(
         r_init = np.asarray(residual_fn(x_init), dtype=float)
         if not np.all(np.isfinite(r_init)):
             return _solve_direct_system(residual_fn, x_init, method="hybr", tol=tol)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         return _solve_direct_system(residual_fn, x_init, method="hybr", tol=tol)
 
     # 1. Build 5-point numeric incidence matrix
@@ -550,7 +550,7 @@ def _solve_block_system(
             if info_direct.get("converged", False) and float(info_direct.get("max_residual", 1.0)) <= tol:
                 info_direct["fallback_from_block"] = True
                 return sol_direct, info_direct
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             pass
 
         dm = dulmage_mendelsohn(n_vars, n_vars, adj, pair_u, pair_v)

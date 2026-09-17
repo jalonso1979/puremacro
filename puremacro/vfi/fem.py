@@ -586,7 +586,7 @@ class FEMSolution:
             ax3.axhline(-4.0, color="gray", ls="--", label=r"Target $10^{-4}$")
             ax3.legend(frameon=True)
             ax3.grid(True, alpha=0.3)
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             ax3.text(0.5, 0.5, "Euler residual not evaluated", ha="center", va="center")
 
         fig.tight_layout()
@@ -873,7 +873,7 @@ class FEMProblem:
                             high = 0.999 * f_ki
                         try:
                             y_next[i] = brentq(eq_i, low, high)
-                        except Exception:
+                        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
                             y_next[i] = y_curr[i]
                     y_curr = y_next
                 y0 = y_curr
@@ -1100,7 +1100,7 @@ class FEMProblem:
         try:
             test_res = eval_residual(test_grid, sp_test, sn_test)
             max_euler_res = float(np.max(np.abs(test_res)))
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             max_euler_res = np.nan
 
         elapsed = time.perf_counter() - start_time

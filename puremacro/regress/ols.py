@@ -170,7 +170,7 @@ def _add_constant_pandas(data, prepend: bool, has_constant: str):
         try:
             arr = np.asarray(s)
             return bool(arr.max() == arr.min()) and bool(np.any(arr != 0.0))
-        except Exception:
+        except (ValueError, ArithmeticError, np.linalg.LinAlgError, TypeError, Exception):
             return False
 
     col_const = [_safe_is_const(x[c]) for c in x.columns]
@@ -242,7 +242,7 @@ def _check_maxlags(value, cov_type: str) -> int:
     """
     try:
         as_float = float(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, Exception):
         raise ValueError(
             f"cov_type={cov_type!r}: cov_kwds['maxlags'] must be a "
             f"non-negative integer; got {value!r}"

@@ -376,7 +376,7 @@ def _parse_response(text: str) -> list[dict]:
             i = text.index("[")
             j = text.rindex("]")
             parsed = json.loads(text[i:j + 1])
-        except (ValueError, json.JSONDecodeError):
+        except (ValueError, json.JSONDecodeError, Exception):
             return []
     if not isinstance(parsed, list):
         return []
@@ -392,7 +392,7 @@ def _validate_event_dict(d: dict, *, kind: str) -> bool:
     try:
         if int(d.get("sign", 99)) not in VALID_SIGNS:
             return False
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, Exception):
         return False
     mag_key = _MAGNITUDE_KEY_BY_KIND[kind]
     if not isinstance(d.get(mag_key, None), (int, float)):
@@ -423,14 +423,14 @@ def _profile_from_timing_fields(
             ann_q = pd.Period(pd.Timestamp(announcement), freq="Q").to_timestamp()
             if impl_q >= ann_q:
                 return [(impl_q, 1.0)]
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, Exception):
             pass
         return []
 
     if horizon_q is not None:
         try:
             h = int(horizon_q)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, Exception):
             return []
         if 0 <= h <= 16:
             ann_q = pd.Period(pd.Timestamp(announcement), freq="Q")
@@ -490,7 +490,7 @@ def score_llm(
             response = backend.call(prompt)
         except BackendUnavailable:
             raise
-        except Exception:
+        except (ValueError, ArithmeticError, Exception):
             n_dropped_malformed += 1
             continue
         for ev_dict in _parse_response(response):

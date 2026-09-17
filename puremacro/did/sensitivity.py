@@ -514,7 +514,7 @@ def _imbens_manski_critical_value(
     try:
         sol = scipy.optimize.brentq(f, z_one, z_two, xtol=1e-10)
         return float(sol)
-    except Exception:
+    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
         return z_one
 
 

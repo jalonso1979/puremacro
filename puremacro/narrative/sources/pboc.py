@@ -37,7 +37,7 @@ _ROW_RX = re.compile(
 def _yield_from(doctype: str, url: str, *, fetch_body: bool) -> Iterator[tuple]:
     try:
         html = safe_get_text(url)
-    except Exception:
+    except (ValueError, ArithmeticError, LookupError, Exception):
         return
     for m in _ROW_RX.finditer(html):
         href = m.group("href")
@@ -55,7 +55,7 @@ def _yield_from(doctype: str, url: str, *, fetch_body: bool) -> Iterator[tuple]:
                 body_text = extract_body(body_html, bank_code="PBOC")
                 if body_text and len(body_text) > 200:
                     text = body_text
-            except Exception:
+            except (ValueError, ArithmeticError, Exception):
                 pass  # fall back to title
         yield (dt, text, full_url, {
             "doctype": doctype,

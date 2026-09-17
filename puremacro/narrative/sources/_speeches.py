@@ -26,7 +26,7 @@ def iter_speeches_rss(
                 body_text = extract_body(body_html, bank_code=bank_code)
                 if body_text:
                     clean = body_text
-            except Exception:
+            except (ValueError, ArithmeticError, Exception):
                 pass
         yield (date, clean, link, {
             "doctype": "speech", "language": language,
