@@ -19,6 +19,7 @@ import pandas as pd
 from scipy.stats import chi2, norm
 
 from .._linalg import inv_xtx
+from ..inference._ols_helpers import tsls_hac
 from ._common import resolve_lp_kwargs
 from ._results import LPResult
 from .iv import _compute_anderson_rubin_multi, mop_critical_values
@@ -257,7 +258,8 @@ def la_lp(
 
             # Second stage
             X_ss = np.column_stack([W_ctl, x_hat])
-            out = _ols_eicker_huber(sub["__dy_h__"].values, X_ss)
+            X_actual = np.column_stack([W_ctl, sub[x].values])
+            out = tsls_hac(sub["__dy_h__"].values, X_actual, X_ss, lags=0)  # lags=0: HC0
             beta_h = float(out["beta"][-1])
             se_h = float(out["se"][-1])
 

@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 
-from ..inference._ols_helpers import ols_hac
+from ..inference._ols_helpers import ols_hac, tsls_hac
 from ._common import resolve_lp_kwargs
 from ._results import LPResult
 
@@ -535,7 +535,8 @@ def lp_state_dep_iv(
 
             # Second stage: dy_h on [1, x_hat_H, x_hat_L, controls without constant]
             X2 = np.column_stack([np.ones(n), x_hat_H, x_hat_L] + controls_mat[1:])
-            out2 = ols_hac(sub["__dy_h__"].values, X2, lags=h + 1)
+            X_actual = np.column_stack([np.ones(n), x_H, x_L] + controls_mat[1:])
+            out2 = tsls_hac(sub["__dy_h__"].values, X_actual, X2, lags=h + 1)
 
             b_H = float(out2["beta"][1])
             se_H = float(out2["se"][1])

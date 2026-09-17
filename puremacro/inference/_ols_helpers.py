@@ -49,4 +49,44 @@ def ols_hac(y, X, lags: int) -> dict:
     }
 
 
-__all__ = ["ols_hac"]
+def tsls_hac(y, X, X_hat, lags: int) -> dict:
+    """Second stage of two-stage least squares, with Newey-West HAC standard errors.
+
+    ``X_hat`` is ``X`` with each endogenous column replaced by its first-stage fitted
+    values. The estimate is the OLS of ``y`` on ``X_hat``, but the residuals, and so the
+    variance, use the actual regressors: ``u = y - X beta``. Calling ``ols_hac(y, X_hat)``
+    instead builds the variance from ``y - X_hat beta = u + beta (x - x_hat)``, which is
+    not the structural error: its variance is off by ``2 beta cov(u, v) + beta^2 var(v)``,
+    too wide or too narrow depending on the data.
+
+    Bartlett kernel with bandwidth ``lags``; ``lags = 0`` is the Eicker-Huber-White (HC0)
+    variance. Returns the same keys as :func:`ols_hac`.
+    """
+    y = np.asarray(y, dtype=float).reshape(-1)
+    X = np.asarray(X, dtype=float)
+    X_hat = np.asarray(X_hat, dtype=float)
+    if X.shape != X_hat.shape:
+        raise ValueError(f"tsls_hac: X {X.shape} and X_hat {X_hat.shape} must have the same shape")
+    T, _ = X_hat.shape
+    XhXh_inv = inv_xtx(X_hat, name="tsls_hac")
+    beta = XhXh_inv @ X_hat.T @ y
+    u = y - X @ beta
+    scores = X_hat * u[:, None]
+    S = scores.T @ scores
+    for ell in range(1, lags + 1):
+        w = 1.0 - ell / (lags + 1.0)
+        Gamma = scores[ell:].T @ scores[:-ell]
+        S += w * (Gamma + Gamma.T)
+    vcov = XhXh_inv @ S @ XhXh_inv
+    se = np.sqrt(np.diag(vcov))
+    return {
+        "beta": beta,
+        "se": se,
+        "t": beta / se,
+        "vcov": vcov,
+        "residuals": u,
+        "n_obs": int(T),
+    }
+
+
+__all__ = ["ols_hac", "tsls_hac"]

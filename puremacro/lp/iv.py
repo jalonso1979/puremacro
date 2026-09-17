@@ -18,7 +18,7 @@ import pandas as pd
 from scipy.optimize import brentq, minimize_scalar
 from scipy.stats import chi2, ncx2, norm
 
-from ..inference._ols_helpers import ols_hac
+from ..inference._ols_helpers import ols_hac, tsls_hac
 from ._common import resolve_lp_kwargs
 
 
@@ -509,7 +509,7 @@ def lp_iv(
         else:
             first_stage_f = mop_f
 
-        # Second stage: replace x with x_hat; same controls.
+        # Second stage: x_hat for the estimate, actual x for the residuals behind the SE.
         X2 = [np.ones(n), x_hat]
         for lag in range(1, n_lags + 1):
             X2.append(sub[f"{x}_L{lag}"].values)
@@ -519,7 +519,9 @@ def lp_iv(
         for c in ctl:
             X2.append(sub[c].values)
         X2_mat = np.column_stack(X2)
-        out = ols_hac(sub["dy_h"].values, X2_mat, lags=h + 1)
+        X_actual = X2_mat.copy()
+        X_actual[:, 1] = sub[x].values
+        out = tsls_hac(sub["dy_h"].values, X_actual, X2_mat, lags=h + 1)
         beta_h = float(out["beta"][1])
         se_h = float(out["se"][1])
 
