@@ -199,7 +199,8 @@ print(f"  Coverage Table Dimensions     : {cov_df.shape}")
 print(f"  As-Of 2025-06-01 Observations : {len(as_of_2025)}")
 print(f"  Mexico GDP Revision Triangle  : {tri_df.shape[0]} reference dates x {tri_df.shape[1]} vintages")
 print(f"  Total Revisions Extracted     : {len(rev_df)} revision pairs")
-print(f"  Mean Revision Magnitude       : {rev_df['revision'].mean():.4f} percentage points")
+print(f"  Mean Revision (signed)        : {rev_df['revision'].mean():.4f} percentage points")
+print(f"  Mean Absolute Revision        : {rev_df['revision'].abs().mean():.4f} percentage points")
 
 # Coverage and revision assertions
 assert not cov_df.empty, "Coverage table must not be empty"
@@ -211,7 +212,9 @@ assert "revision" in rev_df.columns
 # %%
 # --- Experiment 4: Mankiw-Shapiro (1986) News vs. Noise Econometric Testing ---
 ms_res = loaded_panel.news_or_noise("MEX", "gdp_real")
-ms_panel = loaded_panel.news_or_noise_panel()
+# min_obs defaults to 12; this simulated panel has 7 observable revision pairs per series.
+ms_panel = loaded_panel.news_or_noise_panel(min_obs=len(rev_df))
+print(ms_panel[["country", "variable", "n_obs", "beta_on_preliminary", "verdict", "ok", "note"]].to_string(index=False))
 
 print(f"Mankiw-Shapiro (1986) News vs. Noise Results (Mexico Real GDP):")
 print(f"  Observations Analyzed : {ms_res.n_obs}")
@@ -229,7 +232,12 @@ assert hasattr(ms_res, "verdict"), "Result must contain verdict attribute"
 assert ms_res.n_obs > 0, "Number of observations must be positive"
 assert 0.0 <= ms_res.p_beta_on_preliminary <= 1.0, "P-value must lie in [0, 1]"
 assert 0.0 <= ms_res.p_beta_on_final <= 1.0, "P-value must lie in [0, 1]"
-assert not ms_panel.empty, "Panel news vs noise summary table must not be empty"
+gdp_row = ms_panel[(ms_panel["country"] == "MEX") & (ms_panel["variable"] == "gdp_real")]
+assert bool(gdp_row["ok"].iloc[0]), "The panel must estimate the Mexican GDP test, not just list it"
+assert np.isclose(gdp_row["beta_on_preliminary"].iloc[0], ms_res.beta_on_preliminary), "Panel row must match the single-series test"
+rate_rows = ms_panel[ms_panel["variable"] == "policy_rate"]
+assert not rate_rows["ok"].any(), "Unrevised policy rates have no revisions to test"
+assert rate_rows["note"].str.contains("zero").all(), "Each skipped row must say why"
 
 # %%
 # --- Hero Visualizations: Latin America Real-Time Macro Dashboard (SIMULATED panel) ---
@@ -248,14 +256,15 @@ ax1.set_title("Simulated Latin America Policy Rates", fontsize=11)
 ax1.set_ylabel("Policy Rate (%)")
 ax1.legend(frameon=False)
 
-# Subplot 2: Mexico Real GDP Revision Triangle Heatmap
+# Subplot 2: Mexico Real GDP Revision Triangle, as the revision still to come in each cell
 ax2 = axes[0, 1]
-tri_norm = (tri_df - tri_df.mean().mean()) / tri_df.std().std()
-im = ax2.imshow(tri_norm.fillna(0), cmap="Greys", aspect="auto", interpolation="nearest")
+latest = tri_df.ffill(axis=1).iloc[:, -1]
+still_to_come = 100.0 * (latest.to_numpy()[:, None] / tri_df.to_numpy() - 1.0)   # % of the edition's value
+im = ax2.imshow(np.abs(still_to_come), cmap="Greys", aspect="auto", interpolation="nearest")
 ax2.set_title(r"Revision Triangle $\mathbf{T}[t, v]$: Simulated Mexico Real GDP", fontsize=11)
 ax2.set_xlabel("Snapshot Index $v$")
 ax2.set_ylabel("Reference Period Index $t$")
-plt.colorbar(im, ax=ax2, label="Normalized GDP (Standardized)")
+plt.colorbar(im, ax=ax2, label="|Revision still to come| (% of level)")
 
 # Subplot 3: Preliminary vs Final Real GDP Releases
 ax3 = axes[1, 0]
@@ -292,8 +301,8 @@ plt.show()
 #
 # 1. **Cross-Country Policy-Rate Paths (Experiment 1 & Figure 1):** Figure 1 plots the three simulated policy-rate paths at the latest snapshot. Mexico falls in a straight line from $11.25\%$ to $7.75\%$ ($25$ bp a quarter), Brazil from $12.75\%$ to $5.75\%$ ($50$ bp a quarter) and Chile from $9.50\%$ down to a $3.00\%$ floor. These are invented lines chosen to give the cross-country plumbing something to draw; the printed `Lowest Policy Rate` confirms the floor keeps every simulated rate strictly positive, so no simulated path is economically absurd. The catalogue declares all three series as `units="rate"`, which the revision tools read in levels rather than in log differences, so the floor is a plausibility guard and not something the test requires. Their levels, their ordering and their slopes carry no information about the TIIE, the Selic or the TPM.
 # 2. **Cartridge Portability and Cryptographic Integrity (Experiment 2):** Packaging into a self-verifying `.pmz` cartridge succeeds with matching SHA-256 checksums, confirming that data rows, column types, and canonical series identifiers are preserved with zero corruption and can be distributed to Pyodide browser runtimes without live external database dependencies. The round trip also carries the provenance string through: the loaded panel reports `SIMULATED panel on Banxico, INEGI, BCB and BCCh series identifiers`, and the cell asserts it, so the cartridge cannot be passed along stripped of that warning.
-# 3. **Revision Triangle Geometry (Experiment 3 & Figure 2):** The triangle $\mathbf{T}[t, v]$ for Mexican GDP is $15$ reference dates $\times$ $8$ snapshots. Because the first snapshot (2024Q1) post-dates the first reference quarter (2022Q1), the geometry is the reverse of a classical archive: the *oldest* rows are complete across all eight columns and the newest row carries only two. `revisions()` returns $7$ pairs, one for each reference quarter from 2024Q1 to 2025Q3, because `require_observable_first` censors every quarter that ended before the earliest snapshot — for those the earliest available column is already a revised number, and treating it as the first release would understate every revision computed from it. Every one of those seven quarters was perturbed by the generator, which plants noise only in editions published within $180$ days of the reference quarter: eight reference quarters are perturbed in all, 2023Q4 through 2025Q3, and the censoring drops the first of them. The mean revision of $0.0367$ percentage points is therefore a fact about the simulation.
-# 4. **Mankiw-Shapiro News vs. Noise Classification (Experiment 4 & Figure 4):** The test returns the verdict **`neither`**, and the fourth panel is titled accordingly. The slope on the preliminary release is $\beta_p = -0.8947$ (SE $0.0749$, $p = 7.24 \times 10^{-5}$), which rejects the news hypothesis, and the noise share $\max(0, -\beta_p)$ is $89.47\%$. But the slope on the *final* release is also far from zero, $\beta_f = -2.0301$ (SE $0.5327$, $p = 0.0125$), so the noise hypothesis is rejected as well — and a revision orthogonal to neither release is neither pure news nor pure noise. Reading the $\beta_p$ rejection on its own as "the revisions are noise" is precisely the error `docs/real_time_data.md` warns against: $\beta_p$ identifies the noise *share*, and the verdict comes from the pair of regressions. The mechanical reason the noise leg rejects here is the sample: only $n = 7$ reference quarters survive the observability filter, and for the most recent of them, 2025Q3, the "final" value is itself still an early, noisy edition — the last snapshot falls inside the same $180$-day window — so the planted measurement error contaminates $y_t^{(F)}$ as well as $y_t^{(0)}$. Prompt 3 below tightens the significance level to $0.01$, at which $\beta_f$ no longer rejects and the verdict does flip to `noise`.
+# 3. **Revision Triangle Geometry (Experiment 3 & Figure 2):** The triangle $\mathbf{T}[t, v]$ for Mexican GDP is $15$ reference dates $\times$ $8$ snapshots. Because the first snapshot (2024Q1) post-dates the first reference quarter (2022Q1), the geometry is the reverse of a classical archive: the *oldest* rows are complete across all eight columns and the newest row carries only two. `revisions()` returns $7$ pairs, one for each reference quarter from 2024Q1 to 2025Q3, because `require_observable_first` censors every quarter that ended before the earliest snapshot — for those the earliest available column is already a revised number, and treating it as the first release would understate every revision computed from it. Every one of those seven quarters was perturbed by the generator, which plants noise only in editions published within $180$ days of the reference quarter: eight reference quarters are perturbed in all, 2023Q4 through 2025Q3, and the censoring drops the first of them. The mean revision of $0.0367$ percentage points is signed, so positive and negative revisions offset; the printed mean absolute revision is the size to read, and it too is a fact about the simulation. Figure 2 shades each cell by how much that edition would still be revised to reach the latest snapshot: the dark cells sit along the diagonal of recent editions, and every row older than 2023Q4 is blank because it was never revised.
+# 4. **Mankiw-Shapiro News vs. Noise Classification (Experiment 4 & Figure 4):** The test returns the verdict **`neither`**, and the fourth panel is titled accordingly. The slope on the preliminary release is $\beta_p = -0.8947$ (SE $0.0749$, $p = 7.24 \times 10^{-5}$), which rejects the news hypothesis, and the noise share $\max(0, -\beta_p)$ is $89.47\%$. But the slope on the *final* release is also far from zero, $\beta_f = -2.0301$ (SE $0.5327$, $p = 0.0125$), so the noise hypothesis is rejected as well — and a revision orthogonal to neither release is neither pure news nor pure noise. Reading the $\beta_p$ rejection on its own as "the revisions are noise" is precisely the error `docs/real_time_data.md` warns against: $\beta_p$ identifies the noise *share*, and the verdict comes from the pair of regressions. The mechanical reason the noise leg rejects here is the sample: only $n = 7$ reference quarters survive the observability filter, and for the most recent of them, 2025Q3, the "final" value is itself still an early, noisy edition — the last snapshot falls inside the same $180$-day window — so the planted measurement error contaminates $y_t^{(F)}$ as well as $y_t^{(0)}$. Prompt 3 below tightens the significance level to $0.01$, at which $\beta_f$ no longer rejects and the verdict does flip to `noise`. The panel version of the test, `news_or_noise_panel(min_obs=7)`, reproduces this Mexican GDP row exactly and reports the three policy-rate series as `ok=False` with a note: they are republished unchanged, so their revisions are exactly zero and there is nothing to test.
 
 # %%
 # Your turn: customize country selection, macro variables, and test significance

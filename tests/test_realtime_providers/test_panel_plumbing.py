@@ -169,6 +169,29 @@ def test_failed_rows_carry_empty_strings_not_nan_verdicts():
     assert res["ok"].dtype == bool
 
 
+def test_a_series_that_is_never_revised_is_reported_not_raised():
+    """One unrevised series must not take the whole cross-section down.
+
+    A policy rate republished unchanged in every edition has revisions that are
+    exactly zero, which makes the news/noise regressions degenerate and
+    ``mankiw_shapiro`` raise. Before 4.0.2 that exception escaped
+    ``news_or_noise_panel`` and no row was returned for any country; the
+    docstring promises an ``ok=False`` row with a note instead.
+    """
+    unrevised = _rows("FRA", "policy_rate", n=40, units="rate")
+    for row in unrevised:
+        row["value"] = 3.0 + 0.01 * row["date"].month  # same value in every edition
+    panel = _panel(_rows("DEU", n=40), unrevised)
+    res = panel.news_or_noise_panel(min_obs=12)
+    assert set(res["country"]) == {"DEU", "FRA"}
+    good = res[res["ok"]]
+    bad = res[~res["ok"]]
+    assert list(good["country"]) == ["DEU"]
+    assert list(bad["country"]) == ["FRA"]
+    assert "zero" in bad["note"].iloc[0]
+    assert bad["verdict"].iloc[0] == ""
+
+
 def test_variable_filter_selects(monkeypatch):
     panel = _panel(_rows("DEU", "gdp_real", n=40),
                    _rows("DEU", "con_real", n=40))

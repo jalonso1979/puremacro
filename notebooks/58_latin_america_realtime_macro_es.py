@@ -199,7 +199,8 @@ print(f"  Coverage Table Dimensions     : {cov_df.shape}")
 print(f"  As-Of 2025-06-01 Observations : {len(as_of_2025)}")
 print(f"  Mexico GDP Revision Triangle  : {tri_df.shape[0]} reference dates x {tri_df.shape[1]} vintages")
 print(f"  Total Revisions Extracted     : {len(rev_df)} revision pairs")
-print(f"  Mean Revision Magnitude       : {rev_df['revision'].mean():.4f} percentage points")
+print(f"  Mean Revision (signed)        : {rev_df['revision'].mean():.4f} percentage points")
+print(f"  Mean Absolute Revision        : {rev_df['revision'].abs().mean():.4f} percentage points")
 
 # Coverage and revision assertions
 assert not cov_df.empty, "Coverage table must not be empty"
@@ -211,7 +212,9 @@ assert "revision" in rev_df.columns
 # %%
 # --- Experiment 4: Mankiw-Shapiro (1986) News vs. Noise Econometric Testing ---
 ms_res = loaded_panel.news_or_noise("MEX", "gdp_real")
-ms_panel = loaded_panel.news_or_noise_panel()
+# min_obs defaults to 12; this simulated panel has 7 observable revision pairs per series.
+ms_panel = loaded_panel.news_or_noise_panel(min_obs=len(rev_df))
+print(ms_panel[["country", "variable", "n_obs", "beta_on_preliminary", "verdict", "ok", "note"]].to_string(index=False))
 
 print(f"Mankiw-Shapiro (1986) News vs. Noise Results (Mexico Real GDP):")
 print(f"  Observations Analyzed : {ms_res.n_obs}")
@@ -229,7 +232,12 @@ assert hasattr(ms_res, "verdict"), "Result must contain verdict attribute"
 assert ms_res.n_obs > 0, "Number of observations must be positive"
 assert 0.0 <= ms_res.p_beta_on_preliminary <= 1.0, "P-value must lie in [0, 1]"
 assert 0.0 <= ms_res.p_beta_on_final <= 1.0, "P-value must lie in [0, 1]"
-assert not ms_panel.empty, "Panel news vs noise summary table must not be empty"
+gdp_row = ms_panel[(ms_panel["country"] == "MEX") & (ms_panel["variable"] == "gdp_real")]
+assert bool(gdp_row["ok"].iloc[0]), "The panel must estimate the Mexican GDP test, not just list it"
+assert np.isclose(gdp_row["beta_on_preliminary"].iloc[0], ms_res.beta_on_preliminary), "Panel row must match the single-series test"
+rate_rows = ms_panel[ms_panel["variable"] == "policy_rate"]
+assert not rate_rows["ok"].any(), "Unrevised policy rates have no revisions to test"
+assert rate_rows["note"].str.contains("zero").all(), "Each skipped row must say why"
 
 # %%
 # --- Hero Visualizations: Latin America Real-Time Macro Dashboard (SIMULATED panel) ---
@@ -248,14 +256,15 @@ ax1.set_title("Simulated Latin America Policy Rates", fontsize=11)
 ax1.set_ylabel("Policy Rate (%)")
 ax1.legend(frameon=False)
 
-# Subplot 2: Mexico Real GDP Revision Triangle Heatmap
+# Subplot 2: Mexico Real GDP Revision Triangle, as the revision still to come in each cell
 ax2 = axes[0, 1]
-tri_norm = (tri_df - tri_df.mean().mean()) / tri_df.std().std()
-im = ax2.imshow(tri_norm.fillna(0), cmap="Greys", aspect="auto", interpolation="nearest")
+latest = tri_df.ffill(axis=1).iloc[:, -1]
+still_to_come = 100.0 * (latest.to_numpy()[:, None] / tri_df.to_numpy() - 1.0)   # % of the edition's value
+im = ax2.imshow(np.abs(still_to_come), cmap="Greys", aspect="auto", interpolation="nearest")
 ax2.set_title(r"Revision Triangle $\mathbf{T}[t, v]$: Simulated Mexico Real GDP", fontsize=11)
 ax2.set_xlabel("Snapshot Index $v$")
 ax2.set_ylabel("Reference Period Index $t$")
-plt.colorbar(im, ax=ax2, label="Normalized GDP (Standardized)")
+plt.colorbar(im, ax=ax2, label="|Revision still to come| (% of level)")
 
 # Subplot 3: Preliminary vs Final Real GDP Releases
 ax3 = axes[1, 0]
@@ -292,8 +301,8 @@ plt.show()
 #
 # 1. **Trayectorias Simuladas de Tasa de Política (Experimento 1 y Figura 1):** La Figura 1 grafica las tres trayectorias simuladas de tasa de política en la última captura. México desciende en línea recta de $11.25\%$ a $7.75\%$ ($25$ pb por trimestre), Brasil de $12.75\%$ a $5.75\%$ ($50$ pb por trimestre) y Chile de $9.50\%$ hasta un piso de $3.00\%$. Son líneas inventadas, elegidas para dar algo que dibujar a la maquinaria multipaís; el valor impreso `Lowest Policy Rate` confirma que el piso mantiene toda tasa simulada estrictamente positiva, de modo que ninguna trayectoria simulada resulta económicamente absurda. El catálogo declara las tres series con `units="rate"`, que las herramientas de revisiones leen en niveles y no en diferencias logarítmicas, así que el piso es una salvaguarda de plausibilidad y no una exigencia del contraste. Sus niveles, su orden y sus pendientes no informan nada sobre la TIIE, la Selic ni la TPM.
 # 2. **Portabilidad de Cartuchos e Integridad Criptográfica (Experimento 2):** El empaquetado en cartuchos `.pmz` autónomos se verifica exitosamente mediante sumas de comprobación SHA-256 idénticas, confirmando que las filas, tipos de columnas e identificadores canónicos de series se preservan sin corrupción y pueden distribuirse hacia entornos de navegador en Pyodide sin requerir bases de datos externas activas. El viaje de ida y vuelta también conserva la cadena de procedencia: el panel cargado reporta `SIMULATED panel on Banxico, INEGI, BCB and BCCh series identifiers` y la celda lo verifica con una aserción, de modo que el cartucho no puede circular despojado de esa advertencia.
-# 3. **Geometría del Triángulo de Revisiones (Experimento 3 y Figura 2):** El triángulo $\mathbf{T}[t, v]$ del PIB mexicano tiene $15$ fechas de referencia $\times$ $8$ capturas. Como la primera captura (2024T1) es posterior al primer trimestre de referencia (2022T1), la geometría es la inversa de un archivo clásico: las filas *más antiguas* están completas en las ocho columnas y la más reciente solo tiene dos. `revisions()` devuelve $7$ pares, uno por cada trimestre de referencia de 2024T1 a 2025T3, porque `require_observable_first` censura todo trimestre que terminó antes de la captura más temprana: para esos, la columna disponible más antigua ya es una cifra revisada, y tomarla como primera publicación subestimaría toda revisión calculada a partir de ella. Cada uno de esos siete trimestres fue perturbado por el generador, que siembra ruido solo en ediciones publicadas dentro de los $180$ días posteriores al trimestre de referencia: en total se perturban ocho trimestres de referencia, de 2023T4 a 2025T3, y la censura descarta el primero de ellos. Por eso la revisión media de $0.0367$ puntos porcentuales es un hecho sobre la simulación.
-# 4. **Clasificación de Noticias vs. Ruido de Mankiw-Shapiro (Experimento 4 y Figura 4):** El contraste devuelve el veredicto **`neither`** (ninguna de las dos), y el cuarto panel se titula en consecuencia. La pendiente sobre la publicación preliminar es $\beta_p = -0.8947$ (EE $0.0749$, $p = 7.24 \times 10^{-5}$), que rechaza la hipótesis de noticias, y la fracción de ruido $\max(0, -\beta_p)$ es $89.47\%$. Pero la pendiente sobre la publicación *final* también dista mucho de cero, $\beta_f = -2.0301$ (EE $0.5327$, $p = 0.0125$), de modo que la hipótesis de ruido también se rechaza, y una revisión que no es ortogonal a ninguna de las dos publicaciones no es ni noticia pura ni ruido puro. Leer el rechazo de $\beta_p$ por sí solo como "las revisiones son ruido" es exactamente el error contra el que advierte `docs/real_time_data.md`: $\beta_p$ identifica la *fracción* de ruido, y el veredicto proviene del par de regresiones. La razón mecánica de que la rama de ruido rechace aquí es la muestra: solo $n = 7$ trimestres de referencia sobreviven al filtro de observabilidad, y para el más reciente de ellos, 2025T3, el valor "final" es todavía una edición temprana y ruidosa —la última captura cae dentro de la misma ventana de $180$ días—, así que el error de medición sembrado contamina $y_t^{(F)}$ tanto como $y_t^{(0)}$. La Indicación 3 más abajo estrecha el nivel de significancia a $0.01$, con el cual $\beta_f$ ya no rechaza y el veredicto sí cambia a `noise`.
+# 3. **Geometría del Triángulo de Revisiones (Experimento 3 y Figura 2):** El triángulo $\mathbf{T}[t, v]$ del PIB mexicano tiene $15$ fechas de referencia $\times$ $8$ capturas. Como la primera captura (2024T1) es posterior al primer trimestre de referencia (2022T1), la geometría es la inversa de un archivo clásico: las filas *más antiguas* están completas en las ocho columnas y la más reciente solo tiene dos. `revisions()` devuelve $7$ pares, uno por cada trimestre de referencia de 2024T1 a 2025T3, porque `require_observable_first` censura todo trimestre que terminó antes de la captura más temprana: para esos, la columna disponible más antigua ya es una cifra revisada, y tomarla como primera publicación subestimaría toda revisión calculada a partir de ella. Cada uno de esos siete trimestres fue perturbado por el generador, que siembra ruido solo en ediciones publicadas dentro de los $180$ días posteriores al trimestre de referencia: en total se perturban ocho trimestres de referencia, de 2023T4 a 2025T3, y la censura descarta el primero de ellos. La revisión media de $0.0367$ puntos porcentuales tiene signo, así que las revisiones positivas y negativas se compensan; el tamaño que conviene leer es la revisión absoluta media que también se imprime, y también es un hecho sobre la simulación. La Figura 2 sombrea cada celda según cuánto se revisaría todavía esa edición hasta llegar a la captura más reciente: las celdas oscuras están en la diagonal de ediciones recientes, y toda fila anterior a 2023T4 queda en blanco porque nunca se revisó.
+# 4. **Clasificación de Noticias vs. Ruido de Mankiw-Shapiro (Experimento 4 y Figura 4):** El contraste devuelve el veredicto **`neither`** (ninguna de las dos), y el cuarto panel se titula en consecuencia. La pendiente sobre la publicación preliminar es $\beta_p = -0.8947$ (EE $0.0749$, $p = 7.24 \times 10^{-5}$), que rechaza la hipótesis de noticias, y la fracción de ruido $\max(0, -\beta_p)$ es $89.47\%$. Pero la pendiente sobre la publicación *final* también dista mucho de cero, $\beta_f = -2.0301$ (EE $0.5327$, $p = 0.0125$), de modo que la hipótesis de ruido también se rechaza, y una revisión que no es ortogonal a ninguna de las dos publicaciones no es ni noticia pura ni ruido puro. Leer el rechazo de $\beta_p$ por sí solo como "las revisiones son ruido" es exactamente el error contra el que advierte `docs/real_time_data.md`: $\beta_p$ identifica la *fracción* de ruido, y el veredicto proviene del par de regresiones. La razón mecánica de que la rama de ruido rechace aquí es la muestra: solo $n = 7$ trimestres de referencia sobreviven al filtro de observabilidad, y para el más reciente de ellos, 2025T3, el valor "final" es todavía una edición temprana y ruidosa —la última captura cae dentro de la misma ventana de $180$ días—, así que el error de medición sembrado contamina $y_t^{(F)}$ tanto como $y_t^{(0)}$. La Indicación 3 más abajo estrecha el nivel de significancia a $0.01$, con el cual $\beta_f$ ya no rechaza y el veredicto sí cambia a `noise`. La versión de panel del contraste, `news_or_noise_panel(min_obs=7)`, reproduce exactamente esta fila del PIB mexicano y reporta las tres tasas de política como `ok=False` con una nota: se republican sin cambios, así que sus revisiones son exactamente cero y no hay nada que contrastar.
 
 # %%
 # Your turn: customize country selection, macro variables, and test significance

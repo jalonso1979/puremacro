@@ -129,14 +129,23 @@ assert "ar_lo" in res_strong.columns and "ar_hi" in res_strong.columns
 # Below we compare standard Wald 2SLS confidence bands (which exhibit false certainty) against Anderson-Rubin robust confidence sets across both strong and weak instrument regimes.
 
 # %%
-fig, axes = plt.subplots(1, 2, figsize=(7.6, 3.8), sharey=True)
+from matplotlib.lines import Line2D
+from matplotlib.ticker import MaxNLocator
+from matplotlib.patches import Patch
 
-# Panel 1: Strong Instrument Regime
+level = int(round(100 * res_strong.ci_level))   # lp_iv defaults to alpha = 0.10, so 90% bands
+# x = 0.8 * shock + noise, so the IV estimand is beta_true / 0.8, not beta_true itself.
+iv_estimand = beta_true / 0.8
+ylo, yhi = -6.0, 4.0
+
+fig, axes = plt.subplots(1, 2, figsize=(7.6, 4.4), sharey=True)
+
+# Panel 1
 ax = axes[0]
 ax.plot(res_strong["h"], res_strong["beta"], color="0.00", lw=2.0, label="LP-IV Point Estimate $\\hat{\\beta}_h$")
-ax.plot(res_strong["h"], beta_true, color="0.60", ls="--", lw=1.5, label="True Dynamic Effect")
-ax.fill_between(res_strong["h"], res_strong["lo"], res_strong["hi"], color="0.75", alpha=0.5, label="Wald 95% CI")
-ax.plot(res_strong["h"], res_strong["ar_lo"], color="0.00", ls=":", lw=1.5, label="Anderson-Rubin 95% Set")
+ax.plot(res_strong["h"], iv_estimand, color="0.60", ls="--", lw=1.5, label="IV estimand $\\beta_h / 0.8$")
+ax.fill_between(res_strong["h"], res_strong["lo"], res_strong["hi"], color="0.75", alpha=0.5, label=f"Wald {level}% CI")
+ax.plot(res_strong["h"], res_strong["ar_lo"], color="0.00", ls=":", lw=1.5, label=f"Anderson-Rubin {level}% set")
 ax.plot(res_strong["h"], res_strong["ar_hi"], color="0.00", ls=":", lw=1.5)
 ax.axhline(0, color="0.70", ls=":", lw=0.8)
 f_avg_strong = res_strong["first_stage_f"].mean()
@@ -145,24 +154,32 @@ ax.set_xlabel("Horizon $h$ (Quarters)")
 ax.set_ylabel("Response")
 ax.legend(loc="lower left", fontsize=8)
 
-# Panel 2: Weak Instrument Regime
+# Panel 2: the Anderson-Rubin set is drawn whatever its shape -- an interval, two rays or the whole line
 ax = axes[1]
 ax.plot(res_weak["h"], res_weak["beta"], color="0.00", lw=2.0, label="LP-IV Point Estimate $\\hat{\\beta}_h$")
-ax.plot(res_weak["h"], beta_true, color="0.60", ls="--", lw=1.5, label="True Dynamic Effect")
-ax.fill_between(res_weak["h"], np.clip(res_weak["lo"], -6, 4), np.clip(res_weak["hi"], -6, 4), color="0.75", alpha=0.5, label="Naive Wald 95% CI")
-
-# Plot AR bounds where bounded
-bounded_mask = res_weak["ar_set_type"] == "bounded"
-ax.plot(res_weak.loc[bounded_mask, "h"], res_weak.loc[bounded_mask, "ar_lo"], color="0.00", ls=":", lw=1.8, label="Anderson-Rubin 95% Set")
-ax.plot(res_weak.loc[bounded_mask, "h"], res_weak.loc[bounded_mask, "ar_hi"], color="0.00", ls=":", lw=1.8)
-
-# Highlight unbounded / wide uncertainty
+ax.plot(res_weak["h"], iv_estimand, color="0.60", ls="--", lw=1.5, label="IV estimand $\\beta_h / 0.8$")
+ax.fill_between(res_weak["h"], np.clip(res_weak["lo"], ylo, yhi), np.clip(res_weak["hi"], ylo, yhi), color="0.75", alpha=0.5, label=f"Naive Wald {level}% CI")
+for _, r in res_weak.iterrows():
+    h = r["h"]
+    if r["ar_set_type"] == "all_real":
+        ax.axvspan(h - 0.4, h + 0.4, color="0.90", zorder=0)
+    elif r["ar_set_type"] == "unbounded_rays":
+        # lp_iv reports the rays as (-inf, ar_hi] U [ar_lo, inf), with ar_lo > ar_hi
+        ax.vlines(h, ylo, min(r["ar_hi"], yhi), color="0.00", ls=":", lw=1.8)
+        ax.vlines(h, max(r["ar_lo"], ylo), yhi, color="0.00", ls=":", lw=1.8)
+    elif r["ar_set_type"] == "bounded":
+        ax.vlines(h, r["ar_lo"], r["ar_hi"], color="0.00", ls=":", lw=1.8)
 ax.axhline(0, color="0.70", ls=":", lw=0.8)
+ax.set_ylim(ylo, yhi)
 f_avg_weak = res_weak["first_stage_f"].mean()
 ax.set_title(f"(b) Weak Instrument ($F \\approx {f_avg_weak:.1f}$)", loc="left", fontsize=10, fontweight="bold")
 ax.set_xlabel("Horizon $h$ (Quarters)")
-ax.legend(loc="lower left", fontsize=8)
+handles, labels = ax.get_legend_handles_labels()
+handles += [Patch(color="0.90", label=f"Anderson-Rubin {level}% set: whole line"), Line2D([], [], color="0.00", ls=":", lw=1.8, label=f"Anderson-Rubin {level}% set")]
+ax.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2, fontsize=7, frameon=False)
 
+for ax in axes:
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 plt.tight_layout()
 plt.show()
 

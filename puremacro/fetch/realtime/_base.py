@@ -566,10 +566,17 @@ class VintagePanel:
                              "note": f"only {n} revision pairs "
                                      f"(min_obs={min_obs})"})
                 continue
-            res = mankiw_shapiro(
-                frame["preliminary"], frame["final"],
-                hac_lags=hac_lags, significance=significance, transform=tf,
-            )
+            try:
+                res = mankiw_shapiro(
+                    frame["preliminary"], frame["final"],
+                    hac_lags=hac_lags, significance=significance, transform=tf,
+                )
+            except (ValueError, np.linalg.LinAlgError) as exc:
+                # e.g. a series republished unchanged has all-zero revisions and
+                # degenerate regressions: one row says so, the other countries stand.
+                rows.append({**base, "n_obs": n, "ok": False,
+                             "note": f"test not estimable: {str(exc).split('. ')[0]}"})
+                continue
             rows.append({
                 **base,
                 "n_obs": res.n_obs,
