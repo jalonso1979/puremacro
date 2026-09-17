@@ -129,3 +129,56 @@ def safe_cholesky(
 
 
 __all__ = ["inv_xtx", "safe_cholesky"]
+
+
+def markov_stationary_gth(P: np.ndarray) -> np.ndarray:
+    """Stationary distribution of a row-stochastic matrix by GTH elimination.
+
+    Grassmann, Taksar and Heyman (1985): Gaussian elimination on the censored chain,
+    with each pivot taken as the sum of the off-diagonal probabilities instead of
+    ``1 - p_kk``. Only non-negative numbers are added, so there is no cancellation and
+    the result is accurate even when states communicate through probabilities far below
+    machine epsilon, where the eigenvector of ``P.T`` for the eigenvalue nearest 1 is an
+    arbitrary mixture (sometimes with negative entries).
+
+    ``P`` must already be validated as square, non-negative and row-stochastic. A chain
+    with one closed communicating class gets all its mass there; with several the
+    stationary distribution is not unique and a ``ValueError`` names the classes.
+    """
+    P = np.asarray(P, dtype=float)
+    n = P.shape[0]
+    A = P.copy()
+    for k in range(n - 1, 0, -1):
+        s = A[k, :k].sum()
+        if s <= 0.0:
+            return _stationary_on_closed_class(P)
+        A[:k, k] /= s
+        A[:k, :k] += np.outer(A[:k, k], A[k, :k])
+    pi = np.zeros(n)
+    pi[0] = 1.0
+    for k in range(1, n):
+        pi[k] = pi[:k] @ A[:k, k]
+    return pi / pi.sum()
+
+
+def _stationary_on_closed_class(P: np.ndarray) -> np.ndarray:
+    """GTH on the unique closed class of a reducible chain; raise if there is more than one."""
+    from scipy.sparse.csgraph import connected_components
+
+    adjacency = P > 0.0
+    n_comp, label = connected_components(adjacency, directed=True, connection="strong")
+    closed = [c for c in range(n_comp)
+              if not adjacency[np.ix_(label == c, label != c)].any()]
+    if len(closed) != 1:
+        groups = [np.flatnonzero(label == c).tolist() for c in closed]
+        raise ValueError(
+            f"stationary distribution is not unique: the chain has {len(closed)} closed "
+            f"classes of states {groups}"
+        )
+    members = np.flatnonzero(label == closed[0])
+    pi = np.zeros(P.shape[0])
+    if members.size == 1:
+        pi[members] = 1.0
+    else:
+        pi[members] = markov_stationary_gth(P[np.ix_(members, members)])
+    return pi

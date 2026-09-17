@@ -13,6 +13,8 @@ from scipy.optimize import minimize
 from scipy.special import logsumexp
 from scipy.stats import norm
 
+from puremacro._linalg import markov_stationary_gth
+
 
 def tauchen(n: int, rho: float, sigma: float, m: float = 3.0):
     """Tauchen (1986) discretization of x' = rho*x + eps, eps~N(0,sigma^2).
@@ -178,19 +180,19 @@ def combine_markov_chains(*chains):
 def markov_stationary(P):
     """Stationary distribution ``pi`` of a row-stochastic Markov matrix ``P``.
 
-    Returns the (n,) probability vector with ``pi @ P == pi`` -- the normalized
-    left eigenvector of ``P`` for eigenvalue 1 (the ergodic distribution of an
-    irreducible chain; e.g. the long-run population share of each discretized
-    shock state).
+    Returns the (n,) probability vector with ``pi @ P == pi`` -- the ergodic
+    distribution of the chain, e.g. the long-run population share of each
+    discretized shock state. Computed by GTH elimination, which stays exact for
+    highly persistent chains (see ``puremacro._linalg.markov_stationary_gth``).
+    Raises ``ValueError`` when the chain has several closed classes, because the
+    stationary distribution is then not unique.
     """
     P = np.asarray(P, dtype=float)
     if P.ndim != 2 or P.shape[0] != P.shape[1]:
         raise ValueError(f"P must be a square matrix; got shape {P.shape}")
     if np.any(P < -1e-12) or not np.allclose(P.sum(axis=1), 1.0, atol=1e-8):
         raise ValueError("P must be nonnegative and row-stochastic")
-    w, V = np.linalg.eig(P.T)
-    pi = np.real(V[:, np.argmin(np.abs(w - 1.0))])
-    return pi / pi.sum()
+    return markov_stationary_gth(np.clip(P, 0.0, None))
 
 
 __all__ = ["tauchen", "rouwenhorst", "farmer_toda", "combine_markov_chains",

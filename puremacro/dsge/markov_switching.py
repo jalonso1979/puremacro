@@ -38,6 +38,7 @@ import numpy as np
 import pandas as pd
 import scipy.linalg
 
+from puremacro._linalg import markov_stationary_gth
 from puremacro.dsge._parser import ParsedModelDAG, parse_mod_to_dag
 
 
@@ -600,19 +601,9 @@ def markov_stationary(P: np.ndarray) -> np.ndarray:
     pi_infty P = pi_infty,  sum_i pi_infty(i) = 1.
     """
     P = _validate_transition_matrix(P, name="Transition matrix P", atol=1e-6)
-
-    w, V = np.linalg.eig(P.T)
-    idx = np.argmin(np.abs(w - 1.0))
-    pi = np.real(V[:, idx])
-    if np.any(pi < 0.0) and np.all(pi <= 0.0):
-        pi = -pi
-    pi = np.maximum(pi, 0.0)
-    pi_sum = pi.sum()
-    if pi_sum > 0.0:
-        pi /= pi_sum
-    else:
-        pi = np.full(P.shape[0], 1.0 / P.shape[0])
-    return pi
+    # GTH elimination: exact for very persistent regimes, and raises instead of returning an
+    # arbitrary vector when several closed classes make the distribution non-unique.
+    return markov_stationary_gth(P / P.sum(axis=1, keepdims=True))
 
 
 def _compute_mss_operators(
