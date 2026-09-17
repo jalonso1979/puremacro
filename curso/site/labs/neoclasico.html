@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="es" data-lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-title-es="El modelo neoclásico: senda de silla y convergencia · Laboratorios MAV" data-title-en="The neoclassical model: saddle path and convergence · MAV Labs">El modelo neoclásico: senda de silla y convergencia · Laboratorios MAV</title>
+<meta name="description" content="Laboratorio interactivo: el modelo de Ramsey–Cass–Koopmans en tiempo discreto, con la senda de silla calculada globalmente, su aproximación de primer orden y la transición al estado estacionario.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23111'/%3E%3Cpath d='M6 25C10 21 14 15 26 11' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round'/%3E%3Ccircle cx='17' cy='16' r='2.6' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/mav.css?v=dbf54522">
+<style>
+  .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+  @media (max-width: 700px) { .pair { grid-template-columns: 1fr; } }
+  #tiles.tiles { grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); }
+  @media (max-width: 800px) { .two { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="../index.html">MAV <span class="es">· Laboratorios</span><span class="en">· Labs</span></a>
+    <nav class="topnav" aria-label="Principal">
+      <a href="../index.html" class="hide-sm"><span class="es">Laboratorios</span><span class="en">All labs</span></a>
+      <a href="../index.html" data-curso="https://jorgealonsoortiz.work/macro-avanzada/" class="hide-sm"><span class="es">El curso</span><span class="en">The course</span></a>
+      <a href="https://jorgealonsoortiz.work/puremacro/" class="hide-sm">puremacro</a>
+      <span class="lang-toggle" role="group" aria-label="Idioma / Language">
+        <button type="button" data-lang="es">ES</button><button type="button" data-lang="en">EN</button>
+      </span>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero wrap">
+    <p class="kicker"><span class="es">Unidad A2 · El modelo neoclásico de crecimiento</span><span class="en">Unit A2 · The neoclassical growth model</span></p>
+    <h1><span class="es">¿Qué tan rápido alcanza una economía su estado estacionario?</span><span class="en">How fast does an economy reach its steady state?</span></h1>
+    <p class="lead">
+      <span class="es">Un planificador elige cuánto consumir y cuánto acumular. La única trayectoria que no termina en ruina ni en desperdicio es la senda de silla. Aquí se calcula completa, sin linealizar, y se compara con la aproximación de primer orden que usa Dynare: coinciden cerca del estado estacionario y se separan lejos de él.</span>
+      <span class="en">A planner chooses how much to consume and how much to accumulate. The only path that ends neither in ruin nor in waste is the saddle path. Here it is computed in full, without linearizing, and compared with the first-order approximation that Dynare uses: they agree near the steady state and part ways far from it.</span>
+    </p>
+  </section>
+
+  <section class="wrap lab" aria-label="Laboratorio">
+    <aside class="controls" id="controls">
+      <h2><span class="es">Controles</span><span class="en">Controls</span></h2>
+    </aside>
+    <div class="charts">
+      <div id="tiles" aria-live="polite"></div>
+      <div id="chart-phase"></div>
+      <div id="chart-path"></div>
+      <div class="pair">
+        <div id="chart-r"></div>
+        <div id="chart-w"></div>
+      </div>
+      <p class="small notice">
+        <span class="es"><strong>Mercados.</strong> Estas trayectorias de rₜ y wₜ son los precios de un equilibrio competitivo con hogares dueños del capital y empresas que maximizan beneficios. A esos precios, los hogares eligen exactamente la misma asignación que el planificador (primer teorema del bienestar). Con Cobb–Douglas, wₜ = (1 − α)yₜ: el salario se mueve en la misma proporción que el producto.</span>
+        <span class="en"><strong>Markets.</strong> These paths for rₜ and wₜ are the prices of a competitive equilibrium in which households own the capital and firms maximize profits. At those prices, households choose exactly the planner's allocation (first welfare theorem). With Cobb–Douglas, wₜ = (1 − α)yₜ: the wage moves in the same proportion as output.</span>
+      </p>
+    </div>
+  </section>
+
+  <section class="band section rule-top">
+    <div class="wrap two">
+      <div>
+        <h2><span class="es">Qué probar</span><span class="en">Things to try</span></h2>
+        <ol class="try" id="try">
+          <li><span class="es">Deja k₀ en 50% y luego bájalo a 20%. La aproximación log-lineal fija un c₀ 1.4% por debajo del global con 50% y 7.6% por debajo con 20%. Cambia a «lineal en niveles»: los errores son +4.6% y +25.9%. Con k₀ = 3%, la recta queda por encima de Δk = 0: predice que una economía muy pobre se come su capital. Mira también la vida media: la de la trayectoria global es de 7.6 y 8.2 años, frente a 7.1 en primer orden.</span><span class="en">Leave k₀ at 50% and then lower it to 20%. The log-linear approximation puts c₀ 1.4% below the global value at 50% and 7.6% below at 20%. Switch to "linear in levels": the errors are +4.6% and +25.9%. At k₀ = 3%, the straight line sits above Δk = 0: it predicts that a very poor economy eats its capital. Look at the half-life too: along the global path it is 7.6 and 8.2 years, against 7.1 at first order.</span></li>
+          <li><span class="es">Sube α de 0.33 a 0.75. La vida media pasa de 7.1 a 28.5 años y la brecha se cierra 2.4% al año, cerca del 2% de Barro y Sala-i-Martin. Es el argumento de Mankiw, Romer y Weil: si α incluye el capital humano, la convergencia lenta deja de ser un enigma.</span><span class="en">Raise α from 0.33 to 0.75. The half-life goes from 7.1 to 28.5 years and the gap closes by 2.4% a year, close to Barro and Sala-i-Martin's 2%. This is Mankiw, Romer and Weil's argument: if α includes human capital, slow convergence is no longer a puzzle.</span></li>
+          <li><span class="es">Pon k₀ = 100% y la PTF en +10%. El consumo salta 6.3% en t = 0, el capital sube poco a poco hasta +15.3% y la tasa de interés brinca a 4.0% antes de volver a r* = 3.1%. Sube σ a 5: el salto del consumo crece a +10.3% y la vida media, a 18.7 años. Con σ = 0.25 el consumo incluso cae 0.2% al impacto, porque domina la sustitución intertemporal.</span><span class="en">Set k₀ = 100% and TFP to +10%. Consumption jumps 6.3% at t = 0, capital rises gradually to +15.3%, and the interest rate leaps to 4.0% before returning to r* = 3.1%. Raise σ to 5: the consumption jump grows to +10.3% and the half-life to 18.7 years. With σ = 0.25 consumption even falls 0.2% on impact, because intertemporal substitution dominates.</span></li>
+          <li><span class="es">Sube β de 0.97 a 0.99. El ahorro de estado estacionario pasa de 21.8% a 28.2%, k* sube 47% y r* baja a 1.0%. Aun con β = 0.995 (s* = 30.5%) queda por debajo de la regla de oro, s = α = 33%: un planificador impaciente nunca acumula hasta maximizar el consumo de estado estacionario.</span><span class="en">Raise β from 0.97 to 0.99. The steady-state saving rate goes from 21.8% to 28.2%, k* rises 47% and r* falls to 1.0%. Even at β = 0.995 (s* = 30.5%) it stays below the golden rule, s = α = 33%: an impatient planner never accumulates up to the point that maximizes steady-state consumption.</span></li>
+        </ol>
+      </div>
+      <div>
+        <h2><span class="es">La matemática</span><span class="en">The math</span></h2>
+        <details class="math" open>
+          <summary><span class="es">El problema del planificador</span><span class="en">The planner's problem</span></summary>
+          $$\max_{\{c_t,k_{t+1}\}}\ \sum_{t=0}^{\infty}\beta^t\,\frac{c_t^{1-\sigma}-1}{1-\sigma}$$
+          <p><span class="es">sujeto a la restricción de recursos, con \(k_0\) dado:</span><span class="en">subject to the resource constraint, with \(k_0\) given:</span></p>
+          $$c_t+k_{t+1}=Ak_t^{\alpha}+(1-\delta)k_t .$$
+          <p><span class="es">La ecuación de Euler y la restricción de recursos forman el sistema dinámico:</span><span class="en">The Euler equation and the resource constraint form the dynamic system:</span></p>
+          $$c_t^{-\sigma}=\beta\,c_{t+1}^{-\sigma}\big(\alpha A k_{t+1}^{\alpha-1}+1-\delta\big),$$
+          $$k_{t+1}=Ak_t^{\alpha}+(1-\delta)k_t-c_t .$$
+          <p><span class="es">En el estado estacionario, \(\alpha A k^{*\alpha-1}=1/\beta-1+\delta\), de modo que</span><span class="en">At the steady state, \(\alpha A k^{*\alpha-1}=1/\beta-1+\delta\), so</span></p>
+          $$k^*=\left(\frac{\alpha A}{1/\beta-1+\delta}\right)^{\frac{1}{1-\alpha}},$$
+          $$s^*=\frac{\delta k^*}{y^*}=\frac{\alpha\delta}{1/\beta-1+\delta}<\alpha .$$
+        </details>
+        <details class="math">
+          <summary><span class="es">Los lugares geométricos en tiempo discreto</span><span class="en">The loci in discrete time</span></summary>
+          <p><span class="es">\(\Delta k=0\) exige \(c=Ak^{\alpha}-\delta k\). Por debajo de esa curva el capital crece. \(\Delta c=0\) exige \(k_{t+1}=k^*\); con la restricción de recursos,</span><span class="en">\(\Delta k=0\) requires \(c=Ak^{\alpha}-\delta k\). Below that curve capital grows. \(\Delta c=0\) requires \(k_{t+1}=k^*\); with the resource constraint,</span></p>
+          $$c_t=Ak_t^{\alpha}+(1-\delta)k_t-k^*.$$
+          <p><span class="es">En tiempo continuo esta curva es la vertical \(k=k^*\); en tiempo discreto tiene pendiente \(1/\beta\) en el estado estacionario. Por encima de ella, \(k_{t+1}&lt;k^*\), el rendimiento supera a \(1/\beta\) y el consumo crece.</span><span class="en">In continuous time this curve is the vertical line \(k=k^*\); in discrete time its slope at the steady state is \(1/\beta\). Above it, \(k_{t+1}&lt;k^*\), the return exceeds \(1/\beta\) and consumption grows.</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">Primer orden y vida media</span><span class="en">First order and half-life</span></summary>
+          <p><span class="es">Al linealizar alrededor de \((k^*,c^*)\) con \(b=\beta f''(k^*)c^*/\sigma&lt;0\), la matriz de transición tiene traza \(1+1/\beta-b\) y determinante \(1/\beta\). Su raíz estable \(\lambda\) da la regla</span><span class="en">Linearizing around \((k^*,c^*)\) with \(b=\beta f''(k^*)c^*/\sigma&lt;0\), the transition matrix has trace \(1+1/\beta-b\) and determinant \(1/\beta\). Its stable root \(\lambda\) gives the rule</span></p>
+          $$k_{t+1}-k^*=\lambda\,(k_t-k^*),\qquad c_t-c^*=g_c\,(k_t-k^*),$$
+          $$g_c=\tfrac{1}{\beta}-\lambda,\qquad t_{1/2}=\frac{\ln 0.5}{\ln\lambda}.$$
+          <p><span class="es">La versión log-lineal usa la misma pendiente como elasticidad, \(\ln(c_t/c^*)=\psi\ln(k_t/k^*)\) con \(\psi=g_c k^*/c^*\). Ambas son tangentes a la senda de silla en el estado estacionario.</span><span class="en">The log-linear version uses the same slope as an elasticity, \(\ln(c_t/c^*)=\psi\ln(k_t/k^*)\) with \(\psi=g_c k^*/c^*\). Both are tangent to the saddle path at the steady state.</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">Cómo se calcula la senda global</span><span class="en">How the global path is computed</span></summary>
+          <p><span class="es">Disparo inverso: se parte de un punto a \(10^{-5}k^*\) del estado estacionario, sobre el vector propio estable, y se itera el sistema hacia atrás,</span><span class="en">Reverse shooting: start at a point \(10^{-5}k^*\) away from the steady state, on the stable eigenvector, and iterate the system backwards,</span></p>
+          $$c_t=c_{t+1}\big[\beta\,(\alpha A k_{t+1}^{\alpha-1}+1-\delta)\big]^{-1/\sigma},$$
+          $$Ak_t^{\alpha}+(1-\delta)k_t=k_{t+1}+c_t .$$
+          <p><span class="es">Hacia atrás, la senda de silla es la dirección que se aleja, así que los errores numéricos se corrigen solos. La transición desde \(k_0\) se resuelve aparte, con Newton sobre las ecuaciones de Euler apiladas de \(t=0\) a \(T\) y \(k_{T+1}=k^*\). Las dos soluciones coinciden con un error relativo menor que \(10^{-5}\).</span><span class="en">Backwards, the saddle path is the expanding direction, so numerical errors correct themselves. The transition from \(k_0\) is solved separately, by Newton on the Euler equations stacked from \(t=0\) to \(T\) with \(k_{T+1}=k^*\). The two solutions agree to a relative error below \(10^{-5}\).</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">Equivalencia con el equilibrio competitivo</span><span class="en">Equivalence with the competitive equilibrium</span></summary>
+          <p><span class="es">Las empresas rentan capital y trabajo: \(r_t+\delta=\alpha Ak_t^{\alpha-1}\) y \(w_t=(1-\alpha)Ak_t^{\alpha}\). Los hogares enfrentan \(c_t+k_{t+1}=w_t+(1+r_t)k_t\) y su Euler es \(c_t^{-\sigma}=\beta(1+r_{t+1})c_{t+1}^{-\sigma}\). Con rendimientos constantes, \(w_t+(r_t+\delta)k_t=Ak_t^{\alpha}\), así que la restricción del hogar es la de recursos y las dos Euler son idénticas: la misma asignación.</span><span class="en">Firms rent capital and labor: \(r_t+\delta=\alpha Ak_t^{\alpha-1}\) and \(w_t=(1-\alpha)Ak_t^{\alpha}\). Households face \(c_t+k_{t+1}=w_t+(1+r_t)k_t\) and their Euler equation is \(c_t^{-\sigma}=\beta(1+r_{t+1})c_{t+1}^{-\sigma}\). With constant returns, \(w_t+(r_t+\delta)k_t=Ak_t^{\alpha}\), so the household budget is the resource constraint and the two Euler equations are identical: the same allocation.</span></p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="section wrap">
+    <h2><span class="es">Llévalo más lejos</span><span class="en">Take it further</span></h2>
+    <div class="two">
+      <ul class="links">
+        <li><a href="https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T02_A_neoclassical_growth_local_es.ipynb" class="es">Cuaderno T02_A en Colab: el modelo con trabajo, Klein (QZ), choques permanentes y el diagrama de fases →</a><a href="https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T02_A_neoclassical_growth_local.ipynb" class="en">Notebook T02_A in Colab: the model with labor, Klein (QZ), permanent shocks and the phase diagram →</a></li>
+        <li><a href="../diapositivas/MAV_02_modelo_neoclasico_de_crecimiento.pdf" data-deck="2"><span class="es">Diapositivas 2: el modelo neoclásico de crecimiento →</span><span class="en">Slides 2: the neoclassical growth model (Spanish) →</span></a></li>
+        <li><a href="https://jorgealonsoortiz.work/puremacro/"><span class="es">En Python: </span><span class="en">In Python: </span><code>puremacro.dsge.load_mod</code>, <code>puremacro.dsge.solve_perfect_foresight</code> →</a></li>
+      </ul>
+      <p class="small" id="source"></p>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span class="es">Macroeconomía Avanzada · ITAM · Jorge Alonso-Ortiz. Código MIT; textos y diapositivas <a href="https://creativecommons.org/licenses/by/4.0/deed.es">CC BY 4.0</a>. Fuente en</span><span class="en">Advanced Macroeconomics · ITAM · Jorge Alonso-Ortiz. Code MIT; text and slides <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Source at</span>
+    <a href="https://github.com/jalonso1979/puremacro/tree/main/curso">github.com/jalonso1979/puremacro</a>.
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script defer src="../assets/mav.js?v=25ec1916"></script>
+<script defer src="../assets/num.js?v=7de34487"></script>
+<script defer src="neoclasico.js?v=993d9476"></script>
+</body>
+</html>

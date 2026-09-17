@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="es" data-lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-title-es="Identificación: SVAR y proyecciones locales · Laboratorios MAV" data-title-en="Identification: SVARs and local projections · MAV Labs">Identificación: SVAR y proyecciones locales · Laboratorios MAV</title>
+<meta name="description" content="Laboratorio interactivo: simula un VAR estructural con verdad conocida y compara dos ordenamientos de Cholesky con una proyección local instrumentada, en una muestra y en un Monte Carlo.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23111'/%3E%3Cpath d='M5 10c5 0 6 12 11 12s6-8 11-8' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpath d='M5 10c5 0 7 5 11 5s7-3 11-3' fill='none' stroke='%23fff' stroke-width='1.5' stroke-dasharray='2 3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/mav.css?v=dbf54522">
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="../index.html">MAV <span class="es">· Laboratorios</span><span class="en">· Labs</span></a>
+    <nav class="topnav" aria-label="Principal">
+      <a href="../index.html" class="hide-sm"><span class="es">Laboratorios</span><span class="en">All labs</span></a>
+      <a href="../index.html" data-curso="https://jorgealonsoortiz.work/macro-avanzada/" class="hide-sm"><span class="es">El curso</span><span class="en">The course</span></a>
+      <a href="https://jorgealonsoortiz.work/puremacro/" class="hide-sm">puremacro</a>
+      <span class="lang-toggle" role="group" aria-label="Idioma / Language">
+        <button type="button" data-lang="es">ES</button><button type="button" data-lang="en">EN</button>
+      </span>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+    <p class="kicker"><span class="es">Unidad A5 · Identificación empírica: SVAR, evidencia narrativa y proyecciones locales</span><span class="en">Unit A5 · Empirical identification: SVARs, narrative evidence and local projections</span></p>
+    <h1><span class="es">¿Qué le hace al producto un alza de la tasa?</span><span class="en">What does a rate hike do to output?</span></h1>
+    <p class="lead">
+      <span class="es">Identificar un choque exige un supuesto, y el supuesto decide el resultado. Aquí la verdad se conoce porque la simulamos: un VAR estructural en el que tú decides si la política monetaria mueve el producto en el mismo trimestre y si la tasa reacciona a la demanda. Compara dos ordenamientos de Cholesky con una proyección local instrumentada, en una muestra y en trescientas.</span>
+      <span class="en">Identifying a shock takes an assumption, and the assumption decides the result. Here the truth is known because we simulate it: a structural VAR in which you decide whether monetary policy moves output within the quarter and whether the rate reacts to demand. Compare two Cholesky orderings with an instrumented local projection, in one sample and in three hundred.</span>
+    </p>
+    </div>
+  </section>
+
+  <section class="wrap lab" aria-label="Laboratorio">
+    <aside class="controls" id="controls">
+      <h2><span class="es">El proceso y la muestra</span><span class="en">The process and the sample</span></h2>
+    </aside>
+    <div class="charts">
+      <div id="tiles" aria-live="polite"></div>
+      <div id="chart-irf"></div>
+      <div id="chart-mc"></div>
+    </div>
+  </section>
+
+  <section class="band section rule-top">
+    <div class="wrap two">
+      <div>
+        <h2><span class="es">Qué probar</span><span class="en">Things to try</span></h2>
+        <ol class="try">
+          <li><span class="es">Con los valores iniciales (\(\theta=0\)) el supuesto de Cholesky A es cierto. En el impacto da 0.00, igual que la verdad, y en el Monte Carlo con h = 4 su mediana (−0.43) cae sobre la verdad (−0.44), con un 90&nbsp;% central de −0.55 a −0.33, mucho más angosto que el de la LP-IV (−0.72 a −0.16).</span><span class="en">At the initial values (\(\theta=0\)) the Cholesky A assumption is true. On impact it gives 0.00, like the truth, and in the Monte Carlo at h = 4 its median (−0.43) sits on the truth (−0.44), with a middle 90% from −0.55 to −0.33, much narrower than the LP-IV's (−0.72 to −0.16).</span></li>
+          <li><span class="es">Mira Cholesky B en la misma muestra: el alza de la tasa sube el producto 0.44 pp en el impacto, porque atribuye al choque monetario la reacción de la tasa a la demanda (\(\varphi=0.5\)). Lleva \(\varphi\) a 0 y las dos ordenaciones casi coinciden. Ahora pon \(\theta=-0.5\) y \(\varphi=1\): la verdad en el impacto es −0.50 y la mediana de B en h = 0 es +0.26. El supuesto invierte el signo.</span><span class="en">Look at Cholesky B in the same sample: the rate hike raises output 0.44 pp on impact, because it assigns the rate's reaction to demand (\(\varphi=0.5\)) to the monetary shock. Set \(\varphi\) to 0 and the two orderings nearly coincide. Now set \(\theta=-0.5\) and \(\varphi=1\): the truth on impact is −0.50 and B's median at h = 0 is +0.26. The assumption flips the sign.</span></li>
+          <li><span class="es">Con \(\theta=-0.5\), \(\varphi=1\) y el Monte Carlo en h = 0: Cholesky A da 0 en todas las muestras (preciso y equivocado), B se queda cerca de +0.26 y la LP-IV centra su mediana en −0.50, pero con un 90&nbsp;% central de −0.84 a −0.27. Menos sesgo a cambio de más varianza.</span><span class="en">With \(\theta=-0.5\), \(\varphi=1\) and the Monte Carlo at h = 0: Cholesky A gives 0 in every sample (precise and wrong), B stays near +0.26 and the LP-IV centers its median at −0.50, but with a middle 90% from −0.84 to −0.27. Less bias in exchange for more variance.</span></li>
+          <li><span class="es">Con esos mismos valores, sube el ruido del instrumento a 5. En la muestra n.º 1 la F de la primera etapa cae a 2.9 y la banda de 90&nbsp;% de la LP-IV en el impacto va de −2.18 a +0.50: incluye el cero. En el Monte Carlo el 90&nbsp;% central se abre de −3.24 a +0.25. Sube T a 1000 y la F vuelve a 19: un instrumento débil es un problema de información, no de método.</span><span class="en">With the same values, raise the instrument noise to 5. In sample no. 1 the first-stage F falls to 2.9 and the LP-IV's 90% band on impact runs from −2.18 to +0.50: it includes zero. In the Monte Carlo the middle 90% widens to −3.24 to +0.25. Raise T to 1000 and F is back at 19: a weak instrument is a problem of information, not of method.</span></li>
+        </ol>
+      </div>
+      <div>
+        <h2><span class="es">La matemática</span><span class="en">The math</span></h2>
+        <details class="math" open>
+          <summary><span class="es">El proceso generador</span><span class="en">The data-generating process</span></summary>
+          <p><span class="es">Producto \(x_t\) y tasa \(i_t\) siguen un VAR(1) estructural con un choque de demanda y uno monetario, independientes y con varianza unitaria, \(y_t=(x_t,\,i_t)'\) y \(\varepsilon_t=(\varepsilon^{d}_t,\,\varepsilon^{m}_t)'\):</span><span class="en">Output \(x_t\) and the rate \(i_t\) follow a structural VAR(1) with a demand shock and a monetary shock, independent and with unit variance, \(y_t=(x_t,\,i_t)'\) and \(\varepsilon_t=(\varepsilon^{d}_t,\,\varepsilon^{m}_t)'\):</span></p>
+          $$y_t=A\,y_{t-1}+B_0\,\varepsilon_t$$
+          $$A=\begin{pmatrix}0.8&-0.2\\ 0.1&0.85\end{pmatrix}$$
+          $$B_0=\begin{pmatrix}1&\theta\\ \varphi&1\end{pmatrix}$$
+          <p><span class="es">El choque monetario sube la tasa 1 pp en el impacto, así que la respuesta verdadera es \(\Theta_h=A^h(\theta,\,1)'\). El instrumento es \(z_t=\varepsilon^{m}_t+s\,\eta_t\), con \(\eta_t\) ruido independiente.</span><span class="en">The monetary shock raises the rate 1 pp on impact, so the true response is \(\Theta_h=A^h(\theta,\,1)'\). The instrument is \(z_t=\varepsilon^{m}_t+s\,\eta_t\), with \(\eta_t\) independent noise.</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">Cholesky: el orden es el supuesto</span><span class="en">Cholesky: the ordering is the assumption</span></summary>
+          <p><span class="es">La forma reducida solo revela \(\Sigma_u=B_0B_0'\):</span><span class="en">The reduced form only reveals \(\Sigma_u=B_0B_0'\):</span></p>
+          $$\Sigma_u=\begin{pmatrix}1+\theta^2&\theta+\varphi\\ \theta+\varphi&1+\varphi^2\end{pmatrix}$$
+          <p><span class="es">Cholesky A (producto primero) impone que el choque de tasa no mueva el producto en el impacto: acierta si y solo si \(\theta=0\). Cholesky B (tasa primero) llama «choque monetario» a toda la innovación de la tasa; normalizado a 1 pp, su efecto en el impacto es</span><span class="en">Cholesky A (output first) imposes that the rate shock does not move output on impact: it is right if and only if \(\theta=0\). Cholesky B (rate first) calls the whole rate innovation a "monetary shock"; scaled to 1 pp, its impact effect is</span></p>
+          $$\frac{\Sigma_{12}}{\Sigma_{22}}=\frac{\theta+\varphi}{1+\varphi^2},$$
+          <p><span class="es">que coincide con \(\theta\) solo si \(\varphi=0\). Con \(\theta=-0.5\) y \(\varphi=1\) vale \(+0.25\). Las respuestas siguientes salen del VAR(2) estimado por MCO; sus bandas son percentiles 5 y 95 de 200 réplicas de un bootstrap de residuos.</span><span class="en">which equals \(\theta\) only if \(\varphi=0\). With \(\theta=-0.5\) and \(\varphi=1\) it is \(+0.25\). Later responses come from the VAR(2) estimated by OLS; their bands are the 5th and 95th percentiles of 200 residual-bootstrap replications.</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">Proyección local con instrumento (LP-IV)</span><span class="en">Local projection with an instrument (LP-IV)</span></summary>
+          <p><span class="es">Para cada horizonte \(h\), una regresión por variables instrumentales:</span><span class="en">For each horizon \(h\), one instrumental-variables regression:</span></p>
+          $$y_{t+h}=\alpha_h+\beta_h\,i_t+\gamma_h'w_t+u_{t+h}$$
+          $$w_t=(x_{t-1},\,i_{t-1},\,x_{t-2},\,i_{t-2})$$
+          <p><span class="es">con \(i_t\) instrumentada por \(z_t\), de modo que \(\beta_h=\operatorname{cov}(\tilde y_{t+h},\tilde z_t)/\operatorname{cov}(\tilde\imath_t,\tilde z_t)\), donde la tilde indica residuos de la proyección sobre \(w_t\). No pide ordenar nada: pide que \(z_t\) esté correlacionado con \(\varepsilon^{m}_t\) (relevancia) y no con \(\varepsilon^{d}_t\) (exogeneidad). El supuesto cambia, no desaparece.</span><span class="en">with \(i_t\) instrumented by \(z_t\), so that \(\beta_h=\operatorname{cov}(\tilde y_{t+h},\tilde z_t)/\operatorname{cov}(\tilde\imath_t,\tilde z_t)\), where the tilde marks residuals from projecting on \(w_t\). It needs no ordering: it needs \(z_t\) to be correlated with \(\varepsilon^{m}_t\) (relevance) and not with \(\varepsilon^{d}_t\) (exogeneity). The assumption changes; it does not disappear.</span></p>
+          <p><span class="es">El residuo \(u_{t+h}\) es un MA(\(h\)), así que los errores estándar son de Newey–West (Bartlett, \(h+1\) rezagos) y la banda es \(\hat\beta_h\pm1.645\,\widehat{\text{ee}}\). La F de la primera etapa es el \(t^2\) robusto de \(z_t\) en la regresión de \(i_t\) sobre \((1,z_t,w_t)\); la regla vieja pide \(F&gt;10\) y Montiel Olea y Pflueger (2013), \(F&gt;23.1\).</span><span class="en">The residual \(u_{t+h}\) is an MA(\(h\)), so standard errors are Newey–West (Bartlett, \(h+1\) lags) and the band is \(\hat\beta_h\pm1.645\,\widehat{\text{se}}\). The first-stage F is the robust \(t^2\) of \(z_t\) in the regression of \(i_t\) on \((1,z_t,w_t)\); the old rule asks for \(F&gt;10\) and Montiel Olea and Pflueger (2013) for \(F&gt;23.1\).</span></p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+    <h2><span class="es">Llévalo más lejos</span><span class="en">Take it further</span></h2>
+    <div class="two">
+      <ul class="links">
+        <li><a href="https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T05_A_svar_identification_es.ipynb" class="es">Cuaderno T05_A en Colab: Cholesky, restricciones de signo, narrativa y proxy-SVAR →</a><a href="https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T05_A_svar_identification.ipynb" class="en">Notebook T05_A in Colab: Cholesky, sign restrictions, narrative and proxy-SVAR →</a></li>
+        <li><a href="https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T05_B_local_projections_es.ipynb" class="es">Cuaderno T05_B en Colab: proyecciones locales, inferencia HAC y dependencia del estado →</a><a href="https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T05_B_local_projections.ipynb" class="en">Notebook T05_B in Colab: local projections, HAC inference and state dependence →</a></li>
+        <li><a href="../diapositivas/MAV_05_identificacion_empirica.pdf" data-deck="5"><span class="es">Diapositivas 5: identificación empírica →</span><span class="en">Slides 5: empirical identification (Spanish) →</span></a></li>
+        <li><a href="https://jorgealonsoortiz.work/puremacro/"><span class="es">En Python: </span><span class="en">In Python: </span><code>puremacro.<wbr>var.<wbr>estimate_var</code>, <code>puremacro.<wbr>var.<wbr>identify.<wbr>cholesky.<wbr>cholesky_svar</code>, <code>puremacro.<wbr>var.<wbr>identify.<wbr>proxy.<wbr>proxy_svar</code>, <code>puremacro.<wbr>lp.<wbr>lp_iv</code> →</a></li>
+      </ul>
+      <p class="small" id="source"></p>
+    </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span class="es">Macroeconomía Avanzada · ITAM · Jorge Alonso-Ortiz. Código MIT; textos y diapositivas <a href="https://creativecommons.org/licenses/by/4.0/deed.es">CC BY 4.0</a>. Fuente en</span><span class="en">Advanced Macroeconomics · ITAM · Jorge Alonso-Ortiz. Code MIT; text and slides <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Source at</span>
+    <a href="https://github.com/jalonso1979/puremacro/tree/main/curso">github.com/jalonso1979/puremacro</a>.
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script defer src="../assets/mav.js?v=25ec1916"></script>
+<script defer src="../assets/num.js?v=7de34487"></script>
+<script defer src="identificacion.js?v=be18e6cc"></script>
+</body>
+</html>

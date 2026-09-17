@@ -52,7 +52,7 @@ PROJECT.md
 TEST_INFRA.md
 TEST_READY.md
 
-# Documentation build
-site/
+# Documentation build (mkdocs writes to the repo root; curso/site/ is tracked on purpose)
+/site/
 output/
 uv.lock

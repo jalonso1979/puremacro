@@ -45,6 +45,8 @@ jobs:
       - name: Build JupyterLite Playground & Docs
         run: |
           bash playground/build_playground.sh
+          # Advanced Macroeconomics (MAV) course labs: static pages served at /puremacro/curso/
+          if [ -d curso/site ]; then mkdir -p playground/dist/curso && cp -R curso/site/. playground/dist/curso/; fi
           touch playground/dist/.nojekyll
 
       - name: Deploy to gh-pages branch

@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="es" data-lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-title-es="Ciclos reales: el modelo RBC · Laboratorios MAV" data-title-en="Real business cycles: the RBC model · MAV Labs">Ciclos reales: el modelo RBC · Laboratorios MAV</title>
+<meta name="description" content="Laboratorio interactivo: resuelve el modelo RBC canónico, mira las respuestas a un choque de productividad y compara los momentos del ciclo con los de EE. UU., con trabajo divisible e indivisible.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23111'/%3E%3Cpath d='M5 22c3-11 6-11 8-5s4 6 6 0 4-8 8-8' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/mav.css?v=dbf54522">
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="../index.html">MAV <span class="es">· Laboratorios</span><span class="en">· Labs</span></a>
+    <nav class="topnav" aria-label="Principal">
+      <a href="../index.html" class="hide-sm"><span class="es">Laboratorios</span><span class="en">All labs</span></a>
+      <a href="../index.html" data-curso="https://jorgealonsoortiz.work/macro-avanzada/" class="hide-sm"><span class="es">El curso</span><span class="en">The course</span></a>
+      <a href="https://jorgealonsoortiz.work/puremacro/" class="hide-sm">puremacro</a>
+      <span class="lang-toggle" role="group" aria-label="Idioma / Language">
+        <button type="button" data-lang="es">ES</button><button type="button" data-lang="en">EN</button>
+      </span>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+    <p class="kicker"><span class="es">Unidad A4 · Ciclos económicos reales y contabilidad del ciclo</span><span class="en">Unit A4 · Real business cycles and business-cycle accounting</span></p>
+    <h1><span class="es">¿Bastan los choques de productividad para explicar el ciclo?</span><span class="en">Can productivity shocks alone explain the business cycle?</span></h1>
+    <p class="lead">
+      <span class="es">El modelo RBC canónico convierte un choque persistente a la productividad total de los factores en un ciclo: el consumo se suaviza, la inversión amplifica y las horas responden por sustitución intertemporal. Mueve la calibración, mira las respuestas y pon los momentos del modelo junto a los de EE. UU.: algunos cuadran y uno falla de forma espectacular.</span>
+      <span class="en">The canonical RBC model turns a persistent shock to total factor productivity into a cycle: consumption is smoothed, investment amplifies and hours respond through intertemporal substitution. Move the calibration, watch the responses and set the model's moments next to those of the United States: some match, and one fails spectacularly.</span>
+    </p>
+    </div>
+  </section>
+
+  <section class="wrap lab" aria-label="Laboratorio">
+    <aside class="controls" id="controls">
+      <h2><span class="es">Calibración</span><span class="en">Calibration</span></h2>
+    </aside>
+    <div class="charts">
+      <div id="tiles" aria-live="polite"></div>
+      <div id="chart-irf"></div>
+      <div id="chart-moments"></div>
+    </div>
+  </section>
+
+  <section class="band section rule-top">
+    <div class="wrap two">
+      <div>
+        <h2><span class="es">Qué probar</span><span class="en">Things to try</span></h2>
+        <ol class="try">
+          <li><span class="es">Pulsa «Hansen: ν = 0». Las horas suben 1.05&nbsp;% en el impacto en lugar de 0.39&nbsp;%, y \(\sigma_h/\sigma_y\) pasa de 0.41 a 0.75. Con \(\nu = 1\) el impacto es 0.50&nbsp;%: de ahí sale el «× 2.1» de las diapositivas. La indivisibilidad acerca el modelo al dato (1.19), pero no lo alcanza.</span><span class="en">Click "Hansen: ν = 0". Hours rise 1.05% on impact instead of 0.39%, and \(\sigma_h/\sigma_y\) goes from 0.41 to 0.75. With \(\nu = 1\) the impact is 0.50%: that is where the "× 2.1" in the slides comes from. Indivisibility brings the model closer to the data (1.19), but does not get there.</span></li>
+          <li><span class="es">Mira corr(horas, productividad): 0.94 en la base, −0.07 en los datos y −0.60 desde 1984. Con un solo choque, horas y productividad las mueve el mismo impulso; recorriendo todos los controles no encontramos un valor menor que 0.36. Hace falta un segundo choque que desplace la oferta de trabajo (Christiano y Eichenbaum, 1992).</span><span class="en">Look at corr(hours, productivity): 0.94 at the base calibration, −0.07 in the data and −0.60 since 1984. With a single shock, hours and productivity are driven by the same impulse; sweeping every control we found no value below 0.36. It takes a second shock that shifts labor supply (Christiano and Eichenbaum, 1992).</span></li>
+          <li><span class="es">Sube \(\rho_a\) de 0.95 a 0.99. El choque se parece más a uno permanente: el consumo responde más (\(\sigma_c/\sigma_y\) de 0.33 a 0.49) y la inversión menos (\(\sigma_i/\sigma_y\) de 3.30 a 2.72). Ahora bájalo a 0.5: la autocorrelación del producto cae de 0.72 a 0.38. El modelo casi no genera persistencia propia; la hereda del choque (Cogley y Nason, 1995).</span><span class="en">Raise \(\rho_a\) from 0.95 to 0.99. The shock looks more like a permanent one: consumption responds more (\(\sigma_c/\sigma_y\) from 0.33 to 0.49) and investment less (\(\sigma_i/\sigma_y\) from 3.30 to 2.72). Now lower it to 0.5: output's autocorrelation falls from 0.72 to 0.38. The model generates almost no persistence of its own; it inherits it from the shock (Cogley and Nason, 1995).</span></li>
+          <li><span class="es">Mueve \(\sigma_a\). Cambian \(\sigma_y\) y el tamaño de las respuestas, pero ningún cociente ni correlación. Así se calibra: con \(\sigma_a\) ≈ 0.88&nbsp;% el modelo reproduce el \(\sigma_y\) = 1.58&nbsp;% de los datos, y todos los demás momentos quedan como prueba del modelo, no como objetivo.</span><span class="en">Move \(\sigma_a\). \(\sigma_y\) and the size of the responses change, but no ratio or correlation does. That is how calibration works: with \(\sigma_a\) ≈ 0.88% the model reproduces the data's \(\sigma_y\) = 1.58%, and every other moment is left as a test of the model, not a target.</span></li>
+        </ol>
+      </div>
+      <div>
+        <h2><span class="es">La matemática</span><span class="en">The math</span></h2>
+        <details class="math" open>
+          <summary><span class="es">El modelo</span><span class="en">The model</span></summary>
+          <p><span class="es">Un planificador elige consumo, horas y capital:</span><span class="en">A planner chooses consumption, hours and capital:</span></p>
+          $$\max\; E_0\sum_{t=0}^{\infty}\beta^t\Big[\log c_t+\mu\,\frac{(1-l_t)^{1-\nu}}{1-\nu}\Big]$$
+          $$c_t+k_t-(1-\delta)k_{t-1}=e^{a_t}k_{t-1}^{\alpha}\,l_t^{1-\alpha}$$
+          $$a_t=\rho_a a_{t-1}+\varepsilon_t,\qquad \varepsilon_t\sim N(0,\sigma_a^2)$$
+          <p><span class="es">Las condiciones de equilibrio son la oferta de trabajo \(\mu(1-l_t)^{-\nu}c_t=w_t\), la ecuación de Euler \(1/c_t=\beta E_t[(r_{t+1}+1-\delta)/c_{t+1}]\) y los precios competitivos \(w_t=(1-\alpha)y_t/l_t\), \(r_t=\alpha y_t/k_{t-1}\). La calibración base es la de <code>modelos/rbc_canonico.mod</code>: \(\alpha=0.33\), \(\beta=0.99\), \(\delta=0.025\), \(\nu=1.5\), \(\rho_a=0.95\), \(\sigma_a=0.007\). Para cada \(\nu\), \(\mu\) se recalibra para que las horas de estado estacionario sean \(l=0.33\).</span><span class="en">The equilibrium conditions are labor supply \(\mu(1-l_t)^{-\nu}c_t=w_t\), the Euler equation \(1/c_t=\beta E_t[(r_{t+1}+1-\delta)/c_{t+1}]\) and competitive prices \(w_t=(1-\alpha)y_t/l_t\), \(r_t=\alpha y_t/k_{t-1}\). The base calibration is the one in <code>modelos/rbc_canonico.mod</code>: \(\alpha=0.33\), \(\beta=0.99\), \(\delta=0.025\), \(\nu=1.5\), \(\rho_a=0.95\), \(\sigma_a=0.007\). For each \(\nu\), \(\mu\) is recalibrated so that steady-state hours are \(l=0.33\).</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">Log-linealización</span><span class="en">Log-linearization</span></summary>
+          <p><span class="es">Con \(\hat x_t\) la desviación logarítmica respecto del estado estacionario:</span><span class="en">With \(\hat x_t\) the log deviation from steady state:</span></p>
+          $$\hat c_t+\nu\tfrac{l}{1-l}\,\hat l_t=\hat w_t$$
+          $$\hat c_t=E_t\hat c_{t+1}-\beta\bar r\,E_t\hat r_{t+1}$$
+          $$\hat y_t=a_t+\alpha\hat k_{t-1}+(1-\alpha)\hat l_t$$
+          $$\hat w_t=\hat y_t-\hat l_t,\qquad \hat r_t=\hat y_t-\hat k_{t-1}$$
+          $$\hat y_t=\tfrac{c}{y}\hat c_t+\tfrac{i}{y}\hat\imath_t$$
+          $$\hat k_t=(1-\delta)\hat k_{t-1}+\delta\,\hat\imath_t$$
+          <p><span class="es">Como \(\hat w_t=\hat y_t-\hat l_t\), en este modelo el salario real y la productividad media del trabajo son la misma variable.</span><span class="en">Since \(\hat w_t=\hat y_t-\hat l_t\), in this model the real wage and average labor productivity are the same variable.</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">Solución y momentos</span><span class="en">Solution and moments</span></summary>
+          <p><span class="es">Por coeficientes indeterminados, \(\hat k_t=\psi_{kk}\hat k_{t-1}+\psi_{ka}a_t\) y \(\hat c_t=\psi_{ck}\hat k_{t-1}+\psi_{ca}a_t\). Sustituir en el sistema da una cuadrática en \(\psi_{ck}\); se toma la raíz con \(|\psi_{kk}|&lt;1\). Todo lo demás es lineal en \((\hat k_{t-1},a_t)\).</span><span class="en">By undetermined coefficients, \(\hat k_t=\psi_{kk}\hat k_{t-1}+\psi_{ka}a_t\) and \(\hat c_t=\psi_{ck}\hat k_{t-1}+\psi_{ca}a_t\). Substituting into the system gives a quadratic in \(\psi_{ck}\); take the root with \(|\psi_{kk}|&lt;1\). Everything else is linear in \((\hat k_{t-1},a_t)\).</span></p>
+          <p><span class="es">Los momentos del modelo pasan por el mismo filtro que los datos. Con \(X(\omega)\) la respuesta en frecuencia de \(\hat x_t\) al choque y la ganancia del componente cíclico de HP,</span><span class="en">The model's moments go through the same filter as the data. With \(X(\omega)\) the frequency response of \(\hat x_t\) to the shock and the gain of the HP cyclical component,</span></p>
+          $$H(\omega)=\frac{4\lambda(1-\cos\omega)^2}{1+4\lambda(1-\cos\omega)^2}$$
+          $$\Gamma_k=\frac{\sigma_a^2}{\pi}\int_0^{\pi}H(\omega)^2\,\mathrm{Re}\big[X(\omega)X(\omega)^{*}\big]\cos(\omega k)\,d\omega$$
+          <p><span class="es">Son momentos poblacionales (sin error de muestreo), calculados con 4096 frecuencias.</span><span class="en">These are population moments (no sampling error), computed on 4,096 frequencies.</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">Trabajo indivisible (Hansen, 1985; Rogerson, 1988)</span><span class="en">Indivisible labor (Hansen, 1985; Rogerson, 1988)</span></summary>
+          <p><span class="es">La elasticidad de Frisch de las horas es \(\eta=(1-l)/(\nu l)\). Si cada persona trabaja una jornada fija \(\bar h\) o no trabaja, y una lotería de empleo con seguro completo asigna quién trabaja, la utilidad del hogar es lineal en las horas agregadas \(l_t=\pi_t\bar h\):</span><span class="en">The Frisch elasticity of hours is \(\eta=(1-l)/(\nu l)\). If each person works a fixed shift \(\bar h\) or not at all, and an employment lottery with full insurance decides who works, household utility is linear in aggregate hours \(l_t=\pi_t\bar h\):</span></p>
+          $$\log c_t-B\,l_t,\qquad B=\frac{\mu\big[1-(1-\bar h)^{1-\nu}\big]}{(1-\nu)\,\bar h}$$
+          <p><span class="es">Es el límite \(\nu\to 0\) del modelo: la elasticidad de Frisch agregada es infinita aunque la individual sea pequeña.</span><span class="en">This is the \(\nu\to 0\) limit of the model: the aggregate Frisch elasticity is infinite even if the individual one is small.</span></p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+    <h2><span class="es">Llévalo más lejos</span><span class="en">Take it further</span></h2>
+    <div class="two">
+      <ul class="links">
+        <li><a href="https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T02_B_rbc_dynare_local_es.ipynb" class="es">Cuaderno T02_B en Colab: el RBC con <code>.mod</code>, momentos contra los datos y el debate de las horas →</a><a href="https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T02_B_rbc_dynare_local.ipynb" class="en">Notebook T02_B in Colab: the RBC with a <code>.mod</code> file, moments against the data and the hours debate →</a></li>
+        <li><a href="https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T04_C_contabilidad_ciclo_es.ipynb" class="es">Cuaderno T04_C en Colab: contabilidad del ciclo y las cuñas →</a><a href="https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T04_C_business_cycle_accounting.ipynb" class="en">Notebook T04_C in Colab: business-cycle accounting and the wedges →</a></li>
+        <li><a href="../diapositivas/MAV_04_ciclos_economicos_reales_y_contabilidad_del_ciclo.pdf" data-deck="4"><span class="es">Diapositivas 4: ciclos económicos reales y contabilidad del ciclo →</span><span class="en">Slides 4: real business cycles and business-cycle accounting (Spanish) →</span></a></li>
+        <li><a href="https://jorgealonsoortiz.work/puremacro/"><span class="es">En Python: </span><span class="en">In Python: </span><code>puremacro.<wbr>dsge.<wbr>load_mod</code>, <code>LinearModel.<wbr>irf</code>, <code>LinearModel.<wbr>simulate</code>, <code>puremacro.<wbr>data.<wbr>hp_filter</code> →</a></li>
+      </ul>
+      <p class="small" id="source"></p>
+    </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span class="es">Macroeconomía Avanzada · ITAM · Jorge Alonso-Ortiz. Código MIT; textos y diapositivas <a href="https://creativecommons.org/licenses/by/4.0/deed.es">CC BY 4.0</a>. Fuente en</span><span class="en">Advanced Macroeconomics · ITAM · Jorge Alonso-Ortiz. Code MIT; text and slides <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Source at</span>
+    <a href="https://github.com/jalonso1979/puremacro/tree/main/curso">github.com/jalonso1979/puremacro</a>.
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script defer src="../assets/mav.js?v=25ec1916"></script>
+<script defer src="../assets/num.js?v=7de34487"></script>
+<script defer src="rbc.js?v=ebd8f377"></script>
+</body>
+</html>

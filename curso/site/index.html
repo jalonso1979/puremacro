@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="es" data-lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-title-es="Laboratorios · Macroeconomía Avanzada" data-title-en="Labs · Advanced Macroeconomics">Laboratorios · Macroeconomía Avanzada</title>
+<meta name="description" content="Laboratorios interactivos del curso Macroeconomía Avanzada (ITAM): filtros, crecimiento, RBC, identificación, agentes heterogéneos, nuevo keynesiano y mercado laboral.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23111'/%3E%3Cpath d='M5 21c4 0 5-10 9-10s5 10 9 10 3-5 4-5' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/mav.css?v=dbf54522">
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="index.html">MAV <span class="es">· Laboratorios</span><span class="en">· Labs</span></a>
+    <nav class="topnav" aria-label="Principal">
+      <a href="diapositivas/index.html" class="hide-sm"><span class="es">Diapositivas</span><span class="en">Slides</span></a>
+      <a href="https://github.com/jalonso1979/puremacro/tree/main/curso/notebooks" class="hide-sm"><span class="es">Cuadernos</span><span class="en">Notebooks</span></a>
+      <a href="index.html" data-curso="https://jorgealonsoortiz.work/macro-avanzada/" class="hide-sm"><span class="es">El curso</span><span class="en">The course</span></a>
+      <span class="lang-toggle" role="group" aria-label="Idioma / Language">
+        <button type="button" data-lang="es">ES</button><button type="button" data-lang="en">EN</button>
+      </span>
+    </nav>
+  </div>
+</header>
+<main>
+  <section class="hero wrap">
+    <p class="kicker"><span class="es">ITAM · Otoño 2026</span><span class="en">ITAM · Fall 2026</span></p>
+    <h1><span class="es">Laboratorios de Macroeconomía Avanzada</span><span class="en">Advanced Macroeconomics labs</span></h1>
+    <p class="lead"><span class="es">Modelos y datos del curso que se resuelven en tu navegador. Mueve un parámetro, mira qué cambia y sigue los experimentos guiados. Nada que instalar.</span><span class="en">The course’s models and data, solved in your browser. Move a parameter, watch what changes and follow the guided experiments. Nothing to install.</span></p>
+    <div class="btn-row">
+      <a class="btn btn-primary" href="index.html" data-curso="https://jorgealonsoortiz.work/macro-avanzada/"><span class="es">El curso completo →</span><span class="en">The full course →</span></a>
+      <a class="btn" href="diapositivas/index.html"><span class="es">Diapositivas</span><span class="en">Slides</span></a>
+      <a class="btn" href="https://github.com/jalonso1979/puremacro/tree/main/curso/notebooks"><span class="es">Cuadernos en Colab</span><span class="en">Notebooks in Colab</span></a>
+      <a class="btn" href="https://jorgealonsoortiz.work/puremacro/">puremacro</a>
+    </div>
+  </section>
+  <section class="section band rule-top">
+    <div class="wrap grid-cards">
+      <a class="card" href="labs/filtros.html">
+        <span class="unit"><span class="es">Unidad A1 · Hechos estilizados</span><span class="en">Unit A1 · Stylized facts</span></span>
+        <svg viewBox="0 0 66 40" preserveAspectRatio="none" aria-hidden="true"><path d="M3 26c6 0 7-16 13-16s7 16 13 16 7-12 13-12 6 8 12 8"/></svg>
+        <h3><span class="es">¿Cuánto del ciclo lo pone el filtro?</span><span class="en">How much of the cycle comes from the filter?</span></h3>
+        <p><span class="es">Hodrick–Prescott frente a Hamilton en 11 países, y cuánto se revisa el ciclo cuando llegan datos nuevos.</span><span class="en">Hodrick–Prescott versus Hamilton in 11 countries, and how much the cycle is revised as new data arrive.</span></p>
+        <span class="go"><span class="es">Abrir →</span><span class="en">Open →</span></span>
+      </a>
+      <a class="card" href="labs/neoclasico.html">
+        <span class="unit"><span class="es">Unidad A2 · El modelo neoclásico de crecimiento</span><span class="en">Unit A2 · The neoclassical growth model</span></span>
+        <svg viewBox="0 0 66 40" preserveAspectRatio="none" aria-hidden="true"><path d="M3 34C14 30 22 20 30 16s18-8 30-9"/></svg>
+        <h3><span class="es">¿Qué tan rápido alcanza una economía su estado estacionario?</span><span class="en">How fast does an economy reach its steady state?</span></h3>
+        <p><span class="es">Calcula la senda de silla del modelo de Ramsey sin linealizar y mira dónde falla la aproximación de primer orden y cuánto tarda la economía en converger.</span><span class="en">Compute the Ramsey model&#x27;s saddle path without linearizing, and see where the first-order approximation fails and how long convergence takes.</span></p>
+        <span class="go"><span class="es">Abrir →</span><span class="en">Open →</span></span>
+      </a>
+      <a class="card" href="labs/incertidumbre.html">
+        <span class="unit"><span class="es">Unidad A3 · Riesgo e incertidumbre</span><span class="en">Unit A3 · Risk and uncertainty</span></span>
+        <svg viewBox="0 0 66 40" preserveAspectRatio="none" aria-hidden="true"><path d="M3 34h8V26h8V12h8V6h8v8h8v12h8v8h11"/></svg>
+        <h3><span class="es">¿Qué se pierde al convertir un AR(1) en una cadena de Markov?</span><span class="en">What is lost when an AR(1) becomes a Markov chain?</span></h3>
+        <p><span class="es">Discretiza un AR(1) con Tauchen y con Rouwenhorst y descubre por qué el primero exagera la volatilidad y se atora cuando la persistencia es alta.</span><span class="en">Discretize an AR(1) with Tauchen and with Rouwenhorst, and see why the former overstates volatility and gets stuck when persistence is high.</span></p>
+        <span class="go"><span class="es">Abrir →</span><span class="en">Open →</span></span>
+      </a>
+      <a class="card" href="labs/rbc.html">
+        <span class="unit"><span class="es">Unidad A4 · Ciclos económicos reales y contabilidad del ciclo</span><span class="en">Unit A4 · Real business cycles and business-cycle accounting</span></span>
+        <svg viewBox="0 0 66 40" preserveAspectRatio="none" aria-hidden="true"><path d="M3 8c10 4 16 18 26 22s20 4 34 4"/></svg>
+        <h3><span class="es">¿Bastan los choques de productividad para explicar el ciclo?</span><span class="en">Can productivity shocks alone explain the business cycle?</span></h3>
+        <p><span class="es">Resuelve el RBC canónico, compara trabajo divisible e indivisible y pon sus momentos del ciclo junto a los de EE. UU.: la correlación horas–productividad es la gran falla.</span><span class="en">Solve the canonical RBC model, compare divisible and indivisible labor, and set its cycle moments next to US data: the hours–productivity correlation is the big miss.</span></p>
+        <span class="go"><span class="es">Abrir →</span><span class="en">Open →</span></span>
+      </a>
+      <a class="card" href="labs/identificacion.html">
+        <span class="unit"><span class="es">Unidad A5 · Identificación empírica: SVAR, evidencia narrativa y proyecciones locales</span><span class="en">Unit A5 · Empirical identification: SVARs, narrative evidence and local projections</span></span>
+        <svg viewBox="0 0 66 40" preserveAspectRatio="none" aria-hidden="true"><path d="M3 20c8-14 16-14 24-4s16 14 36 4"/></svg>
+        <h3><span class="es">¿Qué le hace al producto un alza de la tasa?</span><span class="en">What does a rate hike do to output?</span></h3>
+        <p><span class="es">Con una verdad conocida, mira cómo el orden de Cholesky puede invertir el signo de un choque monetario y cómo una proyección local instrumentada cambia sesgo por varianza.</span><span class="en">With a known truth, watch a Cholesky ordering flip the sign of a monetary shock and an instrumented local projection trade bias for variance.</span></p>
+        <span class="go"><span class="es">Abrir →</span><span class="en">Open →</span></span>
+      </a>
+      <a class="card" href="labs/desigualdad.html">
+        <span class="unit"><span class="es">Unidad A6 · Mercados incompletos, heterogeneidad y HANK</span><span class="en">Unit A6 · Incomplete markets, heterogeneity and HANK</span></span>
+        <svg viewBox="0 0 66 40" preserveAspectRatio="none" aria-hidden="true"><path d="M3 34C24 34 40 30 52 20S60 6 63 4"/></svg>
+        <h3><span class="es">¿Qué pasa cuando nadie puede asegurar su ingreso?</span><span class="en">What happens when no one can insure their income?</span></h3>
+        <p><span class="es">Resuelve el modelo de Aiyagari en tu navegador y mira cómo el riesgo que no se puede asegurar baja la tasa de interés, concentra la riqueza y hace que la PMC agregada dependa de la distribución.</span><span class="en">Solve the Aiyagari model in your browser and watch uninsurable risk lower the interest rate, concentrate wealth, and make the aggregate MPC depend on the distribution.</span></p>
+        <span class="go"><span class="es">Abrir →</span><span class="en">Open →</span></span>
+      </a>
+      <a class="card" href="labs/nuevo-keynesiano.html">
+        <span class="unit"><span class="es">Unidad B2 · Mercados no competitivos</span><span class="en">Unit B2 · Non-competitive markets</span></span>
+        <svg viewBox="0 0 66 40" preserveAspectRatio="none" aria-hidden="true"><path d="M3 20h6c6 0 8 12 16 12s14-8 38-8"/></svg>
+        <h3><span class="es">¿Cuánto producto cuesta bajar la inflación?</span><span class="en">How much output does it cost to bring inflation down?</span></h3>
+        <p><span class="es">Mueve la rigidez de Calvo y la regla de Taylor, compara choques monetarios, de demanda y de costos, y mira cómo la cota cero convierte el mismo choque en una recesión profunda.</span><span class="en">Move Calvo stickiness and the Taylor rule, compare monetary, demand and cost-push shocks, and watch the zero bound turn the same shock into a deep slump.</span></p>
+        <span class="go"><span class="es">Abrir →</span><span class="en">Open →</span></span>
+      </a>
+      <a class="card" href="labs/mercado-laboral.html">
+        <span class="unit"><span class="es">Unidad B2 · Fricciones en el mercado laboral</span><span class="en">Unit B2 · Labor-market frictions</span></span>
+        <svg viewBox="0 0 66 40" preserveAspectRatio="none" aria-hidden="true"><path d="M5 10c6 10 14 16 22 18s16 2 24 0 10-6 12-10"/></svg>
+        <h3><span class="es">¿Por qué hay desempleo si hay vacantes?</span><span class="en">Why is there unemployment when there are vacancies?</span></h3>
+        <p><span class="es">Recorre la curva de Beveridge de EE. UU. y Europa, compara el desempleo con el que dictan los flujos y cambia un flujo de la ENOE para ver la informalidad mexicana como un equilibrio.</span><span class="en">Trace the Beveridge curve for the US and Europe, compare unemployment with the level the flows imply, and change one ENOE flow to see Mexico&#x27;s informality as an equilibrium.</span></p>
+        <span class="go"><span class="es">Abrir →</span><span class="en">Open →</span></span>
+      </a>
+    </div>
+  </section>
+  <section class="section wrap two">
+    <div>
+      <h2><span class="es">Cómo usarlos</span><span class="en">How to use them</span></h2>
+      <ul class="try">
+        <li><span class="es">Empieza por la pregunta del título y haz una predicción antes de mover nada.</span><span class="en">Start with the question in the title and make a prediction before moving anything.</span></li>
+        <li><span class="es">Sigue los experimentos de «Qué probar»: cada uno aísla una idea de la unidad.</span><span class="en">Follow the "Things to try" experiments: each one isolates one idea from the unit.</span></li>
+        <li><span class="es">Cada gráfica tiene tabla y CSV. La matemática está al pie, y el cuaderno de Colab reproduce el cálculo en Python.</span><span class="en">Every chart has a table and a CSV. The math is at the bottom, and the Colab notebook reproduces the computation in Python.</span></li>
+      </ul>
+    </div>
+    <div>
+      <h2><span class="es">Con qué están hechos</span><span class="en">What they are built with</span></h2>
+      <p class="muted"><span class="es">Los cálculos corren en JavaScript dentro de la página y se validaron contra <a href="https://jorgealonsoortiz.work/puremacro/">puremacro</a>, la biblioteca de Python del curso. Los datos son instantáneas congeladas de fuentes públicas; cada laboratorio cita la suya.</span><span class="en">The computations run in JavaScript inside the page and were validated against <a href="https://jorgealonsoortiz.work/puremacro/">puremacro</a>, the course’s Python library. The data are frozen snapshots from public sources; each lab cites its own.</span></p>
+    </div>
+  </section>
+</main>
+<footer class="footer">
+  <div class="wrap">
+    <span class="es">Macroeconomía Avanzada · ITAM · Jorge Alonso-Ortiz. Código MIT; textos y diapositivas <a href="https://creativecommons.org/licenses/by/4.0/deed.es">CC BY 4.0</a>. Fuente en</span><span class="en">Advanced Macroeconomics · ITAM · Jorge Alonso-Ortiz. Code MIT; text and slides <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Source at</span>
+    <a href="https://github.com/jalonso1979/puremacro/tree/main/curso">github.com/jalonso1979/puremacro</a>.
+  </div>
+</footer>
+<script defer src="assets/mav.js?v=25ec1916"></script>
+</body>
+</html>
