@@ -1,0 +1,5714 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Production-grade Macroeconometric and Heterogeneous-Agent Structural Modeling Engine in Pure Python">
+      
+      
+        <meta name="author" content="puremacro contributors">
+      
+      
+        <link rel="canonical" href="https://jalonso1979.github.io/puremacro/docs/policy_simulators/">
+      
+      
+        <link rel="prev" href="../hank_nonlinear/">
+      
+      
+        <link rel="next" href="../gertler_karadi/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Macroeconomic Policy Simulators & Browser Labs - puremacro</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#macroeconomic-policy-simulators-interactive-browser-labs" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="puremacro" class="md-header__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            puremacro
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Macroeconomic Policy Simulators & Browser Labs
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href=".." class="md-tabs__link">
+          
+  
+  
+  English Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../es/" class="md-tabs__link">
+          
+  
+  
+  Documentación en Español
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="puremacro" class="md-nav__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    puremacro
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    English Documentation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    English Documentation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Showcase Notebooks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Correctness advisories
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quarterly National Accounts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-time data (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../real_time_latam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Latin America real-time connectors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Long national accounts panel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global Macro Data Ecosystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_6" id="__nav_1_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometric Engines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Econometric Engines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR & FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Narrative Sign Restrictions SVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR with Stochastic Volatility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Smooth Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modern Difference-in-Differences
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Honest DiD Sensitivity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../causal_dml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Double / Debiased Machine Learning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dml_irm_iv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Double ML for Treatment Effects & IV (IRM & DML-IV)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Econometrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global VAR (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Estimation & Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GDP Nowcasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nowcast_latam_news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Latin America Real-Time Nowcasting & News
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Penalized Forecasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_7" id="__nav_1_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publication & Reporting
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publication & Reporting
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manuscript Tables & Exports
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_8" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_1_8" id="__nav_1_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structural Models
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_8_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Structural Models
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sequence-Space HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Non-Linear HANK Transitions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomic Policy Simulators & Browser Labs
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomic Policy Simulators & Browser Labs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#architecture-simulation-dataflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture &amp; Simulation Dataflow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-quantitative-trade-policy-simulator-tradepolicysimulator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Quantitative Trade Policy Simulator (TradePolicySimulator)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Quantitative Trade Policy Simulator (TradePolicySimulator)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-theoretical-framework-caliendo-parro-2015" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 Theoretical Framework: Caliendo &amp; Parro (2015)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-terms-of-trade-exact-welfare-decomposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 Terms of Trade &amp; Exact Welfare Decomposition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-python-usage-counterfactual-recipes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 Python Usage &amp; Counterfactual Recipes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.3 Python Usage &amp; Counterfactual Recipes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#recipe-1-bilateral-tariff-trade-diversion-usa-vs-china" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recipe 1: Bilateral Tariff &amp; Trade Diversion (USA vs China)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recipe-2-reciprocal-multi-party-trade-war" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recipe 2: Reciprocal Multi-Party Trade War
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-monetary-macroprudential-transmission-simulator-monetarytransmissionsimulator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Monetary &amp; Macroprudential Transmission Simulator (MonetaryTransmissionSimulator)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Monetary &amp; Macroprudential Transmission Simulator (MonetaryTransmissionSimulator)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-theoretical-framework-hank-vs-rank" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Theoretical Framework: HANK vs. RANK
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-kaplan-moll-violante-2018-sequence-space-decomposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Kaplan-Moll-Violante (2018) Sequence-Space Decomposition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-python-usage-transmission-recipes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Python Usage &amp; Transmission Recipes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.3 Python Usage &amp; Transmission Recipes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#recipe-3-monetary-policy-tightening-25-bps-hike" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recipe 3: Monetary Policy Tightening (25 bps Hike)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recipe-4-targeted-balance-sheet-fiscal-transfers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recipe 4: Targeted Balance-Sheet &amp; Fiscal Transfers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-comprehensive-api-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Comprehensive API Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Comprehensive API Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-tradepolicysimulator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 TradePolicySimulator
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-tradepolicysimulationresult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 TradePolicySimulationResult
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-monetarytransmissionsimulator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 MonetaryTransmissionSimulator
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-monetarytransmissionresult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 MonetaryTransmissionResult
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-interactive-webassembly-browser-labs-cursositelabs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Interactive WebAssembly / Browser Labs (curso/site/labs/)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Interactive WebAssembly / Browser Labs (curso/site/labs/)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-comercio-aranceleshtml-js-trade-war-nearshoring-lab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 comercio-aranceles.html &amp; .js (Trade War &amp; Nearshoring Lab)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-politica-monetaria-hankhtml-js-hank-vs-rank-transmission-lab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 politica-monetaria-hank.html &amp; .js (HANK vs. RANK Transmission Lab)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-running-locally" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Running Locally
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gertler-Karadi (2011) DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Climate Macro (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Sketchpad & Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Higher-Order & Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Parity & Surface Area
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradients, NUTS & HANK Bridge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Frontier (Policy, DSGE-VAR & News)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Non-linear Particle Filtering & Regime Switching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_9" id="__nav_1_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Dynamic Programming & Projection Solvers
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Continuous Dynamic Programming & Projection Solvers
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_continuous_projection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Projection Solvers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_splines_and_sparse_grids/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Splines & Sparse Grids
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dcegm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Discrete Choice EGM (DC-EGM)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_continuous_equilibrium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Distributions & General Equilibrium
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_hjb_continuous/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous-Time HJB & Adjoint KFE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_continuous_transition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Transition Dynamics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_analytic_gradients/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exact Analytic Gradients (IFT)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_10" id="__nav_1_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontier Macro & Spatial Economics
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Frontier Macro & Spatial Economics
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deep_macro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deep Macro & Neural Networks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spatial_and_trade_ge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quantitative Spatial & Trade General Equilibrium
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_gpu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hardware Backends (GPU, MLX & Batched Jacobians)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running Anywhere (iPad / browser)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance & Benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_13" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_13" id="__nav_1_13_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_13">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replication gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation & goldens
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Connector health
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credentials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cache database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signal contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lexicon review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path to 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentación en Español
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Documentación en Español
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio rápido
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuadernos de demostración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avisos de corrección
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuentas nacionales trimestrales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos en tiempo real (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/real_time_latam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Conectores en tiempo real de América Latina
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panel largo de cuentas nacionales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ecosistema de datos macro globales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motores econométricos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Motores econométricos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR y FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SVAR con restricciones narrativas de signo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR con volatilidad estocástica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales suavizadas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias en diferencias modernas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sensibilidad en DiD honesto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/causal_dml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aprendizaje automático doble / desesgado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dml_irm_iv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Doble ML para efectos de tratamiento e instrumentos (IRM y DML-IV)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometría espacial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR global (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estimación y diagnósticos DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nowcasting del PIB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/nowcast_latam_news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nowcasting en tiempo real de América Latina y descomposición de noticias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pronóstico penalizado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publicación e informes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publicación e informes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tablas y exportación de manuscritos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_8" id="__nav_2_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos estructurales
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Modelos estructurales
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HANK en el espacio de secuencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transiciones no lineales en HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/policy_simulators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Simuladores de política macroeconómica y laboratorios interactivos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de Gertler-Karadi (2011)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomía del clima (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuaderno de bocetos DSGE y Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de orden superior y restricciones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Paridad y superficie operativa DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradientes, NUTS y Puente HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Frontera (Política, DSGE-VAR y Noticias)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Filtrado de Partículas No Lineal y Cambio de Régimen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_9" id="__nav_2_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Programación dinámica continua y solucionadores de proyección
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Programación dinámica continua y solucionadores de proyección
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/vfi_continuous_projection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Solucionadores de proyección continua
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/vfi_splines_and_sparse_grids/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Splines y mallas dispersas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dcegm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DC-EGM de elección discreta
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/vfi_continuous_equilibrium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distribuciones continuas y equilibrio general
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/vfi_hjb_continuous/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HJB en tiempo continuo y KFE adjunta
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/vfi_continuous_transition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dinámica de transición continua
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/vfi_analytic_gradients/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gradientes analíticos exactos (TFI)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_10" id="__nav_2_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomía de frontera y economía espacial
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Macroeconomía de frontera y economía espacial
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/deep_macro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deep Macro y redes neuronales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/spatial_and_trade_ge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Economía espacial cuantitativa y equilibrio general de comercio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/trade_gpu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backends de hardware (GPU, MLX y jacobianos por lotes)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ejecución en cualquier entorno (iPad / navegador)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendimiento y pruebas comparativas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_13" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_13" id="__nav_2_13_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_13">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de replicación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validación y referencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estado de conectores
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credenciales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos de caché
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato de señales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de ejemplos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Revisión de léxico
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ruta a 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#architecture-simulation-dataflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture &amp; Simulation Dataflow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-quantitative-trade-policy-simulator-tradepolicysimulator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Quantitative Trade Policy Simulator (TradePolicySimulator)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Quantitative Trade Policy Simulator (TradePolicySimulator)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-theoretical-framework-caliendo-parro-2015" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 Theoretical Framework: Caliendo &amp; Parro (2015)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-terms-of-trade-exact-welfare-decomposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 Terms of Trade &amp; Exact Welfare Decomposition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-python-usage-counterfactual-recipes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 Python Usage &amp; Counterfactual Recipes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.3 Python Usage &amp; Counterfactual Recipes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#recipe-1-bilateral-tariff-trade-diversion-usa-vs-china" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recipe 1: Bilateral Tariff &amp; Trade Diversion (USA vs China)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recipe-2-reciprocal-multi-party-trade-war" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recipe 2: Reciprocal Multi-Party Trade War
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-monetary-macroprudential-transmission-simulator-monetarytransmissionsimulator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Monetary &amp; Macroprudential Transmission Simulator (MonetaryTransmissionSimulator)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Monetary &amp; Macroprudential Transmission Simulator (MonetaryTransmissionSimulator)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-theoretical-framework-hank-vs-rank" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Theoretical Framework: HANK vs. RANK
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-kaplan-moll-violante-2018-sequence-space-decomposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Kaplan-Moll-Violante (2018) Sequence-Space Decomposition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-python-usage-transmission-recipes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Python Usage &amp; Transmission Recipes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.3 Python Usage &amp; Transmission Recipes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#recipe-3-monetary-policy-tightening-25-bps-hike" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recipe 3: Monetary Policy Tightening (25 bps Hike)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recipe-4-targeted-balance-sheet-fiscal-transfers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recipe 4: Targeted Balance-Sheet &amp; Fiscal Transfers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-comprehensive-api-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Comprehensive API Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Comprehensive API Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-tradepolicysimulator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 TradePolicySimulator
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-tradepolicysimulationresult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 TradePolicySimulationResult
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-monetarytransmissionsimulator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 MonetaryTransmissionSimulator
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-monetarytransmissionresult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 MonetaryTransmissionResult
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-interactive-webassembly-browser-labs-cursositelabs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Interactive WebAssembly / Browser Labs (curso/site/labs/)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Interactive WebAssembly / Browser Labs (curso/site/labs/)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-comercio-aranceleshtml-js-trade-war-nearshoring-lab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 comercio-aranceles.html &amp; .js (Trade War &amp; Nearshoring Lab)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-politica-monetaria-hankhtml-js-hank-vs-rank-transmission-lab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 politica-monetaria-hank.html &amp; .js (HANK vs. RANK Transmission Lab)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-running-locally" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Running Locally
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<blockquote>
+<p>🇬🇧 English · 🇪🇸 <a href="../es/policy_simulators/">Español</a></p>
+</blockquote>
+<h1 id="macroeconomic-policy-simulators-interactive-browser-labs">Macroeconomic Policy Simulators &amp; Interactive Browser Labs</h1>
+<p><code>puremacro</code> provides a production-grade, dual-delivery quantitative macroeconomic simulation suite designed for research, policy analysis, and interactive teaching:</p>
+<ol>
+<li><strong>Python General Equilibrium API (<code>puremacro.models</code>)</strong>:</li>
+<li><strong><code>TradePolicySimulator</code></strong>: Multi-country, multi-sector Ricardian general equilibrium model based on <strong>Caliendo and Parro (2015, <em>Review of Economic Studies</em>)</strong>. Solves exact hat algebra counterfactuals for bilateral tariff shocks, terms of trade, input-output intermediate cost cascades, and exact welfare decompositions with machine-checked goods market clearing (<span class="arithmatex">\(\max_i |X_i - (Y_i + R_i + D_i)| &lt; 10^{-6}\)</span>).</li>
+<li><strong><code>MonetaryTransmissionSimulator</code></strong>: Side-by-side comparative simulation of <strong>Heterogeneous-Agent New Keynesian (HANK)</strong> and <strong>Representative-Agent New Keynesian (RANK)</strong> economies, featuring the <strong>Kaplan, Moll, and Violante (2018, <em>American Economic Review</em>)</strong> direct versus indirect transmission decomposition across empirical Marginal Propensity to Consume (MPC) wealth deciles.</li>
+<li><strong>Zero-Build Browser-Native Laboratories (<code>curso/site/labs/</code>)</strong>:</li>
+<li><strong><code>comercio-aranceles.html</code> / <code>.js</code></strong>: Real-time trade war counterfactual laboratory (MEX-USA-CHN) with live bilateral tariff sliders, client-side general equilibrium solver in vanilla JavaScript (&lt; 2 ms solve time), terms-of-trade shifts, and trade diversion visualizers.</li>
+<li><strong><code>politica-monetaria-hank.html</code> / <code>.js</code></strong>: Interactive HANK versus RANK monetary laboratory with live MPC wealth decile ladders and Kaplan-Moll-Violante direct/indirect channel curves.</li>
+<li>Designed for offline operation, zero-build deployment, and native execution on tablets, iPads, and JupyterLite/Pyodide environments.</li>
+</ol>
+<p>Both simulators use frozen dataclass containers and provide multi-format presentation suites (<code>.summary()</code>, <code>.plot()</code>, <code>.to_markdown()</code>, <code>.to_latex()</code>, <code>.to_typst()</code>).</p>
+<hr />
+<h2 id="architecture-simulation-dataflow">Architecture &amp; Simulation Dataflow</h2>
+<pre class="mermaid"><code>flowchart TD
+    subgraph Inputs["1. Calibration &amp; Shock Inputs"]
+        ICIO["OECD ICIO Dataset\n(77 Countries x 11 Sectors)"]
+        PRESETS["Pre-calibrated Presets\n('nafta_china', 'symmetric_3c')"]
+        SHOCKS["Policy Shocks\n(Tariffs, Rate Hikes, Fiscal Transfers)"]
+    end
+
+    subgraph Solvers["2. Quantitative General Equilibrium Engines"]
+        direction TB
+        TPS["TradePolicySimulator\n(Caliendo &amp; Parro 2015)\n- Eaton-Kortum Gravity Contraction\n- Leontief Intermediate I-O System\n- Wage Tatonnement Market Clearing (&lt; 1e-6)"]
+        MTS["MonetaryTransmissionSimulator\n(Kaplan, Moll &amp; Violante 2018)\n- Stationary Wealth Distribution\n- Sequence-Space Jacobians J^{C,r}, J^{C,Y}\n- GE Feedback (NKPC &amp; Taylor Rule)"]
+    end
+
+    subgraph Results["3. Immutable Simulation Results"]
+        TPR["TradePolicySimulationResult\n- Proportional Changes (w, P, CPI)\n- Terms of Trade &amp; Trade Diversion\n- 3-Way Welfare Decomposition"]
+        MTR["MonetaryTransmissionResult\n- IRF Paths (Y, C, pi, r)\n- 10-Decile MPC Ladder\n- KMV Direct vs. Indirect Channel Share"]
+    end
+
+    subgraph Delivery["4. Dual-Delivery Reporting &amp; Labs"]
+        EXPORT["Academic Reporting Suites\n- .summary() / .sector_summary()\n- .to_markdown() / .to_latex() / .to_typst()\n- Matplotlib Publication Figures (.plot())"]
+        LABS["Browser-Native WebAssembly / Canvas Labs\n- curso/site/labs/comercio-aranceles.html\n- curso/site/labs/politica-monetaria-hank.html"]
+    end
+
+    Inputs --&gt; Solvers
+    Solvers --&gt; Results
+    Results --&gt; Delivery</code></pre>
+<hr />
+<h2 id="1-quantitative-trade-policy-simulator-tradepolicysimulator">1. Quantitative Trade Policy Simulator (<code>TradePolicySimulator</code>)</h2>
+<h3 id="11-theoretical-framework-caliendo-parro-2015">1.1 Theoretical Framework: Caliendo &amp; Parro (2015)</h3>
+<p>Consider a global economy with <span class="arithmatex">\(N\)</span> countries (<span class="arithmatex">\(n, i \in \{1, \dots, N\}\)</span>) and <span class="arithmatex">\(J\)</span> sectors (<span class="arithmatex">\(j, k \in \{1, \dots, J\}\)</span>). Production in country <span class="arithmatex">\(n\)</span> and sector <span class="arithmatex">\(j\)</span> combines labor <span class="arithmatex">\(L_{n, j}\)</span> with intermediate input bundles from all sectors under constant returns to scale.</p>
+<p>Using <strong>Exact Hat Algebra</strong> (Dekle, Eaton, and Kortum 2007; Caliendo and Parro 2015), counterfactual equilibrium changes in wages, prices, and trade flows are expressed in proportional terms <span class="arithmatex">\(\hat{x} \equiv x' / x\)</span>, bypassing the need to estimate unobserved structural productivities or baseline iceberg trade costs.</p>
+<p>Given counterfactual bilateral gross tariff changes <span class="arithmatex">\(\hat{\tau}_{ni}^j = \frac{1 + t_{ni}'^j}{1 + t_{ni}^j}\)</span>:</p>
+<ol>
+<li>
+<p><strong>Unit Cost Changes</strong>:
+   $<span class="arithmatex">\(\hat{c}_n^j = \hat{w}_n^{\gamma_n^j} \prod_{k=1}^J \left( \hat{P}_n^k \right)^{\gamma_n^{j, k}}\)</span>$
+   where <span class="arithmatex">\(\gamma_n^j &gt; 0\)</span> is the value-added share and <span class="arithmatex">\(\gamma_n^{j, k} \ge 0\)</span> is the intermediate input cost share (<span class="arithmatex">\(\gamma_n^j + \sum_{k=1}^J \gamma_n^{j, k} = 1\)</span>).</p>
+</li>
+<li>
+<p><strong>Sectoral Price Indices (Nonlinear Contraction Mapping)</strong>:
+   $<span class="arithmatex">\(\hat{P}_n^j = \left( \sum_{i=1}^N \pi_{ni}^j \left( \hat{c}_i^j \hat{\tau}_{ni}^j \right)^{-\theta_j} \right)^{-\frac{1}{\theta_j}}\)</span>$
+   where <span class="arithmatex">\(\pi_{ni}^j\)</span> is the baseline trade share of country <span class="arithmatex">\(n\)</span> on imports from country <span class="arithmatex">\(i\)</span> in sector <span class="arithmatex">\(j\)</span>, and <span class="arithmatex">\(\theta_j &gt; 0\)</span> is the sectoral trade elasticity.</p>
+</li>
+<li>
+<p><strong>Counterfactual Bilateral Trade Shares</strong>:
+   $<span class="arithmatex">\(\pi_{ni}'^j = \pi_{ni}^j \left( \frac{\hat{c}_i^j \hat{\tau}_{ni}^j}{\hat{P}_n^j} \right)^{-\theta_j}\)</span>$</p>
+</li>
+<li>
+<p><strong>Leontief Intermediate Input-Output Expenditure System</strong>:
+   Given counterfactual tariffs <span class="arithmatex">\(\tau'\)</span>, trade shares <span class="arithmatex">\(\pi'\)</span>, and wages <span class="arithmatex">\(\hat{w}\)</span>, total expenditure <span class="arithmatex">\(X_n'^j\)</span> solves the linear system:
+   $<span class="arithmatex">\(X_n'^j = \alpha_n^j \left( \hat{w}_n w_n L_n + R_n' + D_n \right) + \sum_{k=1}^J \gamma_n^{k, j} \sum_{m=1}^N \frac{\pi_{mn}'^k}{\tau_{mn}'^k} X_m'^k\)</span>$
+   where <span class="arithmatex">\(\alpha_n^j\)</span> is the final consumption expenditure share, <span class="arithmatex">\(D_n\)</span> is the national trade deficit, and <span class="arithmatex">\(R_n'\)</span> is counterfactual tariff revenue:
+   $<span class="arithmatex">\(R_n' = \sum_{j=1}^J \sum_{i=1}^N \frac{\tau_{ni}'^j - 1}{\tau_{ni}'^j} \pi_{ni}'^j X_n'^j\)</span>$</p>
+</li>
+<li>
+<p><strong>Goods and Factor Market Clearing</strong>:
+   Gross sectoral output equals world demand:
+   $<span class="arithmatex">\(Y_n'^j = \sum_{m=1}^N \frac{\pi_{mn}'^j}{\tau_{mn}'^j} X_m'^j\)</span>$
+   Equilibrium wages <span class="arithmatex">\(\hat{w}_n\)</span> are solved iteratively via damped tatonnement until excess factor demand satisfies:
+   $<span class="arithmatex">\(\max_n \left| \sum_{j=1}^J \gamma_n^j Y_n'^j - \hat{w}_n w_n L_n \right| &lt; 10^{-6}\)</span>$</p>
+</li>
+</ol>
+<h3 id="12-terms-of-trade-exact-welfare-decomposition">1.2 Terms of Trade &amp; Exact Welfare Decomposition</h3>
+<p>The terms-of-trade index change <span class="arithmatex">\(\widehat{\text{ToT}}_n \equiv \hat{P}_n^X / \hat{P}_n^M\)</span> reflects the price of country <span class="arithmatex">\(n\)</span>'s exports relative to its imports:
+- <strong>Export Price Index Change</strong>: <span class="arithmatex">\(\hat{P}_n^X = \sum_j \sum_{m \ne n} \omega_{n, m}^j \hat{c}_n^j\)</span>
+- <strong>Import Price Index Change</strong>: <span class="arithmatex">\(\hat{P}_n^M = \sum_j \sum_{m \ne n} \mu_{n, m}^j (\hat{c}_m^j \hat{\tau}_{nm}^j)\)</span></p>
+<p>The overall change in real welfare <span class="arithmatex">\(\Delta \ln \mathcal{W}_n = \ln \left( \frac{\hat{I}_n}{\hat{P}_n} \right)\)</span> decomposes exactly into three economic mechanisms:
+$<span class="arithmatex">\(\Delta \ln \mathcal{W}_n = \underbrace{\sum_{j=1}^J \frac{\alpha_n^j}{\theta_j} \ln \left( \frac{\pi_{nn}^j}{\pi_{nn}'^j} \right)}_{\text{Terms of Trade}} + \underbrace{\sum_{j=1}^J \frac{\alpha_n^j (1 - \gamma_n^j)}{\gamma_n^j \theta_j} \ln \left( \frac{\pi_{nn}^j}{\pi_{nn}'^j} \right)}_{\text{Input-Output Multiplier}} + \underbrace{\Delta \text{Tariff Revenue}_n}_{\text{Fiscal Effect}}\)</span>$</p>
+<h3 id="13-python-usage-counterfactual-recipes">1.3 Python Usage &amp; Counterfactual Recipes</h3>
+<h4 id="recipe-1-bilateral-tariff-trade-diversion-usa-vs-china">Recipe 1: Bilateral Tariff &amp; Trade Diversion (USA vs China)</h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">TradePolicySimulator</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Load pre-calibrated 3-country, 2-sector model (MEX, USA, CHN)</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">sim</span> <span class="o">=</span> <span class="n">TradePolicySimulator</span><span class="o">.</span><span class="n">from_preset</span><span class="p">(</span><span class="s2">"nafta_china"</span><span class="p">)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># Inspect dimensions and identifiers</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Countries: </span><span class="si">{</span><span class="n">sim</span><span class="o">.</span><span class="n">country_codes</span><span class="si">}</span><span class="s2"> (N=</span><span class="si">{</span><span class="n">sim</span><span class="o">.</span><span class="n">N</span><span class="si">}</span><span class="s2">), Sectors: </span><span class="si">{</span><span class="n">sim</span><span class="o">.</span><span class="n">sector_codes</span><span class="si">}</span><span class="s2"> (J=</span><span class="si">{</span><span class="n">sim</span><span class="o">.</span><span class="n">J</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1"># Simulate a unilateral 25% tariff by the US on Chinese manufactures</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">res</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">simulate_bilateral_tariff</span><span class="p">(</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">importer</span><span class="o">=</span><span class="s2">"USA"</span><span class="p">,</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">exporter</span><span class="o">=</span><span class="s2">"CHN"</span><span class="p">,</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">tariff_rate</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">sector</span><span class="o">=</span><span class="s2">"Manufactures"</span><span class="p">,</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">tol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">,</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="p">)</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="nb">print</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">res</span><span class="p">))</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="c1"># Output: TradePolicySimulationResult(countries=['MEX', 'USA', 'CHN'], status='converged', iterations=24, residual=3.12e-11)</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="c1"># Country-level summary</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="nb">print</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="c1"># Access specific country outcomes via code or indexing</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="n">usa_results</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s2">"USA"</span><span class="p">]</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="n">mex_results</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">country</span><span class="p">(</span><span class="s2">"MEX"</span><span class="p">)</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"US Tariff Revenue: </span><span class="si">{</span><span class="n">usa_results</span><span class="p">[</span><span class="s1">'tariff_revenue_prime'</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Mexico Welfare Gain (Trade Diversion): +</span><span class="si">{</span><span class="n">mex_results</span><span class="p">[</span><span class="s1">'welfare_pct'</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">%"</span><span class="p">)</span>
+</code></pre></div>
+<h4 id="recipe-2-reciprocal-multi-party-trade-war">Recipe 2: Reciprocal Multi-Party Trade War</h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Simulate an escalating trade war between Coalition A (USA) and Coalition B (MEX, CHN)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">res_war</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">simulate_trade_war</span><span class="p">(</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">coalition_a</span><span class="o">=</span><span class="p">[</span><span class="s2">"USA"</span><span class="p">],</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">coalition_b</span><span class="o">=</span><span class="p">[</span><span class="s2">"MEX"</span><span class="p">,</span> <span class="s2">"CHN"</span><span class="p">],</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">tariff_rate_a</span><span class="o">=</span><span class="mf">0.30</span><span class="p">,</span>   <span class="c1"># US imposes 30% tariffs on both</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">tariff_rate_b</span><span class="o">=</span><span class="mf">0.20</span><span class="p">,</span>   <span class="c1"># Retaliatory 20% tariff on the US</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">tol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">,</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="p">)</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># Export LaTeX table for paper inclusion</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="nb">print</span><span class="p">(</span><span class="n">res_war</span><span class="o">.</span><span class="n">to_latex</span><span class="p">())</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1"># Generate publication-quality bar chart of welfare impacts</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="n">fig</span> <span class="o">=</span> <span class="n">res_war</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">"welfare"</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">8.0</span><span class="p">,</span> <span class="mf">4.5</span><span class="p">))</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">"trade_war_welfare.png"</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="2-monetary-macroprudential-transmission-simulator-monetarytransmissionsimulator">2. Monetary &amp; Macroprudential Transmission Simulator (<code>MonetaryTransmissionSimulator</code>)</h2>
+<h3 id="21-theoretical-framework-hank-vs-rank">2.1 Theoretical Framework: HANK vs. RANK</h3>
+<p>Textbook Representative-Agent New Keynesian (RANK) models dictate that monetary policy transmits almost exclusively via the <strong>direct intertemporal substitution channel</strong>: identical unconstrained households adjust savings along a single Euler equation (<span class="arithmatex">\(c_t = \mathbb{E}_t c_{t+1} - \frac{1}{\gamma} (i_t - \mathbb{E}_t \pi_{t+1})\)</span>).</p>
+<p>In contrast, Heterogeneous-Agent New Keynesian (HANK) models (Kaplan, Moll, and Violante 2018; Auclert et al. 2021) incorporate uninsurable idiosyncratic productivity risk and borrowing constraints. A large share of households are <strong>hand-to-mouth</strong> (either poor hand-to-mouth with zero net worth, or wealthy hand-to-mouth with illiquid assets), exhibiting high marginal propensities to consume (MPCs) out of current income.</p>
+<p>Consequently, the <strong>indirect general equilibrium channel</strong>—transmitted through labor demand, aggregate output, and disposable income—drives the dominant share of consumption movements.</p>
+<h3 id="22-kaplan-moll-violante-2018-sequence-space-decomposition">2.2 Kaplan-Moll-Violante (2018) Sequence-Space Decomposition</h3>
+<p>Using the sequence-space Jacobian methodology (Auclert, Bardóczy, Rognlie, and Straub 2021), the aggregate consumption response vector <span class="arithmatex">\(d\mathbf{C} \in \mathbb{R}^T\)</span> over horizon <span class="arithmatex">\(T\)</span> is decomposed into:</p>
+<div class="arithmatex">\[d\mathbf{C} = \underbrace{\mathbf{J}^{C, r} \, d\mathbf{r}}_{\text{Direct Channel (Substitution)}} + \underbrace{\mathbf{J}^{C, Y} \, d\mathbf{Y}}_{\text{Indirect Channel (GE Income)}}\]</div>
+<p>where <span class="arithmatex">\(\mathbf{J}^{C, r} \equiv \frac{\partial \mathbf{C}}{\partial \mathbf{r}}\)</span> and <span class="arithmatex">\(\mathbf{J}^{C, Y} \equiv \frac{\partial \mathbf{C}}{\partial \mathbf{Y}}\)</span> are <span class="arithmatex">\(T \times T\)</span> sequence-space Jacobian matrices.</p>
+<p>In general equilibrium, the New Keynesian Phillips Curve and Taylor rule define:
+$<span class="arithmatex">\(d\boldsymbol{\pi} = \mathbf{K}_\pi d\mathbf{Y}, \quad d\mathbf{r} = \mathbf{M}_{r, Y} d\mathbf{Y} + d\boldsymbol{\epsilon}\)</span>$</p>
+<p>Substituting into the household block yields the sequence-space general equilibrium solve:
+$<span class="arithmatex">\(\left( \mathbf{I} - \mathbf{J}^{C, Y} - \mathbf{J}^{C, r} \mathbf{M}_{r, Y} \right) d\mathbf{Y} = \mathbf{J}^{C, r} d\boldsymbol{\epsilon}\)</span>$</p>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>RANK Economy</th>
+<th>HANK Economy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Market Structure</strong></td>
+<td>Complete asset markets</td>
+<td>Incomplete markets, borrowing constraint <span class="arithmatex">\(a' \ge 0\)</span></td>
+</tr>
+<tr>
+<td><strong>Household MPCs</strong></td>
+<td>Uniform across deciles: <span class="arithmatex">\(1 - \beta \approx 0.015\)</span></td>
+<td>Steep gradient: Decile 1 (<span class="arithmatex">\(&gt;0.40\)</span>) to Decile 10 (<span class="arithmatex">\(&lt;0.06\)</span>)</td>
+</tr>
+<tr>
+<td><strong>Direct Channel Share</strong></td>
+<td>Identically <span class="arithmatex">\(100\%\)</span></td>
+<td><span class="arithmatex">\(20\% - 40\%\)</span></td>
+</tr>
+<tr>
+<td><strong>Indirect Channel Share</strong></td>
+<td>Identically <span class="arithmatex">\(0\%\)</span></td>
+<td><span class="arithmatex">\(60\% - 80\%\)</span></td>
+</tr>
+<tr>
+<td><strong>Propagation Core</strong></td>
+<td>Intertemporal Euler equation</td>
+<td>General equilibrium labor income multiplier</td>
+</tr>
+</tbody>
+</table>
+<h3 id="23-python-usage-transmission-recipes">2.3 Python Usage &amp; Transmission Recipes</h3>
+<h4 id="recipe-3-monetary-policy-tightening-25-bps-hike">Recipe 3: Monetary Policy Tightening (25 bps Hike)</h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">MonetaryTransmissionSimulator</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># Initialize simulator with continuous asset grid parameters</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">sim_mon</span> <span class="o">=</span> <span class="n">MonetaryTransmissionSimulator</span><span class="p">(</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">beta</span><span class="o">=</span><span class="mf">0.985</span><span class="p">,</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">gamma</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">r_ss</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="n">phi_pi</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="n">kappa</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="n">n_a</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="n">a_max</span><span class="o">=</span><span class="mf">30.0</span><span class="p">,</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="p">)</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="c1"># Steady-state aggregate MPC</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"HANK Steady-State MPC: </span><span class="si">{</span><span class="n">sim_mon</span><span class="o">.</span><span class="n">steady_state_mpc</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="c1"># Simulate a 25 bps rate hike with persistence rho=0.7 over 40 quarters</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="n">res_mon</span> <span class="o">=</span> <span class="n">sim_mon</span><span class="o">.</span><span class="n">simulate_rate_shock</span><span class="p">(</span><span class="n">magnitude</span><span class="o">=</span><span class="mf">0.0025</span><span class="p">,</span> <span class="n">rho</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="nb">print</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">res_mon</span><span class="p">))</span>
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="c1"># Output: MonetaryTransmissionResult(shock_type='rate', magnitude=+0.0025, T=40, mpc_hank=0.1582, mpc_rank=0.0150, indirect_share_hank=68.4%)</span>
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="c1"># Display comprehensive side-by-side summary</span>
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="nb">print</span><span class="p">(</span><span class="n">res_mon</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a>
+<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="c1"># Extract peak responses</span>
+<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="n">peaks</span> <span class="o">=</span> <span class="n">res_mon</span><span class="o">.</span><span class="n">peak_responses</span><span class="p">()</span>
+<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"HANK Peak Output Contraction: </span><span class="si">{</span><span class="n">peaks</span><span class="p">[</span><span class="s1">'output_hank'</span><span class="p">]</span><span class="o">*</span><span class="mi">100</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">%"</span><span class="p">)</span>
+<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"RANK Peak Output Contraction: </span><span class="si">{</span><span class="n">peaks</span><span class="p">[</span><span class="s1">'output_rank'</span><span class="p">]</span><span class="o">*</span><span class="mi">100</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">%"</span><span class="p">)</span>
+<a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a>
+<a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a><span class="c1"># 4-panel publication visualization (IRFs, MPC ladder, KMV channels)</span>
+<a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a><span class="n">fig</span> <span class="o">=</span> <span class="n">res_mon</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s2">"all"</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">12.0</span><span class="p">,</span> <span class="mf">8.5</span><span class="p">))</span>
+<a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a><span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">"monetary_transmission_hank_rank.png"</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
+</code></pre></div>
+<h4 id="recipe-4-targeted-balance-sheet-fiscal-transfers">Recipe 4: Targeted Balance-Sheet &amp; Fiscal Transfers</h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Simulate a targeted cash transfer to liquidity-constrained hand-to-mouth households</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">res_tf</span> <span class="o">=</span> <span class="n">sim_mon</span><span class="o">.</span><span class="n">simulate_balance_sheet_intervention</span><span class="p">(</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">amount</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">target</span><span class="o">=</span><span class="s2">"borrowers"</span><span class="p">,</span>   <span class="c1"># Poorest 25% of households</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">T</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="p">)</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Initial Consumption Multiplier in HANK: </span><span class="si">{</span><span class="n">res_tf</span><span class="o">.</span><span class="n">irf_consumption_hank</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Initial Consumption Multiplier in RANK: </span><span class="si">{</span><span class="n">res_tf</span><span class="o">.</span><span class="n">irf_consumption_rank</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="c1"># In HANK, high-MPC borrowers spend immediately (&gt;10x the response in RANK)</span>
+</code></pre></div>
+<hr />
+<h2 id="3-comprehensive-api-reference">3. Comprehensive API Reference</h2>
+<h3 id="31-tradepolicysimulator">3.1 <code>TradePolicySimulator</code></h3>
+<table>
+<thead>
+<tr>
+<th>Method / Property</th>
+<th>Signature</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>country_codes</code></td>
+<td><code>tuple[str, ...]</code> <em>(property)</em></td>
+<td>Tuple of country identifier codes in the model.</td>
+</tr>
+<tr>
+<td><code>sector_codes</code></td>
+<td><code>tuple[str, ...]</code> <em>(property)</em></td>
+<td>Tuple of sector identifier codes in the model.</td>
+</tr>
+<tr>
+<td><code>N</code></td>
+<td><code>int</code> <em>(property)</em></td>
+<td>Number of countries in the trade model.</td>
+</tr>
+<tr>
+<td><code>J</code></td>
+<td><code>int</code> <em>(property)</em></td>
+<td>Number of sectors in the trade model.</td>
+</tr>
+<tr>
+<td><code>from_preset(name)</code></td>
+<td><code>name: str = "nafta_china"</code></td>
+<td>Instantiate simulator from pre-calibrated baseline (<code>'nafta_china'</code>, <code>'symmetric_3c'</code>).</td>
+</tr>
+<tr>
+<td><code>from_icio(year)</code></td>
+<td><code>year: int = 2021</code></td>
+<td>Instantiate simulator from OECD ICIO benchmark aggregation.</td>
+</tr>
+<tr>
+<td><code>simulate_bilateral_tariff()</code></td>
+<td><code>importer, exporter, tariff_rate, sector=None, tol=1e-10</code></td>
+<td>Simulate ad-valorem bilateral tariff shock with market clearing verification.</td>
+</tr>
+<tr>
+<td><code>simulate_trade_war()</code></td>
+<td><code>coalition_a, coalition_b, tariff_rate_a, tariff_rate_b=None</code></td>
+<td>Simulate bilateral or multi-party trade war between two non-overlapping coalitions.</td>
+</tr>
+<tr>
+<td><code>simulate_arbitrary_tariffs()</code></td>
+<td><code>tariffs_new: np.ndarray, tol=1e-10</code></td>
+<td>Simulate arbitrary gross bilateral tariff matrix <span class="arithmatex">\(\tau_{ni}'^j\)</span> of shape <code>(J, N, N)</code>.</td>
+</tr>
+<tr>
+<td><code>simulate_tariff_counterfactual()</code></td>
+<td><code>tariff_shocks: dict \| np.ndarray \| None</code></td>
+<td>Flexible counterfactual interface accepting dict mappings or array inputs.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="32-tradepolicysimulationresult">3.2 <code>TradePolicySimulationResult</code></h3>
+<table>
+<thead>
+<tr>
+<th>Attribute / Method</th>
+<th>Type / Signature</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>w_hat</code></td>
+<td><code>np.ndarray (N,)</code></td>
+<td>Proportional change in nominal wages <span class="arithmatex">\(\hat{w}_n = w_n' / w_n\)</span>.</td>
+</tr>
+<tr>
+<td><code>P_hat</code></td>
+<td><code>np.ndarray (N, J)</code></td>
+<td>Proportional change in sectoral price indices <span class="arithmatex">\(\hat{P}_n^j\)</span>.</td>
+</tr>
+<tr>
+<td><code>P_index_hat</code></td>
+<td><code>np.ndarray (N,)</code></td>
+<td>Proportional change in consumer price indices <span class="arithmatex">\(\hat{P}_n\)</span>.</td>
+</tr>
+<tr>
+<td><code>real_wage_hat</code></td>
+<td><code>np.ndarray (N,)</code></td>
+<td>Proportional change in real wages <span class="arithmatex">\(\hat{w}_n / \hat{P}_n\)</span>.</td>
+</tr>
+<tr>
+<td><code>terms_of_trade_hat</code></td>
+<td><code>np.ndarray (N,)</code></td>
+<td>Proportional change in terms of trade index <span class="arithmatex">\(\hat{P}_n^X / \hat{P}_n^M\)</span>.</td>
+</tr>
+<tr>
+<td><code>welfare_pct</code></td>
+<td><code>np.ndarray (N,)</code></td>
+<td>Percentage change in real income / welfare <span class="arithmatex">\((\hat{\mathcal{W}}_n - 1) \times 100\)</span>.</td>
+</tr>
+<tr>
+<td><code>tariff_revenue_prime</code></td>
+<td><code>np.ndarray (N,)</code></td>
+<td>Counterfactual tariff revenue collection by country <span class="arithmatex">\(R_n'\)</span>.</td>
+</tr>
+<tr>
+<td><code>welfare_decomposition</code></td>
+<td><code>dict[str, np.ndarray]</code></td>
+<td>Exact decomposition: <code>'terms_of_trade'</code>, <code>'input_output'</code>, <code>'tariff_revenue'</code>.</td>
+</tr>
+<tr>
+<td><code>market_clearing_residual</code></td>
+<td><code>float</code></td>
+<td>Maximum goods and factor market clearing residual across countries (<span class="arithmatex">\(&lt; 10^{-6}\)</span>).</td>
+</tr>
+<tr>
+<td><code>converged</code></td>
+<td><code>bool</code></td>
+<td>Whether wage tatonnement converged within tolerance.</td>
+</tr>
+<tr>
+<td><code>country(code)</code></td>
+<td><code>code: str \| int -&gt; pd.Series</code></td>
+<td>Return the equilibrium outcome series for a specific country.</td>
+</tr>
+<tr>
+<td><code>__getitem__(key)</code></td>
+<td><code>key: str \| int -&gt; pd.Series</code></td>
+<td>Subscript access delegating to <code>country(key)</code>.</td>
+</tr>
+<tr>
+<td><code>summary()</code></td>
+<td><code>-&gt; pd.DataFrame</code></td>
+<td>Country-level summary table of equilibrium changes.</td>
+</tr>
+<tr>
+<td><code>sector_summary()</code></td>
+<td><code>-&gt; pd.DataFrame</code></td>
+<td>Detailed country-sector breakdown of prices, expenditures, and gross outputs.</td>
+</tr>
+<tr>
+<td><code>to_markdown()</code></td>
+<td><code>index=True, digits=4 -&gt; str</code></td>
+<td>Format summary table as GitHub-flavored Markdown.</td>
+</tr>
+<tr>
+<td><code>to_latex()</code></td>
+<td><code>index=True, digits=4 -&gt; str</code></td>
+<td>Format summary table as LaTeX tabular environment.</td>
+</tr>
+<tr>
+<td><code>to_typst()</code></td>
+<td><code>index=True, digits=4 -&gt; str</code></td>
+<td>Format summary table as Typst table.</td>
+</tr>
+<tr>
+<td><code>plot(kind)</code></td>
+<td><code>kind='welfare' \| 'real_wage' \| 'terms_of_trade' \| 'wage' \| 'cpi'</code></td>
+<td>Plot counterfactual bar chart by country.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="33-monetarytransmissionsimulator">3.3 <code>MonetaryTransmissionSimulator</code></h3>
+<table>
+<thead>
+<tr>
+<th>Method / Property</th>
+<th>Signature</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>steady_state_mpc</code></td>
+<td><code>float</code> <em>(property)</em></td>
+<td>Steady-state aggregate quarterly MPC in HANK economy.</td>
+</tr>
+<tr>
+<td><code>simulate_rate_shock()</code></td>
+<td><code>magnitude=0.0025, rho=0.7, T=40</code></td>
+<td>Solve HANK vs. RANK sequence-space equilibrium for an interest rate shock.</td>
+</tr>
+<tr>
+<td><code>simulate_balance_sheet_intervention()</code></td>
+<td><code>amount=1.0, target='borrowers', T=40</code></td>
+<td>Simulate targeted fiscal transfer or balance-sheet injection.</td>
+</tr>
+<tr>
+<td><code>simulate_transmission()</code></td>
+<td><code>shock_type='rate', shock_path=None, ...</code></td>
+<td>General simulation entry point supporting custom exogenous shock paths.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="34-monetarytransmissionresult">3.4 <code>MonetaryTransmissionResult</code></h3>
+<table>
+<thead>
+<tr>
+<th>Attribute / Method</th>
+<th>Type / Signature</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>irf_output_hank / rank</code></td>
+<td><code>np.ndarray (T,)</code></td>
+<td>Output impulse response paths <span class="arithmatex">\(d\mathbf{Y}\)</span>.</td>
+</tr>
+<tr>
+<td><code>irf_consumption_hank / rank</code></td>
+<td><code>np.ndarray (T,)</code></td>
+<td>Consumption impulse response paths <span class="arithmatex">\(d\mathbf{C}\)</span>.</td>
+</tr>
+<tr>
+<td><code>irf_inflation_hank / rank</code></td>
+<td><code>np.ndarray (T,)</code></td>
+<td>Annualized inflation impulse response paths <span class="arithmatex">\(d\boldsymbol{\pi}\)</span>.</td>
+</tr>
+<tr>
+<td><code>irf_rate_hank / rank</code></td>
+<td><code>np.ndarray (T,)</code></td>
+<td>Ex-ante real interest rate paths <span class="arithmatex">\(d\mathbf{r}\)</span>.</td>
+</tr>
+<tr>
+<td><code>mpc_deciles_hank / rank</code></td>
+<td><code>pd.Series (10,)</code></td>
+<td>Marginal propensity to consume across 10 wealth deciles.</td>
+</tr>
+<tr>
+<td><code>aggregate_mpc_hank / rank</code></td>
+<td><code>float</code></td>
+<td>Aggregate quarterly economy-wide MPC.</td>
+</tr>
+<tr>
+<td><code>direct_channel_hank</code></td>
+<td><code>np.ndarray (T,)</code></td>
+<td>KMV direct intertemporal substitution channel <span class="arithmatex">\(\mathbf{J}^{C, r} d\mathbf{r}\)</span>.</td>
+</tr>
+<tr>
+<td><code>indirect_channel_hank</code></td>
+<td><code>np.ndarray (T,)</code></td>
+<td>KMV indirect general equilibrium labor income channel <span class="arithmatex">\(\mathbf{J}^{C, Y} d\mathbf{Y}\)</span>.</td>
+</tr>
+<tr>
+<td><code>indirect_share_hank</code></td>
+<td><code>float</code></td>
+<td>Percentage share of date-0 consumption driven by indirect GE channel.</td>
+</tr>
+<tr>
+<td><code>peak_responses()</code></td>
+<td><code>-&gt; dict[str, float]</code></td>
+<td>Peak responses for output, inflation, and consumption.</td>
+</tr>
+<tr>
+<td><code>summary()</code></td>
+<td><code>-&gt; str</code></td>
+<td>Formatted ASCII report comparing HANK and RANK mechanisms.</td>
+</tr>
+<tr>
+<td><code>to_frame()</code></td>
+<td><code>-&gt; pd.DataFrame</code></td>
+<td>Tidy quarterly path DataFrame indexed by quarter <span class="arithmatex">\(t \in [0, T-1]\)</span>.</td>
+</tr>
+<tr>
+<td><code>plot(kind)</code></td>
+<td><code>kind='all' \| 'irf' \| 'mpc' \| 'kmv'</code></td>
+<td>Comparative HANK vs. RANK transmission figures.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-interactive-webassembly-browser-labs-cursositelabs">4. Interactive WebAssembly / Browser Labs (<code>curso/site/labs/</code>)</h2>
+<p>In addition to the Python library, <code>puremacro</code> bundles two fully interactive, client-side browser laboratories located in <code>curso/site/labs/</code>. Built using vanilla HTML5, CSS3, KaTeX, and HTML Canvas, they require <strong>zero compilation</strong>, <strong>zero node_modules</strong>, and operate 100% offline.</p>
+<h3 id="41-comercio-aranceleshtml-js-trade-war-nearshoring-lab">4.1 <code>comercio-aranceles.html</code> &amp; <code>.js</code> (Trade War &amp; Nearshoring Lab)</h3>
+<ul>
+<li><strong>Path</strong>: <code>curso/site/labs/comercio-aranceles.html</code> and <code>curso/site/labs/comercio-aranceles.js</code>.</li>
+<li><strong>Core Features</strong>:</li>
+<li>Real-time general equilibrium solver in client-side JavaScript executing in <span class="arithmatex">\(&lt;2\)</span> ms per slider adjustment.</li>
+<li>Interactive bilateral tariff controls: US on China, US on Mexico, Mexican retaliation, Chinese retaliation.</li>
+<li>Live structural decomposition into terms of trade, input-output linkages, and fiscal tariff revenues.</li>
+<li>Visualizer for trade diversion and nearshoring effects toward Mexican manufacturing.</li>
+<li>Pre-configured policy presets: <em>Baseline</em>, <em>US–China Trade War</em>, <em>Nearshoring Boom</em>, <em>All-Out Trade War</em>.</li>
+</ul>
+<h3 id="42-politica-monetaria-hankhtml-js-hank-vs-rank-transmission-lab">4.2 <code>politica-monetaria-hank.html</code> &amp; <code>.js</code> (HANK vs. RANK Transmission Lab)</h3>
+<ul>
+<li><strong>Path</strong>: <code>curso/site/labs/politica-monetaria-hank.html</code> and <code>curso/site/labs/politica-monetaria-hank.js</code>.</li>
+<li><strong>Core Features</strong>:</li>
+<li>Comparative impulse response curves for output, inflation, and consumption.</li>
+<li>Interactive parameter sliders for shock size, persistence (<span class="arithmatex">\(\rho\)</span>), and the share of hand-to-mouth households.</li>
+<li>Live bar charts contrasting the steep empirical MPC decile ladder against the flat representative-agent benchmark.</li>
+<li>Dynamic visualizer for the Kaplan-Moll-Violante direct versus indirect transmission shares.</li>
+</ul>
+<h3 id="43-running-locally">4.3 Running Locally</h3>
+<p>To run the interactive laboratories locally without any external dependencies:</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># From the puremacro repository root</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nb">cd</span><span class="w"> </span>curso/site
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>python3<span class="w"> </span>-m<span class="w"> </span>http.server<span class="w"> </span><span class="m">8000</span>
+</code></pre></div>
+Open your browser to <code>http://localhost:8000/labs/comercio-aranceles.html</code> or <code>http://localhost:8000/labs/politica-monetaria-hank.html</code>.</p>
+<hr />
+<h2 id="references">References</h2>
+<ol>
+<li><strong>Auclert, A., Bardóczy, B., Rognlie, M., and Straub, L. (2021).</strong> "Using the Sequence-Space Jacobian to Solve and Estimate Heterogeneous-Agent Models." <em>Econometrica</em>, 89(6), 3115–3148.</li>
+<li><strong>Caliendo, L. and Parro, F. (2015).</strong> "Estimates of the Trade and Welfare Effects of NAFTA." <em>The Review of Economic Studies</em>, 82(1), 1–44.</li>
+<li><strong>Dekle, R., Eaton, J., and Kortum, S. (2007).</strong> "Unbalanced Trade." <em>American Economic Review</em>, 97(2), 351–355.</li>
+<li><strong>Eaton, J. and Kortum, S. (2002).</strong> "Technology, Geography, and Trade." <em>Econometrica</em>, 70(5), 1741–1779.</li>
+<li><strong>Kaplan, G., Moll, B., and Violante, G. L. (2018).</strong> "Monetary Policy According to HANK." <em>American Economic Review</em>, 108(3), 697–743.</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

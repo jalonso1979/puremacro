@@ -1,0 +1,26 @@
+{
+  "created_utc": "2026-07-23T17:09:40.128104+00:00",
+  "inputs": {
+    "state_district_panel_quarterly.csv": {
+      "sha256": "d5070014b4509c1ff8d6f22e6c2eb5e48072394c44b265118feb1d00b9a033dd",
+      "rows": 10194
+    },
+    "bbui_district_panel.csv": {
+      "sha256": "424b6f1dce04d3a693aed0f44189077369b38fa78b80a1877dd32b4f5931381d"
+    },
+    "warn_bls_mls.parquet": {
+      "sha256": "178559faa5e98d70641e59be38f7011f10284529aefc1b5d2b2ab8429406f77f",
+      "source": "BLS MLS flat files (MLUMS<SS>NN0001003), built by uncertainty_examples/tools/scrape_bls_mls.py"
+    },
+    "exposure_series": "FRED fredgraph CSV {ST}MFG(/MFGN), {ST}NRMN; base period 1990Q1-1991Q4",
+    "warn_connector": "puremacro.narrative.sources.us_warn.iter_us_warn (per-state caches)"
+  },
+  "estimator": "interacted panel LP; state FE + district-x-quarter FE; 4 lags of interaction and outcome; LHS y(t+h)-y(t-1)",
+  "inference": {
+    "dk": "Driscoll-Kraay 1998, house bandwidth 4*(N/100)^(2/9) on panel rows",
+    "wild_cluster": "CGM 2008 restricted Rademacher over 12 districts, B=999, seed=42"
+  },
+  "wc_draws": 999,
+  "placebo_perms": 200,
+  "seed": 42
+}

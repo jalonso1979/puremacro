@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es" data-lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-title-es="Transmisión monetaria: HANK frente a RANK · Laboratorios MAV" data-title-en="Monetary transmission: HANK versus RANK · MAV Labs">Transmisión monetaria: HANK frente a RANK · Laboratorios MAV</title>
+<meta name="description" content="Laboratorio interactivo: comparación de la transmisión de la política monetaria en HANK y RANK en el espacio de sucesiones (Auclert et al. 2021). Explora la descomposición de Kaplan-Moll-Violante (2018), la escalera de la PMC por deciles de riqueza y las transferencias de balance.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23111'/%3E%3Cpath d='M5 21c4 0 5-10 9-10s5 10 9 10 3-5 4-5' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/mav.css?v=dbf54522">
+<style>
+  .ctl-sub { font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600;
+    margin: 20px 0 10px; padding-top: 14px; border-top: 1px solid var(--rule); }
+  @media (max-width: 800px) { .two { grid-template-columns: minmax(0, 1fr); } }
+  details.math p { overflow-x: auto; overflow-y: hidden; }
+  .links code { overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="../index.html">MAV <span class="es">· Laboratorios</span><span class="en">· Labs</span></a>
+    <nav class="topnav" aria-label="Principal">
+      <a href="../index.html" class="hide-sm"><span class="es">Laboratorios</span><span class="en">All labs</span></a>
+      <a href="../index.html" data-curso="https://jorgealonsoortiz.work/macro-avanzada/" class="hide-sm"><span class="es">El curso</span><span class="en">The course</span></a>
+      <a href="https://jorgealonsoortiz.work/puremacro/" class="hide-sm">puremacro</a>
+      <span class="lang-toggle" role="group" aria-label="Idioma / Language">
+        <button type="button" data-lang="es">ES</button><button type="button" data-lang="en">EN</button>
+      </span>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero wrap">
+    <p class="kicker"><span class="es">Unidad A6 · Mercados incompletos y agentes heterogéneos</span><span class="en">Unit A6 · Incomplete markets and heterogeneous agents</span></p>
+    <h1><span class="es">Transmisión monetaria: HANK frente a RANK</span><span class="en">Monetary transmission: HANK versus RANK</span></h1>
+    <p class="lead">
+      <span class="es">En un modelo de agente representativo (RANK), subir la tasa enfría el consumo mediante sustitución intertemporal directa. En HANK, los hogares con restricciones de liquidez tienen altas propensiones marginales a consumir (PMC): la mayor parte de la caída del consumo no proviene de la tasa real directa, sino del canal indirecto de ingreso laboral de equilibrio general.</span>
+      <span class="en">In a representative-agent model (RANK), raising the interest rate dampens consumption through direct intertemporal substitution. In HANK, liquidity-constrained households possess high marginal propensities to consume (MPC): most of the consumption slump comes not from the direct real rate, but through the general-equilibrium indirect labor income channel.</span>
+    </p>
+  </section>
+
+  <section class="wrap lab" aria-label="Laboratorio">
+    <aside class="controls" id="controls">
+      <h2><span class="es">Controles</span><span class="en">Controls</span></h2>
+    </aside>
+    <div class="charts">
+      <div id="tiles" aria-live="polite"></div>
+      <div id="chart-y"></div>
+      <div id="chart-pi"></div>
+      <div id="chart-mpc"></div>
+      <div id="chart-kmv"></div>
+    </div>
+  </section>
+
+  <section class="band section rule-top" style="margin-top:56px">
+    <div class="wrap two">
+      <div>
+        <h2><span class="es">Qué probar</span><span class="en">Things to try</span></h2>
+        <ol class="try">
+          <li><span class="es"><strong>Alza convencional (+100 pb):</strong> Con la calibración estándar, la tasa real sube y el producto se contrae en ambos modelos. Pero mira la descomposición de Kaplan-Moll-Violante (KMV 2018): en RANK el canal indirecto es 0%, mientras que en HANK el canal indirecto de ingreso laboral explica una parte fundamental de la respuesta.</span><span class="en"><strong>Conventional Rate Hike (+100 bp):</strong> Under the standard calibration, the real rate rises and output contracts in both models. But examine the Kaplan-Moll-Violante (KMV 2018) decomposition: in RANK the indirect channel is 0%, while in HANK the indirect labor income channel accounts for a major share of the slump.</span></li>
+          <li><span class="es"><strong>La escalera de la PMC:</strong> Observa la gráfica de la PMC por deciles de riqueza. En RANK, todos los deciles tienen una PMC idéntica y plana de 1.5% trimestral. En HANK, el decil 1 (mano a la boca) gasta más del 65% de cualquier ingreso transitorio, cayendo suavemente hasta menos de 3% en el decil superior.</span><span class="en"><strong>The MPC Ladder:</strong> Inspect the MPC by wealth decile chart. In RANK, every decile sits on a flat line at 1.5% quarterly. In HANK, decile 1 (hand-to-mouth) spends over 65% of any transitory transfer, tapering smoothly down to below 3% at the top wealth decile.</span></li>
+          <li><span class="es"><strong>Inyección de liquidez / Transferencia de balance:</strong> Mueve el control de intervención de balance a 1.0% del PIB para hogares restringidos. En HANK, la respuesta de consumo es masiva e inmediata (multiplicador superior a 0.30 en el impacto), mientras que en RANK el consumo apenas se mueve debido a la equivalencia ricardiana y el suavizamiento perfecto.</span><span class="en"><strong>Balance-Sheet Injection / Transfer:</strong> Move the balance-sheet transfer control to 1.0% of GDP directed at constrained households. In HANK, consumption surges immediately (impact multiplier above 0.30), whereas in RANK consumption barely budges due to Ricardian equivalence and smooth consumption.</span></li>
+          <li><span class="es"><strong>Persistencia del choque (ρ):</strong> Sube la persistencia a 0.85. Los efectos intertemporales acumulados se amplifican fuertemente en RANK, mientras que en HANK la concentración de agentes de mano a la boca adelanta la mayor parte del impacto en los primeros trimestres.</span><span class="en"><strong>Shock Persistence (ρ):</strong> Increase persistence to 0.85. Cumulative intertemporal effects amplify in RANK, whereas in HANK the concentration of hand-to-mouth agents front-loads most of the contraction in the earliest quarters.</span></li>
+        </ol>
+      </div>
+      <div>
+        <h2><span class="es">La matemática</span><span class="en">The math</span></h2>
+        <details class="math" open>
+          <summary><span class="es">El espacio de sucesiones (Auclert et al. 2021)</span><span class="en">Sequence space (Auclert et al. 2021)</span></summary>
+          <p><span class="es">El bloque de hogares heterogéneos se resuelve mediante el método de retícula endógena (EGM) para obtener las matrices Jacobianas de consumo respecto a la tasa real \(\mathcal{J}^{C, r}\) y al ingreso \(\mathcal{J}^{C, Y}\):</span><span class="en">The heterogeneous-agent household block is solved via the Endogenous Grid Method (EGM) to compute the Fake News consumption Jacobians w.r.t. the real rate \(\mathcal{J}^{C, r}\) and income \(\mathcal{J}^{C, Y}\):</span></p>
+          $$dC = \mathcal{J}^{C, r} dr + \mathcal{J}^{C, Y} dY$$
+          <p><span class="es">En RANK, \(\mathcal{J}^{C, r}_{\text{RANK}}[t, s] = -1/\gamma\) para \(s \ge t\) y \(\mathcal{J}^{C, Y}_{\text{RANK}} = \mathbf{0}\).</span><span class="en">In RANK, \(\mathcal{J}^{C, r}_{\text{RANK}}[t, s] = -1/\gamma\) for \(s \ge t\) and \(\mathcal{J}^{C, Y}_{\text{RANK}} = \mathbf{0}\).</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">Descomposición de Kaplan, Moll & Violante (2018)</span><span class="en">Kaplan, Moll & Violante (2018) decomposition</span></summary>
+          <p><span class="es">La respuesta total del consumo se descompone en un canal directo y uno indirecto:</span><span class="en">The total consumption impulse response decomposes into a direct and an indirect channel:</span></p>
+          $$dC_t = \underbrace{\sum_{s} \mathcal{J}^{C, r}_{t, s} dr_s}_{\text{Canal directo (sustitución intertemporal)}} + \underbrace{\sum_{s} \mathcal{J}^{C, Y}_{t, s} dY_s}_{\text{Canal indirecto (ingreso laboral de equilibrio general)}}$$
+          <p><span class="es">En equilibrio general de bienes, \(dC_t = dY_t\), por lo que la suma de ambos canales reconstruye la respuesta agregada de manera exacta.</span><span class="en">In goods market clearing, \(dC_t = dY_t\), so the sum of both channels reconstructs the aggregate response to machine precision.</span></p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="section wrap">
+    <h2><span class="es">Llévalo más lejos</span><span class="en">Take it further</span></h2>
+    <div class="two">
+      <ul class="links">
+        <li><a href="https://jorgealonsoortiz.work/puremacro/"><span class="es">En Python: </span><span class="en">In Python: </span><code>puremacro.models.MonetaryTransmissionSimulator</code>, <code>solve_hank_sequence_space</code> →</a></li>
+        <li><a href="desigualdad.html"><span class="es">Laboratorio de desigualdad: el modelo estacionario de Aiyagari en el navegador →</span><span class="en">Inequality lab: the stationary Aiyagari model in your browser →</span></a></li>
+      </ul>
+      <p class="small" id="source">
+        <span class="es">El laboratorio resuelve los sistemas de equilibrio general en el espacio de sucesiones (horizonte T = 40 trimestres) en menos de 3 ms en JavaScript puro. Sus resultados coinciden con <code>puremacro.models.MonetaryTransmissionSimulator</code> hasta 10<sup>−12</sup>.</span>
+        <span class="en">The lab solves the general equilibrium systems in sequence space (horizon T = 40 quarters) in under 3 ms in vanilla JavaScript. Its results match <code>puremacro.models.MonetaryTransmissionSimulator</code> to within 10<sup>−12</sup>.</span>
+      </p>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span class="es">Macroeconomía Avanzada · ITAM · Jorge Alonso-Ortiz. Código MIT; textos y diapositivas <a href="https://creativecommons.org/licenses/by/4.0/deed.es">CC BY 4.0</a>. Fuente en</span><span class="en">Advanced Macroeconomics · ITAM · Jorge Alonso-Ortiz. Code MIT; text and slides <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Source at</span>
+    <a href="https://github.com/jalonso1979/puremacro/tree/main/curso">github.com/jalonso1979/puremacro</a>.
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script defer src="../assets/mav.js?v=25ec1916"></script>
+<script defer src="../assets/num.js?v=7de34487"></script>
+<script defer src="politica-monetaria-hank.js"></script>
+</body>
+</html>

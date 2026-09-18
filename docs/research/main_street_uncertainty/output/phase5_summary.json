@@ -1,0 +1,63 @@
+{
+  "mode": "full",
+  "max_pub_lag_days": 120,
+  "common_window": [
+    "2005-07-01",
+    "2025-07-01"
+  ],
+  "n_state_quarters": 3779,
+  "anchors": {
+    "own_h5": {
+      "frozen_phase4": {
+        "beta": 0.02746,
+        "se_dk": 0.01734,
+        "p_wc": 0.055
+      },
+      "cv": {
+        "beta": 0.06645,
+        "se_dk": 0.03358,
+        "p_wc": 0.024
+      },
+      "rt": {
+        "beta": 0.06071,
+        "se_dk": 0.02669,
+        "p_wc": 0.139
+      }
+    },
+    "own_h9": {
+      "frozen_phase4": {
+        "beta": 0.0245,
+        "se_dk": 0.01771,
+        "p_wc": 0.128
+      },
+      "cv": {
+        "beta": 0.06653,
+        "se_dk": 0.03355,
+        "p_wc": 0.084
+      },
+      "rt": {
+        "beta": 0.06791,
+        "se_dk": 0.0299,
+        "p_wc": 0.182
+      }
+    },
+    "loo_h12": {
+      "frozen_phase4": {
+        "beta": 0.0343,
+        "se_dk": 0.01997,
+        "p_wc": 0.039
+      },
+      "cv": {
+        "beta": 0.04152,
+        "se_dk": 0.03059,
+        "p_wc": 0.078
+      },
+      "rt": {
+        "beta": 0.03747,
+        "se_dk": 0.0363,
+        "p_wc": 0.003
+      }
+    }
+  },
+  "runtime_seconds": 7.4
+}

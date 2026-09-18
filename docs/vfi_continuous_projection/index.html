@@ -1,0 +1,5737 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Production-grade Macroeconometric and Heterogeneous-Agent Structural Modeling Engine in Pure Python">
+      
+      
+        <meta name="author" content="puremacro contributors">
+      
+      
+        <link rel="canonical" href="https://jalonso1979.github.io/puremacro/docs/vfi_continuous_projection/">
+      
+      
+        <link rel="prev" href="../dsge_phase_d/">
+      
+      
+        <link rel="next" href="../vfi_splines_and_sparse_grids/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Continuous Projection Solvers - puremacro</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#continuous-projection-solvers-chebyshev-collocation-and-finite-element-galerkin" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="puremacro" class="md-header__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            puremacro
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Continuous Projection Solvers
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href=".." class="md-tabs__link">
+          
+  
+  
+  English Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../es/" class="md-tabs__link">
+          
+  
+  
+  Documentación en Español
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="puremacro" class="md-nav__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    puremacro
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    English Documentation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    English Documentation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Showcase Notebooks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Correctness advisories
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_5" id="__nav_1_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quarterly National Accounts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-time data (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../real_time_latam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Latin America real-time connectors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Long national accounts panel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global Macro Data Ecosystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_6" id="__nav_1_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometric Engines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Econometric Engines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR & FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Narrative Sign Restrictions SVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR with Stochastic Volatility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Smooth Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modern Difference-in-Differences
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Honest DiD Sensitivity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../causal_dml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Double / Debiased Machine Learning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dml_irm_iv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Double ML for Treatment Effects & IV (IRM & DML-IV)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Econometrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global VAR (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Estimation & Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GDP Nowcasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nowcast_latam_news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Latin America Real-Time Nowcasting & News
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Penalized Forecasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_7" id="__nav_1_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publication & Reporting
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publication & Reporting
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manuscript Tables & Exports
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_8" id="__nav_1_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structural Models
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Structural Models
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sequence-Space HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Non-Linear HANK Transitions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policy_simulators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomic Policy Simulators & Browser Labs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gertler-Karadi (2011) DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Climate Macro (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Sketchpad & Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Higher-Order & Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Parity & Surface Area
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradients, NUTS & HANK Bridge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Frontier (Policy, DSGE-VAR & News)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Non-linear Particle Filtering & Regime Switching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_9" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_1_9" id="__nav_1_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Dynamic Programming & Projection Solvers
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_9_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Continuous Dynamic Programming & Projection Solvers
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Projection Solvers
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Projection Solvers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-theoretical-mathematical-framework" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Theoretical &amp; Mathematical Framework
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Theoretical &amp; Mathematical Framework">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-continuous-dynamic-economic-formulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 Continuous Dynamic Economic Formulation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-chebyshev-orthogonal-polynomial-collocation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 Chebyshev Orthogonal Polynomial Collocation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.2 Chebyshev Orthogonal Polynomial Collocation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-bijective-domain-coordinate-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Bijective Domain Coordinate Mapping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-collocation-nodes-gauss-lobatto-vs-gauss-chebyshev" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Collocation Nodes: Gauss-Lobatto vs. Gauss-Chebyshev
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-three-term-recurrence-relations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Three-Term Recurrence Relations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-collocation-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Collocation Conditions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-finite-element-galerkin-projection-fem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 Finite Element Galerkin Projection (FEM)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.3 Finite Element Galerkin Projection (FEM)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-mesh-partition-and-piecewise-linear-hat-basis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Mesh Partition and Piecewise Linear Hat Basis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-weak-formulation-and-galerkin-orthogonalization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Weak Formulation and Galerkin Orthogonalization
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-fischer-burmeister-complementarity-for-borrowing-constraints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4 Fischer-Burmeister Complementarity for Borrowing Constraints
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#15-brock-mirman-analytical-benchmark-spectral-vs-polynomial-convergence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.5 Brock-Mirman Analytical Benchmark: Spectral vs. Polynomial Convergence
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.5 Brock-Mirman Analytical Benchmark: Spectral vs. Polynomial Convergence">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#error-convergence-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Convergence Comparison
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-methodological-model-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Methodological &amp; Model Options
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-canonical-calibration-brock-mirman-neoclassical-growth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Canonical Calibration: Brock-Mirman Neoclassical Growth
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-runnable-worked-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Runnable Worked Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Runnable Worked Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-neoclassical-growth-chebyshev-collocation-vs-fem-galerkin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Neoclassical Growth: Chebyshev Collocation vs. FEM Galerkin
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-borrowing-constraints-and-kink-resolution-via-fem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Borrowing Constraints and Kink Resolution via FEM
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-multi-backend-acceleration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Multi-Backend Acceleration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-full-api-specification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Full API Specification
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Full API Specification">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#collocationproblem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CollocationProblem
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CollocationProblem">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#solve_collocation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        solve_collocation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#femproblem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FEMProblem
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="FEMProblem">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parameters_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#solve_fem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        solve_fem
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-result-interface-manuscript-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Result Interface &amp; Manuscript Export
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_splines_and_sparse_grids/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Splines & Sparse Grids
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dcegm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Discrete Choice EGM (DC-EGM)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_continuous_equilibrium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Distributions & General Equilibrium
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_hjb_continuous/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous-Time HJB & Adjoint KFE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_continuous_transition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Transition Dynamics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_analytic_gradients/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exact Analytic Gradients (IFT)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_10" id="__nav_1_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontier Macro & Spatial Economics
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Frontier Macro & Spatial Economics
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deep_macro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deep Macro & Neural Networks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spatial_and_trade_ge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quantitative Spatial & Trade General Equilibrium
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_gpu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hardware Backends (GPU, MLX & Batched Jacobians)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running Anywhere (iPad / browser)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance & Benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_13" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_13" id="__nav_1_13_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_13">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replication gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation & goldens
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Connector health
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credentials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cache database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signal contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lexicon review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path to 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentación en Español
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Documentación en Español
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio rápido
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuadernos de demostración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avisos de corrección
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuentas nacionales trimestrales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos en tiempo real (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/real_time_latam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Conectores en tiempo real de América Latina
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panel largo de cuentas nacionales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ecosistema de datos macro globales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motores econométricos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Motores econométricos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR y FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SVAR con restricciones narrativas de signo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR con volatilidad estocástica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales suavizadas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias en diferencias modernas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sensibilidad en DiD honesto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/causal_dml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aprendizaje automático doble / desesgado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dml_irm_iv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Doble ML para efectos de tratamiento e instrumentos (IRM y DML-IV)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometría espacial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR global (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estimación y diagnósticos DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nowcasting del PIB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/nowcast_latam_news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nowcasting en tiempo real de América Latina y descomposición de noticias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pronóstico penalizado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publicación e informes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publicación e informes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tablas y exportación de manuscritos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_8" id="__nav_2_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos estructurales
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Modelos estructurales
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HANK en el espacio de secuencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transiciones no lineales en HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/policy_simulators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Simuladores de política macroeconómica y laboratorios interactivos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de Gertler-Karadi (2011)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomía del clima (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuaderno de bocetos DSGE y Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de orden superior y restricciones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Paridad y superficie operativa DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradientes, NUTS y Puente HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Frontera (Política, DSGE-VAR y Noticias)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Filtrado de Partículas No Lineal y Cambio de Régimen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_9" id="__nav_2_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Programación dinámica continua y solucionadores de proyección
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Programación dinámica continua y solucionadores de proyección
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/vfi_continuous_projection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Solucionadores de proyección continua
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/vfi_splines_and_sparse_grids/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Splines y mallas dispersas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/dcegm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DC-EGM de elección discreta
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/vfi_continuous_equilibrium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distribuciones continuas y equilibrio general
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/vfi_hjb_continuous/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HJB en tiempo continuo y KFE adjunta
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/vfi_continuous_transition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dinámica de transición continua
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/vfi_analytic_gradients/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gradientes analíticos exactos (TFI)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_10" id="__nav_2_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomía de frontera y economía espacial
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Macroeconomía de frontera y economía espacial
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/deep_macro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deep Macro y redes neuronales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/spatial_and_trade_ge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Economía espacial cuantitativa y equilibrio general de comercio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/trade_gpu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backends de hardware (GPU, MLX y jacobianos por lotes)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ejecución en cualquier entorno (iPad / navegador)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendimiento y pruebas comparativas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_13" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_13" id="__nav_2_13_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_13">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de replicación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validación y referencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estado de conectores
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credenciales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos de caché
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato de señales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de ejemplos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Revisión de léxico
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../es/1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ruta a 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-theoretical-mathematical-framework" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Theoretical &amp; Mathematical Framework
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Theoretical &amp; Mathematical Framework">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-continuous-dynamic-economic-formulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 Continuous Dynamic Economic Formulation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-chebyshev-orthogonal-polynomial-collocation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 Chebyshev Orthogonal Polynomial Collocation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.2 Chebyshev Orthogonal Polynomial Collocation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-bijective-domain-coordinate-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Bijective Domain Coordinate Mapping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-collocation-nodes-gauss-lobatto-vs-gauss-chebyshev" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Collocation Nodes: Gauss-Lobatto vs. Gauss-Chebyshev
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-three-term-recurrence-relations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Three-Term Recurrence Relations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-collocation-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Collocation Conditions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-finite-element-galerkin-projection-fem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 Finite Element Galerkin Projection (FEM)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.3 Finite Element Galerkin Projection (FEM)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-mesh-partition-and-piecewise-linear-hat-basis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Mesh Partition and Piecewise Linear Hat Basis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-weak-formulation-and-galerkin-orthogonalization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Weak Formulation and Galerkin Orthogonalization
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-fischer-burmeister-complementarity-for-borrowing-constraints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4 Fischer-Burmeister Complementarity for Borrowing Constraints
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#15-brock-mirman-analytical-benchmark-spectral-vs-polynomial-convergence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.5 Brock-Mirman Analytical Benchmark: Spectral vs. Polynomial Convergence
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.5 Brock-Mirman Analytical Benchmark: Spectral vs. Polynomial Convergence">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#error-convergence-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Convergence Comparison
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-methodological-model-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Methodological &amp; Model Options
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-canonical-calibration-brock-mirman-neoclassical-growth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Canonical Calibration: Brock-Mirman Neoclassical Growth
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-runnable-worked-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Runnable Worked Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Runnable Worked Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-neoclassical-growth-chebyshev-collocation-vs-fem-galerkin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Neoclassical Growth: Chebyshev Collocation vs. FEM Galerkin
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-borrowing-constraints-and-kink-resolution-via-fem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Borrowing Constraints and Kink Resolution via FEM
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-multi-backend-acceleration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Multi-Backend Acceleration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-full-api-specification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Full API Specification
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Full API Specification">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#collocationproblem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CollocationProblem
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CollocationProblem">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#solve_collocation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        solve_collocation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#femproblem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FEMProblem
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="FEMProblem">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parameters_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#solve_fem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        solve_fem
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-result-interface-manuscript-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Result Interface &amp; Manuscript Export
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<blockquote>
+<p>🇬🇧 English · 🇪🇸 <a href="../es/vfi_continuous_projection/">Español</a></p>
+</blockquote>
+<h1 id="continuous-projection-solvers-chebyshev-collocation-and-finite-element-galerkin">Continuous Projection Solvers: Chebyshev Collocation and Finite Element Galerkin</h1>
+<p><code>puremacro.vfi.collocation</code> and <code>puremacro.vfi.fem</code> provide continuous state-space dynamic programming and projection methods developed by <strong>Judd (1992, 1998)</strong> and <strong>McGrattan (1996, 1999)</strong>, delivering high-precision policy and value function approximations without the discretization errors of discrete-grid Value Function Iteration (VFI).</p>
+<p>Traditional discrete-grid dynamic programming constrains capital and wealth choices to an artificial grid lattice <span class="arithmatex">\(\{k_1, \dots, k_M\}\)</span>. This imposes an <span class="arithmatex">\(\mathcal{O}(M^{-1})\)</span> truncation error, destroys differentiability, and requires fine lattices that scale poorly in higher dimensions. Continuous projection methods solve for smooth continuous decision rules <span class="arithmatex">\(g(k)\)</span> and value functions <span class="arithmatex">\(V(k)\)</span> defined everywhere on continuous state manifolds:</p>
+<ul>
+<li><strong>Chebyshev Orthogonal Collocation</strong> employs global orthogonal Chebyshev polynomials of the first kind evaluated at Gauss-Lobatto or Gauss-Chebyshev nodes. For smooth, real-analytic economic models (such as the canonical neoclassical growth model), Jackson's approximation theorem guarantees <strong>exponential ("spectral") convergence</strong> (<span class="arithmatex">\(\mathcal{O}(c^{-N})\)</span>), driving Euler equation residuals below <span class="arithmatex">\(10^{-8}\)</span> with only 6 to 10 polynomial coefficients.</li>
+<li><strong>Finite Element Galerkin Projection (FEM)</strong> partitions the continuous domain into localized element intervals using piecewise linear or quadratic Lagrange hat basis functions. By isolating approximation errors to compact element supports, FEM uniquely resolves <strong>sharp kinks, occasionally binding borrowing constraints, and non-differentiabilities</strong> via Fischer-Burmeister complementarity with <strong>zero Gibbs ringing</strong>.</li>
+</ul>
+<hr />
+<h2 id="1-theoretical-mathematical-framework">1. Theoretical &amp; Mathematical Framework</h2>
+<h3 id="11-continuous-dynamic-economic-formulation">1.1 Continuous Dynamic Economic Formulation</h3>
+<p>Consider a continuous-state infinite-horizon macroeconomic decision problem where an agent chooses next-period capital <span class="arithmatex">\(k' \in [\underline{k}, \bar{k}]\)</span> given current capital <span class="arithmatex">\(k\)</span> and exogenous Markov productivity state <span class="arithmatex">\(z\)</span>:</p>
+<div class="arithmatex">\[V(k, z) = \max_{k' \ge \underline{k}} \left\{ u(c) + \beta \sum_{z'} \Pi(z, z') V(k', z') \right\}\]</div>
+<p>subject to the aggregate resource constraint:</p>
+<div class="arithmatex">\[c + k' \le f(k, z) + (1 - \delta)k\]</div>
+<p>When interior solutions exist, the optimal policy <span class="arithmatex">\(k' = g(k, z)\)</span> satisfies the continuous Euler equation functional residual <span class="arithmatex">\(\mathcal{R}(k, z) = 0\)</span>:</p>
+<div class="arithmatex">\[\mathcal{R}(k, z; g) \equiv u'\left(f(k, z) + (1-\delta)k - g(k, z)\right) - \beta \sum_{z'} \Pi(z, z') u'\left(c(g(k, z), z')\right) \left[ f_k\left(g(k, z), z'\right) + 1 - \delta \right] = 0\]</div>
+<h3 id="12-chebyshev-orthogonal-polynomial-collocation">1.2 Chebyshev Orthogonal Polynomial Collocation</h3>
+<p>Chebyshev collocation approximates policy <span class="arithmatex">\(g(k)\)</span> (or value <span class="arithmatex">\(V(k)\)</span>) as a linear combination of <span class="arithmatex">\(N+1\)</span> orthogonal Chebyshev polynomials:</p>
+<div class="arithmatex">\[g_N(k; \mathbf{c}) = \sum_{j=0}^N c_j T_j(x(k))\]</div>
+<h4 id="1-bijective-domain-coordinate-mapping">1. Bijective Domain Coordinate Mapping</h4>
+<p>Chebyshev polynomials are defined on the canonical interval <span class="arithmatex">\(x \in [-1, 1]\)</span>. An arbitrary bounded continuous state domain <span class="arithmatex">\(k \in [\underline{k}, \bar{k}]\)</span> is mapped bijectively to <span class="arithmatex">\([-1, 1]\)</span> via the affine transformation:</p>
+<div class="arithmatex">\[x(k) = \frac{2k - (\bar{k} + \underline{k})}{\bar{k} - \underline{k}}, \qquad k(x) = \frac{(x + 1)(\bar{k} - \underline{k})}{2} + \underline{k}\]</div>
+<h4 id="2-collocation-nodes-gauss-lobatto-vs-gauss-chebyshev">2. Collocation Nodes: Gauss-Lobatto vs. Gauss-Chebyshev</h4>
+<p>To avoid Runge's phenomenon associated with equidistant nodes, projection residuals are enforced at orthogonal Chebyshev quadrature nodes:</p>
+<ul>
+<li><strong>Gauss-Lobatto Nodes</strong> (extrema plus boundary endpoints):
+  $<span class="arithmatex">\(x_i = -\cos\left(\frac{i \pi}{N}\right), \quad i = 0, 1, \dots, N\)</span>$
+  These include domain boundaries <span class="arithmatex">\(x_0 = -1\)</span> and <span class="arithmatex">\(x_N = 1\)</span>, which is ideal for economic models with fixed borrowing limits or boundary conditions.</li>
+<li><strong>Gauss-Chebyshev Nodes</strong> (zeros/roots of <span class="arithmatex">\(T_{N+1}(x)\)</span>):
+  $<span class="arithmatex">\(x_i = -\cos\left(\frac{2i + 1}{2(N + 1)} \pi\right), \quad i = 0, 1, \dots, N\)</span>$
+  These lie strictly in the open interior <span class="arithmatex">\((-1, 1)\)</span>, which is useful when utility functions exhibit singular derivatives at domain boundaries (<span class="arithmatex">\(u'(0) \to \infty\)</span>).</li>
+</ul>
+<h4 id="3-three-term-recurrence-relations">3. Three-Term Recurrence Relations</h4>
+<p>Chebyshev polynomials <span class="arithmatex">\(T_j(x)\)</span> and their derivatives <span class="arithmatex">\(T'_j(x)\)</span> are evaluated with numerical stability using three-term recurrence relations:</p>
+<div class="arithmatex">\[T_0(x) = 1, \qquad T_1(x) = x, \qquad T_{j+1}(x) = 2x T_j(x) - T_{j-1}(x), \quad j \ge 1\]</div>
+<div class="arithmatex">\[T'_0(x) = 0, \qquad T'_1(x) = 1, \qquad T'_{j+1}(x) = 2 T_j(x) + 2x T'_j(x) - T'_{j-1}(x), \quad j \ge 1\]</div>
+<h4 id="4-collocation-conditions">4. Collocation Conditions</h4>
+<p>The unknown coefficient vector <span class="arithmatex">\(\mathbf{c}^* \in \mathbb{R}^{N+1}\)</span> is computed by requiring the Euler residual (or Bellman residual) to vanish exactly at all <span class="arithmatex">\(N+1\)</span> collocation nodes:</p>
+<div class="arithmatex">\[\mathcal{R}\left(k(x_i); \mathbf{c}^*\right) = 0, \quad \forall i = 0, 1, \dots, N\]</div>
+<p>This <span class="arithmatex">\((N+1)\)</span>-dimensional non-linear root-finding problem is solved via Powell's hybrid method (<code>solver_method="hybr"</code>) or Levenberg-Marquardt.</p>
+<hr />
+<h3 id="13-finite-element-galerkin-projection-fem">1.3 Finite Element Galerkin Projection (FEM)</h3>
+<p>Global polynomial methods can struggle when policy functions feature derivative discontinuities (kinks) caused by borrowing constraints (<span class="arithmatex">\(k' \ge \bar{k}\)</span>) or capacity limits. Approximating kinks with global polynomials induces the <strong>Gibbs phenomenon</strong>—persistent high-frequency oscillations that distort policy values across the entire state space.</p>
+<p>The Finite Element Method solves this by discretizing the continuous domain into <span class="arithmatex">\(E\)</span> localized elements with localized basis functions.</p>
+<h4 id="1-mesh-partition-and-piecewise-linear-hat-basis">1. Mesh Partition and Piecewise Linear Hat Basis</h4>
+<p>Let <span class="arithmatex">\([\underline{k}, \bar{k}]\)</span> be partitioned into <span class="arithmatex">\(E\)</span> element intervals by nodes <span class="arithmatex">\(\underline{k} = k_0 &lt; k_1 &lt; \dots &lt; k_E = \bar{k}\)</span> with element step sizes <span class="arithmatex">\(h_e = k_{e+1} - k_e\)</span>.</p>
+<p>On each interior node <span class="arithmatex">\(j\)</span>, the piecewise linear Lagrange hat basis function <span class="arithmatex">\(\phi_j(k)\)</span> has compact support on <span class="arithmatex">\([k_{j-1}, k_{j+1}]\)</span>:</p>
+<div class="arithmatex">\[\phi_j(k) = \begin{cases}
+\frac{k - k_{j-1}}{k_j - k_{j-1}} &amp; \text{if } k \in [k_{j-1}, k_j] \\
+\frac{k_{j+1} - k}{k_{j+1} - k_j} &amp; \text{if } k \in [k_j, k_{j+1}] \\
+0 &amp; \text{otherwise}
+\end{cases}\]</div>
+<p>The continuous policy function is expressed directly in terms of nodal values <span class="arithmatex">\(\mathbf{y} = (y_0, y_1, \dots, y_E)^\top\)</span>:</p>
+<div class="arithmatex">\[g_E(k; \mathbf{y}) = \sum_{j=0}^E y_j \phi_j(k)\]</div>
+<p>Notice that <span class="arithmatex">\(\phi_j(k_i) = \delta_{ij}\)</span> (the Kronecker delta). Consequently, nodal coefficients <span class="arithmatex">\(y_j = g_E(k_j)\)</span> represent the actual policy values at grid nodes, eliminating the need to invert a coefficient matrix.</p>
+<h4 id="2-weak-formulation-and-galerkin-orthogonalization">2. Weak Formulation and Galerkin Orthogonalization</h4>
+<p>In the Galerkin projection method, the continuous residual <span class="arithmatex">\(\mathcal{R}(k; \mathbf{y})\)</span> is forced to be orthogonal to each basis function <span class="arithmatex">\(\phi_i(k)\)</span> in the <span class="arithmatex">\(L^2\)</span> function space inner product:</p>
+<div class="arithmatex">\[\langle \mathcal{R}, \phi_i \rangle \equiv \int_{\underline{k}}^{\bar{k}} \mathcal{R}(k; \mathbf{y}) \phi_i(k) \, dk = 0, \quad i = 0, 1, \dots, E\]</div>
+<p>Because <span class="arithmatex">\(\phi_i(k)\)</span> has compact support on <span class="arithmatex">\([k_{i-1}, k_{i+1}]\)</span>, the integral decomposes into adjacent element intervals:</p>
+<div class="arithmatex">\[\int_{k_{i-1}}^{k_i} \mathcal{R}(k) \frac{k - k_{i-1}}{h_{i-1}} \, dk + \int_{k_i}^{k_{i+1}} \mathcal{R}(k) \frac{k_{i+1} - k}{h_i} \, dk = 0\]</div>
+<p>Each element integral is evaluated numerically using <span class="arithmatex">\(Q\)</span>-point Gauss-Legendre quadrature (<span class="arithmatex">\(Q = 3\)</span> or <span class="arithmatex">\(Q = 5\)</span>):</p>
+<div class="arithmatex">\[\int_{k_e}^{k_{e+1}} F(k) \, dk \approx \frac{h_e}{2} \sum_{q=1}^Q \omega_q F\left( \frac{k_e + k_{e+1}}{2} + \frac{h_e}{2} \xi_q \right)\]</div>
+<p>where <span class="arithmatex">\(\xi_q \in [-1, 1]\)</span> and <span class="arithmatex">\(\omega_q\)</span> are the standard Gauss-Legendre quadrature roots and weights.</p>
+<hr />
+<h3 id="14-fischer-burmeister-complementarity-for-borrowing-constraints">1.4 Fischer-Burmeister Complementarity for Borrowing Constraints</h3>
+<p>When savings choices face an inequality borrowing constraint <span class="arithmatex">\(k' \ge \bar{k}\)</span>, the Kuhn-Tucker optimality conditions require:</p>
+<div class="arithmatex">\[k' - \bar{k} \ge 0, \qquad \mathcal{R}(k) \ge 0, \qquad (k' - \bar{k}) \cdot \mathcal{R}(k) = 0\]</div>
+<p>Standard root-finders cannot directly handle inequality constraints. <code>puremacro.vfi</code> reformulates these complementarity conditions using the smooth perturbed <strong>Fischer-Burmeister NCP operator</strong> (<span class="arithmatex">\(\epsilon = 10^{-12}\)</span>):</p>
+<div class="arithmatex">\[\Psi_{\text{FB}}^\epsilon(a, b) \equiv a + b - \sqrt{a^2 + b^2 + \epsilon} = 0\]</div>
+<p>where:</p>
+<div class="arithmatex">\[a = k' - \bar{k}, \qquad b = \mathcal{R}(k)\]</div>
+<p>The operator satisfies:
+- <span class="arithmatex">\(\Psi_{\text{FB}}^\epsilon(a, b) = 0 \iff a \ge 0, b \ge 0, a \cdot b \approx 0\)</span>.
+- It is continuously differentiable everywhere for <span class="arithmatex">\(\epsilon &gt; 0\)</span>, enabling rapid convergence via standard Newton-Raphson and hybrid Powell methods.
+- By placing an explicit mesh node exactly at the borrowing kink <span class="arithmatex">\(k^*\)</span> via <code>FEMMesh.from_kinks(domain, kinks=[k_kink])</code>, FEM confines the non-differentiability to element boundaries, completely eliminating the Gibbs phenomenon.</p>
+<hr />
+<h3 id="15-brock-mirman-analytical-benchmark-spectral-vs-polynomial-convergence">1.5 Brock-Mirman Analytical Benchmark: Spectral vs. Polynomial Convergence</h3>
+<p>The benchmark for testing continuous projection methods is the Brock and Mirman (1972) neoclassical growth model with logarithmic utility <span class="arithmatex">\(u(c) = \ln(c)\)</span>, Cobb-Douglas production <span class="arithmatex">\(f(k) = k^\alpha\)</span>, and 100% depreciation (<span class="arithmatex">\(\delta = 1.0\)</span>):</p>
+<div class="arithmatex">\[V(k) = \max_{k'} \left\{ \ln(k^\alpha - k') + \beta V(k') \right\}\]</div>
+<p>This model admits exact analytical closed-form solutions:</p>
+<div class="arithmatex">\[g^*(k) = \alpha \beta k^\alpha\]</div>
+<div class="arithmatex">\[V^*(k) = \frac{\alpha}{1 - \alpha \beta} \ln(k) + \frac{\ln(1 - \alpha \beta) + \frac{\alpha \beta \ln(\alpha \beta)}{1 - \alpha \beta}}{1 - \beta}\]</div>
+<h4 id="error-convergence-comparison">Error Convergence Comparison</h4>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Chebyshev Collocation (<span class="arithmatex">\(N\)</span> orders)</th>
+<th>FEM Galerkin (<span class="arithmatex">\(E\)</span> elements)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Convergence Rate</strong></td>
+<td><strong>Spectral / Exponential</strong>: <span class="arithmatex">\(\mathcal{O}(c^{-N})\)</span></td>
+<td><strong>Algebraic / Polynomial</strong>: <span class="arithmatex">\(\mathcal{O}(h^2) = \mathcal{O}(E^{-2})\)</span></td>
+</tr>
+<tr>
+<td><strong>Max Euler Error (<span class="arithmatex">\(N=6\)</span> vs <span class="arithmatex">\(E=30\)</span>)</strong></td>
+<td><span class="arithmatex">\(&lt; 10^{-6}\)</span></td>
+<td><span class="arithmatex">\(\approx 10^{-4}\)</span></td>
+</tr>
+<tr>
+<td><strong>Max Euler Error (<span class="arithmatex">\(N=12\)</span> vs <span class="arithmatex">\(E=100\)</span>)</strong></td>
+<td><span class="arithmatex">\(&lt; 10^{-9}\)</span></td>
+<td><span class="arithmatex">\(\approx 10^{-5}\)</span></td>
+</tr>
+<tr>
+<td><strong>Kink Robustness (<span class="arithmatex">\(k' \ge \bar{k}\)</span>)</strong></td>
+<td>Gibbs oscillations across domain</td>
+<td>Zero ringing with <code>FEMMesh.from_kinks</code></td>
+</tr>
+<tr>
+<td><strong>Sparsity Pattern</strong></td>
+<td>Dense Jacobian matrix</td>
+<td>Tridiagonal / banded sparse Jacobian</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-methodological-model-options">2. Methodological &amp; Model Options</h2>
+<p><code>puremacro.vfi</code> continuous solvers support multiple problem formulations and compute backends:</p>
+<table>
+<thead>
+<tr>
+<th>Feature / Setting</th>
+<th><code>CollocationProblem</code></th>
+<th><code>FEMProblem</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Primary Domain</strong></td>
+<td>Smooth, real-analytic manifolds</td>
+<td>Models with kinks, borrowing constraints</td>
+</tr>
+<tr>
+<td><strong>Solution Method (<code>method</code>)</strong></td>
+<td><code>"euler"</code> (policy) or <code>"bellman"</code> (value)</td>
+<td><code>"euler"</code> (policy) or <code>"bellman"</code> (value)</td>
+</tr>
+<tr>
+<td><strong>Projection Operator</strong></td>
+<td>Nodal collocation at Chebyshev zeros/extrema</td>
+<td><code>"galerkin"</code> (quadrature) or <code>"collocation"</code></td>
+</tr>
+<tr>
+<td><strong>Mesh Structure</strong></td>
+<td>Gauss-Lobatto or Gauss-Chebyshev nodes</td>
+<td>Uniform, power-clustered, or kink-aligned</td>
+</tr>
+<tr>
+<td><strong>Borrowing Constraint</strong></td>
+<td>Via Fischer-Burmeister penalty</td>
+<td>Native <code>borrowing_constraint</code> with FB</td>
+</tr>
+<tr>
+<td><strong>Hardware Backends</strong></td>
+<td>NumPy, Numba, Apple MLX, CuPy</td>
+<td>NumPy, Numba, Apple MLX, CuPy</td>
+</tr>
+<tr>
+<td><strong>Default Tolerance</strong></td>
+<td><code>tol=1e-8</code>, <code>maxiter=500</code></td>
+<td><code>tol=1e-8</code>, <code>maxiter=500</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3-canonical-calibration-brock-mirman-neoclassical-growth">3. Canonical Calibration: Brock-Mirman Neoclassical Growth</h2>
+<p>The benchmark calibration parameters for testing and replication:</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Symbol</th>
+<th>Benchmark Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Capital elasticity</td>
+<td><span class="arithmatex">\(\alpha\)</span></td>
+<td><code>0.36</code></td>
+<td>Output elasticity of capital</td>
+</tr>
+<tr>
+<td>Subjective discount factor</td>
+<td><span class="arithmatex">\(\beta\)</span></td>
+<td><code>0.96</code></td>
+<td>Household quarterly discount factor</td>
+</tr>
+<tr>
+<td>Depreciation rate</td>
+<td><span class="arithmatex">\(\delta\)</span></td>
+<td><code>1.00</code></td>
+<td>Full depreciation (for analytical tractability)</td>
+</tr>
+<tr>
+<td>Steady-state capital</td>
+<td><span class="arithmatex">\(k_{\text{ss}}\)</span></td>
+<td><span class="arithmatex">\((\alpha \beta)^{\frac{1}{1-\alpha}} \approx 0.1782\)</span></td>
+<td>Deterministic long-run capital stock</td>
+</tr>
+<tr>
+<td>Asset state domain</td>
+<td><span class="arithmatex">\([\underline{k}, \bar{k}]\)</span></td>
+<td><span class="arithmatex">\([0.5 k_{\text{ss}}, 1.5 k_{\text{ss}}] \approx [0.089, 0.267]\)</span></td>
+<td>Evaluated continuous state interval</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-runnable-worked-examples">4. Runnable Worked Examples</h2>
+<h3 id="41-neoclassical-growth-chebyshev-collocation-vs-fem-galerkin">4.1 Neoclassical Growth: Chebyshev Collocation vs. FEM Galerkin</h3>
+<p>This example solves the Brock-Mirman model using both Chebyshev collocation and FEM Galerkin projection, comparing both against the closed-form analytical truth:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.vfi</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">CollocationProblem</span><span class="p">,</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">solve_collocation</span><span class="p">,</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">FEMProblem</span><span class="p">,</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">solve_fem</span><span class="p">,</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="c1"># 1. Parameter calibration</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.36</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">beta</span> <span class="o">=</span> <span class="mf">0.96</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="n">k_ss</span> <span class="o">=</span> <span class="nb">float</span><span class="p">((</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">beta</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">)))</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="n">domain</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">k_ss</span><span class="p">,</span> <span class="mf">1.5</span> <span class="o">*</span> <span class="n">k_ss</span><span class="p">)</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="c1"># 2. Solve via Chebyshev Collocation (Order N = 6)</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="n">prob_col</span> <span class="o">=</span> <span class="n">CollocationProblem</span><span class="p">(</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="n">domain</span><span class="o">=</span><span class="n">domain</span><span class="p">,</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="n">orders</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="n">method</span><span class="o">=</span><span class="s2">"euler"</span><span class="p">,</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">"alpha"</span><span class="p">:</span> <span class="n">alpha</span><span class="p">,</span> <span class="s2">"delta"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">},</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="p">)</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="n">sol_col</span> <span class="o">=</span> <span class="n">solve_collocation</span><span class="p">(</span><span class="n">prob_col</span><span class="p">)</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="k">assert</span> <span class="n">sol_col</span><span class="o">.</span><span class="n">converged</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="c1"># 3. Solve via FEM Galerkin (30 linear elements)</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="n">prob_fem</span> <span class="o">=</span> <span class="n">FEMProblem</span><span class="p">(</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>    <span class="n">domain</span><span class="o">=</span><span class="n">domain</span><span class="p">,</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>    <span class="n">elements</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>    <span class="n">method</span><span class="o">=</span><span class="s2">"euler"</span><span class="p">,</span>
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>    <span class="n">projection</span><span class="o">=</span><span class="s2">"galerkin"</span><span class="p">,</span>
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>    <span class="n">return_fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="mf">1e-12</span><span class="p">)),</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>    <span class="n">transition_fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">k</span><span class="o">**</span><span class="n">alpha</span><span class="p">,</span>
+<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>    <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
+<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>    <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">"alpha"</span><span class="p">:</span> <span class="n">alpha</span><span class="p">,</span> <span class="s2">"gamma"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">},</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a><span class="p">)</span>
+<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a><span class="n">sol_fem</span> <span class="o">=</span> <span class="n">solve_fem</span><span class="p">(</span><span class="n">prob_fem</span><span class="p">)</span>
+<a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a><span class="k">assert</span> <span class="n">sol_fem</span><span class="o">.</span><span class="n">converged</span>
+<a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a>
+<a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a><span class="c1"># 4. Out-of-sample evaluation on 1,000 dense continuous points</span>
+<a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a><span class="n">eval_k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">domain</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">domain</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">1000</span><span class="p">)</span>
+<a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a><span class="n">g_true</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">beta</span> <span class="o">*</span> <span class="p">(</span><span class="n">eval_k</span><span class="o">**</span><span class="n">alpha</span><span class="p">)</span>
+<a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a><span class="n">g_col</span> <span class="o">=</span> <span class="n">sol_col</span><span class="o">.</span><span class="n">policy</span><span class="p">(</span><span class="n">eval_k</span><span class="p">)</span>
+<a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a><span class="n">g_fem</span> <span class="o">=</span> <span class="n">sol_fem</span><span class="o">.</span><span class="n">policy</span><span class="p">(</span><span class="n">eval_k</span><span class="p">)</span>
+<a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a>
+<a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a><span class="n">max_col_err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">g_col</span> <span class="o">-</span> <span class="n">g_true</span><span class="p">)</span> <span class="o">/</span> <span class="n">g_true</span><span class="p">)</span>
+<a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a><span class="n">max_fem_err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">g_fem</span> <span class="o">-</span> <span class="n">g_true</span><span class="p">)</span> <span class="o">/</span> <span class="n">g_true</span><span class="p">)</span>
+<a id="__codelineno-0-48" name="__codelineno-0-48" href="#__codelineno-0-48"></a>
+<a id="__codelineno-0-49" name="__codelineno-0-49" href="#__codelineno-0-49"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Chebyshev Collocation Max Relative Error: </span><span class="si">{</span><span class="n">max_col_err</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-0-50" name="__codelineno-0-50" href="#__codelineno-0-50"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"FEM Galerkin Max Relative Error:          </span><span class="si">{</span><span class="n">max_fem_err</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-0-51" name="__codelineno-0-51" href="#__codelineno-0-51"></a>
+<a id="__codelineno-0-52" name="__codelineno-0-52" href="#__codelineno-0-52"></a><span class="k">assert</span> <span class="n">max_col_err</span> <span class="o">&lt;</span> <span class="mf">1e-4</span>
+<a id="__codelineno-0-53" name="__codelineno-0-53" href="#__codelineno-0-53"></a><span class="k">assert</span> <span class="n">max_fem_err</span> <span class="o">&lt;</span> <span class="mf">1e-3</span>
+</code></pre></div>
+<h3 id="42-borrowing-constraints-and-kink-resolution-via-fem">4.2 Borrowing Constraints and Kink Resolution via FEM</h3>
+<p>When savings decisions face an occasionally binding borrowing limit <span class="arithmatex">\(k' \ge \bar{k}\)</span>, global polynomials suffer from Gibbs ringing near the kink. FEM with localized hat basis functions aligns an element boundary at the kink and enforces Fischer-Burmeister complementarity:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.vfi</span><span class="w"> </span><span class="kn">import</span> <span class="n">FEMMesh</span><span class="p">,</span> <span class="n">FEMProblem</span><span class="p">,</span> <span class="n">solve_fem</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Borrowing constraint lower bound</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">b_const</span> <span class="o">=</span> <span class="mf">0.16</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># Construct kink-aligned mesh with a node placed exactly at the borrowing boundary</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">mesh</span> <span class="o">=</span> <span class="n">FEMMesh</span><span class="o">.</span><span class="n">from_kinks</span><span class="p">(</span><span class="n">domain</span><span class="o">=</span><span class="n">domain</span><span class="p">,</span> <span class="n">n_elements</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">kinks</span><span class="o">=</span><span class="p">[</span><span class="mf">0.17</span><span class="p">])</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="n">prob_constrained</span> <span class="o">=</span> <span class="n">FEMProblem</span><span class="p">(</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="n">domain</span><span class="o">=</span><span class="n">domain</span><span class="p">,</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>    <span class="n">elements</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>    <span class="n">method</span><span class="o">=</span><span class="s2">"euler"</span><span class="p">,</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>    <span class="n">projection</span><span class="o">=</span><span class="s2">"galerkin"</span><span class="p">,</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>    <span class="n">return_fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="mf">1e-12</span><span class="p">)),</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>    <span class="n">transition_fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">k</span><span class="o">**</span><span class="n">alpha</span><span class="p">,</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>    <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>    <span class="n">borrowing_constraint</span><span class="o">=</span><span class="n">b_const</span><span class="p">,</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>    <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">"alpha"</span><span class="p">:</span> <span class="n">alpha</span><span class="p">,</span> <span class="s2">"gamma"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">},</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>    <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s2">"mesh"</span><span class="p">:</span> <span class="n">mesh</span><span class="p">},</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="p">)</span>
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="n">sol_constrained</span> <span class="o">=</span> <span class="n">solve_fem</span><span class="p">(</span><span class="n">prob_constrained</span><span class="p">)</span>
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="k">assert</span> <span class="n">sol_constrained</span><span class="o">.</span><span class="n">converged</span>
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>
+<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="c1"># Verify constraint satisfaction across 500 dense test points</span>
+<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="n">dense_k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">domain</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">domain</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">500</span><span class="p">)</span>
+<a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a><span class="n">pol_k</span> <span class="o">=</span> <span class="n">sol_constrained</span><span class="o">.</span><span class="n">policy</span><span class="p">(</span><span class="n">dense_k</span><span class="p">)</span>
+<a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a><span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">pol_k</span> <span class="o">&gt;=</span> <span class="n">b_const</span> <span class="o">-</span> <span class="mf">1e-10</span><span class="p">),</span> <span class="s2">"Borrowing constraint violated!"</span>
+<a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"Kink-aligned FEM policy successfully enforced k' &gt;= bar</span><span class="si">{k}</span><span class="s2"> with zero ringing."</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="43-multi-backend-acceleration">4.3 Multi-Backend Acceleration</h3>
+<p><code>puremacro.vfi</code> solvers integrate with <code>puremacro._backend</code>, allowing transparent hardware acceleration across CPU and GPU architectures:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro</span><span class="w"> </span><span class="kn">import</span> <span class="n">_backend</span> <span class="k">as</span> <span class="n">bk</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># Check available acceleration backends</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"Numba JIT available: "</span><span class="p">,</span> <span class="n">bk</span><span class="o">.</span><span class="n">backend_available</span><span class="p">(</span><span class="s2">"numba"</span><span class="p">))</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"Apple MLX available: "</span><span class="p">,</span> <span class="n">bk</span><span class="o">.</span><span class="n">backend_available</span><span class="p">(</span><span class="s2">"mlx"</span><span class="p">))</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"NVIDIA CuPy available:"</span><span class="p">,</span> <span class="n">bk</span><span class="o">.</span><span class="n">backend_available</span><span class="p">(</span><span class="s2">"cupy"</span><span class="p">))</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="c1"># Solve with explicit backend selection (falls back safely to NumPy if unavailable)</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">sol_fast</span> <span class="o">=</span> <span class="n">solve_collocation</span><span class="p">(</span><span class="n">prob_col</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s2">"numpy"</span><span class="p">)</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Solution converged: </span><span class="si">{</span><span class="n">sol_fast</span><span class="o">.</span><span class="n">converged</span><span class="si">}</span><span class="s2"> | Residual norm: </span><span class="si">{</span><span class="n">sol_fast</span><span class="o">.</span><span class="n">residual_norm</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="5-full-api-specification">5. Full API Specification</h2>
+<h3 id="collocationproblem"><code>CollocationProblem</code></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>CollocationProblem(
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    domain: tuple[float, float] | tuple[tuple[float, float], ...],
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    orders: int | tuple[int, ...],
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    method: str = "euler",
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    node_type: str = "lobatto",
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    return_fn: Callable | None = None,
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    transition_fn: Callable | None = None,
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    euler_residual_fn: Callable | None = None,
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    beta: float = 0.96,
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    params: dict = {},
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    options: dict = {},
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>)
+</code></pre></div>
+<h4 id="parameters">Parameters:</h4>
+<ul>
+<li><code>domain</code>: Continuous state-space bounds <code>(k_min, k_max)</code> for 1D models or a tuple of bounds for multi-dimensional models.</li>
+<li><code>orders</code>: Polynomial approximation degree <span class="arithmatex">\(N \ge 1\)</span> (or tuple of degrees per dimension).</li>
+<li><code>method</code>: Approximation objective:</li>
+<li><code>"euler"</code>: Policy function projection minimizing continuous Euler equation residuals.</li>
+<li><code>"bellman"</code>: Continuous value function iteration on Chebyshev nodes.</li>
+<li><code>node_type</code>: Chebyshev node distribution:</li>
+<li><code>"lobatto"</code>: Gauss-Lobatto extrema nodes (includes domain boundaries <span class="arithmatex">\(\pm 1\)</span>).</li>
+<li><code>"gauss"</code>: Gauss-Chebyshev interior roots (strictly in <span class="arithmatex">\((-1, 1)\)</span>).</li>
+<li><code>return_fn</code>: One-period utility function <span class="arithmatex">\(u(c)\)</span> or <span class="arithmatex">\(u(k, k', \mathbf{p})\)</span>.</li>
+<li><code>transition_fn</code>: Transition equation <span class="arithmatex">\(f(k)\)</span> or aggregate resource budget.</li>
+<li><code>euler_residual_fn</code>: User-supplied Euler equation residual callable <span class="arithmatex">\(R(k, k', k'', \mathbf{p})\)</span>.</li>
+<li><code>beta</code>: Household discount factor <span class="arithmatex">\(\beta \in (0, 1)\)</span>.</li>
+<li><code>params</code>: Dictionary of model structural parameters (e.g. <code>{"alpha": 0.36, "delta": 1.0}</code>).</li>
+<li><code>options</code>: Dictionary of solver tuning options (<code>tol</code>, <code>max_iter</code>, <code>solver_method</code>).</li>
+</ul>
+<hr />
+<h3 id="solve_collocation"><code>solve_collocation</code></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>solve_collocation(
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    problem: CollocationProblem | None = None,
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    backend: str = "numpy",
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    **kwargs: Any,
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>) -&gt; CollocationSolution
+</code></pre></div>
+<p>Solves the Chebyshev collocation problem via non-linear root finding. Accepts either an existing <code>CollocationProblem</code> instance or parameter keyword arguments.</p>
+<hr />
+<h3 id="femproblem"><code>FEMProblem</code></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>FEMProblem(
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    domain: tuple[float, float] | tuple[tuple[float, float], ...],
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    elements: int | tuple[int, ...] = 50,
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    method: str = "euler",
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    projection: str = "galerkin",
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    return_fn: Callable | None = None,
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    transition_fn: Callable | None = None,
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    euler_residual_fn: Callable | None = None,
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    beta: float = 0.96,
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    params: dict = {},
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    borrowing_constraint: float | None = None,
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>    options: dict = {},
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>)
+</code></pre></div>
+<h4 id="parameters_1">Parameters:</h4>
+<ul>
+<li><code>domain</code>: Continuous state bounds <code>(s_min, s_max)</code>.</li>
+<li><code>elements</code>: Number of mesh elements <span class="arithmatex">\(E \ge 2\)</span>.</li>
+<li><code>method</code>: Solution method: <code>"euler"</code> or <code>"bellman"</code>.</li>
+<li><code>projection</code>: Projection scheme: <code>"galerkin"</code> (weighted residual integration via Gauss-Legendre quadrature) or <code>"collocation"</code> (nodal collocation).</li>
+<li><code>return_fn</code>: Utility function <span class="arithmatex">\(u(c)\)</span> or <span class="arithmatex">\(u(s, s')\)</span>.</li>
+<li><code>transition_fn</code>: Transition rule <span class="arithmatex">\(f(s)\)</span> or next-state resource equation.</li>
+<li><code>euler_residual_fn</code>: Explicit continuous Euler equation residual callable.</li>
+<li><code>beta</code>: Discount factor <span class="arithmatex">\(\beta \in (0, 1)\)</span>.</li>
+<li><code>params</code>: Model economic parameters.</li>
+<li><code>borrowing_constraint</code>: Optional lower bound on choice <span class="arithmatex">\(s' \ge \underline{s}\)</span>.</li>
+<li><code>options</code>: Algorithmic dictionary:</li>
+<li><code>"mesh"</code>: Custom pre-constructed <code>FEMMesh</code> instance (e.g. from <code>FEMMesh.from_kinks</code>).</li>
+<li><code>"complementarity"</code>: Complementarity formulation (<code>"fb"</code> for Fischer-Burmeister, <code>"min"</code> for minimum).</li>
+<li><code>"quad_order"</code>: Gauss-Legendre quadrature points per element (default 5).</li>
+</ul>
+<hr />
+<h3 id="solve_fem"><code>solve_fem</code></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>solve_fem(
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    problem_or_domain: FEMProblem | tuple[float, float],
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    *args: Any,
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    backend: str = "numpy",
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    **kwargs: Any,
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>) -&gt; FEMSolution
+</code></pre></div>
+<p>Solves the Finite Element continuous model via non-linear root finding.</p>
+<hr />
+<h2 id="6-result-interface-manuscript-export">6. Result Interface &amp; Manuscript Export</h2>
+<p>Both <code>CollocationSolution</code> and <code>FEMSolution</code> adhere to the canonical <code>puremacro</code> presentation contract:</p>
+<ul>
+<li><strong>Attributes</strong>:</li>
+<li><code>.c</code>: Fitted Chebyshev coefficients or FEM nodal values vector.</li>
+<li><code>.converged</code>: Boolean flag indicating root-finder success.</li>
+<li><code>.residual_norm</code>: Final sup-norm residual <span class="arithmatex">\(\|\mathcal{R}\|_\infty\)</span>.</li>
+<li><code>.n_iter</code>: Total iterations evaluated by the non-linear solver.</li>
+<li><strong>Continuous Evaluation Methods</strong>:</li>
+<li><code>.policy(k)</code>: Evaluates the continuous decision rule <span class="arithmatex">\(g(k)\)</span> at arbitrary continuous state points <span class="arithmatex">\(k\)</span>.</li>
+<li><code>.value(k)</code>: Evaluates the continuous value function <span class="arithmatex">\(V(k)\)</span> (available when solved via Bellman or when return functions are provided).</li>
+<li><code>.euler_residuals(k_eval=None)</code>: Computes Euler equation residuals on an out-of-sample continuous evaluation grid.</li>
+<li><strong>Reporting &amp; Manuscript Export</strong>:</li>
+<li><code>.summary()</code>: Generates a formatted textual diagnostic summary of convergence and residual statistics.</li>
+<li><code>.plot()</code>: Spawns a multi-panel Matplotlib figure displaying policy functions, value functions, and Euler residual distributions.</li>
+<li><code>.to_frame()</code>: Exports nodal solutions and policy values as a <code>pandas.DataFrame</code>.</li>
+<li><code>.to_markdown()</code>, <code>.to_latex()</code>, <code>.to_typst()</code>: Exports formatted tables ready for scientific publication.</li>
+</ul>
+<hr />
+<h2 id="references">References</h2>
+<ul>
+<li><strong>Brock, W. A., &amp; Mirman, L. J. (1972)</strong>. Optimal economic growth and uncertainty: The discounted case. <em>Journal of Economic Theory</em>, 4(3), 479–513.</li>
+<li><strong>Fischer, A. (1992)</strong>. A special Newton-type optimization method. <em>Optimization</em>, 24(3-4), 269–284.</li>
+<li><strong>Judd, K. L. (1992)</strong>. Projection methods for solving aggregate growth models. <em>Journal of Economic Theory</em>, 58(2), 410–452.</li>
+<li><strong>Judd, K. L. (1998)</strong>. <em>Numerical Methods in Economics</em>. MIT Press.</li>
+<li><strong>McGrattan, E. R. (1996)</strong>. Solving the stochastic growth model with a finite element method. <em>Journal of Economic Dynamics and Control</em>, 20(1-3), 19–42.</li>
+<li><strong>McGrattan, E. R. (1999)</strong>. Application of weighted residual methods to dynamic economic models. In <em>Computational Methods for the Study of Dynamic Economies</em> (pp. 114–142). Oxford University Press.</li>
+<li><strong>Miranda, M. J., &amp; Fackler, P. L. (2002)</strong>. <em>Applied Computational Economics and Finance</em>. MIT Press.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

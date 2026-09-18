@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="es" data-lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-title-es="Mercado laboral: flujos, Beveridge e informalidad · Laboratorios MAV" data-title-en="Labor market: flows, Beveridge and informality · MAV Labs">Mercado laboral: flujos, Beveridge e informalidad · Laboratorios MAV</title>
+<meta name="description" content="Laboratorio interactivo: la curva de Beveridge de EE. UU. y Europa, el desempleo de estado estacionario de los flujos u* = s/(s+f) y el mercado laboral dual mexicano de la ENOE en cuatro estados, con un flujo que puedes cambiar.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23111'/%3E%3Cpath d='M7 7c1 9 5 15 18 17' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='17' r='2' fill='%23fff'/%3E%3Ccircle cx='19' cy='21' r='2' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/mav.css?v=dbf54522">
+<style>
+  /* Propios de este laboratorio */
+  .sub-hero { padding: 64px 0 28px; }
+  .sub-hero h2 { max-width: 32ch; }
+  .controls .check { align-items: flex-start; }
+  .controls .check input { margin-top: 5px; }
+  /* En pantallas angostas la columna no debe crecer con una ecuación ancha: la ecuación se desplaza sola */
+  @media (max-width: 800px) { .two { grid-template-columns: minmax(0, 1fr); } }
+  details.math p { overflow-x: auto; overflow-y: hidden; }
+  .links code { overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="../index.html">MAV <span class="es">· Laboratorios</span><span class="en">· Labs</span></a>
+    <nav class="topnav" aria-label="Principal">
+      <a href="../index.html" class="hide-sm"><span class="es">Laboratorios</span><span class="en">All labs</span></a>
+      <a href="https://jorgealonsoortiz.work/macro-avanzada/" data-curso="https://jorgealonsoortiz.work/macro-avanzada/" class="hide-sm"><span class="es">El curso</span><span class="en">The course</span></a>
+      <a href="https://jorgealonsoortiz.work/puremacro/" class="hide-sm">puremacro</a>
+      <span class="lang-toggle" role="group" aria-label="Idioma / Language">
+        <button type="button" data-lang="es">ES</button><button type="button" data-lang="en">EN</button>
+      </span>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero wrap">
+    <p class="kicker"><span class="es">Unidad B2 · Fricciones en el mercado laboral</span><span class="en">Unit B2 · Labor-market frictions</span></p>
+    <h1><span class="es">¿Por qué hay desempleo si hay vacantes?</span><span class="en">Why is there unemployment when there are vacancies?</span></h1>
+    <p class="lead">
+      <span class="es">Con fricciones de búsqueda, el desempleo no es lo que sobra cuando el mercado no se vacía: es el nivel en el que se igualan los flujos de entrada y de salida. Recorre la curva de Beveridge, compara el desempleo con el que dictan los flujos y cambia un flujo del mercado laboral mexicano para ver adónde se mueve la informalidad.</span>
+      <span class="en">With search frictions, unemployment is not what is left over when the market fails to clear: it is the level at which inflows and outflows balance. Trace the Beveridge curve, compare unemployment with the level the flows imply, and change one flow in Mexico's labor market to see where informality goes.</span>
+    </p>
+  </section>
+
+  <section class="wrap lab" aria-label="Vacantes y flujos">
+    <aside class="controls" id="controls-us">
+      <h2><span class="es">Controles</span><span class="en">Controls</span></h2>
+    </aside>
+    <div class="charts">
+      <div id="tiles-us" aria-live="polite"></div>
+      <div id="chart-beveridge"></div>
+      <div id="chart-ustar"></div>
+    </div>
+  </section>
+
+  <section class="wrap sub-hero" aria-labelledby="mx-h">
+    <p class="kicker"><span class="es">El mercado laboral dual mexicano · ENOE en cuatro estados</span><span class="en">Mexico's dual labor market · ENOE in four states</span></p>
+    <h2 id="mx-h"><span class="es">La informalidad también es un equilibrio de flujos</span><span class="en">Informality is also an equilibrium of flows</span></h2>
+    <p class="lead">
+      <span class="es">En México el ajuste corre por la informalidad y la participación, no por el desempleo abierto. Con cuatro estados (formal F, informal I, desempleo U, inactividad N), la matriz de transición de la ENOE implica una distribución de largo plazo. Compárala con la observada y cambia un flujo.</span>
+      <span class="en">In Mexico, adjustment runs through informality and participation, not open unemployment. With four states (formal F, informal I, unemployed U, inactive N), the ENOE transition matrix implies a long-run distribution. Compare it with the observed one and change a flow.</span>
+    </p>
+  </section>
+
+  <section class="wrap lab" aria-label="México, cuatro estados">
+    <aside class="controls" id="controls-mx">
+      <h2><span class="es">Controles</span><span class="en">Controls</span></h2>
+    </aside>
+    <div class="charts">
+      <div id="tiles-mx" aria-live="polite"></div>
+      <div id="chart-matrix"></div>
+      <div id="chart-longrun"></div>
+      <div id="chart-path"></div>
+    </div>
+  </section>
+
+  <section class="band section rule-top" style="margin-top:56px">
+    <div class="wrap two">
+      <div>
+        <h2><span class="es">Qué probar</span><span class="en">Things to try</span></h2>
+        <ol class="try">
+          <li><span class="es">Con Estados Unidos, lleva «Recorrer la curva hasta» a abril de 2020: el desempleo salta a 14.8% y las vacantes caen de 4.2% en febrero a 2.9%. Sigue hasta marzo de 2022: 7.5% de vacantes con 3.7% de desempleo. Desde 2021 la curva queda 0.37 log más afuera que el ajuste previo a 2020, es decir, 45% más vacantes con el mismo desempleo. Cambia a Alemania o a España: también se desplazan hacia afuera (+0.17 y +0.15).</span><span class="en">With the United States, move "Trace the curve up to" to April 2020: unemployment jumps to 14.8% and vacancies fall from 4.2% in February to 2.9%. Keep going to March 2022: 7.5% vacancies with 3.7% unemployment. Since 2021 the curve sits 0.37 log further out than the pre-2020 fit, that is, 45% more vacancies at the same unemployment. Switch to Germany or Spain: they also shift out (+0.17 and +0.15).</span></li>
+          <li><span class="es">Con promedio de 3 meses, u* sigue a u muy de cerca (correlación de 0.97), algo por debajo porque solo cuenta los flujos entre empleo y desempleo; la brecha se cierra a la mitad en unos 2.4 meses. Activa los contrafactuales: de junio de 2007 a octubre de 2009, u* pasa de 4.2% a 10.1%; si solo cambiara f llegaría a 7.6%, y si solo cambiara s, a 6.7%. En abril de 2020, en cambio, casi todo es s: 15.4% contra 5.4%.</span><span class="en">With a 3-month average, u* tracks u very closely (correlation of 0.97), somewhat below it because it only counts flows between employment and unemployment; half the gap closes in about 2.4 months. Turn on the counterfactuals: from June 2007 to October 2009, u* rises from 4.2% to 10.1%; if only f changed it would reach 7.6%, and if only s changed, 6.7%. In April 2020, by contrast, it is almost all s: 15.4% against 5.4%.</span></li>
+          <li><span class="es">En México, en 2024T3 la informalidad observada es 57.6% y la de estado estacionario, 57.1%; en la gráfica de largo plazo, desde mediados de 2009 las dos series nunca se separan más de un punto. Sube la formalización (I → F) 5 pp, de 0.117 a 0.167: la informalidad de largo plazo baja a 50.1%, y en dos trimestres la trayectoria ya recorrió más de la mitad del camino.</span><span class="en">In Mexico, in 2024Q3 observed informality is 57.6% and its steady state 57.1%; in the long-run chart, since mid-2009 the two series are never more than one point apart. Raise formalization (I → F) by 5 pp, from 0.117 to 0.167: long-run informality falls to 50.1%, and within two quarters the path has already covered more than half the way.</span></li>
+          <li><span class="es">Pulsa «Sin cambio», elige la informalización (F → I) y bájala 5 pp: llegas casi al mismo 50.1%, así que retener el empleo formal pesa tanto como crearlo. Ahora cambia el flujo a N → I, de inactivo a informal, con el mismo −5 pp: la informalidad de largo plazo cae a 54.2%, pero pasa la medida a «Empleo formal, % de la PET» y verás que este baja de 23.3% a 20.8% de la población en edad de trabajar. Una tasa de informalidad menor puede ser una mala noticia.</span><span class="en">Press "No change", choose informalization (F → I) and lower it 5 pp: you reach almost the same 50.1%, so keeping formal jobs matters as much as creating them. Now switch the flow to N → I, inactive to informal, with the same −5 pp: long-run informality falls to 54.2%, but switch the measure to "Formal employment, % of WAP" and you will see it drop from 23.3% to 20.8% of the working-age population. A lower informality rate can be bad news.</span></li>
+        </ol>
+      </div>
+      <div>
+        <h2><span class="es">La matemática</span><span class="en">The math</span></h2>
+        <details class="math" open>
+          <summary><span class="es">Desempleo de estado estacionario</span><span class="en">Steady-state unemployment</span></summary>
+          <p><span class="es">Con una probabilidad mensual de encontrar empleo \(f=p_{UE}\) y de perderlo \(s=p_{EU}\), la tasa de desempleo evoluciona como</span><span class="en">With a monthly job-finding probability \(f=p_{UE}\) and a separation probability \(s=p_{EU}\), the unemployment rate evolves as</span></p>
+          $$u_{t+1}=s\,(1-u_t)+(1-f)\,u_t$$
+          $$u^*=\frac{s}{s+f}.$$
+          <p><span class="es">La distancia a \(u^*\) se reduce a razón \(1-f-s\) por mes: \(u_{t+1}-u^*=(1-f-s)(u_t-u^*)\), con vida media \(\ln\tfrac12/\ln(1-f-s)\). Como \(f\approx 0.25,\) \(u\) persigue a \(u^*\) en pocos meses. Los contrafactuales fijan una de las dos tasas en su media de 1990–2026 (Shimer 2012): \(\bar s/(\bar s+f_t)\) y \(s_t/(s_t+\bar f)\).</span><span class="en">The distance to \(u^*\) shrinks at rate \(1-f-s\) per month: \(u_{t+1}-u^*=(1-f-s)(u_t-u^*)\), with half-life \(\ln\tfrac12/\ln(1-f-s)\). Since \(f\approx 0.25,\) \(u\) chases \(u^*\) within a few months. The counterfactuals hold one of the two rates at its 1990–2026 mean (Shimer 2012): \(\bar s/(\bar s+f_t)\) and \(s_t/(s_t+\bar f)\).</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">La curva de Beveridge</span><span class="en">The Beveridge curve</span></summary>
+          <p><span class="es">Con emparejamiento \(m=\mu\,u^{\alpha}v^{1-\alpha}\), la tasa de hallazgo es \(f=\mu\,\theta^{1-\alpha}\) con \(\theta=v/u\). En estado estacionario \(s(1-u)=\mu\,u^{\alpha}v^{1-\alpha}\), y con \(1-u\approx 1\):</span><span class="en">With matching \(m=\mu\,u^{\alpha}v^{1-\alpha}\), the finding rate is \(f=\mu\,\theta^{1-\alpha}\) with \(\theta=v/u\). In steady state \(s(1-u)=\mu\,u^{\alpha}v^{1-\alpha}\), and with \(1-u\approx 1\):</span></p>
+          $$\log v=\frac{\log s-\log\mu}{1-\alpha}-\frac{\alpha}{1-\alpha}\log u .$$
+          <p><span class="es">La pendiente \(b\) de la regresión de \(\log v\) sobre \(\log u\) antes de 2020 identifica \(\alpha=b/(b-1)\). El desplazamiento es el residuo medio desde 2021 (como en T01_B): dentro del modelo, más separaciones \(s\) o menos eficiencia \(\mu\). Los choques de productividad mueven la economía a lo largo de la curva, con lazos, porque \(u\) ajusta lento.</span><span class="en">The slope \(b\) of the regression of \(\log v\) on \(\log u\) before 2020 identifies \(\alpha=b/(b-1)\). The shift is the mean residual since 2021 (as in T01_B): within the model, more separations \(s\) or lower efficiency \(\mu\). Productivity shocks move the economy along the curve, in loops, because \(u\) adjusts slowly.</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">Cuatro estados: una cadena de Markov</span><span class="en">Four states: a Markov chain</span></summary>
+          <p><span class="es">Sea \(x_t=(F_t,I_t,U_t,N_t)\) la distribución de la población en edad de trabajar y \(P\) la matriz trimestral, con \(p_{od}\) la probabilidad de pasar de \(o\) a \(d\). Entonces</span><span class="en">Let \(x_t=(F_t,I_t,U_t,N_t)\) be the distribution of the working-age population and \(P\) the quarterly matrix, with \(p_{od}\) the probability of moving from \(o\) to \(d\). Then</span></p>
+          $$x_{t+1}=x_t\,P,\qquad \pi=\pi P,\quad \textstyle\sum_d\pi_d=1 .$$
+          <p><span class="es">La distribución estacionaria \(\pi\) es el vector propio izquierdo de valor propio 1. La distancia a \(\pi\) cae como \(|\lambda_2|^t\), con \(\lambda_2\) el segundo valor propio de mayor módulo: vida media \(\ln\tfrac12/\ln|\lambda_2|\). Informalidad \(=I/(F+I)\); desempleo abierto \(=U/(F+I+U)\). Al cambiar \(p_{od}\), la permanencia \(p_{oo}\) absorbe la diferencia. Matriz y acervos se promedian sobre cuatro trimestres porque las transiciones de la ENOE tienen una estacionalidad fuerte: los choques del cuarto trimestre al primero.</span><span class="en">The stationary distribution \(\pi\) is the left eigenvector with eigenvalue 1. The distance to \(\pi\) falls like \(|\lambda_2|^t\), with \(\lambda_2\) the second-largest eigenvalue in modulus: half-life \(\ln\tfrac12/\ln|\lambda_2|\). Informality \(=I/(F+I)\); open unemployment \(=U/(F+I+U)\). When \(p_{od}\) changes, the stay probability \(p_{oo}\) absorbs the difference. Matrix and stocks are averaged over four quarters because ENOE transitions are strongly seasonal, especially from the fourth quarter to the first.</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">Qué mide cada dato</span><span class="en">What each series measures</span></summary>
+          <p><span class="es">En EE. UU., \(v\) son las vacantes de JOLTS sobre la fuerza laboral; en Europa, la tasa de vacantes de Eurostat, vacantes sobre puestos totales. Los niveles no son comparables entre fuentes; las formas y los desplazamientos, sí. El \(u^*\) de dos estados ignora los flujos hacia y desde la inactividad, por eso queda por debajo de \(u\) en promedio. Las participaciones de la ENOE salen del panel rotatorio (<code>puremacro.labor_flows_enoe</code>) y pueden diferir de las cifras oficiales del INEGI.</span><span class="en">In the US, \(v\) is JOLTS openings over the labor force; in Europe, Eurostat's vacancy rate, vacancies over total posts. Levels are not comparable across sources; shapes and shifts are. The two-state \(u^*\) ignores flows into and out of inactivity, which is why it sits below \(u\) on average. ENOE shares come from the rotating panel (<code>puremacro.labor_flows_enoe</code>) and can differ from INEGI's official figures.</span></p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="section wrap">
+    <h2><span class="es">Llévalo más lejos</span><span class="en">Take it further</span></h2>
+    <div class="two">
+      <ul class="links">
+        <li><a href="https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T08_A_labor_flows_es.ipynb" class="es">Cuaderno T08_A en Colab: flujos de trabajadores, la ENOE y el enigma de Shimer →</a><a href="https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T08_A_labor_flows.ipynb" class="en">Notebook T08_A in Colab: worker flows, the ENOE and the Shimer puzzle →</a></li>
+        <li><a href="../diapositivas/MAV_08_mercados_no_competitivos.pdf" data-deck="8"><span class="es">Diapositivas 8: con fricciones de búsqueda el desempleo es un equilibrio →</span><span class="en">Slides 8: with search frictions, unemployment is an equilibrium (Spanish) →</span></a></li>
+        <li><a href="https://jorgealonsoortiz.work/puremacro/"><span class="es">En Python: </span><span class="en">In Python: </span><code>puremacro.labor_flows.transitions_from_cps_flows</code>, <code>puremacro.labor_flows_enoe.transitions_from_enoe</code>, <code>puremacro.fetch.fetch_jolts</code> →</a></li>
+      </ul>
+      <p class="small" id="source"></p>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span class="es">Macroeconomía Avanzada · ITAM · Jorge Alonso-Ortiz. Código MIT; textos y diapositivas <a href="https://creativecommons.org/licenses/by/4.0/deed.es">CC BY 4.0</a>. Fuente en</span><span class="en">Advanced Macroeconomics · ITAM · Jorge Alonso-Ortiz. Code MIT; text and slides <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Source at</span>
+    <a href="https://github.com/jalonso1979/puremacro/tree/main/curso">github.com/jalonso1979/puremacro</a>.
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script defer src="../assets/mav.js?v=25ec1916"></script>
+<script defer src="../assets/num.js?v=7de34487"></script>
+<script defer src="mercado-laboral.js?v=0503c958"></script>
+</body>
+</html>

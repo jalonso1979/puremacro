@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="es" data-lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-title-es="Discretizar un AR(1): Tauchen frente a Rouwenhorst · Laboratorios MAV" data-title-en="Discretizing an AR(1): Tauchen versus Rouwenhorst · MAV Labs">Discretizar un AR(1): Tauchen frente a Rouwenhorst · Laboratorios MAV</title>
+<meta name="description" content="Laboratorio interactivo: aproxima un AR(1) con una cadena de Markov por Tauchen (1986) y por Rouwenhorst (1995), y mide cuánto se distorsionan la persistencia y la volatilidad.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23111'/%3E%3Cpath d='M6 25h4v-7h4v-9h4v9h4v7h4' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/mav.css?v=dbf54522">
+<style>
+  .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+  @media (max-width: 700px) { .pair { grid-template-columns: 1fr; } }
+  #tiles.tiles { grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); }
+  @media (max-width: 800px) { .two { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="../index.html">MAV <span class="es">· Laboratorios</span><span class="en">· Labs</span></a>
+    <nav class="topnav" aria-label="Principal">
+      <a href="../index.html" class="hide-sm"><span class="es">Laboratorios</span><span class="en">All labs</span></a>
+      <a href="https://jorgealonsoortiz.work/macro-avanzada/" data-curso="https://jorgealonsoortiz.work/macro-avanzada/" class="hide-sm"><span class="es">El curso</span><span class="en">The course</span></a>
+      <a href="https://jorgealonsoortiz.work/puremacro/" class="hide-sm">puremacro</a>
+      <span class="lang-toggle" role="group" aria-label="Idioma / Language">
+        <button type="button" data-lang="es">ES</button><button type="button" data-lang="en">EN</button>
+      </span>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero wrap">
+    <p class="kicker"><span class="es">Unidad A3 · Riesgo e incertidumbre</span><span class="en">Unit A3 · Risk and uncertainty</span></p>
+    <h1><span class="es">¿Qué se pierde al convertir un AR(1) en una cadena de Markov?</span><span class="en">What is lost when an AR(1) becomes a Markov chain?</span></h1>
+    <p class="lead">
+      <span class="es">Los métodos globales, como VFI o EGM, necesitan choques con un número finito de estados. Tauchen (1986) y Rouwenhorst (1995) aproximan z′ = ρz + σε con N estados. Con poca persistencia da casi igual cuál uses. Con ρ cerca de 1, Tauchen exagera la volatilidad y la persistencia, y su cadena se queda atorada.</span>
+      <span class="en">Global methods such as VFI or EGM need shocks with a finite number of states. Tauchen (1986) and Rouwenhorst (1995) approximate z′ = ρz + σε with N states. With little persistence it hardly matters which one you use. With ρ close to 1, Tauchen overstates volatility and persistence, and its chain gets stuck.</span>
+    </p>
+  </section>
+
+  <section class="wrap lab" aria-label="Laboratorio">
+    <aside class="controls" id="controls">
+      <h2><span class="es">Controles</span><span class="en">Controls</span></h2>
+    </aside>
+    <div class="charts">
+      <div id="tiles" aria-live="polite"></div>
+      <div id="chart-dist"></div>
+      <div id="chart-sd"></div>
+      <div id="chart-rho"></div>
+      <div class="pair">
+        <div id="chart-sim-t"></div>
+        <div id="chart-sim-r"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band section rule-top">
+    <div class="wrap two">
+      <div>
+        <h2><span class="es">Qué probar</span><span class="en">Things to try</span></h2>
+        <ol class="try">
+          <li><span class="es">Empieza con la PTF de Fernald (ρ = 0.964, N = 7, m = 3), como en el mazo 3. Tauchen infla la desviación estándar 26% y sube la persistencia a ρ̂ = 0.980: la vida media de un choque pasa de 18.9 a 34.4 trimestres. Rouwenhorst reproduce los dos momentos exactamente. La calibración de ingreso de T06_A (ρ = 0.90, σ = 0.20, N = 5) tiene el mismo problema: +26.9% en σ.</span><span class="en">Start with Fernald TFP (ρ = 0.964, N = 7, m = 3), as in deck 3. Tauchen inflates the standard deviation by 26% and raises persistence to ρ̂ = 0.980: the half-life of a shock goes from 18.9 to 34.4 quarters. Rouwenhorst reproduces both moments exactly. The T06_A income calibration (ρ = 0.90, σ = 0.20, N = 5) has the same problem: +26.9% in σ.</span></li>
+          <li><span class="es">Pulsa «ρ = 0.99». El error de Tauchen en σ sube a 31.9% y ρ̂ = 0.9999. En la simulación, con los mismos choques, la cadena de Tauchen no cambia de estado en 200 periodos y la de Rouwenhorst cambia 6 veces. El paso de la malla es de 7.1σ: para salir del estado central hace falta un choque de más de 3.5 desviaciones estándar.</span><span class="en">Press "ρ = 0.99". Tauchen's error in σ rises to 31.9% and ρ̂ = 0.9999. In the simulation, with the same shocks, the Tauchen chain does not change state in 200 periods and the Rouwenhorst chain changes 6 times. The grid step is 7.1σ: leaving the middle state takes a shock larger than 3.5 standard deviations.</span></li>
+          <li><span class="es">Vuelve a ρ = 0.964 y sube N de 7 a 21: el error de Tauchen en σ baja a 3.9%. Con N = 3, su cadena queda congelada (ρ̂ = 1.0000). Rouwenhorst acierta con cualquier N; lo que gana con más estados es la forma de la distribución. Su curtosis es 3 − 2/(N − 1): 2.67 con N = 7 y 2.90 con N = 21, frente a 3 en la normal.</span><span class="en">Go back to ρ = 0.964 and raise N from 7 to 21: Tauchen's error in σ falls to 3.9%. With N = 3, its chain freezes (ρ̂ = 1.0000). Rouwenhorst is right for any N; what it gains from more states is the shape of the distribution. Its kurtosis is 3 − 2/(N − 1): 2.67 with N = 7 and 2.90 with N = 21, against 3 for the normal.</span></li>
+          <li><span class="es">Cambia σ de 0.0088 a 0.20: la malla se estira, pero ningún error se mueve, porque los dos métodos escalan con σ/√(1 − ρ²). Lo que sí importa es m. Con ρ = 0.964 y N = 7, bajar m de 3 a 2 reduce el error de Tauchen en σ de +26% a +4.6%; con m = 1 la malla es tan estrecha que lo subestima 37%.</span><span class="en">Change σ from 0.0088 to 0.20: the grid stretches, but no error moves, because both methods scale with σ/√(1 − ρ²). What does matter is m. With ρ = 0.964 and N = 7, lowering m from 3 to 2 cuts Tauchen's error in σ from +26% to +4.6%; with m = 1 the grid is so narrow that it understates σ by 37%.</span></li>
+        </ol>
+      </div>
+      <div>
+        <h2><span class="es">La matemática</span><span class="en">The math</span></h2>
+        <details class="math" open>
+          <summary>Tauchen (1986)</summary>
+          <p><span class="es">Malla equiespaciada en \(\pm m\,\sigma_z\), con \(\sigma_z=\sigma/\sqrt{1-\rho^2}\) y paso \(\Delta\). La probabilidad de pasar de \(z_i\) a \(z_j\) es la masa de la celda de \(z_j\) bajo \(\mathcal N(\rho z_i,\sigma^2)\):</span><span class="en">Evenly spaced grid on \(\pm m\,\sigma_z\), with \(\sigma_z=\sigma/\sqrt{1-\rho^2}\) and step \(\Delta\). The probability of moving from \(z_i\) to \(z_j\) is the mass of \(z_j\)'s cell under \(\mathcal N(\rho z_i,\sigma^2)\):</span></p>
+          $$\begin{aligned}\Pi_{ij}={}&amp;\Phi\!\left(\frac{z_j+\Delta/2-\rho z_i}{\sigma}\right)\\&amp;-\Phi\!\left(\frac{z_j-\Delta/2-\rho z_i}{\sigma}\right),\end{aligned}$$
+          <p><span class="es">con las colas completas en los extremos. Si \(\Delta\) es grande frente a \(\sigma\), casi toda la masa cae en la celda de origen y la cadena se atora. Con \(m\) y \(N\) fijos, \(\Delta/\sigma=2m/\big((N-1)\sqrt{1-\rho^2}\big)\) explota cuando \(\rho\to 1\).</span><span class="en">with the full tails at the end points. If \(\Delta\) is large relative to \(\sigma\), almost all the mass falls in the starting cell and the chain gets stuck. With \(m\) and \(N\) fixed, \(\Delta/\sigma=2m/\big((N-1)\sqrt{1-\rho^2}\big)\) explodes as \(\rho\to 1\).</span></p>
+        </details>
+        <details class="math">
+          <summary>Rouwenhorst (1995)</summary>
+          <p><span class="es">Con \(p=q=(1+\rho)/2\), se parte de \(\Pi_2=\begin{pmatrix}p&amp;1-p\\1-p&amp;p\end{pmatrix}\) y se construye</span><span class="en">With \(p=q=(1+\rho)/2\), start from \(\Pi_2=\begin{pmatrix}p&amp;1-p\\1-p&amp;p\end{pmatrix}\) and build</span></p>
+          $$\begin{aligned}\Pi_N={}&amp;p\begin{bmatrix}\Pi_{N-1}&amp;0\\0^{\top}&amp;0\end{bmatrix}+(1-p)\begin{bmatrix}0&amp;\Pi_{N-1}\\0&amp;0^{\top}\end{bmatrix}\\&amp;+(1-q)\begin{bmatrix}0^{\top}&amp;0\\\Pi_{N-1}&amp;0\end{bmatrix}+q\begin{bmatrix}0&amp;0^{\top}\\0&amp;\Pi_{N-1}\end{bmatrix},\end{aligned}$$
+          <p><span class="es">dividiendo entre 2 las filas interiores. La malla va de \(-\psi\) a \(\psi\), con \(\psi=\sqrt{N-1}\,\sigma_z\). Kopecky y Suen (2010) muestran que la cadena reproduce exactamente \(\rho\) y \(\sigma_z^2\) para cualquier \(N\); su distribución estacionaria es binomial.</span><span class="en">dividing the interior rows by 2. The grid runs from \(-\psi\) to \(\psi\), with \(\psi=\sqrt{N-1}\,\sigma_z\). Kopecky and Suen (2010) show that the chain reproduces \(\rho\) and \(\sigma_z^2\) exactly for any \(N\); its stationary distribution is binomial.</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">Momentos implícitos de la cadena</span><span class="en">Implied moments of the chain</span></summary>
+          <p><span class="es">La distribución estacionaria resuelve \(\pi^{\top}\Pi=\pi^{\top}\). Con ella,</span><span class="en">The stationary distribution solves \(\pi^{\top}\Pi=\pi^{\top}\). With it,</span></p>
+          $$\hat\sigma^2=\sum_i\pi_i(z_i-\bar z)^2,$$
+          $$\hat\rho=\frac{1}{\hat\sigma^2}\sum_i\pi_i(z_i-\bar z)\Big(\sum_j\Pi_{ij}z_j-\bar z\Big).$$
+          <p><span class="es">\(\pi\) se calcula por reducción de estados (Grassmann, Taksar y Heyman, 1985), que no resta y sigue siendo exacta cuando la cadena de Tauchen casi no se mueve. Las colas de \(\Phi\) se evalúan con precisión relativa de máquina.</span><span class="en">\(\pi\) is computed by state reduction (Grassmann, Taksar and Heyman, 1985), which never subtracts and stays accurate when the Tauchen chain barely moves. The tails of \(\Phi\) are evaluated to machine relative precision.</span></p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="section wrap">
+    <h2><span class="es">Llévalo más lejos</span><span class="en">Take it further</span></h2>
+    <div class="two">
+      <ul class="links">
+        <li><a href="https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T06_A_wealth_inequality_es.ipynb" class="es">Cuaderno T06_A en Colab: el ingreso discretizado con Tauchen dentro de Aiyagari y EGM →</a><a href="https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T06_A_wealth_inequality.ipynb" class="en">Notebook T06_A in Colab: Tauchen-discretized income inside Aiyagari and EGM →</a></li>
+        <li><a href="https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T09_A_validation_gallery_es.ipynb" class="es">Cuaderno T09_A en Colab: crecimiento estocástico con Rouwenhorst, VFI frente a la forma cerrada →</a><a href="https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T09_A_validation_gallery.ipynb" class="en">Notebook T09_A in Colab: stochastic growth with Rouwenhorst, VFI against the closed form →</a></li>
+        <li><a href="../diapositivas/MAV_03_riesgo_e_incertidumbre.pdf" data-deck="3"><span class="es">Diapositivas 3: riesgo e incertidumbre →</span><span class="en">Slides 3: risk and uncertainty (Spanish) →</span></a></li>
+        <li><a href="https://jorgealonsoortiz.work/puremacro/"><span class="es">En Python: </span><span class="en">In Python: </span><code>puremacro.vfi.tauchen</code>, <code>puremacro.vfi.rouwenhorst</code>, <code>puremacro.vfi.markov_stationary</code> →</a></li>
+      </ul>
+      <p class="small" id="source"></p>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span class="es">Macroeconomía Avanzada · ITAM · Jorge Alonso-Ortiz. Código MIT; textos y diapositivas <a href="https://creativecommons.org/licenses/by/4.0/deed.es">CC BY 4.0</a>. Fuente en</span><span class="en">Advanced Macroeconomics · ITAM · Jorge Alonso-Ortiz. Code MIT; text and slides <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Source at</span>
+    <a href="https://github.com/jalonso1979/puremacro/tree/main/curso">github.com/jalonso1979/puremacro</a>.
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script defer src="../assets/mav.js?v=25ec1916"></script>
+<script defer src="../assets/num.js?v=7de34487"></script>
+<script defer src="incertidumbre.js?v=c7cef8ef"></script>
+</body>
+</html>
