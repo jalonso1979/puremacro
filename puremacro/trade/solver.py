@@ -196,8 +196,36 @@ def _damped_newton_solve(
 def _build_cge_sparsity_pattern(
     calib: TradeCalibrationResult,
     tau_a: np.ndarray | None = None,
+    sigma_y: float = 0.0,
+    variable_markups: bool = False,
+    config: Any | None = None,
+    full_block: bool = False,
+    **kwargs: Any,
 ) -> sp.csc_matrix:
     """Construct structural Jacobian sparsity pattern for the CGE equilibrium system."""
+    if config is not None:
+        tech = getattr(config, "technology", None)
+        if tech is not None:
+            sigma_y = max(float(sigma_y), float(getattr(tech, "sigma_y", 0.0)))
+        mkt = getattr(config, "market_structure", None)
+        if mkt is not None:
+            variable_markups = variable_markups or bool(getattr(mkt, "variable_markups", False))
+
+    tech_arg = kwargs.get("technology") or kwargs.get("tech_cfg")
+    if tech_arg is not None:
+        sigma_y = max(float(sigma_y), float(getattr(tech_arg, "sigma_y", 0.0)))
+
+    mkt_arg = kwargs.get("market_structure") or kwargs.get("market_cfg")
+    if mkt_arg is not None:
+        variable_markups = variable_markups or bool(getattr(mkt_arg, "variable_markups", False))
+
+    if "sigma_y" in kwargs:
+        sigma_y = max(float(sigma_y), float(kwargs["sigma_y"]))
+    if "variable_markups" in kwargs:
+        variable_markups = variable_markups or bool(kwargs["variable_markups"])
+    if "full_block" in kwargs:
+        full_block = full_block or bool(kwargs["full_block"])
+
     ns, nc = calib.n_sectors, calib.n_countries
     M = ns * nc
     n = 2 * M + 4 * nc - 1
@@ -220,7 +248,15 @@ def _build_cge_sparsity_pattern(
     # Block ff1: Zero-profit condition
     # ff1 w.r.t p: (I - B^T)
     S[M:2 * M, :M] = sp.eye(M, dtype=bool) + sp.csc_matrix(a_eff.T)
-    # ff1 w.r.t y: identically zero in standard Leontief
+
+    # Dynamic activation of ff1 w.r.t y (cross-derivative block S[M:2M, M:2M])
+    # Activated when outer CES nest is non-Leontief (sigma_y >= 1e-6) or variable markups are active
+    if (float(sigma_y) >= 1e-6) or bool(variable_markups):
+        if full_block:
+            S[M:2 * M, M:2 * M] = True
+        else:
+            S[M:2 * M, M:2 * M] = sp.eye(M, dtype=bool)
+
     # ff1 w.r.t r, w: only for national factor returns of country i
     for i in range(nc):
         s_start, s_end = M + i * ns, M + (i + 1) * ns
@@ -252,7 +288,7 @@ def _build_cge_sparsity_pattern(
         S[2 * M + 3 * nc - 1 + i, s_start:s_end] = True
         S[2 * M + 3 * nc - 1 + i, 2 * M + 2 * nc + i] = True
     S[2 * M + 3 * nc - 1 :, :M] = True
-    S[2 * M + 3 * nc - 1 :, 2 * M + 3 * nc :] = True
+    S[2 * M + 3 * nc - 1 :, 2 * M + 3 * nc - 1 :] = True
 
     return S.tocsc()
 
@@ -1059,7 +1095,13 @@ def solve_trade_equilibrium(
     elif method == "sparse_lu":
         # Build structural sparsity pattern
         try:
-            sparsity_pat = _build_cge_sparsity_pattern(calib, tau_a=tau_a)
+            sparsity_pat = _build_cge_sparsity_pattern(
+                calib,
+                tau_a=tau_a,
+                sigma_y=kwargs.get("sigma_y", 0.0),
+                variable_markups=kwargs.get("variable_markups", False),
+                config=kwargs.get("config"),
+            )
         except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             sparsity_pat = None
         x_sol, conv, iters, max_res, diff, res = _sparse_lu_solve(
@@ -1088,7 +1130,13 @@ def solve_trade_equilibrium(
         )
         if is_extended:
             # Fall back to sparse LU for nonlinear extensions
-            sparsity_pat = _build_cge_sparsity_pattern(calib, tau_a=tau_a)
+            sparsity_pat = _build_cge_sparsity_pattern(
+                calib,
+                tau_a=tau_a,
+                sigma_y=kwargs.get("sigma_y", 0.0),
+                variable_markups=kwargs.get("variable_markups", False),
+                config=kwargs.get("config"),
+            )
             x_sol, conv, iters, max_res, diff, res = _sparse_lu_solve(
                 obj_fun, x_init, tol=tol, max_iter=max_iter, sparsity=sparsity_pat
             )
@@ -1105,6 +1153,26 @@ def solve_trade_equilibrium(
                 replicate_matlab_precedence=replicate_matlab_precedence,
                 backend=backend,
             )
+    elif method == "quasi_condensed":
+        from puremacro.trade.flexible import _quasi_condensed_solve
+
+        flexible_cfg = kwargs.get("config")
+        if flexible_cfg is None:
+            from puremacro.trade.flexible import FlexibleTechnologyConfig, FlexibleTradeModelConfig
+            flexible_cfg = FlexibleTradeModelConfig(
+                technology=FlexibleTechnologyConfig(sigma_y=kwargs.get("sigma_y", 0.0))
+            )
+        x_sol, conv, iters, max_res, diff, res, meta = _quasi_condensed_solve(
+            calib=calib,
+            config=flexible_cfg,
+            tau_a=tau_a,
+            taufd_a=taufd_a,
+            tauf_vec=tauf_vec,
+            tauf_fd_vec=tauf_fd_vec,
+            x0=x_init,
+            tol=tol,
+            max_iter=max_iter,
+        )
     elif method == "broyden":
         x_sol, conv, iters, max_res, diff, res = _broyden_solve(
             obj_fun, x_init, tol=tol, max_iter=max_iter
@@ -1134,7 +1202,7 @@ def solve_trade_equilibrium(
         iters = int(getattr(res_scipy, "nfev", 0))
     else:
         raise ValueError(
-            f"Unknown method '{method}'. Valid options are: 'newton', 'sparse_lu', 'krylov', 'condensed', 'broyden', 'hybr', 'lm'."
+            f"Unknown method '{method}'. Valid options are: 'newton', 'sparse_lu', 'krylov', 'condensed', 'quasi_condensed', 'broyden', 'hybr', 'lm'."
         )
 
     t_solve_end = time.perf_counter()

@@ -345,7 +345,7 @@ class AnalyticGradientResult:
                 ax2.set_xlabel("Singular Value Index")
                 ax2.set_ylabel("Singular Value $\\sigma_i$")
                 ax2.grid(True, alpha=0.3)
-            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+            except Exception:
                 ax2.text(0.5, 0.5, "Aggregate sensitivities not available", ha="center", va="center")
 
         if show:
@@ -621,7 +621,7 @@ def _solve_ift_linear_system(
     """
     try:
         cond_num = float(np.linalg.cond(J_c))
-    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+    except Exception:
         cond_num = np.inf
 
     rhs = -J_theta
@@ -633,7 +633,7 @@ def _solve_ift_linear_system(
             lu, piv = lu_factor(J_c)
             grad_c = lu_solve((lu, piv), rhs)
             return grad_c, cond_num, "LU Factorization"
-        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+        except Exception:
             pass  # Fall through to regularization
 
     # 2. Secondary: Tikhonov Regularization (J_c^T J_c + lambda I) X = J_c^T rhs
@@ -646,7 +646,7 @@ def _solve_ift_linear_system(
                 lu_reg, piv_reg = lu_factor(reg_mat)
                 grad_c = lu_solve((lu_reg, piv_reg), reg_rhs)
                 return grad_c, cond_num, f"Tikhonov Regularization (lambda={regularization:.1e})"
-        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+        except Exception:
             pass  # Fall through to SVD
 
     # 3. Tertiary: Truncated SVD Pseudoinverse
@@ -695,7 +695,7 @@ def _compute_aggregate_gradients(
                     dim_nodes = h_sol.mesh.dim_nodes[0] if hasattr(h_sol, "mesh") else k_grid
                     dpol_k = np.interp(k_grid, dim_nodes, grad_coefficients[:, k_idx])
                     grad_K[k_idx] = float(np.sum(mu_star * dpol_k))
-                except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+                except Exception:
                     grad_K[k_idx] = 0.0
 
             # General equilibrium price feedback
@@ -760,7 +760,7 @@ def _compute_aggregate_gradients(
                 k_star = float(brentq(lambda k: solution.policy(k) - k, k_min + 1e-4, k_max - 1e-4))
             else:
                 k_star = float(s_mid)
-        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+        except Exception:
             k_star = float(s_mid)
 
         # Policy derivative g'(k*) via central difference
@@ -1119,7 +1119,7 @@ def gmm_objective_and_gradient(
                     k_val = float(brentq(lambda k: sol_eval.policy(k) - k, k_min + 1e-4, k_max - 1e-4))
                 else:
                     k_val = float(0.5 * (k_min + k_max))
-            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+            except Exception:
                 k_val = float(0.5 * (k_min + k_max))
         else:
             k_val = 1.0

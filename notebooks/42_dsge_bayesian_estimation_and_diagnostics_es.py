@@ -228,7 +228,7 @@ assert np.isclose(comp_table["posterior_prob"].sum(), 1.0, atol=1e-5)
 # ---------------------------------------------------------------------------
 # Visualization Gallery (5 Hero Figures)
 # ---------------------------------------------------------------------------
-fig = plt.figure(figsize=(14, 12))
+fig = plt.figure(figsize=(14, 12), layout="constrained")
 
 # Subplot 1: Mode finding comparison
 ax1 = plt.subplot2grid((3, 2), (0, 0))
@@ -237,7 +237,7 @@ bars = ax1.bar(
     mode_comparison_df["Algorithm"],
     mode_comparison_df["Neg Log Post"],
     color=colors_bar,
-    edgecolor="0.2",
+    edgecolor=_nbstyle.SPINE,
     width=0.55,
 )
 ax1.set_ylabel("Negative Log-Posterior")
@@ -273,7 +273,7 @@ prior_dens = prior_dens / np.max(prior_dens)
 
 ax3.hist(post_sigma, bins=15, density=True, alpha=0.5, color=colors_bar[0], label="Posterior MCMC (csigma)")
 ax3.plot(x_grid, prior_dens * (1.0 / (np.std(post_sigma) * np.sqrt(2 * np.pi))),
-         color="black", lw=2, linestyle="--", label="Prior Density (Normal)")
+         color=_nbstyle.TINTA, lw=2, linestyle="--", label="Prior Density (Normal)")
 ax3.set_xlabel("Intertemporal Elasticity parameter (csigma)")
 ax3.set_ylabel("Density")
 ax3.set_title("Prior vs Posterior Distribution: Risk Aversion (csigma)")
@@ -296,7 +296,7 @@ for idx, shk in enumerate(shocks_to_plot):
     pos_base += pos_part
     neg_base += neg_part
 
-ax4.plot(t_idx, df_decomp["actual"], color="black", lw=1.2, label="Actual dy")
+ax4.plot(t_idx, df_decomp["actual"], color=_nbstyle.TINTA, lw=1.2, label="Actual dy")
 ax4.set_xlabel("Quarters (1966Q1 - 2004Q4)")
 ax4.set_ylabel("Quarterly Growth (%)")
 ax4.set_title("Historical Shock Decomposition: Output Growth (dy)")
@@ -308,7 +308,7 @@ hist_periods = np.arange(140, 156)
 hist_dy = data_sw07["dy"].iloc[140:156].to_numpy()
 fc_periods = np.arange(156, 156 + fc.horizon)
 
-ax5.plot(hist_periods, hist_dy, color="black", lw=2, label="Observed GDP Growth (dy)")
+ax5.plot(hist_periods, hist_dy, color=_nbstyle.TINTA, lw=2, label="Observed GDP Growth (dy)")
 ax5.plot(fc_periods, fc.mean["dy"], color=colors_bar[0], lw=2.2, label="Forecast Mean")
 ax5.fill_between(
     fc_periods,
@@ -318,14 +318,11 @@ ax5.fill_between(
     alpha=0.25,
     label=f"{int(fc.ci * 100)}% Confidence Fan",
 )
-ax5.axvline(155.5, color="0.4", linestyle=":", lw=1.5, label="Forecast Origin (2004Q4)")
+ax5.axvline(155.5, color=_nbstyle.NOTA, linestyle=":", lw=1.5, label="Forecast Origin (2004Q4)")
 ax5.set_xlabel("Quarterly Periods")
 ax5.set_ylabel("Output Growth (%)")
 ax5.set_title("Out-of-Sample Central Bank Forecast Cone: GDP Growth")
 ax5.legend(loc="upper left", frameon=True)
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## Lectura de los resultados

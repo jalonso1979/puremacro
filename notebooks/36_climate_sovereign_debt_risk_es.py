@@ -13,16 +13,24 @@
 # %% [markdown]
 # # Riesgo de Transición Climática y Sostenibilidad de la Deuda Soberana
 #
-# **¿Cómo moldean los daños del cambio climático, los costos de adaptación y las políticas tributarias de descarbonización la sostenibilidad de la deuda pública a largo plazo?**
+# **¿Cómo moldean los daños climáticos físicos, el gasto público en adaptación y las políticas de descarbonización la sostenibilidad de la deuda soberana a largo plazo, y pueden los ingresos por impuestos al carbono salvaguardar la solvencia fiscal?**
 #
-# Las autoridades fiscales y los bancos centrales reconocen cada vez más que el cambio climático constituye un riesgo macrofiscal de primer orden:
-# 1. **Canal de Daños Directos**: El aumento de la temperatura reduce la productividad laboral y la eficiencia del capital, contrayendo la base tributaria.
-# 2. **Canal del Gasto de Adaptación**: Mayor calentamiento exige mayor gasto público en infraestructura resiliente y atención a desastres.
-# 3. **Canal de Prima de Riesgo Soberano**: Las tasas soberanas incorporan la vulnerabilidad climática mediante mayores diferenciales de crédito:
-#    $$ r_t = r^* + \psi_{debt} \max(0, b_t - 0.60) + \psi_{clim} T_t $$
-# 4. **Canal de Reciclaje de Ingresos**: Un precio al carbono predecible genera ingresos fiscales que amortizan deuda y financian infraestructura verde.
+# Los ministerios de finanzas, las agencias calificadoras de riesgo crediticio y los organismos multilaterales reconocen de forma creciente que el cambio climático antropogénico constituye una vulnerabilidad macrofiscal de primer orden. Mientras que los análisis convencionales de Sostenibilidad de la Deuda (DSA) se enfocan exclusivamente en el diferencial entre tasa de interés y crecimiento económico ($r - g$) y en el balance primario estructural, el calentamiento global introduce cuatro canales de transmisión no lineales que redefinen la solvencia del Estado:
 #
-# En este tutorial interactivo simulamos la dinámica de deuda soberana acoplada al **modelo DICE** mediante `puremacro.climate`.
+# 1. **Canal de Daño Físico y Base Tributaria**:
+#    El aumento sostenido de la temperatura y los choques climáticos extremos deprimen la productividad factorial y aceleran la depreciación del capital. Al contraerse el producto en una fracción $\Omega(T_t)$, la base impositiva se reduce, erosionando los ingresos tributarios estructurales.
+# 2. **Canal de Gasto Público en Adaptación**:
+#    Proteger infraestructuras críticas, construir defensas costeras e hídricas, adecuar redes eléctricas y atender desastres exige un gasto público en constante aumento:
+#    $$ g_{adapt, t} = \theta_{adapt} \cdot T_{clim, t}^2 $$
+#    lo cual profundiza el déficit primario estructural.
+# 3. **Canal de Prima de Riesgo y Diferencial de Deuda**:
+#    Los inversionistas en bonos soberanos incorporan tanto el apalancamiento fiscal como la exposición a contingencias climáticas:
+#    $$ r_t^{sovereign} = r^* + \psi_{debt} \max(0, b_t - b^*) + \psi_{clim} T_{clim, t} $$
+#    Cuando la deuda supera umbrales de prudencia (como el 60% del PIB), la interacción entre el riesgo físico del clima y los diferenciales soberanos puede detonar trayectorias de deuda explosivas.
+# 4. **Canal de Reciclaje de Ingresos del Carbono**:
+#    Un impuesto pigouviano al carbono predecible genera recaudación sustancial $\tau_t^{carbon} E_t$, la cual puede ser destinada a la amortización de pasivos y al financiamiento de infraestructura verde, contrarrestando las presiones del gasto en adaptación.
+#
+# En este tutorial interactivo acoplamos un simulador de dinámica fiscal soberana al **modelo macroclimático DICE** mediante `puremacro.climate` para evaluar la trayectoria de la deuda bajo tres regímenes de política diferenciados.
 
 # %%
 import sys
@@ -41,8 +49,16 @@ from puremacro.climate import simulate_dice_model
 
 # %% [markdown]
 # ## 1. Simulación de 3 Regímenes de Política en el Modelo DICE
+#
+# Simulamos tres trayectorias macroeconómicas contrafactuales:
+# - **Calentamiento Sin Mitigación (Inacción Climática)**: Impuesto al carbono nulo ($\tau = 0$), alta dependencia fósil y mayor sensibilidad a daños climáticos físicos ($\pi_2 = 0.0035$).
+# - **Transición Tardía y Desordenada**: Política inicial débil ($\tau = \$10/\text{tCO}_2$) seguida de un endurecimiento regulatorio abrupto a mediados de siglo, provocando obsolescencia acelerada del capital.
+# - **Regla Fiscal Verde Ordenada**: Fijación temprana y predecible de precios al carbono ($\tau_0 = \$60/\text{tCO}_2$, con crecimiento del $3\%$ anual) vinculada a una descarbonización activa.
+#
+# Cada escenario genera proyecciones multidecadales del producto neto real $Y_{net, t}$, las emisiones globales $E_t$, el Costo Social del Carbono y las anomalías térmicas superficiales $T_{clim, t}$.
 
 # %%
+# 1. Calentamiento Sin Mitigación
 dice_unabated = simulate_dice_model(
     n_periods=25,
     time_step_years=5,
@@ -51,6 +67,7 @@ dice_unabated = simulate_dice_model(
     damage_coef=0.0035,
 )
 
+# 2. Transición Tardía y Desordenada
 dice_late = simulate_dice_model(
     n_periods=25,
     time_step_years=5,
@@ -59,6 +76,7 @@ dice_late = simulate_dice_model(
     damage_coef=0.0028,
 )
 
+# 3. Transición Fiscal Verde Ordenada
 dice_orderly = simulate_dice_model(
     n_periods=25,
     time_step_years=5,
@@ -67,11 +85,23 @@ dice_orderly = simulate_dice_model(
     damage_coef=0.00236,
 )
 
-print("Resumen Escenario Ordenado:")
+print("Vista Previa del Escenario Ordenado:")
 print(dice_orderly.summary())
 
 # %% [markdown]
-# ## 2. Función de Dinámica Fiscal y Deuda Soberana
+# ## 2. Dinámica de la Deuda Soberana y Función de Retroalimentación Fiscal
+#
+# Sea $b_t = B_t / Y_t$ la relación entre la deuda pública soberana y el PIB. La ley de movimiento en tiempo discreto con intervalo $\Delta t = 5$ años es:
+#
+# $$ b_{t+1} = \left[ 1 + (r_t^{sovereign} - g_t) \Delta t \right] b_t - pb_t \Delta t $$
+#
+# donde $g_t$ es la tasa real de crecimiento del PIB y el balance primario $pb_t$ incorpora tanto la política fiscal convencional como los flujos climáticos:
+#
+# $$ pb_t = \left( \tau_{base} + \frac{\text{CSC}_t \cdot E_t}{Y_{net, t}} \right) - \left( g_{base} + \theta_{adapt} T_{clim, t}^2 \right) $$
+#
+# Ante un calentamiento descontrolado, los crecientes desembolsos en adaptación $\theta_{adapt} T_t^2$ sobrepasan los superávits primarios. Simultáneamente, el deterioro crediticio incrementa $r_t^{sovereign}$, cerrando un círculo vicioso de inestabilidad financiera.
+#
+# A continuación implementamos `simulate_sovereign_fiscal_risk` para calcular los ratios de deuda pública, los rendimientos soberanos y el gasto en adaptación a 120 años vista.
 
 # %%
 def simulate_sovereign_fiscal_risk(
@@ -120,56 +150,58 @@ fiscal_late = simulate_sovereign_fiscal_risk(dice_late)
 fiscal_orderly = simulate_sovereign_fiscal_risk(dice_orderly)
 
 # %% [markdown]
-# ## 3. Trayectoria de Deuda/PIB y Tasas Soberanas
+# ## 3. Ratios de Deuda Soberana sobre PIB y Tasas de Financiamiento
+#
+# Las trayectorias simuladas reflejan marcadas divergencias en la solvencia a largo plazo:
+# - **Panel Izquierdo (Deuda/PIB)**: En el escenario de inacción climática, la deuda pública rebasa el $100\%$ del PIB hacia 2075 y sobrepasa el $160\%$ a finales de siglo. Por el contrario, bajo la Regla Fiscal Verde Ordenada, los ingresos del carbono amortizan la deuda, situándola por debajo del $40\%$ del PIB.
+# - **Panel Derecho (Tasa Soberana)**: Los mercados financieros exigen mayores primas de riesgo ante la falta de mitigación: los costos de financiamiento suben de $2.5\%$ a más de $6.0\%$. En la transición ordenada, los rendimientos se mantienen estables cerca de $2.2\%$.
 
 # %%
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4.5))
+fig, (ax1, ax2) = _nbstyle.figura(1, 2, figsize=(11.0, 4.5))
 
-ax1.plot(fiscal_unabated.index, fiscal_unabated["debt_to_gdp"], color="#d62728", lw=2, label="Sin Mitigación (Daños Elevados)")
-ax1.plot(fiscal_late.index, fiscal_late["debt_to_gdp"], color="#ff7f0e", lw=2, linestyle="--", label="Transición Tardía Desordenada")
-ax1.plot(fiscal_orderly.index, fiscal_orderly["debt_to_gdp"], color="#2ca02c", lw=2, label="Regla Fiscal Verde Ordenada")
-ax1.axhline(60, color="gray", linestyle=":", label="Umbral de Estabilidad 60%")
+ax1.plot(fiscal_unabated.index, fiscal_unabated["debt_to_gdp"], **_nbstyle.S1, label="Calentamiento Sin Mitigación")
+ax1.plot(fiscal_late.index, fiscal_late["debt_to_gdp"], **_nbstyle.S2, label="Transición Tardía Desordenada")
+ax1.plot(fiscal_orderly.index, fiscal_orderly["debt_to_gdp"], **_nbstyle.S3, label="Regla Fiscal Verde Ordenada")
+ax1.axhline(60, color=_nbstyle.SPINE, linestyle=":", label="Umbral de Estabilidad 60%")
 ax1.set_title("Trayectoria de Deuda Soberana / PIB (%)", fontsize=11, fontweight="bold")
-ax1.set_xlabel("Año")
-ax1.set_ylabel("Deuda Pública (% PIB)")
-ax1.legend()
-ax1.grid(True, linestyle=":", alpha=0.6)
+ax1.set_xlabel("Año", color=_nbstyle.TEXTO)
+ax1.set_ylabel("Deuda Pública (% del PIB)", color=_nbstyle.TEXTO)
+ax1.legend(frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
+ax1.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.8)
 
-ax2.plot(fiscal_unabated.index, fiscal_unabated["sovereign_rate"], color="#d62728", lw=2, label="Riesgo Sin Mitigación")
-ax2.plot(fiscal_late.index, fiscal_late["sovereign_rate"], color="#ff7f0e", lw=2, linestyle="--", label="Riesgo Transición Tardía")
-ax2.plot(fiscal_orderly.index, fiscal_orderly["sovereign_rate"], color="#2ca02c", lw=2, label="Transición Ordenada")
-ax2.set_title("Tasa de Endeudamiento Soberano (r* + Spread)", fontsize=11, fontweight="bold")
-ax2.set_xlabel("Año")
-ax2.set_ylabel("Tasa Real (%)")
-ax2.legend()
-ax2.grid(True, linestyle=":", alpha=0.6)
-
-plt.tight_layout()
-plt.show()
+ax2.plot(fiscal_unabated.index, fiscal_unabated["sovereign_rate"], **_nbstyle.S1, label="Riesgo Sin Mitigación")
+ax2.plot(fiscal_late.index, fiscal_late["sovereign_rate"], **_nbstyle.S2, label="Riesgo de Transición Tardía")
+ax2.plot(fiscal_orderly.index, fiscal_orderly["sovereign_rate"], **_nbstyle.S3, label="Transición Ordenada")
+ax2.set_title("Tasa de Endeudamiento Soberano (r* + Primas)", fontsize=11, fontweight="bold")
+ax2.set_xlabel("Año", color=_nbstyle.TEXTO)
+ax2.set_ylabel("Tasa Real (%)", color=_nbstyle.TEXTO)
+ax2.legend(frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
+ax2.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.8)
 
 # %% [markdown]
-# ## 4. Costos de Adaptación y Calentamiento Global
+# ## 4. Costos de Adaptación y Calentamiento Superficial
+#
+# La comparación de las variables biofísicas evidencia por qué la mitigación temprana protege el espacio fiscal:
+# - **Panel Izquierdo (Gasto en Adaptación)**: Con calentamiento desmedido, los requerimientos públicos de adaptación sobrepasan el $2.5\%$ del PIB anual para 2100. En la transición ordenada, el costo de adaptación permanece acotado al $1.2\%$ del PIB.
+# - **Panel Derecho (Perfiles Térmicos)**: La tributación oportuna al carbono frena el calentamiento en $+2.9^\circ\text{C}$ bajo esta calibración, mientras que la inacción proyecta temperaturas de $+4.1^\circ\text{C}$, confirmando que la acción climática decidida es un requisito esencial para la sostenibilidad fiscal.
 
 # %%
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4.5))
+fig, (ax1, ax2) = _nbstyle.figura(1, 2, figsize=(11.0, 4.5))
 
-ax1.plot(fiscal_unabated.index, fiscal_unabated["adaptation_cost"], color="#d62728", lw=2, label="Adaptación Sin Mitigación")
-ax1.plot(fiscal_orderly.index, fiscal_orderly["adaptation_cost"], color="#2ca02c", lw=2, label="Adaptación en Transición Ordenada")
-ax1.set_title("Gasto Público de Adaptación (% PIB)", fontsize=11, fontweight="bold")
-ax1.set_xlabel("Año")
-ax1.set_ylabel("Gasto (% PIB)")
-ax1.legend()
-ax1.grid(True, linestyle=":", alpha=0.6)
+ax1.plot(fiscal_unabated.index, fiscal_unabated["adaptation_cost"], **_nbstyle.S1, label="Necesidad de Adaptación Sin Mitigación")
+ax1.plot(fiscal_orderly.index, fiscal_orderly["adaptation_cost"], **_nbstyle.S3, label="Costo de Adaptación Ordenada")
+ax1.set_title("Costos Públicos de Adaptación Climática (% del PIB)", fontsize=11, fontweight="bold")
+ax1.set_xlabel("Año", color=_nbstyle.TEXTO)
+ax1.set_ylabel("Adaptación (% PIB)", color=_nbstyle.TEXTO)
+ax1.legend(frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
+ax1.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.8)
 
-ax2.plot(fiscal_unabated.index, fiscal_unabated["temperature_anomaly"], color="#d62728", lw=2, label="Calentamiento Sin Mitigación")
-ax2.plot(fiscal_orderly.index, fiscal_orderly["temperature_anomaly"], color="#2ca02c", lw=2, label="Mitigación Ordenada")
-ax2.axhline(1.5, color="gray", linestyle=":", label="1.5°C Ambición París")
-ax2.axhline(2.0, color="gray", linestyle="-.", label="2.0°C Guardarraíl")
-ax2.set_title("Anomalía de Temperatura Superficial (°C)", fontsize=11, fontweight="bold")
-ax2.set_xlabel("Año")
-ax2.set_ylabel("Anomalía (°C)")
-ax2.legend()
-ax2.grid(True, linestyle=":", alpha=0.6)
-
-plt.tight_layout()
-plt.show()
+ax2.plot(fiscal_unabated.index, fiscal_unabated["temperature_anomaly"], **_nbstyle.S1, label="Calentamiento Sin Mitigación")
+ax2.plot(fiscal_orderly.index, fiscal_orderly["temperature_anomaly"], **_nbstyle.S3, label="Mitigación Ordenada")
+ax2.axhline(1.5, color=_nbstyle.SPINE, linestyle=":", label="Objetivo París 1.5°C")
+ax2.axhline(2.0, color=_nbstyle.NOTA, linestyle="-.", label="Límite Crítico 2.0°C")
+ax2.set_title("Calentamiento Superficial Medio Global (°C)", fontsize=11, fontweight="bold")
+ax2.set_xlabel("Año", color=_nbstyle.TEXTO)
+ax2.set_ylabel("Anomalía (°C)", color=_nbstyle.TEXTO)
+ax2.legend(frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
+ax2.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.8)

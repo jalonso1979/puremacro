@@ -228,13 +228,13 @@ assert np.isclose(ginis[-1], ginis[0], atol=0.01), "Wealth Gini must revert clos
 assert len(trans_res.distributions) == horizon + 1, "Distribution path length must match T + 1"
 
 # Figure 1: 4-Panel Macroeconomic Transition and Wealth Inequality Hero Plot
-fig1, axes1 = plt.subplots(2, 2, figsize=(11, 8))
+fig1, axes1 = _nbstyle.figura(2, 2, figsize=(11, 8))
 t_quarters = np.arange(horizon)
 
 # Panel 1: Factor Prices Path (Real Rate and Wage)
 ax1 = axes1[0, 0]
-ax1.plot(t_quarters, trans_res.r_path * 100, label="Real Rate $r_t$ (%)", lw=2, color="0.10")
-ax1.axhline(ss_base.r * 100, ls="--", color="0.55", label=f"Initial $r^*={ss_base.r * 100:.2f}\\%$")
+ax1.plot(t_quarters, trans_res.r_path * 100, label="Real Rate $r_t$ (%)", lw=2, color=_nbstyle.S1["color"])
+ax1.axhline(ss_base.r * 100, ls="--", color=_nbstyle.SPINE, label=f"Initial $r^*={ss_base.r * 100:.2f}\\%$")
 ax1.set_title("Factor Prices: Real Interest Rate Path")
 ax1.set_xlabel("Quarter $t$")
 ax1.set_ylabel("Percent (%)")
@@ -242,9 +242,9 @@ ax1.legend(loc="upper right")
 
 # Panel 2: Capital Market Clearing (Supply vs Demand)
 ax2 = axes1[0, 1]
-ax2.plot(t_quarters, trans_res.K_s_path, label="Capital Supply $K_t^s$", lw=2, color="0.15")
-ax2.plot(t_quarters, trans_res.K_d_path, label="Capital Demand $K_t^d$", ls="--", lw=1.8, color="0.50")
-ax2.axhline(ss_base.K, ls=":", color="0.65", label=f"Initial $K^*={ss_base.K:.2f}$")
+ax2.plot(t_quarters, trans_res.K_s_path, label="Capital Supply $K_t^s$", lw=2, color=_nbstyle.S1["color"])
+ax2.plot(t_quarters, trans_res.K_d_path, label="Capital Demand $K_t^d$", ls="--", lw=1.8, color=_nbstyle.S2["color"])
+ax2.axhline(ss_base.K, ls=":", color=_nbstyle.SPINE, label=f"Initial $K^*={ss_base.K:.2f}$")
 ax2.set_title("Capital Market Clearing ($K_t^s$ vs $K_t^d$)")
 ax2.set_xlabel("Quarter $t$")
 ax2.set_ylabel("Aggregate Capital")
@@ -252,9 +252,9 @@ ax2.legend(loc="upper right")
 
 # Panel 3: Wealth Inequality Path (Gini Coefficient)
 ax3 = axes1[1, 0]
-ax3.plot(time_grid, ginis, label="Wealth Gini $G_t$", lw=2, color="0.20")
-ax3.axhline(ginis[0], ls="--", color="0.55", label=f"Initial Gini $G_0={ginis[0]:.4f}$")
-ax3.scatter([min_gini_idx], [min_gini], color="0.10", s=40, zorder=5, label=f"Min Gini ({min_gini:.4f})")
+ax3.plot(time_grid, ginis, label="Wealth Gini $G_t$", lw=2, color=_nbstyle.S1["color"])
+ax3.axhline(ginis[0], ls="--", color=_nbstyle.SPINE, label=f"Initial Gini $G_0={ginis[0]:.4f}$")
+ax3.scatter([min_gini_idx], [min_gini], color=_nbstyle.S1["color"], s=40, zorder=5, label=f"Min Gini ({min_gini:.4f})")
 ax3.set_title("Wealth Inequality Dynamics: Gini Coefficient")
 ax3.set_xlabel("Quarter $t$")
 ax3.set_ylabel("Gini Coefficient")
@@ -262,17 +262,14 @@ ax3.legend(loc="upper right")
 
 # Panel 4: Lorenz Curves Comparison
 ax4 = axes1[1, 1]
-ax4.plot(p_lorenz * 100, p_lorenz * 100, "k:", label="45° Equality Line", alpha=0.5)
-ax4.plot(p_lorenz * 100, L_base * 100, label=f"Lorenz $t=0$ ($G={ginis[0]:.3f}$)", lw=2, color="0.10")
-ax4.plot(p_lorenz * 100, L_peak * 100, label=f"Lorenz $t={peak_K_idx}$ ($G={ginis[peak_K_idx]:.3f}$)", lw=1.8, ls="--", color="0.40")
-ax4.plot(p_lorenz * 100, L_term * 100, label=f"Lorenz $t={horizon}$ ($G={ginis[-1]:.3f}$)", lw=1.5, ls="-.", color="0.65")
+ax4.plot(p_lorenz * 100, p_lorenz * 100, linestyle=":", color=_nbstyle.SPINE, label="45° Equality Line", alpha=0.5)
+ax4.plot(p_lorenz * 100, L_base * 100, label=f"Lorenz $t=0$ ($G={ginis[0]:.3f}$)", lw=2, color=_nbstyle.S1["color"])
+ax4.plot(p_lorenz * 100, L_peak * 100, label=f"Lorenz $t={peak_K_idx}$ ($G={ginis[peak_K_idx]:.3f}$)", lw=1.8, ls="--", color=_nbstyle.S2["color"])
+ax4.plot(p_lorenz * 100, L_term * 100, label=f"Lorenz $t={horizon}$ ($G={ginis[-1]:.3f}$)", lw=1.5, ls="-.", color=_nbstyle.S3["color"])
 ax4.set_title("Wealth Lorenz Curve Dynamics")
 ax4.set_xlabel("Cumulative Population (%)")
 ax4.set_ylabel("Cumulative Wealth (%)")
 ax4.legend(loc="upper left")
-
-plt.tight_layout()
-plt.show()
 
 # Figure 2: 3D Perspective Surface and 2D Density Evolution Heatmap
 density_mat = np.array([np.sum(d, axis=1) if d.ndim == 2 else d for d in trans_res.distributions])
@@ -280,12 +277,12 @@ k_mask = K_hist <= 15.0
 k_sub = K_hist[k_mask]
 dens_sub = density_mat[:, k_mask]
 
-fig2 = plt.figure(figsize=(12.5, 4.6))
+fig2 = plt.figure(figsize=(12.5, 4.6), layout="constrained")
 
 # Subplot 1: 3D Wealth Distribution Surface
 ax_3d = fig2.add_subplot(121, projection="3d")
 K_mesh, T_mesh = np.meshgrid(k_sub, time_grid)
-surf = ax_3d.plot_surface(K_mesh, T_mesh, dens_sub, cmap="viridis", edgecolor="none", alpha=0.9)
+surf = ax_3d.plot_surface(K_mesh, T_mesh, dens_sub, cmap=_nbstyle.CMAP_SEQ, edgecolor="none", alpha=0.9)
 ax_3d.set_title(r"3D Wealth Distribution Surface $\mu_t(k)$", fontsize=11)
 ax_3d.set_xlabel("Assets $k$", fontsize=9)
 ax_3d.set_ylabel("Quarter $t$", fontsize=9)
@@ -294,15 +291,12 @@ ax_3d.view_init(elev=28, azim=-55)
 
 # Subplot 2: 2D Heatmap with Density Slices
 ax_heat = fig2.add_subplot(122)
-im = ax_heat.imshow(dens_sub, aspect="auto", origin="lower", extent=[k_sub[0], k_sub[-1], 0, horizon], cmap="viridis")
+im = ax_heat.imshow(dens_sub, aspect="auto", origin="lower", extent=[k_sub[0], k_sub[-1], 0, horizon], cmap=_nbstyle.CMAP_SEQ)
 cbar = plt.colorbar(im, ax=ax_heat)
 cbar.set_label(r"Probability Density $\mu_t(k)$")
 ax_heat.set_title(r"Heatmap: Wealth Mass Transition over Time", fontsize=11)
 ax_heat.set_xlabel("Assets $k$")
 ax_heat.set_ylabel("Transition Quarter $t$")
-
-plt.tight_layout()
-plt.show()
 
 # %%
 # --- Experiment 4: Algorithm Benchmark: Broyden Quasi-Newton vs Damped Shooting ---

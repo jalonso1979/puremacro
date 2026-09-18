@@ -479,6 +479,12 @@ lines are hardware-specific: with neither framework installed, `has_torch()` and
 - **Caliendo-Parro (2015) exact hat algebra** (`trade.caliendo_parro`, `spatial.caliendo_parro`) — Multi-country, multi-sector trade general equilibrium with input-output linkages, intermediate goods, and tariffs solved without estimating unobserved fundamentals (`CaliendoParroModel`).
 - **Allen-Arkolakis (2014) spatial equilibrium** (`spatial.allen_arkolakis`, `trade.allen_arkolakis`) — Continuous geographic general equilibrium with bilateral iceberg trade costs, mobile labor, Marshallian agglomeration ($\alpha$), and amenity congestion ($\beta$) (`AllenArkolakisModel`).
 
+**Macroeconomic Policy Simulators & Browser Laboratories (puremacro 4.1)**
+
+- **Quantitative Trade Policy Simulator** (`models.trade_policy.TradePolicySimulator`) — Caliendo-Parro (2015) multi-country multi-sector Ricardian GE simulator with Eaton-Kortum gravity, input-output linkages, bilateral tariffs, terms-of-trade effects, and exact hat algebra counterfactuals with verified goods and factor market clearing ($\max_i |X_i - (Y_i + R_i + D_i)| < 10^{-6}$).
+- **Monetary & Macroprudential Transmission Simulator** (`models.monetary_transmission.MonetaryTransmissionSimulator`) — Side-by-side comparative HANK vs. RANK transmission engine with Kaplan-Moll-Violante (2018) direct vs. indirect decomposition across 10 empirical MPC wealth deciles.
+- **Interactive Browser Laboratories** (`curso/site/labs/`) — Static, zero-build client-side WebAssembly/Canvas laboratories: `comercio-aranceles.html` (tri-lateral trade war) and `politica-monetaria-hank.html` (HANK vs. RANK monetary transmission). See `docs/policy_simulators.md`.
+
 **Causal ML, continuous-time HJB, multi-constraint OccBin & regional real time (puremacro 3.4)**
 
 - **Double / Debiased Machine Learning** (`causal.dml`) — Chernozhukov et al. (2018) partially linear regression with Neyman-orthogonal Robinson scores, $K$-fold cross-fitting and pure-NumPy penalized learners (`LassoCoordinateDescent`, `RidgeGCV`); the entry points are `dml_plr` and `DoubleMLPLR`, and the learners are **lasso and ridge only**. `DMLResult` carries `.summary()`, `.plot()`, `.to_latex()`, `.to_typst()` and `.to_markdown()`.
@@ -1016,6 +1022,7 @@ All notebooks strictly adhere to the Pyodide contract and the 7-section pedagogi
 - **`docs/notebooks.md`** — Complete showcase catalog (notebooks 00–58), pedagogical 7-section architecture, and applied policy suites.
 - **`docs/dsge_build.md`** — DSGE models from equations, native Dynare `.mod` loader, 2nd-order pruning, `puremacro-dynare` CLI, OccBin ZLB, non-linear relaxation, and Bayesian MCMC.
 - **`docs/models.md`** — Structural models: Sequence-Space HANK, Fake News algorithm, targeted transfers, and DMP search-and-matching.
+- **`docs/policy_simulators.md`** — Macroeconomic policy simulators & interactive browser labs: Caliendo-Parro (2015) quantitative trade general equilibrium, HANK vs. RANK monetary transmission, and client-side WebAssembly laboratories (Spanish twin under `docs/es/`).
 - **`docs/narrative_sign_svar.md`**, **`docs/honest_did.md`**, **`docs/smooth_lp.md`**, **`docs/hank_nonlinear.md`**, **`docs/gertler_karadi.md`**, **`docs/bvar_sv.md`** — the six 2.3 feature guides (each with a Spanish twin under `docs/es/`).
 - **`docs/spatial.md`** — spatial weights, Moran's I / Geary's C, Conley spatial HAC (cross-section and panel local projections), the cross-section models (`sar`, `sem`, `sdm`, `slx`), the `lm_spatial_tests` specification battery, LeSage-Pace impacts (`spatial_effects`), spatial panels (`spatial_panel`), spatial local projections (`spatial_lp`), spillover-robust DiD (`did.spatial_did`) and shift-share IV with Adão-Kolesár-Morales errors (Spanish twin under `docs/es/`).
 - **`docs/gvar.md`** — Global VAR (Pesaran-Schuermann-Weiner): country VARX* blocks, trade-weighted star variables, the stacked solve and GIRFs (`var.gvar`; Spanish twin under `docs/es/`).

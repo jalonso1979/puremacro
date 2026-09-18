@@ -11,15 +11,23 @@
 # ---
 
 # %% [markdown]
-# # Sentimiento en Comunicados de Bancos Centrales y Transmisión Narrativa
+# # Sentimiento en Discursos de Banca Central y Transmisión Monetaria Narrativa
 #
-# **¿Cómo se transmiten las comunicaciones oficiales, el tono de las ruedas de prensa y las sorpresas de postura monetaria a las tasas de interés y la inflación?**
+# **¿Cómo se transmiten la comunicación de los bancos centrales, el tono de las conferencias de prensa y las sorpresas narrativas de política hacia los mercados monetarios, las tasas de interés y la inflación?**
 #
-# La banca central moderna depende intensamente de la comunicación pública:
-# 1. **Extracción de Sentimiento Halcón vs. Paloma (*Hawkish / Dovish*)**: Cuantificación del balance de términos restrictivos frente a expansivos en minutas y comunicados siguiendo Apel-Blix-Grimaldi (2014) y Picault-Renault (2017):
-#    $$ \text{Tono}_t = \frac{\text{Halcón}_t - \text{Paloma}_t}{\text{Halcón}_t + \text{Paloma}_t + \epsilon} $$
-# 2. **Sorpresas Monetarias Narrativas**: Uso de cambios cualitativos de postura como choques identificados.
-# 3. **Proyecciones Locales de Alta Frecuencia**: Estimación de las respuestas al impulso de las tasas interbancarias y la inflación mediante proyecciones locales de Jordà (2005) con errores estándar robustos HAC de Newey-West (`puremacro.lp.lp_hac`).
+# En la banca central moderna, la comunicación es ampliamente reconocida como un instrumento de política independiente y no como un mero ejercicio de rendición de cuentas (Woodford 2005; Coibion, Gorodnichenko, Kumar y Pedemonte 2020). La orientación prospectiva (*forward guidance*), las declaraciones de política monetaria y las minutas de decisión guían las expectativas del mercado financiero, moldeando la curva de rendimientos mucho antes de que se ejecuten modificaciones en la tasa de interés objetivo.
+#
+# Medir cuantitativamente la postura de los comunicados exige técnicas de procesamiento de lenguaje natural adaptadas al léxico macroeconómico:
+# 1. **Índice de Sentimiento de Apel-Blix-Grimaldi (2014) y Picault-Renault (2017)**:
+#    Evalúa el balance entre frecuencias de términos contractivos (*hawkish*) y expansivos (*dovish*) en los comunicados oficiales:
+#    $$ \text{Tono}_t = \frac{\text{Hawk}_t - \text{Dove}_t}{\text{Hawk}_t + \text{Dove}_t + \epsilon} \in [-1, 1] $$
+#    donde $\epsilon > 0$ estabiliza el denominador en textos breves.
+# 2. **Identificación de Choques Monetarios Narrativos**:
+#    Siguiendo la metodología fundacional de Christina Romer y David Romer (2004, *American Economic Review*), las sorpresas en los comunicados proveen variación exógena limpia de movimientos contemporáneos del ciclo económico.
+# 3. **Proyecciones Locales Semiparamétricas**:
+#    Las proyecciones locales de Oscar Jordà (2005, *American Economic Review*) estiman respuestas dinámicas al impulso sin imponer las estrictas restricciones autorregresivas de los modelos VAR, calculando errores estándar robustos a heterocedasticidad y autocorrelación (HAC) de Newey-West.
+#
+# En este tutorial interactivo evaluamos el sentimiento de declaraciones de política monetaria mediante `puremacro.narrative.indices.tone` y estimamos las respuestas macroeconómicas empíricas ante choques narrativos en México con `puremacro.lp.lp_hac`.
 
 # %%
 import sys
@@ -39,7 +47,15 @@ from puremacro.lp import lp_hac
 from puremacro.narrative.indices import tone
 
 # %% [markdown]
-# ## 1. Extracción de Tono en Declaraciones de Política Monetaria
+# ## 1. Extracción del Tono Contractivo vs. Expansivo en Comunicados de Política
+#
+# Analizamos un corpus fechado de declaraciones oficiales del Comité Federal de Mercado Abierto (FOMC) durante el ciclo inflacionario 2021–2024.
+#
+# El algoritmo de Apel-Blix-Grimaldi filtra el texto a través de diccionarios especializados:
+# - **Marcadores restrictivos (*Hawkish*)**: términos que denotan sobrecalentamiento del mercado laboral, presiones inflacionarias generalizadas, riesgos al alza y posturas restrictivas.
+# - **Marcadores expansivos (*Dovish*)**: términos que enfatizan holgura económica, riesgos a la baja sobre el crecimiento, inflación transitoria y acomodamiento financiero.
+#
+# A continuación, `tone` extrae la serie estandarizada de tono, reflejando la transición desde una postura neutral en 2021 ($\text{Tono} \approx 0$) hacia un endurecimiento restrictivo en 2022 ($\text{Tono} = +1.0$), seguido de una moderación gradual en 2023–2024 ($\text{Tono} = -1.0$).
 
 # %%
 corpus = [
@@ -61,11 +77,17 @@ tone_res = tone(
     method="apel_blix_grimaldi",
     normalize="raw",
 )
-print("Vista Previa del Índice de Tono Apel-Blix-Grimaldi:")
+print("Vista Previa de la Serie de Tono (Apel-Blix-Grimaldi):")
 print(tone_res.series.dropna())
 
 # %% [markdown]
-# ## 2. Panel Macroeconómico y Postura Narrativa Mensual
+# ## 2. Postura Narrativa Empírica y Datos Macroeconómicos Mensuales
+#
+# Para cuantificar la transmisión macroeconómica, empleamos las clasificaciones narrativas del Banco de México (Banxico). El indicador `banxico_direction` codifica si la autoridad monetaria comunicó un sesgo alcista ($+1$), neutral ($0$) o a la baja ($-1$) a partir de la evaluación cualitativa de sus anuncios de política.
+#
+# Fusionamos esta serie con información macroeconómica de México:
+# - **Tasa Interbancaria a 3 Meses (`rate_3m`)**: Tasa de fondeo en el mercado mayorista.
+# - **Inflación Anual del IPC General (`inflation_yoy`)**: Variación interanual del índice de precios al consumidor.
 
 # %%
 df_banxico = load_banxico_stance()
@@ -86,11 +108,19 @@ df_cpi["inflation_yoy"] = pd.to_numeric(df_cpi.iloc[:, 1], errors="coerce")
 df_lp = pd.concat([df_banxico["banxico_direction"], df_rate["rate_3m"], df_cpi["inflation_yoy"]], axis=1).dropna()
 df_lp["narrative_shock"] = df_lp["banxico_direction"].to_numpy(dtype=float)
 df_lp = df_lp.reset_index(drop=True)
-print("Encabezado del Panel Mensual Alineado:")
+print("Cabecera del Panel Mensual Alineado:")
 print(df_lp.head())
 
 # %% [markdown]
 # ## 3. Estimación de Proyecciones Locales de Jordà (2005)
+#
+# Para cada horizonte prospectivo $h \in \{0, 1, \dots, H\}$, la especificación de proyección local es:
+#
+# $$ y_{t+h} - y_{t-1} = \alpha_h + \beta_h \text{Shock}_t + \sum_{l=1}^p \gamma_{l, h}^\top \mathbf{Z}_{t-l} + \varepsilon_{t+h} $$
+#
+# donde $\beta_h$ traza la respuesta al impulso acumulada en el horizonte $h$ ante un choque narrativo exógeno, y $\mathbf{Z}_{t-l}$ controla por rezagos de inflación y tasas de interés.
+#
+# Dado que la variable dependiente $y_{t+h} - y_{t-1}$ genera autocorrelación inducida de medias móviles de orden $h$ en los residuos $\varepsilon_{t+h}$, los errores estándar MCO convencionales están sesgados a la baja. `puremacro.lp.lp_hac` corrige este sesgo calculando la matriz de covarianza HAC de Newey y West (1987) con truncamiento automático $L(h) = h + 1$.
 
 # %%
 irf_rate = lp_hac(
@@ -113,34 +143,35 @@ irf_cpi = lp_hac(
     alpha=0.10,
 )
 
-print("Respuesta de la Tasa de Interés (LP):")
+print("Respuesta de la Tasa de Interés vía Proyección Local:")
 print(irf_rate.head(8))
 
 # %% [markdown]
-# ## 4. Respuestas al Impulso con Bandas HAC al 90%
+# ## 4. Respuestas al Impulso Macroeconómicas con Bandas HAC al 90%
+#
+# Las funciones de respuesta al impulso estimadas ilustran los canales tradicionales de transmisión:
+# - **Panel Izquierdo (Tasa Interbancaria)**: Ante una sorpresa comunicacional restrictiva, la tasa interbancaria a 3 meses se incrementa de inmediato en $+0.27$ puntos porcentuales en el impacto ($h=0$). La respuesta alcanza un máximo cercano a $+0.80$ puntos porcentuales entre los meses 5 y 7, confirmando una elevada inercia en la política monetaria.
+# - **Panel Derecho (Inflación General)**: El mayor costo del crédito desacelera la demanda agregada, conduciendo a una desinflación paulatina a lo largo de 18 meses, la cual alcanza significancia estadística a partir del octavo mes.
 
 # %%
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4.5))
+fig, (ax1, ax2) = _nbstyle.figura(1, 2, figsize=(11.0, 4.5))
 
-# Respuesta de la Tasa de Interés
-ax1.plot(irf_rate["h"], irf_rate["beta"], color="#1f77b4", lw=2, label="Respuesta Tasa Interbancaria 3M")
-ax1.fill_between(irf_rate["h"], irf_rate["lo"], irf_rate["hi"], color="#1f77b4", alpha=0.2, label="Banda HAC 90%")
-ax1.axhline(0, color="black", lw=0.8, linestyle="--")
-ax1.set_title("Respuesta de la Tasa ante Choque Narrativo Restrictivo", fontsize=11, fontweight="bold")
-ax1.set_xlabel("Horizonte (Meses)")
-ax1.set_ylabel("Tasa de Interés (puntos %)")
-ax1.legend()
-ax1.grid(True, linestyle=":", alpha=0.6)
+# Respuesta de la Tasa
+ax1.plot(irf_rate["h"], irf_rate["beta"], **_nbstyle.S1, label="FIR Tasa Interbancaria 3M")
+ax1.fill_between(irf_rate["h"], irf_rate["lo"], irf_rate["hi"], color=_nbstyle.TINTA, alpha=0.15, label="Banda HAC 90%")
+ax1.axhline(0, color=_nbstyle.SPINE, lw=0.8, linestyle="--")
+ax1.set_title("Respuesta de la Tasa ante Alza Monetaria Narrativa", fontsize=11, fontweight="bold")
+ax1.set_xlabel("Horizonte (Meses)", color=_nbstyle.TEXTO)
+ax1.set_ylabel("Tasa de Interés (% pts)", color=_nbstyle.TEXTO)
+ax1.legend(frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
+ax1.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.8)
 
 # Respuesta de la Inflación
-ax2.plot(irf_cpi["h"], irf_cpi["beta"], color="#d62728", lw=2, label="Respuesta de la Inflación")
-ax2.fill_between(irf_cpi["h"], irf_cpi["lo"], irf_cpi["hi"], color="#d62728", alpha=0.2, label="Banda HAC 90%")
-ax2.axhline(0, color="black", lw=0.8, linestyle="--")
-ax2.set_title("Enfriamiento de la Inflación ante Restricción", fontsize=11, fontweight="bold")
-ax2.set_xlabel("Horizonte (Meses)")
-ax2.set_ylabel("Inflación Anual (puntos %)")
-ax2.legend()
-ax2.grid(True, linestyle=":", alpha=0.6)
-
-plt.tight_layout()
-plt.show()
+ax2.plot(irf_cpi["h"], irf_cpi["beta"], **_nbstyle.S2, label="FIR Inflación General")
+ax2.fill_between(irf_cpi["h"], irf_cpi["lo"], irf_cpi["hi"], color=_nbstyle.TEXTO, alpha=0.15, label="Banda HAC 90%")
+ax2.axhline(0, color=_nbstyle.SPINE, lw=0.8, linestyle="--")
+ax2.set_title("Respuesta de la Inflación ante Endurecimiento Monetario", fontsize=11, fontweight="bold")
+ax2.set_xlabel("Horizonte (Meses)", color=_nbstyle.TEXTO)
+ax2.set_ylabel("Inflación Interanual (% pts)", color=_nbstyle.TEXTO)
+ax2.legend(frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
+ax2.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.8)

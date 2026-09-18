@@ -262,8 +262,8 @@ fig, axes = plt.subplots(2, 2, figsize=(12, 10))
 
 # Subplot 1: Value Functions and Consumption Policies
 ax1 = axes[0, 0]
-ax1.plot(sol.a_grid, sol.c_policy[:, 0], color="black", linestyle="-", label=r"Consumption $c(a, z_{\mathrm{low}})$")
-ax1.plot(sol.a_grid, sol.c_policy[:, 1], color="black", linestyle="--", label=r"Consumption $c(a, z_{\mathrm{high}})$")
+ax1.plot(sol.a_grid, sol.c_policy[:, 0], color=_nbstyle.S1["color"], linestyle=_nbstyle.S1["linestyle"], label=r"Consumption $c(a, z_{\mathrm{low}})$")
+ax1.plot(sol.a_grid, sol.c_policy[:, 1], color=_nbstyle.S2["color"], linestyle=_nbstyle.S2["linestyle"], label=r"Consumption $c(a, z_{\mathrm{high}})$")
 ax1.set_title("Optimal Consumption Policies by Income State", fontsize=11)
 ax1.set_xlabel("Assets $a$")
 ax1.set_ylabel("Consumption $c$")
@@ -271,9 +271,9 @@ ax1.legend(frameon=False)
 
 # Subplot 2: Savings Drift and Borrowing Constraint Kink
 ax2 = axes[0, 1]
-ax2.plot(sol.a_grid, sol.s_drift[:, 0], color="black", linestyle="-", label=r"Drift $s(a, z_{\mathrm{low}})$")
-ax2.plot(sol.a_grid, sol.s_drift[:, 1], color="black", linestyle="--", label=r"Drift $s(a, z_{\mathrm{high}})$")
-ax2.axhline(0.0, color="gray", linestyle=":", linewidth=0.8)
+ax2.plot(sol.a_grid, sol.s_drift[:, 0], color=_nbstyle.S1["color"], linestyle=_nbstyle.S1["linestyle"], label=r"Drift $s(a, z_{\mathrm{low}})$")
+ax2.plot(sol.a_grid, sol.s_drift[:, 1], color=_nbstyle.S2["color"], linestyle=_nbstyle.S2["linestyle"], label=r"Drift $s(a, z_{\mathrm{high}})$")
+ax2.axhline(0.0, color=_nbstyle.SPINE, linestyle=":", linewidth=0.8)
 ax2.set_title(r"Savings Drift $s(a, z) = r a + w z - c(a, z)$", fontsize=11)
 ax2.set_xlabel("Assets $a$")
 ax2.set_ylabel("Drift $s(a, z)$")
@@ -281,8 +281,8 @@ ax2.legend(frameon=False)
 
 # Subplot 3: Stationary Wealth Distribution from Adjoint KFE
 ax3 = axes[1, 0]
-ax3.plot(sol.a_grid, sol.g_dist[:, 0], color="black", linestyle="-", label=r"Density $g(a, z_{\mathrm{low}})$")
-ax3.plot(sol.a_grid, sol.g_dist[:, 1], color="black", linestyle="--", label=r"Density $g(a, z_{\mathrm{high}})$")
+ax3.plot(sol.a_grid, sol.g_dist[:, 0], color=_nbstyle.S1["color"], linestyle=_nbstyle.S1["linestyle"], label=r"Density $g(a, z_{\mathrm{low}})$")
+ax3.plot(sol.a_grid, sol.g_dist[:, 1], color=_nbstyle.S2["color"], linestyle=_nbstyle.S2["linestyle"], label=r"Density $g(a, z_{\mathrm{high}})$")
 ax3.set_title("Stationary Wealth Distribution (Adjoint KFE)", fontsize=11)
 ax3.set_xlabel("Assets $a$")
 ax3.set_ylabel("Density $g(a, z)$")
@@ -290,16 +290,13 @@ ax3.legend(frameon=False)
 
 # Subplot 4: General Equilibrium Capital Market Clearing
 ax4 = axes[1, 1]
-ax4.plot(r_grid * 100, ks_curve, color="black", linestyle="-", marker="o", label=r"Capital Supply $K^s(r)$")
-ax4.plot(r_grid * 100, kd_curve, color="black", linestyle="--", marker="s", label=r"Firm Capital Demand $K^d(r)$")
-ax4.axvline(ge_res.r_star * 100, color="gray", linestyle=":", label=f"Equilibrium $r^* = {ge_res.r_star * 100:.2f}\\%$")
+ax4.plot(r_grid * 100, ks_curve, color=_nbstyle.S1["color"], linestyle="-", marker="o", label=r"Capital Supply $K^s(r)$")
+ax4.plot(r_grid * 100, kd_curve, color=_nbstyle.S2["color"], linestyle="--", marker="s", label=r"Firm Capital Demand $K^d(r)$")
+ax4.axvline(ge_res.r_star * 100, color=_nbstyle.NOTA, linestyle=":", label=f"Equilibrium $r^* = {ge_res.r_star * 100:.2f}\\%$")
 ax4.set_title("Aiyagari Asset Market Clearing Equilibrium", fontsize=11)
 ax4.set_xlabel("Interest Rate $r$ (%)")
 ax4.set_ylabel("Aggregate Capital $K$")
 ax4.legend(frameon=False)
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## Lectura de los resultados

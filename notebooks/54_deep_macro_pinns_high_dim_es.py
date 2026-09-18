@@ -184,15 +184,15 @@ assert np.all(sim_controls < sim_coh), "Consumption cannot exceed cash-on-hand (
 
 # %%
 # --- Experimento 3: Visualizaciones Principales con Calidad de Publicación ---
-fig, axes = plt.subplots(2, 2, figsize=(11, 7.5))
+fig, axes = _nbstyle.figura(2, 2, figsize=(11, 7.5))
 
 # Panel 1: Historial de convergencia de la pérdida de entrenamiento
 ax1 = axes[0, 0]
 epochs = np.arange(1, len(sol.loss_history) + 1)
 log_loss = np.log10(np.maximum(sol.loss_history, 1e-15))
-ax1.plot(epochs, log_loss, color="0.15", lw=2.0, label=r"Euler Loss $\mathcal{L}(\Theta)$")
-ax1.axhline(np.log10(initial_loss), color="0.55", ls="--", lw=1.2, label=f"Epoch 1 ({initial_loss:.1e})")
-ax1.axhline(np.log10(final_loss), color="0.00", ls=":", lw=1.4, label=f"Final ({final_loss:.1e})")
+ax1.plot(epochs, log_loss, color=_nbstyle.S1["color"], lw=2.0, label=r"Euler Loss $\mathcal{L}(\Theta)$")
+ax1.axhline(np.log10(initial_loss), color=_nbstyle.NOTA, ls="--", lw=1.2, label=f"Epoch 1 ({initial_loss:.1e})")
+ax1.axhline(np.log10(final_loss), color=_nbstyle.TINTA, ls=":", lw=1.4, label=f"Final ({final_loss:.1e})")
 ax1.set_title("Training Loss Convergence Across Epochs", fontsize=11)
 ax1.set_xlabel("Epoch")
 ax1.set_ylabel(r"$\log_{10}(\text{Euler Loss})$")
@@ -205,7 +205,7 @@ palette_colors = _nbstyle.palette(5)
 selected_countries = [0, 2, 4, 7, 9]
 for idx, c_idx in enumerate(selected_countries):
     ax2.plot(res_periods, sim_residuals[:, c_idx], color=palette_colors[idx], alpha=0.75, lw=1.1, label=f"Country {c_idx + 1}")
-ax2.axhline(0.0, color="0.00", ls="--", lw=1.0)
+ax2.axhline(0.0, color=_nbstyle.SPINE, ls="--", lw=1.0)
 ax2.set_title(r"Out-of-Sample Euler Residuals $\mathcal{R}_i(\mathbf{s})$", fontsize=11)
 ax2.set_xlabel("Simulation Period")
 ax2.set_ylabel(r"Euler Residual $1 - \beta (c'/c)^{-\gamma} R'$")
@@ -215,7 +215,7 @@ ax2.legend(loc="best", frameon=False, fontsize=8.0)
 ax3 = axes[1, 0]
 for idx, c_idx in enumerate(selected_countries):
     ax3.plot(sim_states[:, c_idx], color=palette_colors[idx], alpha=0.85, lw=1.4, label=f"Country {c_idx + 1}")
-ax3.axhline(k_ss[0], color="0.00", ls=":", lw=1.5, label=f"Steady State $k_{{ss}} = {k_ss[0]:.2f}$")
+ax3.axhline(k_ss[0], color=_nbstyle.SPINE, ls=":", lw=1.5, label=f"Steady State $k_{{ss}} = {k_ss[0]:.2f}$")
 ax3.set_title(r"Capital Deepening Dynamics from 60% $k_{ss}$", fontsize=11)
 ax3.set_xlabel("Period")
 ax3.set_ylabel("Capital Stock $k_i$")
@@ -229,16 +229,13 @@ s_slice_grid[:, 0] = k_eval_grid
 c_slice_policy = np.array([sol.policy(s_slice_grid[j])[0] for j in range(len(k_eval_grid))])
 W_slice_coh = np.array([model.cash_on_hand(s_slice_grid[j])[0] for j in range(len(k_eval_grid))])
 
-ax4.plot(k_eval_grid, c_slice_policy, color="0.10", lw=2.0, label=r"PINN Policy $c_1(k_1, k_{-1, ss})$")
-ax4.plot(k_eval_grid, W_slice_coh, color="0.50", ls="--", lw=1.3, label=r"Cash on Hand $W_1(k_1)$")
-ax4.scatter([k_ss[0]], [c_ss[0]], color="0.00", s=45, zorder=5, label=f"Steady State $c_{{ss}} = {c_ss[0]:.2f}$")
+ax4.plot(k_eval_grid, c_slice_policy, color=_nbstyle.S1["color"], lw=2.0, label=r"PINN Policy $c_1(k_1, k_{-1, ss})$")
+ax4.plot(k_eval_grid, W_slice_coh, color=_nbstyle.S2["color"], ls="--", lw=1.3, label=r"Cash on Hand $W_1(k_1)$")
+ax4.scatter([k_ss[0]], [c_ss[0]], color=_nbstyle.TINTA, s=45, zorder=5, label=f"Steady State $c_{{ss}} = {c_ss[0]:.2f}$")
 ax4.set_title("Continuous Consumption Policy Slice", fontsize=11)
 ax4.set_xlabel("Domestic Capital $k_1$")
 ax4.set_ylabel("Consumption $c_1$")
 ax4.legend(loc="upper left", frameon=False, fontsize=8.5)
-
-plt.tight_layout()
-plt.show()
 
 # Aserciones sobre las propiedades del gráfico principal y la monotonicidad de la sección de política
 assert np.all(np.diff(c_slice_policy) > 0.0), "Consumption policy must be strictly monotonically increasing in capital"

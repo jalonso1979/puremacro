@@ -249,9 +249,9 @@ fig, axes = plt.subplots(2, 2, figsize=(12, 10))
 # Subplot 1: OccBin vs Linear Impulse Responses
 time_axis = np.arange(horizon)
 ax1 = axes[0, 0]
-ax1.plot(time_axis, res_occ.path["r"], color="black", linestyle="-", label="OccBin $r_t$ (ZLB Bound)")
-ax1.plot(time_axis, sim_linear["r"], color="gray", linestyle="--", label="Linear $r_t$ (Unconstrained)")
-ax1.axhline(-params["r_ss"], color="gray", linestyle=":", label=f"ZLB Floor ({-params['r_ss']:.3f})")
+ax1.plot(time_axis, res_occ.path["r"], color=_nbstyle.S1["color"], linestyle=_nbstyle.S1["linestyle"], label="OccBin $r_t$ (ZLB Bound)")
+ax1.plot(time_axis, sim_linear["r"], color=_nbstyle.S2["color"], linestyle=_nbstyle.S2["linestyle"], label="Linear $r_t$ (Unconstrained)")
+ax1.axhline(-params["r_ss"], color=_nbstyle.SPINE, linestyle=":", label=f"ZLB Floor ({-params['r_ss']:.3f})")
 ax1.set_title("Interest Rate Trajectory: OccBin vs. Linear", fontsize=11)
 ax1.set_xlabel("Quarter $t$")
 ax1.set_ylabel("Interest Rate $r_t$")
@@ -260,7 +260,7 @@ ax1.legend(frameon=False)
 # Subplot 2: OccBin Structural Regime Timeline Across Time
 ax2 = axes[0, 1]
 regime_labels = {0: "Slack (00)", 1: "ZLB Only (01)", 2: "Borrowing Only (10)", 3: "Simultaneous (11)"}
-ax2.step(time_axis[:15], regimes[:15], where="mid", color="black", linewidth=1.5)
+ax2.step(time_axis[:15], regimes[:15], where="mid", color=_nbstyle.TINTA, linewidth=1.5)
 ax2.set_yticks([0, 1, 2, 3])
 ax2.set_yticklabels([regime_labels[0], regime_labels[1], regime_labels[2], regime_labels[3]])
 ax2.set_title("Active Structural Regime Sequence Across Time", fontsize=11)
@@ -274,10 +274,10 @@ point_estimates = [theta_true, theta_ols, theta_naive_lasso, res_dml_lasso.theta
 ci_errors = [0.0, 1.96 * se_ols, 0.0, 1.96 * res_dml_lasso.se, 1.96 * res_dml_ridge.se]
 
 ax3.errorbar(
-    estimators, point_estimates, yerr=ci_errors, fmt="o", color="black",
-    capsize=5, ecolor="black", elinewidth=1.2,
+    estimators, point_estimates, yerr=ci_errors, fmt="o", color=_nbstyle.TINTA,
+    capsize=5, ecolor=_nbstyle.NOTA, elinewidth=1.2,
 )
-ax3.axhline(theta_true, color="gray", linestyle="--", label=f"True Effect $\\theta_0 = {theta_true:.2f}$")
+ax3.axhline(theta_true, color=_nbstyle.SPINE, linestyle="--", label=f"True Effect $\\theta_0 = {theta_true:.2f}$")
 ax3.set_title("Causal Policy Estimator Comparison & Confidence Bands", fontsize=11)
 ax3.set_ylabel(r"Estimated Parameter $\hat{\theta}$")
 ax3.legend(frameon=False)
@@ -288,16 +288,13 @@ ax4 = axes[1, 1]
 d_res = res_dml_lasso.residuals_d
 y_res = res_dml_lasso.residuals_y
 
-ax4.scatter(d_res, y_res, alpha=0.3, color="gray", edgecolors="none", s=20, label="Orthogonalized Residuals")
+ax4.scatter(d_res, y_res, alpha=0.3, color=_nbstyle.NOTA, edgecolors="none", s=20, label="Orthogonalized Residuals")
 grid_d = np.linspace(d_res.min(), d_res.max(), 100)
-ax4.plot(grid_d, res_dml_lasso.theta * grid_d, color="black", linewidth=1.5, label=f"DML Slope $\\hat{{\\theta}} = {res_dml_lasso.theta:.2f}$")
+ax4.plot(grid_d, res_dml_lasso.theta * grid_d, color=_nbstyle.TINTA, linewidth=1.5, label=f"DML Slope $\\hat{{\\theta}} = {res_dml_lasso.theta:.2f}$")
 ax4.set_title("Neyman Orthogonalized Residuals & Policy Slope", fontsize=11)
 ax4.set_xlabel(r"Treatment Residual $\tilde{D} = D - \hat{m}(X)$")
 ax4.set_ylabel(r"Outcome Residual $\tilde{Y} = Y - \hat{\ell}(X)$")
 ax4.legend(frameon=False)
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## Lectura de los resultados

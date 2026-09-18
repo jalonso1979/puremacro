@@ -90,28 +90,25 @@ assert np.abs(att_post - true_effect) < 0.5, f"El efecto estimado se desvía del
 # Graficamos el resultado real $Y_1$ vs el Control Sintético $\hat Y_1$, junto con la brecha causal estimada $\hat\tau_t$.
 
 # %%
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10.5, 4.2))
+fig, (ax1, ax2) = _nbstyle.figura(ancho=10.5, alto=4.2, ncols=2)
 
 # Panel Izquierdo: Resultado Real vs Sintético
-ax1.plot(range(1, T + 1), y_treated, color=_nbstyle.palette(2)[0], lw=2.2, label="Unidad Tratada (Real)")
-ax1.plot(range(1, T + 1), y_synthetic, color=_nbstyle.palette(2)[1], lw=2.0, linestyle="--", label="Control Sintético")
-ax1.axvline(T0, color="0.0", linestyle=":", lw=1.5, label=f"Intervención (T0 = {T0})")
+ax1.plot(range(1, T + 1), y_treated, color=_nbstyle.S1["color"], lw=2.2, label="Unidad Tratada (Real)")
+ax1.plot(range(1, T + 1), y_synthetic, color=_nbstyle.S2["color"], lw=2.0, linestyle="--", label="Control Sintético")
+ax1.axvline(T0, color=_nbstyle.SPINE, linestyle=":", lw=1.5, label=f"Intervención (T0 = {T0})")
 ax1.set_xlabel("Periodo de Tiempo t")
 ax1.set_ylabel("Resultado Y")
 ax1.set_title("Trayectoria Contrafactual Real vs Sintética")
 ax1.legend(loc="upper left")
 
 # Panel Derecho: Brecha de Tratamiento Estimada
-ax2.plot(range(1, T + 1), att_path, color=_nbstyle.palette(2)[0], lw=2.2, label=f"Efecto Post = {att_post:.2f}")
-ax2.axhline(0, color="0.0", lw=0.8, linestyle="--")
-ax2.axvline(T0, color="0.0", linestyle=":", lw=1.5)
+ax2.plot(range(1, T + 1), att_path, color=_nbstyle.S1["color"], lw=2.2, label=f"Efecto Post = {att_post:.2f}")
+ax2.axhline(0, color=_nbstyle.SPINE, lw=0.8, linestyle="--")
+ax2.axvline(T0, color=_nbstyle.SPINE, linestyle=":", lw=1.5)
 ax2.set_xlabel("Periodo de Tiempo t")
 ax2.set_ylabel("Brecha de Tratamiento (Y_tratado - Y_sint)")
 ax2.set_title("Ruta del Efecto de Política Causal Estimado")
 ax2.legend(loc="upper left")
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # **Leyendo el resultado.** Previo a la intervención ($t < 25$), el control sintético rastrea a la unidad tratada casi perfectamente. Posterior a la intervención ($t \ge 25$), el resultado de la unidad tratada diverge marcadamente por encima de su contraparte sintética, recuperando el verdadero efecto de política de $\tau = +2.5$.

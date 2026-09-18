@@ -142,7 +142,7 @@ for tau in [0.05, 0.25, 0.50, 0.75, 0.95]:
     r = qar_df[qar_df["tau"] == tau].iloc[0]
     q_hist[tau] = r["beta0"] + r["beta1"] * merged["gdp_growth"] + r["beta2"] * merged["fci"]
 
-fig, axes = plt.subplots(2, 2, figsize=(11.0, 7.8))
+fig, axes = _nbstyle.figura(ancho=11.0, alto=7.8, nrows=2, ncols=2)
 c = _nbstyle.palette(4)
 
 # Panel 1: Growth-at-Risk Fan Chart with Realized Growth
@@ -151,8 +151,8 @@ dates = merged.index.to_timestamp()
 ax1.fill_between(dates, q_hist[0.05], q_hist[0.95], color=c[0], alpha=0.18, label="Banda GaR 5%-95%")
 ax1.fill_between(dates, q_hist[0.25], q_hist[0.75], color=c[0], alpha=0.35, label="Banda 25%-75%")
 ax1.plot(dates, q_hist[0.50], color=c[0], lw=1.8, label="Mediana condicional")
-ax1.plot(dates, merged["gdp_growth"].shift(-4), color="0.25", lw=1.0, ls="--", label="Realizado $y_{t+4}$")
-ax1.axhline(0, color="0.5", lw=0.8, ls=":")
+ax1.plot(dates, merged["gdp_growth"].shift(-4), color=_nbstyle.TEXTO, lw=1.0, ls="--", label="Realizado $y_{t+4}$")
+ax1.axhline(0, color=_nbstyle.SPINE, lw=0.8, ls=":")
 ax1.set_title("Gráfico de abanico de Crecimiento en Riesgo (Horizonte a 4 trimestres)", fontsize=10)
 ax1.set_ylabel("Crecimiento anualizado del PIB (%)")
 ax1.legend(loc="lower left", fontsize=7.5, frameon=True)
@@ -173,7 +173,7 @@ ax2.legend(loc="upper left", fontsize=7.5, frameon=True)
 ax3 = axes[1, 0]
 tot_s = spillover["total_series"]
 ax3.plot(tot_s.index, tot_s.values, color=c[2], lw=1.8, label="Desbordamiento total $S(H)$")
-ax3.axhline(tot_s.mean(), color="0.4", lw=1.0, ls="--", label=f"Media muestral ({tot_s.mean():.1f}%)")
+ax3.axhline(tot_s.mean(), color=_nbstyle.SPINE, lw=1.0, ls="--", label=f"Media muestral ({tot_s.mean():.1f}%)")
 ax3.set_title("Conectividad sistémica Diebold-Yilmaz (Ventana móvil 36M)", fontsize=10)
 ax3.set_ylabel("Índice de conectividad (%)")
 ax3.legend(loc="lower right", fontsize=7.5, frameon=True)
@@ -183,12 +183,9 @@ ax4 = axes[1, 1]
 net_vals = spillover["net"]
 bar_cols = [c[3] if v > 0 else c[0] for v in net_vals]
 ax4.bar(banks, net_vals, color=bar_cols, alpha=0.85, edgecolor="none", width=0.55)
-ax4.axhline(0, color="0.4", lw=0.8)
+ax4.axhline(0, color=_nbstyle.SPINE, lw=0.8)
 ax4.set_title("Conectividad direccional neta (Emisores vs. Receptores)", fontsize=10)
 ax4.set_ylabel("Desbordamiento neto (%)")
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # **Leer los resultados.** Las estimaciones empíricas ilustran tres principios fundamentales de la vigilancia del riesgo macroprudencial:

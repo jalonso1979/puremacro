@@ -175,7 +175,7 @@ assert dsa_base.shape == (1000, 21), f"Expected (1000, 21), got {dsa_base.shape}
 assert 0.0 <= prob_breach <= 1.0, "Breach probability must lie in [0, 1]"
 
 # --- 4. Hero Figure: Multipliers & Sovereign DSA Dashboard -------------------
-fig, axes = plt.subplots(2, 2, figsize=(11.0, 7.8))
+fig, axes = _nbstyle.figura(2, 2, figsize=(11.0, 7.8))
 c = _nbstyle.palette(4)
 
 # Panel 1: Multiplier Dynamics across Horizons
@@ -183,7 +183,7 @@ ax1 = axes[0, 0]
 ax1.plot(hgrid, m_bp, color=c[0], lw=1.8, label=f"SVAR de Blanchard-Perotti [Mín={m_bp.min():.2f}]")
 ax1.plot(hgrid, m_iv, color=c[1], lw=1.8, ls="--", label=f"LP-IV de Mertens-Ravn [Mín={m_iv.min():.2f}]")
 ax1.plot(hgrid, m_rr, color=c[2], lw=1.8, ls="-.", label=f"LP de Romer-Romer [Mín={m_rr.min():.2f}]")
-ax1.axhline(0, color="0.5", lw=0.8, ls=":")
+ax1.axhline(0, color=_nbstyle.SPINE, lw=0.8, ls=":")
 ax1.set_title("Multiplicadores tributarios entre paradigmas de identificación", fontsize=10)
 ax1.set_xlabel("Trimestres posteriores al aumento tributario del 1% del PIB")
 ax1.set_ylabel("Respuesta del producto (%)")
@@ -232,9 +232,6 @@ ax4.set_title("Distribución de deuda terminal: Línea base vs. Estrés", fontsi
 ax4.set_xlabel("Deuda sobre PIB al año 5 (%)")
 ax4.set_ylabel("Densidad de probabilidad")
 ax4.legend(loc="upper right", fontsize=7.5, frameon=True)
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # **Leer los resultados.** Las trayectorias de multiplicadores empíricos y las proyecciones de deuda estocásticas revelan varias lecciones estructurales críticas:

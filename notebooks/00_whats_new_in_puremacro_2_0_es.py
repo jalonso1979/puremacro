@@ -32,6 +32,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import puremacro
+import _nbstyle
 
 print(f"Versión de puremacro cargada: {puremacro.__version__}")
 
@@ -61,9 +62,8 @@ res_lp = lp_hac(df_lp, y="gdp", x="shock", horizon=16, lags=4, ci=0.90)
 print(res_lp.summary())
 
 # Graficar IRF en una sola línea
-fig, ax = plt.subplots(figsize=(7, 4))
+fig, ax = _nbstyle.figura(ancho=7, alto=4)
 res_lp.plot(ax=ax, title="Respuesta del PIB Real al Choque Monetario (LP-HAC)")
-plt.show()
 
 # Exportar tabla lista para LaTeX
 print("Salida LaTeX (primeras 4 filas):")
@@ -138,7 +138,6 @@ print(favar_res.summary())
 
 # Graficar respuestas seleccionadas
 favar_res.plot(variables=["Macro_Var_1", "Macro_Var_2"])
-plt.show()
 
 # %% [markdown]
 # ## 4. Diferencias en Diferencias Escalonadas Modernas

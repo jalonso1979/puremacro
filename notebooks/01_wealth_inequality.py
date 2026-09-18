@@ -135,39 +135,36 @@ assert 0.0 < hu["frac_borrowing"] < 1.0
 # The β-heterogeneous mixture lies further from the 45° line of perfect equality.
 
 # %%
-cols = _nbstyle.palette(2)
 pop_ai, val_ai, _ = lorenz_and_gini(mu_ai, np.broadcast_to(a_grid[:, None], mu_ai.shape))
 pop_mx, val_mx, _ = lorenz_and_gini(mu_mix, wealth_mix)
-fig, ax = plt.subplots()
-ax.plot([0, 1], [0, 1], color="0.6", linewidth=0.8, linestyle=":")
-ax.plot(pop_ai, val_ai, color=cols[0], label=f"Aiyagari (Gini {gini_ai:.2f})")
-ax.plot(pop_mx, val_mx, color=cols[1], linestyle="--",
+fig, ax = _nbstyle.figura()
+ax.plot([0, 1], [0, 1], color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")
+ax.plot(pop_ai, val_ai, **_nbstyle.S1, label=f"Aiyagari (Gini {gini_ai:.2f})")
+ax.plot(pop_mx, val_mx, **_nbstyle.S2,
         label=f"β-heterogeneous (Gini {gini_mix:.2f})")
 ax.set_xlabel("Population share (poorest → richest)")
 ax.set_ylabel("Wealth share")
 ax.set_title("Wealth Lorenz curves")
 ax.legend(loc="upper left")
-plt.show()
 
 # %% [markdown]
 # ### Supporting — wealth density by income state, and the Huggett asset distribution
 
 # %%
-fig, (axL, axR) = plt.subplots(1, 2, figsize=(9.5, 3.6))
+fig, (axL, axR) = _nbstyle.figura(ancho=9.5, alto=3.6, ncols=2)
 dens_ai = mu_ai / mu_ai.sum(axis=0, keepdims=True)       # column-normalize per z
-for j, c in zip([0, len(z_grid) // 2, len(z_grid) - 1], _nbstyle.palette(3)):
-    axL.plot(a_grid, dens_ai[:, j], color=c, label=f"z = {z_grid[j]:+.2f}")
+for j, sty in zip([0, len(z_grid) // 2, len(z_grid) - 1], [_nbstyle.S1, _nbstyle.S2, _nbstyle.S3]):
+    axL.plot(a_grid, dens_ai[:, j], **sty, label=f"z = {z_grid[j]:+.2f}")
 axL.set_xlim(0, 30)
 axL.set_xlabel("Assets a"); axL.set_ylabel("Density (within income state)")
 axL.set_title("Aiyagari: wealth by income state"); axL.legend()
 
 mu_hu_a = mu_hu.sum(axis=1)                               # marginal over z
-axR.fill_between(a_grid_hu, mu_hu_a, color="0.75", step="mid")
-axR.axvline(0.0, color="0.2", linewidth=0.8, linestyle="--")
+axR.fill_between(a_grid_hu, mu_hu_a, color=_nbstyle.NOTA, alpha=0.35, step="mid")
+axR.axvline(0.0, color=_nbstyle.SPINE, linewidth=0.8, linestyle="--")
 axR.set_xlim(a_grid_hu[0], 12)
 axR.set_xlabel("Net assets a"); axR.set_ylabel("Population mass")
 axR.set_title(f"Huggett: borrowers to the left ({hu['frac_borrowing']:.0%})")
-plt.show()
 
 # %% [markdown]
 # ### Supporting — the consumption-saving policy
@@ -176,14 +173,13 @@ plt.show()
 
 # %%
 pol_a = a_grid[eq.solution.policy_aprime]                 # (n_a, n_z) realized a'
-fig, ax = plt.subplots()
-ax.plot(a_grid, a_grid, color="0.6", linewidth=0.8, linestyle=":", label="45°")
-for j, c in zip([0, len(z_grid) - 1], _nbstyle.palette(2)):
-    ax.plot(a_grid, pol_a[:, j], color=c, label=f"a'(a, z={z_grid[j]:+.2f})")
+fig, ax = _nbstyle.figura()
+ax.plot(a_grid, a_grid, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":", label="45°")
+for j, sty in zip([0, len(z_grid) - 1], [_nbstyle.S1, _nbstyle.S2]):
+    ax.plot(a_grid, pol_a[:, j], **sty, label=f"a'(a, z={z_grid[j]:+.2f})")
 ax.set_xlim(0, 30); ax.set_ylim(0, 30)
 ax.set_xlabel("Assets today a"); ax.set_ylabel("Assets tomorrow a'")
 ax.set_title("Saving policy (Aiyagari)"); ax.legend(loc="upper left")
-plt.show()
 
 # %% [markdown]
 # ## Your turn — how much does patience heterogeneity matter?

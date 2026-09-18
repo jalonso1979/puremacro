@@ -174,7 +174,7 @@ def _z(s):
     s = np.asarray(s, dtype=float)
     return (s - np.nanmean(s)) / np.nanstd(s)
 
-fig, axes = plt.subplots(2, 2, figsize=(9.6, 6.0))
+fig, axes = _nbstyle.figura(2, 2, ancho=9.6, alto=6.0)
 axes[0, 0].plot(epu_s.index, _z(epu_s.values), color=cols[0]); axes[0, 0].set_title("1 · text → EPU")
 axes[0, 1].plot(U.index, _z(U.values), color=cols[1]); axes[0, 1].set_title("2 · macro panel → JLN-style")
 axes[1, 0].plot(fci_idx.index, _z(fci_idx.values), color=cols[2]); axes[1, 0].set_title("3 · financial → FCI")
@@ -182,10 +182,8 @@ axes[1, 1].bar(range(len(labels)), S.diag_contrib(w), color=cols[3])
 axes[1, 1].set_xticks(range(len(labels))); axes[1, 1].set_xticklabels(labels, rotation=30, ha="right")
 axes[1, 1].set_title("4 · cross-section → variance contributions")
 for ax in axes.flat[:3]:
-    ax.axhline(0, color="0.7", linewidth=0.6)
+    ax.axhline(0, color=_nbstyle.SPINE, linewidth=0.6)
 fig.suptitle("Four uncertainty indices from one toolkit (series standardized)")
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## Una sola caja de herramientas, cuatro índices

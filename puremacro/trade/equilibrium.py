@@ -171,7 +171,7 @@ def _get_ces_weights(calib: TradeCalibrationResult) -> tuple[np.ndarray, np.ndar
     cached_val = (A_mat, omega)
     try:
         object.__setattr__(calib, "_ces_weights_cache", cached_val)
-    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+    except Exception:
         pass
     return cached_val
 

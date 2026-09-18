@@ -236,19 +236,19 @@ assert ms_test.verdict in ["news", "noise", "indeterminate", "neither"], "Invali
 # ---------------------------------------------------------------------------
 # 6. Hero Visualization: 4-Panel Real-Time Nowcasting & News Dashboard
 # ---------------------------------------------------------------------------
-fig, axes = plt.subplots(2, 2, figsize=(13.0, 9.5))
+fig, axes = _nbstyle.figura(2, 2, figsize=(13.0, 9.5))
 
 # (1) Realized GDP vs DFM Nowcast Tracking
 ax1 = axes[0, 0]
 q_idx = np.arange(len(s_gdp))
-ax1.plot(q_idx, s_gdp.values, color="0.0", linewidth=1.8, label="Realized GDP Growth")
+ax1.plot(q_idx, s_gdp.values, color=_nbstyle.TINTA, linewidth=1.8, label="Realized GDP Growth")
 q_factors = res_nowcast.factors.resample("QE").mean().to_numpy()
 beta_b = res_nowcast.bridge_coefficients.values
 nowcast_track = beta_b[0] + q_factors @ beta_b[1:]
 ax1.plot(
     q_idx,
     nowcast_track,
-    color="0.45",
+    color=_nbstyle.S2["color"],
     linestyle="--",
     linewidth=1.6,
     label=f"DFM Bridge Tracking (R²={res_nowcast.model_r2:.2f})",
@@ -256,39 +256,39 @@ ax1.plot(
 ax1.scatter(
     [q_idx[-1]],
     [res_nowcast.nowcast],
-    color="0.1",
+    color=_nbstyle.S1["color"],
     s=90,
     zorder=5,
     label=f"Target Nowcast ({res_nowcast.target_quarter}): {res_nowcast.nowcast:.2f}%",
 )
 ax1.set_xticks(q_idx[::6])
 ax1.set_xticklabels([str(s_gdp.index[i]) for i in q_idx[::6]], rotation=25)
-ax1.set_xlabel("Quarterly Periods")
-ax1.set_ylabel("Annualized Growth (%)")
-ax1.set_title("(a) Realized GDP Growth vs. DFM Nowcast In-Sample Tracking")
+ax1.set_xlabel("Trimestres")
+ax1.set_ylabel("Crecimiento Anualizado (%)")
+ax1.set_title("(a) Crecimiento Realizado del PIB vs. Seguimiento del Nowcast DFM")
 ax1.legend(loc="upper right", fontsize=8)
 
 # (2) Monthly Latent Factors with Business Cycle Expansion / Contraction Bands
 ax2 = axes[0, 1]
 m_idx = np.arange(T_months)
-ax2.plot(m_idx, res_nowcast.factors["Factor_1"], color="0.0", linewidth=1.5, label="Factor 1: Real Activity")
-ax2.plot(m_idx, res_nowcast.factors["Factor_2"], color="0.5", linestyle="--", linewidth=1.4, label="Factor 2: Demand / Sentiment")
-ax2.axhline(0, color="0.3", linestyle=":", linewidth=0.8)
+ax2.plot(m_idx, res_nowcast.factors["Factor_1"], color=_nbstyle.S1["color"], linewidth=1.5, label="Factor 1: Actividad Real")
+ax2.plot(m_idx, res_nowcast.factors["Factor_2"], color=_nbstyle.S2["color"], linestyle="--", linewidth=1.4, label="Factor 2: Demanda / Sentimiento")
+ax2.axhline(0, color=_nbstyle.SPINE, linestyle=":", linewidth=0.8)
 f1_vals = res_nowcast.factors["Factor_1"].values
 ax2.fill_between(
     m_idx,
     f1_vals.min() - 0.5,
     f1_vals.max() + 0.5,
     where=(f1_vals < -1.0),
-    color="0.85",
-    alpha=0.6,
-    label="Contractionary Business Cycle Band",
+    color=_nbstyle.RECESION_HEX,
+    alpha=_nbstyle.RECESION_ALPHA,
+    label="Banda de Ciclo Económico Contractivo",
 )
 ax2.set_xticks(m_idx[::24])
 ax2.set_xticklabels([str(dates_m[i])[:7] for i in m_idx[::24]], rotation=25)
-ax2.set_xlabel("Monthly Periods")
-ax2.set_ylabel("Standardized Factor Units")
-ax2.set_title("(b) Monthly Latent Macro Factors (F₁, F₂) and Cycle Bands")
+ax2.set_xlabel("Períodos Mensuales")
+ax2.set_ylabel("Unidades Factoriales Estandarizadas")
+ax2.set_title("(b) Factores Macroeconómicos Latentes Mensuales (F₁, F₂) y Ciclos")
 ax2.legend(loc="upper right", fontsize=8)
 
 # (3) Waterfall / Bar Chart of News Surprises and Contributions
@@ -296,54 +296,51 @@ ax3 = axes[1, 0]
 series_names = news_df["series"].tolist()
 x_pos = np.arange(len(series_names))
 contribs_bps = news_df["contribution"].values * 100.0  # Convert to basis points
-bar_colors = ["0.25" if c >= 0 else "0.55" for c in contribs_bps]
-ax3.bar(x_pos, contribs_bps, color=bar_colors, width=0.45, label="Release Contribution (bps)")
-ax3.axhline(0, color="0.2", linestyle="--", linewidth=0.8)
+bar_colors = [_nbstyle.S1["color"] if c >= 0 else _nbstyle.S2["color"] for c in contribs_bps]
+ax3.bar(x_pos, contribs_bps, color=bar_colors, width=0.45, label="Contribución de Publicación (bps)")
+ax3.axhline(0, color=_nbstyle.SPINE, linestyle="--", linewidth=0.8)
 ax3.set_xticks(x_pos)
 ax3.set_xticklabels(series_names, rotation=20)
-ax3.set_ylabel("Contribution to GDP Nowcast (bps)")
-ax3.set_title(f"(c) News Release Decomposition (Net Revision: {total_news_revision * 100:+.2f} bps)")
+ax3.set_ylabel("Contribución al Nowcast del PIB (bps)")
+ax3.set_title(f"(c) Descomposición de Nuevas Publicaciones (Revisión Neta: {total_news_revision * 100:+.2f} bps)")
 ax3.legend(loc="upper left", fontsize=8)
 
 # (4) Mankiw-Shapiro Revision Scatter with News/Noise Regression Slopes
 ax4 = axes[1, 1]
 revisions = gdp_final - gdp_prelim
-ax4.scatter(gdp_prelim, revisions, color="0.25", alpha=0.75, s=32, label="Historical Revisions")
+ax4.scatter(gdp_prelim, revisions, color=_nbstyle.NOTA, alpha=0.75, s=32, label="Revisiones Históricas")
 x_grid = np.linspace(gdp_prelim.min(), gdp_prelim.max(), 100)
 # News line (beta = 0)
 ax4.plot(
     x_grid,
     np.zeros_like(x_grid) + ms_test.alpha_on_preliminary,
-    color="0.0",
+    color=_nbstyle.TINTA,
     linestyle="-",
     linewidth=1.6,
-    label="News Null Hypothesis (β=0)",
+    label="Hipótesis Nula de Noticias (β=0)",
 )
 # Noise line (beta = -1)
 ax4.plot(
     x_grid,
     -1.0 * (x_grid - gdp_prelim.mean()),
-    color="0.6",
+    color=_nbstyle.NOTA,
     linestyle=":",
     linewidth=1.4,
-    label="Noise Null Hypothesis (β=-1)",
+    label="Hipótesis Nula de Ruido (β=-1)",
 )
 # Empirical OLS fit
 ax4.plot(
     x_grid,
     ms_test.alpha_on_preliminary + ms_test.beta_on_preliminary * x_grid,
-    color="0.35",
+    color=_nbstyle.S2["color"],
     linestyle="--",
     linewidth=1.6,
-    label=f"Empirical OLS (β̂={ms_test.beta_on_preliminary:.2f}, p={ms_test.p_beta_on_preliminary:.2f})",
+    label=f"Ajuste OLS Empírico (β̂={ms_test.beta_on_preliminary:.2f}, p={ms_test.p_beta_on_preliminary:.2f})",
 )
-ax4.set_xlabel("Preliminary GDP Growth (%)")
-ax4.set_ylabel("Revision: Final - Preliminary (%)")
-ax4.set_title(f"(d) Mankiw-Shapiro (1986) Revision Test: {ms_test.verdict.upper()}")
+ax4.set_xlabel("Crecimiento Preliminar del PIB (%)")
+ax4.set_ylabel("Revisión: Final - Preliminar (%)")
+ax4.set_title(f"(d) Prueba de Revisión Mankiw-Shapiro (1986): {ms_test.verdict.upper()}")
 ax4.legend(loc="lower left", fontsize=8)
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## Read the output

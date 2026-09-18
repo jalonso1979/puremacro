@@ -52,7 +52,9 @@ from puremacro.fetch import (
 # %% [markdown]
 # ## 1. Inspecting the 45+ Country QNA Vintage Catalog
 #
-# `puremacro` provides a standardized cross-country catalog mapping 45+ economies (all 38 OECD members, G7, G20, and key emerging markets) to real-time historical publication vintages on ALFRED.
+# Real-time macroeconomic research requires access to historical snapshots as they appeared to policymakers and market participants at the time decisions were made. In archival databases such as the Federal Reserve Bank of St. Louis ALFRED (ArchivaL Federal Reserve Economic Data), each macroeconomic indicator is recorded along with its publication date (vintage).
+#
+# `puremacro` provides a standardized cross-country catalog mapping 45+ economies (all 38 OECD members, G7, G20, and key emerging markets) to real-time historical publication vintages on ALFRED. Each entry captures the country code, geographic region, standardized variable definition (such as real GDP, real gross fixed capital formation, or household consumption), and the ALFRED native series identifier.
 
 # %%
 catalog = get_qna_vintage_catalog()
@@ -70,6 +72,14 @@ print(var_counts)
 # ## 2. Constructing a Real-Time Vintage Panel
 #
 # Let us simulate a realistic multi-country historical revision structure spanning 40 quarters ($T=40$) and 50 publication vintages ($V=50$) to demonstrate the real-time analytics pipeline.
+#
+# Let $y_t^*$ denote the true underlying economic activity in quarter $t$. The advance statistical release $y_{0, t}$ is published with a one-quarter lag ($t+1$) and contains both latent state information and initial survey measurement error $v_t \sim \mathcal{N}(0, \sigma_v^2)$:
+#
+# $$ y_{0, t} = y_t^* + v_t $$
+#
+# Over subsequent publication vintages $j \ge 1$, statistical agencies incorporate comprehensive administrative tax records, annual business censuses, and revised seasonal adjustment factors. The vintage estimate $y_{j, t}$ converges gradually toward the benchmark value with geometric decay:
+#
+# $$ y_{j, t} = y_t^* + e^{-j / \kappa} \, v_t, \qquad \kappa > 0 $$
 
 # %%
 rng = np.random.default_rng(1986)
@@ -114,7 +124,11 @@ print(f"Built QNAVintagePanel with {len(df_raw):,} records across {len(countries
 # %% [markdown]
 # ## 3. Visualizing the $(T \times V)$ Revision Triangle
 #
-# The revision matrix organizes observation dates on the vertical axis ($T$) and publication vintage dates on the horizontal axis ($V$). The diagonal represents the first release (advance estimate), while horizontal movements track successive revisions.
+# The canonical representation of vintage data is the lower-triangular revision matrix $\mathbf{R} \in \mathbb{R}^{T \times V}$:
+#
+# $$ \mathbf{R} = \begin{bmatrix} y_{1, v_1} & y_{1, v_2} & y_{1, v_3} & \dots & y_{1, v_V} \\ \text{NaN} & y_{2, v_2} & y_{2, v_3} & \dots & y_{2, v_V} \\ \text{NaN} & \text{NaN} & y_{3, v_3} & \dots & y_{3, v_V} \\ \vdots & \vdots & \vdots & \ddots & \vdots \\ \text{NaN} & \text{NaN} & \text{NaN} & \dots & y_{T, v_V} \end{bmatrix} $$
+#
+# Each row index corresponds to an observation period $t$ (quarter of reference), while each column corresponds to a publication vintage date $v$. The leading diagonal contains the first release (advance estimate) for each quarter. Reading across any single row traces the historical lifecycle of revisions for that specific quarter as statistical agencies refine their estimates.
 
 # %%
 tri_usa = panel.revision_matrix("USA", "gdp_real")
@@ -122,13 +136,13 @@ print("USA Real GDP Growth Revision Matrix (first 6 quarters × 6 vintages):")
 print(tri_usa.iloc[:6, :6])
 
 # %%
-fig, ax = plt.subplots(figsize=(10, 6))
+fig, ax = _nbstyle.figura(figsize=(9.2, 5.2))
 
 # Plot heatmap of available vintages
-im = ax.imshow(tri_usa.iloc[:24, :24].to_numpy(), cmap="viridis", aspect="auto")
-ax.set_title("USA Real GDP Growth: Historical Revision Triangle (T × V)", fontsize=12, fontweight="bold")
-ax.set_xlabel("Publication Vintage Date Index", fontsize=10)
-ax.set_ylabel("Observation Quarter Index", fontsize=10)
+im = ax.imshow(tri_usa.iloc[:24, :24].to_numpy(), cmap=_nbstyle.CMAP_SEQ, aspect="auto")
+ax.set_title("USA Real GDP Growth: Historical Revision Triangle (T × V)", fontsize=11, fontweight="bold")
+ax.set_xlabel("Publication Vintage Date Index", color=_nbstyle.TEXTO)
+ax.set_ylabel("Observation Quarter Index", color=_nbstyle.TEXTO)
 
 # Formatting tick labels
 ax.set_xticks(range(0, 24, 4))
@@ -137,50 +151,63 @@ ax.set_yticks(range(0, 24, 4))
 ax.set_yticklabels([d.strftime("%YQ%q") for d in tri_usa.index[:24:4]])
 
 cbar = fig.colorbar(im, ax=ax)
-cbar.set_label("Annualized Real GDP Growth (%)", fontsize=10)
-plt.tight_layout()
-plt.show()
+cbar.set_label("Annualized Real GDP Growth (%)", color=_nbstyle.TEXTO)
 
 # %% [markdown]
 # ## 4. First Release vs. Latest Benchmark Revisions
 #
-# Comparing the advance initial estimate against the latest available benchmark reveals the magnitude and persistence of macroeconomic revisions.
+# Comparing the advance initial estimate against the latest available benchmark reveals the magnitude, direction, and cyclical persistence of macroeconomic revisions:
+#
+# $$ r_t = y_{T, t} - y_{0, t} $$
+#
+# If revisions are systematically non-zero on average ($\bar{r} \neq 0$), the initial release suffers from statistical bias. Furthermore, if revisions correlate with macroeconomic expansions or contractions, policy decisions based on unrevised indicators may inadvertently amplify the business cycle (Orphanides, 2001).
 
 # %%
 s_first = panel.first_release("USA", "gdp_real")
 s_latest = panel.latest_release("USA", "gdp_real")
 
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(11, 6), sharex=True)
+fig, (ax1, ax2) = _nbstyle.figura(2, 1, figsize=(9.5, 6.0), sharex=True)
 
 # Panel 1: Series Levels
-ax1.plot(s_first.index, s_first.values, color="#1f77b4", lw=2, label="First Release (Advance Estimate)")
-ax1.plot(s_latest.index, s_latest.values, color="#d62728", lw=2, linestyle="--", label="Latest Revised Benchmark")
+ax1.plot(s_first.index, s_first.values, **_nbstyle.S1, label="First Release (Advance Estimate)")
+ax1.plot(s_latest.index, s_latest.values, **_nbstyle.S2, label="Latest Revised Benchmark")
 ax1.set_title("USA Real GDP Growth: Initial vs. Final Revised Series", fontsize=11, fontweight="bold")
-ax1.set_ylabel("Growth Rate (%)", fontsize=10)
-ax1.legend()
-ax1.grid(True, linestyle=":", alpha=0.6)
+ax1.set_ylabel("Growth Rate (%)", color=_nbstyle.TEXTO)
+ax1.legend(frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
+ax1.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.8)
 
 # Panel 2: Total Revision (Final - First)
 revision = s_latest - s_first
-ax2.bar(revision.index, revision.values, color="#2ca02c", width=60, edgecolor="#333", alpha=0.8, label="Revision ($y_T - y_0$)")
-ax2.axhline(0, color="black", lw=0.8, linestyle="-")
+ax2.bar(revision.index, revision.values, color=_nbstyle.S3["color"], width=60, edgecolor=_nbstyle.SPINE, alpha=0.8, label="Revision ($y_T - y_0$)")
+ax2.axhline(0, color=_nbstyle.SPINE, lw=0.8, linestyle="-")
 ax2.set_title("Total Historical Revision Series", fontsize=11, fontweight="bold")
-ax2.set_xlabel("Observation Date", fontsize=10)
-ax2.set_ylabel("Revision (% pts)", fontsize=10)
-ax2.legend()
-ax2.grid(True, linestyle=":", alpha=0.6)
-
-plt.tight_layout()
-plt.show()
+ax2.set_xlabel("Observation Date", color=_nbstyle.TEXTO)
+ax2.set_ylabel("Revision (% pts)", color=_nbstyle.TEXTO)
+ax2.legend(frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
+ax2.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.8)
 
 # %% [markdown]
 # ## 5. Executing the Mankiw-Shapiro (1986) News vs. Noise Test
 #
-# We estimate the Mankiw-Shapiro OLS specification:
-# $$ y_{T,t} - y_{0,t} = \alpha + \beta \, y_{0,t} + \varepsilon_t $$
+# Gregory Mankiw and Matthew Shapiro (1986) developed the foundational econometric framework for evaluating the rationality of preliminary statistical data.
 #
-# - If $\beta = 0$, we cannot reject the **News hypothesis** (initial releases are rational forecasts).
-# - If $\beta = -1$, the data supports the **Noise hypothesis** (initial releases suffer from classical measurement error).
+# We estimate the OLS regression of the revision $r_t = y_{T, t} - y_{0, t}$ on the initial estimate $y_{0, t}$:
+#
+# $$ r_t = \alpha + \beta \, y_{0, t} + \varepsilon_t $$
+#
+# ### Theoretical Hypotheses
+# 1. **News Hypothesis ($H_{\text{news}}$)**:
+#    Statistical agencies form rational forecasts of the final benchmark based on all currently available information set $\Omega_t$:
+#    $$ y_{0, t} = \mathbb{E}[y_{T, t} \mid \Omega_t] \implies y_{T, t} = y_{0, t} + \nu_t, \quad \text{with } \mathbb{E}[\nu_t \mid \Omega_t] = 0 $$
+#    Under rational expectations, the revision $r_t = \nu_t$ represents pure *news* that is entirely unpredictable from the initial release:
+#    $$ \alpha = 0, \qquad \beta = 0, \qquad R^2 \approx 0 $$
+#
+# 2. **Noise Hypothesis ($H_{\text{noise}}$)**:
+#    The statistical agency observes the true benchmark corrupted by classical measurement error $u_t$:
+#    $$ y_{0, t} = y_{T, t} + u_t, \quad \text{with } \text{Cov}(y_{T, t}, u_t) = 0, \quad u_t \sim \text{i.i.d.}(0, \sigma_u^2) $$
+#    In this case, the revision is simply the negative of the measurement noise ($r_t = -u_t$). Regressing $r_t$ on $y_{0, t}$ yields:
+#    $$ \beta = \frac{\text{Cov}(-u_t, y_{T, t} + u_t)}{\text{Var}(y_{0, t})} = \frac{-\sigma_u^2}{\sigma_y^2 + \sigma_u^2} < 0 $$
+#    In the limit where noise dominates, $\beta \to -1$.
 
 # %%
 stats_usa = panel.revision_stats("USA", "gdp_real")
@@ -226,40 +253,47 @@ print(df_test_summary.to_string(index=False))
 
 # %% [markdown]
 # ## 6. Visualizing the Mankiw-Shapiro Regression Scatter
+#
+# Plotting the initial release $y_{0, t}$ on the horizontal axis against the revision $r_t = y_{T, t} - y_{0, t}$ on the vertical axis provides an intuitive geometric diagnostic:
+#
+# - A horizontal line ($\beta = 0$) corresponds to the **Pure News benchmark**, indicating efficient forecasts.
+# - A downward-sloping line with slope $\beta = -1$ corresponds to the **Pure Noise benchmark**, indicating unadjusted survey error.
+# - The estimated OLS regression slope reveals whether statistical agencies under- or over-adjust preliminary indicators.
 
 # %%
-fig, ax = plt.subplots(figsize=(8, 5))
+fig, ax = _nbstyle.figura(figsize=(8.5, 4.8))
 
 # Scatter plot: Initial release vs Total Revision
 x_vals = s_first.values
 y_vals = (s_latest - s_first).values
-ax.scatter(x_vals, y_vals, color="#1f77b4", edgecolors="#333", s=50, alpha=0.8, label="Observations ($y_{0,t}, r_t$)")
+ax.scatter(x_vals, y_vals, color=_nbstyle.S1["color"], edgecolors=_nbstyle.SPINE, s=50, alpha=0.85, label="Observations ($y_{0,t}, r_t$)")
 
 # Fitted OLS regression line
 x_grid = np.linspace(x_vals.min() - 0.5, x_vals.max() + 0.5, 100)
 y_fit = stats_usa["mean_revision"] + stats_usa["mankiw_shapiro_beta"] * x_grid
-ax.plot(x_grid, y_fit, color="#d62728", lw=2, label=f"OLS Fit ($\\beta={stats_usa['mankiw_shapiro_beta']:.2f}$, p={stats_usa['mankiw_shapiro_pvalue']:.3f})")
+ax.plot(x_grid, y_fit, **_nbstyle.S2, label=f"OLS Fit ($\\beta={stats_usa['mankiw_shapiro_beta']:.2f}$, p={stats_usa['mankiw_shapiro_pvalue']:.3f})")
 
 # Theoretical Noise line (slope = -1)
 y_noise = -1.0 * x_grid
-ax.plot(x_grid, y_noise, color="gray", lw=1.5, linestyle=":", label="Pure Noise Benchmark ($\\beta=-1$)")
+ax.plot(x_grid, y_noise, color=_nbstyle.NOTA, lw=1.5, linestyle=":", label="Pure Noise Benchmark ($\\beta=-1$)")
 
 # Theoretical News line (slope = 0)
-ax.axhline(0, color="black", lw=1.2, linestyle="--", label="Pure News Benchmark ($\\beta=0$)")
+ax.axhline(0, color=_nbstyle.SPINE, lw=1.2, linestyle="--", label="Pure News Benchmark ($\\beta=0$)")
 
 ax.set_title("Mankiw & Shapiro (1986) News vs. Noise Diagnostic Plot", fontsize=11, fontweight="bold")
-ax.set_xlabel("Initial Release $y_{0,t}$ (%)", fontsize=10)
-ax.set_ylabel("Total Revision $y_{T,t} - y_{0,t}$ (% pts)", fontsize=10)
-ax.legend(loc="upper right", frameon=True)
-ax.grid(True, linestyle=":", alpha=0.6)
-
-plt.tight_layout()
-plt.show()
+ax.set_xlabel("Initial Release $y_{0,t}$ (%)", color=_nbstyle.TEXTO)
+ax.set_ylabel("Total Revision $y_{T,t} - y_{0,t}$ (% pts)", color=_nbstyle.TEXTO)
+ax.legend(loc="upper right", frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
+ax.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.8)
 
 # %% [markdown]
 # ## 7. Real-Time Point-in-Time Dataset Slicing (`.as_of()`)
 #
-# Econometricians evaluating historical policy decisions need to know the state of the macroeconomic data as published on a specific historical date (e.g. at the onset of the 2020 pandemic).
+# When conducting pseudo-out-of-sample forecasting experiments or structural VAR historical decompositions, utilizing revised data introduces lookahead bias (endogeneity through future revisions).
+#
+# The method `panel.as_of(date)` reconstructs the exact cross-sectional and time-series information available to an econometrician as of a specified publication date. For any historical vintage $V^*$, it filters all series to satisfy:
+#
+# $$ \mathcal{I}_{V^*} = \left\{ y_{v, t} \;\Big|\; v \le V^* \text{ and } v = \max_{u \le V^*} u \right\} $$
 
 # %%
 # Slicing the exact state of knowledge as of 2018-04-01
@@ -271,3 +305,4 @@ print(df_2018.head(10))
 df_2022 = panel.as_of("2022-01-01")
 print(f"\nObservations available in 2018 snapshot: {len(df_2018)}")
 print(f"Observations available in 2022 snapshot: {len(df_2022)}")
+

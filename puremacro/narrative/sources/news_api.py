@@ -58,14 +58,14 @@ def iter_gdelt_v2(
     url = _GDELT_BASE + "?" + urllib.parse.urlencode(params)
     try:
         body = safe_get_json(url)
-    except (ValueError, ArithmeticError, Exception):
+    except Exception:
         # Network failure or non-JSON rate-limit HTML — treat as empty.
         return
     arts = body.get("articles", [])
     for a in arts:
         try:
             date = pd.Timestamp(a["seendate"])
-        except (ValueError, ArithmeticError, Exception):
+        except Exception:
             continue
         title = a.get("title", "")
         link = a.get("url", "")

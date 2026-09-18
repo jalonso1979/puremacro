@@ -88,28 +88,25 @@ assert policy_n.shape == (150, 21), "Labor policy shape mismatch"
 # We plot optimal labor supply $n(a, e)$ across wealth levels $a$ for different productivity states $e$.
 
 # %%
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10.5, 4.2))
+fig, (ax1, ax2) = _nbstyle.figura(1, 2, figsize=(10.5, 4.2))
 
 # Left Panel: Endogenous labor policy n(a, e)
 ax1.plot(grid_a, policy_n[:, 0], color=_nbstyle.palette(2)[0], lw=2, label=f"Low Z (e = {e_grid[0]:.2f})")
 ax1.plot(grid_a, policy_n[:, -1], color=_nbstyle.palette(2)[1], lw=2, label=f"High Z (e = {e_grid[-1]:.2f})")
-ax1.set_xlabel("Current Assets a")
-ax1.set_ylabel("Work Hours n(a, e)")
+ax1.set_xlabel("Current Assets a", color=_nbstyle.TEXTO)
+ax1.set_ylabel("Work Hours n(a, e)", color=_nbstyle.TEXTO)
 ax1.set_title("Endogenous Labor Supply Policy n(a, e)")
-ax1.legend(loc="upper right")
+ax1.legend(loc="upper right", frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
 
 # Right Panel: Asset policy a'(a, e)
 ax1_line = np.linspace(0, grid_a[-1], 100)
-ax2.plot(ax1_line, ax1_line, "k--", alpha=0.4, label="45° Line")
+ax2.plot(ax1_line, ax1_line, linestyle="--", color=_nbstyle.SPINE, alpha=0.6, label="45° Line")
 ax2.plot(grid_a, policy_a[:, 0], color=_nbstyle.palette(2)[0], lw=2, label=f"Low Z (e = {e_grid[0]:.2f})")
 ax2.plot(grid_a, policy_a[:, -1], color=_nbstyle.palette(2)[1], lw=2, label=f"High Z (e = {e_grid[-1]:.2f})")
-ax2.set_xlabel("Current Assets a")
-ax2.set_ylabel("Next Assets a'")
+ax2.set_xlabel("Current Assets a", color=_nbstyle.TEXTO)
+ax2.set_ylabel("Next Assets a'", color=_nbstyle.TEXTO)
 ax2.set_title("Asset Accumulation Policy a'(a, e)")
-ax2.legend(loc="upper left")
-
-plt.tight_layout()
-plt.show()
+ax2.legend(loc="upper left", frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
 
 # %% [markdown]
 # **Reading the output.** Work hours $n(a, e)$ decline with wealth $a$ due to the negative wealth effect: poorer households work longer hours to buffer against income risk, whereas wealthier households choose leisure. Higher productivity raises hours on average, through the substitution effect of a higher wage — though not at every point: at the bottom of the wealth grid the least productive households are pinned against the $n \le 1$ time endowment, and because $n$ is read at the chosen $a'$, which is a grid index, the policy inherits that discreteness.

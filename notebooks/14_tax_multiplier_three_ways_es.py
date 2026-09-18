@@ -170,24 +170,21 @@ hgrid = np.arange(H + 1)
 # `rr_exog`. Ese juicio editorial *es* la identificación.
 
 # %%
-cols = _nbstyle.palette(2)
-fig, axes = plt.subplots(2, 1, figsize=(7.0, 4.6), sharex=True, sharey=True)
-for ax, col, lbl, c in [(axes[0], "rr", "Romer-Romer exogenous", cols[0]),
-                        (axes[1], "mtu", "Mertens-Ravn unanticipated", cols[1])]:
+fig, axes = _nbstyle.figura(ancho=7.0, alto=4.6, nrows=2, sharex=True, sharey=True)
+for ax, col, lbl, s_tok in [(axes[0], "rr", "Romer-Romer exogenous", _nbstyle.S1),
+                            (axes[1], "mtu", "Mertens-Ravn unanticipated", _nbstyle.S2)]:
     nz = d[col] != 0
-    ax.vlines(d.index[nz], 0, d.loc[nz, col], color=c, linewidth=1.6)
-    ax.axhline(0, color="0.6", linewidth=0.8)
+    ax.vlines(d.index[nz], 0, d.loc[nz, col], color=s_tok["color"], linewidth=1.6)
+    ax.axhline(0, color=_nbstyle.SPINE, linewidth=0.8)
     ax.set_ylabel("% of GDP")
     ax.set_title(lbl, fontsize=10)
 for ts, txt in [("1964-04-01", "'64 Kennedy-\nJohnson cut"),
                 ("1982-01-01", "'81-'83 ERTA\nphase-ins"),
                 ("2003-07-01", "'01/'03\nBush cuts")]:
     axes[0].annotate(txt, xy=(pd.Timestamp(ts), d.loc[ts, "rr"]),
-                     xytext=(pd.Timestamp(ts), -2.6), fontsize=7, color="0.35",
-                     ha="center", arrowprops=dict(arrowstyle="-", color="0.6", lw=0.7))
+                     xytext=(pd.Timestamp(ts), -2.6), fontsize=7, color=_nbstyle.TEXTO,
+                     ha="center", arrowprops=dict(arrowstyle="-", color=_nbstyle.SPINE, lw=0.7))
 axes[1].set_xlabel("Quarter")
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## 1. Blanchard-Perotti (2002): la elasticidad institucional
@@ -375,8 +372,8 @@ assert abs(bp_peak) < abs(mr_peak) < abs(rr_peak)
 
 # %%
 c3 = _nbstyle.palette(3)
-fig, ax = plt.subplots(figsize=(7.4, 4.6))
-ax.axhline(0.0, color="0.6", linewidth=0.8, linestyle=":")
+fig, ax = _nbstyle.figura(ancho=7.4, alto=4.6)
+ax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")
 ax.fill_between(hgrid, m_bp_lo, m_bp_hi, color=c3[0], alpha=0.14)
 ax.plot(hgrid, m_bp, color=c3[0], linewidth=1.8,
         label=f"Blanchard-Perotti ($\\theta$=2.08): peak {bp_peak:+.1f}")
@@ -386,15 +383,13 @@ ax.plot(hgrid, m_mr, color=c3[1], linewidth=1.8, linestyle="--",
 ax.fill_between(hgrid, m_rr_lo[:H + 1], m_rr_hi[:H + 1], color=c3[2], alpha=0.14)
 ax.plot(hgrid, m_rr[:H + 1], color=c3[2], linewidth=1.8, linestyle="-.",
         label=f"Romer-Romer narrative LP: peak {rr_peak:+.1f}")
-ax.plot(hgrid, m_prox, color="0.55", linewidth=1.0, linestyle=":",
+ax.plot(hgrid, m_prox, color=_nbstyle.NOTA, linewidth=1.0, linestyle=":",
         label=f"MR proxy-SVAR (weak: F={prox.first_stage_F:.1f})")
 ax.set_xlabel("Quarters after a tax increase of 1% of GDP")
 ax.set_ylabel("GDP response (% of GDP) = dollar multiplier")
 ax.set_title("The US tax multiplier under three identification schemes\n"
              "(one dataset: 1950Q1-2006Q4)")
 ax.legend(loc="lower left", fontsize=8)
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## 4. La curva de especificaciones — ¿de verdad es la identificación?
@@ -467,8 +462,8 @@ order = curve.sort_values("sigma_hat").reset_index(drop=True)
 marks = {"BP 2.08": "o", "MR 3.13": "s", "MR proxy": "^", "RR LP": "D"}
 c4 = _nbstyle.palette(4)
 colr = dict(zip(grid["identification"], c4))
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(7.6, 5.6), sharex=True,
-                               gridspec_kw={"height_ratios": [2.2, 1.4]})
+fig, (ax1, ax2) = _nbstyle.figura(ancho=7.6, alto=5.6, nrows=2, sharex=True,
+                                 gridspec_kw={"height_ratios": [2.2, 1.4]})
 x = np.arange(len(order))
 for ident in grid["identification"]:
     m = order["identification"] == ident
@@ -476,7 +471,7 @@ for ident in grid["identification"]:
                  yerr=1.645 * order.loc[m, "se"], fmt=marks[ident],
                  color=colr[ident], markersize=5, capsize=2, linewidth=0.9,
                  label=ident)
-ax1.axhline(0, color="0.6", linewidth=0.8, linestyle=":")
+ax1.axhline(0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")
 ax1.set_ylabel("Two-year multiplier m(8)")
 ax1.set_title("Specification curve: 24 specs, ordered by estimate")
 ax1.legend(fontsize=8, ncol=2)
@@ -487,14 +482,12 @@ yy = 0
 for dim, values in rows:
     for v in values:
         on = order[dim] == v
-        ax2.scatter(x[on], np.full(on.sum(), yy), s=14, color="0.25", marker="|")
+        ax2.scatter(x[on], np.full(on.sum(), yy), s=14, color=_nbstyle.TEXTO, marker="|")
         ytick.append(yy); ylab.append(f"{v}")
         yy -= 1
     yy -= 0.6
 ax2.set_yticks(ytick); ax2.set_yticklabels(ylab, fontsize=7)
 ax2.set_xlabel("Specification (sorted)")
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # **La moraleja.** Lee el panel inferior contra el superior: la curva ordenada

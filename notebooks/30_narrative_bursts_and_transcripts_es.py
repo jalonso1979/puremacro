@@ -69,7 +69,19 @@ print(f"Palabras en declaración preparada: {len(doc.opening_statement().split()
 print(f"Palabras en respuestas Q&A:         {len(doc.chair_qa_text().split())}")
 
 # %% [markdown]
-# ## 2. Tópicos Dinámicos en Python Puro (NMF)
+# ## 2. Modelado de Tópicos Dinámicos en Python Puro (NMF)
+#
+# En lugar de depender de pesados paquetes externos de NLP (como Gensim o PyTorch), `puremacro.narrative.DynamicTopicModel` está implementado al 100% en Python puro y NumPy, ejecutándose de forma determinista en cualquier entorno estándar y en Pyodide.
+#
+# Dada una matriz de frecuencia documento-término $X \in \mathbb{R}_{+}^{D \times V}$ para $D$ documentos y un vocabulario de tamaño $V$, la Factorización Matricial No Negativa (NMF) descompone $X$ en dos matrices factoriales no negativas:
+#
+# $$ \min_{W \ge 0, H \ge 0} \frac{1}{2} \| X - W H \|_F^2 = \frac{1}{2} \sum_{d=1}^D \sum_{v=1}^V \left( X_{d, v} - [W H]_{d, v} \right)^2 $$
+#
+# donde $W \in \mathbb{R}_{+}^{D \times K}$ denota las ponderaciones de tópicos por documento, $H \in \mathbb{R}_{+}^{K \times V}$ representa las distribuciones término-tópico, y la optimización sigue las reglas de actualización multiplicativa de Lee & Seung (2001):
+#
+# $$ H \leftarrow H \odot \frac{W^\top X}{W^\top W H + \varepsilon}, \qquad W \leftarrow W \odot \frac{X H^\top}{W H H^\top + \varepsilon} $$
+#
+# Al agregar y normalizar temporalmente las filas de $W$ según la fecha de cada documento, se obtiene la evolución dinámica de las proporciones temáticas latentes $\theta_t \in \Delta^{K-1}$.
 
 # %%
 rng = np.random.default_rng(42)
@@ -99,16 +111,26 @@ dates_only = [t[0] for t in dated_corpus]
 dtm = DynamicTopicModel(n_topics=3, random_state=42)
 dtm_res = dtm.fit_transform_corpus(texts_only, dates_only, freq="MS")
 
-fig, ax = plt.subplots(figsize=(10, 4.5))
-dtm_res.topic_shares.plot(ax=ax, lw=2)
-ax.set_title("Evolución de Tópicos Macroeconómicos Latentes (NMF)", fontsize=12, fontweight="bold")
-ax.set_ylabel("Proporción Mensual de Tópico")
-ax.grid(True, linestyle=":", alpha=0.6)
-plt.tight_layout()
-plt.show()
+fig, ax = _nbstyle.figura(figsize=(9.0, 4.4))
+dtm_res.topic_shares.plot(ax=ax, color=_nbstyle.palette(3), lw=2)
+ax.set_title("Evolución de Tópicos Macroeconómicos Latentes (NMF)", fontsize=11, fontweight="bold")
+ax.set_xlabel("Fecha", color=_nbstyle.TEXTO)
+ax.set_ylabel("Proporción Mensual de Tópico", color=_nbstyle.TEXTO)
+ax.legend(frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
+ax.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.8)
 
 # %% [markdown]
-# ## 3. Detección de Ráfagas Narrativas Emergentes
+# ## 3. Detección de Ráfagas Narrativas Anómalas
+#
+# Los choques macroeconómicos incipientes —tales como cuellos de botella en cadenas de suministro o pánicos de liquidez bancaria— suelen emerger en los discursos y crónicas periodísticas antes de registrarse en las cuentas nacionales oficiales.
+#
+# `detect_narrative_bursts` identifica estos episodios mediante un filtro estadístico móvil. Para cada término candidato $w$, definimos $f_{w, t}$ como su frecuencia en el periodo $t$, y sean $\mu_{w, t}$ y $\sigma_{w, t}$ la media y desviación estándar muestral en una ventana histórica de tamaño $W$:
+#
+# $$ Z_{w, t} = \frac{f_{w, t} - \mu_{w, t}}{\sigma_{w, t} + \epsilon}, \qquad \text{Magnitud de Ráfaga} = \frac{f_{w, t}}{\mu_{w, t} + \epsilon} $$
+#
+# Se activa una señal de alerta de ráfaga narrativa anómala cuando $Z_{w, t} \ge Z_{\text{crit}}$ y la frecuencia absoluta cumple $f_{w, t} \ge \text{min\_count}$.
+#
+# A continuación, el algoritmo detecta el choque de liquidez bancaria de marzo de 2023, aislando incrementos atípicos en términos como *retiro*, *depósitos* y *bancarios*.
 
 # %%
 target_date = "2023-03-01"
@@ -126,6 +148,17 @@ for b in bursts[:5]:
 
 # %% [markdown]
 # ## 4. SVAR Narrativo Bayesiano con Cotas de Ludvigson–Ma–Ng
+#
+# Consideremos un modelo de vectores autorregresivos estructurales $Y_t = \sum_{l=1}^p A_l Y_{t-l} + u_t$, donde los residuales reducidos $u_t$ se vinculan a los choques estructurales ortonormales $\varepsilon_t$ mediante $u_t = B_0 \varepsilon_t = P Q \varepsilon_t$, siendo $P$ el factor de Cholesky inferior de $\Sigma_u$ y $Q \in \mathcal{O}(n)$ una matriz de rotación ortogonal ($Q Q^\top = I$).
+#
+# Las restricciones de signo tradicionales imponen condiciones sobre las funciones de impulso respuesta: $\mathcal{S}_{h} = \text{sign}\left( C_h B_0 \right) \odot S \ge 0$.
+#
+# Siguiendo a Antolín-Díaz & Rubio-Ramírez (2018) y Ludvigson, Ma & Ng (2021), las restricciones narrativas condicionan el sorteo de $Q$ directamente sobre fechas históricas conocidas $t^*$:
+# 1. **Restricción de Signo del Choque**: $\text{sign}(\varepsilon_{i, t^*}) = s_{i, t^*}$.
+# 2. **Cota de Magnitud del Choque**: $|\varepsilon_{i, t^*}| \ge \underline{c}$.
+# 3. **Contribución Dominante**: El choque identificado explica la mayor parte del residual histórico en la variable objetivo $j$: $|\varepsilon_{i, t^*} B_{0, j, i}| > \sum_{k \neq i} |\varepsilon_{k, t^*} B_{0, j, k}|$.
+#
+# Al activar `bayes_draws=True`, se computa la distribución posterior completa de $(A, \Sigma_u, Q)$ empleando un muestreador conjugado Normal-Inversa-Wishart con candidatos ortogonales distribuidos según la medida de Haar.
 
 # %%
 T = 120
@@ -157,15 +190,13 @@ svar_res = narrative_sign_svar(
     seed=42,
 )
 
-fig, ax = plt.subplots(figsize=(8, 4.5))
+fig, ax = _nbstyle.figura(figsize=(8.5, 4.4))
 h = np.arange(svar_res.irf_median.shape[0])
-ax.plot(h, svar_res.irf_median[:, 1, 0], color="#1f77b4", lw=2, label="Mediana Bayesiana de la FIR")
-ax.fill_between(h, svar_res.irf_lower[:, 1, 0], svar_res.irf_upper[:, 1, 0], color="#1f77b4", alpha=0.25, label="Banda Posterior al 90%")
-ax.axhline(0, color="black", lw=0.8, linestyle="--")
+ax.plot(h, svar_res.irf_median[:, 1, 0], **_nbstyle.S1, label="Mediana Bayesiana de la FIR")
+ax.fill_between(h, svar_res.irf_lower[:, 1, 0], svar_res.irf_upper[:, 1, 0], color=_nbstyle.TINTA, alpha=0.15, label="Banda Posterior al 90%")
+ax.axhline(0, color=_nbstyle.SPINE, lw=0.8, linestyle="--")
 ax.set_title("Respuesta de la Inflación ante un Choque Contractivo (Cota Ludvigson-Ma-Ng)", fontsize=11, fontweight="bold")
-ax.set_xlabel("Horizonte (Meses)")
-ax.set_ylabel("Respuesta al Impulso")
-ax.legend()
-ax.grid(True, linestyle=":", alpha=0.6)
-plt.tight_layout()
-plt.show()
+ax.set_xlabel("Horizonte (Meses)", color=_nbstyle.TEXTO)
+ax.set_ylabel("Respuesta al Impulso", color=_nbstyle.TEXTO)
+ax.legend(frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
+ax.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.8)

@@ -284,12 +284,12 @@ def solve_trade_equilibrium_gpu(
                     b_t = torch.as_tensor(JT_rhs[:, None], device=torch_dev, dtype=torch.float64)
                     sol_t = torch.linalg.solve(A_t, b_t)
                     sol_u = sol_t.cpu().numpy().ravel()
-                except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+                except Exception:
                     sol_u = None
             if sol_u is None:
                 try:
                     sol_u = la.solve(JT_J + mu * np.eye(n_m), JT_rhs)
-                except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+                except Exception:
                     sol_u = la.lstsq(J_equil, rhs_equil, rcond=1e-12)[0]
 
             delta_m = D_R * sol_u

@@ -153,11 +153,11 @@ assert mpc_borrowing > mean_mpc > mpc_wealthy
 # Graficamos la distribución estacionaria de riqueza $\mathcal{D}^*(a)$ y el perfil condicional de MPC a lo largo de la cuadrícula de activos.
 
 # %%
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.5, 4.2))
+fig, (ax1, ax2) = _nbstyle.figura(1, 2, figsize=(11.5, 4.2))
 
 # Panel 1: Distribución Estacionaria de Riqueza
-ax1.plot(a_grid, D_ss, color="#1f77b4", lw=2.2, label=r"Densidad $\mathcal{D}^*(a)$")
-ax1.fill_between(a_grid, 0, D_ss, color="#1f77b4", alpha=0.25)
+ax1.plot(a_grid, D_ss, color=_nbstyle.S1["color"], lw=2.2, label=r"Densidad $\mathcal{D}^*(a)$")
+ax1.fill_between(a_grid, 0, D_ss, color=_nbstyle.S1["color"], alpha=0.25)
 ax1.set_title(r"Distribución Estacionaria de Riqueza $\mathcal{D}^*(a)$", fontsize=11, fontweight="bold")
 ax1.set_xlabel("Activos del Hogar $a$")
 ax1.set_ylabel("Densidad de Probabilidad")
@@ -165,16 +165,13 @@ ax1.grid(True, linestyle=":", alpha=0.6)
 ax1.legend(loc="upper right")
 
 # Panel 2: Propensión Marginal al Consumo (MPC)
-ax2.plot(a_grid, mpc_ss, color="#d62728", lw=2.2, label=r"$MPC(a)$")
-ax2.axhline(mean_mpc, color="#333333", linestyle="--", lw=1.3, label=f"MPC Promedio ({mean_mpc:.3f})")
+ax2.plot(a_grid, mpc_ss, color=_nbstyle.S2["color"], lw=2.2, label=r"$MPC(a)$")
+ax2.axhline(mean_mpc, color=_nbstyle.SPINE, linestyle="--", lw=1.3, label=f"MPC Promedio ({mean_mpc:.3f})")
 ax2.set_title(r"Propensión Marginal al Consumo $MPC(a)$", fontsize=11, fontweight="bold")
 ax2.set_xlabel("Activos del Hogar $a$")
 ax2.set_ylabel("MPC Trimestral")
 ax2.grid(True, linestyle=":", alpha=0.6)
 ax2.legend(loc="upper right")
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # Obsérvese cómo la MPC desciende marcadamente desde valores superiores al $50\%$ en la restricción de endeudamiento ($a=0$) hasta situarse por debajo del $2\%$ en niveles altos de riqueza. Esta asimetría microeconómica es el motor de la amplificación macroeconómica de la demanda agregada.
@@ -215,26 +212,23 @@ assert dC0_dY0 > 0.0, "Un incremento en el ingreso debe expandir el consumo cont
 # - En el Jacobiano de tasa de interés $\mathcal{J}_{C, r}$, los valores negativos sobre la diagonal reflejan el canal canónico de sustitución intertemporal.
 
 # %%
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.5, 4.5))
+fig, (ax1, ax2) = _nbstyle.figura(1, 2, figsize=(11.5, 4.5))
 
 sub_T = 15
 
 # Mapa de Calor: Jacobiano de Ingreso
-im1 = ax1.imshow(J_C_Y[:sub_T, :sub_T], cmap="YlGnBu", origin="upper")
+im1 = ax1.imshow(J_C_Y[:sub_T, :sub_T], cmap=_nbstyle.CMAP_SEQ, origin="upper")
 ax1.set_title(r"Jacobiano de Ingreso $\mathcal{J}_{C, Y}$ (Fake-News)", fontsize=11, fontweight="bold")
 ax1.set_xlabel("Período del Choque $s$")
 ax1.set_ylabel("Período de Respuesta $t$")
 fig.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04)
 
 # Mapa de Calor: Jacobiano de Tasa
-im2 = ax2.imshow(J_C_r[:sub_T, :sub_T], cmap="Reds_r", origin="upper")
+im2 = ax2.imshow(J_C_r[:sub_T, :sub_T], cmap=_nbstyle.CMAP_SEQ_R, origin="upper")
 ax2.set_title(r"Jacobiano de Tasa $\mathcal{J}_{C, r}$ (Fake-News)", fontsize=11, fontweight="bold")
 ax2.set_xlabel("Período del Choque $s$")
 ax2.set_ylabel("Período de Respuesta $t$")
 fig.colorbar(im2, ax=ax2, fraction=0.046, pad=0.04)
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## 4. Transiciones de Equilibrio General: Lineal vs. No Lineal (Broyden)
@@ -290,7 +284,7 @@ assert df_lin["r"].iloc[0] < 0.0, "La baja de tasas debe reducir la tasa real"
 
 # %%
 t_axis = np.arange(horizon)
-fig, axes = plt.subplots(2, 2, figsize=(11.5, 7.5))
+fig, axes = _nbstyle.figura(2, 2, figsize=(11.5, 7.5))
 
 vars_config = [
     ("Y", "Producto $dY$", axes[0, 0]),
@@ -300,17 +294,14 @@ vars_config = [
 ]
 
 for var, label, ax in vars_config:
-    ax.plot(t_axis, df_lin[var] * 10000, color="#1f77b4", lw=2.2, label="Lineal SSJ")
-    ax.plot(t_axis, df_nonlin[var] * 10000, color="#d62728", lw=1.8, linestyle="--", label="No Lineal Broyden")
-    ax.axhline(0.0, color="#666666", lw=0.8, linestyle=":")
+    ax.plot(t_axis, df_lin[var] * 10000, color=_nbstyle.S1["color"], lw=2.2, label="Lineal SSJ")
+    ax.plot(t_axis, df_nonlin[var] * 10000, color=_nbstyle.S2["color"], lw=1.8, linestyle="--", label="No Lineal Broyden")
+    ax.axhline(0.0, color=_nbstyle.SPINE, lw=0.8, linestyle=":")
     ax.set_title(label, fontsize=11, fontweight="bold")
     ax.set_xlabel("Trimestres posteriores al Choque")
     ax.set_ylabel("Puntos Básicos (pb)")
     ax.grid(True, linestyle=":", alpha=0.6)
     ax.legend(loc="upper right" if var in ("Y", "C", "pi") else "lower right")
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # La aproximación lineal en el espacio de secuencias reproduce las dinámicas no lineales exactas con notable precisión. Para choques convencionales de política monetaria, la solución lineal entrega una exactitud casi idéntica en una fracción de segundo.
@@ -350,7 +341,6 @@ print(latex_table)
 
 # %%
 fig_dist, axes_dist = res_lin.plot_distribution(figsize=(11.0, 3.8))
-plt.show()
 
 # %% [markdown]
 # ### Método Integrado `.plot_transition()`
@@ -360,7 +350,6 @@ fig_trans, axes_trans = res_lin.plot_transition(
     variables=["Y", "C", "r", "pi", "i"],
     figsize=(11.5, 5.5),
 )
-plt.show()
 
 # %% [markdown]
 # ## Lectura de los resultados

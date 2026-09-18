@@ -224,17 +224,16 @@ print(f"proxy: F de primera etapa = {r.first_stage_F:.1f}")
 # ## El menú, lado a lado
 
 # %%
-COLORS = {"cholesky": "#2a78d6", "signo": "#008300",
-          "narrativa I": "#e34948", "narrativa II": "#8c1815",
-          "max-share": "#eda100", "proxy (JLN)": "#e87ba4"}
-fig, axes = plt.subplots(1, 2, figsize=(9.6, 3.9))
+COLORS = dict(zip(runs.keys(), _nbstyle.palette(len(runs))))
+fig, axes = _nbstyle.figura(1, 2, figsize=(9.6, 3.9))
 hgrid = np.arange(H + 1)
 for name, (resp, lo, hi) in runs.items():
     axes[0].plot(hgrid, resp, lw=1.8, color=COLORS[name], label=name)
-axes[0].axhline(0, color="0.6", lw=0.8)
-axes[0].set_xlabel("meses tras el choque"); axes[0].set_ylabel(
-    "respuesta de IP, % (por +1$\\sigma$ de incertidumbre)")
-axes[0].set_title("Trayectorias punto / mediana"); axes[0].legend(fontsize=7)
+axes[0].axhline(0, color=_nbstyle.SPINE, lw=0.8)
+axes[0].set_xlabel("meses tras el choque", color=_nbstyle.TEXTO)
+axes[0].set_ylabel("respuesta de IP, % (por +1$\\sigma$ de incertidumbre)", color=_nbstyle.TEXTO)
+axes[0].set_title("Trayectorias punto / mediana")
+axes[0].legend(fontsize=7, frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
 
 ypos = np.arange(len(runs))[::-1]
 for y, (name, (resp, lo, hi)) in zip(ypos, runs.items()):
@@ -243,11 +242,11 @@ for y, (name, (resp, lo, hi)) in zip(ypos, runs.items()):
         axes[1].plot([lo[12], hi[12]], [y, y], color=c, lw=2.4,
                      solid_capstyle="butt")
     axes[1].plot(resp[12], y, "o", color=c, ms=6)
-axes[1].axvline(0, color="0.6", lw=0.8)
-axes[1].set_yticks(ypos); axes[1].set_yticklabels(list(runs), fontsize=8)
-axes[1].set_xlabel("respuesta de IP en h = 12, % (banda 90%)")
+axes[1].axvline(0, color=_nbstyle.SPINE, lw=0.8)
+axes[1].set_yticks(ypos)
+axes[1].set_yticklabels(list(runs), fontsize=8)
+axes[1].set_xlabel("respuesta de IP en h = 12, % (banda 90%)", color=_nbstyle.TEXTO)
 axes[1].set_title("A un año")
-plt.tight_layout(); plt.show()
 
 h12 = {k: v[0][12] for k, v in runs.items()}
 print({k: round(v, 2) for k, v in h12.items()})

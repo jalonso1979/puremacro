@@ -116,10 +116,10 @@ agg
 # scipy, forma cerrada, valores publicados e identidades de consistencia interna.
 
 # %%
-fig, (axL, axR) = plt.subplots(1, 2, figsize=(8.4, 4.0))
+fig, (axL, axR) = _nbstyle.figura(1, 2, ancho=8.4, alto=4.0)
 
 a = agg.sort_values("n_cases")
-axL.barh(a.index, a["n_cases"], color="0.30")
+axL.barh(a.index, a["n_cases"], color=_nbstyle.SPINE)
 for i, v in enumerate(a["n_cases"]):
     axL.text(v + 0.08, i, str(int(v)), va="center", fontsize=9)
 axL.set_xlabel("validation cases (all pass)")
@@ -127,15 +127,13 @@ axL.set_title(f"{n_pass}/{n} cases pass, {df['subsystem'].nunique()} subsystems"
 axL.grid(axis="y", visible=False)
 
 mech = df["mechanism"].value_counts()
-axR.bar(mech.index, mech.values, color="0.30")
+axR.bar(mech.index, mech.values, color=_nbstyle.SPINE)
 for i, v in enumerate(mech.values):
     axR.text(i, v + 0.4, str(int(v)), ha="center", fontsize=9)
 axR.set_ylabel("cases")
 axR.set_title("reference mechanism")
 axR.tick_params(axis="x", labelrotation=30)
 axR.grid(axis="x", visible=False)
-fig.tight_layout()
-plt.show()
 
 # %% [markdown]
 # **Lee la salida.** La línea impresa es el titular: *todos* los casos pasan, y el
@@ -170,18 +168,16 @@ ref = np.asarray(load_golden("var:cholesky_irf_vs_statsmodels")["irf"])
 hz = np.arange(pm.shape[0])
 max_diff = float(np.abs(pm - ref).max())
 
-fig, axes = plt.subplots(1, 2, figsize=(8.2, 3.4))
+fig, axes = _nbstyle.figura(1, 2, ancho=8.2, alto=3.4)
 for resp, ax in zip((0, 1), axes):
-    ax.plot(hz, ref[:, resp, 0], color="0.58", lw=2.6, ls=(0, (4, 2)),
+    ax.plot(hz, ref[:, resp, 0], color=_nbstyle.NOTA, lw=2.6, ls=(0, (4, 2)),
             label="statsmodels (golden)")
-    ax.plot(hz, pm[:, resp, 0], color="0.0", lw=1.2, label="puremacro")
+    ax.plot(hz, pm[:, resp, 0], color=_nbstyle.TINTA, lw=1.2, label="puremacro")
     ax.set_title(f"response of $y_{resp}$ to shock 0")
     ax.set_xlabel("horizon")
 axes[0].set_ylabel("impulse response")
 axes[0].legend(loc="best")
 fig.suptitle(f"Cholesky IRF: puremacro vs statsmodels orth_irfs  (max |Δ| = {max_diff:.1e})")
-fig.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## 3. `vfi` — política de crecimiento estocástico frente a la forma cerrada de Brock–Mirman
@@ -211,19 +207,18 @@ sol = VFIProblem(
 k_pol = k_grid[sol.policy_aprime]                 # (n_k, n_z)
 k_closed = alpha * beta * z_lev[None, :] * k_grid[:, None] ** alpha
 
-fig, ax = plt.subplots(figsize=(6.6, 4.1))
+fig, ax = _nbstyle.figura(ancho=6.6, alto=4.1)
 cols = _nbstyle.palette(3)
 for col, zi, lab in zip(cols, (0, 2, 4), ("low $z$", "mid $z$", "high $z$")):
     ax.plot(k_grid, k_closed[:, zi], color=col, lw=2.6, ls=(0, (4, 2)))
     ax.plot(k_grid, k_pol[:, zi], color=col, lw=1.1)
     ax.text(k_grid[-1], k_pol[-1, zi], f"  {lab}", color=col, va="center", fontsize=9)
-ax.plot([], [], color="0.0", lw=2.6, ls=(0, (4, 2)), label="Brock–Mirman closed form")
-ax.plot([], [], color="0.0", lw=1.1, label="puremacro VFI")
+ax.plot([], [], color=_nbstyle.NOTA, lw=2.6, ls=(0, (4, 2)), label="Brock–Mirman closed form")
+ax.plot([], [], color=_nbstyle.TINTA, lw=1.1, label="puremacro VFI")
 ax.set_xlabel("capital $k$")
 ax.set_ylabel("next-period capital $k'$")
 ax.set_title(r"Stochastic-growth policy: VFI vs $k'=\alpha\beta e^{z}k^{\alpha}$")
 ax.legend(loc="upper left")
-plt.show()
 
 # %% [markdown]
 # ## 4. `forecast` — CRPS gaussiano frente a la forma cerrada
@@ -241,14 +236,13 @@ Phi = 0.5 * (1.0 + np.vectorize(math.erf)(z / np.sqrt(2.0)))
 phi = np.exp(-0.5 * z**2) / np.sqrt(2.0 * np.pi)
 cf = z * (2.0 * Phi - 1.0) + 2.0 * phi - 1.0 / np.sqrt(np.pi)   # sigma = 1
 
-fig, ax = plt.subplots(figsize=(6.4, 3.9))
-ax.plot(z, cf, color="0.58", lw=2.6, ls=(0, (4, 2)), label="closed form (Gneiting–Raftery)")
-ax.plot(z, pm_crps, color="0.0", lw=1.2, label="puremacro crps_gaussian")
+fig, ax = _nbstyle.figura(ancho=6.4, alto=3.9)
+ax.plot(z, cf, color=_nbstyle.NOTA, lw=2.6, ls=(0, (4, 2)), label="closed form (Gneiting–Raftery)")
+ax.plot(z, pm_crps, color=_nbstyle.TINTA, lw=1.2, label="puremacro crps_gaussian")
 ax.set_xlabel(r"standardized error $z=(y-\mu)/\sigma$")
 ax.set_ylabel("CRPS")
 ax.set_title(f"Gaussian CRPS: puremacro vs closed form  (max |Δ| = {np.abs(pm_crps - cf).max():.1e})")
 ax.legend(loc="upper center")
-plt.show()
 
 # %% [markdown]
 # ## 5. `spectral` — densidad espectral de Welch frente a `scipy.signal`
@@ -274,15 +268,14 @@ f_sp, P_sp = scipy_welch(
     noverlap=s["noverlap"], detrend="constant", scaling="density",
 )
 
-fig, ax = plt.subplots(figsize=(6.6, 3.9))
-ax.semilogy(f_sp, P_sp, color="0.58", lw=2.6, ls=(0, (4, 2)), label="scipy.signal.welch")
-ax.semilogy(f, Pxx, color="0.0", lw=1.2, label="puremacro welch_psd")
-ax.axvline(1.0 / 16.0, color="0.85", lw=0.8)
+fig, ax = _nbstyle.figura(ancho=6.6, alto=3.9)
+ax.semilogy(f_sp, P_sp, color=_nbstyle.NOTA, lw=2.6, ls=(0, (4, 2)), label="scipy.signal.welch")
+ax.semilogy(f, Pxx, color=_nbstyle.TINTA, lw=1.2, label="puremacro welch_psd")
+ax.axvline(1.0 / 16.0, color=_nbstyle.SPINE, lw=0.8)
 ax.set_xlabel("frequency (cycles / period)")
 ax.set_ylabel("power spectral density")
 ax.set_title(f"Welch PSD: puremacro vs scipy.signal  (max |Δ| = {np.abs(Pxx - P_sp).max():.1e})")
 ax.legend(loc="upper right")
-plt.show()
 
 # %% [markdown]
 # ## Tu turno — audita un subsistema

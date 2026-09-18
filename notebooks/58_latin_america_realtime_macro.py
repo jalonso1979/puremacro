@@ -249,9 +249,9 @@ mex_rates = loaded_panel.df[(loaded_panel.df["country"] == "MEX") & (loaded_pane
 bra_rates = loaded_panel.df[(loaded_panel.df["country"] == "BRA") & (loaded_panel.df["variable"] == "policy_rate") & (loaded_panel.df["vintage"] == vintage_dates[-1])]
 chl_rates = loaded_panel.df[(loaded_panel.df["country"] == "CHL") & (loaded_panel.df["variable"] == "policy_rate") & (loaded_panel.df["vintage"] == vintage_dates[-1])]
 
-ax1.plot(pd.to_datetime(mex_rates["date"]), mex_rates["value"], color="black", linestyle="-", label="Mexico (Banxico TIIE)")
-ax1.plot(pd.to_datetime(bra_rates["date"]), bra_rates["value"], color="black", linestyle="--", label="Brazil (BCB Selic)")
-ax1.plot(pd.to_datetime(chl_rates["date"]), chl_rates["value"], color="gray", linestyle=":", linewidth=1.5, label="Chile (BCCh TPM)")
+ax1.plot(pd.to_datetime(mex_rates["date"]), mex_rates["value"], color=_nbstyle.S1["color"], linestyle=_nbstyle.S1["linestyle"], label="Mexico (Banxico TIIE)")
+ax1.plot(pd.to_datetime(bra_rates["date"]), bra_rates["value"], color=_nbstyle.S2["color"], linestyle=_nbstyle.S2["linestyle"], label="Brazil (BCB Selic)")
+ax1.plot(pd.to_datetime(chl_rates["date"]), chl_rates["value"], color=_nbstyle.S3["color"], linestyle=_nbstyle.S3["linestyle"], linewidth=1.5, label="Chile (BCCh TPM)")
 ax1.set_title("Simulated Latin America Policy Rates", fontsize=11)
 ax1.set_ylabel("Policy Rate (%)")
 ax1.legend(frameon=False)
@@ -260,7 +260,7 @@ ax1.legend(frameon=False)
 ax2 = axes[0, 1]
 latest = tri_df.ffill(axis=1).iloc[:, -1]
 still_to_come = 100.0 * (latest.to_numpy()[:, None] / tri_df.to_numpy() - 1.0)   # % of the edition's value
-im = ax2.imshow(np.abs(still_to_come), cmap="Greys", aspect="auto", interpolation="nearest")
+im = ax2.imshow(np.abs(still_to_come), cmap=_nbstyle.CMAP_SEQ, aspect="auto", interpolation="nearest")
 ax2.set_title(r"Revision Triangle $\mathbf{T}[t, v]$: Simulated Mexico Real GDP", fontsize=11)
 ax2.set_xlabel("Snapshot Index $v$")
 ax2.set_ylabel("Reference Period Index $t$")
@@ -269,19 +269,19 @@ plt.colorbar(im, ax=ax2, label="|Revision still to come| (% of level)")
 # Subplot 3: Preliminary vs Final Real GDP Releases
 ax3 = axes[1, 0]
 dates_dt = pd.to_datetime(rev_df.index)
-ax3.plot(dates_dt, rev_df["preliminary"], color="black", linestyle="--", marker="o", markersize=4, label=r"Preliminary $y_t^{(0)}$")
-ax3.plot(dates_dt, rev_df["final"], color="black", linestyle="-", marker="s", markersize=4, label=r"Final Benchmark $y_t^{(F)}$")
+ax3.plot(dates_dt, rev_df["preliminary"], color=_nbstyle.S2["color"], linestyle="--", marker="o", markersize=4, label=r"Preliminary $y_t^{(0)}$")
+ax3.plot(dates_dt, rev_df["final"], color=_nbstyle.S1["color"], linestyle="-", marker="s", markersize=4, label=r"Final Benchmark $y_t^{(F)}$")
 ax3.set_title("Simulated Preliminary vs. Final GDP Estimates", fontsize=11)
 ax3.set_ylabel("Quarterly Growth (%)")
 ax3.legend(frameon=False)
 
 # Subplot 4: Mankiw-Shapiro News vs Noise Regression Scatters
 ax4 = axes[1, 1]
-ax4.scatter(rev_df["preliminary"], rev_df["revision"], color="black", alpha=0.6, s=30, label="Revisions vs. Preliminary")
+ax4.scatter(rev_df["preliminary"], rev_df["revision"], color=_nbstyle.S1["color"], alpha=0.6, s=30, label="Revisions vs. Preliminary")
 p_grid = np.linspace(rev_df["preliminary"].min(), rev_df["preliminary"].max(), 50)
 fit_news = ms_res.alpha_on_preliminary + ms_res.beta_on_preliminary * p_grid
-ax4.plot(p_grid, fit_news, color="gray", linestyle="-", label=f"News Fit ($\\beta_p = {ms_res.beta_on_preliminary:.2f}$)")
-ax4.axhline(0.0, color="gray", linestyle=":", linewidth=0.8)
+ax4.plot(p_grid, fit_news, color=_nbstyle.S2["color"], linestyle="-", label=f"News Fit ($\\beta_p = {ms_res.beta_on_preliminary:.2f}$)")
+ax4.axhline(0.0, color=_nbstyle.SPINE, linestyle=":", linewidth=0.8)
 ax4.set_title(f"Mankiw-Shapiro Test (Verdict: {ms_res.verdict.upper()})", fontsize=11)
 ax4.set_xlabel(r"Preliminary Release $y_t^{(0)}$ (%)")
 ax4.set_ylabel(r"Total Revision $r_t = y_t^{(F)} - y_t^{(0)}$ (%)")
@@ -291,8 +291,6 @@ fig.suptitle(
     "SIMULATED real-time panel: values are generated from a fixed seed, not fetched",
     fontsize=12, fontweight="bold", y=1.00,
 )
-plt.tight_layout(rect=(0.0, 0.0, 1.0, 0.97))
-plt.show()
 
 # %% [markdown]
 # ## Read the output

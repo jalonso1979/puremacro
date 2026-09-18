@@ -177,19 +177,17 @@ assert err_005 < err_02, "Un parámetro de temperatura tau menor debe ajustar me
 # Graficamos las trayectorias de relajación diferenciable frente al quiebre de OccBin discreto:
 
 # %%
-plt.figure(figsize=(8.5, 4.2))
+fig, ax = _nbstyle.figura(1, 1, figsize=(8.5, 4.2))
 time_h = np.arange(T)
-plt.plot(time_h, r_disc * 100, color="#1f77b4", lw=2.4, label="OccBin Discreto (Lineal por Tramos)")
-plt.plot(time_h, r_smooth_02 * 100, color="#ff7f0e", lw=1.8, linestyle="--", label=r"OccBin Diferenciable ($\tau=0.020$)")
-plt.plot(time_h, r_smooth_005 * 100, color="#2ca02c", lw=1.8, linestyle=":", label=r"OccBin Diferenciable ($\tau=0.005$)")
-plt.axhline(-params["r_ss"] * 100, color="#d62728", linestyle="-.", lw=1.3, label=f"Piso ZLB (-{params['r_ss']*100:.1f}%)")
-plt.title(r"OccBin Diferenciable: Relajación Suave en ZLB ($\tau \to 0$)", fontsize=11, fontweight="bold")
-plt.xlabel("Trimestres")
-plt.ylabel("Tasa de Política $r_t$ (% desv)")
-plt.grid(True, linestyle=":", alpha=0.6)
-plt.legend()
-plt.tight_layout()
-plt.show()
+ax.plot(time_h, r_disc * 100, color=_nbstyle.S1["color"], lw=2.4, label="OccBin Discreto (Lineal por Tramos)")
+ax.plot(time_h, r_smooth_02 * 100, color=_nbstyle.S2["color"], lw=1.8, linestyle="--", label=r"OccBin Diferenciable ($\tau=0.020$)")
+ax.plot(time_h, r_smooth_005 * 100, color=_nbstyle.S3["color"], lw=1.8, linestyle=":", label=r"OccBin Diferenciable ($\tau=0.005$)")
+ax.axhline(-params["r_ss"] * 100, color=_nbstyle.SPINE, linestyle="-.", lw=1.3, label=f"Piso ZLB (-{params['r_ss']*100:.1f}%)")
+ax.set_title(r"OccBin Diferenciable: Relajación Suave en ZLB ($\tau \to 0$)", fontsize=11, fontweight="bold")
+ax.set_xlabel("Trimestres")
+ax.set_ylabel("Tasa de Política $r_t$ (% desv)")
+ax.grid(True, linestyle=":", alpha=0.6)
+ax.legend()
 
 # %% [markdown]
 # ### Puente HANK de Dos Activos en Espacio de Secuencias
@@ -323,27 +321,24 @@ assert np.isclose(ms_res.ergodic_distribution["Hawkish"], 2.0 / 3.0, atol=1e-5)
 # %%
 girf_df = ms_res.girf(shock=2, horizon=16, initial_regime=0)
 
-fig, axes = plt.subplots(1, 3, figsize=(13, 3.8))
+fig, axes = _nbstyle.figura(1, 3, figsize=(13, 3.8))
 
 time_axis = np.arange(len(girf_df))
 
-axes[0].plot(time_axis, girf_df["interest_rate"], color="#d62728", lw=2.2, marker="o")
+axes[0].plot(time_axis, girf_df["interest_rate"], color=_nbstyle.S2["color"], lw=2.2, marker="o")
 axes[0].set_title("Tasa Nominal $i_t$ (Alza de Política)", fontweight="bold")
 axes[0].set_xlabel("Trimestres")
 axes[0].grid(True, linestyle=":", alpha=0.6)
 
-axes[1].plot(time_axis, girf_df["output_gap"], color="#1f77b4", lw=2.2, marker="s")
+axes[1].plot(time_axis, girf_df["output_gap"], color=_nbstyle.S1["color"], lw=2.2, marker="s")
 axes[1].set_title("Brecha de Producto $y_t$ (Contracción)", fontweight="bold")
 axes[1].set_xlabel("Trimestres")
 axes[1].grid(True, linestyle=":", alpha=0.6)
 
-axes[2].plot(time_axis, girf_df["inflation"], color="#2ca02c", lw=2.2, marker="^")
+axes[2].plot(time_axis, girf_df["inflation"], color=_nbstyle.S3["color"], lw=2.2, marker="^")
 axes[2].set_title(r"Inflación $\pi_t$ (Desaceleración)", fontweight="bold")
 axes[2].set_xlabel("Trimestres")
 axes[2].grid(True, linestyle=":", alpha=0.6)
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## 3. Filtrado de Partículas Monte Carlo Secuencial Vectorizado
@@ -433,16 +428,14 @@ print(res_sv.summary())
 # %%
 ess_path = res_sv.ess
 
-plt.figure(figsize=(8.5, 3.8))
-plt.plot(np.arange(len(ess_path)), ess_path, color="#1f77b4", lw=2.2, label=r"Tamaño Muestral Efectivo $ESS_t$")
-plt.axhline(n_particles / 2, color="#d62728", linestyle="--", lw=1.5, label=f"Umbral de Remuestreo ($N/2 = {n_particles//2:,}$)")
-plt.title("Diagnósticos Monte Carlo Secuencial: Trayectoria de Tamaño Muestral Efectivo", fontsize=11, fontweight="bold")
-plt.xlabel("Índice de Observación $t$")
-plt.ylabel("Partículas Efectivas")
-plt.grid(True, linestyle=":", alpha=0.6)
-plt.legend(loc="lower left")
-plt.tight_layout()
-plt.show()
+fig, ax = _nbstyle.figura(1, 1, figsize=(8.5, 3.8))
+ax.plot(np.arange(len(ess_path)), ess_path, color=_nbstyle.S1["color"], lw=2.2, label=r"Tamaño Muestral Efectivo $ESS_t$")
+ax.axhline(n_particles / 2, color=_nbstyle.SPINE, linestyle="--", lw=1.5, label=f"Umbral de Remuestreo ($N/2 = {n_particles//2:,}$)")
+ax.set_title("Diagnósticos Monte Carlo Secuencial: Trayectoria de Tamaño Muestral Efectivo", fontsize=11, fontweight="bold")
+ax.set_xlabel("Índice de Observación $t$")
+ax.set_ylabel("Partículas Efectivas")
+ax.grid(True, linestyle=":", alpha=0.6)
+ax.legend(loc="lower left")
 
 print(f"Promedio de Partículas Efectivas: {res_sv.ess.mean():.1f} / {n_particles:,}")
 print(f"Frecuencia de Remuestreo        : {res_sv.resampling_frequency*100:.1f}% de los períodos")

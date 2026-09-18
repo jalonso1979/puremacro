@@ -184,16 +184,15 @@ assert gap.any(), "expected at least one horizon where the regimes separate"
 
 # %%
 cols = _nbstyle.palette(3)
-fig, ax = plt.subplots()
-ax.axhline(0.0, color="0.6", linewidth=0.8, linestyle=":")
-ax.fill_between(lin["h"], lin["lo"], lin["hi"], color="0.80", label="90% HAC band")
+fig, ax = _nbstyle.figura()
+ax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")
+ax.fill_between(lin["h"], lin["lo"], lin["hi"], color=_nbstyle.BANDA, label="90% HAC band")
 ax.plot(lin["h"], lin["beta"], color=cols[0], marker="o", markersize=3,
         label=r"$\beta_h$ (linear LP)")
 ax.set_xlabel("Horizon h (months)")
 ax.set_ylabel("Response of y to a unit shock")
 ax.set_title("Local-projection IRF (Jordà, HAC bands)")
 ax.legend(loc="lower right")
-plt.show()
 
 # %% [markdown]
 # ### Supporting — state-dependent IRFs
@@ -201,8 +200,8 @@ plt.show()
 # response (dashed); shaded regions are the per-regime 90% HAC bands.
 
 # %%
-fig, ax = plt.subplots()
-ax.axhline(0.0, color="0.6", linewidth=0.8, linestyle=":")
+fig, ax = _nbstyle.figura()
+ax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")
 ax.fill_between(sd["h"], sd["lo_H"], sd["hi_H"], color=cols[1], alpha=0.25)
 ax.fill_between(sd["h"], sd["lo_L"], sd["hi_L"], color=cols[2], alpha=0.25)
 ax.plot(sd["h"], sd["beta_H"], color=cols[1], marker="o", markersize=3,
@@ -213,24 +212,22 @@ ax.set_xlabel("Horizon h (months)")
 ax.set_ylabel("Response of y to a unit shock")
 ax.set_title("State-dependent IRFs: shocks bite harder in recessions")
 ax.legend(loc="lower right")
-plt.show()
 
 # %% [markdown]
 # ### Supporting — the synthetic series and the state
 
 # %%
-fig, (axL, axR) = plt.subplots(1, 2, figsize=(9.5, 3.4))
+fig, (axL, axR) = _nbstyle.figura(1, 2, ancho=9.5, alto=3.4)
 t_idx = np.arange(T)
 rec = df["recession"].values
-axL.plot(t_idx, df["y"].values, color="0.25", linewidth=0.8)
+axL.plot(t_idx, df["y"].values, color=_nbstyle.TINTA, linewidth=0.8)
 axL.fill_between(t_idx, df["y"].min(), df["y"].max(), where=rec > 0,
-                 color="0.85", step="mid", label="recession")
+                 color=_nbstyle.BANDA, step="mid", label="recession")
 axL.set_xlabel("t"); axL.set_ylabel("y")
 axL.set_title("Outcome with recession shading"); axL.legend(loc="upper right")
 axR.bar(["expansion", "recession"], [(1 - rec).mean(), rec.mean()],
         color=[cols[2], cols[1]])
 axR.set_ylabel("sample share"); axR.set_title("State frequencies")
-plt.show()
 
 # %% [markdown]
 # ## Your turn — the confidence level moves the band, not the IRF

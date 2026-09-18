@@ -376,7 +376,7 @@ def lp_smooth_transition_irf(
             b_low = float(coef[2])
             se_high = float(np.sqrt(max(cov[1, 1], 0.0)))
             se_low = float(np.sqrt(max(cov[2, 2], 0.0)))
-        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+        except Exception:
             b_high = b_low = se_high = se_low = np.nan
 
         rows.append({
@@ -542,7 +542,7 @@ def lp_state_dep_iv(
             se_H = float(out2["se"][1])
             b_L = float(out2["beta"][2])
             se_L = float(out2["se"][2])
-        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+        except Exception:
             b_H = se_H = b_L = se_L = f_H = f_L = np.nan
 
         rows.append({

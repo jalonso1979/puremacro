@@ -131,25 +131,24 @@ print(f"   (ADF p={adf_g['p_value']:.3f} vs DF-GLS p={dfg_g['p_value']:.3f}: la 
       "lectura I(1) de Nelson-Plosser 1982 sobrevive a ADF pero no a DF-GLS)")
 
 # %%
-fig, ax = plt.subplots(figsize=(6.4, 3.8))
+fig, ax = _nbstyle.figura(ancho=6.4, alto=3.8)
 tests = ["ADF", "DF-GLS", "Ng-Perron\n(MZt)"]
 stats = [adf_g["stat"], dfg_g["stat"], ngp_g["stat"]]
 cv10 = [adf_g["crit_values"]["10%"], dfg_g["crit_values"]["10%"],
         ngp_g["crit_values"]["10%"]]
 x = np.arange(3)
-cols = ["0.15" if s < c else "0.7" for s, c in zip(stats, cv10)]
-ax.bar(x, stats, color=cols, edgecolor="0.0", width=0.55)
-ax.plot(x, cv10, "D", color="0.0", ms=7, label="valor crítico al 10%")
+cols = [_nbstyle.TINTA if s < c else _nbstyle.SPINE for s, c in zip(stats, cv10)]
+ax.bar(x, stats, color=cols, edgecolor=_nbstyle.SPINE, width=0.55)
+ax.plot(x, cv10, "D", color=_nbstyle.TINTA, ms=7, label="valor crítico al 10%")
 for xi, (s, c) in enumerate(zip(stats, cv10)):
     ax.annotate("rechaza" if s < c else "no rechaza", (xi, s),
                 textcoords="offset points", xytext=(0, -14 if s < c else 8),
                 ha="center", fontsize=9)
-ax.axhline(0, color="0.0", lw=0.8)
+ax.axhline(0, color=_nbstyle.SPINE, lw=0.8)
 ax.set_xticks(x); ax.set_xticklabels(tests)
 ax.set_ylabel("estadístico de prueba")
 ax.set_title("log PIB real EE.UU. (1889-2015): la misma serie, tres veredictos")
 ax.legend(loc="lower left")
-plt.tight_layout(); plt.show()
 
 # %% [markdown]
 # **Cómo leerlo.** Los tres estadísticos se agrupan cerca de $-2.7$ — la
@@ -193,16 +192,15 @@ for phi in PHIS:
           f"ganancia={d - a:+.2f}")
 
 # %%
-fig, ax = plt.subplots(figsize=(6.2, 3.8))
-ax.plot(PHIS, dfg_pow, "-o", color="0.10", label="DF-GLS")
-ax.plot(PHIS, adf_pow, "--s", color="0.55", label="ADF")
+fig, ax = _nbstyle.figura(ancho=6.2, alto=3.8)
+ax.plot(PHIS, dfg_pow, "-o", color=_nbstyle.TINTA, label="DF-GLS")
+ax.plot(PHIS, adf_pow, "--s", color=_nbstyle.NOTA, label="ADF")
 ax.set_xlabel(r"raíz autorregresiva mayor $\phi$  (1 = raíz unitaria)")
 ax.set_ylabel("frecuencia de rechazo al 5%")
 ax.set_title("Potencia contra una alternativa estacionaria en tendencia\n(mayor = mejor; ambas con tamaño correcto en $\\phi=1$)")
 ax.set_ylim(0, 1.02)
 ax.legend(loc="upper right")
 ax.invert_xaxis()  # acercándose a la raíz unitaria desde la izquierda
-plt.tight_layout(); plt.show()
 
 # %% [markdown]
 # **El argumento de venta.** Cuando $\phi$ sube hacia $1$ — precisamente la

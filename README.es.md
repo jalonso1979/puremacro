@@ -437,6 +437,12 @@ fallar.
 - **Álgebra exacta de sombreros de Caliendo-Parro (2015)** (`trade.caliendo_parro`, `spatial.caliendo_parro`) — Equilibrio general comercial multipaís y multisectorial con encadenamientos insumo-producto, bienes intermedios y aranceles resuelto sin necesidad de estimar fundamentos no observados (`CaliendoParroModel`).
 - **Equilibrio espacial de Allen-Arkolakis (2014)** (`spatial.allen_arkolakis`, `trade.allen_arkolakis`) — Equilibrio general geográfico continuo con costes de transporte bilateral tipo iceberg, movilidad laboral, aglomeración marshalliana ($\alpha$) y congestión de amenidades ($\beta$) (`AllenArkolakisModel`).
 
+**Simuladores de política macroeconómica y laboratorios en navegador (puremacro 4.1)**
+
+- **Simulador cuantitativo de política comercial** (`models.trade_policy.TradePolicySimulator`) — Simulador de equilibrio general ricardiano multipaís y multisectorial de Caliendo-Parro (2015) con gravedad de Eaton-Kortum, encadenamientos insumo-producto, aranceles bilaterales, efectos de términos de intercambio y contrafactuales de álgebra exacta de sombreros con verificación estricta de vaciado de mercados de bienes y factores ($\max_i |X_i - (Y_i + R_i + D_i)| < 10^{-6}$).
+- **Simulador de transmisión monetaria y macroprudencial** (`models.monetary_transmission.MonetaryTransmissionSimulator`) — Motor comparativo HANK vs. RANK de transmisión de política con descomposición de Kaplan-Moll-Violante (2018) entre canales directos e indirectos a través de 10 deciles empíricos de propensión marginal a consumir (MPC).
+- **Laboratorios interactivos en navegador** (`curso/site/labs/`) — Laboratorios estáticos en el lado del cliente WebAssembly/Canvas de compilación cero: `comercio-aranceles.html` (guerra comercial trilateral) y `politica-monetaria-hank.html` (transmisión monetaria HANK vs. RANK). Ver `docs/es/policy_simulators.md`.
+
 **ML causal, HJB en tiempo continuo, OccBin multirrestricción y tiempo real regional (puremacro 3.4)**
 
 - **Aprendizaje automático doble / desesgado** (`causal.dml`) — Regresión parcialmente lineal de Chernozhukov et al. (2018) con puntajes ortogonales de Neyman-Robinson, validación cruzada por $K$ bloques y aprendices penalizados en NumPy puro (`LassoCoordinateDescent`, `RidgeGCV`); los puntos de entrada son `dml_plr` y `DoubleMLPLR`, y los aprendices son **únicamente lasso y ridge**. `DMLResult` incluye `.summary()`, `.plot()`, `.to_latex()`, `.to_typst()` y `.to_markdown()`.
@@ -765,6 +771,7 @@ Todos los cuadernos cumplen estrictamente el contrato con Pyodide y la arquitect
 - **`docs/es/notebooks.md`** — Catálogo completo de cuadernos (00–58), arquitectura pedagógica de 7 secciones y suites de política aplicada.
 - **`docs/es/dsge_build.md`** — Modelos DSGE desde ecuaciones, cargador de archivos `.mod`, poda de 2do orden, CLI `puremacro-dynare`, OccBin ZLB, relajación no lineal y MCMC bayesiano.
 - **`docs/es/models.md`** — Modelos estructurales: HANK en el espacio de secuencias, algoritmo Fake News, transferencias focalizadas y búsqueda y emparejamiento DMP.
+- **`docs/es/policy_simulators.md`** — Simuladores de política macroeconómica y laboratorios interactivos en navegador: equilibrio general cuantitativo de comercio de Caliendo-Parro (2015), transmisión monetaria HANK vs. RANK y laboratorios WebAssembly del lado del cliente.
 - **`docs/es/narrative_sign_svar.md`**, **`docs/es/honest_did.md`**, **`docs/es/smooth_lp.md`**, **`docs/es/hank_nonlinear.md`**, **`docs/es/gertler_karadi.md`**, **`docs/es/bvar_sv.md`** — las seis guías de las funciones 2.3.
 - **`docs/es/var.md`** — VAR en forma reducida, identificación de SVAR (Cholesky, signos, narrativa, proxy/IV), FAVAR y bandas bootstrap.
 - **`docs/es/lp.md`** — Guía de proyecciones locales (LP-HAC, LP-IV, LP dependiente de estado, LP de panel, `LPResult`).

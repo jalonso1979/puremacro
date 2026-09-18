@@ -116,12 +116,11 @@ assert np.all(cons_by_age > 0)
 
 # %%
 cols = _nbstyle.palette(2)
-fig, ax = plt.subplots()
+fig, ax = _nbstyle.figura()
 ax.plot(age, assets_by_age, color=cols[0], label="mean assets")
 ax.plot(age, cons_by_age, color=cols[1], linestyle="--", label="mean consumption")
 ax.set_xlabel("Age (model period)"); ax.set_ylabel("Level")
 ax.set_title("Life-cycle assets and consumption"); ax.legend()
-plt.show()
 
 # %% [markdown]
 # ### Figura complementaria — la distribución de riqueza de la cohorte por edad
@@ -132,14 +131,13 @@ plt.show()
 # %%
 dist_a = dist.sum(axis=2)                                 # (J, n_a) marginal over z
 a_grid = np.linspace(0.0, 40.0, dist_a.shape[1])
-fig, ax = plt.subplots(figsize=(7.0, 3.6))
-im = ax.imshow(dist_a.T, origin="lower", aspect="auto", cmap="Greys",
+fig, ax = _nbstyle.figura(ancho=7.0, alto=3.6)
+im = ax.imshow(dist_a.T, origin="lower", aspect="auto", cmap="Greys_r",
                extent=[0, J - 1, a_grid[0], a_grid[-1]])
 ax.set_ylim(0, 25)
 ax.set_xlabel("Age"); ax.set_ylabel("Assets a")
 ax.set_title("Cohort wealth distribution by age")
 fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04, label="mass")
-plt.show()
 
 # %% [markdown]
 # ## 2. Demografía: quién está vivo y cuánto capital posee
@@ -159,7 +157,7 @@ print(f"aggregate capital per capita: uniform {K_uniform:.2f}, "
 assert np.isclose(w_uniform.sum(), 1.0) and np.isclose(w_mortality.sum(), 1.0)
 assert K_mortality < K_uniform                            # fewer asset-rich elderly
 
-fig, (a1, a2) = plt.subplots(1, 2, figsize=(9.5, 3.4))
+fig, (a1, a2) = _nbstyle.figura(1, 2, ancho=9.5, alto=3.4)
 a1.plot(age, w_uniform, color=cols[0], label="no mortality")
 a1.plot(age, w_mortality, color=cols[1], linestyle="--", label="with mortality")
 a1.set_xlabel("Age"); a1.set_ylabel("Population mass"); a1.set_title("Demographic weights")
@@ -168,7 +166,6 @@ a2.plot(age, w_uniform * assets_by_age, color=cols[0], label="no mortality")
 a2.plot(age, w_mortality * assets_by_age, color=cols[1], linestyle="--", label="with mortality")
 a2.set_xlabel("Age"); a2.set_ylabel("Weighted assets"); a2.set_title("Capital contribution by age")
 a2.legend()
-plt.show()
 
 # %% [markdown]
 # ## Tu turno — ¿sobrevive la joroba a un factor de descuento distinto?

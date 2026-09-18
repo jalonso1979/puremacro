@@ -130,12 +130,35 @@ class MonetaryTransmissionResult:
     phi_pi: float = 1.5
     kappa: float = 0.1
 
+    def peak_responses(self) -> dict[str, float]:
+        """Return peak absolute responses across macroeconomic variables."""
+        return {
+            "output_hank": float(self.irf_output_hank[np.argmax(np.abs(self.irf_output_hank))]),
+            "output_rank": float(self.irf_output_rank[np.argmax(np.abs(self.irf_output_rank))]),
+            "inflation_hank": float(self.irf_inflation_hank[np.argmax(np.abs(self.irf_inflation_hank))]),
+            "inflation_rank": float(self.irf_inflation_rank[np.argmax(np.abs(self.irf_inflation_rank))]),
+            "consumption_hank": float(self.irf_consumption_hank[np.argmax(np.abs(self.irf_consumption_hank))]),
+            "consumption_rank": float(self.irf_consumption_rank[np.argmax(np.abs(self.irf_consumption_rank))]),
+        }
+
+    def __repr__(self) -> str:
+        return (
+            f"MonetaryTransmissionResult("
+            f"shock_type={self.shock_type!r}, "
+            f"magnitude={self.shock_magnitude:+.4f}, "
+            f"T={self.horizon}, "
+            f"mpc_hank={self.aggregate_mpc_hank:.4f}, "
+            f"mpc_rank={self.aggregate_mpc_rank:.4f}, "
+            f"indirect_share_hank={self.indirect_share_hank:.1f}%)"
+        )
+
     def summary(self) -> str:
         """Text summary comparing HANK and RANK transmission mechanisms."""
-        pk_y_hank = float(self.irf_output_hank[np.argmax(np.abs(self.irf_output_hank))])
-        pk_y_rank = float(self.irf_output_rank[np.argmax(np.abs(self.irf_output_rank))])
-        pk_pi_hank = float(self.irf_inflation_hank[np.argmax(np.abs(self.irf_inflation_hank))])
-        pk_pi_rank = float(self.irf_inflation_rank[np.argmax(np.abs(self.irf_inflation_rank))])
+        pk = self.peak_responses()
+        pk_y_hank = pk["output_hank"]
+        pk_y_rank = pk["output_rank"]
+        pk_pi_hank = pk["inflation_hank"]
+        pk_pi_rank = pk["inflation_rank"]
 
         lines = [
             "Monetary & Macroprudential Transmission: HANK vs RANK",
@@ -341,11 +364,19 @@ class MonetaryTransmissionSimulator:
         self.a_max = float(a_max)
         self._cached_hank: SequenceSpaceHANKResult | None = model
 
+    @property
+    def steady_state_mpc(self) -> float:
+        """Steady-state aggregate quarterly MPC in HANK economy."""
+        if self._cached_hank is not None:
+            return float(self._cached_hank.steady_state_mpc)
+        res = self._get_hank_model(T=40, shock_magnitude=0.0025, shock_rho=0.7)
+        return float(res.steady_state_mpc)
+
     def _get_hank_model(self, T: int, shock_magnitude: float, shock_rho: float) -> SequenceSpaceHANKResult:
         """Obtain solved SequenceSpaceHANKResult with the required horizon and shock parameters."""
         if self._cached_hank is not None and len(self._cached_hank.irf_output) >= T:
             return self._cached_hank
-        return solve_hank_sequence_space(
+        model = solve_hank_sequence_space(
             T=T,
             beta=self.beta,
             gamma=self.gamma,
@@ -357,6 +388,8 @@ class MonetaryTransmissionSimulator:
             n_a=self.n_a,
             a_max=self.a_max,
         )
+        self._cached_hank = model
+        return model
 
     def simulate_rate_shock(
         self,
@@ -380,7 +413,16 @@ class MonetaryTransmissionSimulator:
         MonetaryTransmissionResult
         """
         T = int(T)
-        hank_res = self._get_hank_model(T, magnitude, rho)
+        if T < 2:
+            raise ValueError(f"Simulation horizon T must be at least 2 quarters, got {T}")
+        mag = float(magnitude)
+        if not np.isfinite(mag):
+            raise ValueError(f"magnitude must be a finite float, got {magnitude!r}")
+        r_pers = float(rho)
+        if not (0.0 <= r_pers < 1.0):
+            raise ValueError(f"Shock persistence rho must satisfy 0.0 <= rho < 1.0, got {rho}")
+
+        hank_res = self._get_hank_model(T, mag, r_pers)
 
         # Truncate or obtain horizon T matrices
         J_C_r_hank = hank_res.jacobian_c_r[:T, :T]
@@ -475,10 +517,22 @@ class MonetaryTransmissionSimulator:
             Horizon in quarters.
         """
         T = int(T)
+        if T < 2:
+            raise ValueError(f"Simulation horizon T must be at least 2 quarters, got {T}")
+        amt = float(amount)
+        if not np.isfinite(amt) or amt <= 0.0:
+            raise ValueError(f"Transfer amount must be a positive finite float, got {amount!r}")
+
+        valid_targets = {"borrowers", "hand_to_mouth", "bottom_quartile", "unconstrained", "wealthy", "all", "universal"}
+        if isinstance(target, str) and target.lower().strip() not in valid_targets:
+            raise ValueError(
+                f"Unknown target group: {target!r}. Choose from {sorted(valid_targets)} or a sequence of decile ints."
+            )
+
         hank_res = self._get_hank_model(T, 0.0025, 0.7)
 
         # Simulate targeted transfer in HANK
-        tf_res = hank_res.simulate_transfer(target=target, amount=amount, T=T)
+        tf_res = hank_res.simulate_transfer(target=target, amount=amt, T=T)
         dC_hank = tf_res.irf_consumption[:T].copy()
         dY_hank = dC_hank.copy()
 
@@ -496,7 +550,7 @@ class MonetaryTransmissionSimulator:
         mpc_rank_val = float(1.0 - self.beta)
         dC_rank = np.zeros(T, dtype=float)
         # Decay at savings rate beta
-        dC_rank[0] = float(amount) * mpc_rank_val
+        dC_rank[0] = amt * mpc_rank_val
         for t_idx in range(1, T):
             dC_rank[t_idx] = dC_rank[t_idx - 1] * (1.0 - mpc_rank_val)
 
@@ -517,7 +571,7 @@ class MonetaryTransmissionSimulator:
         return MonetaryTransmissionResult(
             horizon=T,
             shock_type="balance_sheet",
-            shock_magnitude=amount,
+            shock_magnitude=amt,
             shock_rho=0.0,
             irf_output_hank=dY_hank,
             irf_output_rank=dY_rank,
@@ -560,6 +614,11 @@ class MonetaryTransmissionSimulator:
             if shock_path is not None:
                 shock_arr = np.asarray(shock_path, dtype=float)
                 T_actual = len(shock_arr)
+                if T_actual < 2:
+                    raise ValueError(f"Custom shock_path must have length >= 2, got {T_actual}")
+                if not np.all(np.isfinite(shock_arr)):
+                    raise ValueError("shock_path contains NaN or infinite values.")
+
                 hank_res = self._get_hank_model(T_actual, float(shock_arr[0]), 0.7)
                 J_C_r_hank = hank_res.jacobian_c_r[:T_actual, :T_actual]
                 J_C_Y_hank = hank_res.jacobian_c_y[:T_actual, :T_actual]
@@ -590,11 +649,13 @@ class MonetaryTransmissionSimulator:
                 mpc_rank_val = float(1.0 - self.beta)
                 mpc_rank = pd.Series({f"Decile {d + 1}": mpc_rank_val for d in range(10)})
 
+                effective_rho = float(rho) if rho is not None else float("nan")
+
                 return MonetaryTransmissionResult(
                     horizon=T_actual,
                     shock_type="rate",
                     shock_magnitude=float(shock_arr[0]),
-                    shock_rho=0.7,
+                    shock_rho=effective_rho,
                     irf_output_hank=dY_hank,
                     irf_output_rank=dY_rank,
                     irf_consumption_hank=dC_hank,

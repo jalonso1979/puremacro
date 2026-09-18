@@ -147,14 +147,14 @@ assert eulers_cheb[8] < 1e-4, f"Chebyshev N=8 Euler residual {eulers_cheb[8]:.2e
 assert eulers_fem[50] < 1e-4, f"FEM E=50 Euler residual {eulers_fem[50]:.2e} exceeds 1e-4"
 
 # Figura 1: Figura principal de crecimiento suave
-fig1, axes1 = plt.subplots(1, 2, figsize=(11, 4.2))
+fig1, axes1 = _nbstyle.figura(ancho=11, alto=4.2, ncols=2)
 colors1 = _nbstyle.palette(4)
 ls1 = _nbstyle.styles(4)
 
-axes1[0].plot(eval_k, g_true, color="0.1", lw=2.2, label="Analytical Truth $g^*(k) = \\alpha\\beta k^\\alpha$")
+axes1[0].plot(eval_k, g_true, color=_nbstyle.TINTA, lw=2.2, label="Analytical Truth $g^*(k) = \\alpha\\beta k^\\alpha$")
 axes1[0].plot(eval_k, sols_cheb[8].policy(eval_k), color=colors1[1], ls=ls1[1], lw=1.6, label="Chebyshev Collocation ($N=8$)")
 axes1[0].plot(eval_k, sols_fem[50].policy(eval_k), color=colors1[2], ls=ls1[2], lw=1.6, label="FEM Galerkin ($E=50$)")
-axes1[0].axvline(k_ss, color="0.5", ls=":", lw=1.2, label=f"Steady State $k_{{ss}}={k_ss:.4f}$")
+axes1[0].axvline(k_ss, color=_nbstyle.SPINE, ls=":", lw=1.2, label=f"Steady State $k_{{ss}}={k_ss:.4f}$")
 axes1[0].set_title("Capital Policy Function $g(k)$", fontsize=11)
 axes1[0].set_xlabel("Current Capital $k$")
 axes1[0].set_ylabel("Next Capital $k'$")
@@ -164,14 +164,11 @@ axes1[1].semilogy(orders_cheb, [errs_cheb[n] for n in orders_cheb], "o-", color=
 axes1[1].semilogy(orders_cheb, [eulers_cheb[n] for n in orders_cheb], "s--", color=colors1[1], lw=1.4, label="Chebyshev Max Euler Residual")
 axes1[1].semilogy([4, 8, 12], [errs_fem[e] for e in elements_fem], "^-.", color=colors1[2], lw=1.6, label="FEM Rel. Error ($E=20, 50, 80$, $O(h^2)$)")
 axes1[1].semilogy([4, 8, 12], [eulers_fem[e] for e in elements_fem], "d:", color=colors1[3], lw=1.4, label="FEM Max Euler Residual")
-axes1[1].axhline(1e-4, color="0.4", ls=":", lw=1.0, label="Acceptance Gate ($10^{-4}$)")
+axes1[1].axhline(1e-4, color=_nbstyle.SPINE, ls=":", lw=1.0, label="Acceptance Gate ($10^{-4}$)")
 axes1[1].set_title("Error Convergence & Euler Residuals", fontsize=11)
 axes1[1].set_xlabel("Polynomial Degree $N$ / FEM Equivalent Grid")
 axes1[1].set_ylabel("Maximum Error / Residual ($L^\\infty$)")
 axes1[1].legend(loc="upper right", fontsize=8.5)
-
-plt.tight_layout()
-plt.show()
 
 # %%
 # --- Experimento 2: Modelo con restricción de endeudamiento (oscilaciones de Gibbs vs. ubicación exacta del quiebre) ---
@@ -229,15 +226,15 @@ assert fem_viol == 0.0, "FEM policy must not violate the borrowing lower bound"
 assert fem_ring < 1e-6, "FEM with exact kink placement must eliminate Gibbs ringing"
 
 # Figura 2: Figura principal de restricción de endeudamiento y oscilaciones de Gibbs
-fig2, axes2 = plt.subplots(1, 2, figsize=(11, 4.2))
+fig2, axes2 = _nbstyle.figura(ancho=11, alto=4.2, ncols=2)
 colors2 = _nbstyle.palette(4)
 ls2 = _nbstyle.styles(4)
 
-axes2[0].plot(dense_k, true_constrained_policy(dense_k), color="0.1", lw=2.2, label="Constrained Truth $g^*(k)$")
+axes2[0].plot(dense_k, true_constrained_policy(dense_k), color=_nbstyle.TINTA, lw=2.2, label="Constrained Truth $g^*(k)$")
 axes2[0].plot(dense_k, cheb_pol[12], color=colors2[1], ls=ls2[1], lw=1.5, label="Chebyshev ($N=12$)")
 axes2[0].plot(dense_k, g_fem_kink, color=colors2[2], ls=ls2[2], lw=1.5, label="FEM Galerkin ($E=50$)")
-axes2[0].axvline(k_star, color="0.4", ls=":", lw=1.2, label=f"Kink Threshold $k^*={k_star:.4f}$")
-axes2[0].axhline(k_bar, color="0.6", ls="--", lw=1.0, label=f"Borrowing Limit $\\bar{{k}}={k_bar:.4f}$")
+axes2[0].axvline(k_star, color=_nbstyle.SPINE, ls=":", lw=1.2, label=f"Kink Threshold $k^*={k_star:.4f}$")
+axes2[0].axhline(k_bar, color=_nbstyle.NOTA, ls="--", lw=1.0, label=f"Borrowing Limit $\\bar{{k}}={k_bar:.4f}$")
 axes2[0].set_title("Global Policy Function with Borrowing Constraint", fontsize=11)
 axes2[0].set_xlabel("Capital State $k$")
 axes2[0].set_ylabel("Next Capital $k'$")
@@ -245,19 +242,16 @@ axes2[0].legend(loc="upper left", fontsize=8.5)
 
 # Panel 2: Acercamiento a la vecindad del punto de quiebre [0.8*k_star, 1.2*k_star]
 zoom_mask = (dense_k >= 0.75 * k_star) & (dense_k <= 1.25 * k_star)
-axes2[1].plot(dense_k[zoom_mask], true_constrained_policy(dense_k[zoom_mask]), color="0.1", lw=2.2, label="Analytical Truth")
+axes2[1].plot(dense_k[zoom_mask], true_constrained_policy(dense_k[zoom_mask]), color=_nbstyle.TINTA, lw=2.2, label="Analytical Truth")
 axes2[1].plot(dense_k[zoom_mask], cheb_pol[6][zoom_mask], color=colors2[0], ls=":", lw=1.4, label="Chebyshev $N=6$ (Ringing)")
 axes2[1].plot(dense_k[zoom_mask], cheb_pol[12][zoom_mask], color=colors2[1], ls="--", lw=1.4, label="Chebyshev $N=12$ (Ringing)")
 axes2[1].plot(dense_k[zoom_mask], g_fem_kink[zoom_mask], color=colors2[2], ls="-", lw=1.8, label="FEM ($E=50$, Zero Ringing)")
-axes2[1].axvline(k_star, color="0.4", ls=":", lw=1.2)
-axes2[1].axhline(k_bar, color="0.6", ls="--", lw=1.0)
+axes2[1].axvline(k_star, color=_nbstyle.SPINE, ls=":", lw=1.2)
+axes2[1].axhline(k_bar, color=_nbstyle.NOTA, ls="--", lw=1.0)
 axes2[1].set_title("Zoom on Kink Vicinity: Gibbs Oscillations vs. Exact FEM", fontsize=11)
 axes2[1].set_xlabel("Capital State $k$")
 axes2[1].set_ylabel("Next Capital $k'$")
 axes2[1].legend(loc="upper left", fontsize=8.5)
-
-plt.tight_layout()
-plt.show()
 
 # %%
 # --- Experimento 3: Modelo estocástico multiestado (choques de productividad) ---
@@ -309,14 +303,14 @@ for z_dict, name in [(sols_stoch_coll, "Collocation"), (sols_stoch_fem, "FEM")]:
     print(f"{name} Stochastic Monotonicity: verified (g_high > g_med > g_low everywhere)!")
 
 # Figura 3: Políticas contingentes al estado en el modelo estocástico
-fig3, axes3 = plt.subplots(1, 2, figsize=(11, 4.2))
+fig3, axes3 = _nbstyle.figura(ancho=11, alto=4.2, ncols=2)
 colors3 = _nbstyle.palette(4)
 ls3 = _nbstyle.styles(4)
 
 for idx, z in enumerate(z_shocks):
     axes3[0].plot(eval_k_stoch, sols_stoch_coll[z].policy(eval_k_stoch),
                   color=colors3[idx], ls=ls3[idx], lw=1.6, label=f"Chebyshev Collocation ($z={z:.2f}$)")
-axes3[0].plot(eval_k_stoch, eval_k_stoch, color="0.6", ls=":", lw=1.0, label="45° Line ($k'=k$)")
+axes3[0].plot(eval_k_stoch, eval_k_stoch, color=_nbstyle.SPINE, ls=":", lw=1.0, label="45° Line ($k'=k$)")
 axes3[0].set_title("Collocation State-Contingent Policies $g(k, z)$", fontsize=11)
 axes3[0].set_xlabel("Current Capital $k$")
 axes3[0].set_ylabel("Next Capital $k'$")
@@ -325,14 +319,11 @@ axes3[0].legend(loc="upper left", fontsize=8.5)
 for idx, z in enumerate(z_shocks):
     axes3[1].plot(eval_k_stoch, sols_stoch_fem[z].policy(eval_k_stoch),
                   color=colors3[idx], ls=ls3[idx], lw=1.6, label=f"FEM Galerkin ($z={z:.2f}$)")
-axes3[1].plot(eval_k_stoch, eval_k_stoch, color="0.6", ls=":", lw=1.0, label="45° Line ($k'=k$)")
+axes3[1].plot(eval_k_stoch, eval_k_stoch, color=_nbstyle.SPINE, ls=":", lw=1.0, label="45° Line ($k'=k$)")
 axes3[1].set_title("FEM Galerkin State-Contingent Policies $g(k, z)$", fontsize=11)
 axes3[1].set_xlabel("Current Capital $k$")
 axes3[1].set_ylabel("Next Capital $k'$")
 axes3[1].legend(loc="upper left", fontsize=8.5)
-
-plt.tight_layout()
-plt.show()
 
 # %%
 # --- Experimento 4: Benchmark de tiempo de ejecución y escalabilidad con múltiples motores de cómputo ---
@@ -374,21 +365,19 @@ for b_name in backend_candidates:
     print(f"Backend [{b_name:5s}] -> Resolved: [{sol_b.backend:5s}] | Time: {wall_ms:6.2f} ms | Parity Error: {rel_diff:.2e}")
 
 # Figura 4: Comparación del tiempo de ejecución entre motores de cómputo
-fig4, ax4 = plt.subplots(figsize=(7, 3.8))
+fig4, ax4 = _nbstyle.figura(ancho=7, alto=3.8)
 bar_colors = _nbstyle.palette(len(backend_candidates))
 bar_names = [f"{r['Backend']}\n({r['Resolved']})" for r in bench_records]
 bar_times = [r["Time (ms)"] for r in bench_records]
 
-bars = ax4.bar(bar_names, bar_times, color=bar_colors, width=0.55, edgecolor="0.2", lw=0.8)
+bars = ax4.bar(bar_names, bar_times, color=bar_colors, width=0.55, edgecolor=_nbstyle.SPINE, lw=0.8)
 for bar in bars:
     yval = bar.get_height()
-    ax4.text(bar.get_x() + bar.get_width() / 2.0, yval + 5.0, f"{yval:.1f} ms", ha="center", va="bottom", fontsize=8.5)
+    ax4.text(bar.get_x() + bar.get_width() / 2.0, yval + 5.0, f"{yval:.1f} ms", ha="center", va="bottom", fontsize=8.5, color=_nbstyle.TEXTO)
 
 ax4.set_title("Multi-Backend Solve Time: Chebyshev Collocation (Order N=8)", fontsize=11)
 ax4.set_ylabel("Execution Wall Time (ms)")
 ax4.set_ylim(0, max(bar_times) * 1.25)
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## Lectura de los resultados

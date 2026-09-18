@@ -186,23 +186,21 @@ print(f"SA overall ATT = {sa.att_overall:+.3f}   true = {TRUE_ATT:+.3f}")
 # and stay there; the shaded band is the 90% panel-bootstrap CI.
 
 # %%
-cols = _nbstyle.palette(2)
 es = es_cs
-fig, ax = plt.subplots()
-ax.axhline(0.0, color="0.6", linewidth=0.8, linestyle=":")
-ax.axvline(-0.5, color="0.6", linewidth=0.8, linestyle="--")
-ax.fill_between(es["event_time"], es["lo"], es["hi"], color="0.85",
+fig, ax = _nbstyle.figura()
+ax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")
+ax.axvline(-0.5, color=_nbstyle.SPINE, linewidth=0.8, linestyle="--")
+ax.fill_between(es["event_time"], es["lo"], es["hi"], color=_nbstyle.NOTA, alpha=0.35,
                 step="mid", label="90% CI")
-ax.plot(es["event_time"], es["att"], color=cols[0], marker="o", markersize=4,
+ax.plot(es["event_time"], es["att"], **_nbstyle.S1, marker="o", markersize=4,
         label="CS estimate")
 post_e = es[es["event_time"] >= 0]
-ax.plot(post_e["event_time"], [TRUE_ATT] * len(post_e), color=cols[1],
-        linestyle="--", label=f"true ATT = {TRUE_ATT:+.1f}")
+ax.plot(post_e["event_time"], [TRUE_ATT] * len(post_e), **_nbstyle.S2,
+        label=f"true ATT = {TRUE_ATT:+.1f}")
 ax.set_xlabel("Event time (periods since treatment)")
 ax.set_ylabel("ATT")
 ax.set_title("Staggered DiD event study (Callaway-Sant'Anna)")
 ax.legend(loc="upper left")
-plt.show()
 
 # %% [markdown]
 # ### Supporting — CS vs Sun-Abraham aggregation
@@ -211,19 +209,18 @@ plt.show()
 # essentially coincide.
 
 # %%
-fig, ax = plt.subplots()
+fig, ax = _nbstyle.figura()
 es_sa = sa.att_event_study.sort_values("event_time")
-ax.axhline(0.0, color="0.6", linewidth=0.8, linestyle=":")
-ax.plot(es["event_time"], es["att"], color=cols[0], marker="o", markersize=4,
+ax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")
+ax.plot(es["event_time"], es["att"], **_nbstyle.S1, marker="o", markersize=4,
         label=f"Callaway-Sant'Anna (overall {cs.att_overall:+.2f})")
-ax.plot(es_sa["event_time"], es_sa["att"], color=cols[1], marker="s",
-        markersize=4, linestyle="--",
+ax.plot(es_sa["event_time"], es_sa["att"], **_nbstyle.S2, marker="s",
+        markersize=4,
         label=f"Sun-Abraham (overall {sa.att_overall:+.2f})")
 ax.set_xlabel("Event time")
 ax.set_ylabel("ATT")
 ax.set_title("CS vs Sun-Abraham aggregation")
 ax.legend(loc="upper left")
-plt.show()
 
 # %% [markdown]
 # ### Supporting — the underlying group-time effects
@@ -231,21 +228,21 @@ plt.show()
 # numbers above are just averages of these cohort curves at each event time.
 
 # %%
-fig, ax = plt.subplots()
+fig, ax = _nbstyle.figura()
 gt = cs.att_gt
 cohorts = sorted(gt["g"].unique())
+stys = _nbstyle.styles(len(cohorts))
 ccols = _nbstyle.palette(len(cohorts))
-for c, color in zip(cohorts, ccols):
+for c, color, sty in zip(cohorts, ccols, stys):
     sub = gt[gt["g"] == c].sort_values("event_time")
     ax.plot(sub["event_time"], sub["att"], marker="o", markersize=3,
-            color=color, label=f"cohort g={int(c)}")
-ax.axhline(0.0, color="0.6", linewidth=0.8, linestyle=":")
-ax.axhline(TRUE_ATT, color="0.4", linewidth=0.8, linestyle="--")
+            color=color, linestyle=sty, label=f"cohort g={int(c)}")
+ax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")
+ax.axhline(TRUE_ATT, color=_nbstyle.SPINE, linewidth=0.8, linestyle="--")
 ax.set_xlabel("Event time")
 ax.set_ylabel("ATT(g, t)")
 ax.set_title("Group-time effects by cohort")
 ax.legend(loc="upper left", fontsize=8)
-plt.show()
 
 # %% [markdown]
 # **Read the output.** This panel exposes the machinery: every cohort's $\text{ATT}(g,t)$ curve

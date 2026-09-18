@@ -93,27 +93,24 @@ assert 0.05 < gini_coef < 0.60, f"Gini coefficient out of expected range: {gini_
 # The hero figure shows the policy rules $a'(a, z)$ for high vs low productivity states.
 
 # %%
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10.5, 4.2))
+fig, (ax1, ax2) = _nbstyle.figura(1, 2, figsize=(10.5, 4.2))
 
 # Left panel: Policy functions
-ax1.plot(a_grid, a_grid, "k--", alpha=0.5, label="45° Line (a' = a)")
+ax1.plot(a_grid, a_grid, linestyle="--", color=_nbstyle.SPINE, alpha=0.7, label="45° Line (a' = a)")
 ax1.plot(a_grid, policy_a[:, 0], color=_nbstyle.palette(2)[0], lw=2, label="Low Productivity (z_min)")
 ax1.plot(a_grid, policy_a[:, -1], color=_nbstyle.palette(2)[1], lw=2, label="High Productivity (z_max)")
-ax1.set_xlabel("Current Assets a")
-ax1.set_ylabel("Next Period Assets a'")
+ax1.set_xlabel("Current Assets a", color=_nbstyle.TEXTO)
+ax1.set_ylabel("Next Period Assets a'", color=_nbstyle.TEXTO)
 ax1.set_title("Optimal Asset Policy Functions a'(a, z)")
-ax1.legend(loc="upper left")
+ax1.legend(loc="upper left", frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
 
 # Right panel: Value function
 ax2.plot(a_grid, V[:, 0], color=_nbstyle.palette(2)[0], lw=2, label="V(a, z_min)")
 ax2.plot(a_grid, V[:, -1], color=_nbstyle.palette(2)[1], lw=2, label="V(a, z_max)")
-ax2.set_xlabel("Assets a")
-ax2.set_ylabel("Value V(a, z)")
+ax2.set_xlabel("Assets a", color=_nbstyle.TEXTO)
+ax2.set_ylabel("Value V(a, z)", color=_nbstyle.TEXTO)
 ax2.set_title("Value Functions V(a, z)")
-ax2.legend(loc="lower right")
-
-plt.tight_layout()
-plt.show()
+ax2.legend(loc="lower right", frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
 
 # %% [markdown]
 # **Reading the output.** Low-productivity agents ($z_{\min}$) decumulate assets when wealth is high, while high-productivity agents ($z_{\max}$) save aggressively. Precautionary motives prevent wealth from collapsing to zero.

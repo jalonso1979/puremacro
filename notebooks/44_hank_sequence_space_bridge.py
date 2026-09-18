@@ -153,11 +153,11 @@ assert mpc_borrowing > mean_mpc > mpc_wealthy
 # We plot the stationary asset distribution $\mathcal{D}^*(a)$ and the conditional MPC profile across the wealth grid.
 
 # %%
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.5, 4.2))
+fig, (ax1, ax2) = _nbstyle.figura(1, 2, figsize=(11.5, 4.2))
 
 # Panel 1: Stationary Wealth Distribution
-ax1.plot(a_grid, D_ss, color="#1f77b4", lw=2.2, label=r"Density $\mathcal{D}^*(a)$")
-ax1.fill_between(a_grid, 0, D_ss, color="#1f77b4", alpha=0.25)
+ax1.plot(a_grid, D_ss, color=_nbstyle.S1["color"], lw=2.2, label=r"Density $\mathcal{D}^*(a)$")
+ax1.fill_between(a_grid, 0, D_ss, color=_nbstyle.S1["color"], alpha=0.25)
 ax1.set_title(r"Stationary Wealth Distribution $\mathcal{D}^*(a)$", fontsize=11, fontweight="bold")
 ax1.set_xlabel("Household Assets $a$")
 ax1.set_ylabel("Probability Density")
@@ -165,16 +165,13 @@ ax1.grid(True, linestyle=":", alpha=0.6)
 ax1.legend(loc="upper right")
 
 # Panel 2: MPC across wealth grid
-ax2.plot(a_grid, mpc_ss, color="#d62728", lw=2.2, label=r"$MPC(a)$")
-ax2.axhline(mean_mpc, color="#333333", linestyle="--", lw=1.3, label=f"Mean MPC ({mean_mpc:.3f})")
+ax2.plot(a_grid, mpc_ss, color=_nbstyle.S2["color"], lw=2.2, label=r"$MPC(a)$")
+ax2.axhline(mean_mpc, color=_nbstyle.SPINE, linestyle="--", lw=1.3, label=f"Mean MPC ({mean_mpc:.3f})")
 ax2.set_title("Marginal Propensity to Consume $MPC(a)$", fontsize=11, fontweight="bold")
 ax2.set_xlabel("Household Assets $a$")
 ax2.set_ylabel("Quarterly MPC")
 ax2.grid(True, linestyle=":", alpha=0.6)
 ax2.legend(loc="upper right")
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # Notice how the MPC profile drops steeply from over $50\%$ at the borrowing limit ($a=0$) down towards $1\%$ at higher wealth levels. This microeconomic heterogeneity is the key driver of aggregate amplification.
@@ -215,26 +212,23 @@ assert dC0_dY0 > 0.0, "Income hike must stimulate contemporaneous consumption"
 # - In the interest rate Jacobian $\mathcal{J}_{C, r}$, the negative diagonal illustrates the standard intertemporal substitution channel.
 
 # %%
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.5, 4.5))
+fig, (ax1, ax2) = _nbstyle.figura(1, 2, figsize=(11.5, 4.5))
 
 sub_T = 15
 
 # Income Jacobian Heatmap
-im1 = ax1.imshow(J_C_Y[:sub_T, :sub_T], cmap="YlGnBu", origin="upper")
+im1 = ax1.imshow(J_C_Y[:sub_T, :sub_T], cmap=_nbstyle.CMAP_SEQ, origin="upper")
 ax1.set_title(r"Income Jacobian $\mathcal{J}_{C, Y}$ (Fake-News)", fontsize=11, fontweight="bold")
 ax1.set_xlabel("Shock Period $s$")
 ax1.set_ylabel("Response Period $t$")
 fig.colorbar(im1, ax=ax1, fraction=0.046, pad=0.04)
 
 # Interest Rate Jacobian Heatmap
-im2 = ax2.imshow(J_C_r[:sub_T, :sub_T], cmap="Reds_r", origin="upper")
+im2 = ax2.imshow(J_C_r[:sub_T, :sub_T], cmap=_nbstyle.CMAP_SEQ_R, origin="upper")
 ax2.set_title(r"Rate Jacobian $\mathcal{J}_{C, r}$ (Fake-News)", fontsize=11, fontweight="bold")
 ax2.set_xlabel("Shock Period $s$")
 ax2.set_ylabel("Response Period $t$")
 fig.colorbar(im2, ax=ax2, fraction=0.046, pad=0.04)
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## 4. General Equilibrium Transitions: Linear vs. Nonlinear Broyden Transitions
@@ -290,7 +284,7 @@ assert df_lin["r"].iloc[0] < 0.0, "Rate cut must lower real rate"
 
 # %%
 t_axis = np.arange(horizon)
-fig, axes = plt.subplots(2, 2, figsize=(11.5, 7.5))
+fig, axes = _nbstyle.figura(2, 2, figsize=(11.5, 7.5))
 
 vars_config = [
     ("Y", "Output $dY$", axes[0, 0]),
@@ -300,17 +294,14 @@ vars_config = [
 ]
 
 for var, label, ax in vars_config:
-    ax.plot(t_axis, df_lin[var] * 10000, color="#1f77b4", lw=2.2, label="Linear SSJ")
-    ax.plot(t_axis, df_nonlin[var] * 10000, color="#d62728", lw=1.8, linestyle="--", label="Nonlinear Broyden")
-    ax.axhline(0.0, color="#666666", lw=0.8, linestyle=":")
+    ax.plot(t_axis, df_lin[var] * 10000, color=_nbstyle.S1["color"], lw=2.2, label="Linear SSJ")
+    ax.plot(t_axis, df_nonlin[var] * 10000, color=_nbstyle.S2["color"], lw=1.8, linestyle="--", label="Nonlinear Broyden")
+    ax.axhline(0.0, color=_nbstyle.SPINE, lw=0.8, linestyle=":")
     ax.set_title(label, fontsize=11, fontweight="bold")
     ax.set_xlabel("Quarters after Shock")
     ax.set_ylabel("Basis Points (bps)")
     ax.grid(True, linestyle=":", alpha=0.6)
     ax.legend(loc="upper right" if var in ("Y", "C", "pi") else "lower right")
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # The linear SSJ approximation tracks the exact nonlinear Broyden transition paths with remarkable fidelity. For standard monetary policy shocks, the linear sequence solve provides virtually identical accuracy in a fraction of a second.
@@ -350,7 +341,6 @@ print(latex_table)
 
 # %%
 fig_dist, axes_dist = res_lin.plot_distribution(figsize=(11.0, 3.8))
-plt.show()
 
 # %% [markdown]
 # ### Built-in `.plot_transition()` Method
@@ -360,7 +350,6 @@ fig_trans, axes_trans = res_lin.plot_transition(
     variables=["Y", "C", "r", "pi", "i"],
     figsize=(11.5, 5.5),
 )
-plt.show()
 
 # %% [markdown]
 # ## Read the output

@@ -190,6 +190,31 @@ class TradePolicySimulationResult:
         fig.tight_layout()
         return fig
 
+    def country(self, code: str | int) -> pd.Series:
+        """Return the equilibrium outcome Series for a specific country."""
+        df = self.summary()
+        if isinstance(code, int):
+            return df.iloc[code]
+        code_str = str(code).upper().strip()
+        if code_str not in df.index:
+            raise KeyError(f"Country {code!r} not found in results. Available: {list(df.index)}")
+        return df.loc[code_str]
+
+    def __getitem__(self, key: str | int) -> pd.Series:
+        """Access country outcome Series by country code or index."""
+        return self.country(key)
+
+    def __repr__(self) -> str:
+        status = "converged" if self.converged else "not converged"
+        return (
+            f"TradePolicySimulationResult("
+            f"countries={list(self.country_codes)}, "
+            f"sectors={list(self.sector_codes)}, "
+            f"status={status!r}, "
+            f"iterations={self.iterations}, "
+            f"residual={self.market_clearing_residual:.2e})"
+        )
+
 
 class TradePolicySimulator:
     """Quantitative General Equilibrium Trade Policy Simulator (Caliendo & Parro 2015).
@@ -203,6 +228,26 @@ class TradePolicySimulator:
         if not isinstance(model, CaliendoParroModel):
             raise TypeError(f"model must be a CaliendoParroModel instance, got {type(model)}")
         self.model = model
+
+    @property
+    def country_codes(self) -> tuple[str, ...]:
+        """Tuple of country identifier codes in the model."""
+        return self.model.country_codes
+
+    @property
+    def sector_codes(self) -> tuple[str, ...]:
+        """Tuple of sector identifier codes in the model."""
+        return self.model.sector_codes
+
+    @property
+    def N(self) -> int:
+        """Number of countries in the trade model."""
+        return self.model.N
+
+    @property
+    def J(self) -> int:
+        """Number of sectors in the trade model."""
+        return self.model.J
 
     @classmethod
     def from_preset(cls, name: str = "nafta_china") -> TradePolicySimulator:
@@ -496,16 +541,24 @@ class TradePolicySimulator:
         if imp_idx == exp_idx:
             raise ValueError("Importer and exporter cannot be the same country.")
 
+        rate = float(tariff_rate)
+        if not np.isfinite(rate):
+            raise ValueError(f"tariff_rate must be a finite float, got {tariff_rate!r}")
+        if 1.0 + rate <= 0.0:
+            raise ValueError(
+                f"Gross tariff rate must be strictly positive (1 + tariff_rate > 0), got tariff_rate={tariff_rate}"
+            )
+
         tariffs_new = self.model.tariffs.copy()
         if sector is None:
             for j in range(self.model.J):
                 if not self.model.is_nontradable[j]:
-                    tariffs_new[j, imp_idx, exp_idx] = 1.0 + tariff_rate
+                    tariffs_new[j, imp_idx, exp_idx] = 1.0 + rate
         else:
             sec_idx = self.model._resolve_sector_index(sector)
             if self.model.is_nontradable[sec_idx]:
                 raise ValueError(f"Cannot apply tariff to non-tradable sector {self.model.sector_codes[sec_idx]}")
-            tariffs_new[sec_idx, imp_idx, exp_idx] = 1.0 + tariff_rate
+            tariffs_new[sec_idx, imp_idx, exp_idx] = 1.0 + rate
 
         tau_hat = tariffs_new / self.model.tariffs
         raw_res = self.model.solve_counterfactual(
@@ -541,16 +594,33 @@ class TradePolicySimulator:
         tariff_rate_b : float | None, optional
             Retaliatory tariff rate imposed by Coalition B on Coalition A. If None, equals tariff_rate_a.
         """
-        rate_b = tariff_rate_a if tariff_rate_b is None else tariff_rate_b
+        if not coalition_a:
+            raise ValueError("coalition_a cannot be empty.")
+        if not coalition_b:
+            raise ValueError("coalition_b cannot be empty.")
+
+        rate_a = float(tariff_rate_a)
+        rate_b = rate_a if tariff_rate_b is None else float(tariff_rate_b)
+
+        if not (np.isfinite(rate_a) and np.isfinite(rate_b)):
+            raise ValueError("Tariff rates must be finite numbers.")
+        if 1.0 + rate_a <= 0.0 or 1.0 + rate_b <= 0.0:
+            raise ValueError("Gross tariff rates must be strictly positive (tariff_rate > -1.0).")
+
         idx_a = [self.model._resolve_country_index(c) for c in coalition_a]
         idx_b = [self.model._resolve_country_index(c) for c in coalition_b]
+
+        overlap = set(idx_a) & set(idx_b)
+        if overlap:
+            overlapping = [self.model.country_codes[i] for i in overlap]
+            raise ValueError(f"Coalition A and Coalition B cannot contain overlapping countries: {overlapping}")
 
         tariffs_new = self.model.tariffs.copy()
         for j in range(self.model.J):
             if not self.model.is_nontradable[j]:
                 for ia in idx_a:
                     for ib in idx_b:
-                        tariffs_new[j, ia, ib] = 1.0 + tariff_rate_a
+                        tariffs_new[j, ia, ib] = 1.0 + rate_a
                         tariffs_new[j, ib, ia] = 1.0 + rate_b
 
         tau_hat = tariffs_new / self.model.tariffs
@@ -577,6 +647,11 @@ class TradePolicySimulator:
             raise ValueError(
                 f"tariffs_new must have shape ({self.model.J}, {self.model.N}, {self.model.N}), got {tariffs_arr.shape}"
             )
+        if not np.all(np.isfinite(tariffs_arr)):
+            raise ValueError("tariffs_new contains NaN or infinite values.")
+        if np.any(tariffs_arr <= 0.0):
+            raise ValueError("All gross tariffs in tariffs_new must be strictly positive (> 0).")
+
         tau_hat = tariffs_arr / self.model.tariffs
         raw_res = self.model.solve_counterfactual(
             tariffs_new=tariffs_arr,
@@ -617,21 +692,32 @@ class TradePolicySimulator:
         if isinstance(tariff_shocks, Mapping):
             tariffs_new = self.model.tariffs.copy()
             for key, rate in tariff_shocks.items():
+                r_val = float(rate)
+                if not np.isfinite(r_val):
+                    raise ValueError(f"Tariff rate for key {key!r} must be a finite float, got {rate!r}")
+                if 1.0 + r_val <= 0.0:
+                    raise ValueError(
+                        f"Gross tariff rate for {key!r} must be strictly positive (got {rate})"
+                    )
                 if len(key) == 2:
                     imp, exp = key
                     imp_i = self.model._resolve_country_index(imp)
                     exp_i = self.model._resolve_country_index(exp)
+                    if imp_i == exp_i:
+                        raise ValueError(f"Importer and exporter cannot be identical in shock key {key!r}")
                     for j in range(self.model.J):
                         if not self.model.is_nontradable[j]:
-                            tariffs_new[j, imp_i, exp_i] = 1.0 + float(rate)
+                            tariffs_new[j, imp_i, exp_i] = 1.0 + r_val
                 elif len(key) == 3:
                     imp, exp, sec = key
                     imp_i = self.model._resolve_country_index(imp)
                     exp_i = self.model._resolve_country_index(exp)
+                    if imp_i == exp_i:
+                        raise ValueError(f"Importer and exporter cannot be identical in shock key {key!r}")
                     sec_i = self.model._resolve_sector_index(sec)
                     if self.model.is_nontradable[sec_i]:
                         raise ValueError(f"Cannot apply tariff to non-tradable sector {self.model.sector_codes[sec_i]}")
-                    tariffs_new[sec_i, imp_i, exp_i] = 1.0 + float(rate)
+                    tariffs_new[sec_i, imp_i, exp_i] = 1.0 + r_val
                 else:
                     raise ValueError(f"Invalid shock key {key!r}; expected (importer, exporter) or (importer, exporter, sector)")
             return self.simulate_arbitrary_tariffs(tariffs_new, tol=tol, max_iter=max_iter, damping=damping, **kwargs)

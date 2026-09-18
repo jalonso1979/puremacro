@@ -91,35 +91,35 @@ eu["date"] = pd.to_datetime(eu["date"])
 print(f"US: {len(us)} months {us['date'].min().date()}..{us['date'].max().date()}")
 print(f"EU: {eu['code'].nunique()} countries, {len(eu)} country-quarters")
 
+_pal4 = _nbstyle.palette(4)
 ERAS = [
-    ("2001-2007", "2000-12-01", "2007-11-30", "#2a78d6"),
-    ("2008-2019", "2007-12-01", "2019-12-31", "#008300"),
-    ("COVID 2020", "2020-01-01", "2020-12-31", "#e34948"),
-    ("2021+", "2021-01-01", "2099-01-01", "#eda100"),
+    ("2001-2007", "2000-12-01", "2007-11-30", _pal4[0]),
+    ("2008-2019", "2007-12-01", "2019-12-31", _pal4[1]),
+    ("COVID 2020", "2020-01-01", "2020-12-31", _pal4[2]),
+    ("2021+", "2021-01-01", "2099-01-01", _pal4[3]),
 ]
 
 # %% [markdown]
 # ## The US curve, era by era
 
 # %%
-fig, axes = plt.subplots(1, 2, figsize=(9.8, 4.1))
+fig, axes = _nbstyle.figura(1, 2, figsize=(9.8, 4.1))
 ax = axes[0]
 for name, lo, hi, c in ERAS:
     m = (us["date"] >= lo) & (us["date"] <= hi)
     ax.plot(us.loc[m, "urate"], us.loc[m, "v_rate"], "-o", color=c,
             ms=2.6, lw=0.9, alpha=0.85, label=name)
-ax.set_xlabel("unemployment rate, %")
-ax.set_ylabel("job openings rate, %")
+ax.set_xlabel("unemployment rate, %", color=_nbstyle.TEXTO)
+ax.set_ylabel("job openings rate, %", color=_nbstyle.TEXTO)
 ax.set_title("US Beveridge curve (JOLTS, monthly SA)")
-ax.legend(fontsize=8)
+ax.legend(fontsize=8, frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
 
 ax = axes[1]
 us["theta"] = us["v_level"] / us["unemp_level"]
-ax.plot(us["date"], us["theta"], color="#4a3aa7", lw=1.4)
-ax.axhline(1.0, color="0.6", lw=0.8, ls=":")
-ax.set_ylabel(r"tightness $\theta = V/U$")
+ax.plot(us["date"], us["theta"], **_nbstyle.S1)
+ax.axhline(1.0, color=_nbstyle.SPINE, lw=0.8, ls=":")
+ax.set_ylabel(r"tightness $\theta = V/U$", color=_nbstyle.TEXTO)
 ax.set_title("Labor-market tightness")
-plt.tight_layout(); plt.show()
 
 peak_theta = us.loc[us["theta"].idxmax()]
 print(f"peak tightness: {peak_theta['theta']:.2f} vacancies per unemployed "
@@ -163,29 +163,26 @@ assert 0.2 < alpha < 0.9, "alpha should land in the literature's broad range"
 # ## Europe: same curve, different frictions
 
 # %%
-# Curated majors first (pedagogy), backfilled by longest coverage.
 _prefer = ["DEU", "FRA", "ESP", "NLD", "CZE", "SWE"]
 _counts = eu.groupby("code")["date"].count()
 top6 = [c for c in _prefer if _counts.get(c, 0) >= 30]
 top6 += [c for c in _counts.sort_values(ascending=False).index
          if c not in top6][: 6 - len(top6)]
-fig, axes = plt.subplots(2, 3, figsize=(10.5, 6.4), sharey=False)
+fig, axes = _nbstyle.figura(2, 3, figsize=(10.5, 6.4), sharey=False)
 for ax, code in zip(axes.ravel(), top6):
     g = eu[eu["code"] == code].sort_values("date")
     pre = g[g["date"] < "2020-01-01"]
     post = g[g["date"] >= "2020-01-01"]
-    ax.plot(pre["urate"], pre["jvr"], "-o", color="#2a78d6", ms=2.4,
+    ax.plot(pre["urate"], pre["jvr"], "-o", color=_nbstyle.S1["color"], ms=2.4,
             lw=0.8, label="pre-2020")
-    ax.plot(post["urate"], post["jvr"], "-o", color="#eda100", ms=2.4,
+    ax.plot(post["urate"], post["jvr"], "-o", color=_nbstyle.S2["color"], ms=2.4,
             lw=0.8, label="2020+")
     ax.set_title(code, fontsize=10)
-    ax.set_xlabel("urate, %", fontsize=8)
-    ax.set_ylabel("JVR, %", fontsize=8)
+    ax.set_xlabel("urate, %", fontsize=8, color=_nbstyle.TEXTO)
+    ax.set_ylabel("JVR, %", fontsize=8, color=_nbstyle.TEXTO)
     ax.tick_params(labelsize=7)
-axes[0, 0].legend(fontsize=7)
-fig.suptitle("European Beveridge curves (Eurostat JVR vs LFS urate, "
-             "quarterly)", fontsize=11)
-plt.tight_layout(rect=(0, 0, 1, 0.95)); plt.show()
+axes[0, 0].legend(fontsize=7, frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
+fig.suptitle("European Beveridge curves (Eurostat JVR vs LFS urate, quarterly)", fontsize=11)
 print("countries plotted:", top6)
 
 # %% [markdown]
@@ -198,50 +195,50 @@ print("countries plotted:", top6)
 # continent-wide phenomenon, not a US peculiarity.
 
 # %% [markdown]
-# ## Does uncertainty bite harder in a slack labor market?
+# ## State dependence: does uncertainty bite harder in tight or slack labor markets?
 #
-# The curve gives us a *regime variable*: tightness $\theta$. Theory says
-# shocks should transmit differently along the curve — in a slack market
-# (low $\theta$) a demand or uncertainty shock meets abundant idle labor
-# and wage rigidity; in a tight one it mostly reshuffles vacancies. The
-# package's smooth-transition local projections
-# (`puremacro.lp.lp_state_dep`, the notebook-07 machinery) estimate both
-# responses at once, weighting each month by a logistic function of
-# standardized $\log\theta$. The shock here is the EPU uncertainty proxy
-# from the notebook-17 panel (same frozen file), with its own lags as
-# controls — descriptive state-dependence, not a structural claim.
+# If vacancy-filling is slow when the market is tight, firms might postpone
+# hiring more cautiously under uncertainty — or the reverse: maybe slack
+# markets, where demand is weak, are where an EPU shock tips firms into
+# freezing payrolls.
+#
+# We test this with **state-dependent local projections** (`puremacro.lp.state_dep`),
+# interacting the EPU shock with labor-market tightness $\theta_t$:
+#
+# $$ y_{t+h} - y_{t-1} = F(\theta_{t-1}) \cdot \left[ \alpha_h^H + \beta_h^H \, \text{EPU}_t \right] + (1 - F(\theta_{t-1})) \cdot \left[ \alpha_h^L + \beta_h^L \, \text{EPU}_t \right] + \Gamma_h' W_t + \varepsilon_{t+h} $$
+#
+# where $F(\theta)$ is a logistic transition function that smooths between
+# tight ($H$) and slack ($L$) regimes.
 
 # %%
 from puremacro.lp import lp_state_dep
 
 spec = load_csv("speccurve17_panel")
 spec["date"] = pd.to_datetime(spec["date"])
-m = spec.merge(us[["date", "urate", "theta"]], on="date", how="inner")
+m = spec.merge(us[["date", "urate", "theta"]], on="date", how="inner").dropna().sort_values("date")
 m["log_theta"] = np.log(m["theta"])
 print(f"merged monthly sample: {len(m)} months "
       f"{m['date'].min().date()}..{m['date'].max().date()}")
 
-fig, axes = plt.subplots(1, 2, figsize=(9.8, 4.0))
+fig, axes = _nbstyle.figura(1, 2, figsize=(9.8, 4.0))
 for ax, yvar, lab in ((axes[0], "ip", "industrial production, %"),
                       (axes[1], "urate", "unemployment rate, pp")):
     r = lp_state_dep(m, y=yvar, x="epu", state="log_theta",
                      horizons=range(0, 25), n_lags=6)
-    ax.axhline(0, color="0.6", lw=0.8)
-    ax.fill_between(r["h"], r["lo_H"], r["hi_H"], color="#eda100",
+    ax.axhline(0, color=_nbstyle.SPINE, lw=0.8)
+    ax.fill_between(r["h"], r["lo_H"], r["hi_H"], color=_nbstyle.S2["color"],
                     alpha=0.20)
-    ax.plot(r["h"], r["beta_H"], color="#eda100", lw=1.8,
+    ax.plot(r["h"], r["beta_H"], **_nbstyle.S2,
             label="tight (high θ)")
-    ax.fill_between(r["h"], r["lo_L"], r["hi_L"], color="#2a78d6",
+    ax.fill_between(r["h"], r["lo_L"], r["hi_L"], color=_nbstyle.S1["color"],
                     alpha=0.20)
-    ax.plot(r["h"], r["beta_L"], color="#2a78d6", lw=1.8,
+    ax.plot(r["h"], r["beta_L"], **_nbstyle.S1,
             label="slack (low θ)")
-    ax.set_xlabel("months after EPU shock", fontsize=9)
+    ax.set_xlabel("months after EPU shock", fontsize=9, color=_nbstyle.TEXTO)
     ax.set_title(lab, fontsize=10)
-axes[0].set_ylabel("response per +1σ EPU", fontsize=9)
-axes[0].legend(fontsize=8)
-fig.suptitle("State-dependent LP: uncertainty shocks by labor-market "
-             "tightness (90% bands)", fontsize=11)
-plt.tight_layout(rect=(0, 0, 1, 0.92)); plt.show()
+axes[0].set_ylabel("response per +1σ EPU", fontsize=9, color=_nbstyle.TEXTO)
+axes[0].legend(fontsize=8, frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
+fig.suptitle("State-dependent LP: uncertainty shocks by labor-market tightness (90% bands)", fontsize=11)
 
 r_ip = lp_state_dep(m, y="ip", x="epu", state="log_theta",
                     horizons=[12], n_lags=6)
@@ -283,16 +280,16 @@ g = eu[eu["code"] == COUNTRY_TRY].sort_values("date")
 assert len(g) > 12, f"{COUNTRY_TRY}: not enough quarters in the freeze"
 pre = g[g["date"] < SPLIT_TRY]
 post = g[g["date"] >= SPLIT_TRY]
-fig, ax = plt.subplots(figsize=(5.2, 4.0))
+fig, ax = _nbstyle.figura(figsize=(5.2, 4.0))
 if len(pre):
-    ax.plot(pre["urate"], pre["jvr"], "-o", color="#2a78d6", ms=3,
+    ax.plot(pre["urate"], pre["jvr"], "-o", color=_nbstyle.S1["color"], ms=3,
             lw=0.9, label=f"before {SPLIT_TRY[:4]}")
-ax.plot(post["urate"], post["jvr"], "-o", color="#eda100", ms=3, lw=0.9,
+ax.plot(post["urate"], post["jvr"], "-o", color=_nbstyle.S2["color"], ms=3, lw=0.9,
         label=f"after {SPLIT_TRY[:4]}")
-ax.set_xlabel("unemployment rate, %"); ax.set_ylabel("JVR, %")
+ax.set_xlabel("unemployment rate, %", color=_nbstyle.TEXTO)
+ax.set_ylabel("JVR, %", color=_nbstyle.TEXTO)
 ax.set_title(f"{COUNTRY_TRY}: Beveridge curve around {SPLIT_TRY[:4]}")
-ax.legend(fontsize=8)
-plt.tight_layout(); plt.show()
+ax.legend(fontsize=8, frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
 print(f"{COUNTRY_TRY}: {len(pre)} quarters before, {len(post)} after; "
       f"mean urate {pre['urate'].mean() if len(pre) else float('nan'):.1f}% "
       f"-> {post['urate'].mean():.1f}%")

@@ -79,7 +79,7 @@ def mean_group_panel_lp(
             res = lp_hac(sub, y=y, x=x, horizons=horizons,
                           n_lags=n_lags, controls=controls, alpha=alpha)
             per_entity[c] = res.set_index("h")["beta"]
-        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+        except Exception:
             continue
 
     rows = []

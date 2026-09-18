@@ -8,7 +8,7 @@ and the package version string.
 from .climate_panel import build_climate_panel
 from .financial_panel import build_financial_panel
 
-__version__ = "4.1.1"
+__version__ = "4.2.0"
 __all__ = [
     "__version__",
     "build_climate_panel",

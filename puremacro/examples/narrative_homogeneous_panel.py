@@ -166,7 +166,7 @@ def main() -> None:
     if out_dir.is_dir():
         try:
             import matplotlib.pyplot as plt
-        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+        except Exception:
             return
         long = panel.to_long()
         long["year"] = pd.to_datetime(long["date"]).dt.year

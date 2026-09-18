@@ -221,7 +221,7 @@ assert np.all(np.isfinite(opt_res.jac)), "Non-finite values in final GMM gradien
 
 # %%
 # --- Hero Visualizations: Policy Sensitivities, Speedup, Loss Surface, and Basis Accuracy ---
-fig, axes = plt.subplots(2, 2, figsize=(11.5, 8.5))
+fig, axes = _nbstyle.figura(2, 2, figsize=(11.5, 8.5))
 colors = _nbstyle.palette(4)
 ls = _nbstyle.styles(4)
 
@@ -231,8 +231,8 @@ ax1.plot(eval_k, dpol[:, 0], color=colors[0], ls=ls[0], lw=1.8, label=r"$\partia
 ax1.plot(eval_k, dpol[:, 1], color=colors[1], ls=ls[1], lw=1.8, label=r"$\partial g(k)/\partial \beta$")
 ax1.plot(eval_k, dpol[:, 2], color=colors[2], ls=ls[2], lw=1.8, label=r"$\partial g(k)/\partial \delta$")
 ax1.plot(eval_k, dpol[:, 3], color=colors[3], ls=ls[3], lw=1.8, label=r"$\partial g(k)/\partial \sigma$")
-ax1.axhline(0.0, color="0.5", ls=":", lw=1.0)
-ax1.axvline(k_ss, color="0.3", ls="--", lw=1.2, label=f"Steady State $k^*={k_ss:.3f}$")
+ax1.axhline(0.0, color=_nbstyle.SPINE, ls=":", lw=1.0)
+ax1.axvline(k_ss, color=_nbstyle.NOTA, ls="--", lw=1.2, label=f"Steady State $k^*={k_ss:.3f}$")
 ax1.set_title(r"Exact Policy Sensitivities $\nabla_\theta g(k)$", fontsize=11)
 ax1.set_xlabel("Capital State $k$")
 ax1.set_ylabel(r"Policy Sensitivity $\partial k' / \partial \theta$")
@@ -243,11 +243,11 @@ ax2 = axes[0, 1]
 bar_names = ["Exact IFT\n(Single LU)", "Numerical CFD\n(2p Re-solves)"]
 bar_times = [t_ift * 1000.0, t_fd * 1000.0]
 bar_colors = [colors[1], colors[3]]
-bars = ax2.bar(bar_names, bar_times, color=bar_colors, width=0.45, edgecolor="0.2", lw=0.8)
+bars = ax2.bar(bar_names, bar_times, color=bar_colors, width=0.45, edgecolor=_nbstyle.SPINE, lw=0.8)
 for bar in bars:
     h = bar.get_height()
     ax2.text(bar.get_x() + bar.get_width() / 2.0, h + 2.0, f"{h:.2f} ms", ha="center", va="bottom", fontsize=9)
-ax2.text(0.5, max(bar_times) * 0.75, f"Speedup: {speedup:.1f}x", ha="center", fontsize=11, fontweight="bold", color="0.1")
+ax2.text(0.5, max(bar_times) * 0.75, f"Speedup: {speedup:.1f}x", ha="center", fontsize=11, fontweight="bold", color=_nbstyle.TINTA)
 ax2.set_title("Execution Wall Time: IFT vs Finite Differences", fontsize=11)
 ax2.set_ylabel("Execution Time (ms)")
 ax2.set_ylim(0, max(bar_times) * 1.25)
@@ -264,14 +264,14 @@ for i in range(len(grid_s)):
             [BB[i, j], SS[i, j]], prob, true_moments, moment_fn=user_moments, param_names=["beta", "sigma"]
         )
 
-cs = ax3.contourf(BB, SS, np.log10(np.maximum(QQ, 1e-16)), levels=18, cmap="viridis_r")
+cs = ax3.contourf(BB, SS, np.log10(np.maximum(QQ, 1e-16)), levels=18, cmap=_nbstyle.CMAP_SEQ_R)
 cbar = plt.colorbar(cs, ax=ax3)
 cbar.set_label(r"$\log_{10} Q(\beta, \sigma)$", fontsize=9)
 
 path_arr = np.array(path)
-ax3.plot(path_arr[:, 0], path_arr[:, 1], "w.-", lw=1.5, ms=6, label="BFGS Path")
-ax3.plot(theta_init[0], theta_init[1], "wo", ms=7, mfc="0.3", mew=1.5, label="Initial Guess")
-ax3.plot(beta_true, sigma_true, "r*", ms=12, label=r"Truth $(\beta^*, \sigma^*)$")
+ax3.plot(path_arr[:, 0], path_arr[:, 1], color=_nbstyle.TINTA, marker=".", lw=1.5, ms=6, label="BFGS Path")
+ax3.plot(theta_init[0], theta_init[1], marker="o", ms=7, color=_nbstyle.NOTA, label="Initial Guess")
+ax3.plot(beta_true, sigma_true, marker="*", color=_nbstyle.TINTA, ms=12, label=r"Truth $(\beta^*, \sigma^*)$")
 ax3.set_title(r"Structural GMM Loss Surface $\log_{10} Q(\beta, \sigma)$", fontsize=11)
 ax3.set_xlabel(r"Discount Factor $\beta$")
 ax3.set_ylabel(r"Risk Aversion $\sigma$")
@@ -283,15 +283,12 @@ deg = np.arange(len(sol.coefficients))
 for idx, p in enumerate(params_to_diff):
     abs_diff = np.abs(ift_res.grad_coefficients[:, idx] - fd_grads[:, idx])
     ax4.semilogy(deg, np.maximum(abs_diff, 1e-16), marker="o", color=colors[idx], ls=ls[idx], lw=1.5, label=f"Param {p}")
-ax4.axhline(1e-5, color="0.4", ls=":", lw=1.0, label=r"Tolerance Gate ($10^{-5}$)")
+ax4.axhline(1e-5, color=_nbstyle.NOTA, ls=":", lw=1.0, label=r"Tolerance Gate ($10^{-5}$)")
 ax4.set_title(r"Gradient Accuracy: $|\nabla_c^* \mathrm{IFT} - \nabla_c^* \mathrm{CFD}|$", fontsize=11)
 ax4.set_xlabel("Chebyshev Polynomial Degree $n$")
 ax4.set_ylabel("Absolute Discrepancy")
 ax4.set_ylim(1e-10, 1e-3)
 ax4.legend(loc="upper right", fontsize=8.5)
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## Read the output

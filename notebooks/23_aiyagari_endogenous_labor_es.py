@@ -88,28 +88,25 @@ assert policy_n.shape == (150, 21), "Discrepancia en la forma de la política la
 # Graficamos la oferta laboral óptima $n(a, e)$ a través de los niveles de riqueza $a$ para diferentes estados de productividad $e$.
 
 # %%
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10.5, 4.2))
+fig, (ax1, ax2) = _nbstyle.figura(1, 2, figsize=(10.5, 4.2))
 
 # Panel Izquierdo: Política laboral endógena n(a, e)
 ax1.plot(grid_a, policy_n[:, 0], color=_nbstyle.palette(2)[0], lw=2, label=f"Z Bajo (e = {e_grid[0]:.2f})")
 ax1.plot(grid_a, policy_n[:, -1], color=_nbstyle.palette(2)[1], lw=2, label=f"Z Alto (e = {e_grid[-1]:.2f})")
-ax1.set_xlabel("Activos Actuales a")
-ax1.set_ylabel("Horas de Trabajo n(a, e)")
+ax1.set_xlabel("Activos Actuales a", color=_nbstyle.TEXTO)
+ax1.set_ylabel("Horas de Trabajo n(a, e)", color=_nbstyle.TEXTO)
 ax1.set_title("Política de Oferta Laboral Endógena n(a, e)")
-ax1.legend(loc="upper right")
+ax1.legend(loc="upper right", frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
 
 # Panel Derecho: Política de activos a'(a, e)
 ax1_line = np.linspace(0, grid_a[-1], 100)
-ax2.plot(ax1_line, ax1_line, "k--", alpha=0.4, label="Línea de 45°")
+ax2.plot(ax1_line, ax1_line, linestyle="--", color=_nbstyle.SPINE, alpha=0.6, label="Línea de 45°")
 ax2.plot(grid_a, policy_a[:, 0], color=_nbstyle.palette(2)[0], lw=2, label=f"Z Bajo (e = {e_grid[0]:.2f})")
 ax2.plot(grid_a, policy_a[:, -1], color=_nbstyle.palette(2)[1], lw=2, label=f"Z Alto (e = {e_grid[-1]:.2f})")
-ax2.set_xlabel("Activos Actuales a")
-ax2.set_ylabel("Activos Siguiente Periodo a'")
+ax2.set_xlabel("Activos Actuales a", color=_nbstyle.TEXTO)
+ax2.set_ylabel("Activos Siguiente Periodo a'", color=_nbstyle.TEXTO)
 ax2.set_title("Política de Acumulación de Activos a'(a, e)")
-ax2.legend(loc="upper left")
-
-plt.tight_layout()
-plt.show()
+ax2.legend(loc="upper left", frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
 
 # %% [markdown]
 # **Leyendo el resultado.** Las horas de trabajo $n(a, e)$ disminuyen con la riqueza $a$ debido al efecto riqueza negativo: los hogares más pobres trabajan más horas para amortiguar el riesgo de ingresos, mientras que los hogares más ricos eligen ocio. Una productividad más alta eleva las horas en promedio, por el efecto sustitución de un salario mayor — aunque no en todos los puntos: en la parte baja de la malla de riqueza los hogares menos productivos quedan contra la dotación de tiempo $n \le 1$, y como $n$ se lee en el $a'$ elegido, que es un índice de malla, la política hereda esa discretización.

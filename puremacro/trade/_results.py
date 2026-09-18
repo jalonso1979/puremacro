@@ -148,7 +148,7 @@ class TradeCalibrationResult:
                 if self.a.shape == (ns * nc, ns, nc):
                     a_4d = self.a.reshape(nc, ns, ns, nc).transpose(1, 0, 2, 3)
                     object.__setattr__(self, "a_4d", a_4d)
-            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+            except Exception:
                 pass
 
         if self.afd_4d is None and self.afd.ndim == 3:
@@ -157,7 +157,7 @@ class TradeCalibrationResult:
                 if self.afd.shape == (ns * nc, nfd, nc):
                     afd_4d = self.afd.reshape(nc, ns, nfd, nc).transpose(1, 0, 2, 3)
                     object.__setattr__(self, "afd_4d", afd_4d)
-            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+            except Exception:
                 pass
 
     # Backward-compatibility aliases matching MATLAB variable names

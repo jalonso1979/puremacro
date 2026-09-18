@@ -65,7 +65,7 @@ def iter_reddit(
         )
         r.raise_for_status()
         data = r.json()
-    except (ValueError, ArithmeticError, Exception):
+    except Exception:
         return
     children = data.get("data", {}).get("children", [])
     for ch in children:
@@ -75,7 +75,7 @@ def iter_reddit(
             continue
         try:
             dt = datetime.utcfromtimestamp(int(ts))
-        except (ValueError, TypeError, Exception):
+        except (ValueError, TypeError):
             continue
         score = post.get("score") or 0
         if min_score is not None and score < min_score:

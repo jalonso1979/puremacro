@@ -178,19 +178,17 @@ assert err_005 < err_02, "Smaller temperature parameter tau must tighten approxi
 # We plot the smooth relaxation paths against the discrete OccBin kink:
 
 # %%
-plt.figure(figsize=(8.5, 4.2))
+fig, ax = _nbstyle.figura(1, 1, figsize=(8.5, 4.2))
 time_h = np.arange(T)
-plt.plot(time_h, r_disc * 100, color="#1f77b4", lw=2.4, label="Discrete OccBin (Piecewise-Linear)")
-plt.plot(time_h, r_smooth_02 * 100, color="#ff7f0e", lw=1.8, linestyle="--", label=r"Differentiable OccBin ($\tau=0.020$)")
-plt.plot(time_h, r_smooth_005 * 100, color="#2ca02c", lw=1.8, linestyle=":", label=r"Differentiable OccBin ($\tau=0.005$)")
-plt.axhline(-params["r_ss"] * 100, color="#d62728", linestyle="-.", lw=1.3, label=f"ZLB Floor (-{params['r_ss']*100:.1f}%)")
-plt.title(r"Differentiable OccBin: Smooth ZLB Relaxation ($\tau \to 0$)", fontsize=11, fontweight="bold")
-plt.xlabel("Quarters")
-plt.ylabel("Policy Rate $r_t$ (% dev)")
-plt.grid(True, linestyle=":", alpha=0.6)
-plt.legend()
-plt.tight_layout()
-plt.show()
+ax.plot(time_h, r_disc * 100, color=_nbstyle.S1["color"], lw=2.4, label="Discrete OccBin (Piecewise-Linear)")
+ax.plot(time_h, r_smooth_02 * 100, color=_nbstyle.S2["color"], lw=1.8, linestyle="--", label=r"Differentiable OccBin ($\tau=0.020$)")
+ax.plot(time_h, r_smooth_005 * 100, color=_nbstyle.S3["color"], lw=1.8, linestyle=":", label=r"Differentiable OccBin ($\tau=0.005$)")
+ax.axhline(-params["r_ss"] * 100, color=_nbstyle.SPINE, linestyle="-.", lw=1.3, label=f"ZLB Floor (-{params['r_ss']*100:.1f}%)")
+ax.set_title(r"Differentiable OccBin: Smooth ZLB Relaxation ($\tau \to 0$)", fontsize=11, fontweight="bold")
+ax.set_xlabel("Quarters")
+ax.set_ylabel("Policy Rate $r_t$ (% dev)")
+ax.grid(True, linestyle=":", alpha=0.6)
+ax.legend()
 
 # %% [markdown]
 # ### Two-Asset HANK Sequence-Space Bridge
@@ -329,27 +327,24 @@ assert np.isclose(ms_res.ergodic_distribution["Hawkish"], 2.0 / 3.0, atol=1e-5)
 # %%
 girf_df = ms_res.girf(shock=2, horizon=16, initial_regime=0)  # Contractionary monetary shock in Hawkish regime
 
-fig, axes = plt.subplots(1, 3, figsize=(13, 3.8))
+fig, axes = _nbstyle.figura(1, 3, figsize=(13, 3.8))
 
 time_axis = np.arange(len(girf_df))
 
-axes[0].plot(time_axis, girf_df["interest_rate"], color="#d62728", lw=2.2, marker="o")
+axes[0].plot(time_axis, girf_df["interest_rate"], color=_nbstyle.S2["color"], lw=2.2, marker="o")
 axes[0].set_title("Nominal Rate $i_t$ (Policy Hike)", fontweight="bold")
 axes[0].set_xlabel("Quarters")
 axes[0].grid(True, linestyle=":", alpha=0.6)
 
-axes[1].plot(time_axis, girf_df["output_gap"], color="#1f77b4", lw=2.2, marker="s")
+axes[1].plot(time_axis, girf_df["output_gap"], color=_nbstyle.S1["color"], lw=2.2, marker="s")
 axes[1].set_title("Output Gap $y_t$ (Contraction)", fontweight="bold")
 axes[1].set_xlabel("Quarters")
 axes[1].grid(True, linestyle=":", alpha=0.6)
 
-axes[2].plot(time_axis, girf_df["inflation"], color="#2ca02c", lw=2.2, marker="^")
+axes[2].plot(time_axis, girf_df["inflation"], color=_nbstyle.S3["color"], lw=2.2, marker="^")
 axes[2].set_title(r"Inflation $\pi_t$ (Deceleration)", fontweight="bold")
 axes[2].set_xlabel("Quarters")
 axes[2].grid(True, linestyle=":", alpha=0.6)
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## 3. Vectorized Sequential Monte Carlo Particle Filtering
@@ -442,16 +437,14 @@ print(res_sv.summary())
 # %%
 ess_path = res_sv.ess
 
-plt.figure(figsize=(8.5, 3.8))
-plt.plot(np.arange(len(ess_path)), ess_path, color="#1f77b4", lw=2.2, label=r"Effective Sample Size $ESS_t$")
-plt.axhline(n_particles / 2, color="#d62728", linestyle="--", lw=1.5, label=f"Resampling Threshold ($N/2 = {n_particles//2:,}$)")
-plt.title("Sequential Monte Carlo Diagnostics: Effective Sample Size Trajectory", fontsize=11, fontweight="bold")
-plt.xlabel("Observation Index $t$")
-plt.ylabel("Effective Particles")
-plt.grid(True, linestyle=":", alpha=0.6)
-plt.legend(loc="lower left")
-plt.tight_layout()
-plt.show()
+fig, ax = _nbstyle.figura(1, 1, figsize=(8.5, 3.8))
+ax.plot(np.arange(len(ess_path)), ess_path, color=_nbstyle.S1["color"], lw=2.2, label=r"Effective Sample Size $ESS_t$")
+ax.axhline(n_particles / 2, color=_nbstyle.SPINE, linestyle="--", lw=1.5, label=f"Resampling Threshold ($N/2 = {n_particles//2:,}$)")
+ax.set_title("Sequential Monte Carlo Diagnostics: Effective Sample Size Trajectory", fontsize=11, fontweight="bold")
+ax.set_xlabel("Observation Index $t$")
+ax.set_ylabel("Effective Particles")
+ax.grid(True, linestyle=":", alpha=0.6)
+ax.legend(loc="lower left")
 
 print(f"Mean Effective Particles : {res_sv.ess.mean():.1f} / {n_particles:,}")
 print(f"Resampling Frequency     : {res_sv.resampling_frequency*100:.1f}% of periods")

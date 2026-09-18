@@ -160,18 +160,17 @@ for a, b in itertools.combinations(range(M), 2):
     p = diebold_mariano(F[:, a] - y_oos, F[:, b] - y_oos, h=1, loss="mse")["p_value"]
     Pdm[a, b] = Pdm[b, a] = p
 
-fig, ax = plt.subplots(figsize=(5.6, 4.8))
-im = ax.imshow(Pdm, cmap="Greys_r", vmin=0.0, vmax=0.5)
+fig, ax = _nbstyle.figura(ancho=5.6, alto=4.8)
+im = ax.imshow(Pdm, cmap=_nbstyle.CMAP_SEQ, vmin=0.0, vmax=0.5)
 ax.set_xticks(range(M)); ax.set_xticklabels(MODELS, rotation=45, ha="right")
 ax.set_yticks(range(M)); ax.set_yticklabels(MODELS)
 for a in range(M):
     for b in range(M):
         if a != b:
             ax.text(b, a, f"{Pdm[a, b]:.2f}", ha="center", va="center",
-                    fontsize=8, color="0.9" if Pdm[a, b] < 0.2 else "0.1")
+                    fontsize=8, color=_nbstyle.FONDO if Pdm[a, b] < 0.2 else _nbstyle.TINTA)
 ax.set_title("Pairwise Diebold-Mariano p-values\n(dark = distinguishable at 10%)")
 fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04, label="DM p-value")
-plt.tight_layout(); plt.show()
 
 # The intransitivity, spelled out:
 n_sig = int(np.nansum(Pdm[np.triu_indices(M, 1)] < 0.10))
@@ -215,16 +214,15 @@ for i in np.argsort(-res["pvalues"]):
 
 # %%
 order = np.argsort(res["pvalues"])
-fig, ax = plt.subplots(figsize=(6.4, 3.6))
-cols = ["0.15" if res["pvalues"][i] >= 0.10 else "0.72" for i in order]
+fig, ax = _nbstyle.figura(ancho=6.4, alto=3.6)
+cols = [_nbstyle.S1["color"] if res["pvalues"][i] >= 0.10 else _nbstyle.NOTA for i in order]
 ax.barh([MODELS[i] for i in order], res["pvalues"][order], color=cols,
-        edgecolor="0.0", linewidth=0.6)
-ax.axvline(0.10, color="0.0", lw=1.0, ls="--")
-ax.text(0.10, -0.6, r" $\alpha=0.10$", fontsize=9, va="top")
+        edgecolor=_nbstyle.SPINE, linewidth=0.6)
+ax.axvline(0.10, color=_nbstyle.SPINE, lw=1.0, ls="--")
+ax.text(0.10, -0.6, r" $\alpha=0.10$", fontsize=9, va="top", color=_nbstyle.TEXTO)
 ax.set_xlabel("MCS p-value")
 ax.set_title("Model Confidence Set — dark bars are the 90% set")
 ax.margins(y=0.08)
-plt.tight_layout(); plt.show()
 
 # %% [markdown]
 # **The resolution.** The MCS keeps the four AR-family models
@@ -286,13 +284,12 @@ for a in ALPHA_GRID:
 assert all(sizes[i] >= sizes[i + 1] for i in range(len(sizes) - 1)), \
     "MCS must be nested: larger alpha => weakly smaller set"
 
-fig, ax = plt.subplots(figsize=(5.6, 3.4))
-ax.plot(ALPHA_GRID, sizes, "-o", color="0.15")
+fig, ax = _nbstyle.figura(ancho=5.6, alto=3.4)
+ax.plot(ALPHA_GRID, sizes, "-o", **_nbstyle.S1)
 ax.set_xlabel(r"$\alpha$  (1 = larger $\to$ smaller set)")
 ax.set_ylabel("models in the set")
 ax.set_title("The MCS is nested in the confidence level")
 ax.set_ylim(0, len(MODELS) + 0.5)
-plt.tight_layout(); plt.show()
 
 # %% [markdown]
 # **Prompts.** (1) *Basic*: swap the target to `v_rate` (job-openings rate)

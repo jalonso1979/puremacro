@@ -139,15 +139,15 @@ synthetic_path = donor_matrix @ res_sdid.omega
 # Promedio simple no ponderado
 unweighted_control_path = donor_matrix.mean(axis=1)
 
-fig, axes = plt.subplots(1, 2, figsize=(7.6, 3.6), gridspec_kw={"width_ratios": [2.2, 1.2]})
+fig, axes = _nbstyle.figura(ancho=7.6, alto=3.6, ncols=2, gridspec_kw={"width_ratios": [2.2, 1.2]})
 
 # Panel 1: Comparación de trayectorias
 ax = axes[0]
 time_axis = np.arange(T_periods)
-ax.plot(time_axis, treated_traj, color="0.00", lw=2.0, label="Unidad Tratada ($Y_{1,t}$)")
-ax.plot(time_axis, synthetic_path, color="0.40", ls="--", lw=1.8, label="Control Sintético SDID ($\sum \hat{\omega}_i Y_{i,t}$)")
-ax.plot(time_axis, unweighted_control_path, color="0.75", ls=":", lw=1.5, label="Controles no Ponderados (DiD Ingenuo)")
-ax.axvline(T_treat - 0.5, color="0.60", ls="-.", lw=1.0, label="Inicio de Tratamiento")
+ax.plot(time_axis, treated_traj, color=_nbstyle.TINTA, lw=2.0, label="Unidad Tratada ($Y_{1,t}$)")
+ax.plot(time_axis, synthetic_path, color=_nbstyle.S1["color"], ls="--", lw=1.8, label=r"Control Sintético SDID ($\sum \hat{\omega}_i Y_{i,t}$)")
+ax.plot(time_axis, unweighted_control_path, color=_nbstyle.NOTA, ls=":", lw=1.5, label="Controles no Ponderados (DiD Ingenuo)")
+ax.axvline(T_treat - 0.5, color=_nbstyle.SPINE, ls="-.", lw=1.0, label="Inicio de Tratamiento")
 
 ax.set_title("(a) Trayectorias: Tratada vs. Sintética vs. Ingenua", loc="left", fontsize=9.5, fontweight="bold")
 ax.set_xlabel("Período")
@@ -157,12 +157,9 @@ ax.legend(loc="upper left", fontsize=8)
 # Panel 2: Ponderaciones de donantes
 ax_w = axes[1]
 top_donors = res_sdid.omega.nlargest(6).iloc[::-1]
-ax_w.barh(top_donors.index, top_donors.values, color="0.30", edgecolor="0.00")
+ax_w.barh(top_donors.index, top_donors.values, color=_nbstyle.S1["color"], edgecolor=_nbstyle.SPINE)
 ax_w.set_title(r"(b) Donantes Principales $\hat{\omega}_i$", loc="left", fontsize=9.5, fontweight="bold")
 ax_w.set_xlabel(r"Ponderación $\hat{\omega}_i$")
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## Interpretación Económica
@@ -175,20 +172,17 @@ plt.show()
 # ## Tu Turno — Inspección de Ponderaciones Temporales $\hat{\lambda}$
 
 # %%
-fig, ax = plt.subplots(figsize=(6.0, 2.8))
+fig, ax = _nbstyle.figura(ancho=6.0, alto=2.8)
 
 pre_times = np.arange(T_treat)
-ax.bar(pre_times, res_sdid.lambda_w, color="0.35", edgecolor="0.00", width=0.6, label="Ponderaciones Temporales $\hat{\lambda}_t$")
-ax.axhline(1.0 / T_treat, color="0.60", ls="--", label=f"Ponderación Uniforme (1/{T_treat})")
+ax.bar(pre_times, res_sdid.lambda_w, color=_nbstyle.S1["color"], edgecolor=_nbstyle.SPINE, width=0.6, label=r"Ponderaciones Temporales $\hat{\lambda}_t$")
+ax.axhline(1.0 / T_treat, color=_nbstyle.SPINE, ls="--", label=f"Ponderación Uniforme (1/{T_treat})")
 
-ax.set_title("Ponderaciones Temporales Pre-Tratamiento $\hat{\lambda}_t$", loc="left", fontsize=10, fontweight="bold")
+ax.set_title(r"Ponderaciones Temporales Pre-Tratamiento $\hat{\lambda}_t$", loc="left", fontsize=10, fontweight="bold")
 ax.set_xlabel("Período Pre-Tratamiento $t$")
-ax.set_ylabel("Ponderación $\hat{\lambda}_t$")
+ax.set_ylabel(r"Ponderación $\hat{\lambda}_t$")
 ax.set_xticks(pre_times)
 ax.legend(loc="upper right", fontsize=8.5)
-
-plt.tight_layout()
-plt.show()
 
 print("Suma de ponderaciones temporales:", np.sum(res_sdid.lambda_w))
 

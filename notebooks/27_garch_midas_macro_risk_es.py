@@ -126,37 +126,34 @@ assert np.allclose(res.sigma, sigma_ident, atol=1e-6), "Identidad de varianza mu
 days_axis = np.arange(T_days)
 months_axis = days_axis / K
 
-fig, axes = plt.subplots(3, 1, figsize=(7.4, 7.2), sharex=True)
+fig, axes = _nbstyle.figura(ancho=7.4, alto=7.2, nrows=3, sharex=True)
 
 # Panel 1: Rendimientos diarios observados
-axes[0].plot(months_axis, returns_daily, color="0.25", lw=0.8, alpha=0.85, label="Rendimientos Diarios del Activo $r_{i,t}$")
-axes[0].axvspan(15, 26, color="0.85", alpha=0.5, label="Ventana de Crisis Macroeconómica")
+axes[0].plot(months_axis, returns_daily, color=_nbstyle.TEXTO, lw=0.8, alpha=0.85, label="Rendimientos Diarios del Activo $r_{i,t}$")
+axes[0].axvspan(15, 26, color=_nbstyle.NOTA, alpha=0.25, label="Ventana de Crisis Macroeconómica")
 axes[0].set_title("(a) Rendimientos Diarios de Alta Frecuencia y Ventana de Régimen Macro", loc="left", fontsize=10, fontweight="bold")
 axes[0].set_ylabel("Rendimiento Diario")
 axes[0].legend(loc="upper right", fontsize=8.5)
 
 # Panel 2: Conductor macro mensual vs Tendencia secular sqrt(tau_t)
 ax2_twin = axes[1].twinx()
-p1 = axes[1].plot(months_axis, np.sqrt(res.tau), color="0.00", lw=2.0, label="Tendencia Secular GARCH-MIDAS $\\sqrt{\\tau_t}$")
-p1_true = axes[1].plot(months_axis, np.sqrt(tau_daily), color="0.50", ls="--", lw=1.5, label="Tendencia Verdadera Plantada")
-p2 = ax2_twin.step(np.arange(N_months), x_lf, color="0.65", where="post", lw=1.2, ls=":", label="Conductor Macroeconómico Mensual $X_t$")
+p1 = axes[1].plot(months_axis, np.sqrt(res.tau), color=_nbstyle.S1["color"], lw=2.0, label="Tendencia Secular GARCH-MIDAS $\\sqrt{\\tau_t}$")
+p1_true = axes[1].plot(months_axis, np.sqrt(tau_daily), color=_nbstyle.NOTA, ls="--", lw=1.5, label="Tendencia Verdadera Plantada")
+p2 = ax2_twin.step(np.arange(N_months), x_lf, color=_nbstyle.S2["color"], where="post", lw=1.2, ls=":", label="Conductor Macroeconómico Mensual $X_t$")
 axes[1].set_title("(b) Conductor Macroeconómico Mensual y Piso de Riesgo Secular Extraído", loc="left", fontsize=10, fontweight="bold")
 axes[1].set_ylabel("Volatilidad Secular $\\sqrt{\\tau_t}$")
-ax2_twin.set_ylabel("Conductor Macro $X_t$", color="0.40")
+ax2_twin.set_ylabel("Conductor Macro $X_t$", color=_nbstyle.TEXTO)
 lines = p1 + p1_true + p2
 labels = [l.get_label() for l in lines]
 axes[1].legend(lines, labels, loc="upper left", fontsize=8.5)
 
 # Panel 3: Volatilidad condicional total sigma vs componente secular
-axes[2].plot(months_axis, res.sigma, color="0.10", lw=1.2, label="Volatilidad Condicional Total $\\sigma_{i,t} = \\sqrt{\\tau_t g_{i,t}}$")
-axes[2].plot(months_axis, np.sqrt(res.tau), color="0.45", ls="--", lw=1.8, label="Piso Macroeconómico Secular $\\sqrt{\\tau_t}$")
+axes[2].plot(months_axis, res.sigma, color=_nbstyle.S1["color"], lw=1.2, label="Volatilidad Condicional Total $\\sigma_{i,t} = \\sqrt{\\tau_t g_{i,t}}$")
+axes[2].plot(months_axis, np.sqrt(res.tau), color=_nbstyle.S3["color"], ls="--", lw=1.8, label="Piso Macroeconómico Secular $\\sqrt{\\tau_t}$")
 axes[2].set_title("(c) Volatilidad Total y Piso Secular Desacoplado", loc="left", fontsize=10, fontweight="bold")
 axes[2].set_xlabel("Tiempo (Meses)")
 axes[2].set_ylabel("Desviación Estándar")
 axes[2].legend(loc="upper left", fontsize=8.5)
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## Interpretación Económica
@@ -171,20 +168,17 @@ plt.show()
 # Inspeccione las ponderaciones estimadas del polinomio Beta $\hat{w}_l$ para observar el perfil de memoria de las noticias macroeconómicas:
 
 # %%
-fig, ax = plt.subplots(figsize=(6.0, 3.2))
+fig, ax = _nbstyle.figura(ancho=6.0, alto=3.2)
 
 lags = np.arange(1, L_lags + 1)
-ax.bar(lags, res.weights, color="0.30", edgecolor="0.00", width=0.6, label="Ponderaciones Beta Estimadas $\\hat{w}_l$")
-ax.plot(lags, weights_true, color="0.00", marker="o", ls="--", lw=1.5, label="Kernel Beta Verdadero")
+ax.bar(lags, res.weights, color=_nbstyle.S1["color"], edgecolor=_nbstyle.SPINE, width=0.6, label="Ponderaciones Beta Estimadas $\\hat{w}_l$")
+ax.plot(lags, weights_true, color=_nbstyle.S2["color"], marker="o", ls="--", lw=1.5, label="Kernel Beta Verdadero")
 
 ax.set_title("Kernel de Ponderación del Polinomio Beta MIDAS", loc="left", fontsize=10, fontweight="bold")
 ax.set_xlabel("Rezago Macroeconómico $l$ (Meses)")
 ax.set_ylabel("Ponderación $w_l$")
 ax.set_xticks(lags)
 ax.legend(loc="upper right", fontsize=9)
-
-plt.tight_layout()
-plt.show()
 
 assert res.weights[0] > res.weights[-1], "Decaimiento monótono: los meses macro más recientes tienen mayor peso"
 print(f"Ponderación del mes macro más reciente (l=1): {res.weights[0]*100:.1f}%")

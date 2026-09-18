@@ -206,8 +206,8 @@ base_shares = [sim_trade.model.trade_shares[0, idx_usa, i] * 100 for i in range(
 counter_shares = [res_trade.pi_prime[0, idx_usa, i] * 100 for i in range(3)]
 x = np.arange(len(countries))
 width = 0.35
-ax1.bar(x - width/2, base_shares, width, label="Baseline Market Share", color="gray", alpha=0.7)
-ax1.bar(x + width/2, counter_shares, width, label="Counterfactual (+25% US Tariff on CHN)", color="black", alpha=0.85)
+ax1.bar(x - width/2, base_shares, width, label="Baseline Market Share", color=_nbstyle.S2["color"], alpha=0.7)
+ax1.bar(x + width/2, counter_shares, width, label="Counterfactual (+25% US Tariff on CHN)", color=_nbstyle.S1["color"], alpha=0.85)
 ax1.set_xticks(x)
 ax1.set_xticklabels(countries)
 ax1.set_ylabel("Market Share in US Mfg (%)")
@@ -222,11 +222,11 @@ rev = res_trade.welfare_decomposition["tariff_revenue"] * 100
 total = res_trade.welfare_decomposition["total"] * 100
 x2 = np.arange(len(countries))
 w2 = 0.18
-ax2.bar(x2 - 1.5*w2, tot, w2, label="Terms of Trade", color="black")
-ax2.bar(x2 - 0.5*w2, io, w2, label="I-O Efficiency", color="gray")
-ax2.bar(x2 + 0.5*w2, rev, w2, label="Tariff Revenue", color="lightgray", edgecolor="black")
-ax2.bar(x2 + 1.5*w2, total, w2, label="Total Log Welfare", color="darkslategray")
-ax2.axhline(0, color="black", linewidth=0.8, linestyle=":")
+ax2.bar(x2 - 1.5*w2, tot, w2, label="Terms of Trade", color=_nbstyle.S1["color"])
+ax2.bar(x2 - 0.5*w2, io, w2, label="I-O Efficiency", color=_nbstyle.S2["color"])
+ax2.bar(x2 + 0.5*w2, rev, w2, label="Tariff Revenue", color=_nbstyle.S3["color"], edgecolor=_nbstyle.FONDO)
+ax2.bar(x2 + 1.5*w2, total, w2, label="Total Log Welfare", color=_nbstyle.S4["color"])
+ax2.axhline(0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")
 ax2.set_xticks(x2)
 ax2.set_xticklabels(countries)
 ax2.set_ylabel("Log Welfare Change (x100)")
@@ -236,8 +236,8 @@ ax2.legend(frameon=False, fontsize=9)
 # Subplot 3: Empirical MPC Distribution Across 10 Wealth Deciles
 ax3 = axes[1, 0]
 deciles = np.arange(1, 11)
-ax3.plot(deciles, res_mon.mpc_deciles_hank.values, "o-", color="black", linewidth=1.8, label="HANK (Heterogeneous Liquid Wealth)")
-ax3.plot(deciles, res_mon.mpc_deciles_rank.values, "--", color="gray", linewidth=1.8, label=r"RANK (Representative Agent: $1 - \beta$)")
+ax3.plot(deciles, res_mon.mpc_deciles_hank.values, "o-", color=_nbstyle.S1["color"], linewidth=1.8, label="HANK (Heterogeneous Liquid Wealth)")
+ax3.plot(deciles, res_mon.mpc_deciles_rank.values, "--", color=_nbstyle.S2["color"], linewidth=1.8, label=r"RANK (Representative Agent: $1 - \beta$)")
 ax3.set_xticks(deciles)
 ax3.set_xlabel("Wealth Decile (1 = Poorest / Hand-to-Mouth, 10 = Wealthiest)")
 ax3.set_ylabel("Quarterly Marginal Propensity to Consume")
@@ -247,19 +247,17 @@ ax3.legend(frameon=False)
 # Subplot 4: Kaplan-Moll-Violante (2018) Direct vs Indirect Transmission
 ax4 = axes[1, 1]
 quarters = np.arange(res_mon.horizon)
-ax4.plot(quarters, res_mon.irf_consumption_hank * 100, color="black", linewidth=2.0, label=r"Total HANK $d\mathbf{C}$")
-ax4.plot(quarters, res_mon.direct_channel_hank * 100, "--", color="gray", linewidth=1.5, label=r"Direct Channel ($\mathbf{J}^{C,r} d\mathbf{r}$)")
-ax4.plot(quarters, res_mon.indirect_channel_hank * 100, ":", color="darkslategray", linewidth=1.5, label=r"Indirect GE Channel ($\mathbf{J}^{C,Y} d\mathbf{Y}$)")
-ax4.plot(quarters, res_mon.irf_consumption_rank * 100, "-.", color="silver", linewidth=1.2, label=r"RANK Total $d\mathbf{C}$")
-ax4.axhline(0, color="black", linewidth=0.8, linestyle=":")
+ax4.plot(quarters, res_mon.irf_consumption_hank * 100, color=_nbstyle.S1["color"], linewidth=2.0, label=r"Total HANK $d\mathbf{C}$")
+ax4.plot(quarters, res_mon.direct_channel_hank * 100, "--", color=_nbstyle.S2["color"], linewidth=1.5, label=r"Direct Channel ($\mathbf{J}^{C,r} d\mathbf{r}$)")
+ax4.plot(quarters, res_mon.indirect_channel_hank * 100, ":", color=_nbstyle.S3["color"], linewidth=1.5, label=r"Indirect GE Channel ($\mathbf{J}^{C,Y} d\mathbf{Y}$)")
+ax4.plot(quarters, res_mon.irf_consumption_rank * 100, "-.", color=_nbstyle.S4["color"], linewidth=1.2, label=r"RANK Total $d\mathbf{C}$")
+ax4.axhline(0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")
 ax4.set_xlabel("Quarters Post-Shock")
 ax4.set_ylabel("Consumption Deviation (%)")
 ax4.set_title(f"KMV (2018) Consumption Decomposition (Indirect Share = {res_mon.indirect_share_hank:.1f}%)")
 ax4.legend(frameon=False, fontsize=9)
 
 fig.suptitle("Quantitative Policy Simulators: Trade Disputes & Monetary Transmission", fontsize=12, fontweight="bold", y=0.99)
-plt.tight_layout(rect=(0.0, 0.0, 1.0, 0.97))
-plt.show()
 
 # %% [markdown]
 # ## Read the output

@@ -139,15 +139,15 @@ synthetic_path = donor_matrix @ res_sdid.omega
 # Compute DiD baseline (equal unweighted average of controls)
 unweighted_control_path = donor_matrix.mean(axis=1)
 
-fig, axes = plt.subplots(1, 2, figsize=(7.6, 3.6), gridspec_kw={"width_ratios": [2.2, 1.2]})
+fig, axes = _nbstyle.figura(ancho=7.6, alto=3.6, ncols=2, gridspec_kw={"width_ratios": [2.2, 1.2]})
 
 # Panel 1: Trajectory Comparison
 ax = axes[0]
 time_axis = np.arange(T_periods)
-ax.plot(time_axis, treated_traj, color="0.00", lw=2.0, label="Treated Unit ($Y_{1,t}$)")
-ax.plot(time_axis, synthetic_path, color="0.40", ls="--", lw=1.8, label="SDID Synthetic Control ($\sum \hat{\omega}_i Y_{i,t}$)")
-ax.plot(time_axis, unweighted_control_path, color="0.75", ls=":", lw=1.5, label="Unweighted Controls (Naive DiD)")
-ax.axvline(T_treat - 0.5, color="0.60", ls="-.", lw=1.0, label="Treatment Date")
+ax.plot(time_axis, treated_traj, color=_nbstyle.TINTA, lw=2.0, label="Treated Unit ($Y_{1,t}$)")
+ax.plot(time_axis, synthetic_path, color=_nbstyle.S1["color"], ls="--", lw=1.8, label=r"SDID Synthetic Control ($\sum \hat{\omega}_i Y_{i,t}$)")
+ax.plot(time_axis, unweighted_control_path, color=_nbstyle.NOTA, ls=":", lw=1.5, label="Unweighted Controls (Naive DiD)")
+ax.axvline(T_treat - 0.5, color=_nbstyle.SPINE, ls="-.", lw=1.0, label="Treatment Date")
 
 ax.set_title("(a) Outcome Trajectories: Treated vs. Synthetic vs. Naive", loc="left", fontsize=9.5, fontweight="bold")
 ax.set_xlabel("Time Period")
@@ -157,12 +157,9 @@ ax.legend(loc="upper left", fontsize=8)
 # Panel 2: Donor Unit Weights
 ax_w = axes[1]
 top_donors = res_sdid.omega.nlargest(6).iloc[::-1]
-ax_w.barh(top_donors.index, top_donors.values, color="0.30", edgecolor="0.00")
+ax_w.barh(top_donors.index, top_donors.values, color=_nbstyle.S1["color"], edgecolor=_nbstyle.SPINE)
 ax_w.set_title(r"(b) Top Donor Weights $\hat{\omega}_i$", loc="left", fontsize=9.5, fontweight="bold")
 ax_w.set_xlabel(r"Weight $\hat{\omega}_i$")
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## Reading the Output & Economic Intuition
@@ -177,20 +174,17 @@ plt.show()
 # Plot the estimated pre-treatment time weights $\hat{\lambda}_t$:
 
 # %%
-fig, ax = plt.subplots(figsize=(6.0, 2.8))
+fig, ax = _nbstyle.figura(ancho=6.0, alto=2.8)
 
 pre_times = np.arange(T_treat)
-ax.bar(pre_times, res_sdid.lambda_w, color="0.35", edgecolor="0.00", width=0.6, label="Time Weights $\hat{\lambda}_t$")
-ax.axhline(1.0 / T_treat, color="0.60", ls="--", label=f"Uniform Weight (1/{T_treat})")
+ax.bar(pre_times, res_sdid.lambda_w, color=_nbstyle.S1["color"], edgecolor=_nbstyle.SPINE, width=0.6, label=r"Time Weights $\hat{\lambda}_t$")
+ax.axhline(1.0 / T_treat, color=_nbstyle.SPINE, ls="--", label=f"Uniform Weight (1/{T_treat})")
 
-ax.set_title("Pre-Treatment Time Weights $\hat{\lambda}_t$", loc="left", fontsize=10, fontweight="bold")
+ax.set_title(r"Pre-Treatment Time Weights $\hat{\lambda}_t$", loc="left", fontsize=10, fontweight="bold")
 ax.set_xlabel("Pre-Treatment Period $t$")
-ax.set_ylabel("Weight $\hat{\lambda}_t$")
+ax.set_ylabel(r"Weight $\hat{\lambda}_t$")
 ax.set_xticks(pre_times)
 ax.legend(loc="upper right", fontsize=8.5)
-
-plt.tight_layout()
-plt.show()
 
 print("Time weights sum to:", np.sum(res_sdid.lambda_w))
 

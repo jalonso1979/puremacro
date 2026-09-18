@@ -240,10 +240,10 @@ naive_n = naive_event_study(panel)
 e_grid = [e for e in sorted(naive_n) if -4 <= e <= 6] + [-1]
 naive_y = [0.0 if e == -1 else naive_n[e] for e in e_grid]
 
-fig, ax = plt.subplots(figsize=(7.2, 4.4))
-ax.axhline(0.0, color="0.6", linewidth=0.8, linestyle=":")
-ax.axvline(-0.5, color="0.6", linewidth=0.8, linestyle="--")
-ax.fill_between(ev["h"], ev["lo"], ev["hi"], color="0.85", label="90% CI (LP-DiD)")
+fig, ax = _nbstyle.figura(ancho=7.2, alto=4.4)
+ax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")
+ax.axvline(-0.5, color=_nbstyle.SPINE, linewidth=0.8, linestyle="--")
+ax.fill_between(ev["h"], ev["lo"], ev["hi"], color=_nbstyle.NOTA, alpha=0.25, label="90% CI (LP-DiD)")
 ax.plot(ev["h"], ev["beta"], color=cols[0], marker="o", markersize=4,
         label="LP-DiD (equal weights)")
 order = np.argsort(e_grid)
@@ -258,7 +258,6 @@ ax.set_xlabel("Event time $h$ (base period $h=-1$)")
 ax.set_ylabel("Effect on $y$")
 ax.set_title("Staggered adoption: naive TWFE vs LP-DiD")
 ax.legend(loc="upper left", fontsize=8)
-plt.show()
 
 # %% [markdown]
 # ## 3. Tres máquinas, un principio
@@ -284,8 +283,8 @@ print(f"max |LP-DiD - CS| over h=0..6 = {gap_cs:.3f}")
 print(f"max |LP-DiD - SA| over h=0..6 = {gap_sa:.3f}")
 assert gap_cs < 0.15 and gap_sa < 0.15             # three estimators, same answer
 
-fig, ax = plt.subplots(figsize=(7.0, 4.2))
-ax.axhline(0.0, color="0.6", linewidth=0.8, linestyle=":")
+fig, ax = _nbstyle.figura(ancho=7.0, alto=4.2)
+ax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")
 ax.plot(est.index, est.to_numpy(), color=cols[0], marker="o", markersize=4,
         label="LP-DiD (equal)")
 ax.plot(es_cs.index[es_cs.index >= 0], es_cs.loc[es_cs.index >= 0, "att"],
@@ -294,13 +293,12 @@ ax.plot(es_cs.index[es_cs.index >= 0], es_cs.loc[es_cs.index >= 0, "att"],
 ax.plot(es_sa.index[es_sa.index >= 0], es_sa.loc[es_sa.index >= 0, "att"],
         color=cols[2], marker="^", markersize=4, linestyle=":",
         label="Sun-Abraham")
-ax.plot(hh, true_path[:7], color="0.5", linewidth=0.9, linestyle="-.",
+ax.plot(hh, true_path[:7], color=_nbstyle.NOTA, linewidth=0.9, linestyle="-.",
         label="planted ATT")
 ax.set_xlabel("Event time $h$")
 ax.set_ylabel("ATT")
 ax.set_title("LP-DiD vs Callaway-Sant'Anna vs Sun-Abraham")
 ax.legend(loc="upper left", fontsize=8)
-plt.show()
 
 # %% [markdown]
 # **Lectura del resultado.** Las tres sendas difieren a lo sumo en ≈ 0.03 —
@@ -347,9 +345,9 @@ print("clean panel     :",
 assert pre_v.loc[-4, "beta"] < -0.25 and pre_v.loc[-4, "t"] < -3.0
 assert pre_c["t"].abs().max() < 2.0
 
-fig, ax = plt.subplots(figsize=(6.8, 4.0))
-ax.axhline(0.0, color="0.6", linewidth=0.8, linestyle=":")
-ax.axvline(-0.5, color="0.6", linewidth=0.8, linestyle="--")
+fig, ax = _nbstyle.figura(ancho=6.8, alto=4.0)
+ax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")
+ax.axvline(-0.5, color=_nbstyle.SPINE, linewidth=0.8, linestyle="--")
 for r, c, lbl, mk in [(r_cln, cols[0], "parallel trends hold", "o"),
                       (r_vio, cols[1], "planted violation (+0.18/period)", "s")]:
     e = r.estimates
@@ -359,7 +357,6 @@ ax.set_xlabel("Event time $h$")
 ax.set_ylabel("Coefficient")
 ax.set_title("The leads catch the violation before you believe the lags")
 ax.legend(loc="upper left", fontsize=8)
-plt.show()
 
 # %% [markdown]
 # **Lectura del resultado.** En el panel violado los adelantos se abren en

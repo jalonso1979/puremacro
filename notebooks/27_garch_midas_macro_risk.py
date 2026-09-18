@@ -126,37 +126,34 @@ assert np.allclose(res.sigma, sigma_ident, atol=1e-6), "Multiplicative variance 
 days_axis = np.arange(T_days)
 months_axis = days_axis / K
 
-fig, axes = plt.subplots(3, 1, figsize=(7.4, 7.2), sharex=True)
+fig, axes = _nbstyle.figura(ancho=7.4, alto=7.2, nrows=3, sharex=True)
 
 # Panel 1: Observed Daily Returns
-axes[0].plot(months_axis, returns_daily, color="0.25", lw=0.8, alpha=0.85, label="Daily Asset Returns $r_{i,t}$")
-axes[0].axvspan(15, 26, color="0.85", alpha=0.5, label="Macro Uncertainty Crisis Window")
+axes[0].plot(months_axis, returns_daily, color=_nbstyle.TEXTO, lw=0.8, alpha=0.85, label="Daily Asset Returns $r_{i,t}$")
+axes[0].axvspan(15, 26, color=_nbstyle.NOTA, alpha=0.25, label="Macro Uncertainty Crisis Window")
 axes[0].set_title("(a) High-Frequency Daily Asset Returns with Macro Regime Window", loc="left", fontsize=10, fontweight="bold")
 axes[0].set_ylabel("Daily Return")
 axes[0].legend(loc="upper right", fontsize=8.5)
 
 # Panel 2: Low-Frequency Macro Driver vs Extracted Trend sqrt(tau_t)
 ax2_twin = axes[1].twinx()
-p1 = axes[1].plot(months_axis, np.sqrt(res.tau), color="0.00", lw=2.0, label="GARCH-MIDAS Secular Trend $\\sqrt{\\tau_t}$")
-p1_true = axes[1].plot(months_axis, np.sqrt(tau_daily), color="0.50", ls="--", lw=1.5, label="True Planted Trend")
-p2 = ax2_twin.step(np.arange(N_months), x_lf, color="0.65", where="post", lw=1.2, ls=":", label="Monthly Macro Driver $X_t$")
+p1 = axes[1].plot(months_axis, np.sqrt(res.tau), color=_nbstyle.S1["color"], lw=2.0, label="GARCH-MIDAS Secular Trend $\\sqrt{\\tau_t}$")
+p1_true = axes[1].plot(months_axis, np.sqrt(tau_daily), color=_nbstyle.NOTA, ls="--", lw=1.5, label="True Planted Trend")
+p2 = ax2_twin.step(np.arange(N_months), x_lf, color=_nbstyle.S2["color"], where="post", lw=1.2, ls=":", label="Monthly Macro Driver $X_t$")
 axes[1].set_title("(b) Low-Frequency Macro Driver and Extracted Secular Baseline Risk", loc="left", fontsize=10, fontweight="bold")
 axes[1].set_ylabel("Secular Volatility $\\sqrt{\\tau_t}$")
-ax2_twin.set_ylabel("Macro Driver $X_t$", color="0.40")
+ax2_twin.set_ylabel("Macro Driver $X_t$", color=_nbstyle.TEXTO)
 lines = p1 + p1_true + p2
 labels = [l.get_label() for l in lines]
 axes[1].legend(lines, labels, loc="upper left", fontsize=8.5)
 
 # Panel 3: Total Conditional Volatility sigma vs Short-Run GARCH component
-axes[2].plot(months_axis, res.sigma, color="0.10", lw=1.2, label="Total Conditional Volatility $\\sigma_{i,t} = \\sqrt{\\tau_t g_{i,t}}$")
-axes[2].plot(months_axis, np.sqrt(res.tau), color="0.45", ls="--", lw=1.8, label="Secular Macro Floor $\\sqrt{\\tau_t}$")
+axes[2].plot(months_axis, res.sigma, color=_nbstyle.S1["color"], lw=1.2, label="Total Conditional Volatility $\\sigma_{i,t} = \\sqrt{\\tau_t g_{i,t}}$")
+axes[2].plot(months_axis, np.sqrt(res.tau), color=_nbstyle.S3["color"], ls="--", lw=1.8, label="Secular Macro Floor $\\sqrt{\\tau_t}$")
 axes[2].set_title("(c) Total Volatility and Decoupled Secular Floor", loc="left", fontsize=10, fontweight="bold")
 axes[2].set_xlabel("Time (Months)")
 axes[2].set_ylabel("Standard Deviation")
 axes[2].legend(loc="upper left", fontsize=8.5)
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## Reading the Output & Economic Intuition
@@ -171,20 +168,17 @@ plt.show()
 # Inspect the estimated MIDAS Beta lag polynomial weights $\hat{w}_l$ to see the memory profile of macro news:
 
 # %%
-fig, ax = plt.subplots(figsize=(6.0, 3.2))
+fig, ax = _nbstyle.figura(ancho=6.0, alto=3.2)
 
 lags = np.arange(1, L_lags + 1)
-ax.bar(lags, res.weights, color="0.30", edgecolor="0.00", width=0.6, label="Estimated Beta Weights $\\hat{w}_l$")
-ax.plot(lags, weights_true, color="0.00", marker="o", ls="--", lw=1.5, label="True Beta Kernel")
+ax.bar(lags, res.weights, color=_nbstyle.S1["color"], edgecolor=_nbstyle.SPINE, width=0.6, label="Estimated Beta Weights $\\hat{w}_l$")
+ax.plot(lags, weights_true, color=_nbstyle.S2["color"], marker="o", ls="--", lw=1.5, label="True Beta Kernel")
 
 ax.set_title("MIDAS Beta Polynomial Weighting Kernel", loc="left", fontsize=10, fontweight="bold")
 ax.set_xlabel("Macro Lag $l$ (Months)")
 ax.set_ylabel("Lag Weight $w_l$")
 ax.set_xticks(lags)
 ax.legend(loc="upper right", fontsize=9)
-
-plt.tight_layout()
-plt.show()
 
 assert res.weights[0] > res.weights[-1], "Monotonic decay: recent macro months carry greater weight"
 print(f"Weight on most recent macro month (l=1): {res.weights[0]*100:.1f}%")

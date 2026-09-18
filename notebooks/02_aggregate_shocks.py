@@ -111,16 +111,14 @@ for t in range(2000):
 burn = 300
 logK = np.log(ks.K_path)
 x, y, zt = logK[burn:-1], logK[burn + 1:], Z_path[burn:]
-cols = _nbstyle.palette(2)
-fig, ax = plt.subplots()
-for iZ, (c, lab) in enumerate(zip(cols, ["low TFP", "high TFP"])):
+fig, ax = _nbstyle.figura()
+for iZ, (sty, lab) in enumerate(zip([_nbstyle.S1, _nbstyle.S2], ["low TFP", "high TFP"])):
     m = zt == iZ
-    ax.scatter(x[m], y[m], s=6, color=c, alpha=0.35, label=f"{lab}  (R²={ks.r_squared[iZ]:.4f})")
+    ax.scatter(x[m], y[m], s=6, color=sty["color"], alpha=0.35, label=f"{lab}  (R²={ks.r_squared[iZ]:.4f})")
     xs = np.linspace(x.min(), x.max(), 50)
-    ax.plot(xs, ks.b0[iZ] + ks.b1[iZ] * xs, color=c, linewidth=1.4)
+    ax.plot(xs, ks.b0[iZ] + ks.b1[iZ] * xs, **sty)
 ax.set_xlabel("log K  (today)"); ax.set_ylabel("log K′  (next period)")
 ax.set_title("Krusell–Smith forecast rule"); ax.legend(loc="upper left")
-plt.show()
 
 # %% [markdown]
 # ### Supporting — the simulated capital path
@@ -130,15 +128,14 @@ plt.show()
 # %%
 seg = slice(burn, burn + 400)
 t = np.arange(400)
-fig, ax = plt.subplots(figsize=(7.5, 3.4))
-ax.plot(t, ks.K_path[seg], color="0.0", linewidth=1.0)
-ax.axhline(ks.no_agg_risk_K, color="0.5", linestyle="--", linewidth=0.8, label="K* (no agg risk)")
+fig, ax = _nbstyle.figura(ancho=7.5, alto=3.4)
+ax.plot(t, ks.K_path[seg], **_nbstyle.S1)
+ax.axhline(ks.no_agg_risk_K, color=_nbstyle.SPINE, linestyle="--", linewidth=0.8, label="K* (no agg risk)")
 low = Z_path[seg] == 0
-ax.fill_between(t, ax.get_ylim()[0], ax.get_ylim()[1], where=low, color="0.85",
+ax.fill_between(t, ax.get_ylim()[0], ax.get_ylim()[1], where=low, color=_nbstyle.NOTA, alpha=0.35,
                 step="mid", linewidth=0, label="low TFP")
 ax.set_xlabel("Time"); ax.set_ylabel("Mean capital K")
 ax.set_title("Aggregate capital over the cycle"); ax.legend(loc="upper right")
-plt.show()
 
 # %% [markdown]
 # ## 2. A perfect-foresight transition (MIT shock)
@@ -183,12 +180,11 @@ print(f"transition converged in {tp.n_iter} iters (gap {tp.gap:.1e}); "
       f"K: {K_tp[0]:.2f} → {K_tp[-1]:.2f}  (SS {ai['K']:.2f})")
 assert K_tp[-1] > K_tp[0]                                  # capital rebuilds toward SS
 
-fig, (a1, a2) = plt.subplots(1, 2, figsize=(9.5, 3.4))
-a1.plot(K_tp, color="0.0"); a1.axhline(ai["K"], color="0.5", linestyle="--", linewidth=0.8)
+fig, (a1, a2) = _nbstyle.figura(ancho=9.5, alto=3.4, ncols=2)
+a1.plot(K_tp, **_nbstyle.S1); a1.axhline(ai["K"], color=_nbstyle.SPINE, linestyle="--", linewidth=0.8)
 a1.set_xlabel("Time"); a1.set_ylabel("Mean capital K"); a1.set_title("Capital transition")
-a2.plot(tp.price_path, color="0.0"); a2.axhline(r_ss, color="0.5", linestyle="--", linewidth=0.8)
+a2.plot(tp.price_path, **_nbstyle.S1); a2.axhline(r_ss, color=_nbstyle.SPINE, linestyle="--", linewidth=0.8)
 a2.set_xlabel("Time"); a2.set_ylabel("Interest rate r"); a2.set_title("Price transition")
-plt.show()
 
 # %% [markdown]
 # **Read the output.** We start the economy capital-scarce — all mass at a low asset node — so
@@ -210,12 +206,11 @@ ng = neoclassical_growth(n_k=300)
 mu_k = ng["distribution"].sum(axis=1)                      # marginal over TFP
 print(f"rep-agent: mean K = {ng['mean_capital']:.3f}, analytical K_ss = {ng['K_ss']:.3f}")
 assert abs(ng["mean_capital"] / ng["K_ss"] - 1.0) < 0.05
-fig, ax = plt.subplots()
-ax.fill_between(ng["k_grid"], mu_k, color="0.75", step="mid")
-ax.axvline(ng["K_ss"], color="0.2", linestyle="--", linewidth=0.9, label="analytical K_ss")
+fig, ax = _nbstyle.figura()
+ax.fill_between(ng["k_grid"], mu_k, color=_nbstyle.NOTA, alpha=0.35, step="mid")
+ax.axvline(ng["K_ss"], color=_nbstyle.SPINE, linestyle="--", linewidth=0.9, label="analytical K_ss")
 ax.set_xlabel("Capital k"); ax.set_ylabel("Ergodic mass")
 ax.set_title("Representative-agent stochastic growth"); ax.legend()
-plt.show()
 
 # %% [markdown]
 # ## Your turn — does the forecast rule actually generalize?

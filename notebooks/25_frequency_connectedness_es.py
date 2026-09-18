@@ -98,34 +98,31 @@ assert band_mat_high.shape == (N, N), "Discrepancia en la forma de la matriz de 
 # Graficamos lado a lado las matrices de desbordamiento direccional para horizontes espectrales de Alta Frecuencia vs Baja Frecuencia.
 
 # %%
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10.5, 4.2))
+fig, (ax1, ax2) = _nbstyle.figura(1, 2, figsize=(10.5, 4.2))
 
 var_labels = ["Inflación", "Producto", "Tasas", "Volatilidad"]
 
 # Panel Izquierdo: Desbordamientos Direccionales de Alta Frecuencia
-im1 = ax1.imshow(band_mat_high * 100, cmap="Blues", vmin=0, vmax=35)
+im1 = ax1.imshow(band_mat_high * 100, cmap=_nbstyle.CMAP_SEQ, vmin=0, vmax=35)
 ax1.set_xticks(range(N)); ax1.set_yticks(range(N))
-ax1.set_xticklabels(var_labels); ax1.set_yticklabels(var_labels)
+ax1.set_xticklabels(var_labels, color=_nbstyle.TEXTO); ax1.set_yticklabels(var_labels, color=_nbstyle.TEXTO)
 ax1.set_title(f"Desbordamientos Alta Frecuencia (pi/4 a pi)\nTotal = {total_high:.1f}%")
 
 for i in range(N):
     for j in range(N):
         ax1.text(j, i, f"{band_mat_high[i, j]*100:.1f}%",
-                 ha="center", va="center", color="white" if band_mat_high[i, j]*100 > 18 else "black", fontsize=9)
+                 ha="center", va="center", color=_nbstyle.FONDO if band_mat_high[i, j]*100 > 18 else _nbstyle.TINTA, fontsize=9)
 
 # Panel Derecho: Desbordamientos Direccionales de Baja Frecuencia
-im2 = ax2.imshow(band_mat_low * 100, cmap="Oranges", vmin=0, vmax=35)
+im2 = ax2.imshow(band_mat_low * 100, cmap=_nbstyle.CMAP_SEQ, vmin=0, vmax=35)
 ax2.set_xticks(range(N)); ax2.set_yticks(range(N))
-ax2.set_xticklabels(var_labels); ax2.set_yticklabels(var_labels)
+ax2.set_xticklabels(var_labels, color=_nbstyle.TEXTO); ax2.set_yticklabels(var_labels, color=_nbstyle.TEXTO)
 ax2.set_title(f"Desbordamientos Baja Frecuencia (0 a pi/4)\nTotal = {total_low:.1f}%")
 
 for i in range(N):
     for j in range(N):
         ax2.text(j, i, f"{band_mat_low[i, j]*100:.1f}%",
-                 ha="center", va="center", color="white" if band_mat_low[i, j]*100 > 18 else "black", fontsize=9)
-
-plt.tight_layout()
-plt.show()
+                 ha="center", va="center", color=_nbstyle.FONDO if band_mat_low[i, j]*100 > 18 else _nbstyle.TINTA, fontsize=9)
 
 # %% [markdown]
 # **Leyendo el resultado.** La descomposición de frecuencias expone la estructura de transmisión: los desbordamientos de corto plazo están dominados por la volatilidad financiera y los ajustes de tasas de interés, mientras que los desbordamientos de baja frecuencia son impulsados por choques persistentes de inflación y brecha de producto. Los índices de desbordamiento de VAR tradicionales en el dominio del tiempo oscurecen esta dependencia del horizonte.

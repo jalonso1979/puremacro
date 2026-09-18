@@ -103,16 +103,15 @@ mk = ta["distribution"].sum(axis=1).reshape(n_m, n_k)     # joint (m,k) mass, ma
 # mean holdings — the optimal split the engine finds over two endogenous states.
 
 # %%
-fig, ax = plt.subplots()
-im = ax.imshow(mk.T, origin="lower", aspect="auto", cmap="Greys",
+fig, ax = _nbstyle.figura()
+im = ax.imshow(mk.T, origin="lower", aspect="auto", cmap=_nbstyle.CMAP_SEQ,
                extent=[m_grid[0], m_grid[-1], k_grid[0], k_grid[-1]])
-ax.scatter([ta["mean_liquid"]], [ta["mean_illiquid"]], color="0.0", marker="x", s=70,
+ax.scatter([ta["mean_liquid"]], [ta["mean_illiquid"]], color=_nbstyle.TINTA, marker="x", s=70,
            label=f"mean (m={ta['mean_liquid']:.1f}, k={ta['mean_illiquid']:.1f})")
 ax.set_xlabel("Liquid m"); ax.set_ylabel("Illiquid k")
 ax.set_title("Two-asset stationary distribution")
 ax.legend(loc="upper right")
 fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04, label="mass")
-plt.show()
 
 # %% [markdown]
 # **Read the output.** The illiquid share printed above (mass in $k$ as a fraction
@@ -150,14 +149,12 @@ print(f"mean assets: risk aversion 2 → {mean_lo:.2f}, risk aversion 8 → {mea
 assert mean_hi > mean_lo                                  # more risk aversion → more saving
 
 mid = len(z_g) // 2
-fig, ax = plt.subplots()
-ax.plot(a_g, a_g, color="0.6", linewidth=0.8, linestyle=":", label="45°")
-ax.plot(a_g, pol_lo[:, mid], color=_nbstyle.palette(2)[0], label="risk aversion 2")
-ax.plot(a_g, pol_hi[:, mid], color=_nbstyle.palette(2)[1], linestyle="--",
-        label="risk aversion 8")
+fig, ax = _nbstyle.figura()
+ax.plot(a_g, a_g, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":", label="45°")
+ax.plot(a_g, pol_lo[:, mid], **_nbstyle.S1, label="risk aversion 2")
+ax.plot(a_g, pol_hi[:, mid], **_nbstyle.S2, label="risk aversion 8")
 ax.set_xlabel("Assets today"); ax.set_ylabel("Assets tomorrow")
 ax.set_title("Epstein–Zin: precautionary saving (EIS fixed)"); ax.legend(loc="upper left")
-plt.show()
 
 # %% [markdown]
 # **Read the output.** With the EIS held at $\psi=1.5$, the only thing that
@@ -195,12 +192,11 @@ max_gap = float(np.max(np.abs(c_vfi[:, mid] - egm.c[:, mid])))
 print(f"max |c_EGM − c_VFI| at median income = {max_gap:.3f}")
 assert max_gap < 0.5                                      # close (VFI is grid-discretized)
 
-fig, ax = plt.subplots()
-ax.plot(a_g, egm.c[:, mid], color="0.0", label="EGM (continuous)")
-ax.plot(a_g, c_vfi[:, mid], color="0.45", linestyle="--", label="VFI (discretized)")
+fig, ax = _nbstyle.figura()
+ax.plot(a_g, egm.c[:, mid], **_nbstyle.S1, label="EGM (continuous)")
+ax.plot(a_g, c_vfi[:, mid], **_nbstyle.S2, label="VFI (discretized)")
 ax.set_xlabel("Assets a"); ax.set_ylabel("Consumption c")
 ax.set_title("EGM vs. VFI consumption policy"); ax.legend(loc="upper left")
-plt.show()
 
 # %% [markdown]
 # **Read the output.** The maximum gap between the EGM and VFI consumption

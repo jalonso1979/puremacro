@@ -226,34 +226,31 @@ print(pd.DataFrame(dghx, index=model_grad.variables, columns=model_grad.states))
 # Graficamos el vector de score analítico y las sensibilidades de las reglas de decisión respecto a los parámetros estructurales.
 
 # %%
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+fig, (ax1, ax2) = _nbstyle.figura(1, 2, figsize=(9.5, 4.2))
 
 # Gráfico de barras del vector de score analítico
 x_pos = np.arange(len(param_names))
-bars = ax1.bar(x_pos, score, color=["#1f77b4", "#2ca02c"], edgecolor="black", width=0.5, alpha=0.85)
-ax1.axhline(0, color="black", lw=0.8, linestyle="--")
+bars = ax1.bar(x_pos, score, color=[_nbstyle.S1["color"], _nbstyle.S2["color"]], edgecolor=_nbstyle.SPINE, width=0.5, alpha=0.85)
+ax1.axhline(0, color=_nbstyle.SPINE, lw=0.8, linestyle="--")
 ax1.set_xticks(x_pos)
-ax1.set_xticklabels([r"$\sigma$ (Aversión al riesgo)", r"$\rho_a$ (Persistencia tecnológica)"], fontsize=10)
+ax1.set_xticklabels([r"$\sigma$ (Aversión al riesgo)", r"$\rho_a$ (Persistencia tecnológica)"], fontsize=10, color=_nbstyle.TEXTO)
 ax1.set_title(r"Vector de score exacto $\nabla_\theta \ln L$", fontsize=11, fontweight="bold")
-ax1.set_ylabel("Score de log-verosimilitud")
+ax1.set_ylabel("Score de log-verosimilitud", color=_nbstyle.TEXTO)
 for bar in bars:
     height = bar.get_height()
     ax1.annotate(f"{height:.3f}",
                  xy=(bar.get_x() + bar.get_width() / 2, height),
                  xytext=(0, 3 if height >= 0 else -12),
-                 textcoords="offset points", ha="center", va="bottom", fontsize=9)
+                 textcoords="offset points", ha="center", va="bottom", fontsize=9, color=_nbstyle.NOTA)
 
 # Gráfico de barras de sensibilidad de reglas de decisión ante persistencia
 vars_plot = model_grad.variables
 dghx_vals = dghx[:, 0]
-ax2.bar(vars_plot, dghx_vals, color="#d62728", edgecolor="black", width=0.5, alpha=0.85)
-ax2.axhline(0, color="black", lw=0.8, linestyle="--")
+ax2.bar(vars_plot, dghx_vals, color=_nbstyle.S3["color"], edgecolor=_nbstyle.SPINE, width=0.5, alpha=0.85)
+ax2.axhline(0, color=_nbstyle.SPINE, lw=0.8, linestyle="--")
 ax2.set_title(r"Sensibilidad de estado $\partial ghx / \partial \rho_a$", fontsize=11, fontweight="bold")
-ax2.set_ylabel(r"$\partial y / \partial \rho_a$")
-ax2.grid(True, linestyle=":", alpha=0.5)
-
-plt.tight_layout()
-plt.show()
+ax2.set_ylabel(r"$\partial y / \partial \rho_a$", color=_nbstyle.TEXTO)
+ax2.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.5)
 
 # %% [markdown]
 # ---
@@ -351,19 +348,16 @@ print(f"  Tamaños de paso adaptados: {np.round(res_nuts.diagnostics.get('step_s
 # 1. Gráfico de trazas a través de las cadenas
 fig_trace, axes_trace = res_nuts.plot_trace()
 plt.suptitle("Trazas posteriores de NUTS", fontsize=12, fontweight="bold", y=1.02)
-plt.show()
 
 # 2. Densidad marginal posterior
 fig_post, axes_post = res_nuts.plot_posterior()
 plt.suptitle("Distribución marginal posterior (NUTS)", fontsize=12, fontweight="bold", y=1.02)
-plt.show()
 
 # 3. Diagnósticos de energía (E-BFMI)
 energy_stats, fig_energy, ax_energy = res_nuts.energy_diagnostics()
 print(f"Reporte de diagnósticos de energía:")
 print(f"  E-BFMI promedio entre cadenas : {energy_stats['mean_ebfmi']:.3f}")
 print(f"  E-BFMI superado (>= 0.3)      : {energy_stats['passed']}")
-plt.show()
 
 # %% [markdown]
 # ---
@@ -476,12 +470,10 @@ print(res_hank.summary())
 # Graficar transiciones de equilibrio general (IRF)
 fig_tr, axes_tr = res_hank.plot_transition()
 plt.suptitle("Transición de equilibrio general HANK (bajada de 25 pb en la tasa)", fontsize=12, fontweight="bold", y=1.02)
-plt.show()
 
 # Graficar distribución estacionaria de riqueza D*(a) y curva de PMC
 fig_dist, axes_dist = res_hank.plot_distribution()
 plt.suptitle("Distribuciones microeconómicas HANK", fontsize=12, fontweight="bold", y=1.02)
-plt.show()
 
 # %% [markdown]
 # ### 3.4 Atajo en una sola línea: `solve_hank_bridge`

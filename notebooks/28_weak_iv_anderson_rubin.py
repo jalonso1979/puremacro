@@ -138,16 +138,16 @@ level = int(round(100 * res_strong.ci_level))   # lp_iv defaults to alpha = 0.10
 iv_estimand = beta_true / 0.8
 ylo, yhi = -6.0, 4.0
 
-fig, axes = plt.subplots(1, 2, figsize=(7.6, 4.4), sharey=True)
+fig, axes = _nbstyle.figura(ancho=7.6, alto=4.4, ncols=2, sharey=True)
 
 # Panel 1
 ax = axes[0]
-ax.plot(res_strong["h"], res_strong["beta"], color="0.00", lw=2.0, label="LP-IV Point Estimate $\\hat{\\beta}_h$")
-ax.plot(res_strong["h"], iv_estimand, color="0.60", ls="--", lw=1.5, label="IV estimand $\\beta_h / 0.8$")
-ax.fill_between(res_strong["h"], res_strong["lo"], res_strong["hi"], color="0.75", alpha=0.5, label=f"Wald {level}% CI")
-ax.plot(res_strong["h"], res_strong["ar_lo"], color="0.00", ls=":", lw=1.5, label=f"Anderson-Rubin {level}% set")
-ax.plot(res_strong["h"], res_strong["ar_hi"], color="0.00", ls=":", lw=1.5)
-ax.axhline(0, color="0.70", ls=":", lw=0.8)
+ax.plot(res_strong["h"], res_strong["beta"], color=_nbstyle.TINTA, lw=2.0, label="LP-IV Point Estimate $\\hat{\\beta}_h$")
+ax.plot(res_strong["h"], iv_estimand, color=_nbstyle.S2["color"], ls="--", lw=1.5, label="IV estimand $\\beta_h / 0.8$")
+ax.fill_between(res_strong["h"], res_strong["lo"], res_strong["hi"], color=_nbstyle.NOTA, alpha=0.25, label=f"Wald {level}% CI")
+ax.plot(res_strong["h"], res_strong["ar_lo"], color=_nbstyle.TINTA, ls=":", lw=1.5, label=f"Anderson-Rubin {level}% set")
+ax.plot(res_strong["h"], res_strong["ar_hi"], color=_nbstyle.TINTA, ls=":", lw=1.5)
+ax.axhline(0, color=_nbstyle.SPINE, ls=":", lw=0.8)
 f_avg_strong = res_strong["first_stage_f"].mean()
 ax.set_title(f"(a) Strong Instrument ($F \\approx {f_avg_strong:.1f}$)", loc="left", fontsize=10, fontweight="bold")
 ax.set_xlabel("Horizon $h$ (Quarters)")
@@ -156,32 +156,30 @@ ax.legend(loc="lower left", fontsize=8)
 
 # Panel 2: the Anderson-Rubin set is drawn whatever its shape -- an interval, two rays or the whole line
 ax = axes[1]
-ax.plot(res_weak["h"], res_weak["beta"], color="0.00", lw=2.0, label="LP-IV Point Estimate $\\hat{\\beta}_h$")
-ax.plot(res_weak["h"], iv_estimand, color="0.60", ls="--", lw=1.5, label="IV estimand $\\beta_h / 0.8$")
-ax.fill_between(res_weak["h"], np.clip(res_weak["lo"], ylo, yhi), np.clip(res_weak["hi"], ylo, yhi), color="0.75", alpha=0.5, label=f"Naive Wald {level}% CI")
+ax.plot(res_weak["h"], res_weak["beta"], color=_nbstyle.TINTA, lw=2.0, label="LP-IV Point Estimate $\\hat{\\beta}_h$")
+ax.plot(res_weak["h"], iv_estimand, color=_nbstyle.S2["color"], ls="--", lw=1.5, label="IV estimand $\\beta_h / 0.8$")
+ax.fill_between(res_weak["h"], np.clip(res_weak["lo"], ylo, yhi), np.clip(res_weak["hi"], ylo, yhi), color=_nbstyle.NOTA, alpha=0.25, label=f"Naive Wald {level}% CI")
 for _, r in res_weak.iterrows():
     h = r["h"]
     if r["ar_set_type"] == "all_real":
-        ax.axvspan(h - 0.4, h + 0.4, color="0.90", zorder=0)
+        ax.axvspan(h - 0.4, h + 0.4, color=_nbstyle.NOTA, alpha=0.25, zorder=0)
     elif r["ar_set_type"] == "unbounded_rays":
         # lp_iv reports the rays as (-inf, ar_hi] U [ar_lo, inf), with ar_lo > ar_hi
-        ax.vlines(h, ylo, min(r["ar_hi"], yhi), color="0.00", ls=":", lw=1.8)
-        ax.vlines(h, max(r["ar_lo"], ylo), yhi, color="0.00", ls=":", lw=1.8)
+        ax.vlines(h, ylo, min(r["ar_hi"], yhi), color=_nbstyle.TINTA, ls=":", lw=1.8)
+        ax.vlines(h, max(r["ar_lo"], ylo), yhi, color=_nbstyle.TINTA, ls=":", lw=1.8)
     elif r["ar_set_type"] == "bounded":
-        ax.vlines(h, r["ar_lo"], r["ar_hi"], color="0.00", ls=":", lw=1.8)
-ax.axhline(0, color="0.70", ls=":", lw=0.8)
+        ax.vlines(h, r["ar_lo"], r["ar_hi"], color=_nbstyle.TINTA, ls=":", lw=1.8)
+ax.axhline(0, color=_nbstyle.SPINE, ls=":", lw=0.8)
 ax.set_ylim(ylo, yhi)
 f_avg_weak = res_weak["first_stage_f"].mean()
 ax.set_title(f"(b) Weak Instrument ($F \\approx {f_avg_weak:.1f}$)", loc="left", fontsize=10, fontweight="bold")
 ax.set_xlabel("Horizon $h$ (Quarters)")
 handles, labels = ax.get_legend_handles_labels()
-handles += [Patch(color="0.90", label=f"Anderson-Rubin {level}% set: whole line"), Line2D([], [], color="0.00", ls=":", lw=1.8, label=f"Anderson-Rubin {level}% set")]
+handles += [Patch(color=_nbstyle.NOTA, alpha=0.5, label=f"Anderson-Rubin {level}% set: whole line"), Line2D([], [], color=_nbstyle.TINTA, ls=":", lw=1.8, label=f"Anderson-Rubin {level}% set")]
 ax.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2, fontsize=7, frameon=False)
 
 for ax in axes:
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## Reading the Output & Economic Intuition

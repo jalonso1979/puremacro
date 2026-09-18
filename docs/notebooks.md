@@ -572,6 +572,7 @@ Showcases `47` through `50` bridge theoretical macroeconometrics with applied ce
 | `59_latam_realtime_nowcast_and_news` | Latin America DFM GDP nowcasting, Bańbura-Modugno news decomposition & Berkowitz density PIT | `59_latam_realtime_nowcast_and_news_es` |
 | `60_interactive_dml_irm_and_iv` | Interactive Double ML: IRM (ATE/ATT) with regularized logistic CD, propensity overlap & DML-IV | `60_interactive_dml_irm_and_iv_es` |
 | `61_quantitative_policy_simulators` | Quantitative policy simulators: 77-country OECD ICIO trade GE & sequence-space HANK monetary transmission | `61_quantitative_policy_simulators_es` |
+| `62_flexible_trade_cge` | Flexible trade GE: Nested CES technology, Stone-Geary LES preferences & Atkeson-Burstein markups | `62_flexible_trade_cge_es` |
 
 ---
 

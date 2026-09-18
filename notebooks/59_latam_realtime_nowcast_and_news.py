@@ -258,12 +258,12 @@ assert len(fc_bra.intervals) == 3
 fig, axes = plt.subplots(2, 2, figsize=(13, 10))
 
 # Panel 1: Latent Dynamic Factor Trajectories
-axes[0, 0].plot(res_mex.factors.index, res_mex.factors.iloc[:, 0], color="#006847", lw=2.0, label="Mexico DFM Factor 1 (Banxico/INEGI)")
-axes[0, 0].plot(res_bra.factors.index, res_bra.factors.iloc[:, 0], color="#0b3b60", lw=2.0, ls="--", label="Brazil DFM Factor 1 (BCB)")
+axes[0, 0].plot(res_mex.factors.index, res_mex.factors.iloc[:, 0], color=_nbstyle.S1["color"], lw=2.0, label="Mexico DFM Factor 1 (Banxico/INEGI)")
+axes[0, 0].plot(res_bra.factors.index, res_bra.factors.iloc[:, 0], color=_nbstyle.S2["color"], lw=2.0, ls="--", label="Brazil DFM Factor 1 (BCB)")
 axes[0, 0].set_title("Latin America Dynamic Common Factors (2022–2024)", fontsize=11, fontweight="semibold")
 axes[0, 0].set_xlabel("Reference Period")
 axes[0, 0].set_ylabel("Latent Factor Index (Std. Units)")
-axes[0, 0].grid(True, ls=":", alpha=0.5)
+axes[0, 0].grid(True, ls=":", color=_nbstyle.REJILLA)
 axes[0, 0].legend(loc="best", fontsize=8)
 
 # Panel 2: Bańbura & Modugno News Attribution Waterfall
@@ -276,8 +276,6 @@ fc_mex.plot(ax=axes[1, 0], title="Banco de México: Headline GDP Growth Fan Char
 pit_res.plot(ax=axes[1, 1], title="Forecast Density Calibration: Berkowitz (2001) PIT Distribution")
 
 fig.suptitle("Latin America Real-Time Nowcasting & News Attribution Dashboard", fontsize=13, fontweight="bold")
-fig.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## Read the output
@@ -316,7 +314,6 @@ res_custom = realtime_nowcast(
 
 # Generate custom fan chart
 fig_custom = res_custom.plot_fan_chart(levels=fan_levels_custom)
-plt.show()
 
 print(f"Custom Nowcasting Results ({country_custom} - {target_var_custom}):")
 print(f"  Point Nowcast       : {res_custom.nowcast:+.4f}")

@@ -100,7 +100,7 @@ def _smoke_country_feeds() -> dict[str, int]:
     for name, fn in feeds.items():
         try:
             counts[name] = sum(1 for _ in fn())
-        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+        except Exception:
             counts[name] = 0
     return counts
 
@@ -109,13 +109,13 @@ def run_demo() -> dict:
     try:
         rr = load_romer_romer_2017()
         rr_live = True
-    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+    except Exception:
         rr = _fallback_rr2017()
         rr_live = False
     try:
         cloyne = load_cloyne_2013_uk()
         cloyne_live = True
-    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+    except Exception:
         cloyne = _fallback_cloyne()
         cloyne_live = False
     counts = _smoke_country_feeds()

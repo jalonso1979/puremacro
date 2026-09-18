@@ -114,16 +114,14 @@ stress_share = float((Y[:, 0] > 0.0).mean())
 print(f"T = {len(Y)} quarters | share of stress quarters = {stress_share:.3f}")
 assert 0.40 < stress_share < 0.70   # both regimes well populated
 
-fig, ax = plt.subplots(figsize=(7.2, 3.2))
-ax.plot(Y[:, 0], color="0.15", linewidth=0.9)
-ax.axhline(0.0, color="0.55", linewidth=0.9, linestyle="--")
+fig, ax = _nbstyle.figura(ancho=7.2, alto=3.2)
+ax.plot(Y[:, 0], color=_nbstyle.TINTA, linewidth=0.9)
+ax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.9, linestyle="--")
 ax.fill_between(np.arange(len(Y)), Y[:, 0].min(), Y[:, 0].max(),
-                where=Y[:, 0] > 0.0, color="0.85", zorder=0)
+                where=Y[:, 0] > 0.0, color=_nbstyle.NOTA, alpha=0.25, zorder=0)
 ax.set_xlabel("Quarter")
 ax.set_ylabel("Financial conditions index $z_t$")
 ax.set_title("Simulated FCI — shaded spans are stress quarters ($z_t > 0$)")
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## Fit the threshold VAR
@@ -187,29 +185,28 @@ print(f"cumulative growth loss in stress: frozen-regime {cum_naive:+.2f} "
       f"vs GIRF {cum_girf:+.2f}")
 assert cum_naive < cum_girf - 0.30          # freezing the regime overstates it
 
-fig, axes = plt.subplots(1, 2, figsize=(9.4, 3.8))
-axes[0].axhline(0, color="0.6", linewidth=0.8, linestyle=":")
-axes[0].plot(h, g_calm[:, 1], color="0.45", linewidth=1.8, label="start in calm")
-axes[0].plot(h, g_strs[:, 1], color="0.00", linewidth=1.8, linestyle="--",
+cols2 = _nbstyle.palette(3)
+fig, axes = _nbstyle.figura(ancho=9.4, alto=3.8, ncols=2)
+axes[0].axhline(0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")
+axes[0].plot(h, g_calm[:, 1], color=cols2[0], linewidth=1.8, label="start in calm")
+axes[0].plot(h, g_strs[:, 1], color=cols2[1], linewidth=1.8, linestyle="--",
              label="start in stress")
-axes[0].plot(h, res.girf_pooled[0, :, 1], color="0.30", linewidth=1.0,
+axes[0].plot(h, res.girf_pooled[0, :, 1], color=cols2[2], linewidth=1.0,
              linestyle=":", label="pooled")
-axes[0].plot(h, naive[:, 1], color="0.65", linewidth=1.0, linestyle="-.",
+axes[0].plot(h, naive[:, 1], color=_nbstyle.NOTA, linewidth=1.0, linestyle="-.",
              label="frozen-stress (naive)")
 axes[0].set_xlabel("Horizon (quarters)")
 axes[0].set_ylabel("Growth response to a +1 sd FCI shock")
 axes[0].set_title("Generalized IRF by starting regime")
 axes[0].legend(fontsize=8)
-axes[1].axhline(0, color="0.6", linewidth=0.8, linestyle=":")
-axes[1].fill_between(h, d_lo, d_hi, color="0.75", alpha=0.6,
+axes[1].axhline(0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")
+axes[1].fill_between(h, d_lo, d_hi, color=_nbstyle.NOTA, alpha=0.25,
                      label="90% bootstrap band")
-axes[1].plot(h, d_gr, color="0.00", linewidth=1.8, label="stress $-$ calm")
+axes[1].plot(h, d_gr, color=_nbstyle.TINTA, linewidth=1.8, label="stress $-$ calm")
 axes[1].set_xlabel("Horizon (quarters)")
 axes[1].set_ylabel("Difference in growth response")
 axes[1].set_title("Regime-dependent transmission test")
 axes[1].legend(fontsize=8)
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # **Read the output.** Left panel: the same +1 sd financial shock costs
@@ -248,8 +245,8 @@ print(f"max sign deviation |GI(-1)/-1 - GI(1)| (growth): {dev_sign:.3f}")
 assert np.abs(sc[:, 0, :] - sc[0, 0, :]).max() < 1e-12  # impact IS proportional
 assert dev_size > 0.02 and dev_sign > 0.05              # dynamics are NOT
 
-fig, ax = plt.subplots(figsize=(7.0, 3.8))
-ax.axhline(0, color="0.6", linewidth=0.8, linestyle=":")
+fig, ax = _nbstyle.figura(ancho=7.0, alto=3.8)
+ax.axhline(0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")
 for s in range(4):
     ax.plot(h, sc[s, :, 1], color=cols[s], linestyle=stys[s], linewidth=1.6,
             label=labels[s])
@@ -257,8 +254,6 @@ ax.set_xlabel("Horizon (quarters)")
 ax.set_ylabel("Scaled growth response  $GI(\\delta)/\\delta$")
 ax.set_title("Kilian-Vigfusson size/sign check: one curve iff linear")
 ax.legend(fontsize=8)
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # **Read the output.** At $h=0$ all four curves coincide *exactly* — the
@@ -300,19 +295,17 @@ print(f"max |regime difference| in the linear limit: {np.abs(chk.difference).max
 assert gap < 1e-10
 assert np.abs(chk.difference).max() < 1e-12
 
-fig, ax = plt.subplots(figsize=(7.0, 3.6))
-ax.axhline(0, color="0.6", linewidth=0.8, linestyle=":")
+fig, ax = _nbstyle.figura(ancho=7.0, alto=3.6)
+ax.axhline(0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")
 for j, (name, sty) in enumerate([("FCI", "-"), ("growth", "--")]):
-    ax.plot(h, closed_form[:, j], color="0.15", linestyle=sty, linewidth=1.6,
+    ax.plot(h, closed_form[:, j], color=_nbstyle.TINTA, linestyle=sty, linewidth=1.6,
             label=f"linear IRF — {name}")
-    ax.plot(h[::2], chk.girf_pooled[0, ::2, j], "o", color="0.45", markersize=4,
+    ax.plot(h[::2], chk.girf_pooled[0, ::2, j], "o", color=_nbstyle.NOTA, markersize=4,
             label=f"GIRF — {name}" if j == 0 else None)
 ax.set_xlabel("Horizon (quarters)")
 ax.set_ylabel("Response to a +1 sd FCI shock")
 ax.set_title("Linear limit: the GIRF collapses onto the closed form")
 ax.legend(fontsize=8)
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # **The validation moment.** This is the discipline the notebook wants you

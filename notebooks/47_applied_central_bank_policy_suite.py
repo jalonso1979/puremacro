@@ -300,14 +300,15 @@ assert (quants[2, -1, 1] - quants[0, -1, 1]) > (quants[2, 1, 1] - quants[0, 1, 1
 # ---------------------------------------------------------------------------
 # 6. Hero Visualization: 4-Panel Central Bank Policy Dashboard
 # ---------------------------------------------------------------------------
-fig, axes = plt.subplots(2, 2, figsize=(13.0, 9.5))
+cols_pal = _nbstyle.palette(3)
+fig, axes = _nbstyle.figura(ancho=13.0, alto=9.5, nrows=2, ncols=2)
 
 # (1) Statement Sentiment and Rate Hikes
 ax1 = axes[0, 0]
 quarters_str = [str(d)[:7] for d in tone_res.series.index]
 x_tone = np.arange(len(quarters_str))
-ax1.bar(x_tone, tone_res.series.values, color="0.35", width=0.6, label="Apel-Blix-Grimaldi Tone")
-ax1.axhline(0, color="0.2", linestyle="--", linewidth=0.8)
+ax1.bar(x_tone, tone_res.series.values, color=_nbstyle.S1["color"], width=0.6, label="Apel-Blix-Grimaldi Tone")
+ax1.axhline(0, color=_nbstyle.SPINE, linestyle="--", linewidth=0.8)
 ax1.set_xticks(x_tone[::2])
 ax1.set_xticklabels(quarters_str[::2], rotation=30)
 ax1.set_ylabel("Tone Index [-1.0 Dovish, +1.0 Hawkish]")
@@ -321,11 +322,11 @@ x_time = np.arange(len(sub_sample))
 t_ticks = x_time[::8]
 t_labels = [str(sub_sample.index[i]) for i in t_ticks]
 
-ax2.plot(x_time, sub_sample["ffr"].values, color="0.0", linewidth=1.8, label="Actual Policy Rate")
-ax2.plot(x_time, target_rate_star.loc["2005Q1":].values, color="0.5", linestyle="--", linewidth=1.5, label="Taylor Benchmark i*")
+ax2.plot(x_time, sub_sample["ffr"].values, color=_nbstyle.TINTA, linewidth=1.8, label="Actual Policy Rate")
+ax2.plot(x_time, target_rate_star.loc["2005Q1":].values, color=_nbstyle.S2["color"], linestyle="--", linewidth=1.5, label="Taylor Benchmark i*")
 gap_sub = stance_gap.loc["2005Q1":].values
-ax2.fill_between(x_time, 0, gap_sub, where=(gap_sub >= 0), color="0.75", alpha=0.6, label="Restrictive Stance")
-ax2.fill_between(x_time, 0, gap_sub, where=(gap_sub < 0), color="0.90", alpha=0.6, label="Accommodative Stance")
+ax2.fill_between(x_time, 0, gap_sub, where=(gap_sub >= 0), color=_nbstyle.S1["color"], alpha=0.25, label="Restrictive Stance")
+ax2.fill_between(x_time, 0, gap_sub, where=(gap_sub < 0), color=_nbstyle.S2["color"], alpha=0.20, label="Accommodative Stance")
 ax2.set_xticks(t_ticks)
 ax2.set_xticklabels(t_labels, rotation=30)
 ax2.set_ylabel("Annualized Rate (%)")
@@ -335,10 +336,10 @@ ax2.legend(loc="upper left", fontsize=8)
 # (3) Counterfactual Disinflation Paths Across Regimes
 ax3 = axes[1, 0]
 h_steps = np.arange(12)
-ax3.plot(h_steps, sim_strict["inflation"].values, color="0.0", linewidth=1.8, label="Strict IT (phi_pi=2.5, phi_y=0.0)")
-ax3.plot(h_steps, sim_dovish["inflation"].values, color="0.45", linestyle="--", linewidth=1.6, label="Dovish (phi_pi=1.1, phi_y=1.0)")
-ax3.plot(h_steps, sim_no_inertia["inflation"].values, color="0.65", linestyle=":", linewidth=1.6, label="No Inertia (rho_i=0.0)")
-ax3.axhline(pi_star_calib, color="0.3", linestyle="--", linewidth=0.8, label="Inflation Target π*=2%")
+ax3.plot(h_steps, sim_strict["inflation"].values, color=cols_pal[0], linewidth=1.8, label="Strict IT (phi_pi=2.5, phi_y=0.0)")
+ax3.plot(h_steps, sim_dovish["inflation"].values, color=cols_pal[1], linestyle="--", linewidth=1.6, label="Dovish (phi_pi=1.1, phi_y=1.0)")
+ax3.plot(h_steps, sim_no_inertia["inflation"].values, color=cols_pal[2], linestyle=":", linewidth=1.6, label="No Inertia (rho_i=0.0)")
+ax3.axhline(pi_star_calib, color=_nbstyle.SPINE, linestyle="--", linewidth=0.8, label="Inflation Target π*=2%")
 ax3.set_xlabel("Quarters Ahead")
 ax3.set_ylabel("Inflation Rate (%)")
 ax3.set_title("(c) Counterfactual Disinflation Trajectories Across 3 Regimes")
@@ -357,18 +358,15 @@ lo_50 = np.percentile(infl_paths, 25, axis=0)
 hi_50 = np.percentile(infl_paths, 75, axis=0)
 median_proj = np.percentile(infl_paths, 50, axis=0)
 
-ax4.fill_between(h_ax, lo_90, hi_90, color="0.88", label="90% Confidence Interval")
-ax4.fill_between(h_ax, lo_70, hi_70, color="0.75", label="70% Confidence Interval")
-ax4.fill_between(h_ax, lo_50, hi_50, color="0.60", label="50% Confidence Interval")
-ax4.plot(h_ax, median_proj, color="0.0", linewidth=1.8, label="Median Projection")
-ax4.axhline(pi_star_calib, color="0.3", linestyle="--", linewidth=0.8, label="Target π*=2%")
+ax4.fill_between(h_ax, lo_90, hi_90, color=_nbstyle.S1["color"], alpha=0.12, label="90% Confidence Interval")
+ax4.fill_between(h_ax, lo_70, hi_70, color=_nbstyle.S1["color"], alpha=0.22, label="70% Confidence Interval")
+ax4.fill_between(h_ax, lo_50, hi_50, color=_nbstyle.S1["color"], alpha=0.35, label="50% Confidence Interval")
+ax4.plot(h_ax, median_proj, color=_nbstyle.TINTA, linewidth=1.8, label="Median Projection")
+ax4.axhline(pi_star_calib, color=_nbstyle.SPINE, linestyle="--", linewidth=0.8, label="Target π*=2%")
 ax4.set_xlabel("Forecast Horizon (Quarters Ahead)")
 ax4.set_ylabel("Projected CPI Inflation (%)")
 ax4.set_title("(d) 12-Quarter Central Bank Projection Fan Chart")
 ax4.legend(loc="lower left", fontsize=8)
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## Read the output

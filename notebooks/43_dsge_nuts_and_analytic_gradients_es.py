@@ -364,64 +364,61 @@ assert np.all(np.isfinite(res.draws))
 # - **Panel D: Diagnóstico de Energía**: Histogramas superpuestos de la energía marginal $E$ y la transición de energía $\Delta E$.
 
 # %%
-fig = plt.figure(figsize=(13, 9.5))
+fig = plt.figure(figsize=(13, 9.5), layout="constrained")
 
-colors = ["0.15", "0.55"]
+colors = _nbstyle.palette(n_chains)
 true_vals = {"sigma": 1.00, "kappa": 0.10}
 
-# Panel 1: Traza de sigma
+# Panel 1: Trace plot for sigma
 ax1 = plt.subplot2grid((2, 2), (0, 0))
 for c in range(n_chains):
     ax1.plot(res.draws[c, :, 0], color=colors[c], lw=1.2, alpha=0.85, label=f"Cadena {c+1}")
-ax1.axhline(true_vals["sigma"], color="black", linestyle="--", lw=1.2, label=r"Verdadero $\sigma^* = 1.00$")
+ax1.axhline(true_vals["sigma"], color=_nbstyle.TINTA, linestyle="--", lw=1.2, label=r"Verdadero $\sigma^* = 1.00$")
 if res.mode is not None and "sigma" in res.mode:
-    ax1.axhline(res.mode["sigma"], color="0.40", linestyle=":", lw=1.2, label=f"Modo ({res.mode['sigma']:.3f})")
-ax1.set_title(r"(a) Trazas Multi-Cadena: Elasticidad Intertemporal $\sigma$", fontweight="bold")
+    ax1.axhline(res.mode["sigma"], color=_nbstyle.NOTA, linestyle=":", lw=1.2, label=f"Modo ({res.mode['sigma']:.3f})")
+ax1.set_title(r"(a) Gráfico de trazas multi-cadena: Elasticidad intertemporal $\sigma$", fontweight="bold")
 ax1.set_xlabel("Iteración MCMC (Post-Calentamiento)")
 ax1.set_ylabel(r"$\sigma$")
 ax1.legend(loc="upper right", fontsize=8)
 
-# Panel 2: Traza de kappa
+# Panel 2: Trace plot for kappa
 ax2 = plt.subplot2grid((2, 2), (0, 1))
 for c in range(n_chains):
     ax2.plot(res.draws[c, :, 1], color=colors[c], lw=1.2, alpha=0.85, label=f"Cadena {c+1}")
-ax2.axhline(true_vals["kappa"], color="black", linestyle="--", lw=1.2, label=r"Verdadero $\kappa^* = 0.10$")
+ax2.axhline(true_vals["kappa"], color=_nbstyle.TINTA, linestyle="--", lw=1.2, label=r"Verdadero $\kappa^* = 0.10$")
 if res.mode is not None and "kappa" in res.mode:
-    ax2.axhline(res.mode["kappa"], color="0.40", linestyle=":", lw=1.2, label=f"Modo ({res.mode['kappa']:.3f})")
-ax2.set_title(r"(b) Trazas Multi-Cadena: Pendiente Phillips $\kappa$", fontweight="bold")
+    ax2.axhline(res.mode["kappa"], color=_nbstyle.NOTA, linestyle=":", lw=1.2, label=f"Modo ({res.mode['kappa']:.3f})")
+ax2.set_title(r"(b) Gráfico de trazas multi-cadena: Pendiente curva Phillips $\kappa$", fontweight="bold")
 ax2.set_xlabel("Iteración MCMC (Post-Calentamiento)")
 ax2.set_ylabel(r"$\kappa$")
 ax2.legend(loc="upper right", fontsize=8)
 
-# Panel 3: Densidad Posterior con Curva Previa
+# Panel 3: Posterior Densities with Prior Overlays
 ax3 = plt.subplot2grid((2, 2), (1, 0))
 sigma_flat = res.draws[:, :, 0].ravel()
-ax3.hist(sigma_flat, bins=22, density=True, alpha=0.55, color="0.45", edgecolor="0.2", label="Posterior MCMC")
-# Curva previa: Gamma(media=1.0, std=0.20) => k = 25, escala = 0.04
+ax3.hist(sigma_flat, bins=22, density=True, alpha=0.55, color=_nbstyle.tono(0.45), edgecolor=_nbstyle.SPINE, label="Posterior MCMC")
+# Prior overlay: Gamma(mean=1.0, std=0.20) => k = 25, theta = 0.04
 x_sig = np.linspace(0.65, 1.35, 200)
 prior_sig = sp_gamma.pdf(x_sig, a=25.0, scale=0.04)
-ax3.plot(x_sig, prior_sig, color="black", linestyle="--", lw=1.5, label="Previa (Gamma)")
-ax3.axvline(true_vals["sigma"], color="black", linestyle="-", lw=1.5, label=r"Verdadero $\sigma^*$")
+ax3.plot(x_sig, prior_sig, color=_nbstyle.TINTA, linestyle="--", lw=1.5, label="Previa (Gamma)")
+ax3.axvline(true_vals["sigma"], color=_nbstyle.TINTA, linestyle="-", lw=1.5, label=r"Verdadero $\sigma^*$")
 if res.mode is not None and "sigma" in res.mode:
-    ax3.axvline(res.mode["sigma"], color="0.3", linestyle=":", lw=1.5, label="Modo")
-ax3.set_title(r"(c) Distribución Posterior vs Previa: $\sigma$", fontweight="bold")
+    ax3.axvline(res.mode["sigma"], color=_nbstyle.NOTA, linestyle=":", lw=1.5, label="Modo")
+ax3.set_title(r"(c) Distribución posterior vs previa: $\sigma$", fontweight="bold")
 ax3.set_xlabel(r"$\sigma$")
 ax3.set_ylabel("Densidad")
 ax3.legend(loc="upper right", fontsize=8)
 
-# Panel 4: Diagnóstico de Energía de Betancourt
+# Panel 4: Betancourt Energy Diagnostic
 ax4 = plt.subplot2grid((2, 2), (1, 1))
 E_flat = res.energy_trace.ravel()
 dE_flat = np.concatenate([np.diff(res.energy_trace[c]) for c in range(n_chains)])
-ax4.hist(E_flat - np.mean(E_flat), bins=25, density=True, alpha=0.55, color="0.30", edgecolor="0.1", label=r"Energía marginal $E - \bar{E}$")
-ax4.hist(dE_flat, bins=25, density=True, alpha=0.45, color="0.70", edgecolor="0.3", label=r"Transición de energía $\Delta E$")
-ax4.set_title(rf"(d) Diagnóstico de Energía de Betancourt (E-BFMI = {min_ebfmi:.3f})", fontweight="bold")
-ax4.set_xlabel("Desviación de Energía")
+ax4.hist(E_flat - np.mean(E_flat), bins=25, density=True, alpha=0.55, color=_nbstyle.tono(0.30), edgecolor=_nbstyle.SPINE, label=r"Energía marginal $E - \bar{E}$")
+ax4.hist(dE_flat, bins=25, density=True, alpha=0.45, color=_nbstyle.tono(0.70), edgecolor=_nbstyle.SPINE, label=r"Transición de energía $\Delta E$")
+ax4.set_title(rf"(d) Diagnóstico de energía Betancourt (E-BFMI = {min_ebfmi:.3f})", fontweight="bold")
+ax4.set_xlabel("Desviación de energía")
 ax4.set_ylabel("Densidad")
 ax4.legend(loc="upper right", fontsize=8)
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## Lea la salida

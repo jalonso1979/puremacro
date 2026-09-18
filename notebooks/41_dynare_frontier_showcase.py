@@ -244,7 +244,7 @@ assert np.isfinite(bayes_res.log_posterior_trace[0]).all()
 # ---------------------------------------------------------------------------
 # Section 7: Multi-Panel Hero Figure (6-Panel Frontier Dashboard)
 # ---------------------------------------------------------------------------
-fig, axes = plt.subplots(3, 2, figsize=(13.5, 12.0))
+fig, axes = _nbstyle.figura(3, 2, figsize=(13.5, 12.0))
 colors = _nbstyle.palette(6)
 
 # Panel 1: Smets-Wouters (2007) Impulse Responses
@@ -252,12 +252,12 @@ ax1 = axes[0, 0]
 t_irf = np.arange(len(sim_res.irfs["dy_ea"]))
 ax1.plot(t_irf, sim_res.irfs["dy_ea"].to_numpy(), color=colors[0], lw=2.0, label=r"Output Growth ($dy \leftarrow \varepsilon_a$)")
 ax1.plot(t_irf, sim_res.irfs["robs_em"].to_numpy(), color=colors[1], lw=2.0, linestyle="--", label=r"Policy Rate ($robs \leftarrow \varepsilon_m$)")
-ax1.axhline(0.0, color="0.4", linestyle=":", lw=1.0)
+ax1.axhline(0.0, color=_nbstyle.SPINE, linestyle=":", lw=1.0)
 ax1.set_title("Smets-Wouters (2007) Structural IRFs", fontsize=11, fontweight="bold")
-ax1.set_xlabel("Quarters")
-ax1.set_ylabel("% Deviation")
-ax1.grid(True, linestyle=":", alpha=0.6)
-ax1.legend(loc="upper right", frameon=True)
+ax1.set_xlabel("Quarters", color=_nbstyle.TEXTO)
+ax1.set_ylabel("% Deviation", color=_nbstyle.TEXTO)
+ax1.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.8)
+ax1.legend(loc="upper right", frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
 
 # Panel 2: FEVD Variance Shares for Output Growth (dy)
 ax2 = axes[0, 1]
@@ -267,36 +267,36 @@ shocks_fevd = ["ea", "eb", "eqs", "em"]
 for idx, shk in enumerate(shocks_fevd):
     ax2.plot(np.arange(len(horiz_labels)), fevd_dy[shk].to_numpy(), color=colors[idx], marker="o", lw=1.8, label=f"Shock {shk}")
 ax2.set_xticks(np.arange(len(horiz_labels)))
-ax2.set_xticklabels(horiz_labels)
+ax2.set_xticklabels(horiz_labels, color=_nbstyle.TEXTO)
 ax2.set_title("FEVD Variance Shares: Output Growth (dy)", fontsize=11, fontweight="bold")
-ax2.set_xlabel("Forecast Horizon")
-ax2.set_ylabel("Variance Share")
-ax2.grid(True, linestyle=":", alpha=0.6)
-ax2.legend(loc="best", frameon=True)
+ax2.set_xlabel("Forecast Horizon", color=_nbstyle.TEXTO)
+ax2.set_ylabel("Variance Share", color=_nbstyle.TEXTO)
+ax2.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.8)
+ax2.legend(loc="best", frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
 
 # Panel 3: Historical Shock Decomposition of Hours Worked (labobs)
 ax3 = axes[1, 0]
 t_dec = np.arange(len(df_lab))
-ax3.plot(t_dec, df_lab["actual"].to_numpy(), color="black", lw=1.2, label="Actual labobs")
+ax3.plot(t_dec, df_lab["actual"].to_numpy(), color=_nbstyle.TINTA, lw=1.4, label="Actual labobs")
 ax3.plot(t_dec, df_lab["ea"].to_numpy(), color=colors[0], lw=1.4, label=r"Productivity $\varepsilon_a$")
 ax3.plot(t_dec, df_lab["em"].to_numpy(), color=colors[1], lw=1.4, linestyle="--", label=r"Monetary $\varepsilon_m$")
-ax3.plot(t_dec, df_lab["initial_condition"].to_numpy(), color="0.5", lw=1.0, linestyle=":", label="Initial Cond.")
+ax3.plot(t_dec, df_lab["initial_condition"].to_numpy(), color=_nbstyle.NOTA, lw=1.0, linestyle=":", label="Initial Cond.")
 ax3.set_title("Historical Shock Decomposition: Hours (labobs)", fontsize=11, fontweight="bold")
-ax3.set_xlabel("Quarters (1966Q1 - 2004Q4)")
-ax3.set_ylabel("Standardized Deviation")
-ax3.grid(True, linestyle=":", alpha=0.6)
-ax3.legend(loc="lower left", ncol=2, fontsize=8, frameon=True)
+ax3.set_xlabel("Quarters (1966Q1 - 2004Q4)", color=_nbstyle.TEXTO)
+ax3.set_ylabel("Standardized Deviation", color=_nbstyle.TEXTO)
+ax3.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.8)
+ax3.legend(loc="lower left", ncol=2, fontsize=8, frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
 
 # Panel 4: OccBin Zero Lower Bound Interest Rate Trajectory
 ax4 = axes[1, 1]
 t_occ = np.arange(len(occ_res.path))
 ax4.plot(t_occ, occ_res.path["r"].to_numpy() * 100, color=colors[0], lw=2.2, label="Nominal Rate $r_t$")
-ax4.axhline(-params_nk["r_ss"] * 100, color="#d62728", linestyle="--", lw=1.5, label=f"ZLB Floor (-{params_nk['r_ss']*100:.1f}%)")
+ax4.axhline(-params_nk["r_ss"] * 100, color=colors[2], linestyle="--", lw=1.5, label=f"ZLB Floor (-{params_nk['r_ss']*100:.1f}%)")
 ax4.set_title("OccBin: Occasionally Binding Zero Lower Bound", fontsize=11, fontweight="bold")
-ax4.set_xlabel("Quarters")
-ax4.set_ylabel("Interest Rate (% Dev)")
-ax4.grid(True, linestyle=":", alpha=0.6)
-ax4.legend(loc="lower right", frameon=True)
+ax4.set_xlabel("Quarters", color=_nbstyle.TEXTO)
+ax4.set_ylabel("Interest Rate (% Dev)", color=_nbstyle.TEXTO)
+ax4.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.8)
+ax4.legend(loc="lower right", frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
 
 # Panel 5: Non-Linear Perfect Foresight Transition (Ramsey Model)
 ax5 = axes[2, 0]
@@ -306,22 +306,19 @@ ax5.plot(t_pf, pf_res.path.iloc[:, 1].to_numpy(), color=colors[1], lw=2.0, label
 ax5.axhline(c_ss, color=colors[0], linestyle=":", alpha=0.7, label=f"$c^* = {c_ss:.2f}$")
 ax5.axhline(k_ss, color=colors[1], linestyle=":", alpha=0.7, label=f"$k^* = {k_ss:.2f}$")
 ax5.set_title("Deterministic Transition (Ramsey Model)", fontsize=11, fontweight="bold")
-ax5.set_xlabel("Quarters")
-ax5.set_ylabel("Stock / Flow Level")
-ax5.grid(True, linestyle=":", alpha=0.6)
-ax5.legend(loc="center right", frameon=True)
+ax5.set_xlabel("Quarters", color=_nbstyle.TEXTO)
+ax5.set_ylabel("Stock / Flow Level", color=_nbstyle.TEXTO)
+ax5.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.8)
+ax5.legend(loc="center right", frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
 
 # Panel 6: Bayesian MCMC Log-Posterior Trace
 ax6 = axes[2, 1]
 trace_data = bayes_res.log_posterior_trace[0]
 ax6.plot(np.arange(len(trace_data)), trace_data, color=colors[0], lw=1.8)
 ax6.set_title("Smets-Wouters MCMC Log-Posterior Trace", fontsize=11, fontweight="bold")
-ax6.set_xlabel("MCMC Draw (Post-Burn-in)")
-ax6.set_ylabel("Log-Posterior")
-ax6.grid(True, linestyle=":", alpha=0.6)
-
-plt.tight_layout()
-plt.show()
+ax6.set_xlabel("MCMC Draw (Post-Burn-in)", color=_nbstyle.TEXTO)
+ax6.set_ylabel("Log-Posterior", color=_nbstyle.TEXTO)
+ax6.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.8)
 
 # %% [markdown]
 # ## Read the output

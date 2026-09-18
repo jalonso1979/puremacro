@@ -90,28 +90,25 @@ assert np.abs(att_post - true_effect) < 0.5, f"Estimated effect deviates from tr
 # We plot the actual outcome $Y_1$ vs Synthetic Control $\hat Y_1$, alongside the estimated causal gap $\hat\tau_t$.
 
 # %%
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10.5, 4.2))
+fig, (ax1, ax2) = _nbstyle.figura(ancho=10.5, alto=4.2, ncols=2)
 
 # Left Panel: Actual vs Synthetic Outcome
-ax1.plot(range(1, T + 1), y_treated, color=_nbstyle.palette(2)[0], lw=2.2, label="Treated Unit (Actual)")
-ax1.plot(range(1, T + 1), y_synthetic, color=_nbstyle.palette(2)[1], lw=2.0, linestyle="--", label="Synthetic Control")
-ax1.axvline(T0, color="0.0", linestyle=":", lw=1.5, label=f"Intervention (T0 = {T0})")
+ax1.plot(range(1, T + 1), y_treated, color=_nbstyle.S1["color"], lw=2.2, label="Treated Unit (Actual)")
+ax1.plot(range(1, T + 1), y_synthetic, color=_nbstyle.S2["color"], lw=2.0, linestyle="--", label="Synthetic Control")
+ax1.axvline(T0, color=_nbstyle.SPINE, linestyle=":", lw=1.5, label=f"Intervention (T0 = {T0})")
 ax1.set_xlabel("Time Period t")
 ax1.set_ylabel("Outcome Y")
 ax1.set_title("Actual vs Synthetic Counterfactual Trajectory")
 ax1.legend(loc="upper left")
 
 # Right Panel: Estimated Treatment Gap
-ax2.plot(range(1, T + 1), att_path, color=_nbstyle.palette(2)[0], lw=2.2, label=f"Post Effect = {att_post:.2f}")
-ax2.axhline(0, color="0.0", lw=0.8, linestyle="--")
-ax2.axvline(T0, color="0.0", linestyle=":", lw=1.5)
+ax2.plot(range(1, T + 1), att_path, color=_nbstyle.S1["color"], lw=2.2, label=f"Post Effect = {att_post:.2f}")
+ax2.axhline(0, color=_nbstyle.SPINE, lw=0.8, linestyle="--")
+ax2.axvline(T0, color=_nbstyle.SPINE, linestyle=":", lw=1.5)
 ax2.set_xlabel("Time Period t")
 ax2.set_ylabel("Treatment Gap (Y_treated - Y_synth)")
 ax2.set_title("Estimated Causal Policy Effect Path")
 ax2.legend(loc="upper left")
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # **Reading the output.** Pre-intervention ($t < 25$), the synthetic control tracks the treated unit almost perfectly. Post-intervention ($t \ge 25$), the outcome of the treated unit diverges sharply above its synthetic counterpart, recovering the true policy effect of $\tau = +2.5$.

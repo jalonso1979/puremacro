@@ -383,10 +383,10 @@ def extract_body_from_pdf(pdf_bytes: bytes) -> str | None:
         for page in reader.pages:
             try:
                 chunks.append(page.extract_text() or "")
-            except (ValueError, ArithmeticError, Exception):
+            except Exception:
                 continue
         text = "\n\n".join(chunks).strip()
-    except (ValueError, ArithmeticError, Exception):
+    except Exception:
         return None
     return text if (text and len(text) > 200) else None
 

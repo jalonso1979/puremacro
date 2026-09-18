@@ -93,27 +93,24 @@ assert 0.05 < gini_coef < 0.60, f"Coeficiente de Gini fuera del rango esperado: 
 # La figura principal muestra las reglas de política $a'(a, z)$ para estados de alta vs baja productividad.
 
 # %%
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10.5, 4.2))
+fig, (ax1, ax2) = _nbstyle.figura(1, 2, figsize=(10.5, 4.2))
 
 # Panel izquierdo: Funciones de política
-ax1.plot(a_grid, a_grid, "k--", alpha=0.5, label="Línea de 45° (a' = a)")
+ax1.plot(a_grid, a_grid, linestyle="--", color=_nbstyle.SPINE, alpha=0.7, label="Línea de 45° (a' = a)")
 ax1.plot(a_grid, policy_a[:, 0], color=_nbstyle.palette(2)[0], lw=2, label="Baja Productividad (z_min)")
 ax1.plot(a_grid, policy_a[:, -1], color=_nbstyle.palette(2)[1], lw=2, label="Alta Productividad (z_max)")
-ax1.set_xlabel("Activos Actuales a")
-ax1.set_ylabel("Activos Siguiente Periodo a'")
+ax1.set_xlabel("Activos Actuales a", color=_nbstyle.TEXTO)
+ax1.set_ylabel("Activos Siguiente Periodo a'", color=_nbstyle.TEXTO)
 ax1.set_title("Funciones de Política Óptimas a'(a, z)")
-ax1.legend(loc="upper left")
+ax1.legend(loc="upper left", frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
 
 # Panel derecho: Función de valor
 ax2.plot(a_grid, V[:, 0], color=_nbstyle.palette(2)[0], lw=2, label="V(a, z_min)")
 ax2.plot(a_grid, V[:, -1], color=_nbstyle.palette(2)[1], lw=2, label="V(a, z_max)")
-ax2.set_xlabel("Activos a")
-ax2.set_ylabel("Valor V(a, z)")
+ax2.set_xlabel("Activos a", color=_nbstyle.TEXTO)
+ax2.set_ylabel("Valor V(a, z)", color=_nbstyle.TEXTO)
 ax2.set_title("Funciones de Valor V(a, z)")
-ax2.legend(loc="lower right")
-
-plt.tight_layout()
-plt.show()
+ax2.legend(loc="lower right", frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
 
 # %% [markdown]
 # **Leyendo el resultado.** Los agentes de baja productividad ($z_{\min}$) desacumulan activos cuando la riqueza es alta, mientras que los agentes de alta productividad ($z_{\max}$) ahorran agresivamente. Los motivos precautorios evitan que la riqueza colapse a cero.

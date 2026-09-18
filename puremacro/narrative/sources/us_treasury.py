@@ -51,7 +51,7 @@ def iter_treasury_press(*, max_pages: int = 5) -> Iterator[tuple]:
         url = _BASE + (f"?page={page}" if page > 0 else "")
         try:
             html = safe_get_text(url)
-        except (ValueError, ArithmeticError, Exception):
+        except Exception:
             return
         items = _ITEM_RX.findall(html)
         if not items:
@@ -65,7 +65,7 @@ def iter_treasury_press(*, max_pages: int = 5) -> Iterator[tuple]:
             title = re.sub(r"<[^>]+>", " ", title_m.group(1)).strip()
             try:
                 date = pd.Timestamp(date_m.group(1))
-            except (ValueError, ArithmeticError, Exception):
+            except Exception:
                 continue
             link = href_m.group(1) if href_m else ""
             if link.startswith("/"):

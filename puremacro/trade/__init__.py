@@ -133,6 +133,26 @@ from .extensions import (
     solve_retaliation_game,
 )
 
+# Flexible CGE modeling engine
+from .flexible import (
+    FlexibleEquilibriumResult,
+    FlexibleMarketStructureConfig,
+    FlexiblePreferenceConfig,
+    FlexibleTechnologyConfig,
+    FlexibleTradeEquilibriumResult,
+    FlexibleTradeModelConfig,
+    compute_atkeson_burstein_markups,
+    compute_benchmark_market_shares,
+    compute_convergence_diagnostics,
+    compute_dixit_stiglitz_varieties,
+    compute_nested_ces_costs,
+    compute_nested_factor_demands,
+    compute_stone_geary_final_demand,
+    compute_variety_price_scaling,
+    smooth_subsistence_scaling,
+    solve_flexible_trade_equilibrium,
+)
+
 # Game-theoretic optimal tariffs and Nash equilibrium engine
 from . import game, optimal_tariffs
 from .optimal_tariffs import (
@@ -309,5 +329,22 @@ __all__ = [
     "decompose_welfare_effects",
     "compute_supply_chain_vulnerability",
     "calculate_tariff_revenue_incidence",
+    # Flexible CGE modeling engine
+    "FlexibleTechnologyConfig",
+    "FlexiblePreferenceConfig",
+    "FlexibleMarketStructureConfig",
+    "FlexibleTradeModelConfig",
+    "FlexibleTradeEquilibriumResult",
+    "FlexibleEquilibriumResult",
+    "compute_atkeson_burstein_markups",
+    "compute_benchmark_market_shares",
+    "compute_convergence_diagnostics",
+    "compute_dixit_stiglitz_varieties",
+    "compute_nested_ces_costs",
+    "compute_nested_factor_demands",
+    "compute_stone_geary_final_demand",
+    "compute_variety_price_scaling",
+    "smooth_subsistence_scaling",
+    "solve_flexible_trade_equilibrium",
 ]
 

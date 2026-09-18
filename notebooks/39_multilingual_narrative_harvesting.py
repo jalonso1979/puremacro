@@ -123,22 +123,19 @@ print(df_scores[["Language", "Country", "Domain", "Inferred Sign", "Confidence",
 # ## 3. Visualizing Sentiment Intensities Across Languages
 
 # %%
-fig, ax = plt.subplots(figsize=(10, 5))
+fig, ax = _nbstyle.figura(figsize=(9.2, 4.6))
 
 languages = [r["Language"].upper() + f" ({r['Country']})" for r in scoring_results]
 net_sentiments = [r["Net Sentiment"] for r in scoring_results]
-colors = ["#2ca02c" if s > 0 else "#d62728" for s in net_sentiments]
+colors = [_nbstyle.S1["color"] if s > 0 else _nbstyle.S2["color"] for s in net_sentiments]
 
-bars = ax.bar(range(len(languages)), net_sentiments, color=colors, edgecolor="#333", alpha=0.85)
-ax.axhline(0, color="black", lw=0.8, linestyle="--")
+bars = ax.bar(range(len(languages)), net_sentiments, color=colors, edgecolor=_nbstyle.SPINE, alpha=0.85)
+ax.axhline(0, color=_nbstyle.SPINE, lw=0.8, linestyle="--")
 ax.set_xticks(range(len(languages)))
-ax.set_xticklabels(languages, rotation=45, ha="right")
+ax.set_xticklabels(languages, rotation=45, ha="right", color=_nbstyle.TEXTO)
 ax.set_title("Multilingual Net Policy Sentiment across Native Text Samples", fontsize=11, fontweight="bold")
-ax.set_ylabel("Net Sentiment Score", fontsize=10)
-ax.grid(True, linestyle=":", alpha=0.6)
-
-plt.tight_layout()
-plt.show()
+ax.set_ylabel("Net Sentiment Score", color=_nbstyle.TEXTO)
+ax.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.8)
 
 # %% [markdown]
 # ## 4. Modeling Realization Schedules & Implementation Lags
@@ -165,7 +162,7 @@ for d, w in prof_transfers:
     print(f"  Quarter {d.strftime('%YQ%q')}: {w * 100:.1f}%")
 
 # %%
-fig, ax = plt.subplots(figsize=(9, 4.5))
+fig, ax = _nbstyle.figura(figsize=(9.0, 4.5))
 
 horizons = [f"Q+{i}" for i in range(5)]
 w_infra = [w for _, w in prof_infra]
@@ -175,20 +172,17 @@ w_tax = [w for _, w in prof_tax] + [0.0]
 x = np.arange(len(horizons))
 width = 0.25
 
-ax.bar(x - width, w_infra, width, label="Infrastructure (S-Curve)", color="#1f77b4", edgecolor="#333")
-ax.bar(x, w_trans, width, label="Direct Transfers (Front-Loaded)", color="#2ca02c", edgecolor="#333")
-ax.bar(x + width, w_tax, width, label="Tax Reform (Uniform)", color="#ff7f0e", edgecolor="#333")
+ax.bar(x - width, w_infra, width, label="Infrastructure (S-Curve)", color=_nbstyle.S1["color"], edgecolor=_nbstyle.SPINE)
+ax.bar(x, w_trans, width, label="Direct Transfers (Front-Loaded)", color=_nbstyle.S2["color"], edgecolor=_nbstyle.SPINE)
+ax.bar(x + width, w_tax, width, label="Tax Reform (Uniform)", color=_nbstyle.S3["color"], edgecolor=_nbstyle.SPINE)
 
 ax.set_title("Empirical Policy Implementation Schedules (Weight Distribution)", fontsize=11, fontweight="bold")
-ax.set_xlabel("Quarters Post-Announcement", fontsize=10)
-ax.set_ylabel("Share of Total Expenditure / Impact", fontsize=10)
+ax.set_xlabel("Quarters Post-Announcement", color=_nbstyle.TEXTO)
+ax.set_ylabel("Share of Total Expenditure / Impact", color=_nbstyle.TEXTO)
 ax.set_xticks(x)
 ax.set_xticklabels(horizons)
-ax.legend()
-ax.grid(True, linestyle=":", alpha=0.6)
-
-plt.tight_layout()
-plt.show()
+ax.legend(frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
+ax.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.8)
 
 # %% [markdown]
 # ## 5. Structured Policy Action Classification (`PolicyActionClassifier`)

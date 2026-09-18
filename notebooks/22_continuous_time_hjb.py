@@ -82,28 +82,25 @@ assert c[0, 1] > c[0, 0], "Consumption must be higher for high productivity stat
 # We plot consumption policy functions $c(a, z)$ and savings drift $s(a, z) = r a + w z - c(a, z)$ across wealth levels $a$.
 
 # %%
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10.5, 4.2))
+fig, (ax1, ax2) = _nbstyle.figura(1, 2, figsize=(10.5, 4.2))
 
 # Left Panel: Consumption functions
 ax1.plot(grid_a, c[:, 0], color=_nbstyle.palette(2)[0], lw=2, label=f"Low Income (z = {e_grid[0]:.1f})")
 ax1.plot(grid_a, c[:, 1], color=_nbstyle.palette(2)[1], lw=2, label=f"High Income (z = {e_grid[1]:.1f})")
-ax1.plot(grid_a, 0.03 * grid_a + 1.0 * e_grid[0], "k--", alpha=0.4, label="Income Line (Low Z)")
-ax1.set_xlabel("Assets a")
-ax1.set_ylabel("Consumption c(a, z)")
+ax1.plot(grid_a, 0.03 * grid_a + 1.0 * e_grid[0], linestyle="--", color=_nbstyle.SPINE, alpha=0.6, label="Income Line (Low Z)")
+ax1.set_xlabel("Assets a", color=_nbstyle.TEXTO)
+ax1.set_ylabel("Consumption c(a, z)", color=_nbstyle.TEXTO)
 ax1.set_title("Continuous-Time Consumption Policy Functions")
-ax1.legend(loc="upper left")
+ax1.legend(loc="upper left", frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
 
 # Right Panel: Savings Drift s(a, z)
-ax2.axhline(0, color="0.0", lw=0.8, linestyle="--")
+ax2.axhline(0, color=_nbstyle.SPINE, lw=0.8, linestyle="--")
 ax2.plot(grid_a, drift[:, 0], color=_nbstyle.palette(2)[0], lw=2, label="Drift s(a, z_low)")
 ax2.plot(grid_a, drift[:, 1], color=_nbstyle.palette(2)[1], lw=2, label="Drift s(a, z_high)")
-ax2.set_xlabel("Assets a")
-ax2.set_ylabel("Savings Drift s(a, z) = ra + wz - c")
+ax2.set_xlabel("Assets a", color=_nbstyle.TEXTO)
+ax2.set_ylabel("Savings Drift s(a, z) = ra + wz - c", color=_nbstyle.TEXTO)
 ax2.set_title("State-Dependent Savings Drift")
-ax2.legend(loc="upper right")
-
-plt.tight_layout()
-plt.show()
+ax2.legend(loc="upper right", frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
 
 # %% [markdown]
 # **Reading the output.** At $a=0$, low-income households consume their income $c(0, z_{\text{low}}) = w z_{\text{low}}$, causing savings drift to hit zero $s(0, z_{\text{low}}) = 0$. High-income households save aggressively ($s(a, z_{\text{high}}) > 0$). The upwind scheme handles the non-linear kink at the borrowing constraint $a=0$ smoothly.

@@ -138,16 +138,16 @@ level = int(round(100 * res_strong.ci_level))   # lp_iv usa alpha = 0.10 por omi
 iv_estimand = beta_true / 0.8
 ylo, yhi = -6.0, 4.0
 
-fig, axes = plt.subplots(1, 2, figsize=(7.6, 4.4), sharey=True)
+fig, axes = _nbstyle.figura(ancho=7.6, alto=4.4, ncols=2, sharey=True)
 
 # Panel 1
 ax = axes[0]
-ax.plot(res_strong["h"], res_strong["beta"], color="0.00", lw=2.0, label="Estimación LP-IV $\\hat{\\beta}_h$")
-ax.plot(res_strong["h"], iv_estimand, color="0.60", ls="--", lw=1.5, label="Estimando IV $\\beta_h / 0.8$")
-ax.fill_between(res_strong["h"], res_strong["lo"], res_strong["hi"], color="0.75", alpha=0.5, label=f"IC Wald {level}%")
-ax.plot(res_strong["h"], res_strong["ar_lo"], color="0.00", ls=":", lw=1.5, label=f"Conjunto AR {level}%")
-ax.plot(res_strong["h"], res_strong["ar_hi"], color="0.00", ls=":", lw=1.5)
-ax.axhline(0, color="0.70", ls=":", lw=0.8)
+ax.plot(res_strong["h"], res_strong["beta"], color=_nbstyle.TINTA, lw=2.0, label="Estimación LP-IV $\\hat{\\beta}_h$")
+ax.plot(res_strong["h"], iv_estimand, color=_nbstyle.S2["color"], ls="--", lw=1.5, label="Estimando IV $\\beta_h / 0.8$")
+ax.fill_between(res_strong["h"], res_strong["lo"], res_strong["hi"], color=_nbstyle.NOTA, alpha=0.25, label=f"IC Wald {level}%")
+ax.plot(res_strong["h"], res_strong["ar_lo"], color=_nbstyle.TINTA, ls=":", lw=1.5, label=f"Conjunto AR {level}%")
+ax.plot(res_strong["h"], res_strong["ar_hi"], color=_nbstyle.TINTA, ls=":", lw=1.5)
+ax.axhline(0, color=_nbstyle.SPINE, ls=":", lw=0.8)
 f_avg_strong = res_strong["first_stage_f"].mean()
 ax.set_title(f"(a) Instrumento Fuerte ($F \\approx {f_avg_strong:.1f}$)", loc="left", fontsize=10, fontweight="bold")
 ax.set_xlabel("Horizonte $h$ (Trimestres)")
@@ -156,32 +156,30 @@ ax.legend(loc="lower left", fontsize=8)
 
 # Panel 2: el conjunto AR se dibuja con cualquier forma: intervalo, dos semirrectas o toda la recta
 ax = axes[1]
-ax.plot(res_weak["h"], res_weak["beta"], color="0.00", lw=2.0, label="Estimación LP-IV $\\hat{\\beta}_h$")
-ax.plot(res_weak["h"], iv_estimand, color="0.60", ls="--", lw=1.5, label="Estimando IV $\\beta_h / 0.8$")
-ax.fill_between(res_weak["h"], np.clip(res_weak["lo"], ylo, yhi), np.clip(res_weak["hi"], ylo, yhi), color="0.75", alpha=0.5, label=f"IC Wald Ingenuo {level}%")
+ax.plot(res_weak["h"], res_weak["beta"], color=_nbstyle.TINTA, lw=2.0, label="Estimación LP-IV $\\hat{\\beta}_h$")
+ax.plot(res_weak["h"], iv_estimand, color=_nbstyle.S2["color"], ls="--", lw=1.5, label="Estimando IV $\\beta_h / 0.8$")
+ax.fill_between(res_weak["h"], np.clip(res_weak["lo"], ylo, yhi), np.clip(res_weak["hi"], ylo, yhi), color=_nbstyle.NOTA, alpha=0.25, label=f"IC Wald Ingenuo {level}%")
 for _, r in res_weak.iterrows():
     h = r["h"]
     if r["ar_set_type"] == "all_real":
-        ax.axvspan(h - 0.4, h + 0.4, color="0.90", zorder=0)
+        ax.axvspan(h - 0.4, h + 0.4, color=_nbstyle.NOTA, alpha=0.25, zorder=0)
     elif r["ar_set_type"] == "unbounded_rays":
         # lp_iv reporta las semirrectas como (-inf, ar_hi] U [ar_lo, inf), con ar_lo > ar_hi
-        ax.vlines(h, ylo, min(r["ar_hi"], yhi), color="0.00", ls=":", lw=1.8)
-        ax.vlines(h, max(r["ar_lo"], ylo), yhi, color="0.00", ls=":", lw=1.8)
+        ax.vlines(h, ylo, min(r["ar_hi"], yhi), color=_nbstyle.TINTA, ls=":", lw=1.8)
+        ax.vlines(h, max(r["ar_lo"], ylo), yhi, color=_nbstyle.TINTA, ls=":", lw=1.8)
     elif r["ar_set_type"] == "bounded":
-        ax.vlines(h, r["ar_lo"], r["ar_hi"], color="0.00", ls=":", lw=1.8)
-ax.axhline(0, color="0.70", ls=":", lw=0.8)
+        ax.vlines(h, r["ar_lo"], r["ar_hi"], color=_nbstyle.TINTA, ls=":", lw=1.8)
+ax.axhline(0, color=_nbstyle.SPINE, ls=":", lw=0.8)
 ax.set_ylim(ylo, yhi)
 f_avg_weak = res_weak["first_stage_f"].mean()
 ax.set_title(f"(b) Instrumento Débil ($F \\approx {f_avg_weak:.1f}$)", loc="left", fontsize=10, fontweight="bold")
 ax.set_xlabel("Horizonte $h$ (Trimestres)")
 handles, labels = ax.get_legend_handles_labels()
-handles += [Patch(color="0.90", label=f"Conjunto AR {level}%: toda la recta"), Line2D([], [], color="0.00", ls=":", lw=1.8, label=f"Conjunto AR {level}%")]
+handles += [Patch(color=_nbstyle.NOTA, alpha=0.5, label=f"Conjunto AR {level}%: toda la recta"), Line2D([], [], color=_nbstyle.TINTA, ls=":", lw=1.8, label=f"Conjunto AR {level}%")]
 ax.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2, fontsize=7, frameon=False)
 
 for ax in axes:
     ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## Interpretación Económica

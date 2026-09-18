@@ -182,8 +182,8 @@ cP, cL, cU = (c_point[:, RATE] / c_scale, c_lower[:, RATE] / c_scale, c_upper[:,
 sP, sL, sU = (s_med[:, RATE] / s_scale, s_lower[:, RATE] / s_scale, s_upper[:, RATE] / s_scale)
 
 cols = _nbstyle.palette(2)
-fig, ax = plt.subplots(figsize=(7.0, 4.2))
-ax.axhline(0.0, color="0.6", linewidth=0.8, linestyle=":")
+fig, ax = _nbstyle.figura(ancho=7.0, alto=4.2)
+ax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")
 ax.fill_between(hgrid, cL, cU, color=cols[0], alpha=0.18)
 ax.plot(hgrid, cP, color=cols[0], label="Cholesky (recursive)")
 ax.fill_between(hgrid, sL, sU, color=cols[1], alpha=0.18)
@@ -192,7 +192,6 @@ ax.set_xlabel("Horizon (quarters)")
 ax.set_ylabel("Policy rate response (impact = +1)")
 ax.set_title("Monetary-policy shock: two identifications, one response")
 ax.legend(loc="upper right")
-plt.show()
 
 # %% [markdown]
 # ### Supporting — impact (h=0) sign pattern
@@ -203,15 +202,14 @@ plt.show()
 x, w = np.arange(3), 0.38
 chol_impact = chol.irf_point[0, :, CHOL_SHOCK] / c_scale
 sign_impact = sgn.irf_median[0, :, TARGET] / s_scale
-fig, ax = plt.subplots(figsize=(6.4, 3.6))
+fig, ax = _nbstyle.figura(ancho=6.4, alto=3.6)
 ax.bar(x - w / 2, chol_impact, w, color=cols[0], label="Cholesky")
 ax.bar(x + w / 2, sign_impact, w, color=cols[1], label="Sign restrictions")
-ax.axhline(0.0, color="0.3", linewidth=0.8)
+ax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8)
 ax.set_xticks(x); ax.set_xticklabels(names)
 ax.set_ylabel("Impact response (rate normalized to +1)")
 ax.set_title("Impact (h=0) sign pattern of the monetary shock")
 ax.legend()
-plt.show()
 
 # %% [markdown]
 # ### Supporting — all-variable IRFs (sign restrictions)
@@ -220,16 +218,15 @@ plt.show()
 
 # %%
 c3 = _nbstyle.palette(3)
-fig, axes = plt.subplots(1, 3, figsize=(10.5, 3.4), sharex=True)
+fig, axes = _nbstyle.figura(1, 3, ancho=10.5, alto=3.4, sharex=True)
 for i, (axk, nm) in enumerate(zip(axes, names)):
-    axk.axhline(0.0, color="0.6", linewidth=0.8, linestyle=":")
+    axk.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")
     axk.fill_between(hgrid, sgn.irf_lower[:, i, TARGET], sgn.irf_upper[:, i, TARGET],
                      color=c3[i], alpha=0.18)
     axk.plot(hgrid, sgn.irf_median[:, i, TARGET], color=c3[i])
     axk.set_title(nm); axk.set_xlabel("Horizon")
 axes[0].set_ylabel("Response to monetary shock")
 fig.suptitle("Sign-restriction IRFs (90% bands across admissible draws)")
-plt.show()
 
 # %% [markdown]
 # ## Your turn — the ordering is an assumption

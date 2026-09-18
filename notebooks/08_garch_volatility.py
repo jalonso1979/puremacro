@@ -179,33 +179,29 @@ assert all(0.0 < gp["persistence"] < 1.0 for gp in dcc.garch_params)
 # The +/-2*sigma_hat envelope widens during turbulent clusters and narrows in calm spells.
 
 # %%
-cols = _nbstyle.palette(3)
-fig, ax = plt.subplots(figsize=(7.0, 3.8))
-ax.plot(r.index, r.values, color="0.72", linewidth=0.6, label=r"returns $r_t$")
-ax.plot(fit.sigma.index, 2 * fit.sigma.values, color=cols[0], linewidth=1.1,
-        label=r"$\pm 2\,\hat\sigma_t$")
-ax.plot(fit.sigma.index, -2 * fit.sigma.values, color=cols[0], linewidth=1.1)
+fig, ax = _nbstyle.figura(ancho=7.0, alto=3.8)
+ax.plot(r.index, r.values, color=_nbstyle.NOTA, linewidth=0.6, alpha=0.5, label=r"returns $r_t$")
+ax.plot(fit.sigma.index, 2 * fit.sigma.values, **_nbstyle.S1, label=r"$\pm 2\,\hat\sigma_t$")
+ax.plot(fit.sigma.index, -2 * fit.sigma.values, **_nbstyle.S1)
 ax.set_xlabel("date"); ax.set_ylabel("return")
 ax.set_title(f"GARCH(1,1) conditional volatility "
              f"($\\hat\\alpha+\\hat\\beta = {fit.persistence:.2f}$): "
              f"quiet vs. turbulent clusters")
 ax.legend(loc="upper left", ncol=2)
-plt.show()
 
 # %% [markdown]
 # ### Supporting — true vs MLE-recovered GARCH coefficients
 
 # %%
-fig, ax = plt.subplots(figsize=(5.6, 3.6))
+fig, ax = _nbstyle.figura(ancho=5.6, alto=3.6)
 names = [r"$\omega$", r"$\alpha$", r"$\beta$"]
 x = np.arange(3); width = 0.38
-ax.bar(x - width / 2, [OMEGA, ALPHA, BETA], width, color="0.60", label="DGP (true)")
-ax.bar(x + width / 2, [fit.omega, fit.alpha, fit.beta], width, color="0.15",
+ax.bar(x - width / 2, [OMEGA, ALPHA, BETA], width, color=_nbstyle.S2["color"], label="DGP (true)")
+ax.bar(x + width / 2, [fit.omega, fit.alpha, fit.beta], width, color=_nbstyle.S1["color"],
        label="MLE (recovered)")
 ax.set_xticks(x); ax.set_xticklabels(names)
 ax.set_ylabel("coefficient"); ax.set_title("GARCH parameter recovery")
 ax.legend()
-plt.show()
 
 # %% [markdown]
 # ### Supporting — DCC time-varying conditional correlation vs the latent truth
@@ -213,18 +209,15 @@ plt.show()
 # dashed latent line, so the truth is mostly hidden beneath it.
 
 # %%
-fig, ax = plt.subplots(figsize=(7.0, 3.6))
-ax.plot(panel.index, rho_true, color="0.62", linewidth=1.2, linestyle="--",
-        label=r"true latent $\rho_t$")
-ax.plot(panel.index, rho_hat, color=cols[0], linewidth=0.9,
-        label=r"DCC $\hat\rho_t$")
-ax.axhline(0.45, color="0.85", linewidth=0.6)
+fig, ax = _nbstyle.figura(ancho=7.0, alto=3.6)
+ax.plot(panel.index, rho_true, **_nbstyle.S2, label=r"true latent $\rho_t$")
+ax.plot(panel.index, rho_hat, **_nbstyle.S1, label=r"DCC $\hat\rho_t$")
+ax.axhline(0.45, color=_nbstyle.SPINE, linewidth=0.6, linestyle=":")
 ax.set_ylim(-0.6, 1.0)
 ax.set_xlabel("date"); ax.set_ylabel("conditional correlation")
 ax.set_title(f"DCC(1,1) recovers the correlation path "
              f"($\\hat a = {dcc.a:.2f},\\ \\hat b = {dcc.b:.2f}$)")
 ax.legend(loc="upper left", ncol=2)
-plt.show()
 
 # %% [markdown]
 # ## Your turn — inject a turbulent window and watch the conditional vol respond

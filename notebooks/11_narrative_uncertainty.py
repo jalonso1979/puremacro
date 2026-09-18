@@ -248,22 +248,20 @@ assert mpu_in > mpu_out + 0.40, (
 # ### Hero figure — EPU time series with injected uncertainty window shaded
 
 # %%
-cols = _nbstyle.palette(2)
+fig, ax = _nbstyle.figura()
 
-fig, ax = plt.subplots()
-
-ax.plot(epu_s.index, epu_s.values, color=cols[0], linewidth=1.8,
+ax.plot(epu_s.index, epu_s.values, **_nbstyle.S1,
         label="Synthetic EPU (bbd_100, mean=100)")
-ax.axhline(100, color="0.6", linewidth=0.8, linestyle=":")
+ax.axhline(100, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")
 
 # Shade the 2020 injection window (extend a quarter past Dec-2020 for visibility)
 shade_end = HIGH_END + pd.Timedelta(days=92)
-ax.axvspan(HIGH_START, shade_end, color="0.85", alpha=0.9, zorder=0)
+ax.axvspan(HIGH_START, shade_end, color=_nbstyle.NOTA, alpha=0.25, zorder=0)
 ax.text(
     HIGH_START + pd.Timedelta(days=18),
     epu_s.max() * 0.89,
     "Injected\nhigh-uncertainty\nwindow (2020)",
-    fontsize=8, color="0.30", va="top",
+    fontsize=8, color=_nbstyle.TEXTO, va="top",
 )
 
 ax.set_xlabel("Quarter")
@@ -273,8 +271,6 @@ ax.set_title(
     "(pure-numpy dictionary scoring — no API key, no network)"
 )
 ax.legend(loc="upper left")
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ### Supporting figure — keyword hit rates confirm the signal anatomy
@@ -306,23 +302,20 @@ for df in (raw_epu, raw_mpu):
 hits_per_q = raw_epu.groupby("q")["hit"].mean()
 mpu_per_q  = raw_mpu.groupby("q")["score"].mean()
 
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(6.2, 5.5), sharex=True)
+fig, (ax1, ax2) = _nbstyle.figura(ancho=6.2, alto=5.5, nrows=2, sharex=True)
 
 ax1.bar(hits_per_q.index, hits_per_q.values, width=60,
-        color=cols[0], alpha=0.85)
-ax1.axvspan(HIGH_START, shade_end, color="0.85", alpha=0.9, zorder=0)
+        color=_nbstyle.S1["color"], alpha=0.85)
+ax1.axvspan(HIGH_START, shade_end, color=_nbstyle.NOTA, alpha=0.25, zorder=0)
 ax1.set_ylabel("EPU hit rate (fraction of docs)")
 ax1.set_title("Fraction of docs with EPU three-group co-occurrence")
 
 ax2.bar(mpu_per_q.index, mpu_per_q.values, width=60,
-        color=cols[1], alpha=0.85)
-ax2.axvspan(HIGH_START, shade_end, color="0.85", alpha=0.9, zorder=0)
+        color=_nbstyle.S2["color"], alpha=0.85)
+ax2.axvspan(HIGH_START, shade_end, color=_nbstyle.NOTA, alpha=0.25, zorder=0)
 ax2.set_ylabel("MPU keyword hits per doc (raw)")
 ax2.set_xlabel("Quarter")
 ax2.set_title("Average MPU keyword density per document")
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## Your turn — build a *climate*-policy uncertainty index

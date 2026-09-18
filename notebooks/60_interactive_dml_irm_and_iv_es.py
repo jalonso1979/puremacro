@@ -183,9 +183,6 @@ axes[1].set_title("Top Regularized Nuisance Coefficients")
 res_ate.plot_tuning(model="m", ax=axes[2])
 axes[2].set_title("Propensity L1 Penalty Tuning (BIC)")
 
-plt.tight_layout()
-plt.show()
-
 # %%
 # --- Step 4: Double ML Instrumental Variables (DML-IV) ---
 # Estimate causal return to 401(k) participation using eligibility as excluded instrument
@@ -230,9 +227,6 @@ ax_iv1.set_title(f"Strong First Stage ($F_{{eff}} = {res_iv.first_stage_effectiv
 # Structural 2SLS residuals vs treatment
 res_iv.plot(kind="residuals", ax=ax_iv2)
 ax_iv2.set_title(f"Structural 2SLS Causal Return ($\\hat{{\\theta}} = {res_iv.theta:.2f}$)")
-
-plt.tight_layout()
-plt.show()
 
 print(f"Weak Instrument Counterfactual MOP F_eff: {res_weak_iv.first_stage_effective_f:.2f}")
 print(f"Weak Instrument Flag: {res_weak_iv.weak_instrument}")

@@ -221,3 +221,133 @@ def test_preset_and_icio_loader() -> None:
 
     with pytest.raises(ValueError, match="Unknown preset"):
         TradePolicySimulator.from_preset("invalid_preset_name")
+
+
+def test_simulator_properties_and_accessors(sim_nafta_china: TradePolicySimulator) -> None:
+    """Simulator exposes convenience properties and result indexers."""
+    assert sim_nafta_china.country_codes == ("MEX", "USA", "CHN")
+    assert sim_nafta_china.sector_codes == ("Manufactures", "Services")
+    assert sim_nafta_china.N == 3
+    assert sim_nafta_china.J == 2
+
+    res = sim_nafta_china.simulate_bilateral_tariff("USA", "CHN", tariff_rate=0.20, tol=1e-10)
+
+    # Country accessors
+    s_mex = res.country("MEX")
+    assert isinstance(s_mex, pd.Series)
+    assert "welfare_pct" in s_mex.index
+    np.testing.assert_allclose(s_mex["welfare_pct"], res.welfare_pct[0])
+
+    s_usa = res["USA"]
+    np.testing.assert_allclose(s_usa["welfare_pct"], res.welfare_pct[1])
+
+    s_by_idx = res[2]
+    np.testing.assert_allclose(s_by_idx["welfare_pct"], res.welfare_pct[2])
+
+    with pytest.raises(KeyError, match="Country 'XYZ' not found"):
+        res.country("XYZ")
+
+    # Repr
+    rep = repr(res)
+    assert "TradePolicySimulationResult" in rep
+    assert "converged" in rep
+    assert "MEX" in rep
+
+
+def test_trade_policy_validation_errors(sim_nafta_china: TradePolicySimulator) -> None:
+    """Defensive validation catches illegal or invalid parameters."""
+    # Bilateral tariff validation
+    with pytest.raises(ValueError, match="Gross tariff rate must be strictly positive"):
+        sim_nafta_china.simulate_bilateral_tariff("USA", "CHN", tariff_rate=-1.5)
+
+    with pytest.raises(ValueError, match="tariff_rate must be a finite float"):
+        sim_nafta_china.simulate_bilateral_tariff("USA", "CHN", tariff_rate=float("nan"))
+
+    with pytest.raises(ValueError, match="Importer and exporter cannot be the same"):
+        sim_nafta_china.simulate_bilateral_tariff("USA", "USA", tariff_rate=0.10)
+
+    # Trade war validation
+    with pytest.raises(ValueError, match="coalition_a cannot be empty"):
+        sim_nafta_china.simulate_trade_war([], ["CHN"], tariff_rate_a=0.25)
+
+    with pytest.raises(ValueError, match="coalition_b cannot be empty"):
+        sim_nafta_china.simulate_trade_war(["USA"], [], tariff_rate_a=0.25)
+
+    with pytest.raises(ValueError, match="cannot contain overlapping countries"):
+        sim_nafta_china.simulate_trade_war(["USA", "MEX"], ["MEX", "CHN"], tariff_rate_a=0.25)
+
+    with pytest.raises(ValueError, match="Gross tariff rates must be strictly positive"):
+        sim_nafta_china.simulate_trade_war(["USA"], ["CHN"], tariff_rate_a=-1.2)
+
+    # Arbitrary tariffs validation
+    bad_shape = np.ones((2, 2, 2))
+    with pytest.raises(ValueError, match="tariffs_new must have shape"):
+        sim_nafta_china.simulate_arbitrary_tariffs(bad_shape)
+
+    nan_tariffs = np.ones((2, 3, 3))
+    nan_tariffs[0, 0, 1] = float("nan")
+    with pytest.raises(ValueError, match="contains NaN or infinite"):
+        sim_nafta_china.simulate_arbitrary_tariffs(nan_tariffs)
+
+    neg_tariffs = np.ones((2, 3, 3))
+    neg_tariffs[0, 0, 1] = -0.5
+    with pytest.raises(ValueError, match="strictly positive"):
+        sim_nafta_china.simulate_arbitrary_tariffs(neg_tariffs)
+
+    # Mapping counterfactual validation
+    with pytest.raises(ValueError, match="Gross tariff rate"):
+        sim_nafta_china.simulate_tariff_counterfactual({("USA", "CHN"): -1.5})
+
+    with pytest.raises(ValueError, match="Importer and exporter cannot be identical"):
+        sim_nafta_china.simulate_tariff_counterfactual({("USA", "USA"): 0.20})
+
+    with pytest.raises(ValueError, match="Invalid shock key"):
+        sim_nafta_china.simulate_tariff_counterfactual({("USA",): 0.20})
+
+    with pytest.raises(TypeError, match="Unsupported tariff_shocks type"):
+        sim_nafta_china.simulate_tariff_counterfactual("invalid_type")
+
+
+def test_prohibitive_tariffs_and_free_trade(sim_nafta_china: TradePolicySimulator) -> None:
+    """Extreme tariffs (500%) and tariff reductions converge and clear markets."""
+    # Prohibitive tariff (500%)
+    res_proh = sim_nafta_china.simulate_bilateral_tariff("USA", "CHN", tariff_rate=5.0, tol=1e-10)
+    assert res_proh.converged
+    assert res_proh.market_clearing_residual < 1e-6
+    # Trade share from China shrinks dramatically
+    assert res_proh.pi_prime[0, 1, 2] < 0.02
+
+    # Tariff reduction / preferential trade agreement (-5% tariff)
+    res_fta = sim_nafta_china.simulate_bilateral_tariff("USA", "MEX", tariff_rate=-0.05, tol=1e-10)
+    assert res_fta.converged
+    assert res_fta.market_clearing_residual < 1e-6
+    # US imports from Mexico expand
+    assert res_fta.pi_prime[0, 1, 0] > sim_nafta_china.model.trade_shares[0, 1, 0]
+
+
+def test_multilateral_asymmetric_trade_war(sim_nafta_china: TradePolicySimulator) -> None:
+    """Simulate trade war with asymmetric coalition sizes and retaliatory rates."""
+    res = sim_nafta_china.simulate_trade_war(
+        coalition_a=["USA"],
+        coalition_b=["MEX", "CHN"],
+        tariff_rate_a=0.30,
+        tariff_rate_b=0.15,
+        tol=1e-10,
+    )
+    assert res.converged
+    assert res.market_clearing_residual < 1e-6
+    assert res.tariff_revenue_prime[1] > 0.0  # USA revenue
+
+
+def test_plot_kinds_and_error(sim_nafta_china: TradePolicySimulator) -> None:
+    """Test all plot kinds and verify error for invalid kind."""
+    res = sim_nafta_china.simulate_bilateral_tariff("USA", "CHN", tariff_rate=0.20, tol=1e-10)
+
+    fig_w = res.plot(kind="wage")
+    assert isinstance(fig_w, matplotlib.figure.Figure)
+
+    fig_cpi = res.plot(kind="cpi")
+    assert isinstance(fig_cpi, matplotlib.figure.Figure)
+
+    with pytest.raises(ValueError, match="Unknown plot kind"):
+        res.plot(kind="invalid_kind")

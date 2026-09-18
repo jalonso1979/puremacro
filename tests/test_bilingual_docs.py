@@ -63,6 +63,7 @@ _USER_DOCS = [
     "vfi_hjb_continuous.md",
     "real_time_latam.md",
     "trade_gpu.md",
+    "policy_simulators.md",
 ]
 
 

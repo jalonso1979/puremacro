@@ -124,25 +124,24 @@ print(f"   (ADF p={adf_g['p_value']:.3f} vs DF-GLS p={dfg_g['p_value']:.3f}: the
       "Nelson-Plosser 1982 I(1) reading survives ADF but not DF-GLS)")
 
 # %%
-fig, ax = plt.subplots(figsize=(6.4, 3.8))
+fig, ax = _nbstyle.figura(ancho=6.4, alto=3.8)
 tests = ["ADF", "DF-GLS", "Ng-Perron\n(MZt)"]
 stats = [adf_g["stat"], dfg_g["stat"], ngp_g["stat"]]
 cv10 = [adf_g["crit_values"]["10%"], dfg_g["crit_values"]["10%"],
         ngp_g["crit_values"]["10%"]]
 x = np.arange(3)
-cols = ["0.15" if s < c else "0.7" for s, c in zip(stats, cv10)]
-ax.bar(x, stats, color=cols, edgecolor="0.0", width=0.55)
-ax.plot(x, cv10, "D", color="0.0", ms=7, label="10% critical value")
+cols = [_nbstyle.TINTA if s < c else _nbstyle.SPINE for s, c in zip(stats, cv10)]
+ax.bar(x, stats, color=cols, edgecolor=_nbstyle.SPINE, width=0.55)
+ax.plot(x, cv10, "D", color=_nbstyle.TINTA, ms=7, label="10% critical value")
 for xi, (s, c) in enumerate(zip(stats, cv10)):
     ax.annotate("reject" if s < c else "cannot reject", (xi, s),
                 textcoords="offset points", xytext=(0, -14 if s < c else 8),
                 ha="center", fontsize=9)
-ax.axhline(0, color="0.0", lw=0.8)
+ax.axhline(0, color=_nbstyle.SPINE, lw=0.8)
 ax.set_xticks(x); ax.set_xticklabels(tests)
 ax.set_ylabel("test statistic")
 ax.set_title("log US real GDP (1889-2015): the same series, three verdicts")
 ax.legend(loc="lower left")
-plt.tight_layout(); plt.show()
 
 # %% [markdown]
 # **Reading it.** All three statistics cluster near $-2.7$ — the *point
@@ -184,16 +183,15 @@ for phi in PHIS:
           f"gain={d - a:+.2f}")
 
 # %%
-fig, ax = plt.subplots(figsize=(6.2, 3.8))
-ax.plot(PHIS, dfg_pow, "-o", color="0.10", label="DF-GLS")
-ax.plot(PHIS, adf_pow, "--s", color="0.55", label="ADF")
+fig, ax = _nbstyle.figura(ancho=6.2, alto=3.8)
+ax.plot(PHIS, dfg_pow, "-o", color=_nbstyle.TINTA, label="DF-GLS")
+ax.plot(PHIS, adf_pow, "--s", color=_nbstyle.NOTA, label="ADF")
 ax.set_xlabel(r"largest autoregressive root $\phi$  (1 = unit root)")
 ax.set_ylabel("rejection frequency at 5%")
 ax.set_title("Power against a trend-stationary alternative\n(higher = better; both size-correct at $\\phi=1$)")
 ax.set_ylim(0, 1.02)
 ax.legend(loc="upper right")
 ax.invert_xaxis()  # approaching the unit root from the left
-plt.tight_layout(); plt.show()
 
 # %% [markdown]
 # **The selling point.** As $\phi$ climbs toward $1$ — precisely the region

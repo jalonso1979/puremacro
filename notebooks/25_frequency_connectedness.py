@@ -98,34 +98,31 @@ assert band_mat_high.shape == (N, N), "Band matrix shape mismatch"
 # We plot the directional spillover matrices for High-Frequency vs Low-Frequency spectral horizons side-by-side.
 
 # %%
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10.5, 4.2))
+fig, (ax1, ax2) = _nbstyle.figura(1, 2, figsize=(10.5, 4.2))
 
 var_labels = ["Inflation", "Output", "Rates", "Volatility"]
 
 # Left Panel: High-Frequency Directional Spillovers
-im1 = ax1.imshow(band_mat_high * 100, cmap="Blues", vmin=0, vmax=35)
+im1 = ax1.imshow(band_mat_high * 100, cmap=_nbstyle.CMAP_SEQ, vmin=0, vmax=35)
 ax1.set_xticks(range(N)); ax1.set_yticks(range(N))
-ax1.set_xticklabels(var_labels); ax1.set_yticklabels(var_labels)
+ax1.set_xticklabels(var_labels, color=_nbstyle.TEXTO); ax1.set_yticklabels(var_labels, color=_nbstyle.TEXTO)
 ax1.set_title(f"High-Frequency Spillovers (pi/4 to pi)\nTotal = {total_high:.1f}%")
 
 for i in range(N):
     for j in range(N):
         ax1.text(j, i, f"{band_mat_high[i, j]*100:.1f}%",
-                 ha="center", va="center", color="white" if band_mat_high[i, j]*100 > 18 else "black", fontsize=9)
+                 ha="center", va="center", color=_nbstyle.FONDO if band_mat_high[i, j]*100 > 18 else _nbstyle.TINTA, fontsize=9)
 
 # Right Panel: Low-Frequency Directional Spillovers
-im2 = ax2.imshow(band_mat_low * 100, cmap="Oranges", vmin=0, vmax=35)
+im2 = ax2.imshow(band_mat_low * 100, cmap=_nbstyle.CMAP_SEQ, vmin=0, vmax=35)
 ax2.set_xticks(range(N)); ax2.set_yticks(range(N))
-ax2.set_xticklabels(var_labels); ax2.set_yticklabels(var_labels)
+ax2.set_xticklabels(var_labels, color=_nbstyle.TEXTO); ax2.set_yticklabels(var_labels, color=_nbstyle.TEXTO)
 ax2.set_title(f"Low-Frequency Spillovers (0 to pi/4)\nTotal = {total_low:.1f}%")
 
 for i in range(N):
     for j in range(N):
         ax2.text(j, i, f"{band_mat_low[i, j]*100:.1f}%",
-                 ha="center", va="center", color="white" if band_mat_low[i, j]*100 > 18 else "black", fontsize=9)
-
-plt.tight_layout()
-plt.show()
+                 ha="center", va="center", color=_nbstyle.FONDO if band_mat_low[i, j]*100 > 18 else _nbstyle.TINTA, fontsize=9)
 
 # %% [markdown]
 # **Reading the output.** The frequency decomposition exposes the transmission structure: short-term spillovers are dominated by financial volatility and interest rate adjustments, whereas low-frequency spillovers are driven by persistent inflation and output gap shocks. Traditional time-domain VAR spillover indices obscure this horizon dependency.

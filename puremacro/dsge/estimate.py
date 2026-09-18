@@ -108,7 +108,7 @@ def _stationary_init(model: StateSpaceModel) -> tuple[np.ndarray, np.ndarray] | 
         return None, None
     try:
         P0 = scipy.linalg.solve_discrete_lyapunov(T, RQR)
-    except (np.linalg.LinAlgError, scipy.linalg.LinAlgError, ValueError, Exception):
+    except (np.linalg.LinAlgError, scipy.linalg.LinAlgError, ValueError):
         return None, None
     P0 = np.asarray(P0, dtype=float)
     if not np.all(np.isfinite(P0)):
@@ -696,7 +696,7 @@ def _check_stochastic_singularity(
         if not np.all(np.isfinite(F_gen)):
             return
         rank = int(np.linalg.matrix_rank(F_gen))
-    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+    except Exception:
         return
     if rank < n_obs:
         n_shocks = int(np.asarray(ssm.Q, dtype=float).shape[0])
@@ -837,7 +837,7 @@ def estimate_dsge(
                 )
                 val = float(res.log_likelihood)
                 return val if np.isfinite(val) else -1e10
-            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+            except Exception:
                 return -1e10
 
         return smc_estimate(

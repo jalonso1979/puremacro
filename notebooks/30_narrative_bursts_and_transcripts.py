@@ -13,14 +13,17 @@
 # %% [markdown]
 # # Narrative Macroeconomics — Multi-Speaker Transcripts, Dynamic Topics, and Bayesian SVARs
 #
-# **How can central bank communications and public discussions be systematically transformed into structural macroeconomic shocks?**
+# **How can central bank communications, press conference dialogues, and public narrative discussions be systematically transformed into structural macroeconomic shocks and identified policy impulse responses?**
 #
-# Textual data contains forward-looking information about policy intentions, inflation perceptions, and emerging financial risks.
+# Qualitative textual records contain rich, high-dimensional, forward-looking information about policy intentions, inflation perceptions, supply bottleneck developments, and emerging banking fragilities. However, utilizing textual sources in macroeconometrics requires overcoming two distinct challenges:
+# 1. **Structured Discourse Extraction**: In central bank press conferences, communications are not monolithic. Prepared opening statements reflect the formal institutional consensus of the monetary policy committee, whereas the spontaneous Question-and-Answer (Q&A) session reveals the Chair's candid assessments under journalist scrutiny.
+# 2. **Structural Identification via Narrative Constraints**: Traditional sign restrictions identify shocks by restricting the contemporaneous response of endogenous variables ($Y_{t} = B_0 \varepsilon_t$). However, sign restrictions often produce overly wide identification sets. As demonstrated by Juan Antolín-Díaz and Juan Rubio-Ramírez (2018, *AER*) and Sydney Ludvigson, Sai Ma, and Serena Ng (2021, *JME*), conditioning structural identification on historical narrative episodes (e.g. Volcker's 1979 tightening or the 2023 banking stress) drastically narrows credible sets and eliminates price puzzles.
+#
 # In this interactive showcase, we walk through the complete **puremacro narrative econometrics pipeline**:
-# 1. **Multi-Speaker Transcript Parsing**: Separating prepared policy guidance from spontaneous journalist questioning (FOMC, ECB, Banxico).
-# 2. **Pure-Python Dynamic Topic Modeling**: Tracking the evolution of macroeconomic themes over time using Non-Negative Matrix Factorization (NMF).
-# 3. **Narrative Burst Anomaly Detection**: Identifying statistical keyword surges ($z$-scores) before official macro data releases.
-# 4. **Bayesian Narrative SVAR Identification**: Constraining monetary impulse responses using Ludvigson–Ma–Ng (2021) shock magnitude bounds and conjugate Normal-Inverse-Wishart posterior sampling.
+# 1. Parsing multi-speaker central bank transcripts by speaker role (Fed, ECB, Banxico).
+# 2. Estimating a 100% pure-Python/NumPy Dynamic Topic Model via Non-Negative Matrix Factorization (NMF).
+# 3. Detecting statistical narrative burst anomalies ($z$-scores) prior to macro data releases.
+# 4. Estimating a Bayesian Narrative SVAR with Ludvigson–Ma–Ng shock magnitude bounds.
 
 # %%
 import sys
@@ -46,8 +49,11 @@ from puremacro.var.identify import NarrativeRestriction, narrative_sign_svar
 # %% [markdown]
 # ## 1. Multi-Speaker Transcript Parsing & Speaker Asymmetry
 #
-# In central bank press conferences, the **prepared opening remarks** reflect a committee-vetted consensus, while **Q&A exchanges** reveal the Chair's candid assessment under questioning.
-# `puremacro.narrative.sources.parse_transcript` splits dialogue turns by speaker role and section.
+# Central bank press conferences exhibit a systematic informational division of labor:
+# - **Prepared Opening Remarks**: Carefully drafted and negotiated among committee members; serves as the official monetary policy announcement.
+# - **Journalist Q&A Session**: Spontaneous dialogue where reporters probe downside risks, policy conditionalities, and financial stress, often extracting forward-looking signals not present in the prepared text.
+#
+# `puremacro.narrative.sources.parse_transcript` parses raw transcripts using regular expressions and speaker identification heuristics, segmenting the dialogue into structured turns and extracting speaker-specific corpuses.
 
 # %%
 raw_transcript = """
@@ -76,8 +82,17 @@ print(f"Press questions spoken word count:   {len(doc.press_questions_text().spl
 # %% [markdown]
 # ## 2. Pure-Python Dynamic Topic Modeling (NMF)
 #
-# Unlike heavy external machine learning libraries, `puremacro.narrative.DynamicTopicModel` is 100% pure Python and NumPy, running seamlessly inside Pyodide in the browser.
-# It factors the document-term matrix $X \approx W H$ using multiplicative updates with Frobenius loss.
+# Rather than relying on heavy external NLP frameworks (such as Gensim or PyTorch), `puremacro.narrative.DynamicTopicModel` is written in 100% pure Python and NumPy, running deterministically inside standard Python and Pyodide environments.
+#
+# Given a document-term frequency matrix $X \in \mathbb{R}_{+}^{D \times V}$ over $D$ documents and vocabulary size $V$, Non-Negative Matrix Factorization (NMF) decomposes $X$ into non-negative factor matrices:
+#
+# $$ \min_{W \ge 0, H \ge 0} \frac{1}{2} \| X - W H \|_F^2 = \frac{1}{2} \sum_{d=1}^D \sum_{v=1}^V \left( X_{d, v} - [W H]_{d, v} \right)^2 $$
+#
+# where $W \in \mathbb{R}_{+}^{D \times K}$ denotes document topic weights, $H \in \mathbb{R}_{+}^{K \times V}$ denotes topic-term distributions, and updates follow Lee & Seung's (2001) multiplicative rules:
+#
+# $$ H \leftarrow H \odot \frac{W^\top X}{W^\top W H + \varepsilon}, \qquad W \leftarrow W \odot \frac{X H^\top}{W H H^\top + \varepsilon} $$
+#
+# Slicing and normalizing $W$ by observation date produces the dynamic evolution of macroeconomic topic shares $\theta_t \in \Delta^{K-1}$ over time.
 
 # %%
 rng = np.random.default_rng(42)
@@ -107,19 +122,26 @@ dates_only = [t[0] for t in dated_corpus]
 dtm = DynamicTopicModel(n_topics=3, random_state=42)
 dtm_res = dtm.fit_transform_corpus(texts_only, dates_only, freq="MS")
 
-fig, ax = plt.subplots(figsize=(10, 4.5))
-dtm_res.topic_shares.plot(ax=ax, lw=2)
-ax.set_title("Evolution of Latent Macroeconomic Themes (NMF Topic Shares)", fontsize=12, fontweight="bold")
-ax.set_ylabel("Monthly Topic Share")
-ax.grid(True, linestyle=":", alpha=0.6)
-plt.tight_layout()
-plt.show()
+fig, ax = _nbstyle.figura(figsize=(9.0, 4.4))
+dtm_res.topic_shares.plot(ax=ax, color=_nbstyle.palette(3), lw=2)
+ax.set_title("Evolution of Latent Macroeconomic Themes (NMF Topic Shares)", fontsize=11, fontweight="bold")
+ax.set_xlabel("Date", color=_nbstyle.TEXTO)
+ax.set_ylabel("Monthly Topic Share", color=_nbstyle.TEXTO)
+ax.legend(frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
+ax.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.8)
 
 # %% [markdown]
 # ## 3. Narrative Burst Anomaly Detection
 #
-# Nascent economic shocks (such as supply chain bottlenecks or banking runs) appear in narrative streams before registering in quarterly national accounts.
-# `detect_narrative_bursts` computes the rolling baseline mean and standard deviation of term frequencies, flagging terms with $z$-score surges above threshold.
+# Nascent macroeconomic shocks—such as sudden supply chain disruptions or banking liquidity panics—frequently emerge in textual communications before manifesting in quarterly national account releases.
+#
+# `detect_narrative_bursts` identifies these episodes using a rolling baseline statistical filter. For each candidate term $w$, let $f_{w, t}$ be its frequency at period $t$, and let $\mu_{w, t}$ and $\sigma_{w, t}$ be the rolling sample mean and standard deviation over a historical window of length $W$:
+#
+# $$ Z_{w, t} = \frac{f_{w, t} - \mu_{w, t}}{\sigma_{w, t} + \epsilon}, \qquad \text{Burst Magnitude} = \frac{f_{w, t}}{\mu_{w, t} + \epsilon} $$
+#
+# An anomalous narrative burst is triggered when $Z_{w, t} \ge Z_{\text{crit}}$ and the absolute count satisfies $f_{w, t} \ge \text{min\_count}$.
+#
+# In the output below, the algorithm pinpoints the banking liquidity shock in March 2023, detecting dramatic surges in terms like *bank*, *run*, *pressures*, and *liquidity*.
 
 # %%
 target_date = "2023-03-01"
@@ -138,9 +160,16 @@ for b in bursts[:5]:
 # %% [markdown]
 # ## 4. Bayesian Narrative SVAR with Ludvigson–Ma–Ng Shock Bounds
 #
-# Following Ludvigson, Ma & Ng (2021, *JME*) and Antolín-Díaz & Rubio-Ramírez (2018, *AER*), we identify monetary policy shocks by constraining both the sign and magnitude of structural shocks on critical historical dates:
-# $$ |\varepsilon_{\text{monetary}, t^*}| \ge \underline{c} $$
-# Setting `bayes_draws=True` samples full reduced-form VAR posterior parameters via the Normal-Inverse-Wishart Bartlett decomposition.
+# Consider a structural vector autoregression $Y_t = \sum_{l=1}^p A_l Y_{t-l} + u_t$, where reduced-form residuals $u_t$ are related to orthonormal structural shocks $\varepsilon_t$ by $u_t = B_0 \varepsilon_t = P Q \varepsilon_t$, with $P$ being the lower Cholesky factor of $\Sigma_u$ and $Q \in \mathcal{O}(n)$ an orthogonal rotation matrix ($Q Q^\top = I$).
+#
+# Traditional sign restrictions impose sign conditions on the impulse responses: $\mathcal{S}_{h} = \text{sign}\left( C_h B_0 \right) \odot S \ge 0$.
+#
+# Following Antolín-Díaz & Rubio-Ramírez (2018) and Ludvigson, Ma & Ng (2021), narrative restrictions condition the draw of $Q$ directly on historical dates $t^*$:
+# 1. **Shock Sign Restriction**: $\text{sign}(\varepsilon_{i, t^*}) = s_{i, t^*}$.
+# 2. **Shock Magnitude Bound**: $|\varepsilon_{i, t^*}| \ge \underline{c}$.
+# 3. **Dominant Contribution**: The identified shock explains the majority of the historical residual in target variable $j$: $|\varepsilon_{i, t^*} B_{0, j, i}| > \sum_{k \neq i} |\varepsilon_{k, t^*} B_{0, j, k}|$.
+#
+# Setting `bayes_draws=True` computes the full posterior distribution over $(A, \Sigma_u, Q)$ using conjugate Normal-Inverse-Wishart sampling with Haar-measure rotation candidates.
 
 # %%
 # Synthetic 2-variable macro VAR (Interest Rate, Inflation)
@@ -174,15 +203,13 @@ svar_res = narrative_sign_svar(
     seed=42,
 )
 
-fig, ax = plt.subplots(figsize=(8, 4.5))
+fig, ax = _nbstyle.figura(figsize=(8.5, 4.4))
 h = np.arange(svar_res.irf_median.shape[0])
-ax.plot(h, svar_res.irf_median[:, 1, 0], color="#1f77b4", lw=2, label="Bayesian Median IRF")
-ax.fill_between(h, svar_res.irf_lower[:, 1, 0], svar_res.irf_upper[:, 1, 0], color="#1f77b4", alpha=0.25, label="90% Posterior Credible Band")
-ax.axhline(0, color="black", lw=0.8, linestyle="--")
+ax.plot(h, svar_res.irf_median[:, 1, 0], **_nbstyle.S1, label="Bayesian Median IRF")
+ax.fill_between(h, svar_res.irf_lower[:, 1, 0], svar_res.irf_upper[:, 1, 0], color=_nbstyle.TINTA, alpha=0.15, label="90% Posterior Credible Band")
+ax.axhline(0, color=_nbstyle.SPINE, lw=0.8, linestyle="--")
 ax.set_title("Response of Inflation to a Contractionary Policy Shock (Ludvigson-Ma-Ng Bound)", fontsize=11, fontweight="bold")
-ax.set_xlabel("Horizon (Months)")
-ax.set_ylabel("Impulse Response")
-ax.legend()
-ax.grid(True, linestyle=":", alpha=0.6)
-plt.tight_layout()
-plt.show()
+ax.set_xlabel("Horizon (Months)", color=_nbstyle.TEXTO)
+ax.set_ylabel("Impulse Response", color=_nbstyle.TEXTO)
+ax.legend(frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
+ax.grid(True, linestyle=":", color=_nbstyle.REJILLA, alpha=0.8)

@@ -249,7 +249,7 @@ def _fetch_wdi_primary_energy(
             if iso and yr_str and val is not None and is_country(iso):
                 try:
                     pop_map[(iso.upper(), int(yr_str))] = float(val)
-                except (ValueError, TypeError, OSError, KeyError, LookupError, AssertionError, RuntimeError, ConnectionError, Exception):
+                except (ValueError, TypeError):
                     pass
 
         rows = []
@@ -273,13 +273,13 @@ def _fetch_wdi_primary_energy(
                             "sa_source": "none",
                             "source": "WorldBank:WDI:EG.USE.PCAP.KG.OE",
                         })
-                except (ValueError, TypeError, KeyError, LookupError, AssertionError, RuntimeError, OSError, ConnectionError, Exception):
+                except (ValueError, TypeError):
                     pass
 
         if not rows:
             return _EMPTY.copy()
         return pd.DataFrame(rows)
-    except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
+    except Exception:
         return _EMPTY.copy()
 
 
@@ -342,7 +342,7 @@ def fetch_energy_transition(
                     ember_df = _parse_ember_df(raw_df, codes=codes, start_year=start_year)
                     if not ember_df.empty:
                         frames.append(ember_df)
-            except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
+            except Exception:
                 pass
     else:
         try:
@@ -352,7 +352,7 @@ def fetch_energy_transition(
                 ember_df = _parse_ember_df(raw_df, codes=codes, start_year=start_year)
                 if not ember_df.empty:
                     frames.append(ember_df)
-        except (ValueError, ArithmeticError, np.linalg.LinAlgError, OSError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, ConnectionError, Exception):
+        except Exception:
             pass
 
         # If any requested codes are missing (e.g. non-European countries in Ember CSV)
@@ -377,7 +377,7 @@ def fetch_energy_transition(
                     )
                     if not fix_df.empty:
                         frames.append(fix_df)
-                except (ValueError, ArithmeticError, np.linalg.LinAlgError, KeyError, LookupError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
+                except Exception:
                     pass
 
     # 2. Fetch primary energy consumption from WDI if not already present

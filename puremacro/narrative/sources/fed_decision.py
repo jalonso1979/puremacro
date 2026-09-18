@@ -51,7 +51,7 @@ def _parse_listing(raw: bytes) -> list[tuple[pd.Timestamp, str]]:
             continue
         try:
             date = pd.Timestamp(item.get("d"))
-        except (ValueError, ArithmeticError, Exception):
+        except Exception:
             continue
         href = item.get("l", "")
         if not href:
@@ -64,12 +64,12 @@ def iter_fed_decision() -> Iterator[tuple]:
     """Yield (date, text, url, metadata) for FOMC statement releases."""
     try:
         body = safe_get_bytes(_LISTING_URL, user_agent=_UA)
-    except (ValueError, ArithmeticError, Exception):
+    except Exception:
         return
     for date, item_url in _parse_listing(body):
         try:
             html = safe_get_text(item_url, user_agent=_UA)
-        except (ValueError, ArithmeticError, Exception):
+        except Exception:
             continue
         text = extract_body(html, bank_code="FED")
         if not text:

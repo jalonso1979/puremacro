@@ -175,7 +175,7 @@ assert dsa_base.shape == (1000, 21), f"Expected (1000, 21), got {dsa_base.shape}
 assert 0.0 <= prob_breach <= 1.0, "Breach probability must lie in [0, 1]"
 
 # --- 4. Hero Figure: Multipliers & Sovereign DSA Dashboard -------------------
-fig, axes = plt.subplots(2, 2, figsize=(11.0, 7.8))
+fig, axes = _nbstyle.figura(2, 2, figsize=(11.0, 7.8))
 c = _nbstyle.palette(4)
 
 # Panel 1: Multiplier Dynamics across Horizons
@@ -183,7 +183,7 @@ ax1 = axes[0, 0]
 ax1.plot(hgrid, m_bp, color=c[0], lw=1.8, label=f"Blanchard-Perotti SVAR [Peak={m_bp.min():.2f}]")
 ax1.plot(hgrid, m_iv, color=c[1], lw=1.8, ls="--", label=f"Mertens-Ravn LP-IV [Peak={m_iv.min():.2f}]")
 ax1.plot(hgrid, m_rr, color=c[2], lw=1.8, ls="-.", label=f"Romer-Romer LP [Peak={m_rr.min():.2f}]")
-ax1.axhline(0, color="0.5", lw=0.8, ls=":")
+ax1.axhline(0, color=_nbstyle.SPINE, lw=0.8, ls=":")
 ax1.set_title("Tax Multipliers across Identification Paradigms", fontsize=10)
 ax1.set_xlabel("Quarters after 1% Tax Increase")
 ax1.set_ylabel("Output Response (%)")
@@ -232,9 +232,6 @@ ax4.set_title("Terminal Debt Distribution: Baseline vs. Stress", fontsize=10)
 ax4.set_xlabel("Debt-to-GDP at Year 5 (%)")
 ax4.set_ylabel("Probability Density")
 ax4.legend(loc="upper right", fontsize=7.5, frameon=True)
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # **Read the output.** The empirical multiplier paths and stochastic debt projections reveal several critical structural lessons:

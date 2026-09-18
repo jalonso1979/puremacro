@@ -255,7 +255,7 @@ class InteractiveIRFResult:
             try:
                 df = self.model.irf(sh, horizon=self.horizon, size=self.size)
                 return df[self.variables]
-            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+            except Exception:
                 pass
         return pd.DataFrame(
             np.nan,
@@ -317,13 +317,13 @@ class InteractiveIRFResult:
         for s in self.sliders.values():
             try:
                 s.disconnect_events()
-            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+            except Exception:
                 pass
             s.eventson = False
         if self.reset_button is not None:
             try:
                 self.reset_button.disconnect_events()
-            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+            except Exception:
                 pass
             self.reset_button.eventson = False
 
@@ -387,7 +387,7 @@ class InteractiveIRFResult:
         if self._is_interactive_backend:
             try:
                 self.fig.canvas.draw_idle()
-            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+            except Exception:
                 pass
 
 
@@ -602,7 +602,7 @@ def interactive_irf(
             df_active: dict[str, pd.DataFrame] = {}
             for sh in shocks_list:
                 df_active[sh] = active_model.irf(sh, horizon=horizon, size=size)
-        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+        except Exception:
             active_model = model
             df_active = df_base
     else:

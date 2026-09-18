@@ -2096,7 +2096,7 @@ def _worst_column(f: Callable, x0: np.ndarray, jac: np.ndarray, row: int) -> int
         try:
             up = float(np.asarray(f(x0 + h), dtype=float)[row])
             dn = float(np.asarray(f(x0 - h), dtype=float)[row])
-        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):                                  # pragma: no cover
+        except Exception:                                  # pragma: no cover
             continue
         if not (np.isfinite(up) and np.isfinite(dn)):
             continue

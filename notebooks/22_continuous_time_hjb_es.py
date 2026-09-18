@@ -82,28 +82,25 @@ assert c[0, 1] > c[0, 0], "El consumo debe ser mayor para el estado de alta prod
 # Graficamos las funciones de política de consumo $c(a, z)$ y la deriva del ahorro $s(a, z) = r a + w z - c(a, z)$ a través de los niveles de riqueza $a$.
 
 # %%
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10.5, 4.2))
+fig, (ax1, ax2) = _nbstyle.figura(1, 2, figsize=(10.5, 4.2))
 
 # Panel Izquierdo: Funciones de consumo
 ax1.plot(grid_a, c[:, 0], color=_nbstyle.palette(2)[0], lw=2, label=f"Ingreso Bajo (z = {e_grid[0]:.1f})")
 ax1.plot(grid_a, c[:, 1], color=_nbstyle.palette(2)[1], lw=2, label=f"Ingreso Alto (z = {e_grid[1]:.1f})")
-ax1.plot(grid_a, 0.03 * grid_a + 1.0 * e_grid[0], "k--", alpha=0.4, label="Línea de Ingreso (Z Bajo)")
-ax1.set_xlabel("Activos a")
-ax1.set_ylabel("Consumo c(a, z)")
+ax1.plot(grid_a, 0.03 * grid_a + 1.0 * e_grid[0], linestyle="--", color=_nbstyle.SPINE, alpha=0.6, label="Línea de Ingreso (Z Bajo)")
+ax1.set_xlabel("Activos a", color=_nbstyle.TEXTO)
+ax1.set_ylabel("Consumo c(a, z)", color=_nbstyle.TEXTO)
 ax1.set_title("Funciones de Política de Consumo en Tiempo Continuo")
-ax1.legend(loc="upper left")
+ax1.legend(loc="upper left", frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
 
 # Panel Derecho: Deriva del Ahorro s(a, z)
-ax2.axhline(0, color="0.0", lw=0.8, linestyle="--")
+ax2.axhline(0, color=_nbstyle.SPINE, lw=0.8, linestyle="--")
 ax2.plot(grid_a, drift[:, 0], color=_nbstyle.palette(2)[0], lw=2, label="Deriva s(a, z_bajo)")
 ax2.plot(grid_a, drift[:, 1], color=_nbstyle.palette(2)[1], lw=2, label="Deriva s(a, z_alto)")
-ax2.set_xlabel("Activos a")
-ax2.set_ylabel("Deriva del Ahorro s(a, z) = ra + wz - c")
+ax2.set_xlabel("Activos a", color=_nbstyle.TEXTO)
+ax2.set_ylabel("Deriva del Ahorro s(a, z) = ra + wz - c", color=_nbstyle.TEXTO)
 ax2.set_title("Deriva del Ahorro Dependiente del Estado")
-ax2.legend(loc="upper right")
-
-plt.tight_layout()
-plt.show()
+ax2.legend(loc="upper right", frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE)
 
 # %% [markdown]
 # **Leyendo el resultado.** En $a=0$, los hogares de bajo ingreso consumen su ingreso $c(0, z_{\text{bajo}}) = w z_{\text{bajo}}$, haciendo que la deriva del ahorro toque cero $s(0, z_{\text{bajo}}) = 0$. Los hogares de alto ingreso ahorran agresivamente ($s(a, z_{\text{alto}}) > 0$). El esquema viento arriba maneja el pliegue no lineal en la restricción de endeudamiento $a=0$ suavemente.

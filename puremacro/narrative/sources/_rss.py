@@ -26,7 +26,7 @@ def iter_rss(url: str) -> Iterator[tuple]:
     """
     try:
         body = safe_get_bytes(url)
-    except (ValueError, ArithmeticError, Exception):
+    except Exception:
         return
     try:
         root = ET.fromstring(body)
@@ -41,7 +41,7 @@ def iter_rss(url: str) -> Iterator[tuple]:
             pub = item.findtext("pubDate", default=None)
             try:
                 date = pd.to_datetime(pub) if pub else pd.NaT
-            except (ValueError, ArithmeticError, Exception):
+            except Exception:
                 date = pd.NaT
             if pd.isna(date):
                 continue
@@ -57,7 +57,7 @@ def iter_rss(url: str) -> Iterator[tuple]:
         )
         try:
             date = pd.to_datetime(date_str) if date_str else pd.NaT
-        except (ValueError, ArithmeticError, Exception):
+        except Exception:
             date = pd.NaT
         if pd.isna(date):
             continue
@@ -68,7 +68,7 @@ def iter_atom(url: str) -> Iterator[tuple]:
     """Yield (updated, title+summary, link) records from an Atom feed."""
     try:
         body = safe_get_bytes(url)
-    except (ValueError, ArithmeticError, Exception):
+    except Exception:
         return
     try:
         root = ET.fromstring(body)
@@ -94,7 +94,7 @@ def iter_atom(url: str) -> Iterator[tuple]:
                     or entry.findtext("published", default=""))
         try:
             date = pd.to_datetime(updated) if updated else pd.NaT
-        except (ValueError, ArithmeticError, Exception):
+        except Exception:
             date = pd.NaT
         if pd.isna(date):
             continue

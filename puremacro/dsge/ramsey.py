@@ -944,7 +944,7 @@ def detrend_bgp(
     # Parse model text to inspect declarations
     try:
         dag = parse_mod_to_dag(text)
-    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+    except Exception:
         # Fallback text transformation
         return text
 

@@ -172,3 +172,117 @@ def test_presentation_export_methods(simulator: MonetaryTransmissionSimulator) -
 
     fig_kmv = res.plot(kind="kmv")
     assert isinstance(fig_kmv, matplotlib.figure.Figure)
+
+    with pytest.raises(ValueError, match="Unknown plot kind"):
+        res.plot(kind="invalid_kind")
+
+
+def test_expansionary_rate_cut(simulator: MonetaryTransmissionSimulator) -> None:
+    """Expansionary monetary policy (-25 bps) stimulates output and inflation."""
+    res = simulator.simulate_rate_shock(magnitude=-0.0025, rho=0.7, T=40)
+
+    assert res.irf_output_hank[0] > 0.0
+    assert res.irf_output_rank[0] > 0.0
+    assert res.irf_inflation_hank[0] > 0.0
+    assert res.irf_rate_hank[0] < 0.0
+
+    # KMV identity holds
+    diff = np.abs(res.irf_consumption_hank - (res.direct_channel_hank + res.indirect_channel_hank))
+    np.testing.assert_allclose(diff, 0.0, atol=1e-14)
+    assert res.indirect_share_hank > 0.0
+
+
+def test_zero_rate_shock(simulator: MonetaryTransmissionSimulator) -> None:
+    """Zero shock produces zero response with machine-precision identity."""
+    res = simulator.simulate_rate_shock(magnitude=0.0, rho=0.7, T=40)
+
+    np.testing.assert_allclose(res.irf_output_hank, 0.0, atol=1e-14)
+    np.testing.assert_allclose(res.irf_output_rank, 0.0, atol=1e-14)
+    assert res.indirect_share_hank == 0.0
+
+
+def test_persistence_extremes(simulator: MonetaryTransmissionSimulator) -> None:
+    """Test transitory shock (rho=0) and persistent shock (rho=0.9)."""
+    res_trans = simulator.simulate_rate_shock(magnitude=0.0025, rho=0.0, T=40)
+    assert res_trans.irf_output_hank[0] < 0.0
+    # Shock dies down immediately after impact
+    assert abs(res_trans.irf_output_hank[-1]) < 1e-4
+
+    res_pers = simulator.simulate_rate_shock(magnitude=0.0025, rho=0.9, T=40)
+    assert res_pers.irf_output_hank[0] < 0.0
+    assert abs(res_pers.irf_output_hank[10]) > abs(res_trans.irf_output_hank[10])
+
+
+def test_caching_and_convenience_properties(simulator: MonetaryTransmissionSimulator) -> None:
+    """Simulator caches model and exposes steady-state MPC and peak responses."""
+    # steady_state_mpc property
+    mpc_ss = simulator.steady_state_mpc
+    assert 0.01 < mpc_ss < 0.50
+
+    # Running with smaller T uses cached model without re-solving
+    res = simulator.simulate_rate_shock(magnitude=0.0025, rho=0.7, T=20)
+    assert res.horizon == 20
+    assert simulator._cached_hank is not None
+
+    # peak_responses method
+    peaks = res.peak_responses()
+    assert isinstance(peaks, dict)
+    assert "output_hank" in peaks
+    assert "inflation_hank" in peaks
+    assert "consumption_hank" in peaks
+    assert peaks["output_hank"] < 0.0
+
+    # repr
+    rep = repr(res)
+    assert "MonetaryTransmissionResult" in rep
+    assert "rate" in rep
+    assert "indirect_share_hank" in rep
+
+
+def test_balance_sheet_different_targets(simulator: MonetaryTransmissionSimulator) -> None:
+    """Borrowers target has much higher initial consumption than unconstrained target."""
+    res_borrowers = simulator.simulate_balance_sheet_intervention(amount=1.0, target="borrowers", T=30)
+    res_unconstr = simulator.simulate_balance_sheet_intervention(amount=1.0, target="unconstrained", T=30)
+    res_all = simulator.simulate_balance_sheet_intervention(amount=1.0, target="all", T=30)
+
+    assert res_borrowers.irf_consumption_hank[0] > res_unconstr.irf_consumption_hank[0]
+    assert res_borrowers.irf_consumption_hank[0] > res_all.irf_consumption_hank[0]
+
+
+def test_monetary_validation_errors(simulator: MonetaryTransmissionSimulator) -> None:
+    """Validation properly raises errors on illegal inputs."""
+    # Rate shock validation
+    with pytest.raises(ValueError, match="must be at least 2 quarters"):
+        simulator.simulate_rate_shock(T=1)
+
+    with pytest.raises(ValueError, match="magnitude must be a finite float"):
+        simulator.simulate_rate_shock(magnitude=float("inf"))
+
+    with pytest.raises(ValueError, match="0.0 <= rho < 1.0"):
+        simulator.simulate_rate_shock(rho=1.0)
+
+    with pytest.raises(ValueError, match="0.0 <= rho < 1.0"):
+        simulator.simulate_rate_shock(rho=-0.5)
+
+    # Balance sheet validation
+    with pytest.raises(ValueError, match="must be at least 2 quarters"):
+        simulator.simulate_balance_sheet_intervention(T=1)
+
+    with pytest.raises(ValueError, match="positive finite float"):
+        simulator.simulate_balance_sheet_intervention(amount=-1.0)
+
+    with pytest.raises(ValueError, match="positive finite float"):
+        simulator.simulate_balance_sheet_intervention(amount=0.0)
+
+    with pytest.raises(ValueError, match="Unknown target group"):
+        simulator.simulate_balance_sheet_intervention(target="nonexistent_group")
+
+    # Custom shock path validation
+    with pytest.raises(ValueError, match="must have length >= 2"):
+        simulator.simulate_transmission(shock_type="rate", shock_path=[0.01])
+
+    with pytest.raises(ValueError, match="contains NaN or infinite"):
+        simulator.simulate_transmission(shock_type="rate", shock_path=[0.01, float("nan")])
+
+    with pytest.raises(ValueError, match="Unknown shock_type"):
+        simulator.simulate_transmission(shock_type="foreign_exchange")

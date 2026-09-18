@@ -156,7 +156,7 @@ def _try_fetch_text(url: str) -> str:
     """Wrapper: return text on success, empty string on any failure."""
     try:
         return safe_get_text(url)
-    except (ValueError, ArithmeticError, Exception):
+    except Exception:
         return ""
 
 
@@ -164,7 +164,7 @@ def _try_fetch_bytes(url: str) -> bytes:
     """Wrapper: return bytes on success, empty bytes on any failure."""
     try:
         return safe_get_bytes(url)
-    except (ValueError, ArithmeticError, Exception):
+    except Exception:
         return b""
 
 
@@ -232,7 +232,7 @@ def iter_cbo(
 
     try:
         rss_text = safe_get_text(_CBO_RSS_URL)
-    except (ValueError, ArithmeticError, Exception):
+    except Exception:
         return
     try:
         items = _parse_rss(rss_text)
@@ -258,7 +258,7 @@ def iter_cbo(
             body, pdf_url = _fetch_publication_body(
                 item["link"], pub_id=item["pub_id"]
             )
-        except (ValueError, ArithmeticError, Exception):
+        except Exception:
             continue
         if not body.strip():
             continue

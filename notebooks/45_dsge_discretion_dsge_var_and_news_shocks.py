@@ -263,31 +263,28 @@ pi_comm = pi_disc * 0.52 * np.exp(-0.25 * np.arange(H))
 y_comm = -0.65 * pi_disc - 0.008 * np.exp(-0.15 * np.arange(H))
 r_comm = 0.85 * pi_comm
 
-fig, axes = plt.subplots(1, 3, figsize=(13, 3.8))
+fig, axes = _nbstyle.figura(1, 3, figsize=(13, 3.8))
 
-axes[0].plot(np.arange(H), pi_disc * 100, label="Discretion", color="#d62728", lw=2.2)
-axes[0].plot(np.arange(H), pi_comm * 100, label="Commitment", color="#1f77b4", lw=2.2, linestyle="--")
+axes[0].plot(np.arange(H), pi_disc * 100, label="Discretion", color=_nbstyle.S2["color"], lw=2.2)
+axes[0].plot(np.arange(H), pi_comm * 100, label="Commitment", color=_nbstyle.S1["color"], lw=2.2, linestyle="--")
 axes[0].set_title(r"Inflation $\pi_t$ (% dev)", fontweight="bold")
 axes[0].set_xlabel("Quarters")
 axes[0].grid(True, linestyle=":", alpha=0.6)
 axes[0].legend()
 
-axes[1].plot(np.arange(H), y_disc * 100, label="Discretion", color="#d62728", lw=2.2)
-axes[1].plot(np.arange(H), y_comm * 100, label="Commitment", color="#1f77b4", lw=2.2, linestyle="--")
+axes[1].plot(np.arange(H), y_disc * 100, label="Discretion", color=_nbstyle.S2["color"], lw=2.2)
+axes[1].plot(np.arange(H), y_comm * 100, label="Commitment", color=_nbstyle.S1["color"], lw=2.2, linestyle="--")
 axes[1].set_title(r"Output Gap $y_t$ (% dev)", fontweight="bold")
 axes[1].set_xlabel("Quarters")
 axes[1].grid(True, linestyle=":", alpha=0.6)
 axes[1].legend()
 
-axes[2].plot(np.arange(H), r_disc * 100, label="Discretion", color="#d62728", lw=2.2)
-axes[2].plot(np.arange(H), r_comm * 100, label="Commitment", color="#1f77b4", lw=2.2, linestyle="--")
+axes[2].plot(np.arange(H), r_disc * 100, label="Discretion", color=_nbstyle.S2["color"], lw=2.2)
+axes[2].plot(np.arange(H), r_comm * 100, label="Commitment", color=_nbstyle.S1["color"], lw=2.2, linestyle="--")
 axes[2].set_title(r"Nominal Rate $r_t$ (% dev)", fontweight="bold")
 axes[2].set_xlabel("Quarters")
 axes[2].grid(True, linestyle=":", alpha=0.6)
 axes[2].legend()
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## 3. DSGE-VAR Hybrid Modeling (Del Negro & Schorfheide 2004)
@@ -355,16 +352,14 @@ print(res_dvar.summary())
 # %%
 grid_df = res_dvar.log_mdd_grid
 
-plt.figure(figsize=(7.5, 4.0))
-plt.plot(grid_df["lambda"], grid_df["log_mdd"], marker="o", color="#1f77b4", lw=2.2, label=r"Log MDD $\ln p(Y \mid \lambda)$")
-plt.axvline(res_dvar.hat_lambda, color="#d62728", linestyle="--", lw=1.8, label=rf"Optimal $\hat{{\lambda}} = {res_dvar.hat_lambda:.3f}$")
-plt.title(r"DSGE-VAR Prior Tightness Optimization $\hat{\lambda}$", fontsize=11, fontweight="bold")
-plt.xlabel(r"DSGE Prior Weight $\lambda$")
-plt.ylabel("Log Marginal Data Density")
-plt.grid(True, linestyle=":", alpha=0.6)
-plt.legend(loc="lower right")
-plt.tight_layout()
-plt.show()
+fig, ax = _nbstyle.figura(1, 1, figsize=(7.5, 4.0))
+ax.plot(grid_df["lambda"], grid_df["log_mdd"], marker="o", color=_nbstyle.S1["color"], lw=2.2, label=r"Log MDD $\ln p(Y \mid \lambda)$")
+ax.axvline(res_dvar.hat_lambda, color=_nbstyle.S2["color"], linestyle="--", lw=1.8, label=rf"Optimal $\hat{{\lambda}} = {res_dvar.hat_lambda:.3f}$")
+ax.set_title(r"DSGE-VAR Prior Tightness Optimization $\hat{\lambda}$", fontsize=11, fontweight="bold")
+ax.set_xlabel(r"DSGE Prior Weight $\lambda$")
+ax.set_ylabel("Log Marginal Data Density")
+ax.grid(True, linestyle=":", alpha=0.6)
+ax.legend(loc="lower right")
 
 print(f"Optimal prior weight hat(lambda) : {res_dvar.hat_lambda:.4f}")
 print(f"Log MDD at optimum               : {res_dvar.log_mdd:.2f}")
@@ -414,42 +409,39 @@ assert np.isclose(realiz_a, 1.0, atol=1e-6), "Shock must materialize at schedule
 # We plot the trajectory of the anticipated shock from announcement through realization:
 
 # %%
-fig, axes = plt.subplots(2, 2, figsize=(11.5, 6.5))
+fig, axes = _nbstyle.figura(2, 2, figsize=(11.5, 6.5))
 
 time_axis = np.arange(len(a_path))
 
 # Panel 1: Exogenous technology state
-axes[0, 0].plot(time_axis, a_path, color="#2ca02c", lw=2.2, marker="o", label="Technology $a_t$")
-axes[0, 0].axvline(4, color="#333333", linestyle="--", alpha=0.7, label="Realization ($t=4$)")
+axes[0, 0].plot(time_axis, a_path, color=_nbstyle.S3["color"], lw=2.2, marker="o", label="Technology $a_t$")
+axes[0, 0].axvline(4, color=_nbstyle.SPINE, linestyle="--", alpha=0.7, label="Realization ($t=4$)")
 axes[0, 0].set_title(r"Technology State $a_t$ (Zero revision $t < 4$)", fontweight="bold")
 axes[0, 0].grid(True, linestyle=":", alpha=0.6)
 axes[0, 0].legend()
 
 # Panel 2: Output gap
-axes[0, 1].plot(time_axis, y_path, color="#1f77b4", lw=2.2, marker="s", label="Output $y_t$")
-axes[0, 1].axvline(4, color="#333333", linestyle="--", alpha=0.7)
+axes[0, 1].plot(time_axis, y_path, color=_nbstyle.S1["color"], lw=2.2, marker="s", label="Output $y_t$")
+axes[0, 1].axvline(4, color=_nbstyle.SPINE, linestyle="--", alpha=0.7)
 axes[0, 1].set_title(r"Output Gap $y_t$ (Anticipatory expansion)", fontweight="bold")
 axes[0, 1].grid(True, linestyle=":", alpha=0.6)
 axes[0, 1].legend()
 
 # Panel 3: Inflation
-axes[1, 0].plot(time_axis, pi_path, color="#d62728", lw=2.2, marker="^", label=r"Inflation $\pi_t$")
-axes[1, 0].axvline(4, color="#333333", linestyle="--", alpha=0.7)
+axes[1, 0].plot(time_axis, pi_path, color=_nbstyle.S2["color"], lw=2.2, marker="^", label=r"Inflation $\pi_t$")
+axes[1, 0].axvline(4, color=_nbstyle.SPINE, linestyle="--", alpha=0.7)
 axes[1, 0].set_title(r"Inflation $\pi_t$ (Forward jump at $t=0$)", fontweight="bold")
 axes[1, 0].set_xlabel("Quarters")
 axes[1, 0].grid(True, linestyle=":", alpha=0.6)
 axes[1, 0].legend()
 
 # Panel 4: Policy rate
-axes[1, 1].plot(time_axis, r_path, color="#9467bd", lw=2.2, marker="d", label="Nominal Rate $r_t$")
-axes[1, 1].axvline(4, color="#333333", linestyle="--", alpha=0.7)
+axes[1, 1].plot(time_axis, r_path, color=_nbstyle.S4["color"], lw=2.2, marker="d", label="Nominal Rate $r_t$")
+axes[1, 1].axvline(4, color=_nbstyle.SPINE, linestyle="--", alpha=0.7)
 axes[1, 1].set_title(r"Policy Interest Rate $r_t$", fontweight="bold")
 axes[1, 1].set_xlabel("Quarters")
 axes[1, 1].grid(True, linestyle=":", alpha=0.6)
 axes[1, 1].legend()
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ### Forecast Error Variance Decomposition: Surprise vs. News Leads

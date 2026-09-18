@@ -116,15 +116,14 @@ assert mean_inc > mean_ent                                # selection
 # %%
 s_thresh = s[survive][0]                                  # lowest surviving productivity
 cols = _nbstyle.palette(2)
-fig, ax = plt.subplots()
+fig, ax = _nbstyle.figura()
 ax.plot(s, g, color=cols[0], label="incumbents (stationary)")
 ax.plot(s, nu, color=cols[1], linestyle="--", label="entrant draw ν")
-ax.axvline(s_thresh, color="0.3", linewidth=0.9, linestyle=":",
+ax.axvline(s_thresh, color=_nbstyle.SPINE, linewidth=0.9, linestyle=":",
            label=f"exit threshold s={s_thresh:.2f}")
 ax.set_xlim(s.min(), np.quantile(s, 0.97))
 ax.set_xlabel("Productivity s"); ax.set_ylabel("Density")
 ax.set_title("Firm productivity: selection at work"); ax.legend()
-plt.show()
 
 # %% [markdown]
 # ### Complementaria — función de valor y la región de salida
@@ -133,15 +132,14 @@ plt.show()
 
 # %%
 cont = P @ V                                              # E[V'|s]
-fig, ax = plt.subplots()
-ax.plot(s, V, color="0.0", label="incumbent value V(s)")
-ax.axhline(0.0, color="0.5", linewidth=0.8)
-ax.fill_between(s, V.min(), 0.0, where=~survive, color="0.85",
+fig, ax = _nbstyle.figura()
+ax.plot(s, V, color=_nbstyle.TINTA, label="incumbent value V(s)")
+ax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8)
+ax.fill_between(s, V.min(), 0.0, where=~survive, color=_nbstyle.BANDA,
                 label="exit region")
 ax.set_xlim(s.min(), np.quantile(s, 0.9))
 ax.set_xlabel("Productivity s"); ax.set_ylabel("Value")
 ax.set_title("Value function and exit decision"); ax.legend(loc="upper left")
-plt.show()
 
 # %% [markdown]
 # ### Complementaria — estática comparativa en el costo de entrada
@@ -152,11 +150,10 @@ ces = np.linspace(20.0, 80.0, 7)
 prices = [free_entry_price(profit_at, nu, c, (0.5, 30.0), P_z=P, beta=beta).price
           for c in ces]
 assert np.all(np.diff(prices) > 0)                        # price increasing in ce
-fig, ax = plt.subplots()
-ax.plot(ces, prices, color="0.0", marker="o", markersize=4)
+fig, ax = _nbstyle.figura()
+ax.plot(ces, prices, color=_nbstyle.TINTA, marker="o", markersize=4)
 ax.set_xlabel("Entry cost cₑ"); ax.set_ylabel("Equilibrium output price")
 ax.set_title("Comparative statics: entry cost → price")
-plt.show()
 
 # %% [markdown]
 # **Lectura del resultado.** La línea tiene pendiente estrictamente positiva, y el `assert` lo confirma:

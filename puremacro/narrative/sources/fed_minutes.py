@@ -56,7 +56,7 @@ def iter_fed_minutes() -> Iterator[tuple]:
     """Yield (date, text, url, metadata) for FOMC meeting minutes."""
     try:
         body = safe_get_bytes(_LISTING_URL, user_agent=_UA)
-    except (ValueError, ArithmeticError, Exception):
+    except Exception:
         return
     try:
         obj = json.loads(body.decode("utf-8-sig", errors="ignore"))
@@ -76,7 +76,7 @@ def iter_fed_minutes() -> Iterator[tuple]:
             continue
         try:
             date = pd.Timestamp(item.get("d"))
-        except (ValueError, ArithmeticError, Exception):
+        except Exception:
             continue
         href = item.get("l", "")
         if not href:
@@ -86,7 +86,7 @@ def iter_fed_minutes() -> Iterator[tuple]:
         # Step 1+2: fetch announcement, parse for body link.
         try:
             announcement_html = safe_get_text(announcement_url, user_agent=_UA)
-        except (ValueError, ArithmeticError, Exception):
+        except Exception:
             continue
 
         if not _checked:
@@ -120,7 +120,7 @@ def iter_fed_minutes() -> Iterator[tuple]:
                     chosen_url = body_url
                 else:
                     body_text = ""  # too short, fall back
-            except (ValueError, ArithmeticError, Exception):
+            except Exception:
                 body_text = ""
 
         # Step 3: fall back to announcement-page extraction if body fetch

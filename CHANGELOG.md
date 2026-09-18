@@ -2,6 +2,31 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## 4.2.0 (2026-09-18)
+
+### Added — Flexible trade CGE, dual-mode B&W card styling, and full notebook corpus polish
+
+- **Flexible Trade General Equilibrium (`puremacro.trade.flexible`)**:
+  - Nested CES production technology in calibrated share form (`solve_flexible_trade_equilibrium`).
+  - Two-tier Stone-Geary Linear Expenditure System (LES) preferences with subsistence consumption floors.
+  - Atkeson-Burstein variable markups with incomplete tariff pass-through and strategic pricing.
+  - Exported through `puremacro.trade` API with full Result dataclasses.
+- **Dual-Mode B&W Grayscale Card Styling Engine (`_nbstyle.py`)**:
+  - Unified 945-line card styling engine synchronized bit-identically across `notebooks/_nbstyle.py` and `curso/notebooks/_nbstyle.py`.
+  - Figures render with explicit solid opaque canvas backgrounds (`figure.facecolor`, `axes.facecolor`, `savefig.transparent = False`), completely eliminating dark-mode / light-mode canvas washout.
+  - Supports dual themes: `papel` (`#FFFFFF` card, `#141414` ink) and `grafito` (`#161616` card, `#EDEDED` ink) with OKLab perceptual luminance fractions.
+  - Distinct linestyles and luminance levels (`S1`–`S6`) replacing color hue dependencies.
+- **Showcase Notebook 62 (EN & ES)**:
+  - Added `62_flexible_trade_cge` and `62_flexible_trade_cge_es`: multi-country general equilibrium trade counterfactuals across the 77-country 11-sector OECD ICIO economy with executed outputs.
+- **Corpus-Wide Notebook Polish & Verification**:
+  - All 214 notebooks across the repository validated with 0 errors via `tools/build_notebooks.py --validate-only`.
+  - Converted 30 Tier 3 sparse showcase notebooks into dense, connected paragraphs of academic prose with motivating questions and mathematical derivations.
+  - Standardized path resolution and encapsulated local frozen datasets across all 62 course notebooks (`curso/notebooks/`).
+  - 100% of 647 embedded PNG figures verified with solid opaque alpha channels (`min_alpha == 255`).
+- **Multi-Suite Build Tooling**:
+  - Enhanced `tools/build_notebooks.py` supporting `--suite {showcase,curso,all}`, isolated `--run-path`, and fast `--validate-only`.
+
+
 ## 4.1.1 (2026-09-17)
 
 ### Fixed

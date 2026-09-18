@@ -188,7 +188,7 @@ assert war_res.pi_prime[0, 0, 2] > trade_shares[0, 0, 2], "Trade diversion: US i
 fig1, axes1 = plt.subplots(1, 3, figsize=(14, 4.2))
 
 # Subplot A: Baseline Manufactures Trade Shares
-im_base = axes1[0].imshow(trade_shares[0], cmap="Blues", vmin=0.0, vmax=1.0)
+im_base = axes1[0].imshow(trade_shares[0], cmap=_nbstyle.CMAP_SEQ, vmin=0.0, vmax=1.0)
 axes1[0].set_title("(A) Baseline Trade Shares $\\pi_{ni}^0$ (Mfg)")
 axes1[0].set_xticks(range(N_cp))
 axes1[0].set_yticks(range(N_cp))
@@ -199,12 +199,12 @@ axes1[0].set_ylabel("Importer ($n$)")
 for n in range(N_cp):
     for i in range(N_cp):
         val = trade_shares[0, n, i]
-        col = "white" if val > 0.55 else "black"
+        col = _nbstyle.FONDO if val > 0.55 else _nbstyle.TINTA
         axes1[0].text(i, n, f"{val:.2f}", ha="center", va="center", color=col, fontsize=9.5, fontweight="bold")
 plt.colorbar(im_base, ax=axes1[0], fraction=0.046, pad=0.04)
 
 # Subplot B: Counterfactual Trade War Manufactures Trade Shares
-im_war = axes1[1].imshow(war_res.pi_prime[0], cmap="Blues", vmin=0.0, vmax=1.0)
+im_war = axes1[1].imshow(war_res.pi_prime[0], cmap=_nbstyle.CMAP_SEQ, vmin=0.0, vmax=1.0)
 axes1[1].set_title("(B) Counterfactual Trade Shares $\\pi_{ni}'^0$ (25% War)")
 axes1[1].set_xticks(range(N_cp))
 axes1[1].set_yticks(range(N_cp))
@@ -215,24 +215,21 @@ axes1[1].set_ylabel("Importer ($n$)")
 for n in range(N_cp):
     for i in range(N_cp):
         val = war_res.pi_prime[0, n, i]
-        col = "white" if val > 0.55 else "black"
+        col = _nbstyle.FONDO if val > 0.55 else _nbstyle.TINTA
         axes1[1].text(i, n, f"{val:.2f}", ha="center", va="center", color=col, fontsize=9.5, fontweight="bold")
 plt.colorbar(im_war, ax=axes1[1], fraction=0.046, pad=0.04)
 
 # Subplot C: Country Welfare Impacts: Unilateral Tariff vs. Reciprocal Trade War
 x_bar = np.arange(N_cp)
 bar_w = 0.35
-axes1[2].bar(x_bar - bar_w / 2, uni_res.welfare_pct, width=bar_w, label="Unilateral Tariff (USA 15% on CHN)", color="0.55", edgecolor="0.1", lw=0.8)
-axes1[2].bar(x_bar + bar_w / 2, war_res.welfare_pct, width=bar_w, label="Bilateral Trade War (USA & CHN 25%)", color="0.15", edgecolor="0.1", lw=0.8)
-axes1[2].axhline(0, color="black", linestyle="--", linewidth=0.8)
+axes1[2].bar(x_bar - bar_w / 2, uni_res.welfare_pct, width=bar_w, label="Unilateral Tariff (USA 15% on CHN)", color=_nbstyle.S2["color"], edgecolor=_nbstyle.FONDO, lw=0.8)
+axes1[2].bar(x_bar + bar_w / 2, war_res.welfare_pct, width=bar_w, label="Bilateral Trade War (USA & CHN 25%)", color=_nbstyle.S1["color"], edgecolor=_nbstyle.FONDO, lw=0.8)
+axes1[2].axhline(0, color=_nbstyle.SPINE, linestyle="--", linewidth=0.8)
 axes1[2].set_xticks(x_bar)
 axes1[2].set_xticklabels(country_codes)
 axes1[2].set_ylabel("Welfare Change $\\Delta W / W$ (%)")
 axes1[2].set_title("(C) Real Welfare Impact by Country")
 axes1[2].legend(loc="lower left", fontsize=8.5)
-
-plt.tight_layout()
-plt.show()
 
 # %%
 # --- Experiment 2: Spatial Geography & Infrastructure Corridor (Allen-Arkolakis 2014) ---
@@ -270,15 +267,15 @@ lats, lons = coords[:, 0], coords[:, 1]
 # Plot all background trade links
 for i in range(len(region_names)):
     for j in range(i + 1, len(region_names)):
-        ax_geo.plot([lons[i], lons[j]], [lats[i], lats[j]], color="0.75", linestyle=":", linewidth=1.0, zorder=1)
+        ax_geo.plot([lons[i], lons[j]], [lats[i], lats[j]], color=_nbstyle.REJILLA, linestyle=":", linewidth=1.0, zorder=1)
 
 # Highlight the upgraded North-South transport corridor
 n_idx, s_idx = region_names.index("North"), region_names.index("South")
-ax_geo.plot([lons[n_idx], lons[s_idx]], [lats[n_idx], lats[s_idx]], color="0.10", linestyle="-", linewidth=2.6, label="Upgraded North-South Corridor (-20% $\\tau$)", zorder=2)
+ax_geo.plot([lons[n_idx], lons[s_idx]], [lats[n_idx], lats[s_idx]], color=_nbstyle.TINTA, linestyle="-", linewidth=2.6, label="Upgraded North-South Corridor (-20% $\\tau$)", zorder=2)
 
 # Scatter plot of regions with size proportional to baseline population
 pop_sizes = base_res.population * 25.0
-scatter = ax_geo.scatter(lons, lats, s=pop_sizes, c="0.30", edgecolors="0.0", linewidths=1.2, zorder=3)
+scatter = ax_geo.scatter(lons, lats, s=pop_sizes, c=_nbstyle.S2["color"], edgecolors=_nbstyle.FONDO, linewidths=1.2, zorder=3)
 
 # Label regions with population and wage changes
 for i, name in enumerate(region_names):
@@ -298,17 +295,14 @@ w_bar2 = 0.35
 pop_pct = (rail_res.L_hat - 1.0) * 100.0
 wage_pct = (rail_res.w_hat - 1.0) * 100.0
 
-axes2[1].bar(x_loc - w_bar2 / 2, pop_pct, width=w_bar2, label="Population Change $\\hat{L}_i - 1$ (%)", color="0.35", edgecolor="0.1", lw=0.8)
-axes2[1].bar(x_loc + w_bar2 / 2, wage_pct, width=w_bar2, label="Nominal Wage Change $\\hat{w}_i - 1$ (%)", color="0.70", edgecolor="0.1", lw=0.8)
-axes2[1].axhline(0, color="black", linestyle="--", linewidth=0.8)
+axes2[1].bar(x_loc - w_bar2 / 2, pop_pct, width=w_bar2, label="Population Change $\\hat{L}_i - 1$ (%)", color=_nbstyle.S1["color"], edgecolor=_nbstyle.FONDO, lw=0.8)
+axes2[1].bar(x_loc + w_bar2 / 2, wage_pct, width=w_bar2, label="Nominal Wage Change $\\hat{w}_i - 1$ (%)", color=_nbstyle.S2["color"], edgecolor=_nbstyle.FONDO, lw=0.8)
+axes2[1].axhline(0, color=_nbstyle.SPINE, linestyle="--", linewidth=0.8)
 axes2[1].set_xticks(x_loc)
 axes2[1].set_xticklabels(region_names)
 axes2[1].set_ylabel("Percentage Change (%)")
 axes2[1].set_title("(B) Regional Labor Reallocation & Wage Responses")
 axes2[1].legend(loc="upper right", fontsize=8.5)
-
-plt.tight_layout()
-plt.show()
 
 # %%
 # --- Experiment 3: Supply Chain Cascades — Input-Output Amplification ---
@@ -348,17 +342,14 @@ fig3, ax3 = plt.subplots(figsize=(7.5, 4.0))
 x_io = np.arange(N_cp)
 w_io = 0.35
 
-ax3.bar(x_io - w_io / 2, war_res.welfare_pct, width=w_io, label="With Full Input-Output Linkages (Caliendo-Parro)", color="0.20", edgecolor="0.1", lw=0.8)
-ax3.bar(x_io + w_io / 2, war_res_noio.welfare_pct, width=w_io, label="Without Input-Output Linkages (Pure Ricardian)", color="0.65", edgecolor="0.1", lw=0.8)
-ax3.axhline(0, color="black", linestyle="--", linewidth=0.8)
+ax3.bar(x_io - w_io / 2, war_res.welfare_pct, width=w_io, label="With Full Input-Output Linkages (Caliendo-Parro)", color=_nbstyle.S1["color"], edgecolor=_nbstyle.FONDO, lw=0.8)
+ax3.bar(x_io + w_io / 2, war_res_noio.welfare_pct, width=w_io, label="Without Input-Output Linkages (Pure Ricardian)", color=_nbstyle.S2["color"], edgecolor=_nbstyle.FONDO, lw=0.8)
+ax3.axhline(0, color=_nbstyle.SPINE, linestyle="--", linewidth=0.8)
 ax3.set_xticks(x_io)
 ax3.set_xticklabels(country_codes)
 ax3.set_ylabel("Welfare Change $\\Delta W / W$ (%)")
 ax3.set_title("Input-Output Supply Chain Amplification of Trade War Losses")
 ax3.legend(loc="lower left", fontsize=8.5)
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## Read the output

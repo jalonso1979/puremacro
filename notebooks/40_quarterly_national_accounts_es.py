@@ -206,7 +206,7 @@ print(ident[columns].to_string(float_format=lambda v: f"{v:8.4f}"))
 # %%
 contrib = qna_contributions(panel, annualise=True)
 
-fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.4), sharey=True)
+fig, axes = _nbstyle.figura(1, 2, figsize=(11.5, 4.4), sharey=True)
 parts = ["cons_hh", "cons_gov", "capform", "exports", "imports"]
 labels = ["Hogares", "Gobierno", "Formación de capital", "Exportaciones", "Importaciones"]
 colors = _nbstyle.palette(len(parts))
@@ -222,15 +222,13 @@ for ax, code in zip(axes, ["USA", "DEU"]):
                label=label if code == "USA" else None)
         bottom_pos = bottom_pos + np.where(v >= 0, v, 0.0)
         bottom_neg = bottom_neg + np.where(v < 0, v, 0.0)
-    ax.plot(c.index, c["gdp"], color="black", lw=1.6, label="PIB" if code == "USA" else None)
-    ax.axhline(0.0, color="black", lw=0.8)
+    ax.plot(c.index, c["gdp"], color=_nbstyle.TINTA, lw=1.8, label="PIB" if code == "USA" else None)
+    ax.axhline(0.0, color=_nbstyle.SPINE, lw=0.8)
     ax.set_title(f"{code} — contribuciones al crecimiento del PIB real")
     ax.set_xlabel("")
 
-axes[0].set_ylabel("%, anualizado, contribución")
-fig.legend(loc="lower center", ncol=6, frameon=False, bbox_to_anchor=(0.5, -0.06))
-fig.tight_layout()
-plt.show()
+axes[0].set_ylabel("%, anualizado, contribución", color=_nbstyle.TEXTO)
+fig.legend(loc="lower center", ncol=6, frameon=True, facecolor=_nbstyle.FONDO, edgecolor=_nbstyle.SPINE, bbox_to_anchor=(0.5, -0.06))
 
 recent = contrib.loc["USA"].dropna(how="all").tail(4)
 print("Estados Unidos, últimos cuatro trimestres (%, anualizado):")

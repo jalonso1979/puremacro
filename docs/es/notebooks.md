@@ -575,6 +575,7 @@ Las demostraciones `47` a `50` conectan la macroeconometría teórica con la pr�
 | `59_latam_realtime_nowcast_and_news_es` | Nowcasting DFM del PIB para América Latina, descomposición de noticias Bańbura-Modugno y PIT Berkowitz | `59_latam_realtime_nowcast_and_news` |
 | `60_interactive_dml_irm_and_iv_es` | Aprendizaje Automático Doble interactivo: IRM (ATE/ATT) con DC logístico, solapamiento y DML-IV | `60_interactive_dml_irm_and_iv` |
 | `61_quantitative_policy_simulators_es` | Simuladores cuantitativos: EG comercial ICIO OCDE (77 países) y transmisión monetaria HANK en secuencias | `61_quantitative_policy_simulators` |
+| `62_flexible_trade_cge_es` | EG comercial flexible: tecnología CES anidada, preferencias Stone-Geary y márgenes Atkeson-Burstein | `62_flexible_trade_cge` |
 
 ---
 

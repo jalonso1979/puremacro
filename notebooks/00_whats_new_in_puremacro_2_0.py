@@ -30,6 +30,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import puremacro
+import _nbstyle
 
 print(f"Loaded puremacro version: {puremacro.__version__}")
 
@@ -59,9 +60,8 @@ res_lp = lp_hac(df_lp, y="gdp", x="shock", horizon=16, lags=4, ci=0.90)
 print(res_lp.summary())
 
 # Plot IRF with 1 line
-fig, ax = plt.subplots(figsize=(7, 4))
+fig, ax = _nbstyle.figura(ancho=7, alto=4)
 res_lp.plot(ax=ax, title="Response of Real GDP to Monetary Shock (LP-HAC)")
-plt.show()
 
 # Export camera-ready LaTeX table
 print("LaTeX Output (first 4 rows):")
@@ -136,7 +136,6 @@ print(favar_res.summary())
 
 # Plot selected cross-sectional responses
 favar_res.plot(variables=["Macro_Var_1", "Macro_Var_2"])
-plt.show()
 
 # %% [markdown]
 # ## 4. Modern Staggered Difference-in-Differences

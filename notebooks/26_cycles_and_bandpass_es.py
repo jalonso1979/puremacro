@@ -140,38 +140,35 @@ assert corr_cf > 0.70, "Christiano-Fitzgerald debe capturar la banda del ciclo f
 # %%
 time_axis = np.arange(T) / 4.0  # En años
 
-fig, axes = plt.subplots(3, 1, figsize=(7.2, 7.0), sharex=True)
+fig, axes = _nbstyle.figura(3, 1, ancho=7.2, alto=7.0, sharex=True)
 
 # Panel 1: Serie observada y tendencias permanentes
-axes[0].plot(time_axis, y, label=r"Agregado Observado $y_t$", color="0.10", lw=1.6)
-axes[0].plot(time_axis, tau_true, label=r"Tendencia Estocástica Verdadera $\tau_t$", color="0.50", ls="--", lw=1.4)
-axes[0].plot(time_axis, bn_trend, label="Tendencia Beveridge-Nelson", color="0.25", ls=":", lw=1.5)
+axes[0].plot(time_axis, y, label=r"Agregado Observado $y_t$", color=_nbstyle.TINTA, lw=1.6)
+axes[0].plot(time_axis, tau_true, label=r"Tendencia Estocástica Verdadera $\tau_t$", color=_nbstyle.NOTA, ls="--", lw=1.4)
+axes[0].plot(time_axis, bn_trend, label="Tendencia Beveridge-Nelson", color=_nbstyle.SPINE, ls=":", lw=1.5)
 axes[0].set_title("(a) Serie Temporal Observada y Tendencias Permanentes Extraídas", loc="left", fontsize=10, fontweight="bold")
 axes[0].set_ylabel("Nivel")
 axes[0].legend(loc="upper left", fontsize=8.5)
 
 # Panel 2: Filtros Pasa-Banda (BK vs CF vs Ciclo Verdadero)
-axes[1].plot(time_axis, c_true, label="Ciclo Verdadero Plantado", color="0.75", lw=2.5)
-axes[1].plot(time_axis, bk_cycle, label=f"Baxter-King (K=12) [r={corr_bk:.2f}]", color="0.00", lw=1.6)
-axes[1].plot(time_axis, cf_cycle, label=f"Christiano-Fitzgerald [r={corr_cf:.2f}]", color="0.40", ls="--", lw=1.5)
-axes[1].axhline(0, color="0.70", ls=":", lw=0.8)
+axes[1].plot(time_axis, c_true, label="Ciclo Verdadero Plantado", color=_nbstyle.NOTA, lw=2.5)
+axes[1].plot(time_axis, bk_cycle, label=f"Baxter-King (K=12) [r={corr_bk:.2f}]", color=_nbstyle.TINTA, lw=1.6)
+axes[1].plot(time_axis, cf_cycle, label=f"Christiano-Fitzgerald [r={corr_cf:.2f}]", color=_nbstyle.TEXTO, ls="--", lw=1.5)
+axes[1].axhline(0, color=_nbstyle.SPINE, ls=":", lw=0.8)
 axes[1].set_title("(b) Aproximaciones Pasa-Banda: Baxter-King vs. Christiano-Fitzgerald", loc="left", fontsize=10, fontweight="bold")
 axes[1].set_ylabel("Ciclo (% dev)")
 axes[1].legend(loc="upper right", fontsize=8.5)
 
 # Panel 3: Alternativas Econométricas (Hamilton vs HP vs Beveridge-Nelson)
-axes[2].plot(time_axis, c_true, label="Ciclo Verdadero Plantado", color="0.75", lw=2.5)
-axes[2].plot(time_axis, hp_cycle, label=f"Hodrick-Prescott ($\\lambda=1600$) [r={corr_hp:.2f}]", color="0.20", ls="-.", lw=1.4)
-axes[2].plot(time_axis, ham_cycle, label="Hamilton (MCO a 2 Años)", color="0.50", ls=":", lw=1.5)
-axes[2].plot(time_axis, bn_cycle, label="Beveridge-Nelson Transitorio", color="0.00", lw=1.2)
-axes[2].axhline(0, color="0.70", ls=":", lw=0.8)
+axes[2].plot(time_axis, c_true, label="Ciclo Verdadero Plantado", color=_nbstyle.NOTA, lw=2.5)
+axes[2].plot(time_axis, hp_cycle, label=f"Hodrick-Prescott ($\\lambda=1600$) [r={corr_hp:.2f}]", color=_nbstyle.SPINE, ls="-.", lw=1.4)
+axes[2].plot(time_axis, ham_cycle, label="Hamilton (MCO a 2 Años)", color=_nbstyle.TEXTO, ls=":", lw=1.5)
+axes[2].plot(time_axis, bn_cycle, label="Beveridge-Nelson Transitorio", color=_nbstyle.TINTA, lw=1.2)
+axes[2].axhline(0, color=_nbstyle.SPINE, ls=":", lw=0.8)
 axes[2].set_title("(c) Alternativas Econométricas: HP, Hamilton MCO y Beveridge-Nelson", loc="left", fontsize=10, fontweight="bold")
 axes[2].set_xlabel("Tiempo (Años)")
 axes[2].set_ylabel("Ciclo (% dev)")
 axes[2].legend(loc="upper right", fontsize=8.5)
-
-plt.tight_layout()
-plt.show()
 
 # %% [markdown]
 # ## Interpretación Económica

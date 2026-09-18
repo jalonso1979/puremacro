@@ -780,7 +780,7 @@ def solve_perfect_foresight(
             out = np.asarray(eq_fn(y_ss_arr.astype(complex), pert, y_init_arr.astype(complex), exo_sim[0]), dtype=complex)
             if not np.all(out.imag == 0) and not np.isnan(out.imag).any():
                 use_complex = True
-        except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+        except Exception:
             use_complex = False
 
     # Setup MCP constraints if mcp is True or mcp_bounds provided
@@ -1084,7 +1084,7 @@ def solve_perfect_foresight(
                         res_norm = trial_res_norm
                         accepted = True
                         break
-            except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+            except Exception:
                 pass
             step_scale *= 0.5
 

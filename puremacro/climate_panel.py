@@ -253,7 +253,7 @@ def build_climate_panel(
             if "is_imputed" not in em_df.columns:
                 em_df["is_imputed"] = False
             annual_frames.append(em_df)
-    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+    except Exception:
         pass
 
     # 2. Fetch energy transition (annual baseline)
@@ -268,7 +268,7 @@ def build_climate_panel(
             if "is_imputed" not in et_df.columns:
                 et_df["is_imputed"] = False
             annual_frames.append(et_df)
-    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+    except Exception:
         pass
 
     # 3. National macro output (real GDP, population) if available
@@ -290,7 +290,7 @@ def build_climate_panel(
                 quarterly_frames.append(macro_sub)
     except MissingEngineError:
         raise
-    except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
+    except Exception:
         pass
 
     final_frames: list[pd.DataFrame] = []

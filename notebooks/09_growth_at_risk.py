@@ -172,8 +172,8 @@ fan = {tau: np.array([qhat(tau, x) for x in fci_grid]) for tau in taus}
 
 cols = _nbstyle.palette(3)
 sty = _nbstyle.styles(3)
-fig, ax = plt.subplots()
-ax.fill_between(fci_grid, fan[0.05], fan[0.95], color="0.88",
+fig, ax = _nbstyle.figura()
+ax.fill_between(fci_grid, fan[0.05], fan[0.95], color=_nbstyle.BANDA,
                 label="5-95% conditional band")
 ax.plot(fci_grid, fan[0.50], color=cols[0], linestyle=sty[0], label="median")
 ax.plot(fci_grid, fan[0.05], color=cols[1], linestyle=sty[1], label="5th pct (GaR)")
@@ -182,7 +182,6 @@ ax.set_xlabel("Financial conditions index (higher = tighter)")
 ax.set_ylabel("Conditional GDP growth (%)")
 ax.set_title("Growth-at-Risk fan: the left tail widens as conditions tighten")
 ax.legend(loc="lower left", fontsize=8)
-plt.show()
 
 # %% [markdown]
 # ### Supporting — skew-t conditional densities, loose vs tight
@@ -211,7 +210,7 @@ assert fit_tight.alpha < 0.0, fit_tight.alpha                    # left-skewed w
 
 xs = np.linspace(-8, 8, 400)
 c2 = _nbstyle.palette(2)
-fig, ax = plt.subplots()
+fig, ax = _nbstyle.figura()
 ax.plot(xs, fit_loose.pdf(xs), color=c2[0], label=f"loose FCI  (5% GaR {gar_loose:.1f})")
 ax.plot(xs, fit_tight.pdf(xs), color=c2[1], linestyle=(0, (4, 2)),
         label=f"tight FCI  (5% GaR {gar_tight:.1f})")
@@ -220,7 +219,6 @@ ax.axvline(gar_tight, color=c2[1], linewidth=0.7, linestyle=":")
 ax.set_xlabel("GDP growth (%)"); ax.set_ylabel("Conditional density")
 ax.set_title("Skew-t densities: tight conditions push mass into the left tail")
 ax.legend(loc="upper left", fontsize=8)
-plt.show()
 
 # %% [markdown]
 # **Read the output.** Across the **fan** (hero figure) the median line is nearly
