@@ -1,0 +1,3 @@
+## 2025-01-24 - Accessibility improvements for Jupyter inline HTML
+**Learning:** Decorative emojis (like 🚀) and characters (like ↗) used for visual enhancements in Jupyter Notebook inline HTML outputs are read aloud by screen readers, which can disrupt the user experience. Additionally, external links opened via `target="_blank"` lack screen reader context without an explicit `aria-label` and security without `rel="noopener noreferrer"`.
+**Action:** Always wrap decorative emojis/characters in `<span aria-hidden="true">`, add `rel="noopener noreferrer"` to external links, and provide explicit `aria-label` attributes to ensure external links are accessible and secure.
