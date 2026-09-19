@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
-from typing import Sequence
+from collections.abc import Sequence
 
 import numpy as np
 import pandas as pd
@@ -226,7 +226,7 @@ def fetch_wdi_emissions(
 
             if cfg is not None:
                 var_name = str(cfg["variable"])
-                multiplier = float(cfg["multiplier"])
+                multiplier = float(str(cfg["multiplier"]))
                 scaled_val = val * multiplier
             else:
                 var_name = ind_id.lower().replace(".", "_") + "_a"
@@ -322,7 +322,7 @@ def fetch_oecd_ghg(
 
     records: list[dict[str, object]] = []
 
-    for _, row in sub.iterrows():
+    for row in sub.to_dict("records"):
         ref_area = row.get("REF_AREA")
         if not isinstance(ref_area, str):
             continue
@@ -440,29 +440,31 @@ def fetch_emissions_panel(
         return merged.sort_values(["code", "variable", "date"]).reset_index(drop=True)
 
     # Quarterly expansion: expand each annual observation into 4 quarterly periods
-    q_records: list[dict[str, object]] = []
-    for _, row in merged.iterrows():
-        base_year = row["date"].year
-        var_name = str(row["variable"])
-        q_var = var_name[:-2] + "_q" if var_name.endswith("_a") else var_name + "_q"
-        q_source = f"resampled_from_A:{row['source']}"
-
-        for m in (1, 4, 7, 10):
-            q_records.append({
-                "code": row["code"],
-                "date": pd.Timestamp(f"{base_year}-{m:02d}-01"),
-                "variable": q_var,
-                "value": row["value"],
-                "sa_source": row["sa_source"],
-                "source": q_source,
-            })
-
-    if not q_records:
+    if merged.empty:
         return _EMPTY.copy()
 
-    q_df = pd.DataFrame(q_records, columns=["code", "date", "variable", "value", "sa_source", "source"])
+    q_df = pd.concat([merged] * 4, ignore_index=True)
+    # Months corresponding to each quarter
+    m = np.repeat([1, 4, 7, 10], len(merged))
+
+    # Vectorized date update
+    years = q_df["date"].dt.year.astype(str)
+    months = pd.Series(m).astype(str).str.zfill(2)
+    q_df["date"] = pd.to_datetime(years + "-" + months + "-01")
+
+    # Vectorized variable update
+    var_strs = q_df["variable"].astype(str)
+    q_df["variable"] = np.where(
+        var_strs.str.endswith("_a"),
+        var_strs.str[:-2] + "_q",
+        var_strs + "_q"
+    )
+
+    # Vectorized source update
+    q_df["source"] = "resampled_from_A:" + q_df["source"].astype(str)
+
     q_df = q_df.sort_values(["code", "variable", "date"]).reset_index(drop=True)
     return q_df
 
 
-__all__ = ["fetch_wdi_emissions", "fetch_oecd_ghg", "fetch_emissions_panel"]
+__all__ = ["fetch_emissions_panel", "fetch_oecd_ghg", "fetch_wdi_emissions"]
