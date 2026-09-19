@@ -27,13 +27,13 @@ opened read-only: reads work, writes raise ``sqlite3.OperationalError``
 as usual, and the callers that write only opportunistically (telemetry,
 snapshot storage) degrade to a warning.
 """
+
 from __future__ import annotations
 
 import os
 import sqlite3
 from pathlib import Path
 from typing import Any
-
 
 _DDL_HTTP_CACHE = """
 CREATE TABLE IF NOT EXISTS http_cache (
@@ -46,8 +46,7 @@ CREATE TABLE IF NOT EXISTS http_cache (
 """
 
 _DDL_HTTP_CACHE_IDX = (
-    "CREATE INDEX IF NOT EXISTS http_cache_fetched_at_idx "
-    "ON http_cache(fetched_at);"
+    "CREATE INDEX IF NOT EXISTS http_cache_fetched_at_idx " "ON http_cache(fetched_at);"
 )
 
 _DDL_ALFRED_VINTAGES = """
@@ -103,8 +102,12 @@ CREATE TABLE IF NOT EXISTS schema_version (
 );
 """
 
-_SCHEMA_SEED = [("http_cache", 1), ("alfred_vintages", 1),
-                ("connector_events", 1), ("realtime_vintages", 1)]
+_SCHEMA_SEED = [
+    ("http_cache", 1),
+    ("alfred_vintages", 1),
+    ("connector_events", 1),
+    ("realtime_vintages", 1),
+]
 
 
 def default_db_path() -> Path:
@@ -158,7 +161,10 @@ def _connect_readonly(target: Path) -> sqlite3.Connection:
     """
     uri = target.resolve().as_uri() + "?mode=ro"
     conn = sqlite3.connect(
-        uri, uri=True, timeout=30.0, isolation_level=None,
+        uri,
+        uri=True,
+        timeout=30.0,
+        isolation_level=None,
         check_same_thread=False,
     )
     conn.execute("PRAGMA foreign_keys=ON")
@@ -187,7 +193,10 @@ def get_conn(db_path: Path | None = None) -> sqlite3.Connection:
         conn = _connect_readonly(target)
     else:
         conn = sqlite3.connect(
-            target, timeout=30.0, isolation_level=None, check_same_thread=False,
+            target,
+            timeout=30.0,
+            isolation_level=None,
+            check_same_thread=False,
         )
         try:
             conn.execute("PRAGMA journal_mode=WAL")
@@ -292,6 +301,7 @@ def store_realtime_vintages(
     if df is None or len(df) == 0:
         return 0
     import pandas as pd
+
     c = conn or get_conn()
     date_col = "date" if "date" in df.columns else "observation_date"
     vin_col = "vintage" if "vintage" in df.columns else "vintage_date"
@@ -300,35 +310,46 @@ def store_realtime_vintages(
         missing = required - set(df.columns)
         raise ValueError(f"store_realtime_vintages missing columns: {sorted(missing)}")
 
-    records = []
-    for _, row in df.iterrows():
-        val = row["value"]
-        if pd.isna(val):
-            val_float = None
-        else:
-            try:
-                val_float = float(val)
-            except (ValueError, TypeError, Exception):
-                continue
-        try:
-            parsed_obs = pd.to_datetime(row[date_col])
-            parsed_vin = pd.to_datetime(row[vin_col])
-            if pd.isna(parsed_obs) or pd.isna(parsed_vin):
-                continue
-            obs_d = parsed_obs.strftime("%Y-%m-%d")
-            vin_d = parsed_vin.strftime("%Y-%m-%d")
-        except (ValueError, ArithmeticError, Exception):
-            continue
-        records.append((
-            str(row["provider"]),
-            str(row["country"]).upper(),
-            str(row["series_id"]),
+    import numpy as np
+
+    # Filter invalid values matching iterrows logic
+    is_na = df["value"].isna()
+    val_float = pd.to_numeric(df["value"], errors="coerce")
+
+    # We want values that were NA natively to be NaN/None (handled later),
+    # but values that failed parsing (not natively NA but coerced to NA) should be skipped.
+    valid_val_mask = is_na | val_float.notna()
+
+    try:
+        parsed_obs = pd.to_datetime(df[date_col], errors="coerce")
+        parsed_vin = pd.to_datetime(df[vin_col], errors="coerce")
+    except Exception:
+        # Fallback to failing all dates if completely unparseable
+        parsed_obs = pd.Series(pd.NaT, index=df.index)
+        parsed_vin = pd.Series(pd.NaT, index=df.index)
+
+    valid_mask = valid_val_mask & parsed_obs.notna() & parsed_vin.notna()
+
+    if not valid_mask.any():
+        return 0
+
+    df_valid = df[valid_mask]
+    obs_d = parsed_obs[valid_mask].dt.strftime("%Y-%m-%d")
+    vin_d = parsed_vin[valid_mask].dt.strftime("%Y-%m-%d")
+    val_float_valid = val_float[valid_mask]
+    # replace NaN with None for SQLite
+    val_float_list = [None if pd.isna(x) else float(x) for x in val_float_valid]
+
+    records = list(
+        zip(
+            df_valid["provider"].astype(str),
+            df_valid["country"].astype(str).str.upper(),
+            df_valid["series_id"].astype(str),
             obs_d,
             vin_d,
-            val_float,
-        ))
-    if not records:
-        return 0
+            val_float_list,
+        )
+    )
     c.executemany(
         "INSERT OR REPLACE INTO realtime_vintages "
         "(provider, country, series_id, observation_date, vintage_date, value) "
@@ -357,6 +378,7 @@ def query_realtime_vintages(
     date, vintage, value, provider, country, series_id
     """
     import pandas as pd
+
     c = conn or get_conn()
     c_code = str(country).upper()
     if vintage_date is not None:
@@ -420,7 +442,8 @@ def record_connector_event(
         warnings.warn(
             f"puremacro._cache_db.record_connector_event failed "
             f"({source}/{outcome}): {exc}",
-            UserWarning, stacklevel=2,
+            UserWarning,
+            stacklevel=2,
         )
 
 
@@ -434,4 +457,3 @@ __all__ = [
     "query_realtime_vintages",
     "record_connector_event",
 ]
-
