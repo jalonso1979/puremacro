@@ -1,0 +1,16 @@
+{
+  "wheel_entries": 810,
+  "png_count": 0,
+  "contains_new_modules": true,
+  "contains_matlab_runtime": false,
+  "artifacts": {
+    "puremacro-4.3.0-py3-none-any.whl": {
+      "bytes": 15189262,
+      "sha256": "f9a26f6f7c09a82727ea71c204a6de77c148ac052f654467f3f6ae5999b2ba97"
+    },
+    "puremacro-4.3.0.tar.gz": {
+      "bytes": 16163718,
+      "sha256": "2b98be4773a12230aa3ab4c5f4585d077c2a9f768d04d023b701b8b531bc9824"
+    }
+  }
+}

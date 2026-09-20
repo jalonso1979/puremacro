@@ -1,0 +1,445 @@
+==> 1/5 build the wheel
+Processing /private/tmp/puremacro-4.3.0-pages-61b4c78
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: puremacro
+  Building wheel for puremacro (pyproject.toml): started
+  Building wheel for puremacro (pyproject.toml): finished with status 'done'
+  Created wheel for puremacro: filename=puremacro-4.3.0-py3-none-any.whl size=15189262 sha256=9b909803cefe2b10626412b7aabbf77a2761ef6a42d51f756fe07509551eb17a
+  Stored in directory: /Users/jalonso/Library/Caches/pip/wheels/54/6b/ca/e3f9c64fbdb6a6f2e383d0c0e3ad5ae0b46467a9bf1a2cad76
+Successfully built puremacro
+
+[notice] A new release of pip is available: 25.0.1 -> 26.2.1
+[notice] To update, run: pip install --upgrade pip
+    wheel: /private/tmp/puremacro-4.3.0-pages-61b4c78/playground/wheels/puremacro-4.3.0-py3-none-any.whl
+    piplite pin: ./wheels/puremacro-4.3.0-py3-none-any.whl
+==> 2/5 assemble content/ (showcase notebooks + style + offline config)
+[jupytext] Reading /private/tmp/puremacro-4.3.0-pages-61b4c78/playground/00_start_here.py in format py
+[jupytext] Writing /private/tmp/puremacro-4.3.0-pages-61b4c78/playground/content/00_start_here.ipynb
+==> 3/5 inject the %pip bootstrap cell into every notebook in content/
+==> 4/5 jupyter lite build
+[LiteBuildApp] No archive (yet): playground-jupyterlite.tgz
+[LiteBuildApp]     jupyter-lite.(json|ipynb): 2 files
+/tmp/puremacro-4.3.0-pages-venv/lib/python3.12/site-packages/jupyterlite_core/addons/base.py:297: UserWarning: install libarchive-c for better performance when working with archives: No module named 'libarchive'
+  return has_optional_dependency(
+[LiteBuildApp] WARNING | [lite] Skipping content_static/jupyter-lite.json: parent directory does not exist in output. Config files should be in the root or in app directories (lab, repl, etc.)
+/tmp/puremacro-4.3.0-pages-venv/lib/python3.12/site-packages/jupyterlite_core/addons/translation.py:89: UserWarning: [lite] [translation] install `jupyterlab_server` to load translations: No module named 'jupyterlab_server'
+  if not self.is_sys_prefix_ignored() and has_optional_dependency(
+.  pre_status:static:jupyter-lite.json
+    tarball:         jupyterlite-app-0.8.3.tgz 15MB
+    output:          /private/tmp/puremacro-4.3.0-pages-61b4c78/playground/dist
+    lite dir:        /private/tmp/puremacro-4.3.0-pages-61b4c78/playground
+    apps:
+    sourcemaps:      True
+    unused packages: True
+.  status:archive:archive
+.  status:contents:contents
+    contents: 251 files
+.  status:icons:icons
+    favicon files: 0 files
+.  status:jupyterlite-pyodide-kernel-pyodide:pyodide
+     URL: None
+ archive: []
+   cache: 0 files
+   local: 0 files
+.  status:lite:jupyter-lite.json
+.  status:mimetypes:jupyter-lite.json
+    filetypes:         36
+.  status:serve:contents
+    url: http://127.0.0.1:8000/
+    server: tornado
+    headers:
+.  status:settings:overrides
+    overrides.json: 0
+.  status:translation:translation
+    translation files: 0 files
+.  status:workspaces:workspaces:files
+    workspaces:
+.  pre_init:static:output_dir
+.  init:static:unpack
+.  post_init:jupyterlite-pyodide-kernel-piplite:copy:whl:puremacro-4.3.0-py3-none-any.whl
+.  pre_build:federated_extensions:copy:ext:jupyterlab-jupytext
+.  pre_build:federated_extensions:copy:ext:jupyterlab_pygments
+.  pre_build:federated_extensions:copy:ext:@jupyterlite/pyodide-kernel-extension
+.  build:contents:copy:00_start_here.ipynb
+.  build:contents:copy:00_syllabus_es.ipynb
+.  build:contents:copy:00_whats_new_in_puremacro_2_0.ipynb
+.  build:contents:copy:00_whats_new_in_puremacro_2_0_es.ipynb
+.  build:contents:copy:00_whats_new_in_puremacro_3_0.ipynb
+.  build:contents:copy:00_whats_new_in_puremacro_3_0_es.ipynb
+.  build:contents:copy:01_business_cycle_facts_es.ipynb
+.  build:contents:copy:01_wealth_inequality.ipynb
+.  build:contents:copy:01_wealth_inequality_es.ipynb
+.  build:contents:copy:01b_kaldor_capital_es.ipynb
+.  build:contents:copy:02_aggregate_shocks.ipynb
+.  build:contents:copy:02_aggregate_shocks_es.ipynb
+.  build:contents:copy:02_neoclasico_scb_es.ipynb
+.  build:contents:copy:03_life_cycle_and_demographics.ipynb
+.  build:contents:copy:03_life_cycle_and_demographics_es.ipynb
+.  build:contents:copy:03_riesgo_incertidumbre_es.ipynb
+.  build:contents:copy:04_firm_dynamics.ipynb
+.  build:contents:copy:04_firm_dynamics_es.ipynb
+.  build:contents:copy:04_rbc_momentos_es.ipynb
+.  build:contents:copy:04b_contabilidad_ciclo_es.ipynb
+.  build:contents:copy:05_portfolios_and_preferences.ipynb
+.  build:contents:copy:05_portfolios_and_preferences_es.ipynb
+.  build:contents:copy:05_svar_identificacion_es.ipynb
+.  build:contents:copy:06_lp_narrativa_es.ipynb
+.  build:contents:copy:06_svar_identification.ipynb
+.  build:contents:copy:06_svar_identification_es.ipynb
+.  build:contents:copy:07_competitivos_laboral_es.ipynb
+.  build:contents:copy:07_local_projections.ipynb
+.  build:contents:copy:07_local_projections_es.ipynb
+.  build:contents:copy:08_desempleo_flujos_ia_es.ipynb
+.  build:contents:copy:08_garch_volatility.ipynb
+.  build:contents:copy:08_garch_volatility_es.ipynb
+.  build:contents:copy:09_a5_panel_narrativa_es.ipynb
+.  build:contents:copy:09_growth_at_risk.ipynb
+.  build:contents:copy:09_growth_at_risk_es.ipynb
+.  build:contents:copy:10_b1_capital_ajuste_es.ipynb
+.  build:contents:copy:10_staggered_did.ipynb
+.  build:contents:copy:10_staggered_did_es.ipynb
+.  build:contents:copy:10b_economia_abierta_es.ipynb
+.  build:contents:copy:10c_rigideces_nominales_es.ipynb
+.  build:contents:copy:11_b2_mp_hosios_es.ipynb
+.  build:contents:copy:11_narrative_uncertainty.ipynb
+.  build:contents:copy:11_narrative_uncertainty_es.ipynb
+.  build:contents:copy:12_validation_gallery.ipynb
+.  build:contents:copy:12_validation_gallery_es.ipynb
+.  build:contents:copy:13_build_your_own_index.ipynb
+.  build:contents:copy:13_build_your_own_index_es.ipynb
+.  build:contents:copy:14_tax_multiplier_three_ways.ipynb
+.  build:contents:copy:14_tax_multiplier_three_ways_es.ipynb
+.  build:contents:copy:15_lp_did.ipynb
+.  build:contents:copy:15_lp_did_es.ipynb
+.  build:contents:copy:16_regime_girf.ipynb
+.  build:contents:copy:16_regime_girf_es.ipynb
+.  build:contents:copy:17_identification_spec_curve.ipynb
+.  build:contents:copy:17_identification_spec_curve_es.ipynb
+.  build:contents:copy:18_beveridge_curve.ipynb
+.  build:contents:copy:18_beveridge_curve_es.ipynb
+.  build:contents:copy:19_model_confidence_set.ipynb
+.  build:contents:copy:19_model_confidence_set_es.ipynb
+.  build:contents:copy:20_heterogeneidad_hank_es.ipynb
+.  build:contents:copy:20_unit_roots_with_power.ipynb
+.  build:contents:copy:20_unit_roots_with_power_es.ipynb
+.  build:contents:copy:21_dynare_vfi_dsl.ipynb
+.  build:contents:copy:21_dynare_vfi_dsl_es.ipynb
+.  build:contents:copy:21_ia_korv_es.ipynb
+.  build:contents:copy:22_continuous_time_hjb.ipynb
+.  build:contents:copy:22_continuous_time_hjb_es.ipynb
+.  build:contents:copy:22_riesgo_orden3_es.ipynb
+.  build:contents:copy:23_aiyagari_endogenous_labor.ipynb
+.  build:contents:copy:23_aiyagari_endogenous_labor_es.ipynb
+.  build:contents:copy:23_growth_at_risk_es.ipynb
+.  build:contents:copy:24_mercado_laboral_4estados_es.ipynb
+.  build:contents:copy:24_synthetic_control.ipynb
+.  build:contents:copy:24_synthetic_control_es.ipynb
+.  build:contents:copy:25_frequency_connectedness.ipynb
+.  build:contents:copy:25_frequency_connectedness_es.ipynb
+.  build:contents:copy:25_vfi_benchmark_mac_colab_runmat_es.ipynb
+.  build:contents:copy:26_cycles_and_bandpass.ipynb
+.  build:contents:copy:26_cycles_and_bandpass_es.ipynb
+.  build:contents:copy:27_garch_midas_macro_risk.ipynb
+.  build:contents:copy:27_garch_midas_macro_risk_es.ipynb
+.  build:contents:copy:28_weak_iv_anderson_rubin.ipynb
+.  build:contents:copy:28_weak_iv_anderson_rubin_es.ipynb
+.  build:contents:copy:29_synthetic_did.ipynb
+.  build:contents:copy:29_synthetic_did_es.ipynb
+.  build:contents:copy:30_narrative_bursts_and_transcripts.ipynb
+.  build:contents:copy:30_narrative_bursts_and_transcripts_es.ipynb
+.  build:contents:copy:31_sequence_space_hank.ipynb
+.  build:contents:copy:31_sequence_space_hank_es.ipynb
+.  build:contents:copy:32_climate_macro_dice.ipynb
+.  build:contents:copy:32_climate_macro_dice_es.ipynb
+.  build:contents:copy:33_gdp_nowcasting_news.ipynb
+.  build:contents:copy:33_gdp_nowcasting_news_es.ipynb
+.  build:contents:copy:34_penalized_macro_forecasting.ipynb
+.  build:contents:copy:34_penalized_macro_forecasting_es.ipynb
+.  build:contents:copy:35_empirical_benchmark_replications.ipynb
+.  build:contents:copy:35_empirical_benchmark_replications_es.ipynb
+.  build:contents:copy:36_climate_sovereign_debt_risk.ipynb
+.  build:contents:copy:36_climate_sovereign_debt_risk_es.ipynb
+.  build:contents:copy:37_central_bank_narrative_sentiment.ipynb
+.  build:contents:copy:37_central_bank_narrative_sentiment_es.ipynb
+.  build:contents:copy:38_real_time_vintages_and_revisions.ipynb
+.  build:contents:copy:38_real_time_vintages_and_revisions_es.ipynb
+.  build:contents:copy:39_multilingual_narrative_harvesting.ipynb
+.  build:contents:copy:39_multilingual_narrative_harvesting_es.ipynb
+.  build:contents:copy:40_quarterly_national_accounts.ipynb
+.  build:contents:copy:40_quarterly_national_accounts_es.ipynb
+.  build:contents:copy:41_dynare_frontier_showcase.ipynb
+.  build:contents:copy:41_dynare_frontier_showcase_es.ipynb
+.  build:contents:copy:42_dsge_bayesian_estimation_and_diagnostics.ipynb
+.  build:contents:copy:42_dsge_bayesian_estimation_and_diagnostics_es.ipynb
+.  build:contents:copy:43_dsge_nuts_and_analytic_gradients.ipynb
+.  build:contents:copy:43_dsge_nuts_and_analytic_gradients_es.ipynb
+.  build:contents:copy:44_hank_sequence_space_bridge.ipynb
+.  build:contents:copy:44_hank_sequence_space_bridge_es.ipynb
+.  build:contents:copy:45_dsge_discretion_dsge_var_and_news_shocks.ipynb
+.  build:contents:copy:45_dsge_discretion_dsge_var_and_news_shocks_es.ipynb
+.  build:contents:copy:46_dsge_particle_filtering_and_markov_switching.ipynb
+.  build:contents:copy:46_dsge_particle_filtering_and_markov_switching_es.ipynb
+.  build:contents:copy:47_applied_central_bank_policy_suite.ipynb
+.  build:contents:copy:47_applied_central_bank_policy_suite_es.ipynb
+.  build:contents:copy:48_applied_realtime_nowcasting_and_news.ipynb
+.  build:contents:copy:48_applied_realtime_nowcasting_and_news_es.ipynb
+.  build:contents:copy:49_applied_macroprudential_gar_and_stress.ipynb
+.  build:contents:copy:49_applied_macroprudential_gar_and_stress_es.ipynb
+.  build:contents:copy:50_applied_fiscal_multipliers_and_debt_sustainability.ipynb
+.  build:contents:copy:50_applied_fiscal_multipliers_and_debt_sustainability_es.ipynb
+.  build:contents:copy:51_continuous_projection_collocation_and_fem.ipynb
+.  build:contents:copy:51_continuous_projection_collocation_and_fem_es.ipynb
+.  build:contents:copy:52_continuous_transition_mit_shocks.ipynb
+.  build:contents:copy:52_continuous_transition_mit_shocks_es.ipynb
+.  build:contents:copy:53_exact_analytic_ift_gradients.ipynb
+.  build:contents:copy:53_exact_analytic_ift_gradients_es.ipynb
+.  build:contents:copy:54_deep_macro_pinns_high_dim.ipynb
+.  build:contents:copy:54_deep_macro_pinns_high_dim_es.ipynb
+.  build:contents:copy:55_quantitative_spatial_and_trade_ge.ipynb
+.  build:contents:copy:55_quantitative_spatial_and_trade_ge_es.ipynb
+.  build:contents:copy:56_implicit_hjb_and_continuous_kfe.ipynb
+.  build:contents:copy:56_implicit_hjb_and_continuous_kfe_es.ipynb
+.  build:contents:copy:57_multiconstraint_occbin_and_dml.ipynb
+.  build:contents:copy:57_multiconstraint_occbin_and_dml_es.ipynb
+.  build:contents:copy:58_latin_america_realtime_macro.ipynb
+.  build:contents:copy:58_latin_america_realtime_macro_es.ipynb
+.  build:contents:copy:59_latam_realtime_nowcast_and_news.ipynb
+.  build:contents:copy:59_latam_realtime_nowcast_and_news_es.ipynb
+.  build:contents:copy:60_interactive_dml_irm_and_iv.ipynb
+.  build:contents:copy:60_interactive_dml_irm_and_iv_es.ipynb
+.  build:contents:copy:61_quantitative_policy_simulators.ipynb
+.  build:contents:copy:61_quantitative_policy_simulators_es.ipynb
+.  build:contents:copy:62_flexible_trade_cge.ipynb
+.  build:contents:copy:62_flexible_trade_cge_es.ipynb
+.  build:contents:copy:63_trade_wars_and_nash_tariffs.ipynb
+.  build:contents:copy:63_trade_wars_and_nash_tariffs_es.ipynb
+.  build:contents:copy:64_singularities_and_keller_pac.ipynb
+.  build:contents:copy:64_singularities_and_keller_pac_es.ipynb
+.  build:contents:copy:65_gvc_cascades_and_welfare_decomposition.ipynb
+.  build:contents:copy:65_gvc_cascades_and_welfare_decomposition_es.ipynb
+.  build:contents:copy:_nbstyle.py
+.  build:contents:copy:_tutor.py
+.  build:contents:copy:course/data/A191RL1Q225SBEA.csv
+.  build:contents:copy:course/data/AKUR.csv
+.  build:contents:copy:course/data/ALUR.csv
+.  build:contents:copy:course/data/ARUR.csv
+.  build:contents:copy:course/data/AZUR.csv
+.  build:contents:copy:course/data/CAUR.csv
+.  build:contents:copy:course/data/COUR.csv
+.  build:contents:copy:course/data/CPALTT01MXM659N.csv
+.  build:contents:copy:course/data/CPGRLE01MXM659N.csv
+.  build:contents:copy:course/data/CPIAUCSL.csv
+.  build:contents:copy:course/data/CPILFESL.csv
+.  build:contents:copy:course/data/CTUR.csv
+.  build:contents:copy:course/data/DCUR.csv
+.  build:contents:copy:course/data/DEUR.csv
+.  build:contents:copy:course/data/FEDFUNDS.csv
+.  build:contents:copy:course/data/FLUR.csv
+.  build:contents:copy:course/data/GAUR.csv
+.  build:contents:copy:course/data/GDPC1.csv
+.  build:contents:copy:course/data/GPDIC1.csv
+.  build:contents:copy:course/data/HIUR.csv
+.  build:contents:copy:course/data/IAUR.csv
+.  build:contents:copy:course/data/IDUR.csv
+.  build:contents:copy:course/data/ILUR.csv
+.  build:contents:copy:course/data/INUR.csv
+.  build:contents:copy:course/data/IR3TIB01MXM156N.csv
+.  build:contents:copy:course/data/JTSHIL.csv
+.  build:contents:copy:course/data/JTSJOL.csv
+.  build:contents:copy:course/data/KSUR.csv
+.  build:contents:copy:course/data/KYUR.csv
+.  build:contents:copy:course/data/LAUR.csv
+.  build:contents:copy:course/data/LNS17000000.csv
+.  build:contents:copy:course/data/LNS17100000.csv
+.  build:contents:copy:course/data/LNS17200000.csv
+.  build:contents:copy:course/data/LNS17400000.csv
+.  build:contents:copy:course/data/LNS17500000.csv
+.  build:contents:copy:course/data/LNS17600000.csv
+.  build:contents:copy:course/data/LNS17800000.csv
+.  build:contents:copy:course/data/LNS17900000.csv
+.  build:contents:copy:course/data/MAUR.csv
+.  build:contents:copy:course/data/MDUR.csv
+.  build:contents:copy:course/data/MEUR.csv
+.  build:contents:copy:course/data/MIUR.csv
+.  build:contents:copy:course/data/MNUR.csv
+.  build:contents:copy:course/data/MOUR.csv
+.  build:contents:copy:course/data/MSUR.csv
+.  build:contents:copy:course/data/MTUR.csv
+.  build:contents:copy:course/data/NCBEILQ027S.csv
+.  build:contents:copy:course/data/NCUR.csv
+.  build:contents:copy:course/data/NDUR.csv
+.  build:contents:copy:course/data/NEUR.csv
+.  build:contents:copy:course/data/NFCI.csv
+.  build:contents:copy:course/data/NHUR.csv
+.  build:contents:copy:course/data/NJUR.csv
+.  build:contents:copy:course/data/NMUR.csv
+.  build:contents:copy:course/data/NVUR.csv
+.  build:contents:copy:course/data/NYUR.csv
+.  build:contents:copy:course/data/OHUR.csv
+.  build:contents:copy:course/data/OKUR.csv
+.  build:contents:copy:course/data/OPHNFB.csv
+.  build:contents:copy:course/data/ORUR.csv
+.  build:contents:copy:course/data/PAUR.csv
+.  build:contents:copy:course/data/PIRIC.csv
+.  build:contents:copy:course/data/PRS85006173.csv
+.  build:contents:copy:course/data/RIUR.csv
+.  build:contents:copy:course/data/SCUR.csv
+.  build:contents:copy:course/data/SDUR.csv
+.  build:contents:copy:course/data/TNUR.csv
+.  build:contents:copy:course/data/TNWMVBSNNCB.csv
+.  build:contents:copy:course/data/TXUR.csv
+.  build:contents:copy:course/data/UNEMPLOY.csv
+.  build:contents:copy:course/data/UNRATE.csv
+.  build:contents:copy:course/data/UTUR.csv
+.  build:contents:copy:course/data/VAUR.csv
+.  build:contents:copy:course/data/VIXCLS.csv
+.  build:contents:copy:course/data/VTUR.csv
+.  build:contents:copy:course/data/WAUR.csv
+.  build:contents:copy:course/data/WIUR.csv
+.  build:contents:copy:course/data/WVUR.csv
+.  build:contents:copy:course/data/WYUR.csv
+.  build:contents:copy:course/data/alfred_pib_primeras_publicaciones.csv
+.  build:contents:copy:course/data/banxico_stance_monthly.csv
+.  build:contents:copy:course/data/enoe_stocks_monthly.parquet
+.  build:contents:copy:course/data/enoe_transitions_quarterly_observed.parquet
+.  build:contents:copy:course/data/gali1999.csv
+.  build:contents:copy:course/data/klems_labor_share.csv
+.  build:contents:copy:course/data/korv_panel_klems.csv
+.  build:contents:copy:course/data/oecd_qna_apertura.csv
+.  build:contents:copy:course/data/riesgo_desastres_momentos.csv
+.  build:contents:copy:course/data/riesgo_girf_vol.csv
+.  build:contents:copy:course/data/riesgo_irf_o1_o3.csv
+.  build:contents:copy:course/data/tax14_narrative_tax_shocks.csv
+.  build:contents:copy:course/data/wedges_bca_curso.csv
+.  build:icons:copy
+.  build:lite:patch:jupyter-lite.json
+MERGED /private/tmp/puremacro-4.3.0-pages-61b4c78/playground/dist/jupyter-lite.json from [PosixPath('/private/tmp/puremacro-4.3.0-pages-61b4c78/playground/dist/jupyter-lite.json'), PosixPath('/private/tmp/puremacro-4.3.0-pages-61b4c78/playground/jupyter-lite.json')]
+.  build:translation:copy
+.  post_build:contents:contents:course
+.  post_build:contents:contents:course/data
+.  post_build:contents:contents:.
+.  post_build:contents:patch:contentsAllJsonFile
+.  post_build:federated_extensions:patch
+.  post_build:federated_extensions:settings
+.  post_build:jupyterlite-pyodide-kernel-piplite:meta:puremacro-4.3.0-py3-none-any.whl.meta.json
+.  post_build:jupyterlite-pyodide-kernel-piplite:patch
+.  post_build:mimetypes:patch
+==> 4.5/5 build documentation site
+
+[31m │  ⚠  Warning from the Material for MkDocs team[0m
+[31m │[0m
+[31m │[0m  MkDocs 2.0, the underlying framework of Material for MkDocs,
+[31m │[0m  will introduce backward-incompatible changes, including:
+[31m │[0m
+[31m │  × [0mAll plugins will stop working – the plugin system has been removed
+[31m │  × [0mAll theme overrides will break – the theming system has been rewritten
+[31m │  × [0mNo migration path exists – existing projects cannot be upgraded
+[31m │  × [0mClosed contribution model – community members can't report bugs
+[31m │  × [0mCurrently unlicensed – unsuitable for production use
+[31m │[0m
+[31m │[0m  Our full analysis:
+[31m │[0m
+[31m │[0m  [4mhttps://squidfunk.github.io/mkdocs-material/blog/2026/02/18/mkdocs-2.0/[0m
+[0m
+INFO    -  Cleaning site directory
+INFO    -  Building documentation to directory: /private/tmp/puremacro-4.3.0-pages-61b4c78/playground/dist/docs
+INFO    -  The following pages exist in the docs directory, but are not included in the "nav" configuration:
+  - ANNOUNCEMENTS_2_0.md
+  - plans/2026-05-02-iteration-n8-step1-hfi.md
+  - plans/2026-05-02-iteration-n8-step2-cycles.md
+  - plans/2026-05-02-iteration-n8-step3-migration.md
+  - plans/2026-05-02-iteration-n8-step4-dynpanel.md
+  - plans/2026-05-02-iteration-n9-step1-patch-041.md
+  - plans/2026-05-03-fetch-unification-sdmx-060.md
+  - plans/2026-05-03-instrument-compose-053.md
+  - plans/2026-05-03-instruments-external-fred-bis-imf-052.md
+  - plans/2026-05-03-instruments-literature-loaders-051.md
+  - plans/2026-05-03-instruments-protocol-phase1.md
+  - plans/2026-05-08-narrative-extension-slice1-foundation.md
+  - plans/2026-05-08-narrative-extension-slice2-indices.md
+  - plans/2026-05-08-narrative-extension-slice3-polyglot.md
+  - plans/2026-05-09-narrative-slice4-body-extraction.md
+  - plans/2026-05-09-narrative-slice5-lui-lexicon-and-minutes.md
+  - plans/2026-05-09-narrative-slice6a-lui-cooccurrence-and-wui-normalization.md
+  - plans/2026-05-09-notebook-28-us-lui.md
+  - plans/2026-05-10-notebook-29-state-panel-lp.md
+  - plans/2026-05-10-notebook-30a-state-sectoral-bartik.md
+  - plans/2026-05-17-puremacro-phase2-consolidation-plan.md
+  - plans/2026-05-18-puremacro-043-canonical-promotion-plan.md
+  - plans/2026-05-18-puremacro-044-lp-retirement-plan.md
+  - plans/2026-05-22-puremacro-046-release-gate-plan.md
+  - plans/2026-05-22-puremacro-047-mechanical-klein-plan.md
+  - plans/2026-05-22-puremacro-048-release-polish-plan.md
+  - plans/2026-05-22-puremacro-049-pyodide-ci-plan.md
+  - plans/2026-05-23-puremacro-050-bayesian-dsge-plan.md
+  - plans/2026-05-23-puremacro-051-identification-extensions-plan.md
+  - plans/2026-05-23-puremacro-052-climate-primitives-plan.md
+  - plans/2026-05-23-puremacro-053-generic-dsge-engine-plan.md
+  - plans/2026-05-24-puremacro-054-fertility-dsge-solver-plan.md
+  - plans/2026-05-26-puremacro-065-signal-contract-slice1-plan.md
+  - plans/2026-05-26-puremacro-066-f2-slice-a-data-infrastructure-plan.md
+  - plans/2026-05-26-puremacro-067-f2-slice-b-fallback-telemetry-plan.md
+  - plans/2026-05-26-puremacro-068-f1-slice-a-sea-africa-cb-plan.md
+  - plans/2026-07-19-uncertainty-ident-spec-curve-plan.md
+  - plans/2026-07-20-main-street-phase3-plan.md
+  - plans/2026-07-21-puremacro-batch4-plan.md
+  - plans/2026-07-21-puremacro-batch5a-alfred-x13-plan.md
+  - plans/2026-07-21-puremacro-batch6-native-x11-plan.md
+  - plans/2026-07-22-puremacro-batch7-plan.md
+  - plans/2026-07-22-puremacro-batch8-plan.md
+  - plans/2026-09-07-puremacro-260-dsge-estimation-phase-a-plan.md
+  - plans/2026-09-07-puremacro-dsge-dynare-parity-roadmap.md
+  - plans/_043_audit_notes.md
+  - plans/_044_audit_notes.md
+  - plans/_phase2_audit_notes.md
+  - research/fertility_bk_diagnosis/FINDINGS.md
+  - research/main_street_uncertainty/DRAFT.md
+  - research/main_street_uncertainty/FINDINGS.md
+  - research/uncertainty_identification/DRAFT.md
+  - research/uncertainty_identification/output/table_family_medians.md
+  - specs/2026-05-02-iteration-n8-design.md
+  - specs/2026-05-03-instruments-protocol-design.md
+  - specs/2026-05-08-narrative-extension-design.md
+  - specs/2026-05-09-narrative-slice4-body-extraction.md
+  - specs/2026-05-09-narrative-slice5-lui-lexicon-and-minutes.md
+  - specs/2026-05-09-narrative-slice6a-lui-cooccurrence-and-wui-normalization.md
+  - specs/2026-05-09-notebook-28-us-lui-design.md
+  - specs/2026-05-10-notebook-29-state-panel-lp.md
+  - specs/2026-05-10-notebook-30a-state-sectoral-bartik.md
+  - specs/2026-05-10-slice6b-llm-kernel-and-picault-renault.md
+  - specs/2026-05-14-architecture-consistency-design.md
+  - specs/2026-05-17-puremacro-phase2-consolidation-design.md
+  - specs/2026-05-18-puremacro-043-canonical-promotion-design.md
+  - specs/2026-05-18-puremacro-044-lp-retirement-design.md
+  - specs/2026-05-22-puremacro-046-047-consolidate-finish-design.md
+  - specs/2026-05-22-puremacro-048-release-polish-design.md
+  - specs/2026-05-22-puremacro-049-pyodide-ci-design.md
+  - specs/2026-05-23-puremacro-050-bayesian-dsge-design.md
+  - specs/2026-05-23-puremacro-051-identification-extensions-design.md
+  - specs/2026-05-23-puremacro-052-climate-primitives-design.md
+  - specs/2026-05-23-puremacro-053-generic-dsge-engine-design.md
+  - specs/2026-05-24-puremacro-054-fertility-dsge-solver-design.md
+  - specs/2026-05-26-puremacro-066-f2-slice-a-data-infrastructure-design.md
+  - specs/2026-05-26-puremacro-067-f2-slice-b-fallback-telemetry-design.md
+  - specs/2026-05-26-puremacro-068-f1-slice-a-sea-africa-cb-design.md
+  - specs/2026-05-26-signal-contract-design.md
+  - specs/2026-09-05-puremacro-spatial-design.md
+  - specs/2026-09-07-puremacro-dsge-tier1-design.md
+  - specs/2026-09-08-puremacro-dsge-tier2-design.md
+  - specs/2026-09-08-puremacro-dsge-tier3-design.md
+  - specs/2026-09-09-puremacro-3.0-design.md
+  - superpowers/plans/2026-05-30-puremacro-local-llm.md
+  - superpowers/plans/2026-05-31-puremacro-bilingual-docs.md
+  - superpowers/plans/2026-06-01-puremacro-notebook-pedagogy.md
+  - superpowers/specs/2026-05-30-puremacro-local-llm-design.md
+  - superpowers/specs/2026-05-31-puremacro-bilingual-docs-design.md
+  - superpowers/specs/2026-06-01-puremacro-notebook-pedagogy-design.md
+INFO    -  Documentation built in 7.53 seconds
+==> 5/5 done
+    serve locally:  python -m http.server -d "/private/tmp/puremacro-4.3.0-pages-61b4c78/playground/dist" 8000
+    then open:      http://localhost:8000/lab/index.html

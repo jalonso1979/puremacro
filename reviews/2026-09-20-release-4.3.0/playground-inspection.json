@@ -1,0 +1,42 @@
+{
+  "source_commit": "61b4c78",
+  "build_passed": true,
+  "notebooks": [
+    "files/63_trade_wars_and_nash_tariffs.ipynb",
+    "files/63_trade_wars_and_nash_tariffs_es.ipynb",
+    "files/64_singularities_and_keller_pac.ipynb",
+    "files/64_singularities_and_keller_pac_es.ipynb",
+    "files/65_gvc_cascades_and_welfare_decomposition.ipynb",
+    "files/65_gvc_cascades_and_welfare_decomposition_es.ipynb"
+  ],
+  "wheel": "pypi/puremacro-4.3.0-py3-none-any.whl",
+  "policy_guide_present": true,
+  "pypi_index": {
+    "puremacro": {
+      "releases": {
+        "4.3.0": [
+          {
+            "comment_text": "",
+            "digests": {
+              "md5": "c1fcf47a67b7c97bb968df96ad9fe772",
+              "sha256": "9b909803cefe2b10626412b7aabbf77a2761ef6a42d51f756fe07509551eb17a"
+            },
+            "downloads": -1,
+            "filename": "puremacro-4.3.0-py3-none-any.whl",
+            "has_sig": false,
+            "md5_digest": "c1fcf47a67b7c97bb968df96ad9fe772",
+            "packagetype": "bdist_wheel",
+            "python_version": "py3",
+            "requires_python": ">=3.11",
+            "size": 15189262,
+            "upload_time": "2026-09-20T18:56:23.002784Z",
+            "upload_time_iso_8601": "2026-09-20T18:56:23.002784Z",
+            "url": "./puremacro-4.3.0-py3-none-any.whl",
+            "yanked": false,
+            "yanked_reason": null
+          }
+        ]
+      }
+    }
+  }
+}

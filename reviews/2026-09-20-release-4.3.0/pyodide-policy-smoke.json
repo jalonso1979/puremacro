@@ -1,0 +1,11 @@
+{
+  "version": "4.3.0",
+  "module_path": "/lib/python3.13/site-packages/puremacro/__init__.py",
+  "unilateral_ev_percent": 9.10283466008542,
+  "nash_converged": true,
+  "nash_relative_regret": 3.074932881226776e-7,
+  "matrix_finite": true,
+  "passed": true,
+  "pyodide_version": "0.28.3",
+  "runtime": "WebAssembly via Node"
+}

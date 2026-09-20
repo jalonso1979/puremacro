@@ -1,0 +1,14 @@
+........................................................................ [ 43%]
+........................s............................................... [ 86%]
+......................                                                   [100%]
+=============================== warnings summary ===============================
+tests/test_adversarial_challenger_r1_r2.py::TestTask5SemismoothNewtonMCPStressTesting::test_permanent_transition_distinct_steady_states_terminal_error
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_adversarial_challenger_r1_r2.py:417: RuntimeWarning: invalid value encountered in scalar power
+    euler = c ** (-sigma) - beta * c_p ** (-sigma) * (alpha * A * k ** (alpha - 1.0) + 1.0 - delta)
+
+tests/test_adversarial_challenger_r1_r2.py::TestTask5SemismoothNewtonMCPStressTesting::test_permanent_transition_distinct_steady_states_terminal_error
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_adversarial_challenger_r1_r2.py:418: RuntimeWarning: invalid value encountered in scalar power
+    res_c = k - (A * k_m**alpha + (1.0 - delta) * k_m - c)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+165 passed, 1 skipped, 2 warnings in 11.45s

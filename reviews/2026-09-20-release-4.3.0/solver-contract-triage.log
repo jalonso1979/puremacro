@@ -1,0 +1,41 @@
+FFFFFFF....                                                              [100%]
+=================================== FAILURES ===================================
+_ TestTask2ExtremeShocksPrunedVsUnpruned.test_10_sigma_single_shock_pruned_bounded_vs_unpruned_explosion _
+tests/test_adversarial_challenger_r1_r2.py:183: in test_10_sigma_single_shock_pruned_bounded_vs_unpruned_explosion
+    assert exploded is True, f"Unpruned simulation unexpectedly did not explode under {label}"
+E   AssertionError: Unpruned simulation unexpectedly did not explode under positive 10-sigma
+E   assert False is True
+_ TestAdversarialHawkinsSimon.test_extreme_tariffs_clean_rejection_and_timing[8.0] _
+tests/test_adversarial_m1_robust_solvers.py:115: in test_extreme_tariffs_clean_rejection_and_timing
+    assert "violates Hawkins-Simon viability condition" in err_msg
+E   AssertionError: assert 'violates Hawkins-Simon viability condition' in 'Tariff schedule has unresolved Hawkins-Simon viability: spectral bounds [0.0063492642, 1.5647785]'
+_ TestAdversarialHawkinsSimon.test_extreme_tariffs_clean_rejection_and_timing[10.0] _
+tests/test_adversarial_m1_robust_solvers.py:115: in test_extreme_tariffs_clean_rejection_and_timing
+    assert "violates Hawkins-Simon viability condition" in err_msg
+E   AssertionError: assert 'violates Hawkins-Simon viability condition' in 'Tariff schedule has unresolved Hawkins-Simon viability: spectral bounds [0.002692782, 1.8313627]'
+_ TestAdversarialHawkinsSimon.test_extreme_tariffs_clean_rejection_and_timing[50.0] _
+tests/test_adversarial_m1_robust_solvers.py:115: in test_extreme_tariffs_clean_rejection_and_timing
+    assert "violates Hawkins-Simon viability condition" in err_msg
+E   AssertionError: assert 'violates Hawkins-Simon viability condition' in 'Tariff schedule has unresolved Hawkins-Simon viability: spectral bounds [0.000132936, 7.2253036]'
+_ TestAdversarialHawkinsSimon.test_extreme_tariffs_clean_rejection_and_timing[100.0] _
+tests/test_adversarial_m1_robust_solvers.py:115: in test_extreme_tariffs_clean_rejection_and_timing
+    assert "violates Hawkins-Simon viability condition" in err_msg
+E   AssertionError: assert 'violates Hawkins-Simon viability condition' in 'Tariff schedule has unresolved Hawkins-Simon viability: spectral bounds [8.8577543e-05, 13.982761]'
+_ TestAdversarialHawkinsSimon.test_extreme_tariffs_clean_rejection_and_timing[1000.0] _
+tests/test_adversarial_m1_robust_solvers.py:115: in test_extreme_tariffs_clean_rejection_and_timing
+    assert "violates Hawkins-Simon viability condition" in err_msg
+E   AssertionError: assert 'violates Hawkins-Simon viability condition' in 'Tariff schedule has unresolved Hawkins-Simon viability: spectral bounds [6.1098064e-05, 135.64682]'
+_ TestAdversarialHawkinsSimon.test_subcritical_high_tariffs_valid_cw_bounds[0.5] _
+tests/test_adversarial_m1_robust_solvers.py:134: in test_subcritical_high_tariffs_valid_cw_bounds
+    assert (cw_upper - cw_lower) < 0.10, f"CW bounds too loose: [{cw_lower}, {cw_upper}]"
+E   AssertionError: CW bounds too loose: [1.9164702145459102e-10, 0.9746835180937623]
+E   assert (0.9746835180937623 - 1.9164702145459102e-10) < 0.1
+=========================== short test summary info ============================
+FAILED tests/test_adversarial_challenger_r1_r2.py::TestTask2ExtremeShocksPrunedVsUnpruned::test_10_sigma_single_shock_pruned_bounded_vs_unpruned_explosion
+FAILED tests/test_adversarial_m1_robust_solvers.py::TestAdversarialHawkinsSimon::test_extreme_tariffs_clean_rejection_and_timing[8.0]
+FAILED tests/test_adversarial_m1_robust_solvers.py::TestAdversarialHawkinsSimon::test_extreme_tariffs_clean_rejection_and_timing[10.0]
+FAILED tests/test_adversarial_m1_robust_solvers.py::TestAdversarialHawkinsSimon::test_extreme_tariffs_clean_rejection_and_timing[50.0]
+FAILED tests/test_adversarial_m1_robust_solvers.py::TestAdversarialHawkinsSimon::test_extreme_tariffs_clean_rejection_and_timing[100.0]
+FAILED tests/test_adversarial_m1_robust_solvers.py::TestAdversarialHawkinsSimon::test_extreme_tariffs_clean_rejection_and_timing[1000.0]
+FAILED tests/test_adversarial_m1_robust_solvers.py::TestAdversarialHawkinsSimon::test_subcritical_high_tariffs_valid_cw_bounds[0.5]
+7 failed, 4 passed in 1.79s

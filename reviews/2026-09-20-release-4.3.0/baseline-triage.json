@@ -1,0 +1,22 @@
+{
+  "previous_release_commit": "f5c28db31a79d28af2c5ed75f2d6df82722e2d77",
+  "candidate_commit": "cd3a806c6d4feec1b5ed78a9181ed80a2f0e51eb",
+  "prior_ci_url": "https://github.com/jalonso1979/puremacro/actions/runs/35391309540",
+  "reproduced_failures": [
+    "tests/test_inference_extras_parity.py::TestCollinearity::test_bit_identity_on_near_collinear_designs",
+    "tests/test_inference_extras_parity.py::TestCollinearity::test_columns_sharing_a_large_mean_are_not_rejected",
+    "tests/test_m5_empirical_challenger2_icio.py::TestWelfareDecompositionEmpirical::test_welfare_decomposition_tariff_shock_and_additive_closure",
+    "tests/test_no_matlab_dependency.py::test_no_matlab_sources_are_distributed",
+    "tests/test_regress_quantile_parity.py::test_robust_sandwich_tie_convention_on_exact_zero_residuals",
+    "tests/test_release_check_34fixes.py::test_gate7_fan_out_returns_none_when_a_worker_cannot_run",
+    "tests/test_tier5_solver_adversarial.py::TestAPIErgonomicsAndSerialization::test_dataclass_replace_on_all_configs",
+    "tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b06_technology_replace_alias_synchronization",
+    "tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b07_preference_replace_alias_synchronization",
+    "tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b08_preference_replace_with_mapping_and_array",
+    "tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b09_market_structure_replace_alias_synchronization",
+    "tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b10_market_structure_replace_variety_condensation",
+    "tests/test_v260_showcase_replication_e2e.py::TestTier2BoundaryAndCornerCases::test_t2_f4_harmonic_mean_collinear_parameter_draws_raises"
+  ],
+  "all_failures_already_in_prior_ci": true,
+  "new_exporter_note": "The repository-level MATLAB-file assertion additionally sees the intentional development-only reference exporter; artifact inspection confirms that no MATLAB file ships in the wheel."
+}

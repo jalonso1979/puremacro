@@ -1,0 +1,110 @@
+
+[31m │  ⚠  Warning from the Material for MkDocs team[0m
+[31m │[0m
+[31m │[0m  MkDocs 2.0, the underlying framework of Material for MkDocs,
+[31m │[0m  will introduce backward-incompatible changes, including:
+[31m │[0m
+[31m │  × [0mAll plugins will stop working – the plugin system has been removed
+[31m │  × [0mAll theme overrides will break – the theming system has been rewritten
+[31m │  × [0mNo migration path exists – existing projects cannot be upgraded
+[31m │  × [0mClosed contribution model – community members can't report bugs
+[31m │  × [0mCurrently unlicensed – unsuitable for production use
+[31m │[0m
+[31m │[0m  Our full analysis:
+[31m │[0m
+[31m │[0m  [4mhttps://squidfunk.github.io/mkdocs-material/blog/2026/02/18/mkdocs-2.0/[0m
+[0m
+INFO    -  Cleaning site directory
+INFO    -  Building documentation to directory: /tmp/puremacro-release-4.3.0-docs
+INFO    -  The following pages exist in the docs directory, but are not included in the "nav" configuration:
+  - ANNOUNCEMENTS_2_0.md
+  - plans/2026-05-02-iteration-n8-step1-hfi.md
+  - plans/2026-05-02-iteration-n8-step2-cycles.md
+  - plans/2026-05-02-iteration-n8-step3-migration.md
+  - plans/2026-05-02-iteration-n8-step4-dynpanel.md
+  - plans/2026-05-02-iteration-n9-step1-patch-041.md
+  - plans/2026-05-03-fetch-unification-sdmx-060.md
+  - plans/2026-05-03-instrument-compose-053.md
+  - plans/2026-05-03-instruments-external-fred-bis-imf-052.md
+  - plans/2026-05-03-instruments-literature-loaders-051.md
+  - plans/2026-05-03-instruments-protocol-phase1.md
+  - plans/2026-05-08-narrative-extension-slice1-foundation.md
+  - plans/2026-05-08-narrative-extension-slice2-indices.md
+  - plans/2026-05-08-narrative-extension-slice3-polyglot.md
+  - plans/2026-05-09-narrative-slice4-body-extraction.md
+  - plans/2026-05-09-narrative-slice5-lui-lexicon-and-minutes.md
+  - plans/2026-05-09-narrative-slice6a-lui-cooccurrence-and-wui-normalization.md
+  - plans/2026-05-09-notebook-28-us-lui.md
+  - plans/2026-05-10-notebook-29-state-panel-lp.md
+  - plans/2026-05-10-notebook-30a-state-sectoral-bartik.md
+  - plans/2026-05-17-puremacro-phase2-consolidation-plan.md
+  - plans/2026-05-18-puremacro-043-canonical-promotion-plan.md
+  - plans/2026-05-18-puremacro-044-lp-retirement-plan.md
+  - plans/2026-05-22-puremacro-046-release-gate-plan.md
+  - plans/2026-05-22-puremacro-047-mechanical-klein-plan.md
+  - plans/2026-05-22-puremacro-048-release-polish-plan.md
+  - plans/2026-05-22-puremacro-049-pyodide-ci-plan.md
+  - plans/2026-05-23-puremacro-050-bayesian-dsge-plan.md
+  - plans/2026-05-23-puremacro-051-identification-extensions-plan.md
+  - plans/2026-05-23-puremacro-052-climate-primitives-plan.md
+  - plans/2026-05-23-puremacro-053-generic-dsge-engine-plan.md
+  - plans/2026-05-24-puremacro-054-fertility-dsge-solver-plan.md
+  - plans/2026-05-26-puremacro-065-signal-contract-slice1-plan.md
+  - plans/2026-05-26-puremacro-066-f2-slice-a-data-infrastructure-plan.md
+  - plans/2026-05-26-puremacro-067-f2-slice-b-fallback-telemetry-plan.md
+  - plans/2026-05-26-puremacro-068-f1-slice-a-sea-africa-cb-plan.md
+  - plans/2026-07-19-uncertainty-ident-spec-curve-plan.md
+  - plans/2026-07-20-main-street-phase3-plan.md
+  - plans/2026-07-21-puremacro-batch4-plan.md
+  - plans/2026-07-21-puremacro-batch5a-alfred-x13-plan.md
+  - plans/2026-07-21-puremacro-batch6-native-x11-plan.md
+  - plans/2026-07-22-puremacro-batch7-plan.md
+  - plans/2026-07-22-puremacro-batch8-plan.md
+  - plans/2026-09-07-puremacro-260-dsge-estimation-phase-a-plan.md
+  - plans/2026-09-07-puremacro-dsge-dynare-parity-roadmap.md
+  - plans/_043_audit_notes.md
+  - plans/_044_audit_notes.md
+  - plans/_phase2_audit_notes.md
+  - research/fertility_bk_diagnosis/FINDINGS.md
+  - research/main_street_uncertainty/DRAFT.md
+  - research/main_street_uncertainty/FINDINGS.md
+  - research/uncertainty_identification/DRAFT.md
+  - research/uncertainty_identification/output/table_family_medians.md
+  - specs/2026-05-02-iteration-n8-design.md
+  - specs/2026-05-03-instruments-protocol-design.md
+  - specs/2026-05-08-narrative-extension-design.md
+  - specs/2026-05-09-narrative-slice4-body-extraction.md
+  - specs/2026-05-09-narrative-slice5-lui-lexicon-and-minutes.md
+  - specs/2026-05-09-narrative-slice6a-lui-cooccurrence-and-wui-normalization.md
+  - specs/2026-05-09-notebook-28-us-lui-design.md
+  - specs/2026-05-10-notebook-29-state-panel-lp.md
+  - specs/2026-05-10-notebook-30a-state-sectoral-bartik.md
+  - specs/2026-05-10-slice6b-llm-kernel-and-picault-renault.md
+  - specs/2026-05-14-architecture-consistency-design.md
+  - specs/2026-05-17-puremacro-phase2-consolidation-design.md
+  - specs/2026-05-18-puremacro-043-canonical-promotion-design.md
+  - specs/2026-05-18-puremacro-044-lp-retirement-design.md
+  - specs/2026-05-22-puremacro-046-047-consolidate-finish-design.md
+  - specs/2026-05-22-puremacro-048-release-polish-design.md
+  - specs/2026-05-22-puremacro-049-pyodide-ci-design.md
+  - specs/2026-05-23-puremacro-050-bayesian-dsge-design.md
+  - specs/2026-05-23-puremacro-051-identification-extensions-design.md
+  - specs/2026-05-23-puremacro-052-climate-primitives-design.md
+  - specs/2026-05-23-puremacro-053-generic-dsge-engine-design.md
+  - specs/2026-05-24-puremacro-054-fertility-dsge-solver-design.md
+  - specs/2026-05-26-puremacro-066-f2-slice-a-data-infrastructure-design.md
+  - specs/2026-05-26-puremacro-067-f2-slice-b-fallback-telemetry-design.md
+  - specs/2026-05-26-puremacro-068-f1-slice-a-sea-africa-cb-design.md
+  - specs/2026-05-26-signal-contract-design.md
+  - specs/2026-09-05-puremacro-spatial-design.md
+  - specs/2026-09-07-puremacro-dsge-tier1-design.md
+  - specs/2026-09-08-puremacro-dsge-tier2-design.md
+  - specs/2026-09-08-puremacro-dsge-tier3-design.md
+  - specs/2026-09-09-puremacro-3.0-design.md
+  - superpowers/plans/2026-05-30-puremacro-local-llm.md
+  - superpowers/plans/2026-05-31-puremacro-bilingual-docs.md
+  - superpowers/plans/2026-06-01-puremacro-notebook-pedagogy.md
+  - superpowers/specs/2026-05-30-puremacro-local-llm-design.md
+  - superpowers/specs/2026-05-31-puremacro-bilingual-docs-design.md
+  - superpowers/specs/2026-06-01-puremacro-notebook-pedagogy-design.md
+INFO    -  Documentation built in 7.42 seconds

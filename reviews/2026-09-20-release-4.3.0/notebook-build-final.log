@@ -1,0 +1,48 @@
+[jupytext] Reading 63_trade_wars_and_nash_tariffs.py in format py
+[jupytext] Setting kernel python3
+[jupytext] Updating notebook metadata with '{"kernelspec": {"name": "python3", "language": "python", "display_name": "Python 3 (ipykernel)"}}'
+[jupytext] Executing notebook with kernel python3
+[IPKernelApp] WARNING | Kernel is running over TCP without encryption. All communication (including code and outputs) is sent in plain text and is susceptible to eavesdropping. Use IPC transport or launch with kernel manager-provisioned CurveZMQ keys to enable transport encryption.
+[jupytext] Warning: Notebook is not trusted
+[jupytext] Writing 63_trade_wars_and_nash_tariffs.ipynb (destination file replaced [use --update to preserve cell outputs and ids])
+[jupytext] Reading 63_trade_wars_and_nash_tariffs_es.py in format py
+[jupytext] Setting kernel python3
+[jupytext] Updating notebook metadata with '{"kernelspec": {"name": "python3", "language": "python", "display_name": "Python 3 (ipykernel)"}}'
+[jupytext] Executing notebook with kernel python3
+[IPKernelApp] WARNING | Kernel is running over TCP without encryption. All communication (including code and outputs) is sent in plain text and is susceptible to eavesdropping. Use IPC transport or launch with kernel manager-provisioned CurveZMQ keys to enable transport encryption.
+[jupytext] Warning: Notebook is not trusted
+[jupytext] Writing 63_trade_wars_and_nash_tariffs_es.ipynb (destination file replaced [use --update to preserve cell outputs and ids])
+[jupytext] Reading 64_singularities_and_keller_pac.py in format py
+[jupytext] Setting kernel python3
+[jupytext] Updating notebook metadata with '{"kernelspec": {"name": "python3", "language": "python", "display_name": "Python 3 (ipykernel)"}}'
+[jupytext] Executing notebook with kernel python3
+[IPKernelApp] WARNING | Kernel is running over TCP without encryption. All communication (including code and outputs) is sent in plain text and is susceptible to eavesdropping. Use IPC transport or launch with kernel manager-provisioned CurveZMQ keys to enable transport encryption.
+[jupytext] Warning: Notebook is not trusted
+[jupytext] Writing 64_singularities_and_keller_pac.ipynb (destination file replaced [use --update to preserve cell outputs and ids])
+[jupytext] Reading 64_singularities_and_keller_pac_es.py in format py
+[jupytext] Setting kernel python3
+[jupytext] Updating notebook metadata with '{"kernelspec": {"name": "python3", "language": "python", "display_name": "Python 3 (ipykernel)"}}'
+[jupytext] Executing notebook with kernel python3
+[IPKernelApp] WARNING | Kernel is running over TCP without encryption. All communication (including code and outputs) is sent in plain text and is susceptible to eavesdropping. Use IPC transport or launch with kernel manager-provisioned CurveZMQ keys to enable transport encryption.
+[jupytext] Warning: Notebook is not trusted
+[jupytext] Writing 64_singularities_and_keller_pac_es.ipynb (destination file replaced [use --update to preserve cell outputs and ids])
+[jupytext] Reading 65_gvc_cascades_and_welfare_decomposition.py in format py
+[jupytext] Setting kernel python3
+[jupytext] Updating notebook metadata with '{"kernelspec": {"name": "python3", "language": "python", "display_name": "Python 3 (ipykernel)"}}'
+[jupytext] Executing notebook with kernel python3
+[IPKernelApp] WARNING | Kernel is running over TCP without encryption. All communication (including code and outputs) is sent in plain text and is susceptible to eavesdropping. Use IPC transport or launch with kernel manager-provisioned CurveZMQ keys to enable transport encryption.
+[jupytext] Warning: Notebook is not trusted
+[jupytext] Writing 65_gvc_cascades_and_welfare_decomposition.ipynb (destination file replaced [use --update to preserve cell outputs and ids])
+[jupytext] Reading 65_gvc_cascades_and_welfare_decomposition_es.py in format py
+[jupytext] Setting kernel python3
+[jupytext] Updating notebook metadata with '{"kernelspec": {"name": "python3", "language": "python", "display_name": "Python 3 (ipykernel)"}}'
+[jupytext] Executing notebook with kernel python3
+[IPKernelApp] WARNING | Kernel is running over TCP without encryption. All communication (including code and outputs) is sent in plain text and is susceptible to eavesdropping. Use IPC transport or launch with kernel manager-provisioned CurveZMQ keys to enable transport encryption.
+[jupytext] Warning: Notebook is not trusted
+[jupytext] Writing 65_gvc_cascades_and_welfare_decomposition_es.ipynb (destination file replaced [use --update to preserve cell outputs and ids])
+› /Users/jalonso/Documents/RESEARCH/puremacro/.venv/bin/python -m jupytext --to ipynb --execute --set-kernel python3 --run-path /Users/jalonso/Documents/RESEARCH/puremacro/notebooks 63_trade_wars_and_nash_tariffs.py
+› /Users/jalonso/Documents/RESEARCH/puremacro/.venv/bin/python -m jupytext --to ipynb --execute --set-kernel python3 --run-path /Users/jalonso/Documents/RESEARCH/puremacro/notebooks 63_trade_wars_and_nash_tariffs_es.py
+› /Users/jalonso/Documents/RESEARCH/puremacro/.venv/bin/python -m jupytext --to ipynb --execute --set-kernel python3 --run-path /Users/jalonso/Documents/RESEARCH/puremacro/notebooks 64_singularities_and_keller_pac.py
+› /Users/jalonso/Documents/RESEARCH/puremacro/.venv/bin/python -m jupytext --to ipynb --execute --set-kernel python3 --run-path /Users/jalonso/Documents/RESEARCH/puremacro/notebooks 64_singularities_and_keller_pac_es.py
+› /Users/jalonso/Documents/RESEARCH/puremacro/.venv/bin/python -m jupytext --to ipynb --execute --set-kernel python3 --run-path /Users/jalonso/Documents/RESEARCH/puremacro/notebooks 65_gvc_cascades_and_welfare_decomposition.py
+› /Users/jalonso/Documents/RESEARCH/puremacro/.venv/bin/python -m jupytext --to ipynb --execute --set-kernel python3 --run-path /Users/jalonso/Documents/RESEARCH/puremacro/notebooks 65_gvc_cascades_and_welfare_decomposition_es.py

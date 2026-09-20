@@ -1,0 +1,192 @@
+FFFFFFFFFFFFFFFF.FF..FFFFFFF                                             [100%]
+=================================== FAILURES ===================================
+_ TestTask2ExtremeShocksPrunedVsUnpruned.test_10_sigma_single_shock_pruned_bounded_vs_unpruned_explosion _
+tests/test_adversarial_challenger_r1_r2.py:183: in test_10_sigma_single_shock_pruned_bounded_vs_unpruned_explosion
+    assert exploded is True, f"Unpruned simulation unexpectedly did not explode under {label}"
+E   AssertionError: Unpruned simulation unexpectedly did not explode under positive 10-sigma
+E   assert False is True
+_ TestAdversarialHawkinsSimon.test_extreme_tariffs_clean_rejection_and_timing[10.0] _
+tests/test_adversarial_m1_robust_solvers.py:115: in test_extreme_tariffs_clean_rejection_and_timing
+    assert "violates Hawkins-Simon viability condition" in err_msg
+E   AssertionError: assert 'violates Hawkins-Simon viability condition' in 'Tariff schedule has unresolved Hawkins-Simon viability: spectral bounds [0.002692782, 1.8313627]'
+_ TestAdversarialHawkinsSimon.test_extreme_tariffs_clean_rejection_and_timing[100.0] _
+tests/test_adversarial_m1_robust_solvers.py:115: in test_extreme_tariffs_clean_rejection_and_timing
+    assert "violates Hawkins-Simon viability condition" in err_msg
+E   AssertionError: assert 'violates Hawkins-Simon viability condition' in 'Tariff schedule has unresolved Hawkins-Simon viability: spectral bounds [8.8577543e-05, 13.982761]'
+_ TestAdversarialHawkinsSimon.test_extreme_tariffs_clean_rejection_and_timing[1000.0] _
+tests/test_adversarial_m1_robust_solvers.py:115: in test_extreme_tariffs_clean_rejection_and_timing
+    assert "violates Hawkins-Simon viability condition" in err_msg
+E   AssertionError: assert 'violates Hawkins-Simon viability condition' in 'Tariff schedule has unresolved Hawkins-Simon viability: spectral bounds [6.1098064e-05, 135.64682]'
+_ TestAdversarialHawkinsSimon.test_extreme_tariffs_clean_rejection_and_timing[50.0] _
+tests/test_adversarial_m1_robust_solvers.py:115: in test_extreme_tariffs_clean_rejection_and_timing
+    assert "violates Hawkins-Simon viability condition" in err_msg
+E   AssertionError: assert 'violates Hawkins-Simon viability condition' in 'Tariff schedule has unresolved Hawkins-Simon viability: spectral bounds [0.000132936, 7.2253036]'
+_ TestAdversarialHawkinsSimon.test_extreme_tariffs_clean_rejection_and_timing[8.0] _
+tests/test_adversarial_m1_robust_solvers.py:115: in test_extreme_tariffs_clean_rejection_and_timing
+    assert "violates Hawkins-Simon viability condition" in err_msg
+E   AssertionError: assert 'violates Hawkins-Simon viability condition' in 'Tariff schedule has unresolved Hawkins-Simon viability: spectral bounds [0.0063492642, 1.5647785]'
+_ TestAdversarialHawkinsSimon.test_subcritical_high_tariffs_valid_cw_bounds[0.5] _
+tests/test_adversarial_m1_robust_solvers.py:134: in test_subcritical_high_tariffs_valid_cw_bounds
+    assert (cw_upper - cw_lower) < 0.10, f"CW bounds too loose: [{cw_lower}, {cw_upper}]"
+E   AssertionError: CW bounds too loose: [1.9164702145459102e-10, 0.9746835180937623]
+E   assert (0.9746835180937623 - 1.9164702145459102e-10) < 0.1
+__ TestDocsCodeBlocksParitySurface.test_all_code_blocks_have_requires_header ___
+tests/test_adversarial_m5_parser_docs.py:630: in test_all_code_blocks_have_requires_header
+    assert len(blocks) == 5
+E   assert 4 == 5
+E    +  where 4 = len(['# requires: standalone snippet\nfrom puremacro.dsge import load_mod\n\n# Carga y resolución del modelo\nm = load_mod...n        "Demanda": ["eq", "ec"],\n        "Politica Monetaria": ["em"],\n    }\n)\nfig = decomp.plot(variable="y")\n'])
+_ TestDocsCodeBlocksParitySurface.test_docs_contain_correct_apis_and_no_obsolete_attributes _
+tests/test_adversarial_m5_parser_docs.py:617: in test_docs_contain_correct_apis_and_no_obsolete_attributes
+    assert "suite_report.passed" in text, f"{doc_name} missing suite_report.passed"
+E   AssertionError: ES missing suite_report.passed
+E   assert 'suite_report.passed' in '> 🇬🇧 [English](../dsge_parity_surface.md) · 🇪🇸 Español\n\n# Superficie de paridad DSGE, simulación avanzada y panel d...ews/2026-09-20-independent-validation/REPORT.md);\nla evidencia se limita a los modelos y configuraciones ensayados.\n'
+______ TestDocsCodeBlocksParitySurface.test_en_and_es_code_blocks_compile ______
+tests/test_adversarial_m5_parser_docs.py:560: in test_en_and_es_code_blocks_compile
+    assert len(es_blocks) == 5, f"Expected 5 python blocks in ES doc, got {len(es_blocks)}"
+E   AssertionError: Expected 5 python blocks in ES doc, got 4
+E   assert 4 == 5
+E    +  where 4 = len(['# requires: standalone snippet\nfrom puremacro.dsge import load_mod\n\n# Carga y resolución del modelo\nm = load_mod...n        "Demanda": ["eq", "ec"],\n        "Politica Monetaria": ["em"],\n    }\n)\nfig = decomp.plot(variable="y")\n'])
+________________ test_all_notebooks_residual_styling_and_syntax ________________
+tests/test_m3_challenger_verification.py:349: in test_all_notebooks_residual_styling_and_syntax
+    assert len(py_files) == 130, f"Expected 130 showcase scripts, found {len(py_files)}"
+E   AssertionError: Expected 130 showcase scripts, found 136
+E   assert 136 == 130
+E    +  where 136 = len([PosixPath('/Users/jalonso/Documents/RESEARCH/puremacro/notebooks/00_whats_new_in_puremacro_2_0.py'), PosixPath('/User...th_inequality.py'), PosixPath('/Users/jalonso/Documents/RESEARCH/puremacro/notebooks/01_wealth_inequality_es.py'), ...])
+_ TestWelfareDecompositionEmpirical.test_welfare_decomposition_tariff_shock_and_additive_closure _
+tests/test_m5_empirical_challenger2_icio.py:190: in test_welfare_decomposition_tariff_shock_and_additive_closure
+    assert max_closure_err < 1e-8, f"Max closure error {max_closure_err:.4e} exceeds 1e-8"
+E   AssertionError: Max closure error 2.9802e-08 exceeds 1e-8
+E   assert np.float64(2.9802322387695312e-08) < 1e-08
+____________________ test_no_matlab_sources_are_distributed ____________________
+tests/test_no_matlab_dependency.py:74: in test_no_matlab_sources_are_distributed
+    "curso/notebooks/modelos/rbc_mexico_dual/Output/rbc_mexico_dual_results.mat",
+E   AssertionError: MATLAB files are tracked again: curso/notebooks/modelos/rbc_mexico_dual/Output/rbc_mexico_dual_results.mat, tools/reference_validation/export_dynare.m
+E   assert not ['curso/notebooks/modelos/rbc_mexico_dual/Output/rbc_mexico_dual_results.mat', 'tools/reference_validation/export_dynare.m']
+___________ test_dual_mode_contrast_invariance_and_card_backgrounds ____________
+tests/test_notebooks/test_m5_visual_card_and_contrast_adversarial.py:161: in test_dual_mode_contrast_invariance_and_card_backgrounds
+    valid_backgrounds = {"#161616", "#FFFFFF"}
+E   AssertionError: Expected 359 grafito cards, found 367
+E   assert 367 == 359
+______________________ test_notebook_inventory_and_counts ______________________
+tests/test_notebooks/test_m5_visual_card_and_contrast_adversarial.py:82: in test_notebook_inventory_and_counts
+    assert len(showcase) >= 130
+E   AssertionError: Expected 130 showcase notebooks, found 136
+E   assert 136 == 130
+E    +  where 136 = len([PosixPath('/Users/jalonso/Documents/RESEARCH/puremacro/notebooks/64_singularities_and_keller_pac_es.ipynb'), PosixPat...osixPath('/Users/jalonso/Documents/RESEARCH/puremacro/notebooks/49_applied_macroprudential_gar_and_stress.ipynb'), ...])
+______________ test_universal_png_canvas_opacity_repository_wide _______________
+tests/test_notebooks/test_m5_visual_card_and_contrast_adversarial.py:91: in test_universal_png_canvas_opacity_repository_wide
+    def test_universal_png_canvas_opacity_repository_wide():
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: Expected 647 embedded PNG images, found 655
+E   assert 655 == 647
+E    +  where 655 = len([(PosixPath('/Users/jalonso/Documents/RESEARCH/puremacro/curso/notebooks/T01_A_business_cycle_facts.ipynb'), 21, 0, 'i...RERERGRrUWRXERERERERERERES2FkVyEREREREREREREdlaFMlFREREREREREREZLat/B/1bjtecVqxogAAAABJRU5ErkJggg==', 'showcase'), ...])
+_________ test_robust_sandwich_tie_convention_on_exact_zero_residuals __________
+tests/test_regress_quantile_parity.py:1144: in test_robust_sandwich_tie_convention_on_exact_zero_residuals
+    assert int(np.sum(e == 0.0)) == 13
+E   assert 5 == 13
+E    +  where 5 = int(np.int64(5))
+E    +    where np.int64(5) = <function sum at 0x107478ab0>(array([-2.00000000e+00,  1.77635684e-15,  1.00000000e+00, -3.00000000e+00,\n       -3.00000000e+00, -1.00000000e+00,  4...0000e+00,  1.00000000e+00,  1.00000000e+00,\n        1.00000000e+00,  8.88178420e-16, -1.00000000e+00, -1.00000000e+00]) == 0.0)
+E    +      where <function sum at 0x107478ab0> = np.sum
+___________ test_gate7_fan_out_returns_none_when_a_worker_cannot_run ___________
+tests/test_release_check_34fixes.py:149: in test_gate7_fan_out_returns_none_when_a_worker_cannot_run
+    assert release_check._fan_out(cmd, ["a.py"], cwd=tmp_path, workers=1) == []
+E   assert None == []
+E    +  where None = <function _fan_out at 0x11484a020>(['/tmp/puremacro-release-4.3.0-venv/bin/python', '-c', "import sys; sys.stdin.read(); print('CHECKED')"], ['a.py'], cwd=PosixPath('/private/var/folders/lx/tfh_l1r90j3cp31s1bhtz7ph0000gn/T/pytest-of-jalonso/pytest-30/test_gate7_fan_out_returns_non0'), workers=1)
+E    +    where <function _fan_out at 0x11484a020> = release_check._fan_out
+___ TestAPIErgonomicsAndSerialization.test_dataclass_replace_on_all_configs ____
+tests/test_tier5_solver_adversarial.py:819: in test_dataclass_replace_on_all_configs
+    tech_replaced = replace(tech, rho_va=0.6)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+<string>:11: in __init__
+    ???
+puremacro/trade/flexible.py:149: in __post_init__
+    raise ValueError(
+E   ValueError: Conflicting values provided for rho_va (0.6) and sigma_va (0.8).
+__ TestF11BoundaryCases.test_f11_b06_technology_replace_alias_synchronization __
+tests/test_trade_flexible_extensions.py:1856: in test_f11_b06_technology_replace_alias_synchronization
+    tech2 = replace(tech, rho_va=0.9)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+<string>:11: in __init__
+    ???
+puremacro/trade/flexible.py:149: in __post_init__
+    raise ValueError(
+E   ValueError: Conflicting values provided for rho_va (0.9) and sigma_va (0.5).
+__ TestF11BoundaryCases.test_f11_b07_preference_replace_alias_synchronization __
+tests/test_trade_flexible_extensions.py:1889: in test_f11_b07_preference_replace_alias_synchronization
+    pref2 = replace(pref, mu_s=0.5)
+            ^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+<string>:7: in __init__
+    ???
+puremacro/trade/flexible.py:271: in __post_init__
+    raise ValueError(
+E   ValueError: Conflicting values provided for subsistence parameters: 'subsistence_shares' and 'mu_s'.
+_ TestF11BoundaryCases.test_f11_b08_preference_replace_with_mapping_and_array __
+tests/test_trade_flexible_extensions.py:1927: in test_f11_b08_preference_replace_with_mapping_and_array
+    pref_dict2 = replace(pref_dict, mu_s=d2)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+<string>:7: in __init__
+    ???
+puremacro/trade/flexible.py:271: in __post_init__
+    raise ValueError(
+E   ValueError: Conflicting values provided for subsistence parameters: 'subsistence_shares' and 'mu_s'.
+_ TestF11BoundaryCases.test_f11_b09_market_structure_replace_alias_synchronization _
+tests/test_trade_flexible_extensions.py:1947: in test_f11_b09_market_structure_replace_alias_synchronization
+    mkt2 = replace(mkt, markup_min=1.2)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+<string>:16: in __init__
+    ???
+puremacro/trade/flexible.py:515: in __post_init__
+    raise ValueError(
+E   ValueError: Conflicting values provided for markup_bounds (1.0, 5.0) and (markup_min=1.2, markup_max=5.0).
+_ TestF11BoundaryCases.test_f11_b10_market_structure_replace_variety_condensation _
+tests/test_trade_flexible_extensions.py:1987: in test_f11_b10_market_structure_replace_variety_condensation
+    assert mkt2.variety_condensation is False
+E   assert True is False
+E    +  where True = FlexibleMarketStructureConfig(variable_markups=False, sigma_j=6.0, theta_j=2.0, variety_condensation=True, condense_va...kup_min=1.0, markup_max=5.0, markup_bounds=(1.0, 5.0), cournot_weights=None, clamping_threshold=0.0001, fl=0.0, fk=0.0).variety_condensation
+_ TestTier2BoundaryAndCornerCases.test_t2_f4_harmonic_mean_collinear_parameter_draws_raises _
+tests/test_v260_showcase_replication_e2e.py:537: in test_t2_f4_harmonic_mean_collinear_parameter_draws_raises
+    with pytest.raises(ValueError, match="the posterior covariance of the draws is singular"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ============================
+FAILED tests/test_adversarial_challenger_r1_r2.py::TestTask2ExtremeShocksPrunedVsUnpruned::test_10_sigma_single_shock_pruned_bounded_vs_unpruned_explosion
+FAILED tests/test_adversarial_m1_robust_solvers.py::TestAdversarialHawkinsSimon::test_extreme_tariffs_clean_rejection_and_timing[10.0]
+FAILED tests/test_adversarial_m1_robust_solvers.py::TestAdversarialHawkinsSimon::test_extreme_tariffs_clean_rejection_and_timing[100.0]
+FAILED tests/test_adversarial_m1_robust_solvers.py::TestAdversarialHawkinsSimon::test_extreme_tariffs_clean_rejection_and_timing[1000.0]
+FAILED tests/test_adversarial_m1_robust_solvers.py::TestAdversarialHawkinsSimon::test_extreme_tariffs_clean_rejection_and_timing[50.0]
+FAILED tests/test_adversarial_m1_robust_solvers.py::TestAdversarialHawkinsSimon::test_extreme_tariffs_clean_rejection_and_timing[8.0]
+FAILED tests/test_adversarial_m1_robust_solvers.py::TestAdversarialHawkinsSimon::test_subcritical_high_tariffs_valid_cw_bounds[0.5]
+FAILED tests/test_adversarial_m5_parser_docs.py::TestDocsCodeBlocksParitySurface::test_all_code_blocks_have_requires_header
+FAILED tests/test_adversarial_m5_parser_docs.py::TestDocsCodeBlocksParitySurface::test_docs_contain_correct_apis_and_no_obsolete_attributes
+FAILED tests/test_adversarial_m5_parser_docs.py::TestDocsCodeBlocksParitySurface::test_en_and_es_code_blocks_compile
+FAILED tests/test_m3_challenger_verification.py::test_all_notebooks_residual_styling_and_syntax
+FAILED tests/test_m5_empirical_challenger2_icio.py::TestWelfareDecompositionEmpirical::test_welfare_decomposition_tariff_shock_and_additive_closure
+FAILED tests/test_no_matlab_dependency.py::test_no_matlab_sources_are_distributed
+FAILED tests/test_notebooks/test_m5_visual_card_and_contrast_adversarial.py::test_dual_mode_contrast_invariance_and_card_backgrounds
+FAILED tests/test_notebooks/test_m5_visual_card_and_contrast_adversarial.py::test_notebook_inventory_and_counts
+FAILED tests/test_notebooks/test_m5_visual_card_and_contrast_adversarial.py::test_universal_png_canvas_opacity_repository_wide
+FAILED tests/test_regress_quantile_parity.py::test_robust_sandwich_tie_convention_on_exact_zero_residuals
+FAILED tests/test_release_check_34fixes.py::test_gate7_fan_out_returns_none_when_a_worker_cannot_run
+FAILED tests/test_tier5_solver_adversarial.py::TestAPIErgonomicsAndSerialization::test_dataclass_replace_on_all_configs
+FAILED tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b06_technology_replace_alias_synchronization
+FAILED tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b07_preference_replace_alias_synchronization
+FAILED tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b08_preference_replace_with_mapping_and_array
+FAILED tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b09_market_structure_replace_alias_synchronization
+FAILED tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b10_market_structure_replace_variety_condensation
+FAILED tests/test_v260_showcase_replication_e2e.py::TestTier2BoundaryAndCornerCases::test_t2_f4_harmonic_mean_collinear_parameter_draws_raises
+25 failed, 3 passed in 176.08s (0:02:56)

@@ -1,0 +1,28 @@
+release_check — puremacro pre-tag gate
+  repo root: /Users/jalonso/Documents/RESEARCH/puremacro
+Traceback (most recent call last):
+  File "/Users/jalonso/Documents/RESEARCH/puremacro/tools/release_check.py", line 831, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/Users/jalonso/Documents/RESEARCH/puremacro/tools/release_check.py", line 788, in main
+    g1 = gate_test_baseline(REPO_ROOT)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jalonso/Documents/RESEARCH/puremacro/tools/release_check.py", line 216, in gate_test_baseline
+    failing = run_pytest_collect_failures(repo_root)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jalonso/Documents/RESEARCH/puremacro/tools/release_check.py", line 166, in run_pytest_collect_failures
+    proc = subprocess.run(
+           ^^^^^^^^^^^^^^^
+  File "/Users/jalonso/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/subprocess.py", line 550, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jalonso/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/subprocess.py", line 1209, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jalonso/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/subprocess.py", line 2115, in _communicate
+    ready = selector.select(timeout)
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jalonso/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/selectors.py", line 415, in select
+    fd_event_list = self._selector.poll(timeout)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

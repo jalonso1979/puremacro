@@ -1,0 +1,142 @@
+..FFFF...FF..FFFFFFF.                                                    [100%]
+=================================== FAILURES ===================================
+_________ TestCollinearity.test_bit_identity_on_near_collinear_designs _________
+tests/test_inference_extras_parity.py:602: in test_bit_identity_on_near_collinear_designs
+    np.testing.assert_array_equal(got, want)
+E   AssertionError:
+E   Arrays are not equal
+E
+E   Mismatched elements: 4 / 6 (66.7%)
+E   Mismatch at indices:
+E    [0]: 1.0401472729569186 (ACTUAL), 1.040147272956633 (DESIRED)
+E    [2]: 1.0297727442574272 (ACTUAL), 1.0297727442575397 (DESIRED)
+E    [3]: 1.019261867219888 (ACTUAL), 1.0192618672203482 (DESIRED)
+E    [4]: 1.0384139985587346 (ACTUAL), 1.0384139985586942 (DESIRED)
+E   Max absolute difference among violations: 4.60076421e-13
+E   Max relative difference among violations: 4.51381962e-13
+E    ACTUAL: array([1.040147e+00, 5.116302e+10, 1.029773e+00, 1.019262e+00,
+E          1.038414e+00, 5.116302e+10])
+E    DESIRED: array([1.040147e+00, 5.116302e+10, 1.029773e+00, 1.019262e+00,
+E          1.038414e+00, 5.116302e+10])
+_____ TestCollinearity.test_columns_sharing_a_large_mean_are_not_rejected ______
+tests/test_inference_extras_parity.py:645: in test_columns_sharing_a_large_mean_are_not_rejected
+    np.testing.assert_array_equal(got, want)
+E   AssertionError:
+E   Arrays are not equal
+E
+E   Mismatched elements: 2 / 4 (50%)
+E   Mismatch at indices:
+E    [1]: 1.0071224743439573 (ACTUAL), 1.0071224741837468 (DESIRED)
+E    [3]: 1.0053825125190636 (ACTUAL), 1.0053825123699658 (DESIRED)
+E   Max absolute difference among violations: 1.60210512e-10
+E   Max relative difference among violations: 1.59077486e-10
+E    ACTUAL: array([0.      , 1.007122, 1.001765, 1.005383])
+E    DESIRED: array([0.      , 1.007122, 1.001765, 1.005383])
+_ TestWelfareDecompositionEmpirical.test_welfare_decomposition_tariff_shock_and_additive_closure _
+tests/test_m5_empirical_challenger2_icio.py:190: in test_welfare_decomposition_tariff_shock_and_additive_closure
+    assert max_closure_err < 1e-8, f"Max closure error {max_closure_err:.4e} exceeds 1e-8"
+E   AssertionError: Max closure error 2.9802e-08 exceeds 1e-8
+E   assert np.float64(2.9802322387695312e-08) < 1e-08
+____________________ test_no_matlab_sources_are_distributed ____________________
+tests/test_no_matlab_dependency.py:74: in test_no_matlab_sources_are_distributed
+    assert not offenders, (
+E   AssertionError: MATLAB files are tracked again: curso/notebooks/modelos/rbc_mexico_dual/Output/rbc_mexico_dual_results.mat, tools/reference_validation/export_dynare.m
+E   assert not ['curso/notebooks/modelos/rbc_mexico_dual/Output/rbc_mexico_dual_results.mat', 'tools/reference_validation/export_dynare.m']
+_________ test_robust_sandwich_tie_convention_on_exact_zero_residuals __________
+tests/test_regress_quantile_parity.py:1144: in test_robust_sandwich_tie_convention_on_exact_zero_residuals
+    assert int(np.sum(e == 0.0)) == 13
+E   assert 5 == 13
+E    +  where 5 = int(np.int64(5))
+E    +    where np.int64(5) = <function sum at 0x106f3c0f0>(array([-2.00000000e+00,  1.77635684e-15,  1.00000000e+00, -3.00000000e+00,\n       -3.00000000e+00, -1.00000000e+00,  4...0000e+00,  1.00000000e+00,  1.00000000e+00,\n        1.00000000e+00,  8.88178420e-16, -1.00000000e+00, -1.00000000e+00]) == 0.0)
+E    +      where <function sum at 0x106f3c0f0> = np.sum
+___________ test_gate7_fan_out_returns_none_when_a_worker_cannot_run ___________
+tests/test_release_check_34fixes.py:149: in test_gate7_fan_out_returns_none_when_a_worker_cannot_run
+    assert release_check._fan_out(cmd, ["a.py"], cwd=tmp_path, workers=1) == []
+E   assert None == []
+E    +  where None = <function _fan_out at 0x114262200>(['/tmp/puremacro-release-4.3.0-venv/bin/python', '-c', "import sys; sys.stdin.read(); print('CHECKED')"], ['a.py'], cwd=PosixPath('/private/var/folders/lx/tfh_l1r90j3cp31s1bhtz7ph0000gn/T/pytest-of-jalonso/pytest-27/test_gate7_fan_out_returns_non0'), workers=1)
+E    +    where <function _fan_out at 0x114262200> = release_check._fan_out
+___ TestAPIErgonomicsAndSerialization.test_dataclass_replace_on_all_configs ____
+tests/test_tier5_solver_adversarial.py:819: in test_dataclass_replace_on_all_configs
+    tech_replaced = replace(tech, rho_va=0.6)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+<string>:11: in __init__
+    ???
+puremacro/trade/flexible.py:149: in __post_init__
+    raise ValueError(
+E   ValueError: Conflicting values provided for rho_va (0.6) and sigma_va (0.8).
+__ TestF11BoundaryCases.test_f11_b06_technology_replace_alias_synchronization __
+tests/test_trade_flexible_extensions.py:1856: in test_f11_b06_technology_replace_alias_synchronization
+    tech2 = replace(tech, rho_va=0.9)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+<string>:11: in __init__
+    ???
+puremacro/trade/flexible.py:149: in __post_init__
+    raise ValueError(
+E   ValueError: Conflicting values provided for rho_va (0.9) and sigma_va (0.5).
+__ TestF11BoundaryCases.test_f11_b07_preference_replace_alias_synchronization __
+tests/test_trade_flexible_extensions.py:1889: in test_f11_b07_preference_replace_alias_synchronization
+    pref2 = replace(pref, mu_s=0.5)
+            ^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+<string>:7: in __init__
+    ???
+puremacro/trade/flexible.py:271: in __post_init__
+    raise ValueError(
+E   ValueError: Conflicting values provided for subsistence parameters: 'subsistence_shares' and 'mu_s'.
+_ TestF11BoundaryCases.test_f11_b08_preference_replace_with_mapping_and_array __
+tests/test_trade_flexible_extensions.py:1927: in test_f11_b08_preference_replace_with_mapping_and_array
+    pref_dict2 = replace(pref_dict, mu_s=d2)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+<string>:7: in __init__
+    ???
+puremacro/trade/flexible.py:271: in __post_init__
+    raise ValueError(
+E   ValueError: Conflicting values provided for subsistence parameters: 'subsistence_shares' and 'mu_s'.
+_ TestF11BoundaryCases.test_f11_b09_market_structure_replace_alias_synchronization _
+tests/test_trade_flexible_extensions.py:1947: in test_f11_b09_market_structure_replace_alias_synchronization
+    mkt2 = replace(mkt, markup_min=1.2)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/dataclasses.py:1588: in replace
+    return obj.__class__(**changes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+<string>:16: in __init__
+    ???
+puremacro/trade/flexible.py:515: in __post_init__
+    raise ValueError(
+E   ValueError: Conflicting values provided for markup_bounds (1.0, 5.0) and (markup_min=1.2, markup_max=5.0).
+_ TestF11BoundaryCases.test_f11_b10_market_structure_replace_variety_condensation _
+tests/test_trade_flexible_extensions.py:1987: in test_f11_b10_market_structure_replace_variety_condensation
+    assert mkt2.variety_condensation is False
+E   assert True is False
+E    +  where True = FlexibleMarketStructureConfig(variable_markups=False, sigma_j=6.0, theta_j=2.0, variety_condensation=True, condense_va...kup_min=1.0, markup_max=5.0, markup_bounds=(1.0, 5.0), cournot_weights=None, clamping_threshold=0.0001, fl=0.0, fk=0.0).variety_condensation
+_ TestTier2BoundaryAndCornerCases.test_t2_f4_harmonic_mean_collinear_parameter_draws_raises _
+tests/test_v260_showcase_replication_e2e.py:537: in test_t2_f4_harmonic_mean_collinear_parameter_draws_raises
+    with pytest.raises(ValueError, match="the posterior covariance of the draws is singular"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=========================== short test summary info ============================
+FAILED tests/test_inference_extras_parity.py::TestCollinearity::test_bit_identity_on_near_collinear_designs
+FAILED tests/test_inference_extras_parity.py::TestCollinearity::test_columns_sharing_a_large_mean_are_not_rejected
+FAILED tests/test_m5_empirical_challenger2_icio.py::TestWelfareDecompositionEmpirical::test_welfare_decomposition_tariff_shock_and_additive_closure
+FAILED tests/test_no_matlab_dependency.py::test_no_matlab_sources_are_distributed
+FAILED tests/test_regress_quantile_parity.py::test_robust_sandwich_tie_convention_on_exact_zero_residuals
+FAILED tests/test_release_check_34fixes.py::test_gate7_fan_out_returns_none_when_a_worker_cannot_run
+FAILED tests/test_tier5_solver_adversarial.py::TestAPIErgonomicsAndSerialization::test_dataclass_replace_on_all_configs
+FAILED tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b06_technology_replace_alias_synchronization
+FAILED tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b07_preference_replace_alias_synchronization
+FAILED tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b08_preference_replace_with_mapping_and_array
+FAILED tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b09_market_structure_replace_alias_synchronization
+FAILED tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b10_market_structure_replace_variety_condensation
+FAILED tests/test_v260_showcase_replication_e2e.py::TestTier2BoundaryAndCornerCases::test_t2_f4_harmonic_mean_collinear_parameter_draws_raises
+13 failed, 8 passed in 168.70s (0:02:48)

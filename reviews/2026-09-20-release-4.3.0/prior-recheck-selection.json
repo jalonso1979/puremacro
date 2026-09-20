@@ -1,0 +1,30 @@
+{
+  "selected": [
+    "tests/test_dsge/test_macro_preprocessor.py::test_includepath_directive",
+    "tests/test_dsge/test_smoother.py::test_smoothed_shocks_agree_with_the_shock_decomposition_path",
+    "tests/test_inference_extras_parity.py::TestCollinearity::test_bit_identity_on_near_collinear_designs",
+    "tests/test_inference_extras_parity.py::TestCollinearity::test_columns_sharing_a_large_mean_are_not_rejected",
+    "tests/test_m5_empirical_challenger2_icio.py::TestWelfareDecompositionEmpirical::test_welfare_decomposition_tariff_shock_and_additive_closure",
+    "tests/test_no_matlab_dependency.py::test_no_matlab_sources_are_distributed",
+    "tests/test_plotting_irf_plot_coverage.py::TestPlotIrfContract::test_shock_label_in_column_title",
+    "tests/test_regress/test_ols_hardening.py::test_scalar_weights_are_broadcast_like_wls",
+    "tests/test_regress_quantile_parity.py::test_reported_bandwidth_uses_the_scipy_percentile_path",
+    "tests/test_regress_quantile_parity.py::test_robust_sandwich_tie_convention_on_exact_zero_residuals",
+    "tests/test_release_check_34fixes.py::test_gate7_fan_out_returns_none_when_a_worker_cannot_run",
+    "tests/test_result_parity.py::test_vfi_solution_elevation",
+    "tests/test_spatial/test_lp.py::test_higher_order_plot_draws_one_panel_per_label",
+    "tests/test_tier5_solver_adversarial.py::TestAPIErgonomicsAndSerialization::test_dataclass_replace_on_all_configs",
+    "tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b06_technology_replace_alias_synchronization",
+    "tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b07_preference_replace_alias_synchronization",
+    "tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b08_preference_replace_with_mapping_and_array",
+    "tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b09_market_structure_replace_alias_synchronization",
+    "tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b10_market_structure_replace_variety_condensation",
+    "tests/test_v260_showcase_replication_e2e.py::TestTier2BoundaryAndCornerCases::test_t2_f4_harmonic_mean_collinear_parameter_draws_raises",
+    "tests/test_v270_frontend_e2e.py::TestTier1FeatureCoverage::test_t1_f04_includepath_directive"
+  ],
+  "renamed_or_replaced": [
+    "tests/test_dsge/test_diagnostics.py::test_check_fertility_model_offending_loadings",
+    "tests/test_dsge/test_diagnostics.py::test_resid_fertility_broken_bgp_replicates_1_48",
+    "tests/test_dsge_markov_switching.py::test_explosive_regime_mean_square_unstable"
+  ]
+}

@@ -1,0 +1,22 @@
+.................................F................................s..... [ 52%]
+................................................................         [100%]
+=================================== FAILURES ===================================
+________________ test_all_notebooks_residual_styling_and_syntax ________________
+tests/test_m3_challenger_verification.py:394: in test_all_notebooks_residual_styling_and_syntax
+    assert not residual_issues, f"Residual styling or plt calls found:\n{residual_issues}"
+E   AssertionError: Residual styling or plt calls found:
+E     [('63_trade_wars_and_nash_tariffs.py', 123, 'Residual plt.show() call', 'plt.show()'), ('63_trade_wars_and_nash_tariffs_es.py', 123, 'Residual plt.show() call', 'plt.show()'), ('65_gvc_cascades_and_welfare_decomposition.py', 153, 'Residual plt.show() call', 'plt.show()'), ('65_gvc_cascades_and_welfare_decomposition_es.py', 153, 'Residual plt.show() call', 'plt.show()')]
+E   assert not [('63_trade_wars_and_nash_tariffs.py', 123, 'Residual plt.show() call', 'plt.show()'), ('63_trade_wars_and_nash_tariff...ll', 'plt.show()'), ('65_gvc_cascades_and_welfare_decomposition_es.py', 153, 'Residual plt.show() call', 'plt.show()')]
+=============================== warnings summary ===============================
+tests/test_adversarial_challenger_r1_r2.py::TestTask5SemismoothNewtonMCPStressTesting::test_permanent_transition_distinct_steady_states_terminal_error
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_adversarial_challenger_r1_r2.py:417: RuntimeWarning: invalid value encountered in scalar power
+    euler = c ** (-sigma) - beta * c_p ** (-sigma) * (alpha * A * k ** (alpha - 1.0) + 1.0 - delta)
+
+tests/test_adversarial_challenger_r1_r2.py::TestTask5SemismoothNewtonMCPStressTesting::test_permanent_transition_distinct_steady_states_terminal_error
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_adversarial_challenger_r1_r2.py:418: RuntimeWarning: invalid value encountered in scalar power
+    res_c = k - (A * k_m**alpha + (1.0 - delta) * k_m - c)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_m3_challenger_verification.py::test_all_notebooks_residual_styling_and_syntax
+1 failed, 134 passed, 1 skipped, 2 warnings in 8.05s

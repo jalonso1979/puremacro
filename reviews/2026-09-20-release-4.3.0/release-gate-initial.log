@@ -1,0 +1,61 @@
+release_check — puremacro pre-tag gate
+  repo root: /Users/jalonso/Documents/RESEARCH/puremacro
+/Users/jalonso/.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/lib/python3.12/importlib/__init__.py:90: FutureWarning: puremacro.lp.garch_utils is private and deprecated, will be removed in a future major release (4.0.0); use puremacro.lp._garch_utils or high-level LP functions instead.
+  return _bootstrap._gcd_import(name[level:], package, level)
+  Gate 1 (test baseline): FAIL — 28 new failure(s)
+    NEW: tests/test_adversarial_challenger_r1_r2.py::TestTask2ExtremeShocksPrunedVsUnpruned::test_10_sigma_single_shock_pruned_bounded_vs_unpruned_explosion
+    NEW: tests/test_adversarial_m1_robust_solvers.py::TestAdversarialHawkinsSimon::test_extreme_tariffs_clean_rejection_and_timing[10.0]
+    NEW: tests/test_adversarial_m1_robust_solvers.py::TestAdversarialHawkinsSimon::test_extreme_tariffs_clean_rejection_and_timing[100.0]
+    NEW: tests/test_adversarial_m1_robust_solvers.py::TestAdversarialHawkinsSimon::test_extreme_tariffs_clean_rejection_and_timing[1000.0]
+    NEW: tests/test_adversarial_m1_robust_solvers.py::TestAdversarialHawkinsSimon::test_extreme_tariffs_clean_rejection_and_timing[50.0]
+    NEW: tests/test_adversarial_m1_robust_solvers.py::TestAdversarialHawkinsSimon::test_extreme_tariffs_clean_rejection_and_timing[8.0]
+    NEW: tests/test_adversarial_m1_robust_solvers.py::TestAdversarialHawkinsSimon::test_subcritical_high_tariffs_valid_cw_bounds[0.5]
+    NEW: tests/test_adversarial_m5_parser_docs.py::TestDocsCodeBlocksParitySurface::test_all_code_blocks_have_requires_header
+    NEW: tests/test_adversarial_m5_parser_docs.py::TestDocsCodeBlocksParitySurface::test_docs_contain_correct_apis_and_no_obsolete_attributes
+    NEW: tests/test_adversarial_m5_parser_docs.py::TestDocsCodeBlocksParitySurface::test_en_and_es_code_blocks_compile
+    NEW: tests/test_m3_challenger_verification.py::test_all_notebooks_residual_styling_and_syntax
+    NEW: tests/test_m5_empirical_challenger2_icio.py::TestWelfareDecompositionEmpirical::test_welfare_decomposition_tariff_shock_and_additive_closure
+    NEW: tests/test_no_matlab_dependency.py::test_no_matlab_sources_are_distributed
+    NEW: tests/test_notebooks/test_m5_visual_card_and_contrast_adversarial.py::test_dual_mode_contrast_invariance_and_card_backgrounds
+    NEW: tests/test_notebooks/test_m5_visual_card_and_contrast_adversarial.py::test_notebook_inventory_and_counts
+    NEW: tests/test_notebooks/test_m5_visual_card_and_contrast_adversarial.py::test_universal_png_canvas_opacity_repository_wide
+    NEW: tests/test_plotting_irf_plot_coverage.py::TestPlotIrfContract::test_shock_label_in_column_title
+    NEW: tests/test_regress_quantile_parity.py::test_robust_sandwich_tie_convention_on_exact_zero_residuals
+    NEW: tests/test_release_check_34fixes.py::test_gate7_fan_out_returns_none_when_a_worker_cannot_run
+    NEW: tests/test_result_parity.py::test_vfi_solution_elevation
+    NEW: tests/test_spatial/test_lp.py::test_higher_order_plot_draws_one_panel_per_label
+    NEW: tests/test_tier5_solver_adversarial.py::TestAPIErgonomicsAndSerialization::test_dataclass_replace_on_all_configs
+    NEW: tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b06_technology_replace_alias_synchronization
+    NEW: tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b07_preference_replace_alias_synchronization
+    NEW: tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b08_preference_replace_with_mapping_and_array
+    NEW: tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b09_market_structure_replace_alias_synchronization
+    NEW: tests/test_trade_flexible_extensions.py::TestF11BoundaryCases::test_f11_b10_market_structure_replace_variety_condensation
+    NEW: tests/test_v260_showcase_replication_e2e.py::TestTier2BoundaryAndCornerCases::test_t2_f4_harmonic_mean_collinear_parameter_draws_raises
+    plus 21 previously-red now green:
+    recovered: tests/test_inference_extras_parity.py::TestCollinearity::test_corpus_call_site_strips_the_constant
+    recovered: tests/test_inference_extras_parity.py::TestCollinearity::test_large_magnitude_column_returns_statsmodels_numbers
+    recovered: tests/test_inference_extras_parity.py::TestCollinearity::test_negative_index_wraps_and_statsmodels_disagrees
+    recovered: tests/test_inference_extras_parity.py::TestCollinearity::test_parity_all_columns[badly_scaled]
+    recovered: tests/test_inference_extras_parity.py::TestCollinearity::test_parity_all_columns[constant_of_fives]
+    recovered: tests/test_inference_extras_parity.py::TestCollinearity::test_parity_all_columns[constant_stripped]
+    recovered: tests/test_inference_extras_parity.py::TestCollinearity::test_parity_all_columns[implicit_constant]
+    recovered: tests/test_inference_extras_parity.py::TestCollinearity::test_parity_all_columns[no_constant_shifted]
+    recovered: tests/test_inference_extras_parity.py::TestCollinearity::test_parity_all_columns[two_columns]
+    recovered: tests/test_inference_extras_parity.py::TestCollinearity::test_parity_all_columns[very_high_vif]
+    recovered: tests/test_inference_extras_parity.py::TestCollinearity::test_parity_all_columns[with_constant]
+    recovered: tests/test_inference_extras_parity.py::TestCollinearity::test_parity_single_index[badly_scaled]
+    recovered: tests/test_inference_extras_parity.py::TestCollinearity::test_parity_single_index[constant_of_fives]
+    recovered: tests/test_inference_extras_parity.py::TestCollinearity::test_parity_single_index[constant_stripped]
+    recovered: tests/test_inference_extras_parity.py::TestCollinearity::test_parity_single_index[implicit_constant]
+    recovered: tests/test_inference_extras_parity.py::TestCollinearity::test_parity_single_index[no_constant_shifted]
+    recovered: tests/test_inference_extras_parity.py::TestCollinearity::test_parity_single_index[two_columns]
+    recovered: tests/test_inference_extras_parity.py::TestCollinearity::test_parity_single_index[very_high_vif]
+    recovered: tests/test_inference_extras_parity.py::TestCollinearity::test_parity_single_index[with_constant]
+    recovered: tests/test_inference_extras_parity.py::TestCollinearity::test_vif_one_raises_on_an_exactly_redundant_column
+    recovered: tests/test_regress_discrete_parity.py::test_poisson_matches_statsmodels_glm
+  Gate 2 (Pyodide contract): PASS
+  Gate 3 (public API snapshot): PASS
+  Gate 4 (version sync): PASS — all read 4.3.0
+  Gate 7 (min-Python 3.11 syntax): PASS — 1535 files parse (ast.parse(feature_version=3.11); PEP 701 f-string scan)
+
+4/5 gates passed; FAIL: test_baseline

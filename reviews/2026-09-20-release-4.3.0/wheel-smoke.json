@@ -1,0 +1,9 @@
+{
+  "version": "4.3.0",
+  "module_path": "/tmp/puremacro-4.3.0-wheel-smoke-venv/lib/python3.12/site-packages/puremacro/__init__.py",
+  "unilateral_ev_percent": 9.10283466008532,
+  "nash_converged": true,
+  "nash_relative_regret": 3.0749328949752913e-07,
+  "matrix_finite": true,
+  "passed": true
+}

@@ -2,11 +2,12 @@
 
 How to cut a release. Read §1 once; after that §3 is the whole procedure.
 
-*Last verified against a real release: **1.3.1**, 2026-08-20 — that is the last time
-someone walked this document end to end while actually cutting a tag. The gate table, CI
-matrix and counts below were re-checked against the tree on 2026-09-16 for 3.4.0 (the
-latest tag is `v3.3.0`; 3.4.0 is not tagged yet), which verifies the numbers but **not**
-the procedure. The next tag is the next verification of the procedure.*
+*Release preparation rechecked for **4.3.0**, 2026-09-20: full baseline gate,
+clean artifact build, installed-wheel checks, documentation and playground build.
+See the [verification record](reviews/2026-09-20-release-4.3.0/REPORT.md) and
+[release page](https://github.com/jalonso1979/puremacro/releases/tag/v4.3.0) for
+results and publication workflows. The baseline permits eleven documented
+failures already present in 4.2.0; it is not an entirely green raw test suite.*
 
 ## 1. What the setup actually is
 
