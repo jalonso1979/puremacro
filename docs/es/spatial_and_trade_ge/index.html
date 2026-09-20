@@ -1,0 +1,5599 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Production-grade Macroeconometric and Heterogeneous-Agent Structural Modeling Engine in Pure Python">
+      
+      
+        <meta name="author" content="puremacro contributors">
+      
+      
+        <link rel="canonical" href="https://jalonso1979.github.io/puremacro/docs/es/spatial_and_trade_ge/">
+      
+      
+        <link rel="prev" href="../deep_macro/">
+      
+      
+        <link rel="next" href="../trade_gpu/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Economía espacial cuantitativa y equilibrio general de comercio - puremacro</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#economia-espacial-cuantitativa-y-equilibrio-general-de-comercio" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="puremacro" class="md-header__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            puremacro
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Economía espacial cuantitativa y equilibrio general de comercio
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  
+  English Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+  Documentación en Español
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="puremacro" class="md-nav__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    puremacro
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    English Documentation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    English Documentation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Showcase Notebooks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Correctness advisories
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../STRUCTURAL_VALIDATION_STATUS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structural validation status
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_6" id="__nav_1_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quarterly National Accounts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-time data (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../real_time_latam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Latin America real-time connectors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Long national accounts panel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global Macro Data Ecosystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_7" id="__nav_1_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometric Engines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Econometric Engines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR & FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Narrative Sign Restrictions SVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR with Stochastic Volatility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Smooth Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modern Difference-in-Differences
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Honest DiD Sensitivity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../causal_dml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Double / Debiased Machine Learning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dml_irm_iv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Double ML for Treatment Effects & IV (IRM & DML-IV)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Econometrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global VAR (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Estimation & Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GDP Nowcasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../nowcast_latam_news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Latin America Real-Time Nowcasting & News
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Penalized Forecasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_8" id="__nav_1_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publication & Reporting
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publication & Reporting
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manuscript Tables & Exports
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_9" id="__nav_1_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structural Models
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Structural Models
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sequence-Space HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Non-Linear HANK Transitions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../policy_simulators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomic Policy Simulators & Browser Labs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gertler-Karadi (2011) DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Climate Macro (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Sketchpad & Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Higher-Order & Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Parity & Surface Area
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradients, NUTS & HANK Bridge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Frontier (Policy, DSGE-VAR & News)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Non-linear Particle Filtering & Regime Switching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_10" id="__nav_1_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Dynamic Programming & Projection Solvers
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Continuous Dynamic Programming & Projection Solvers
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vfi_continuous_projection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Projection Solvers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vfi_splines_and_sparse_grids/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Splines & Sparse Grids
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dcegm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Discrete Choice EGM (DC-EGM)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vfi_continuous_equilibrium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Distributions & General Equilibrium
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vfi_hjb_continuous/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous-Time HJB & Adjoint KFE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vfi_continuous_transition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Transition Dynamics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vfi_analytic_gradients/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exact Analytic Gradients (IFT)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_11" id="__nav_1_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontier Macro & Spatial Economics
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Frontier Macro & Spatial Economics
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deep_macro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deep Macro & Neural Networks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../spatial_and_trade_ge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quantitative Spatial & Trade General Equilibrium
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_accounting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Consistent trade accounting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_welfare/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hicksian consumption welfare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hicksian tariff policy and solver recovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_gpu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hardware Backends (GPU, MLX & Batched Jacobians)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running Anywhere (iPad / browser)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance & Benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_14" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_14" id="__nav_1_14_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_14">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replication gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation & goldens
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Connector health
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credentials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cache database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signal contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lexicon review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path to 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentación en Español
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Documentación en Español
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio rápido
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuadernos de demostración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avisos de corrección
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuentas nacionales trimestrales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos en tiempo real (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../real_time_latam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Conectores en tiempo real de América Latina
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panel largo de cuentas nacionales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ecosistema de datos macro globales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motores econométricos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Motores econométricos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR y FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SVAR con restricciones narrativas de signo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR con volatilidad estocástica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales suavizadas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias en diferencias modernas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sensibilidad en DiD honesto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../causal_dml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aprendizaje automático doble / desesgado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dml_irm_iv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Doble ML para efectos de tratamiento e instrumentos (IRM y DML-IV)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometría espacial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR global (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estimación y diagnósticos DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nowcasting del PIB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nowcast_latam_news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nowcasting en tiempo real de América Latina y descomposición de noticias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pronóstico penalizado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publicación e informes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publicación e informes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tablas y exportación de manuscritos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_8" id="__nav_2_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos estructurales
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Modelos estructurales
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HANK en el espacio de secuencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transiciones no lineales en HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policy_simulators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Simuladores de política macroeconómica y laboratorios interactivos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de Gertler-Karadi (2011)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomía del clima (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuaderno de bocetos DSGE y Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de orden superior y restricciones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Paridad y superficie operativa DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradientes, NUTS y Puente HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Frontera (Política, DSGE-VAR y Noticias)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Filtrado de Partículas No Lineal y Cambio de Régimen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_9" id="__nav_2_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Programación dinámica continua y solucionadores de proyección
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Programación dinámica continua y solucionadores de proyección
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_continuous_projection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Solucionadores de proyección continua
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_splines_and_sparse_grids/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Splines y mallas dispersas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dcegm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DC-EGM de elección discreta
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_continuous_equilibrium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distribuciones continuas y equilibrio general
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_hjb_continuous/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HJB en tiempo continuo y KFE adjunta
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_continuous_transition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dinámica de transición continua
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_analytic_gradients/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gradientes analíticos exactos (TFI)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_10" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_10" id="__nav_2_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomía de frontera y economía espacial
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_10_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Macroeconomía de frontera y economía espacial
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deep_macro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deep Macro y redes neuronales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Economía espacial cuantitativa y equilibrio general de comercio
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Economía espacial cuantitativa y equilibrio general de comercio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-marco-teorico-y-algoritmico" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Marco teórico y algorítmico
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Marco teórico y algorítmico">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-modelo-de-comercio-ricardiano-multisectorial-con-eslabonamientos-insumo-producto-de-caliendo-parro-2015" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 Modelo de comercio ricardiano multisectorial con eslabonamientos insumo-producto de Caliendo-Parro (2015)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-formulacion-de-algebra-exacta-de-sombreros" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 Formulación de Álgebra Exacta de Sombreros
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-modelo-gravitacional-espacial-geografico-con-movilidad-laboral-de-allen-arkolakis-2014" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 Modelo gravitacional espacial geográfico con movilidad laboral de Allen-Arkolakis (2014)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.3 Modelo gravitacional espacial geográfico con movilidad laboral de Allen-Arkolakis (2014)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#flujos-comerciales-y-acceso-a-mercados" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flujos comerciales y acceso a mercados
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-aglomeracion-congestion-y-equilibrio-espacial" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4 Aglomeración, congestión y equilibrio espacial
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.4 Aglomeración, congestión y equilibrio espacial">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ecualizacion-espacial-de-utilidad" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ecualización espacial de utilidad
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#teorema-de-unicidad" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Teorema de unicidad
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-opciones-metodologicas-y-comparativa-de-modelos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Opciones metodológicas y comparativa de modelos
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Opciones metodológicas y comparativa de modelos">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-backends-de-hardware-backend-340" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Backends de hardware (backend=, 3.4.0)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-calibracion-canonica-y-especificaciones-espaciales" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Calibración canónica y especificaciones espaciales
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Calibración canónica y especificaciones espaciales">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-caliendo-parro-economia-global-de-3-paises-y-2-sectores" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Caliendo-Parro: Economía global de 3 países y 2 sectores
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-allen-arkolakis-geografia-urbana-de-4-ciudades-en-ee-uu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Allen-Arkolakis: Geografía urbana de 4 ciudades en EE. UU.
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-ejemplos-practicos-ejecutables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Ejemplos prácticos ejecutables
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-especificacion-completa-de-la-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Especificación completa de la API
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-interfaz-de-resultados-y-contrafactuales-de-politica" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Interfaz de resultados y contrafactuales de política
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Interfaz de resultados y contrafactuales de política">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#caliendoparroresult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CaliendoParroResult
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#allenarkolakisresult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AllenArkolakisResult
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-datos-de-calibracion-incluidos-y-atribucion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Datos de calibración incluidos y atribución
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#referencias-bibliograficas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Referencias bibliográficas
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_gpu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backends de hardware (GPU, MLX y jacobianos por lotes)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ejecución en cualquier entorno (iPad / navegador)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendimiento y pruebas comparativas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_13" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_13" id="__nav_2_13_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_13">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de replicación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validación y referencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estado de conectores
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credenciales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos de caché
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato de señales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de ejemplos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Revisión de léxico
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ruta a 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-marco-teorico-y-algoritmico" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Marco teórico y algorítmico
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Marco teórico y algorítmico">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-modelo-de-comercio-ricardiano-multisectorial-con-eslabonamientos-insumo-producto-de-caliendo-parro-2015" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 Modelo de comercio ricardiano multisectorial con eslabonamientos insumo-producto de Caliendo-Parro (2015)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-formulacion-de-algebra-exacta-de-sombreros" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 Formulación de Álgebra Exacta de Sombreros
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-modelo-gravitacional-espacial-geografico-con-movilidad-laboral-de-allen-arkolakis-2014" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 Modelo gravitacional espacial geográfico con movilidad laboral de Allen-Arkolakis (2014)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.3 Modelo gravitacional espacial geográfico con movilidad laboral de Allen-Arkolakis (2014)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#flujos-comerciales-y-acceso-a-mercados" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flujos comerciales y acceso a mercados
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-aglomeracion-congestion-y-equilibrio-espacial" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4 Aglomeración, congestión y equilibrio espacial
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.4 Aglomeración, congestión y equilibrio espacial">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ecualizacion-espacial-de-utilidad" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ecualización espacial de utilidad
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#teorema-de-unicidad" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Teorema de unicidad
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-opciones-metodologicas-y-comparativa-de-modelos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Opciones metodológicas y comparativa de modelos
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Opciones metodológicas y comparativa de modelos">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-backends-de-hardware-backend-340" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Backends de hardware (backend=, 3.4.0)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-calibracion-canonica-y-especificaciones-espaciales" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Calibración canónica y especificaciones espaciales
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Calibración canónica y especificaciones espaciales">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-caliendo-parro-economia-global-de-3-paises-y-2-sectores" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Caliendo-Parro: Economía global de 3 países y 2 sectores
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-allen-arkolakis-geografia-urbana-de-4-ciudades-en-ee-uu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Allen-Arkolakis: Geografía urbana de 4 ciudades en EE. UU.
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-ejemplos-practicos-ejecutables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Ejemplos prácticos ejecutables
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-especificacion-completa-de-la-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Especificación completa de la API
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-interfaz-de-resultados-y-contrafactuales-de-politica" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Interfaz de resultados y contrafactuales de política
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Interfaz de resultados y contrafactuales de política">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#caliendoparroresult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CaliendoParroResult
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#allenarkolakisresult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AllenArkolakisResult
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-datos-de-calibracion-incluidos-y-atribucion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Datos de calibración incluidos y atribución
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#referencias-bibliograficas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Referencias bibliográficas
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<blockquote>
+<p>🇬🇧 <a href="../../spatial_and_trade_ge/">English</a> · 🇪🇸 Español</p>
+</blockquote>
+<h1 id="economia-espacial-cuantitativa-y-equilibrio-general-de-comercio">Economía espacial cuantitativa y equilibrio general de comercio</h1>
+<p><code>puremacro.trade</code> y <code>puremacro.spatial</code> implementan marcos computacionales de equilibrio general de vanguardia para el comercio internacional y la geografía económica cuantitativa:
+1. El modelo de comercio ricardiano multisectorial y multipaís con eslabonamientos insumo-producto, bienes intermedios y aranceles desarrollado por <strong>Caliendo y Parro (2015, <em>Review of Economic Studies</em>)</strong>, resuelto mediante <strong>Álgebra Exacta de Sombreros</strong> (<em>Exact Hat Algebra</em>).
+2. El modelo continuo de equilibrio espacial geográfico con movilidad laboral, externalidades de aglomeración y fuerzas de congestión desarrollado por <strong>Allen y Arkolakis (2014, <em>Quarterly Journal of Economics</em>)</strong>.</p>
+<p>Ambos modelos se encuentran simétricamente expuestos en los submódulos <code>puremacro.trade</code> y <code>puremacro.spatial</code>. Cumplen de forma estricta el contrato de ejecución en Python puro / Pyodide (cero dependencias en C++, basado exclusivamente en NumPy/SciPy/Pandas/Matplotlib), permitiendo evaluaciones contrafactuales de política económica —tales como guerras comerciales, escaladas arancelarias recíprocas, inversiones regionales en infraestructura de transporte y perturbaciones ambientales localizadas.</p>
+<hr />
+<h2 id="1-marco-teorico-y-algoritmico">1. Marco teórico y algorítmico</h2>
+<h3 id="11-modelo-de-comercio-ricardiano-multisectorial-con-eslabonamientos-insumo-producto-de-caliendo-parro-2015">1.1 Modelo de comercio ricardiano multisectorial con eslabonamientos insumo-producto de Caliendo-Parro (2015)</h3>
+<p>Considérese una economía global con <span class="arithmatex">\(N\)</span> países (<span class="arithmatex">\(n, i = 1, \dots, N\)</span>) y <span class="arithmatex">\(J\)</span> sectores (<span class="arithmatex">\(j, k = 1, \dots, J\)</span>). La producción en el país <span class="arithmatex">\(n\)</span> y sector <span class="arithmatex">\(j\)</span> combina trabajo <span class="arithmatex">\(L_n^j\)</span> con insumos intermedios provenientes de todos los sectores <span class="arithmatex">\(k = 1, \dots, J\)</span> bajo rendimientos constantes a escala:</p>
+<div class="arithmatex">\[Y_n^j = z_n^j \left( L_n^j \right)^{\gamma_n^j} \prod_{k=1}^J \left( M_n^{j, k} \right)^{\gamma_n^{j, k}}\]</div>
+<p>donde <span class="arithmatex">\(\gamma_n^j &gt; 0\)</span> es la participación del valor agregado, <span class="arithmatex">\(\gamma_n^{j, k} \ge 0\)</span> es la participación del costo del insumo intermedio <span class="arithmatex">\(k\)</span> en la producción del bien <span class="arithmatex">\(j\)</span>, y las participaciones de costos suman la unidad:</p>
+<div class="arithmatex">\[\gamma_n^j + \sum_{k=1}^J \gamma_n^{j, k} = 1, \quad \forall n, j\]</div>
+<p>La minimización de costos determina el costo unitario de la canasta de insumos:</p>
+<div class="arithmatex">\[c_n^j = \Upsilon_n^j w_n^{\gamma_n^j} \prod_{k=1}^J \left( P_n^k \right)^{\gamma_n^{j, k}}\]</div>
+<p>donde <span class="arithmatex">\(w_n\)</span> denota el salario competitivo en el país <span class="arithmatex">\(n\)</span>, <span class="arithmatex">\(P_n^k\)</span> es el índice de precios compuesto del sector <span class="arithmatex">\(k\)</span>, e <span class="arithmatex">\(\Upsilon_n^j\)</span> es una constante tecnológica.</p>
+<h3 id="12-formulacion-de-algebra-exacta-de-sombreros">1.2 Formulación de Álgebra Exacta de Sombreros</h3>
+<p>Siguiendo la metodología de <strong>Álgebra Exacta de Sombreros</strong> (<em>Exact Hat Algebra</em>) de Dekle, Eaton y Kortum (2007) generalizada por Caliendo y Parro (2015), las variaciones contrafactuales se expresan en términos de cambios proporcionales <span class="arithmatex">\(\hat{x} \equiv x' / x\)</span>. Esto permite resolver equilibrios contrafactuales directamente a partir de cuotas observadas de comercio bilateral en el equilibrio base <span class="arithmatex">\(\pi_{ni}^j\)</span> y matrices insumo-producto, sin requerir la estimación de fundamentos inobservables (tales como niveles absolutos de tecnología <span class="arithmatex">\(T_n^j\)</span> o costos bilaterales tipo iceberg <span class="arithmatex">\(d_{ni}^j\)</span>).</p>
+<p>Dada una variación arancelaria contrafactual bruta <span class="arithmatex">\(\hat{\tau}_{ni}^j \equiv (1 + t_{ni}'^j) / (1 + t_{ni}^j)\)</span>:</p>
+<ol>
+<li><strong>Variación de costos unitarios</strong>:
+   $<span class="arithmatex">\(\hat{c}_n^j = \hat{w}_n^{\gamma_n^j} \prod_{k=1}^J \left( \hat{P}_n^k \right)^{\gamma_n^{j, k}}\)</span>$</li>
+<li><strong>Variación de cuotas de comercio bilateral (Gravedad de Eaton-Kortum)</strong>:
+   $<span class="arithmatex">\(\hat{\pi}_{ni}^j = \left( \frac{\hat{c}_i^j \hat{\tau}_{ni}^j}{\hat{P}_n^j} \right)^{-\theta_j}\)</span>$
+   donde <span class="arithmatex">\(\theta_j &gt; 0\)</span> es la elasticidad comercial sectorial.</li>
+<li><strong>Variación de índices de precios sectoriales</strong>:
+   $<span class="arithmatex">\(\hat{P}_n^j = \left( \sum_{i=1}^N \pi_{ni}^j \left( \hat{c}_i^j \hat{\tau}_{ni}^j \right)^{-\theta_j} \right)^{-\frac{1}{\theta_j}}\)</span>$</li>
+<li><strong>Gasto y vaciado de mercados de bienes</strong>:
+   El gasto contrafactual sectorial <span class="arithmatex">\(X_n'^j\)</span> y el producto bruto <span class="arithmatex">\(Y_n'^j\)</span> resuelven el balance insumo-producto leontiefiano global:
+   $<span class="arithmatex">\(X_n'^j = \alpha_n^j I_n' + \sum_{k=1}^J \gamma_n^{k, j} Y_n'^k, \quad Y_n'^j = \sum_{i=1}^N \frac{\pi_{in}'^j}{\tau_{in}'^j} X_i'^j\)</span>$
+   donde <span class="arithmatex">\(I_n' = w_n' L_n + R_n' + D_n'\)</span> es el ingreso nacional compuesto por ingresos laborales, recaudación arancelaria <span class="arithmatex">\(R_n'\)</span> y desbalances comerciales exógenos <span class="arithmatex">\(D_n'\)</span>.</li>
+<li><strong>Vaciado de mercado laboral y tanteo salarial (<em>Tâtonnement</em>)</strong>:
+   Los salarios <span class="arithmatex">\(\hat{w}_n\)</span> se actualizan iterativamente hasta que el exceso de demanda laboral satisface la tolerancia requerida:
+   $<span class="arithmatex">\(\left| \sum_{j=1}^J \gamma_n^j Y_n'^j - w_n' L_n \right| &lt; \text{tol}\)</span>$</li>
+<li><strong>Variaciones de ingreso real y bienestar agregado</strong>:
+   $<span class="arithmatex">\(\widehat{\mathcal{W}}_n = \frac{\hat{I}_n}{\hat{P}_n}, \quad \text{donde} \quad \hat{P}_n = \prod_{j=1}^J \left( \hat{P}_n^j \right)^{\alpha_n^j}\)</span>$</li>
+</ol>
+<hr />
+<h3 id="13-modelo-gravitacional-espacial-geografico-con-movilidad-laboral-de-allen-arkolakis-2014">1.3 Modelo gravitacional espacial geográfico con movilidad laboral de Allen-Arkolakis (2014)</h3>
+<p>Allen y Arkolakis (2014) formulan un modelo de equilibrio general espacial continuo sobre <span class="arithmatex">\(N\)</span> regiones geográficas donde los trabajadores migran libremente hasta igualar el nivel de utilidad real en todas partes.</p>
+<h4 id="flujos-comerciales-y-acceso-a-mercados">Flujos comerciales y acceso a mercados</h4>
+<p>El comercio bilateral entre el origen <span class="arithmatex">\(i\)</span> y el destino <span class="arithmatex">\(j\)</span> obedece a una estructura gravitacional:</p>
+<div class="arithmatex">\[\pi_{ij} = \frac{\left( \frac{w_i \tau_{ij}}{A_i} \right)^{-\theta}}{\sum_{k=1}^N \left( \frac{w_k \tau_{kj}}{A_k} \right)^{-\theta}} = \frac{\left( \frac{w_i \tau_{ij}}{A_i} \right)^{-\theta}}{P_j^{-\theta}}\]</div>
+<p>donde <span class="arithmatex">\(\tau_{ij} \ge 1\)</span> representan costos comerciales tipo iceberg (<span class="arithmatex">\(\tau_{ii} = 1\)</span>), <span class="arithmatex">\(\theta = \sigma - 1\)</span> es la elasticidad comercial y <span class="arithmatex">\(P_j\)</span> es el índice de acceso a mercado de los consumidores (<em>Consumer Market Access</em>):</p>
+<div class="arithmatex">\[P_j^{-\theta} = \text{CMA}_j = \sum_{i=1}^N \tau_{ij}^{-\theta} \left( \frac{w_i}{A_i} \right)^{-\theta}\]</div>
+<p>El acceso a mercado de las empresas (<em>Firm Market Access</em>, <span class="arithmatex">\(\text{FMA}_i\)</span>) captura la demanda agregada de exportación:</p>
+<div class="arithmatex">\[\text{FMA}_i = \sum_{j=1}^N \tau_{ij}^{-\theta} P_j^\theta w_j L_j\]</div>
+<p>El vaciado del mercado de bienes iguala el ingreso laboral regional con el valor total de las ventas hacia todos los destinos:</p>
+<div class="arithmatex">\[w_i L_i = \sum_{j=1}^N \pi_{ij} w_j L_j = \left( \frac{w_i}{A_i} \right)^{-\theta} \text{FMA}_i\]</div>
+<h3 id="14-aglomeracion-congestion-y-equilibrio-espacial">1.4 Aglomeración, congestión y equilibrio espacial</h3>
+<p>La utilidad de un trabajador representativo en la localización <span class="arithmatex">\(i\)</span> depende de los salarios reales, amenidades locales <span class="arithmatex">\(a_i\)</span> y la población endógena <span class="arithmatex">\(L_i\)</span>:</p>
+<div class="arithmatex">\[u_i = a_i \frac{w_i}{P_i}\]</div>
+<p>La productividad y las amenidades endógenas incorporan efectos espaciales de desbordamiento (<em>spillovers</em>):
+- <strong>Aglomeración de productividad</strong>: <span class="arithmatex">\(A_i = \bar{A}_i L_i^\alpha\)</span>, donde <span class="arithmatex">\(\alpha &gt; 0\)</span> refleja economías de escala externas marshallianas.
+- <strong>Congestión de amenidades</strong>: <span class="arithmatex">\(a_i = \bar{a}_i L_i^\beta\)</span>, donde <span class="arithmatex">\(\beta &lt; 0\)</span> captura la inelasticidad en la oferta de vivienda, tiempos de traslado y congestión urbana.</p>
+<h4 id="ecualizacion-espacial-de-utilidad">Ecualización espacial de utilidad</h4>
+<p>La libre movilidad laboral iguala la utilidad a lo largo de todas las regiones pobladas:</p>
+<div class="arithmatex">\[u_i = \bar{u}, \quad \forall i \quad \implies \quad L_i = \bar{L} \frac{\left( \frac{w_i \bar{a}_i}{P_i} \right)^{-\frac{1}{\beta}}}{\sum_k \left( \frac{w_k \bar{a}_k}{P_k} \right)^{-\frac{1}{\beta}}}\]</div>
+<h4 id="teorema-de-unicidad">Teorema de unicidad</h4>
+<p>Allen y Arkolakis (2014, Teorema 2) demuestran que el equilibrio general espacial es <strong>único y estrictamente estable</strong> si y solo si las fuerzas de congestión dominan a las economías de aglomeración:</p>
+<div class="arithmatex">\[\alpha + \beta \le \frac{\theta}{1 + \theta} \quad \text{y} \quad \alpha \le \frac{1}{\theta}\]</div>
+<p><code>AllenArkolakisModel.is_unique</code> evalúa analíticamente esta condición de unicidad durante la inicialización del modelo.</p>
+<hr />
+<h2 id="2-opciones-metodologicas-y-comparativa-de-modelos">2. Opciones metodológicas y comparativa de modelos</h2>
+<table>
+<thead>
+<tr>
+<th>Dimensión</th>
+<th>Caliendo-Parro (2015)</th>
+<th>Allen-Arkolakis (2014)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Mecanismo económico central</strong></td>
+<td>Comercio multisectorial con eslabonamientos insumo-producto y aranceles</td>
+<td>Movilidad laboral espacial con aglomeración y congestión</td>
+</tr>
+<tr>
+<td><strong>Enfoque de resolución</strong></td>
+<td>Álgebra Exacta de Sombreros sobre cuotas comerciales observadas</td>
+<td>Mapeo de contracción de punto fijo sobre <span class="arithmatex">\((w_i, L_i)\)</span></td>
+</tr>
+<tr>
+<td><strong>Márgenes endógenos</strong></td>
+<td>Precios sectoriales, salarios, cuotas de gasto intermedio y final</td>
+<td>Distribución de población, salarios, acceso a mercados</td>
+</tr>
+<tr>
+<td><strong>Movilidad laboral</strong></td>
+<td>Inmóvil entre países; móvil entre sectores domésticos</td>
+<td>Libre movilidad espacial continua entre regiones</td>
+</tr>
+<tr>
+<td><strong>Casos de uso principales</strong></td>
+<td>Tratados de libre comercio, guerras arancelarias, TLCAN/T-MEC</td>
+<td>Trenes de alta velocidad, corredores carreteros, choques climáticos</td>
+</tr>
+<tr>
+<td><strong>Tasa de convergencia</strong></td>
+<td>10–30 iteraciones (<span class="arithmatex">\(&lt; 0.01\)</span> s)</td>
+<td>20–50 iteraciones (<span class="arithmatex">\(&lt; 0.005\)</span> s)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="21-backends-de-hardware-backend-340">2.1 Backends de hardware (<code>backend=</code>, 3.4.0)</h3>
+<p>Ambos solucionadores de punto fijo aceptan un argumento <code>backend</code> — <code>"numpy"</code>
+(el valor por omisión), <code>"mlx"</code> (Apple Silicon) o <code>"cupy"</code> (NVIDIA):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">aa_res</span> <span class="o">=</span> <span class="n">aa_model</span><span class="o">.</span><span class="n">solve_equilibrium</span><span class="p">(</span><span class="n">backend</span><span class="o">=</span><span class="s2">"mlx"</span><span class="p">)</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">cf_res</span> <span class="o">=</span> <span class="n">aa_model</span><span class="o">.</span><span class="n">solve_counterfactual</span><span class="p">(</span><span class="n">trade_costs_new</span><span class="o">=</span><span class="n">tau_new</span><span class="p">,</span> <span class="n">backend</span><span class="o">=</span><span class="s2">"mlx"</span><span class="p">)</span>
+</code></pre></div>
+<p><code>puremacro.trade.solve_trade_equilibrium(..., backend=...)</code> admite el mismo
+argumento y traslada al dispositivo las dos contracciones de flujos bilaterales
+que se ejecutan en cada iteración.</p>
+<p>Conviene conocer tres propiedades antes de recurrir a ellos:</p>
+<ul>
+<li><strong>NumPy es el oráculo.</strong> Toda ruta acelerada se contrasta contra la
+  implementación de referencia en NumPy, y nunca al revés. El backend <code>numpy</code>
+  está siempre disponible y preserva intacto el contrato de Pyodide.</li>
+<li><strong><code>tol</code> sigue significando <code>tol</code>.</strong> Metal no admite float64, de modo que la
+  contracción con MLX en <code>AllenArkolakisModel</code> se ejecuta en float32 hasta un
+  piso de 1e-6; el resultado se refina después con la contracción float64 de
+  NumPy, inicializada en la solución del dispositivo, de manera que <code>converged</code>
+  se refiere a la tolerancia <code>tol</code> solicitada. El solucionador de comercio
+  mantiene float64 en todo momento y ejecuta MLX en el flujo de CPU, porque los
+  residuos en float32 hacen divergir su jacobiano por diferencias finitas.</li>
+<li><strong>El fallo es explícito y no fatal.</strong> Un backend no instalado, un espacio de
+  nombres de arreglos que no puede importarse o una excepción en el dispositivo
+  emiten un <code>RuntimeWarning</code> y recurren a NumPy. Un resultado acelerado que no
+  convergió tampoco se devuelve nunca, pero cada solucionador lo resuelve de
+  distinta manera: <code>solve_trade_equilibrium</code> advierte y repite la resolución
+  completa con la implementación de referencia en NumPy, mientras que
+  <code>AllenArkolakisModel</code> remata la solución del dispositivo con la contracción
+  float64 de NumPy descrita arriba — sin advertencia, porque entonces
+  <code>converged</code> es el veredicto de NumPy a la tolerancia <code>tol</code> solicitada.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro._backend</span><span class="w"> </span><span class="kn">import</span> <span class="n">available_backends</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">available_backends</span><span class="p">()</span>          <span class="c1"># ('numpy', 'numba', 'mlx') en esta máquina</span>
+</code></pre></div>
+<p>Los contrafactuales arancelarios en GPU — jacobianos por lotes, continuación por
+homotopía y los solucionadores opcionales con <code>torch</code> / <code>mlx</code> — constituyen una
+superficie aparte, documentada en <a href="../trade_gpu/"><code>docs/es/trade_gpu.md</code></a>.</p>
+<hr />
+<h2 id="3-calibracion-canonica-y-especificaciones-espaciales">3. Calibración canónica y especificaciones espaciales</h2>
+<h3 id="1-caliendo-parro-economia-global-de-3-paises-y-2-sectores">1. Caliendo-Parro: Economía global de 3 países y 2 sectores</h3>
+<ul>
+<li>Países: Estados Unidos (<code>USA</code>), China (<code>CHN</code>), Alemania (<code>DEU</code>).</li>
+<li>Sectores: Manufacturas (transable, <span class="arithmatex">\(\theta = 5.0\)</span>) y Servicios (no transable, <span class="arithmatex">\(\theta = 4.0\)</span>).</li>
+<li>Participación de valor agregado: <span class="arithmatex">\(\gamma_n^j = 0.50\)</span>; participación insumo-producto: <span class="arithmatex">\(\gamma_n^{j, k} = 0.25\)</span>.</li>
+<li>Aranceles iniciales: libre comercio en el estado base <span class="arithmatex">\(\tau_{ni}^j = 1.0\)</span>.</li>
+</ul>
+<h3 id="2-allen-arkolakis-geografia-urbana-de-4-ciudades-en-ee-uu">2. Allen-Arkolakis: Geografía urbana de 4 ciudades en EE. UU.</h3>
+<ul>
+<li>Ciudades: Nueva York, Los Ángeles, Chicago, Houston (con coordenadas geográficas reales de latitud y longitud).</li>
+<li>Elasticidad comercial: <span class="arithmatex">\(\theta = 4.0\)</span>.</li>
+<li>Elasticidad de aglomeración: <span class="arithmatex">\(\alpha = 0.08\)</span>; elasticidad de congestión: <span class="arithmatex">\(\beta = -0.35\)</span>.</li>
+<li>Costos de transporte iceberg: parametrizados mediante distancias ortodrómicas (<em>Haversine</em>): <span class="arithmatex">\(\tau_{ij} = 1.0 + \delta \cdot d_{ij}^\gamma\)</span>.</li>
+</ul>
+<hr />
+<h2 id="4-ejemplos-practicos-ejecutables">4. Ejemplos prácticos ejecutables</h2>
+<p>El siguiente script simula un choque arancelario bilateral del <span class="arithmatex">\(25\%\)</span> en el modelo Caliendo-Parro y evalúa una inversión en infraestructura de transporte en Allen-Arkolakis:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.trade</span><span class="w"> </span><span class="kn">import</span> <span class="n">CaliendoParroModel</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.spatial</span><span class="w"> </span><span class="kn">import</span> <span class="n">AllenArkolakisModel</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1"># 1. Economía de 3 países y 2 sectores en Caliendo-Parro con aranceles</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">N</span><span class="p">,</span> <span class="n">J</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">trade_shares</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">J</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">N</span><span class="p">))</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">trade_shares</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="p">[</span><span class="mf">0.60</span><span class="p">,</span> <span class="mf">0.20</span><span class="p">,</span> <span class="mf">0.20</span><span class="p">],</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="p">[</span><span class="mf">0.20</span><span class="p">,</span> <span class="mf">0.60</span><span class="p">,</span> <span class="mf">0.20</span><span class="p">],</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="p">[</span><span class="mf">0.20</span><span class="p">,</span> <span class="mf">0.20</span><span class="p">,</span> <span class="mf">0.60</span><span class="p">],</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="p">])</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="n">trade_shares</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>  <span class="c1"># Sector no transable</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="n">gamma_va</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">N</span><span class="p">,</span> <span class="n">J</span><span class="p">),</span> <span class="mf">0.50</span><span class="p">)</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="n">gamma_io</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">N</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">J</span><span class="p">),</span> <span class="mf">0.25</span><span class="p">)</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="n">alpha</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">N</span><span class="p">,</span> <span class="n">J</span><span class="p">),</span> <span class="mf">0.50</span><span class="p">)</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">])</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="n">labor_income</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">100.0</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">])</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="n">cp_model</span> <span class="o">=</span> <span class="n">CaliendoParroModel</span><span class="p">(</span>
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>    <span class="n">trade_shares</span><span class="o">=</span><span class="n">trade_shares</span><span class="p">,</span>
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a>    <span class="n">gamma_va</span><span class="o">=</span><span class="n">gamma_va</span><span class="p">,</span>
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a>    <span class="n">gamma_io</span><span class="o">=</span><span class="n">gamma_io</span><span class="p">,</span>
+<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a>    <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
+<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a>    <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span>
+<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a>    <span class="n">labor_income</span><span class="o">=</span><span class="n">labor_income</span><span class="p">,</span>
+<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a>    <span class="n">nontradables</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a>    <span class="n">country_codes</span><span class="o">=</span><span class="p">[</span><span class="s2">"USA"</span><span class="p">,</span> <span class="s2">"CHN"</span><span class="p">,</span> <span class="s2">"DEU"</span><span class="p">],</span>
+<a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a>    <span class="n">sector_codes</span><span class="o">=</span><span class="p">[</span><span class="s2">"Manufactures"</span><span class="p">,</span> <span class="s2">"Services"</span><span class="p">],</span>
+<a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a><span class="p">)</span>
+<a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a>
+<a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a><span class="c1"># Simular choque arancelario bilateral del 25% en manufacturas</span>
+<a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a><span class="n">cp_res</span> <span class="o">=</span> <span class="n">cp_model</span><span class="o">.</span><span class="n">simulate_tariff_shock</span><span class="p">(</span><span class="s2">"USA"</span><span class="p">,</span> <span class="s2">"CHN"</span><span class="p">,</span> <span class="n">sector</span><span class="o">=</span><span class="s2">"Manufactures"</span><span class="p">,</span> <span class="n">tariff_rate</span><span class="o">=</span><span class="mf">0.25</span><span class="p">)</span>
+<a id="__codelineno-2-35" name="__codelineno-2-35" href="#__codelineno-2-35"></a><span class="k">assert</span> <span class="n">cp_res</span><span class="o">.</span><span class="n">converged</span>
+<a id="__codelineno-2-36" name="__codelineno-2-36" href="#__codelineno-2-36"></a><span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">cp_res</span><span class="o">.</span><span class="n">welfare_pct</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span>
+<a id="__codelineno-2-37" name="__codelineno-2-37" href="#__codelineno-2-37"></a>
+<a id="__codelineno-2-38" name="__codelineno-2-38" href="#__codelineno-2-38"></a><span class="c1"># 2. Modelo de equilibrio general espacial de 4 ciudades en Allen-Arkolakis</span>
+<a id="__codelineno-2-39" name="__codelineno-2-39" href="#__codelineno-2-39"></a><span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+<a id="__codelineno-2-40" name="__codelineno-2-40" href="#__codelineno-2-40"></a>    <span class="p">[</span><span class="mf">40.7128</span><span class="p">,</span> <span class="o">-</span><span class="mf">74.0060</span><span class="p">],</span>  <span class="c1"># NYC</span>
+<a id="__codelineno-2-41" name="__codelineno-2-41" href="#__codelineno-2-41"></a>    <span class="p">[</span><span class="mf">34.0522</span><span class="p">,</span> <span class="o">-</span><span class="mf">118.2437</span><span class="p">],</span> <span class="c1"># LA</span>
+<a id="__codelineno-2-42" name="__codelineno-2-42" href="#__codelineno-2-42"></a>    <span class="p">[</span><span class="mf">41.8781</span><span class="p">,</span> <span class="o">-</span><span class="mf">87.6298</span><span class="p">],</span>  <span class="c1"># Chicago</span>
+<a id="__codelineno-2-43" name="__codelineno-2-43" href="#__codelineno-2-43"></a>    <span class="p">[</span><span class="mf">29.7604</span><span class="p">,</span> <span class="o">-</span><span class="mf">95.3698</span><span class="p">],</span>  <span class="c1"># Houston</span>
+<a id="__codelineno-2-44" name="__codelineno-2-44" href="#__codelineno-2-44"></a><span class="p">])</span>
+<a id="__codelineno-2-45" name="__codelineno-2-45" href="#__codelineno-2-45"></a><span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"NYC"</span><span class="p">,</span> <span class="s2">"LA"</span><span class="p">,</span> <span class="s2">"CHI"</span><span class="p">,</span> <span class="s2">"HOU"</span><span class="p">]</span>
+<a id="__codelineno-2-46" name="__codelineno-2-46" href="#__codelineno-2-46"></a>
+<a id="__codelineno-2-47" name="__codelineno-2-47" href="#__codelineno-2-47"></a><span class="n">aa_model</span> <span class="o">=</span> <span class="n">AllenArkolakisModel</span><span class="o">.</span><span class="n">from_coordinates</span><span class="p">(</span>
+<a id="__codelineno-2-48" name="__codelineno-2-48" href="#__codelineno-2-48"></a>    <span class="n">coords</span><span class="p">,</span>
+<a id="__codelineno-2-49" name="__codelineno-2-49" href="#__codelineno-2-49"></a>    <span class="n">region_names</span><span class="o">=</span><span class="n">names</span><span class="p">,</span>
+<a id="__codelineno-2-50" name="__codelineno-2-50" href="#__codelineno-2-50"></a>    <span class="n">theta</span><span class="o">=</span><span class="mf">4.0</span><span class="p">,</span>
+<a id="__codelineno-2-51" name="__codelineno-2-51" href="#__codelineno-2-51"></a>    <span class="n">alpha</span><span class="o">=</span><span class="mf">0.08</span><span class="p">,</span>
+<a id="__codelineno-2-52" name="__codelineno-2-52" href="#__codelineno-2-52"></a>    <span class="n">beta</span><span class="o">=-</span><span class="mf">0.35</span><span class="p">,</span>
+<a id="__codelineno-2-53" name="__codelineno-2-53" href="#__codelineno-2-53"></a>    <span class="n">total_population</span><span class="o">=</span><span class="mf">100.0</span><span class="p">,</span>
+<a id="__codelineno-2-54" name="__codelineno-2-54" href="#__codelineno-2-54"></a><span class="p">)</span>
+<a id="__codelineno-2-55" name="__codelineno-2-55" href="#__codelineno-2-55"></a><span class="n">aa_res</span> <span class="o">=</span> <span class="n">aa_model</span><span class="o">.</span><span class="n">solve_equilibrium</span><span class="p">()</span>
+<a id="__codelineno-2-56" name="__codelineno-2-56" href="#__codelineno-2-56"></a><span class="k">assert</span> <span class="n">aa_res</span><span class="o">.</span><span class="n">converged</span>
+<a id="__codelineno-2-57" name="__codelineno-2-57" href="#__codelineno-2-57"></a><span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">aa_res</span><span class="o">.</span><span class="n">population</span><span class="p">),</span> <span class="mf">100.0</span><span class="p">)</span>
+<a id="__codelineno-2-58" name="__codelineno-2-58" href="#__codelineno-2-58"></a>
+<a id="__codelineno-2-59" name="__codelineno-2-59" href="#__codelineno-2-59"></a><span class="c1"># Simular reducción del 20% en costos bilaterales de transporte entre NYC y Chicago</span>
+<a id="__codelineno-2-60" name="__codelineno-2-60" href="#__codelineno-2-60"></a><span class="n">infra_res</span> <span class="o">=</span> <span class="n">aa_model</span><span class="o">.</span><span class="n">simulate_infrastructure_shock</span><span class="p">(</span><span class="s2">"NYC"</span><span class="p">,</span> <span class="s2">"CHI"</span><span class="p">,</span> <span class="n">cost_reduction</span><span class="o">=</span><span class="mf">0.20</span><span class="p">)</span>
+<a id="__codelineno-2-61" name="__codelineno-2-61" href="#__codelineno-2-61"></a><span class="k">assert</span> <span class="n">infra_res</span><span class="o">.</span><span class="n">converged</span>
+<a id="__codelineno-2-62" name="__codelineno-2-62" href="#__codelineno-2-62"></a>
+<a id="__codelineno-2-63" name="__codelineno-2-63" href="#__codelineno-2-63"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Caliendo-Parro: Variación de bienestar en EE. UU.: </span><span class="si">{</span><span class="n">cp_res</span><span class="o">.</span><span class="n">welfare_pct</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">+.2f</span><span class="si">}</span><span class="s2">%"</span><span class="p">)</span>
+<a id="__codelineno-2-64" name="__codelineno-2-64" href="#__codelineno-2-64"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Allen-Arkolakis: Población en NYC: </span><span class="si">{</span><span class="n">aa_res</span><span class="o">.</span><span class="n">population</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">, LA: </span><span class="si">{</span><span class="n">aa_res</span><span class="o">.</span><span class="n">population</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-2-65" name="__codelineno-2-65" href="#__codelineno-2-65"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Impacto en bienestar por infraestructura: </span><span class="si">{</span><span class="n">infra_res</span><span class="o">.</span><span class="n">welfare_pct</span><span class="si">:</span><span class="s2">+.2f</span><span class="si">}</span><span class="s2">%"</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="5-especificacion-completa-de-la-api">5. Especificación completa de la API</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>CaliendoParroModel(
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    trade_shares: np.ndarray,
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    gamma_va: np.ndarray,
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    gamma_io: np.ndarray,
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    alpha: np.ndarray,
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    theta: np.ndarray,
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    labor_income: np.ndarray,
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    deficits: np.ndarray | None = None,
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    tariffs: np.ndarray | None = None,
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    country_codes: Sequence[str] | None = None,
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    sector_codes: Sequence[str] | None = None,
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>    nontradables: Sequence[int | str] | None = None,
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>)
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>CaliendoParroModel.solve_counterfactual(
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>    tariffs_new: np.ndarray | None = None,
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>    tau_hat: np.ndarray | None = None,
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>    d_hat: np.ndarray | None = None,
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>    deficits_new: np.ndarray | None = None,
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>    deficit_rule: str = "fixed",
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>    tol: float = 1e-8,
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>    max_iter: int = 1500,
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a>    damping: float = 0.35,
+<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a>) -&gt; CaliendoParroResult
+<a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a>
+<a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a>CaliendoParroModel.simulate_tariff_shock(
+<a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a>    importer: str | int,
+<a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a>    exporter: str | int,
+<a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a>    sector: str | int | None = None,
+<a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a>    tariff_rate: float = 0.10,
+<a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a>    **kwargs: Any,
+<a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a>) -&gt; CaliendoParroResult
+<a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a>
+<a id="__codelineno-3-34" name="__codelineno-3-34" href="#__codelineno-3-34"></a>CaliendoParroModel.simulate_trade_war(
+<a id="__codelineno-3-35" name="__codelineno-3-35" href="#__codelineno-3-35"></a>    coalition_a: Sequence[str | int],
+<a id="__codelineno-3-36" name="__codelineno-3-36" href="#__codelineno-3-36"></a>    coalition_b: Sequence[str | int],
+<a id="__codelineno-3-37" name="__codelineno-3-37" href="#__codelineno-3-37"></a>    tariff_rate: float = 0.25,
+<a id="__codelineno-3-38" name="__codelineno-3-38" href="#__codelineno-3-38"></a>    **kwargs: Any,
+<a id="__codelineno-3-39" name="__codelineno-3-39" href="#__codelineno-3-39"></a>) -&gt; CaliendoParroResult
+<a id="__codelineno-3-40" name="__codelineno-3-40" href="#__codelineno-3-40"></a>
+<a id="__codelineno-3-41" name="__codelineno-3-41" href="#__codelineno-3-41"></a>AllenArkolakisModel(
+<a id="__codelineno-3-42" name="__codelineno-3-42" href="#__codelineno-3-42"></a>    trade_costs: np.ndarray,
+<a id="__codelineno-3-43" name="__codelineno-3-43" href="#__codelineno-3-43"></a>    fundamental_productivity: np.ndarray,
+<a id="__codelineno-3-44" name="__codelineno-3-44" href="#__codelineno-3-44"></a>    fundamental_amenity: np.ndarray,
+<a id="__codelineno-3-45" name="__codelineno-3-45" href="#__codelineno-3-45"></a>    theta: float = 4.0,
+<a id="__codelineno-3-46" name="__codelineno-3-46" href="#__codelineno-3-46"></a>    alpha: float = 0.10,
+<a id="__codelineno-3-47" name="__codelineno-3-47" href="#__codelineno-3-47"></a>    beta: float = -0.30,
+<a id="__codelineno-3-48" name="__codelineno-3-48" href="#__codelineno-3-48"></a>    total_population: float = 1.0,
+<a id="__codelineno-3-49" name="__codelineno-3-49" href="#__codelineno-3-49"></a>    region_names: Sequence[str] | None = None,
+<a id="__codelineno-3-50" name="__codelineno-3-50" href="#__codelineno-3-50"></a>    coordinates: np.ndarray | None = None,
+<a id="__codelineno-3-51" name="__codelineno-3-51" href="#__codelineno-3-51"></a>)
+<a id="__codelineno-3-52" name="__codelineno-3-52" href="#__codelineno-3-52"></a>
+<a id="__codelineno-3-53" name="__codelineno-3-53" href="#__codelineno-3-53"></a>AllenArkolakisModel.from_coordinates(
+<a id="__codelineno-3-54" name="__codelineno-3-54" href="#__codelineno-3-54"></a>    coords: Any,
+<a id="__codelineno-3-55" name="__codelineno-3-55" href="#__codelineno-3-55"></a>    fundamental_productivity: np.ndarray | None = None,
+<a id="__codelineno-3-56" name="__codelineno-3-56" href="#__codelineno-3-56"></a>    fundamental_amenity: np.ndarray | None = None,
+<a id="__codelineno-3-57" name="__codelineno-3-57" href="#__codelineno-3-57"></a>    distance_cost_param: float = 0.001,
+<a id="__codelineno-3-58" name="__codelineno-3-58" href="#__codelineno-3-58"></a>    distance_exponent: float = 0.5,
+<a id="__codelineno-3-59" name="__codelineno-3-59" href="#__codelineno-3-59"></a>    metric: str = "haversine",
+<a id="__codelineno-3-60" name="__codelineno-3-60" href="#__codelineno-3-60"></a>    theta: float = 4.0,
+<a id="__codelineno-3-61" name="__codelineno-3-61" href="#__codelineno-3-61"></a>    alpha: float = 0.10,
+<a id="__codelineno-3-62" name="__codelineno-3-62" href="#__codelineno-3-62"></a>    beta: float = -0.30,
+<a id="__codelineno-3-63" name="__codelineno-3-63" href="#__codelineno-3-63"></a>    total_population: float = 1.0,
+<a id="__codelineno-3-64" name="__codelineno-3-64" href="#__codelineno-3-64"></a>    region_names: Sequence[str] | None = None,
+<a id="__codelineno-3-65" name="__codelineno-3-65" href="#__codelineno-3-65"></a>) -&gt; AllenArkolakisModel
+<a id="__codelineno-3-66" name="__codelineno-3-66" href="#__codelineno-3-66"></a>
+<a id="__codelineno-3-67" name="__codelineno-3-67" href="#__codelineno-3-67"></a>AllenArkolakisModel.solve_equilibrium(
+<a id="__codelineno-3-68" name="__codelineno-3-68" href="#__codelineno-3-68"></a>    tol: float = 1e-8,
+<a id="__codelineno-3-69" name="__codelineno-3-69" href="#__codelineno-3-69"></a>    max_iter: int = 2500,
+<a id="__codelineno-3-70" name="__codelineno-3-70" href="#__codelineno-3-70"></a>    damping: float = 0.35,
+<a id="__codelineno-3-71" name="__codelineno-3-71" href="#__codelineno-3-71"></a>    backend: str = "numpy",          # 'numpy' | 'mlx' | 'cupy'
+<a id="__codelineno-3-72" name="__codelineno-3-72" href="#__codelineno-3-72"></a>) -&gt; AllenArkolakisResult
+<a id="__codelineno-3-73" name="__codelineno-3-73" href="#__codelineno-3-73"></a>
+<a id="__codelineno-3-74" name="__codelineno-3-74" href="#__codelineno-3-74"></a>AllenArkolakisModel.solve_counterfactual(
+<a id="__codelineno-3-75" name="__codelineno-3-75" href="#__codelineno-3-75"></a>    trade_costs_new: np.ndarray | None = None,
+<a id="__codelineno-3-76" name="__codelineno-3-76" href="#__codelineno-3-76"></a>    productivity_new: np.ndarray | None = None,
+<a id="__codelineno-3-77" name="__codelineno-3-77" href="#__codelineno-3-77"></a>    amenity_new: np.ndarray | None = None,
+<a id="__codelineno-3-78" name="__codelineno-3-78" href="#__codelineno-3-78"></a>    tol: float = 1e-8,
+<a id="__codelineno-3-79" name="__codelineno-3-79" href="#__codelineno-3-79"></a>    max_iter: int = 2500,
+<a id="__codelineno-3-80" name="__codelineno-3-80" href="#__codelineno-3-80"></a>    damping: float = 0.35,
+<a id="__codelineno-3-81" name="__codelineno-3-81" href="#__codelineno-3-81"></a>    backend: str = "numpy",
+<a id="__codelineno-3-82" name="__codelineno-3-82" href="#__codelineno-3-82"></a>) -&gt; AllenArkolakisResult
+<a id="__codelineno-3-83" name="__codelineno-3-83" href="#__codelineno-3-83"></a>
+<a id="__codelineno-3-84" name="__codelineno-3-84" href="#__codelineno-3-84"></a>AllenArkolakisModel.simulate_infrastructure_shock(
+<a id="__codelineno-3-85" name="__codelineno-3-85" href="#__codelineno-3-85"></a>    origin: str | int,
+<a id="__codelineno-3-86" name="__codelineno-3-86" href="#__codelineno-3-86"></a>    destination: str | int,
+<a id="__codelineno-3-87" name="__codelineno-3-87" href="#__codelineno-3-87"></a>    cost_reduction: float = 0.20,
+<a id="__codelineno-3-88" name="__codelineno-3-88" href="#__codelineno-3-88"></a>    **kwargs: Any,
+<a id="__codelineno-3-89" name="__codelineno-3-89" href="#__codelineno-3-89"></a>) -&gt; AllenArkolakisResult
+<a id="__codelineno-3-90" name="__codelineno-3-90" href="#__codelineno-3-90"></a>
+<a id="__codelineno-3-91" name="__codelineno-3-91" href="#__codelineno-3-91"></a>AllenArkolakisModel.simulate_climate_shock(
+<a id="__codelineno-3-92" name="__codelineno-3-92" href="#__codelineno-3-92"></a>    productivity_shocks: Mapping[str | int, float] | np.ndarray | None = None,
+<a id="__codelineno-3-93" name="__codelineno-3-93" href="#__codelineno-3-93"></a>    amenity_shocks: Mapping[str | int, float] | np.ndarray | None = None,
+<a id="__codelineno-3-94" name="__codelineno-3-94" href="#__codelineno-3-94"></a>    **kwargs: Any,
+<a id="__codelineno-3-95" name="__codelineno-3-95" href="#__codelineno-3-95"></a>) -&gt; AllenArkolakisResult
+</code></pre></div>
+<hr />
+<h2 id="6-interfaz-de-resultados-y-contrafactuales-de-politica">6. Interfaz de resultados y contrafactuales de política</h2>
+<h3 id="caliendoparroresult"><code>CaliendoParroResult</code></h3>
+<ul>
+<li><code>res.w_hat</code>: Cambio proporcional en salarios nominales <span class="arithmatex">\(\hat{w}_n\)</span>.</li>
+<li><code>res.P_index_hat</code>: Cambio proporcional en el índice de precios al consumidor <span class="arithmatex">\(\hat{P}_n\)</span>.</li>
+<li><code>res.real_wage_hat</code>: Cambio proporcional en salarios reales <span class="arithmatex">\(\hat{w}_n / \hat{P}_n\)</span>.</li>
+<li><code>res.welfare_pct</code>: Cambio porcentual en el bienestar nacional <span class="arithmatex">\((\widehat{\mathcal{W}}_n - 1) \times 100\)</span>.</li>
+<li><code>res.tariff_revenue_prime</code>: Ingresos arancelarios contrafactuales por país.</li>
+<li><code>res.summary() -&gt; pd.DataFrame</code>: Tabla resumen a nivel de país con bienestar, salarios, precios e ingresos.</li>
+<li><code>res.sector_summary() -&gt; pd.DataFrame</code>: Desglose sectorial por país del producto bruto y niveles de precios.</li>
+<li><code>res.to_frame()</code>, <code>res.to_markdown()</code>, <code>res.to_latex()</code>, <code>res.to_typst()</code>: Formatos de exportación y publicación académica.</li>
+<li><code>res.plot(kind="welfare") -&gt; matplotlib.figure.Figure</code>: Gráfico de barras con impactos en el bienestar por país.</li>
+</ul>
+<h3 id="allenarkolakisresult"><code>AllenArkolakisResult</code></h3>
+<ul>
+<li><code>res.wages</code>: Salarios nominales regionales de equilibrio <span class="arithmatex">\(w_i\)</span>.</li>
+<li><code>res.population</code>: Distribución espacial de la población <span class="arithmatex">\(L_i\)</span>, conservando estrictamente <span class="arithmatex">\(\sum L_i = \bar{L}\)</span>.</li>
+<li><code>res.price_index</code>: Índice de precios CES espacial <span class="arithmatex">\(P_i\)</span>.</li>
+<li><code>res.real_wages</code>: Salarios reales regionales <span class="arithmatex">\(w_i / P_i\)</span>.</li>
+<li><code>res.welfare</code>: Nivel de utilidad espacial ecualizada <span class="arithmatex">\(\bar{u}\)</span>.</li>
+<li><code>res.consumer_market_access</code>: Índice de acceso a mercado de los consumidores <span class="arithmatex">\(\text{CMA}_i\)</span>.</li>
+<li><code>res.firm_market_access</code>: Índice de acceso a mercado de exportación de las empresas <span class="arithmatex">\(\text{FMA}_i\)</span>.</li>
+<li><code>res.welfare_pct</code>: Cambio porcentual contrafactual en la utilidad agregada <span class="arithmatex">\((\bar{u}' / \bar{u} - 1) \times 100\)</span>.</li>
+<li><code>res.summary() -&gt; pd.DataFrame</code>: Tabla resumen con resultados regionales.</li>
+<li><code>res.plot(kind="spatial") -&gt; matplotlib.figure.Figure</code>: Diagrama de dispersión geográfico escalado por población y coloreado por salarios reales.</li>
+</ul>
+<hr />
+<h2 id="7-datos-de-calibracion-incluidos-y-atribucion">7. Datos de calibración incluidos y atribución</h2>
+<p>Desde la versión 4.0.0 la matriz insumo-producto interpaís (ICIO) de la OCDE
+viaja dentro del paquete, de modo que <code>load_icio_data()</code> no necesita argumento
+ni ningún archivo externo a su instalación:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.trade.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_icio_data</span><span class="p">,</span> <span class="n">bundled_icio_path</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">matrix</span> <span class="o">=</span> <span class="n">load_icio_data</span><span class="p">()</span>          <span class="c1"># (850, 1078) float64, 77 países x 11 sectores</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">bundled_icio_path</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>    <span class="c1"># icio_77c_11s.npz</span>
+</code></pre></div>
+<p>La matriz se redistribuye conforme a las condiciones de uso de la OCDE, que
+permiten la reutilización con atribución. <strong>Si publica resultados calculados a
+partir de ella, cite las tablas insumo-producto interpaís de la OCDE</strong>, no a
+puremacro; la OCDE no está afiliada a este proyecto ni lo respalda. La licencia
+MIT de puremacro cubre su propio código, no estos datos de terceros.</p>
+<p>Los resultados de referencia de MATLAB con los que se comparan las pruebas de
+paridad se incluyen junto a ella y se obtienen con
+<code>load_reference_solution(scenario)</code>, <code>available_reference_scenarios()</code> y
+<code>load_reference_workbook_sheet(sheet)</code>. Son copias literales, así que esas
+comparaciones siguen siendo una verificación externa y no puremacro
+calificando su propia salida.</p>
+<p>El aviso completo, con la procedencia y el SHA-256 de cada archivo, está en
+<code>puremacro/trade/_datafiles/SOURCES.md</code>, que se instala con el paquete.</p>
+<h2 id="referencias-bibliograficas">Referencias bibliográficas</h2>
+<ul>
+<li>Allen, T., &amp; Arkolakis, C. (2014). "Trade and the Topography of the Spatial Economy." <em>The Quarterly Journal of Economics</em>, 129(3), 1085–1140.</li>
+<li>Caliendo, L., &amp; Parro, F. (2015). "Estimates of the Trade and Welfare Effects of NAFTA." <em>The Review of Economic Studies</em>, 82(1), 1–44.</li>
+<li>Dekle, R., Eaton, J., &amp; Kortum, S. (2007). "Unbalanced Trade." <em>American Economic Review</em>, 97(2), 351–355.</li>
+<li>Eaton, J., &amp; Kortum, S. (2002). "Technology, Geography, and Trade." <em>Econometrica</em>, 70(5), 1741–1779.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,5920 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Production-grade Macroeconometric and Heterogeneous-Agent Structural Modeling Engine in Pure Python">
+      
+      
+        <meta name="author" content="puremacro contributors">
+      
+      
+        <link rel="canonical" href="https://jalonso1979.github.io/puremacro/docs/es/vfi_hjb_continuous/">
+      
+      
+        <link rel="prev" href="../vfi_continuous_equilibrium/">
+      
+      
+        <link rel="next" href="../vfi_continuous_transition/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>HJB en tiempo continuo y KFE adjunta - puremacro</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#hjb-en-tiempo-continuo-kfe-adjunta-y-equilibrio-general-de-aiyagari-continuo" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="puremacro" class="md-header__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            puremacro
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              HJB en tiempo continuo y KFE adjunta
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  
+  English Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+  Documentación en Español
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="puremacro" class="md-nav__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    puremacro
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    English Documentation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    English Documentation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Showcase Notebooks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Correctness advisories
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../STRUCTURAL_VALIDATION_STATUS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structural validation status
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_6" id="__nav_1_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quarterly National Accounts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-time data (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../real_time_latam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Latin America real-time connectors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Long national accounts panel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global Macro Data Ecosystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_7" id="__nav_1_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometric Engines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Econometric Engines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR & FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Narrative Sign Restrictions SVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR with Stochastic Volatility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Smooth Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modern Difference-in-Differences
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Honest DiD Sensitivity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../causal_dml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Double / Debiased Machine Learning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dml_irm_iv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Double ML for Treatment Effects & IV (IRM & DML-IV)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Econometrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global VAR (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Estimation & Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GDP Nowcasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../nowcast_latam_news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Latin America Real-Time Nowcasting & News
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Penalized Forecasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_8" id="__nav_1_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publication & Reporting
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publication & Reporting
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manuscript Tables & Exports
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_9" id="__nav_1_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structural Models
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Structural Models
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sequence-Space HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Non-Linear HANK Transitions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../policy_simulators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomic Policy Simulators & Browser Labs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gertler-Karadi (2011) DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Climate Macro (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Sketchpad & Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Higher-Order & Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Parity & Surface Area
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradients, NUTS & HANK Bridge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Frontier (Policy, DSGE-VAR & News)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Non-linear Particle Filtering & Regime Switching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_10" id="__nav_1_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Dynamic Programming & Projection Solvers
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Continuous Dynamic Programming & Projection Solvers
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vfi_continuous_projection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Projection Solvers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vfi_splines_and_sparse_grids/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Splines & Sparse Grids
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dcegm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Discrete Choice EGM (DC-EGM)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vfi_continuous_equilibrium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Distributions & General Equilibrium
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vfi_hjb_continuous/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous-Time HJB & Adjoint KFE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vfi_continuous_transition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Transition Dynamics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vfi_analytic_gradients/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exact Analytic Gradients (IFT)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_11" id="__nav_1_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontier Macro & Spatial Economics
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Frontier Macro & Spatial Economics
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deep_macro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deep Macro & Neural Networks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../spatial_and_trade_ge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quantitative Spatial & Trade General Equilibrium
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_accounting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Consistent trade accounting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_welfare/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hicksian consumption welfare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hicksian tariff policy and solver recovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_gpu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hardware Backends (GPU, MLX & Batched Jacobians)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running Anywhere (iPad / browser)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance & Benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_14" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_14" id="__nav_1_14_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_14">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replication gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation & goldens
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Connector health
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credentials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cache database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signal contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lexicon review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path to 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentación en Español
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Documentación en Español
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio rápido
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuadernos de demostración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avisos de corrección
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuentas nacionales trimestrales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos en tiempo real (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../real_time_latam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Conectores en tiempo real de América Latina
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panel largo de cuentas nacionales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ecosistema de datos macro globales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motores econométricos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Motores econométricos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR y FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SVAR con restricciones narrativas de signo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR con volatilidad estocástica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales suavizadas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias en diferencias modernas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sensibilidad en DiD honesto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../causal_dml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aprendizaje automático doble / desesgado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dml_irm_iv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Doble ML para efectos de tratamiento e instrumentos (IRM y DML-IV)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometría espacial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR global (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estimación y diagnósticos DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nowcasting del PIB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nowcast_latam_news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nowcasting en tiempo real de América Latina y descomposición de noticias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pronóstico penalizado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_7" id="__nav_2_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publicación e informes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publicación e informes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tablas y exportación de manuscritos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_8" id="__nav_2_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos estructurales
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Modelos estructurales
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HANK en el espacio de secuencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transiciones no lineales en HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policy_simulators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Simuladores de política macroeconómica y laboratorios interactivos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de Gertler-Karadi (2011)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomía del clima (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuaderno de bocetos DSGE y Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de orden superior y restricciones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Paridad y superficie operativa DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradientes, NUTS y Puente HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Frontera (Política, DSGE-VAR y Noticias)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Filtrado de Partículas No Lineal y Cambio de Régimen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_9" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_9" id="__nav_2_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Programación dinámica continua y solucionadores de proyección
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_9_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Programación dinámica continua y solucionadores de proyección
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_continuous_projection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Solucionadores de proyección continua
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_splines_and_sparse_grids/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Splines y mallas dispersas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dcegm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DC-EGM de elección discreta
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_continuous_equilibrium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distribuciones continuas y equilibrio general
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HJB en tiempo continuo y KFE adjunta
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HJB en tiempo continuo y KFE adjunta
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-marco-teorico-y-algoritmico" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Marco teórico y algorítmico
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Marco teórico y algorítmico">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-la-ecuacion-hjb-estacionaria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 La ecuación HJB estacionaria
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-diferencias-finitas-upwind-y-la-frontera-de-restriccion-de-estado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 Diferencias finitas upwind y la frontera de restricción de estado
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-el-esquema-implicito-y-la-propiedad-de-m-matriz" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 El esquema implícito y la propiedad de M-matriz
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-la-kfe-adjunta-y-la-normalizacion-de-la-masa" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4 La KFE adjunta y la normalización de la masa
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#15-equilibrio-general-busqueda-de-raices-para-r-con-la-condicion-de-primer-orden-de-la-empresa" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.5 Equilibrio general: búsqueda de raíces para \(r\) con la condición de primer orden de la empresa
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-opciones-metodologicas-y-del-modelo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Opciones metodológicas y del modelo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Opciones metodológicas y del modelo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-tabla-de-opciones" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Tabla de opciones
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-relacion-con-las-paginas-en-tiempo-discreto-y-con-los-cuadernos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Relación con las páginas en tiempo discreto y con los cuadernos
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-calibracion-canonica" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Calibración canónica
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-ejemplos-practicos-ejecutables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Ejemplos prácticos ejecutables
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Ejemplos prácticos ejecutables">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-resolucion-en-equilibrio-parcial-y-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Resolución en equilibrio parcial y summary()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-curva-de-lorenz-y-coeficiente-de-gini-a-partir-de-g_dist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Curva de Lorenz y coeficiente de Gini a partir de g_dist
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-equilibrio-general-rast-wast-kast" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Equilibrio general: \(r^\ast\), \(w^\ast\), \(K^\ast\)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-un-proceso-de-ingreso-personalizado-pasar-e_grid-y-a_z" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 Un proceso de ingreso personalizado: pasar e_grid y A_z
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-numero-de-iteraciones-en-funcion-de-delta" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 Número de iteraciones en función de Delta
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-especificacion-completa-de-la-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Especificación completa de la API
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Especificación completa de la API">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parametros-de-solve_hjb_achdou" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parámetros de solve_hjb_achdou
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parametros-de-solve_kfe_achdou" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parámetros de solve_kfe_achdou
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parametros-de-solve_aiyagari_continuous_hjb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parámetros de solve_aiyagari_continuous_hjb
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-interfaz-de-resultados-y-exportacion-a-manuscritos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Interfaz de resultados y exportación a manuscritos
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Interfaz de resultados y exportación a manuscritos">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hjbsolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HJBSolution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aiyagaricontinuoushjbresult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AiyagariContinuousHJBResult
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-advertencias-y-limitaciones" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Advertencias y limitaciones
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#referencias" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Referencias
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_continuous_transition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dinámica de transición continua
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_analytic_gradients/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gradientes analíticos exactos (TFI)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_10" id="__nav_2_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomía de frontera y economía espacial
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Macroeconomía de frontera y economía espacial
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deep_macro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deep Macro y redes neuronales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spatial_and_trade_ge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Economía espacial cuantitativa y equilibrio general de comercio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_gpu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backends de hardware (GPU, MLX y jacobianos por lotes)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ejecución en cualquier entorno (iPad / navegador)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendimiento y pruebas comparativas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_13" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_13" id="__nav_2_13_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_13">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de replicación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validación y referencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estado de conectores
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credenciales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos de caché
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato de señales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de ejemplos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Revisión de léxico
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ruta a 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-marco-teorico-y-algoritmico" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Marco teórico y algorítmico
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Marco teórico y algorítmico">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-la-ecuacion-hjb-estacionaria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 La ecuación HJB estacionaria
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-diferencias-finitas-upwind-y-la-frontera-de-restriccion-de-estado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 Diferencias finitas upwind y la frontera de restricción de estado
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-el-esquema-implicito-y-la-propiedad-de-m-matriz" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 El esquema implícito y la propiedad de M-matriz
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-la-kfe-adjunta-y-la-normalizacion-de-la-masa" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4 La KFE adjunta y la normalización de la masa
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#15-equilibrio-general-busqueda-de-raices-para-r-con-la-condicion-de-primer-orden-de-la-empresa" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.5 Equilibrio general: búsqueda de raíces para \(r\) con la condición de primer orden de la empresa
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-opciones-metodologicas-y-del-modelo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Opciones metodológicas y del modelo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Opciones metodológicas y del modelo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-tabla-de-opciones" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Tabla de opciones
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-relacion-con-las-paginas-en-tiempo-discreto-y-con-los-cuadernos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Relación con las páginas en tiempo discreto y con los cuadernos
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-calibracion-canonica" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Calibración canónica
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-ejemplos-practicos-ejecutables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Ejemplos prácticos ejecutables
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Ejemplos prácticos ejecutables">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-resolucion-en-equilibrio-parcial-y-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Resolución en equilibrio parcial y summary()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-curva-de-lorenz-y-coeficiente-de-gini-a-partir-de-g_dist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Curva de Lorenz y coeficiente de Gini a partir de g_dist
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-equilibrio-general-rast-wast-kast" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Equilibrio general: \(r^\ast\), \(w^\ast\), \(K^\ast\)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-un-proceso-de-ingreso-personalizado-pasar-e_grid-y-a_z" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 Un proceso de ingreso personalizado: pasar e_grid y A_z
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-numero-de-iteraciones-en-funcion-de-delta" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 Número de iteraciones en función de Delta
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-especificacion-completa-de-la-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Especificación completa de la API
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Especificación completa de la API">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parametros-de-solve_hjb_achdou" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parámetros de solve_hjb_achdou
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parametros-de-solve_kfe_achdou" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parámetros de solve_kfe_achdou
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parametros-de-solve_aiyagari_continuous_hjb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parámetros de solve_aiyagari_continuous_hjb
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-interfaz-de-resultados-y-exportacion-a-manuscritos" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Interfaz de resultados y exportación a manuscritos
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Interfaz de resultados y exportación a manuscritos">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hjbsolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HJBSolution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#aiyagaricontinuoushjbresult" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AiyagariContinuousHJBResult
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-advertencias-y-limitaciones" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Advertencias y limitaciones
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#referencias" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Referencias
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<blockquote>
+<p>🇬🇧 <a href="../../vfi_hjb_continuous/">English</a> · 🇪🇸 Español</p>
+</blockquote>
+<h1 id="hjb-en-tiempo-continuo-kfe-adjunta-y-equilibrio-general-de-aiyagari-continuo">HJB en tiempo continuo, KFE adjunta y equilibrio general de Aiyagari continuo</h1>
+<p><code>puremacro.vfi.hjb_achdou</code> (reexportado desde <code>puremacro.vfi</code>) implementa el conjunto de herramientas para agentes heterogéneos en tiempo continuo de <strong>Achdou, Han, Lasry, Lions y Moll (2022, <em>Review of Economic Studies</em>)</strong>: un solucionador implícito de diferencias finitas contra el viento (<em>upwind</em>) para la ecuación estacionaria de Hamilton-Jacobi-Bellman (HJB) del problema de fluctuaciones del ingreso (<code>solve_hjb_achdou</code>), la ecuación de Kolmogorov hacia adelante (KFE, <em>Kolmogorov Forward Equation</em>) adjunta que entrega la distribución estacionaria de la riqueza sin simulación (<code>solve_kfe_achdou</code>) y un algoritmo de búsqueda de raíces del equilibrio general para la economía de <strong>Aiyagari (1994)</strong> / <strong>Huggett (1993)</strong> en tiempo continuo (<code>solve_aiyagari_continuous_hjb</code>). Los resultados se devuelven como las <code>dataclass</code> inmutables <code>HJBSolution</code> y <code>AiyagariContinuousHJBResult</code>, que conservan el acceso al estilo de diccionario para el código escrito contra la interfaz anterior a 3.4.0.</p>
+<p>En tiempo continuo, el problema del hogar es una ecuación en derivadas parciales de primer orden y no un operador de Bellman sobre una malla de elecciones del periodo siguiente. Al discretizarla con un esquema upwind, cada paso de mejora de la política se convierte en una única resolución de un sistema lineal disperso, y el mismo generador infinitesimal <span class="arithmatex">\(\mathbf{A}\)</span> que empuja la función de valor hacia atrás en el tiempo empuja la distribución transversal hacia adelante. La densidad estacionaria es, por tanto, un vector nulo de <span class="arithmatex">\(\mathbf{A}^\top\)</span>, que se obtiene con precisión de máquina y sin el ruido de Monte Carlo. Esta página es la contraparte en tiempo continuo de <a href="../vfi_continuous_equilibrium/"><code>vfi_continuous_equilibrium.md</code></a>, que cubre la simulación no estocástica de Young (2010) en tiempo discreto y <code>solve_aiyagari_continuous</code>; la Sección 2.2 detalla cómo se relacionan ambas y dónde encajan los cuadernos.</p>
+<hr />
+<h2 id="1-marco-teorico-y-algoritmico">1. Marco teórico y algorítmico</h2>
+<h3 id="11-la-ecuacion-hjb-estacionaria">1.1 La ecuación HJB estacionaria</h3>
+<p>Un hogar descuenta a la tasa <span class="arithmatex">\(\rho &gt; 0\)</span>, tiene utilidad CRRA <span class="arithmatex">\(u(c) = c^{1-\gamma}/(1-\gamma)\)</span> (con <span class="arithmatex">\(u(c) = \log c\)</span> cuando <span class="arithmatex">\(\gamma = 1\)</span>), mantiene activos <span class="arithmatex">\(a \in [a_{\min}, a_{\max}]\)</span> que rinden la tasa de interés <span class="arithmatex">\(r\)</span> y recibe ingreso laboral <span class="arithmatex">\(w e_j\)</span>, donde el estado de productividad <span class="arithmatex">\(e_j \in \{e_1, \dots, e_{N_e}\}\)</span> sigue una cadena de Markov en tiempo continuo con generador <span class="arithmatex">\(\boldsymbol{\Lambda} = (\lambda_{jk})\)</span>: <span class="arithmatex">\(\lambda_{jk} \ge 0\)</span> para <span class="arithmatex">\(k \ne j\)</span> y cada fila suma cero. La función de valor <span class="arithmatex">\(v_j(a) = v(a, e_j)\)</span> resuelve</p>
+<div class="arithmatex">\[\rho\, v_j(a) = \max_{c \ge 0} \Big\{ u(c) + v_j'(a)\, s_j(a) \Big\} + \sum_{k \ne j} \lambda_{jk} \big[ v_k(a) - v_j(a) \big], \qquad s_j(a) = r a + w e_j - c .\]</div>
+<p>La condición de primer orden entrega la regla de consumo <span class="arithmatex">\(c_j(a) = \big(v_j'(a)\big)^{-1/\gamma}\)</span> y la deriva del ahorro <span class="arithmatex">\(s_j(a) = r a + w e_j - c_j(a)\)</span>. El límite de endeudamiento <span class="arithmatex">\(a \ge a_{\min}\)</span> entra como una <em>condición de frontera de restricción de estado</em> (Achdou et al. 2022): la deriva no puede apuntar fuera del espacio de estados en <span class="arithmatex">\(a_{\min}\)</span>, lo que equivale a <span class="arithmatex">\(v_j'(a_{\min}) \ge u'(r a_{\min} + w e_j)\)</span>. La condición especular <span class="arithmatex">\(v_j'(a_{\max}) \le u'(r a_{\max} + w e_j)\)</span> (ausencia de deriva hacia afuera en el extremo superior) se impone en la frontera superior artificial <span class="arithmatex">\(a_{\max}\)</span>.</p>
+<h3 id="12-diferencias-finitas-upwind-y-la-frontera-de-restriccion-de-estado">1.2 Diferencias finitas upwind y la frontera de restricción de estado</h3>
+<p>Sobre una malla de activos <span class="arithmatex">\(a_1 &lt; a_2 &lt; \dots &lt; a_{N_a}\)</span> con espaciamientos locales <span class="arithmatex">\(\Delta a_i^{+} = a_{i+1} - a_i\)</span> y <span class="arithmatex">\(\Delta a_i^{-} = a_i - a_{i-1}\)</span>, la derivada se aproxima de forma unilateral en la dirección en que se mueve el estado («contra el viento» o <em>upwind</em>):</p>
+<div class="arithmatex">\[v'_{i,j,F} = \frac{v_{i+1,j} - v_{i,j}}{\Delta a_i^{+}}, \qquad v'_{i,j,B} = \frac{v_{i,j} - v_{i-1,j}}{\Delta a_i^{-}} .\]</div>
+<p>Cada derivada candidata implica un nivel de consumo <span class="arithmatex">\(c = (v')^{-1/\gamma}\)</span> y una deriva <span class="arithmatex">\(s_F\)</span> o <span class="arithmatex">\(s_B\)</span>. El esquema usa la diferencia hacia adelante donde <span class="arithmatex">\(s_{F} &gt; 0\)</span>, la diferencia hacia atrás donde <span class="arithmatex">\(s_{B} &lt; 0\)</span> y, en caso contrario, fija la deriva en cero con <span class="arithmatex">\(c_{i,j} = r a_i + w e_j\)</span> (el hogar consume su ingreso corriente y permanece donde está). En los dos extremos de la malla, la derivada unilateral que falta se reemplaza por <span class="arithmatex">\(u'(r a_i + w e_j)\)</span>, lo que hace que la deriva correspondiente sea exactamente cero, de modo que ningún flujo de probabilidad abandona jamás <span class="arithmatex">\([a_{\min}, a_{\max}]\)</span>. <code>solve_hjb_achdou</code> además enmascara la rama hacia adelante en <span class="arithmatex">\(a_{\max}\)</span> y la rama hacia atrás en <span class="arithmatex">\(a_{\min}\)</span>, de modo que las filas de frontera solo pueden llevar una deriva que apunte hacia adentro o se anule. Por eso, en el Ejemplo 4.1, el hogar de ingreso bajo en <span class="arithmatex">\(a = 0\)</span> tiene <span class="arithmatex">\(c = 0.2 = w e_1\)</span> y <span class="arithmatex">\(s = 0\)</span> exactamente.</p>
+<p>Se dispone de dos alternativas al tratamiento de restricción de estado:</p>
+<ul>
+<li><strong>Derivadas de frontera prescritas</strong> (<code>v_prime_boundary=(v'_{\min}, v'_{\max})</code>): condiciones de Neumann. Las máscaras se desactivan, se usa la derivada dada en la fila de frontera y cualquier flujo hacia afuera <span class="arithmatex">\(s \cdot v'_{\text{frontera}}\)</span> se traslada al lado derecho del sistema lineal como un término inhomogéneo. Una entrada dejada en <code>None</code> recurre a la derivada de restricción de estado en ese lado.</li>
+<li><strong>Referencia del problema del pastel (<em>cake-eating</em>)</strong> (<code>w_rate=0.0</code>): sin ingreso laboral el problema tiene la forma cerrada <span class="arithmatex">\(c(a) = \mu a\)</span>, <span class="arithmatex">\(\mu = (\rho - (1-\gamma) r)/\gamma\)</span>. El solucionador inicializa entonces <span class="arithmatex">\(v\)</span> a partir de esa solución, desactiva las máscaras de frontera (como en el caso de Neumann) y usa las utilidades marginales analíticas <span class="arithmatex">\((\mu a_{\min})^{-\gamma}\)</span> y <span class="arithmatex">\((\mu a_{\max})^{-\gamma}\)</span> en las filas de frontera, que es como <code>tests/test_hjb_implicit.py</code> valida el esquema contra una solución exacta. Como <span class="arithmatex">\((\mu a)^{-\gamma}\)</span> es singular en el origen, este modo exige una malla que empiece estrictamente por encima de cero: <code>w_rate=0.0</code> con <code>a_grid[0] &lt;= 0</code> lanza <code>ValueError</code> indicando que pase <code>a_min &gt; 0</code>.</li>
+</ul>
+<h3 id="13-el-esquema-implicito-y-la-propiedad-de-m-matriz">1.3 El esquema implícito y la propiedad de M-matriz</h3>
+<p>Al reunir las derivas upwind en el generador infinitesimal disperso <span class="arithmatex">\(\mathbf{A}^n\)</span> (una matriz de <span class="arithmatex">\(N_a N_e \times N_a N_e\)</span> indexada en orden por columnas, estado <span class="arithmatex">\((i, j) \mapsto j N_a + i\)</span>), cada fila del bloque de activos tiene entradas</p>
+<div class="arithmatex">\[x_{i,j} = \frac{\max(-s_{i,j}, 0)}{\Delta a_i^{-}}, \qquad z_{i,j} = \frac{\max(s_{i,j}, 0)}{\Delta a_i^{+}}, \qquad y_{i,j} = -x_{i,j} - z_{i,j},\]</div>
+<p>colocadas en la subdiagonal, la superdiagonal y la diagonal, respectivamente, y el proceso de ingreso aporta <span class="arithmatex">\(\boldsymbol{\Lambda} \otimes \mathbf{I}_{N_a}\)</span>. Las entradas fuera de la diagonal son no negativas y cada fila de <span class="arithmatex">\(\mathbf{A}^n\)</span> suma cero (las sumas por fila del generador devuelto en el Ejemplo 4.1 son cero hasta <span class="arithmatex">\(2.2 \times 10^{-16}\)</span>). En lugar de avanzar la función de valor de forma explícita, lo que está sujeto a una restricción de Courant-Friedrichs-Lewy <span class="arithmatex">\(\Delta t = O(\Delta a)\)</span>, la actualización es implícita en <span class="arithmatex">\(v^{n+1}\)</span>:</p>
+<div class="arithmatex">\[\Big[ \Big(\rho + \frac{1}{\Delta}\Big) \mathbf{I} - \mathbf{A}^n \Big] v^{n+1} = u(c^n) + \frac{1}{\Delta} v^n .\]</div>
+<p>Con derivadas de frontera prescritas, el término de flujo hacia afuera de la Sección 1.2 se añade al lado derecho; bajo la restricción de estado es idénticamente cero. La matriz <span class="arithmatex">\(\mathbf{B}^n = (\rho + 1/\Delta)\mathbf{I} - \mathbf{A}^n\)</span> tiene diagonal positiva, entradas fuera de la diagonal no positivas y sumas por fila iguales a <span class="arithmatex">\(\rho + 1/\Delta &gt; 0\)</span>, de modo que es estrictamente diagonalmente dominante y, por tanto, una <strong>M-matriz</strong> no singular con <span class="arithmatex">\((\mathbf{B}^n)^{-1} \ge 0\)</span> elemento a elemento. Una inversa no negativa hace que el esquema discreto sea <em>monótono</em>, y el teorema de Barles-Souganidis (1991) garantiza entonces que un esquema monótono, estable y consistente converge a la solución de viscosidad de la ecuación HJB a medida que se refina la malla. <code>solve_hjb_achdou</code> factoriza <span class="arithmatex">\(\mathbf{B}^n\)</span> con <code>scipy.sparse.linalg.spsolve</code> (almacenamiento CSC) en cada iteración y se detiene cuando <span class="arithmatex">\(\| v^{n+1} - v^n \|_\infty &lt;\)</span> <code>tol</code>.</p>
+<p><strong>El papel de <span class="arithmatex">\(\Delta\)</span>.</strong> Cuando <span class="arithmatex">\(\Delta \to \infty\)</span> la actualización se convierte en la iteración de políticas de Howard, es decir, el método de Newton sobre la ecuación HJB, razón por la cual el valor por defecto <code>Delta=1e4</code> converge en un puñado de iteraciones; un <span class="arithmatex">\(\Delta\)</span> pequeño convierte el mismo sistema en una marcha amortiguada en pseudotiempo que necesita muchos más barridos. Medido con los valores por defecto (<code>Na=100</code>, <code>tol=1e-8</code>, <code>max_iter=100</code>; Ejemplo 4.5):</p>
+<table>
+<thead>
+<tr>
+<th><code>Delta</code></th>
+<th>Iteraciones</th>
+<th>Convergió</th>
+<th><span class="arithmatex">\(\max \lvert v - v_{\Delta = 10^4} \rvert\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="arithmatex">\(10^4\)</span></td>
+<td>9</td>
+<td>sí</td>
+<td>referencia</td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(10^2\)</span></td>
+<td>14</td>
+<td>sí</td>
+<td><span class="arithmatex">\(9.8 \times 10^{-10}\)</span></td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(10\)</span></td>
+<td>50</td>
+<td>sí</td>
+<td><span class="arithmatex">\(1.8 \times 10^{-8}\)</span></td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(1\)</span></td>
+<td>100</td>
+<td><strong>no</strong> (necesita 360 con <code>max_iter=1000</code>)</td>
+<td><span class="arithmatex">\(6.7 \times 10^{-2}\)</span> al alcanzar el tope</td>
+</tr>
+</tbody>
+</table>
+<p>El esquema es <em>incondicionalmente estable</em> para todo <span class="arithmatex">\(\Delta &gt; 0\)</span>; lo que depende de <span class="arithmatex">\(\Delta\)</span> es el <em>número</em> de iteraciones, no la estabilidad.</p>
+<h3 id="14-la-kfe-adjunta-y-la-normalizacion-de-la-masa">1.4 La KFE adjunta y la normalización de la masa</h3>
+<p>La distribución conjunta estacionaria <span class="arithmatex">\(g(a, e)\)</span> del proceso controlado es el vector nulo del generador adjunto,</p>
+<div class="arithmatex">\[\mathbf{A}^\top g = 0, \qquad \sum_{i=1}^{N_a} \sum_{j=1}^{N_e} g_{i,j}\, w_i = 1, \qquad g_{i,j} \ge 0,\]</div>
+<p>donde los <span class="arithmatex">\(w_i\)</span> son los pesos de cuadratura por ancho de celda de la malla de activos,</p>
+<div class="arithmatex">\[w_i = \tfrac{1}{2}\big(\Delta a_{i-1} + \Delta a_i\big), \qquad \Delta a_{-1} \equiv \Delta a_0, \quad \Delta a_{N_a} \equiv \Delta a_{N_a - 1},\]</div>
+<p>de modo que <span class="arithmatex">\(w_i = \Delta a\)</span> en todos los nodos de una malla uniforme. El generador actúa sobre los <em>nodos</em> de la malla, así que el vector nulo de <span class="arithmatex">\(\mathbf{A}^\top\)</span> es el vector de masas nodales estacionarias <span class="arithmatex">\(\pi_{i,j}\)</span>, no una densidad. Por eso <code>solve_kfe_achdou</code> toma el generador de la última iteración de la HJB, reemplaza la primera fila de <span class="arithmatex">\(\mathbf{A}^\top\)</span> por una fila de unos y la primera entrada del lado derecho por <span class="arithmatex">\(1\)</span> (el reemplazo estándar de una ecuación redundante por la normalización <span class="arithmatex">\(\sum \pi = 1\)</span>), resuelve con <code>spsolve</code>, recorta a cero cualquier negativo de redondeo, reescala <span class="arithmatex">\(\pi\)</span> para que sume exactamente uno y solo entonces convierte a <strong>densidad</strong> dividiendo por el ancho local de la celda,</p>
+<div class="arithmatex">\[g_{i,j} = \pi_{i,j} / w_i .\]</div>
+<p>Así <span class="arithmatex">\(\sum_{i,j} g_{i,j} w_i = 1\)</span> y <span class="arithmatex">\(\sum_i g_{i,j} w_i = \pi_j\)</span> (la distribución estacionaria del generador del ingreso) en cualquier malla, uniforme o no, y los agregados de la forma <span class="arithmatex">\(\sum_{i,j} a_i g_{i,j} w_i\)</span> son la aproximación por cuadratura correcta de <span class="arithmatex">\(\int a\, g(a, e)\, da\)</span> — los mismos pesos que <code>solve_aiyagari_continuous_hjb</code> usa para la oferta de capital. En una malla uniforme ambas lecturas coinciden: <span class="arithmatex">\(w_i = \Delta a\)</span>, la masa de probabilidad en el nodo <span class="arithmatex">\(i\)</span> es <span class="arithmatex">\(g_{i,j} \Delta a\)</span>, y <span class="arithmatex">\(\sum_{i,j} g_{i,j} \Delta a = 1\)</span> (el Ejemplo 4.2 imprime <code>1.000000000000</code>).</p>
+<p>El <code>mass_residual</code> reportado es <span class="arithmatex">\(\lvert \sum_{i,j} g_{i,j} w_i - 1 \rvert\)</span> medido <em>después</em> de esa normalización, por lo que es del orden de <span class="arithmatex">\(10^{-16}\)</span> por construcción (<code>1.11e-16</code> en el Ejemplo 4.1); certifica la normalización, no la exactitud de la resolución lineal. Antes de resolver, <code>solve_kfe_achdou</code> comprueba además que el grafo de transiciones del generador tenga exactamente una clase comunicante cerrada, que es la condición exacta para que el espacio nulo sea unidimensional, y lanza <code>ValueError</code> en caso contrario: un generador de ingreso reducible como <code>A_z=np.zeros((2, 2))</code> se rechaza con un mensaje que indica el número de clases cerradas, en lugar de devolver un vector nulo arbitrario.</p>
+<h3 id="15-equilibrio-general-busqueda-de-raices-para-r-con-la-condicion-de-primer-orden-de-la-empresa">1.5 Equilibrio general: búsqueda de raíces para <span class="arithmatex">\(r\)</span> con la condición de primer orden de la empresa</h3>
+<p>Las empresas producen <span class="arithmatex">\(Y = K^\alpha L^{1-\alpha}\)</span> y alquilan capital a <span class="arithmatex">\(r + \delta\)</span>, de modo que, dada una tasa de interés tentativa, la razón capital-trabajo y el salario se siguen de las condiciones de primer orden de la empresa:</p>
+<div class="arithmatex">\[\frac{K^d(r)}{L} = \Big( \frac{\alpha}{r + \delta} \Big)^{\frac{1}{1-\alpha}}, \qquad w(r) = (1-\alpha) \Big( \frac{K^d(r)}{L} \Big)^{\alpha}, \qquad L = \sum_{j} e_j\, \pi_j ,\]</div>
+<p>donde <span class="arithmatex">\(\boldsymbol{\pi}\)</span> es la distribución estacionaria del generador del ingreso (<span class="arithmatex">\(\boldsymbol{\pi}^\top \boldsymbol{\Lambda} = 0\)</span>; con el proceso simétrico de dos estados por defecto, <span class="arithmatex">\(\pi = (0.5, 0.5)\)</span> y <span class="arithmatex">\(L = 0.6\)</span>). Para cada <span class="arithmatex">\(r\)</span> tentativo, <code>solve_aiyagari_continuous_hjb</code> calcula <span class="arithmatex">\(w(r)\)</span>, llama a <code>solve_hjb_achdou</code> (con la KFE), agrega la riqueza de los hogares <span class="arithmatex">\(K^s(r) = \sum_{i,j} a_i\, g_{i,j}(r)\, w_i\)</span> con los pesos de cuadratura de la Sección 1.4 y evalúa el exceso de oferta <span class="arithmatex">\(\Phi(r) = K^s(r) - K^d(r)\)</span>. El método de Brent (<code>scipy.optimize.root_scalar</code>, <code>method="brentq"</code>, a lo sumo <code>max_iter_ge</code> iteraciones por pasada) localiza <span class="arithmatex">\(r^\ast\)</span> con <span class="arithmatex">\(\Phi(r^\ast) = 0\)</span> en el intervalo <span class="arithmatex">\([r_{\min}, r_{\max}]\)</span>, cuyo extremo superior por defecto es <span class="arithmatex">\(\rho - 0.002\)</span>: con una restricción de endeudamiento, la distribución estacionaria solo existe para <span class="arithmatex">\(r &lt; \rho\)</span>, porque con <span class="arithmatex">\(r \ge \rho\)</span> los hogares acumularían sin límite. Antes de llamar a Brent, el solucionador comprueba el signo de <span class="arithmatex">\(\Phi\)</span> en ambos extremos; si <span class="arithmatex">\(\Phi(r_{\min}) &gt; 0\)</span> divide <span class="arithmatex">\(r_{\min}\)</span> a la mitad (sin bajar de <span class="arithmatex">\(0.001\)</span>, a lo sumo cinco veces) y si <span class="arithmatex">\(\Phi(r_{\max}) &lt; 0\)</span> desplaza <span class="arithmatex">\(r_{\max}\)</span> hasta la mitad del camino hacia <span class="arithmatex">\(\rho\)</span> (a lo sumo cinco veces). Un intervalo inválido (<span class="arithmatex">\(r_{\min} \ge r_{\max}\)</span>, <span class="arithmatex">\(r_{\max} \ge \rho\)</span> o <span class="arithmatex">\(r_{\min} \le -\delta\)</span>) lanza <code>ValueError</code>. Si no se encuentra ningún cambio de signo, devuelve la tasa tentativa almacenada en caché con el menor <span class="arithmatex">\(\lvert \Phi \rvert\)</span>. Cada solución HJB se almacena en caché por <span class="arithmatex">\(r\)</span>, de modo que la ejecución del Ejemplo 4.3 necesitó siete resoluciones del problema del hogar para seis iteraciones de Brent.</p>
+<p><strong><code>tol_ge</code> gobierna el residuo de vaciado del mercado.</strong> No es un argumento decorativo: la tolerancia en <span class="arithmatex">\(x\)</span> que se entrega a Brent se deriva de <code>tol_ge</code> y de la pendiente secante del intervalo, <code>xtol = min(1e-5, max(0.5 * tol_ge / slope, 1e-12))</code>, y tras la primera pasada el solucionador vuelve a acotar el intervalo con sus evaluaciones en caché y reejecuta Brent —hasta tres pasadas más— hasta que <span class="arithmatex">\(\lvert K^s(r^\ast) - K^d(r^\ast) \rvert &lt;\)</span> <code>tol_ge</code>. El <code>converged</code> devuelto es <code>True</code> solo cuando Brent convergió <strong>y</strong> se cumple esa desigualdad, de modo que significa lo que dice: el mercado de capital se vacía con tolerancia <code>tol_ge</code>. Ajustar la tolerancia ajusta el residuo: con la calibración por defecto, <code>tol_ge=1e-4</code> se detiene en <span class="arithmatex">\(\Phi = -1.76 \times 10^{-6}\)</span> tras 6 iteraciones de Brent, mientras que <code>tol_ge=1e-8</code> alcanza <span class="arithmatex">\(\Phi = -7.4 \times 10^{-13}\)</span> en 7.</p>
+<hr />
+<h2 id="2-opciones-metodologicas-y-del-modelo">2. Opciones metodológicas y del modelo</h2>
+<h3 id="21-tabla-de-opciones">2.1 Tabla de opciones</h3>
+<table>
+<thead>
+<tr>
+<th>Característica</th>
+<th>Argumento(s)</th>
+<th>Valor por defecto</th>
+<th>Notas</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Proceso de ingreso</strong></td>
+<td><code>e_grid</code>, <code>A_z</code></td>
+<td><code>[0.2, 1.0]</code>, conmutación de Poisson simétrica con intensidad <span class="arithmatex">\(0.1\)</span></td>
+<td>Cualquier <span class="arithmatex">\(N_e\)</span>. <code>A_z</code> se valida: forma <span class="arithmatex">\((N_e, N_e)\)</span>, entradas finitas, entradas fuera de la diagonal no negativas y sumas por fila iguales a cero (<code>ValueError</code> en caso contrario, con una pista si pasó una matriz de probabilidades de transición). Con <code>A_z=None</code> y <span class="arithmatex">\(N_e &gt; 2\)</span> el valor por defecto es <span class="arithmatex">\(\lambda_{jk} = 0.2/(N_e-1)\)</span> fuera de la diagonal y <span class="arithmatex">\(-0.2\)</span> en ella.</td>
+</tr>
+<tr>
+<td><strong>Malla de activos</strong></td>
+<td><code>Na</code>, <code>a_min</code>, <code>a_max</code>, <code>a_grid</code></td>
+<td>100 nodos en <span class="arithmatex">\([0, 30]\)</span>, uniforme</td>
+<td><code>a_grid</code> anula los tres escalares y puede ser no uniforme; la KFE devuelve una densidad en ambos casos (Sección 1.4). Debe ser estrictamente creciente y tener al menos dos puntos.</td>
+</tr>
+<tr>
+<td><strong>Tratamiento de la frontera</strong></td>
+<td><code>v_prime_boundary</code>, <code>w_rate</code></td>
+<td>restricción de estado en ambos extremos</td>
+<td>Una tupla de derivadas cambia a Neumann; <code>w_rate=0.0</code> selecciona las fronteras analíticas del problema del pastel y entonces exige <code>a_grid[0] &gt; 0</code>.</td>
+</tr>
+<tr>
+<td><strong>Paso implícito</strong></td>
+<td><code>Delta</code></td>
+<td><span class="arithmatex">\(10^4\)</span></td>
+<td>Cuanto mayor, más cerca de la iteración de políticas (menos barridos); véase la tabla de la Sección 1.3.</td>
+</tr>
+<tr>
+<td><strong>Regla de parada</strong></td>
+<td><code>max_iter</code>, <code>tol</code></td>
+<td>100, <span class="arithmatex">\(10^{-8}\)</span></td>
+<td>Norma del supremo sobre funciones de valor sucesivas; <code>max_iter</code> debe ser un entero <span class="arithmatex">\(\ge 1\)</span>. En 3.3.0 los valores por defecto eran 500 y <span class="arithmatex">\(10^{-7}\)</span>.</td>
+</tr>
+<tr>
+<td><strong>Distribución</strong></td>
+<td><code>compute_kfe</code></td>
+<td><code>True</code></td>
+<td><code>False</code> deja <code>g_dist=None</code> y <code>mass_residual=0.0</code>; <code>A_generator</code> se devuelve de todos modos, de modo que <code>solve_kfe_achdou</code> puede llamarse después.</td>
+</tr>
+<tr>
+<td><strong>Intervalo del equilibrio general</strong></td>
+<td><code>r_min</code>, <code>r_max</code>, <code>tol_ge</code>, <code>max_iter_ge</code></td>
+<td><span class="arithmatex">\(0.005\)</span>, <span class="arithmatex">\(\rho - 0.002\)</span>, <span class="arithmatex">\(10^{-4}\)</span>, 40</td>
+<td><code>tol_ge</code> es la tolerancia de vaciado del mercado: fija la tolerancia en <span class="arithmatex">\(x\)</span> de Brent y <code>converged</code> significa <span class="arithmatex">\(\lvert K^s - K^d \rvert &lt;\)</span> <code>tol_ge</code> (Sección 1.5).</td>
+</tr>
+<tr>
+<td><strong>Resolución del hogar dentro del equilibrio general</strong></td>
+<td><code>max_iter_hjb</code>, <code>tol_hjb</code>, <code>Delta</code></td>
+<td>100, <span class="arithmatex">\(10^{-8}\)</span>, <span class="arithmatex">\(10^4\)</span></td>
+<td>Se pasan a <code>solve_hjb_achdou</code> en cada tasa tentativa.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="22-relacion-con-las-paginas-en-tiempo-discreto-y-con-los-cuadernos">2.2 Relación con las páginas en tiempo discreto y con los cuadernos</h3>
+<ul>
+<li><a href="../vfi_continuous_equilibrium/"><code>vfi_continuous_equilibrium.md</code></a> resuelve la misma economía de Aiyagari en <strong>tiempo discreto</strong>: los hogares descuentan con <span class="arithmatex">\(\beta = 0.96\)</span>, la política continua de ahorro se proyecta sobre un histograma con las loterías lineales de Young (2010) y <code>solve_aiyagari_continuous</code> vacía el mercado de capital con Brent. Ese módulo también incluye <code>ContinuousStationaryDistribution.gini()</code> y <code>.lorenz()</code>. La página que está leyendo reemplaza la proyección por loterías con la KFE adjunta y el operador de Bellman con el generador de la HJB; aquí no hay una clase auxiliar de distribución, de modo que los estadísticos de desigualdad se calculan directamente a partir de <code>g_dist</code>, como en el Ejemplo 4.2. Las calibraciones difieren (<span class="arithmatex">\(\rho = 0.05\)</span> frente a <span class="arithmatex">\(\beta = 0.96\)</span>, dos estados de ingreso de Poisson frente a una cadena de Tauchen o Rouwenhorst), por lo que las cifras de equilibrio no son comparables entre las dos páginas.</li>
+<li><code>notebooks/22_continuous_time_hjb.py</code> (y su gemelo <code>_es</code>) introduce el esquema upwind en el problema de fluctuaciones del ingreso. Se escribió contra la interfaz 3.3.0: lee el resultado con <code>results["V"]</code> y pasa explícitamente <code>max_iter=500, tol=1e-7</code>, que son los valores por defecto antiguos. Ambas cosas siguen funcionando porque <code>HJBSolution</code> implementa el protocolo <code>Mapping</code> (Sección 6). Sus <em>cifras</em>, en cambio, no son las de 3.3.0: el solucionador explícito de 3.3.0 no tenía término de conmutación del ingreso, de modo que cada estado de productividad era un problema separado de ingreso determinista, mientras que desde 3.4.0 los estados están ligados por el generador de Poisson <code>A_z</code> (por defecto, simétrico con <span class="arithmatex">\(\lambda = 0.1\)</span>). Pasar <code>A_z=np.zeros((Ne, Ne))</code> junto con <code>compute_kfe=False</code> reproduce la economía de 3.3.0; hay que desactivar la KFE porque un generador sin conmutación no tiene una distribución estacionaria única (Sección 1.4).</li>
+<li><code>notebooks/56_implicit_hjb_and_continuous_kfe.py</code> (en inglés y en español) es el cuaderno de demostración de este módulo: iteración implícita de la HJB, distribución de la riqueza por KFE con curva de Lorenz y coeficiente de Gini, el problema del pastel de referencia frente a la forma cerrada y el equilibrio general de Aiyagari continuo con curvas de oferta y demanda. La entrada del catálogo está en <a href="../notebooks/"><code>notebooks.md</code></a>.</li>
+</ul>
+<hr />
+<h2 id="3-calibracion-canonica">3. Calibración canónica</h2>
+<p>Los valores por defecto configuran un problema de fluctuaciones del ingreso con dos estados, en el espíritu de Achdou et al. (2022), con parámetros de frecuencia anual:</p>
+<table>
+<thead>
+<tr>
+<th>Parámetro</th>
+<th>Símbolo</th>
+<th>Valor por defecto</th>
+<th>Argumento</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tasa de descuento</td>
+<td><span class="arithmatex">\(\rho\)</span></td>
+<td><span class="arithmatex">\(0.05\)</span></td>
+<td><code>rho_val</code></td>
+</tr>
+<tr>
+<td>Aversión relativa al riesgo</td>
+<td><span class="arithmatex">\(\gamma\)</span></td>
+<td><span class="arithmatex">\(2.0\)</span></td>
+<td><code>gamma_r</code></td>
+</tr>
+<tr>
+<td>Tasa de interés (equilibrio parcial)</td>
+<td><span class="arithmatex">\(r\)</span></td>
+<td><span class="arithmatex">\(0.03\)</span></td>
+<td><code>r_rate</code></td>
+</tr>
+<tr>
+<td>Salario (equilibrio parcial)</td>
+<td><span class="arithmatex">\(w\)</span></td>
+<td><span class="arithmatex">\(1.0\)</span></td>
+<td><code>w_rate</code></td>
+</tr>
+<tr>
+<td>Estados de productividad</td>
+<td><span class="arithmatex">\(e\)</span></td>
+<td><span class="arithmatex">\(\{0.2, 1.0\}\)</span></td>
+<td><code>e_grid</code></td>
+</tr>
+<tr>
+<td>Intensidades de conmutación</td>
+<td><span class="arithmatex">\(\lambda_{12} = \lambda_{21}\)</span></td>
+<td><span class="arithmatex">\(0.1\)</span></td>
+<td><code>A_z</code></td>
+</tr>
+<tr>
+<td>Malla de activos</td>
+<td><span class="arithmatex">\([a_{\min}, a_{\max}]\)</span>, <span class="arithmatex">\(N_a\)</span></td>
+<td><span class="arithmatex">\([0, 30]\)</span>, 100 nodos uniformes</td>
+<td><code>a_min</code>, <code>a_max</code>, <code>Na</code></td>
+</tr>
+<tr>
+<td>Paso implícito</td>
+<td><span class="arithmatex">\(\Delta\)</span></td>
+<td><span class="arithmatex">\(10^4\)</span></td>
+<td><code>Delta</code></td>
+</tr>
+<tr>
+<td>Participación del capital (equilibrio general)</td>
+<td><span class="arithmatex">\(\alpha\)</span></td>
+<td><span class="arithmatex">\(0.33\)</span></td>
+<td><code>alpha</code></td>
+</tr>
+<tr>
+<td>Depreciación (equilibrio general)</td>
+<td><span class="arithmatex">\(\delta\)</span></td>
+<td><span class="arithmatex">\(0.05\)</span></td>
+<td><code>delta</code></td>
+</tr>
+<tr>
+<td>Intervalo de la tasa de interés (equilibrio general)</td>
+<td><span class="arithmatex">\([r_{\min}, r_{\max}]\)</span></td>
+<td><span class="arithmatex">\([0.005, 0.048]\)</span></td>
+<td><code>r_min</code>, <code>r_max</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-ejemplos-practicos-ejecutables">4. Ejemplos prácticos ejecutables</h2>
+<p>Todos los ejemplos son deterministas (no hay generación de números aleatorios en ningún punto del módulo), no necesitan acceso a la red y terminan en bastante menos de una décima de segundo de tiempo de solucionador en un portátil; las cifras citadas a continuación son las que imprimió cada script.</p>
+<h3 id="41-resolucion-en-equilibrio-parcial-y-summary">4.1 Resolución en equilibrio parcial y <code>summary()</code></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.vfi</span><span class="w"> </span><span class="kn">import</span> <span class="n">solve_hjb_achdou</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">sol</span> <span class="o">=</span> <span class="n">solve_hjb_achdou</span><span class="p">(</span><span class="n">r_rate</span><span class="o">=</span><span class="mf">0.03</span><span class="p">,</span> <span class="n">w_rate</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">rho_val</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">gamma_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">Na</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">a_max</span><span class="o">=</span><span class="mf">30.0</span><span class="p">)</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">sol</span><span class="o">.</span><span class="n">n_iter</span><span class="p">,</span> <span class="n">sol</span><span class="o">.</span><span class="n">converged</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">sol</span><span class="o">.</span><span class="n">mass_residual</span><span class="si">:</span><span class="s2">.1e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">sol</span><span class="o">.</span><span class="n">V</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">sol</span><span class="o">.</span><span class="n">c_policy</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">sol</span><span class="o">.</span><span class="n">g_dist</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">sol</span><span class="o">.</span><span class="n">A_generator</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">sol</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="c1"># El acceso heredado al estilo de diccionario sigue funcionando (12 claves); los campos nuevos son atributos.</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">sol</span><span class="p">[</span><span class="s2">"n_iter"</span><span class="p">]</span> <span class="o">==</span> <span class="n">sol</span><span class="o">.</span><span class="n">n_iter</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">sol</span><span class="o">.</span><span class="n">keys</span><span class="p">())[:</span><span class="mi">4</span><span class="p">],</span> <span class="s2">"g_dist"</span> <span class="ow">in</span> <span class="n">sol</span><span class="p">,</span> <span class="s2">"g_dist"</span> <span class="ow">in</span> <span class="n">sol</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"c(0, e_low) = </span><span class="si">{</span><span class="n">sol</span><span class="o">.</span><span class="n">c_policy</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">   c(0, e_high) = </span><span class="si">{</span><span class="n">sol</span><span class="o">.</span><span class="n">c_policy</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"s(0, e_low) = </span><span class="si">{</span><span class="n">sol</span><span class="o">.</span><span class="n">s_drift</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">   s(0, e_high) = </span><span class="si">{</span><span class="n">sol</span><span class="o">.</span><span class="n">s_drift</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div>
+<p>El solucionador converge en 9 iteraciones a <code>tol=1e-8</code> con un residuo de masa de <code>1.1e-16</code>; los arrays son <code>(100, 2)</code> y el generador es una matriz dispersa <code>(200, 200)</code>. <code>summary()</code> devuelve un <code>DataFrame</code> indexado por métrica: 200 estados, tiempo transcurrido 0.0144 s (dependiente de la máquina), valor medio <span class="arithmatex">\(-22.000181\)</span>, consumo entre <span class="arithmatex">\(0.200000\)</span> y <span class="arithmatex">\(1.972175\)</span>. Las dos últimas líneas muestran la restricción de estado en acción: el hogar de ingreso bajo en <span class="arithmatex">\(a = 0\)</span> consume exactamente su ingreso laboral <span class="arithmatex">\(0.2000\)</span> con deriva cero, mientras que el hogar de ingreso alto consume <span class="arithmatex">\(0.4896\)</span> y ahorra a la tasa <span class="arithmatex">\(0.5104\)</span>. <code>"g_dist" in sol</code> es <code>True</code> pero <code>"g_dist" in sol.keys()</code> es <code>False</code>, porque <code>keys()</code> enumera solo las doce claves heredadas, mientras que la pertenencia y el subíndice cubren todos los campos de la dataclass (Sección 6).</p>
+<h3 id="42-curva-de-lorenz-y-coeficiente-de-gini-a-partir-de-g_dist">4.2 Curva de Lorenz y coeficiente de Gini a partir de <code>g_dist</code></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.vfi</span><span class="w"> </span><span class="kn">import</span> <span class="n">solve_hjb_achdou</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">sol</span> <span class="o">=</span> <span class="n">solve_hjb_achdou</span><span class="p">(</span><span class="n">r_rate</span><span class="o">=</span><span class="mf">0.03</span><span class="p">,</span> <span class="n">w_rate</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">rho_val</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">gamma_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">Na</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">a_max</span><span class="o">=</span><span class="mf">30.0</span><span class="p">)</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">a</span><span class="p">,</span> <span class="n">g</span> <span class="o">=</span> <span class="n">sol</span><span class="o">.</span><span class="n">a_grid</span><span class="p">,</span> <span class="n">sol</span><span class="o">.</span><span class="n">g_dist</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">da</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>                      <span class="c1"># malla uniforme: masa nodal = g * da</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">mass_a</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">da</span>           <span class="c1"># distribución marginal de la riqueza, suma uno</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">mean_a</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">a</span> <span class="o">*</span> <span class="n">mass_a</span><span class="p">))</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># Curva de Lorenz: participación acumulada de la población frente a participación acumulada de la riqueza</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="n">pop</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">mass_a</span><span class="p">)])</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="n">wealth</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">a</span> <span class="o">*</span> <span class="n">mass_a</span><span class="p">)</span> <span class="o">/</span> <span class="n">mean_a</span><span class="p">])</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="n">gini</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">wealth</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">+</span> <span class="n">wealth</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">pop</span><span class="p">)))</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="n">top10</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="mf">0.90</span><span class="p">,</span> <span class="n">pop</span><span class="p">,</span> <span class="n">wealth</span><span class="p">))</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"mass total = </span><span class="si">{</span><span class="n">mass_a</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">:</span><span class="s2">.12f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"mean wealth (capital supply) = </span><span class="si">{</span><span class="n">mean_a</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"share of households at a = 0 : </span><span class="si">{</span><span class="n">mass_a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Gini coefficient of wealth   : </span><span class="si">{</span><span class="n">gini</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"wealth share of the top 10%  : </span><span class="si">{</span><span class="n">top10</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"stationary income shares     : </span><span class="si">{</span><span class="n">g</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">da</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div>
+<p>Las masas nodales suman <code>1.000000000000</code>. Con <span class="arithmatex">\(r = 0.03\)</span> y <span class="arithmatex">\(w = 1\)</span>, la riqueza media (la oferta de capital en equilibrio parcial) es <span class="arithmatex">\(6.2150\)</span>, el <span class="arithmatex">\(3.82\%\)</span> de los hogares se sitúa exactamente en el límite de endeudamiento, el coeficiente de Gini de la riqueza es <span class="arithmatex">\(0.3611\)</span> y el decil superior posee el <span class="arithmatex">\(21.99\%\)</span> de la riqueza. La marginal del ingreso es <code>[0.5 0.5]</code>, la distribución estacionaria de la cadena simétrica de dos estados. La fórmula del Gini es el área trapezoidal entre la curva de Lorenz <span class="arithmatex">\((p, L(p))\)</span> y la diagonal, la misma expresión que usa el cuaderno 56.</p>
+<h3 id="43-equilibrio-general-rast-wast-kast">4.3 Equilibrio general: <span class="arithmatex">\(r^\ast\)</span>, <span class="arithmatex">\(w^\ast\)</span>, <span class="arithmatex">\(K^\ast\)</span></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.vfi</span><span class="w"> </span><span class="kn">import</span> <span class="n">solve_aiyagari_continuous_hjb</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">ge</span> <span class="o">=</span> <span class="n">solve_aiyagari_continuous_hjb</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.33</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">rho_val</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">gamma_r</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">Na</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">a_max</span><span class="o">=</span><span class="mf">30.0</span><span class="p">)</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"r* = </span><span class="si">{</span><span class="n">ge</span><span class="o">.</span><span class="n">r_star</span><span class="si">:</span><span class="s2">.5f</span><span class="si">}</span><span class="s2">  w* = </span><span class="si">{</span><span class="n">ge</span><span class="o">.</span><span class="n">w_star</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">  K* = </span><span class="si">{</span><span class="n">ge</span><span class="o">.</span><span class="n">K_star</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">  L* = </span><span class="si">{</span><span class="n">ge</span><span class="o">.</span><span class="n">L_star</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">  Y* = </span><span class="si">{</span><span class="n">ge</span><span class="o">.</span><span class="n">Y_star</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"excess capital = </span><span class="si">{</span><span class="n">ge</span><span class="o">.</span><span class="n">excess_capital</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">  converged = </span><span class="si">{</span><span class="n">ge</span><span class="o">.</span><span class="n">converged</span><span class="si">}</span><span class="s2">  Brent iterations = </span><span class="si">{</span><span class="n">ge</span><span class="o">.</span><span class="n">n_iter_ge</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"K/Y = </span><span class="si">{</span><span class="n">ge</span><span class="o">.</span><span class="n">K_star</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">ge</span><span class="o">.</span><span class="n">Y_star</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">   household HJB iterations at r*: </span><span class="si">{</span><span class="n">ge</span><span class="o">.</span><span class="n">hjb_solution</span><span class="o">.</span><span class="n">n_iter</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">ge</span><span class="o">.</span><span class="n">to_markdown</span><span class="p">())</span>
+</code></pre></div>
+<p>El mercado se vacía en <span class="arithmatex">\(r^\ast = 0.02004\)</span>, <span class="arithmatex">\(w^\ast = 1.4376\)</span>, <span class="arithmatex">\(K^\ast = 6.0656\)</span> con <span class="arithmatex">\(L^\ast = 0.600\)</span> e <span class="arithmatex">\(Y^\ast = 1.2874\)</span> (razón capital-producto <span class="arithmatex">\(4.712\)</span>); el exceso de oferta en la raíz es <span class="arithmatex">\(-1.76 \times 10^{-6}\)</span>, muy dentro del <code>tol_ge=1e-4</code> por defecto, de modo que <code>converged</code> es <code>True</code> tras 6 iteraciones de Brent, y el problema del hogar en <span class="arithmatex">\(r^\ast\)</span> requirió 10 iteraciones de la HJB. Pasar <code>tol_ge=1e-8</code> lleva la misma ejecución a <span class="arithmatex">\(\Phi = -7.4 \times 10^{-13}\)</span> en 7 iteraciones. <code>to_markdown()</code> genera la tabla resumen (la fila del tiempo transcurrido depende de la máquina):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>|                         Metric |     Value |
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>|--------------------------------|-----------|
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>| Equilibrium Interest Rate (r*) |  0.020041 |
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>|          Equilibrium Wage (w*) |  1.437585 |
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>|         Aggregate Capital (K*) |  6.065605 |
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>|            Capital Supply (Ks) |  6.065605 |
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>|            Capital Demand (Kd) |  6.065607 |
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>|  Capital Market Clearing Error | -1.76e-06 |
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>|           Aggregate Labor (L*) |  0.600000 |
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>|          Aggregate Output (Y*) |  1.287389 |
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>|      GE Root-finding Converged |      True |
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>|                  GE Iterations |         6 |
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>|               Elapsed Time (s) |    0.0421 |
+</code></pre></div>
+<h3 id="44-un-proceso-de-ingreso-personalizado-pasar-e_grid-y-a_z">4.4 Un proceso de ingreso personalizado: pasar <code>e_grid</code> y <code>A_z</code></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.vfi</span><span class="w"> </span><span class="kn">import</span> <span class="n">solve_hjb_achdou</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">e_grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">])</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">A_z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mf">0.20</span><span class="p">,</span> <span class="mf">0.20</span><span class="p">,</span> <span class="mf">0.00</span><span class="p">],</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>                <span class="p">[</span> <span class="mf">0.10</span><span class="p">,</span><span class="o">-</span><span class="mf">0.20</span><span class="p">,</span> <span class="mf">0.10</span><span class="p">],</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>                <span class="p">[</span> <span class="mf">0.00</span><span class="p">,</span> <span class="mf">0.20</span><span class="p">,</span><span class="o">-</span><span class="mf">0.20</span><span class="p">]])</span>          <span class="c1"># generador: fuera de la diagonal &gt;= 0, las filas suman cero</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">A_z</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">)</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="n">sol</span> <span class="o">=</span> <span class="n">solve_hjb_achdou</span><span class="p">(</span><span class="n">r_rate</span><span class="o">=</span><span class="mf">0.03</span><span class="p">,</span> <span class="n">w_rate</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">Na</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">a_max</span><span class="o">=</span><span class="mf">30.0</span><span class="p">,</span> <span class="n">e_grid</span><span class="o">=</span><span class="n">e_grid</span><span class="p">,</span> <span class="n">A_z</span><span class="o">=</span><span class="n">A_z</span><span class="p">)</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="n">da</span> <span class="o">=</span> <span class="n">sol</span><span class="o">.</span><span class="n">a_grid</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">sol</span><span class="o">.</span><span class="n">a_grid</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="nb">print</span><span class="p">(</span><span class="n">sol</span><span class="o">.</span><span class="n">n_iter</span><span class="p">,</span> <span class="n">sol</span><span class="o">.</span><span class="n">converged</span><span class="p">,</span> <span class="n">sol</span><span class="o">.</span><span class="n">V</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"stationary income shares:"</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">sol</span><span class="o">.</span><span class="n">g_dist</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">da</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"mean wealth by income state:"</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">((</span><span class="n">sol</span><span class="o">.</span><span class="n">a_grid</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">sol</span><span class="o">.</span><span class="n">g_dist</span> <span class="o">*</span> <span class="n">da</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">sol</span><span class="o">.</span><span class="n">g_dist</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="n">da</span><span class="p">),</span> <span class="mi">3</span><span class="p">))</span>
+</code></pre></div>
+<p><code>A_z</code> es un generador, no una matriz de probabilidades de transición: la entrada <span class="arithmatex">\((j, k)\)</span> es la intensidad de Poisson de saltar del estado <span class="arithmatex">\(j\)</span> al estado <span class="arithmatex">\(k\)</span>, la diagonal es menos la tasa total de salida y las filas suman cero. El solucionador lo comprueba por usted —una matriz cuyas filas suman uno se rechaza con <code>ValueError: A_z rows must sum to zero (continuous-time generator) ... A_z looks like a transition-probability matrix P; the solver expects a continuous-time generator with zero row sums, e.g. (P - I) / dt</code>—, de modo que el <code>assert</code> anterior es una precaución y no una necesidad. La cadena de nacimiento y muerte de tres estados converge en 8 iteraciones; la KFE recupera la distribución estacionaria de la cadena <code>[0.25 0.5 0.25]</code> como marginal del ingreso, y la riqueza media aumenta con la productividad, <code>[1.686 2.837 4.227]</code>.</p>
+<h3 id="45-numero-de-iteraciones-en-funcion-de-delta">4.5 Número de iteraciones en función de <code>Delta</code></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">puremacro.vfi</span><span class="w"> </span><span class="kn">import</span> <span class="n">solve_hjb_achdou</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">base</span> <span class="o">=</span> <span class="n">solve_hjb_achdou</span><span class="p">(</span><span class="n">Delta</span><span class="o">=</span><span class="mf">1e4</span><span class="p">)</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">for</span> <span class="n">Delta</span> <span class="ow">in</span> <span class="p">(</span><span class="mf">1e4</span><span class="p">,</span> <span class="mf">1e2</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">):</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">s</span> <span class="o">=</span> <span class="n">solve_hjb_achdou</span><span class="p">(</span><span class="n">Delta</span><span class="o">=</span><span class="n">Delta</span><span class="p">)</span>                <span class="c1"># max_iter=100, tol=1e-8</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Delta = </span><span class="si">{</span><span class="n">Delta</span><span class="si">:</span><span class="s2">&gt;8.0f</span><span class="si">}</span><span class="s2">: n_iter = </span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">n_iter</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">  converged = </span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">converged</span><span class="si">!s:</span><span class="s2">5</span><span class="si">}</span><span class="s2">  "</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>          <span class="sa">f</span><span class="s2">"max|V - V_ref| = </span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">V</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">base</span><span class="o">.</span><span class="n">V</span><span class="p">))</span><span class="si">:</span><span class="s2">.1e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="nb">print</span><span class="p">(</span><span class="s2">"Delta = 1, max_iter = 1000:"</span><span class="p">,</span> <span class="n">solve_hjb_achdou</span><span class="p">(</span><span class="n">Delta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span><span class="o">.</span><span class="n">n_iter</span><span class="p">)</span>
+</code></pre></div>
+<p>Esta es la fuente de la tabla de la Sección 1.3: 9, 14, 50 y 100 iteraciones para <span class="arithmatex">\(\Delta = 10^4, 10^2, 10, 1\)</span>, con <code>converged=False</code> en <span class="arithmatex">\(\Delta = 1\)</span> bajo el <code>max_iter=100</code> por defecto (la función de valor aún está a <span class="arithmatex">\(6.7 \times 10^{-2}\)</span> de la referencia) y 360 iteraciones cuando el tope se eleva a 1000. Compruebe siempre <code>converged</code> después de reducir <code>Delta</code>.</p>
+<hr />
+<h2 id="5-especificacion-completa-de-la-api">5. Especificación completa de la API</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>solve_hjb_achdou(
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    r_rate: float = 0.03,
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    w_rate: float = 1.0,
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    rho_val: float = 0.05,
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    gamma_r: float = 2.0,
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    Na: int = 100,
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    max_iter: int = 100,
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    tol: float = 1e-8,
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    *,
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    a_min: float = 0.0,
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    a_max: float = 30.0,
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>    a_grid: np.ndarray | None = None,
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>    e_grid: np.ndarray | None = None,
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>    A_z: np.ndarray | None = None,
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>    Delta: float = 1e4,
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>    compute_kfe: bool = True,
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>    v_prime_boundary: tuple[float | None, float | None] | None = None,
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>) -&gt; HJBSolution
+<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>
+<a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>solve_kfe_achdou(
+<a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>    A: scipy.sparse.spmatrix,
+<a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>    a_grid: np.ndarray,
+<a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>    e_grid: np.ndarray,
+<a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a>    return_residual: bool = False,
+<a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a>) -&gt; np.ndarray | tuple[np.ndarray, float]
+<a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a>
+<a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a>solve_aiyagari_continuous_hjb(
+<a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a>    alpha: float = 0.33,
+<a id="__codelineno-6-29" name="__codelineno-6-29" href="#__codelineno-6-29"></a>    delta: float = 0.05,
+<a id="__codelineno-6-30" name="__codelineno-6-30" href="#__codelineno-6-30"></a>    rho_val: float = 0.05,
+<a id="__codelineno-6-31" name="__codelineno-6-31" href="#__codelineno-6-31"></a>    gamma_r: float = 2.0,
+<a id="__codelineno-6-32" name="__codelineno-6-32" href="#__codelineno-6-32"></a>    Na: int = 100,
+<a id="__codelineno-6-33" name="__codelineno-6-33" href="#__codelineno-6-33"></a>    a_min: float = 0.0,
+<a id="__codelineno-6-34" name="__codelineno-6-34" href="#__codelineno-6-34"></a>    a_max: float = 30.0,
+<a id="__codelineno-6-35" name="__codelineno-6-35" href="#__codelineno-6-35"></a>    a_grid: np.ndarray | None = None,
+<a id="__codelineno-6-36" name="__codelineno-6-36" href="#__codelineno-6-36"></a>    e_grid: np.ndarray | None = None,
+<a id="__codelineno-6-37" name="__codelineno-6-37" href="#__codelineno-6-37"></a>    A_z: np.ndarray | None = None,
+<a id="__codelineno-6-38" name="__codelineno-6-38" href="#__codelineno-6-38"></a>    r_min: float = 0.005,
+<a id="__codelineno-6-39" name="__codelineno-6-39" href="#__codelineno-6-39"></a>    r_max: float | None = None,
+<a id="__codelineno-6-40" name="__codelineno-6-40" href="#__codelineno-6-40"></a>    tol_ge: float = 1e-4,
+<a id="__codelineno-6-41" name="__codelineno-6-41" href="#__codelineno-6-41"></a>    max_iter_ge: int = 40,
+<a id="__codelineno-6-42" name="__codelineno-6-42" href="#__codelineno-6-42"></a>    max_iter_hjb: int = 100,
+<a id="__codelineno-6-43" name="__codelineno-6-43" href="#__codelineno-6-43"></a>    tol_hjb: float = 1e-8,
+<a id="__codelineno-6-44" name="__codelineno-6-44" href="#__codelineno-6-44"></a>    Delta: float = 1e4,
+<a id="__codelineno-6-45" name="__codelineno-6-45" href="#__codelineno-6-45"></a>) -&gt; AiyagariContinuousHJBResult
+</code></pre></div>
+<h4 id="parametros-de-solve_hjb_achdou">Parámetros de <code>solve_hjb_achdou</code></h4>
+<table>
+<thead>
+<tr>
+<th>Parámetro</th>
+<th>Significado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>r_rate</code>, <code>w_rate</code></td>
+<td>Tasa de interés sobre los activos y salario por unidad de eficiencia. <code>w_rate=0.0</code> cambia al tratamiento de frontera del problema del pastel (Sección 1.2) y entonces exige <code>a_grid[0] &gt; 0</code>, porque la forma cerrada <span class="arithmatex">\((\mu a)^{-\gamma}\)</span> es singular en <span class="arithmatex">\(a = 0\)</span>; <code>ValueError</code> en caso contrario.</td>
+</tr>
+<tr>
+<td><code>rho_val</code>, <code>gamma_r</code></td>
+<td>Tasa de descuento <span class="arithmatex">\(\rho\)</span> y coeficiente CRRA <span class="arithmatex">\(\gamma\)</span>; <span class="arithmatex">\(\gamma = 1\)</span> selecciona utilidad logarítmica.</td>
+</tr>
+<tr>
+<td><code>Na</code>, <code>a_min</code>, <code>a_max</code></td>
+<td>Malla uniforme de activos <code>np.linspace(a_min, a_max, Na)</code>; <code>a_min</code> es el límite de endeudamiento.</td>
+</tr>
+<tr>
+<td><code>a_grid</code></td>
+<td>Malla explícita; anula <code>Na</code>, <code>a_min</code>, <code>a_max</code>. Puede ser no uniforme; la KFE pondera cada nodo por el ancho de su celda (Sección 1.4). Debe ser unidimensional, finita y estrictamente creciente, con al menos dos puntos (<code>ValueError</code> en caso contrario).</td>
+</tr>
+<tr>
+<td><code>e_grid</code></td>
+<td>Estados de productividad, forma <code>(Ne,)</code>; por defecto <code>[0.2, 1.0]</code>.</td>
+</tr>
+<tr>
+<td><code>A_z</code></td>
+<td>Generador del ingreso, forma <code>(Ne, Ne)</code>, entradas finitas, fuera de la diagonal no negativas y sumas por fila iguales a cero — todo ello validado, con <code>ValueError</code> ante cualquier incumplimiento. Por defecto: intensidad simétrica <span class="arithmatex">\(0.1\)</span> para dos estados, <span class="arithmatex">\(0.2/(N_e - 1)\)</span> fuera de la diagonal con <span class="arithmatex">\(-0.2\)</span> en ella en otro caso, <code>[[0.]]</code> para un solo estado.</td>
+</tr>
+<tr>
+<td><code>max_iter</code>, <code>tol</code></td>
+<td>Tope de iteraciones (entero <span class="arithmatex">\(\ge 1\)</span>, <code>ValueError</code> en caso contrario) y tolerancia en norma del supremo sobre <span class="arithmatex">\(v^{n+1} - v^n\)</span>. <code>converged</code> es <code>False</code> cuando se alcanza el tope.</td>
+</tr>
+<tr>
+<td><code>Delta</code></td>
+<td>Paso implícito <span class="arithmatex">\(\Delta\)</span> (Sección 1.3).</td>
+</tr>
+<tr>
+<td><code>compute_kfe</code></td>
+<td>Resolver la KFE adjunta tras la convergencia y rellenar <code>g_dist</code> y <code>mass_residual</code>.</td>
+</tr>
+<tr>
+<td><code>v_prime_boundary</code></td>
+<td>Derivadas de Neumann <code>(v'_min, v'_max)</code>; cualquiera de las dos entradas puede ser <code>None</code>.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="parametros-de-solve_kfe_achdou">Parámetros de <code>solve_kfe_achdou</code></h4>
+<table>
+<thead>
+<tr>
+<th>Parámetro</th>
+<th>Significado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>A</code></td>
+<td>Generador de <code>HJBSolution.A_generator</code> (o cualquier matriz dispersa con la misma estructura), forma <code>(Na*Ne, Na*Ne)</code> en orden de estados por columnas. Una forma incompatible, o un generador con más de una clase comunicante cerrada, lanza <code>ValueError</code>.</td>
+</tr>
+<tr>
+<td><code>a_grid</code>, <code>e_grid</code></td>
+<td>Las mallas sobre las que se construyó el generador; solo se usan sus longitudes y los espaciamientos de activos. <code>a_grid</code> debe ser estrictamente creciente.</td>
+</tr>
+<tr>
+<td><code>return_residual</code></td>
+<td><code>True</code> devuelve <code>(g, mass_residual)</code>; <code>False</code> devuelve solo <code>g</code>. <code>g</code> es una densidad: masa por unidad de <span class="arithmatex">\(a\)</span>, con <span class="arithmatex">\(\sum_{i,j} g_{i,j} w_i = 1\)</span>.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="parametros-de-solve_aiyagari_continuous_hjb">Parámetros de <code>solve_aiyagari_continuous_hjb</code></h4>
+<table>
+<thead>
+<tr>
+<th>Parámetro</th>
+<th>Significado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>alpha</code>, <code>delta</code></td>
+<td>Participación del capital en la Cobb-Douglas y tasa de depreciación.</td>
+</tr>
+<tr>
+<td><code>rho_val</code>, <code>gamma_r</code>, <code>Na</code>, <code>a_min</code>, <code>a_max</code>, <code>a_grid</code>, <code>e_grid</code>, <code>A_z</code>, <code>Delta</code></td>
+<td>Como en <code>solve_hjb_achdou</code>; se pasan a cada resolución del problema del hogar.</td>
+</tr>
+<tr>
+<td><code>r_min</code>, <code>r_max</code></td>
+<td>Intervalo de Brent; <code>r_max=None</code> significa <span class="arithmatex">\(\rho - 0.002\)</span>. El intervalo se amplía automáticamente como se describe en la Sección 1.5. <code>r_min &gt;= r_max</code>, <code>r_max &gt;= rho_val</code> o <code>r_min &lt;= -delta</code> lanza <code>ValueError</code>.</td>
+</tr>
+<tr>
+<td><code>tol_ge</code></td>
+<td>Tolerancia de vaciado del mercado sobre <span class="arithmatex">\(\lvert K^s - K^d \rvert\)</span>. Fija la tolerancia en <span class="arithmatex">\(x\)</span> de Brent, impulsa las pasadas de reacotamiento y decide <code>converged</code> (Sección 1.5).</td>
+</tr>
+<tr>
+<td><code>max_iter_ge</code></td>
+<td>Número máximo de iteraciones de Brent por pasada de acotamiento.</td>
+</tr>
+<tr>
+<td><code>max_iter_hjb</code>, <code>tol_hjb</code></td>
+<td>Pasados a <code>solve_hjb_achdou</code> como <code>max_iter</code> y <code>tol</code>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="6-interfaz-de-resultados-y-exportacion-a-manuscritos">6. Interfaz de resultados y exportación a manuscritos</h2>
+<h3 id="hjbsolution"><code>HJBSolution</code></h3>
+<p>Una <code>@dataclass(frozen=True)</code>: asignar a un campo lanza <code>FrozenInstanceError</code>. Campos:</p>
+<table>
+<thead>
+<tr>
+<th>Campo</th>
+<th>Tipo / forma</th>
+<th>Contenido</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>V</code></td>
+<td><code>(Na, Ne)</code></td>
+<td>Función de valor convergida <span class="arithmatex">\(v_j(a_i)\)</span>.</td>
+</tr>
+<tr>
+<td><code>c_policy</code>, <code>s_drift</code></td>
+<td><code>(Na, Ne)</code></td>
+<td>Regla de consumo y deriva del ahorro <span class="arithmatex">\(s = r a + w e - c\)</span>.</td>
+</tr>
+<tr>
+<td><code>a_grid</code>, <code>e_grid</code></td>
+<td><code>(Na,)</code>, <code>(Ne,)</code></td>
+<td>Mallas efectivamente utilizadas.</td>
+</tr>
+<tr>
+<td><code>n_iter</code>, <code>elapsed</code>, <code>converged</code></td>
+<td><code>int</code>, <code>float</code>, <code>bool</code></td>
+<td>Iteraciones realizadas, segundos transcurridos, si se alcanzó <code>tol</code>.</td>
+</tr>
+<tr>
+<td><code>r_rate</code>, <code>w_rate</code>, <code>rho_val</code>, <code>gamma_r</code></td>
+<td><code>float</code></td>
+<td>Copia de los parámetros de calibración.</td>
+</tr>
+<tr>
+<td><code>g_dist</code></td>
+<td><code>(Na, Ne)</code> o <code>None</code></td>
+<td><strong>Densidad</strong> estacionaria de la KFE — masa por unidad de <span class="arithmatex">\(a\)</span>, de modo que la masa nodal es <span class="arithmatex">\(g_{i,j} w_i\)</span> (<code>None</code> cuando <code>compute_kfe=False</code>).</td>
+</tr>
+<tr>
+<td><code>A_generator</code></td>
+<td><code>scipy.sparse.csr_matrix</code></td>
+<td>Generador <span class="arithmatex">\(\mathbf{A}\)</span> de la última iteración, <code>(Na*Ne, Na*Ne)</code>.</td>
+</tr>
+<tr>
+<td><code>mass_residual</code></td>
+<td><code>float</code></td>
+<td><span class="arithmatex">\(\lvert \sum g_{i,j} w_i - 1 \rvert\)</span> tras la renormalización.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Compatibilidad hacia atrás con <code>Mapping</code>.</strong> <code>HJBSolution</code> hereda de <code>collections.abc.Mapping</code>. <code>sol["V"]</code>, <code>dict(sol)</code>, <code>list(sol)</code>, <code>len(sol)</code> y <code>sol.get(key, default)</code> funcionan todos. <code>keys()</code> (y por tanto <code>items()</code>, <code>values()</code>, la iteración, <code>dict(sol)</code> y <code>**sol</code>) devuelve exactamente doce claves: las siete que llevaba el diccionario de 3.3.0, <code>V</code>, <code>c_policy</code>, <code>s_drift</code>, <code>a_grid</code>, <code>e_grid</code>, <code>n_iter</code>, <code>elapsed</code>, más las copias de los parámetros <code>r_rate</code>, <code>w_rate</code>, <code>rho_val</code>, <code>gamma_r</code> y la bandera <code>converged</code>. El subíndice, <code>in</code> y <code>get</code> están restringidos a los <strong>campos de la dataclass</strong>, es decir, esos doce más <code>g_dist</code>, <code>A_generator</code> y <code>mass_residual</code>: <code>"g_dist" in sol</code> es <code>True</code>, mientras que <code>"summary" in sol</code> es <code>False</code> y <code>sol["summary"]</code> lanza <code>KeyError</code>, de modo que ningún método ni atributo privado se filtra por la interfaz de mapeo. <code>==</code> compara los campos uno a uno y es consciente de arrays y matrices dispersas (tenga en cuenta que <code>elapsed</code> es tiempo de reloj, así que dos resoluciones distintas del mismo problema <em>no</em> resultan iguales); <code>__hash__</code> es <code>None</code>, de modo que las instancias no son hashables, como un <code>dict</code>, y la dataclass es inmutable, de modo que asignar a un atributo lanza <code>FrozenInstanceError</code> y asignar a un elemento lanza <code>TypeError</code>.</p>
+<p>Métodos:</p>
+<ul>
+<li><code>summary() -&gt; pd.DataFrame</code>: catorce filas indexadas por <code>Metric</code> (tamaños de malla, iteraciones, convergencia, tiempo transcurrido, los cuatro parámetros, valor medio, consumo mínimo y máximo, error de masa de la KFE), como se imprime en el Ejemplo 4.1.</li>
+<li><code>to_frame() -&gt; pd.DataFrame</code>: una fila por estado, con columnas <code>a_idx</code>, <code>e_idx</code>, <code>asset_a</code>, <code>prod_e</code>, <code>value_V</code>, <code>consumption_c</code>, <code>savings_drift_s</code> y, cuando se resolvió la KFE, <code>density_g</code> (la densidad, no la masa nodal). Este es el <code>DataFrame</code> que conviene usar para gráficos personalizados de la distribución.</li>
+<li><code>to_markdown(**kwargs)</code>, <code>to_latex(**kwargs)</code>, <code>to_typst(**kwargs) -&gt; str</code>: la tabla resumen generada mediante <code>puremacro.reports.df_to_markdown</code>, <code>df_to_latex</code> y <code>df_to_typst</code> (que aceptan sus argumentos <code>index</code> y <code>digits</code>).</li>
+<li><code>plot(*, ax=None, figsize=None, show=False)</code>: tres paneles, función de valor, regla de consumo y deriva del ahorro, una línea por estado de ingreso. Devuelve la <code>Figure</code> cuando la crea, o los <code>Axes</code> que usted pasó; una secuencia de al menos tres ejes rellena todos los paneles, un único eje dibuja solo la función de valor. Apto para entornos sin pantalla (<em>headless</em>): no se muestra nada salvo que <code>show=True</code>. La distribución estacionaria no se grafica; constrúyala a partir de <code>g_dist</code> o <code>to_frame()</code>.</li>
+</ul>
+<h3 id="aiyagaricontinuoushjbresult"><code>AiyagariContinuousHJBResult</code></h3>
+<p>También una <code>dataclass</code> inmutable con el mismo protocolo <code>Mapping</code>: aquí <code>keys()</code> enumera los trece campos, el subíndice, <code>in</code> y <code>get</code> están restringidos a esos campos, <code>==</code> es la igualdad campo a campo consciente de arrays y las instancias no son hashables.</p>
+<table>
+<thead>
+<tr>
+<th>Campo</th>
+<th>Contenido</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>r_star</code>, <code>w_star</code></td>
+<td>Tasa de interés y salario que vacían el mercado.</td>
+</tr>
+<tr>
+<td><code>K_star</code>, <code>Ks_star</code>, <code>Kd_star</code></td>
+<td>Capital de equilibrio (<span class="arithmatex">\(K^\ast = K^s(r^\ast)\)</span>), oferta de los hogares y demanda de las empresas.</td>
+</tr>
+<tr>
+<td><code>L_star</code>, <code>Y_star</code></td>
+<td>Trabajo efectivo <span class="arithmatex">\(\sum_j e_j \pi_j\)</span> y producto <span class="arithmatex">\(Y = (K^d)^\alpha L^{1-\alpha}\)</span>.</td>
+</tr>
+<tr>
+<td><code>excess_capital</code></td>
+<td><span class="arithmatex">\(K^s(r^\ast) - K^d(r^\ast)\)</span>.</td>
+</tr>
+<tr>
+<td><code>hjb_solution</code></td>
+<td>La <code>HJBSolution</code> en <span class="arithmatex">\(r^\ast\)</span>, <span class="arithmatex">\(w^\ast\)</span>.</td>
+</tr>
+<tr>
+<td><code>g_dist</code></td>
+<td>Alias de <code>hjb_solution.g_dist</code> (una densidad).</td>
+</tr>
+<tr>
+<td><code>converged</code>, <code>n_iter_ge</code>, <code>elapsed</code></td>
+<td><code>True</code> solo cuando Brent convergió <strong>y</strong> <span class="arithmatex">\(\lvert K^s - K^d \rvert &lt;\)</span> <code>tol_ge</code>; iteraciones de Brent sumadas sobre las pasadas de acotamiento; segundos transcurridos en toda la resolución del equilibrio general.</td>
+</tr>
+</tbody>
+</table>
+<p>Métodos: <code>summary()</code> (once filas: precios, oferta y demanda de capital, error de vaciado, trabajo, producto, convergencia, iteraciones, tiempo transcurrido), <code>to_frame()</code> (delega en <code>hjb_solution.to_frame()</code>, de modo que tabula la solución del hogar en el equilibrio), <code>to_markdown()</code>, <code>to_latex()</code>, <code>to_typst()</code> (la tabla resumen, como en el Ejemplo 4.3) y <code>plot()</code> (delega en <code>hjb_solution.plot()</code>, de modo que muestra los tres paneles del hogar, no la distribución ni el diagrama del mercado de capital).</p>
+<hr />
+<h2 id="7-advertencias-y-limitaciones">7. Advertencias y limitaciones</h2>
+<ul>
+<li><strong><code>g_dist</code> es una densidad, no un vector de masas nodales.</strong> Multiplique por los pesos de ancho de celda antes de sumar: la masa nodal es <span class="arithmatex">\(g_{i,j} w_i\)</span>, y <span class="arithmatex">\(w_i = \Delta a\)</span> solo en una malla uniforme. Los ejemplos de esta página hacen exactamente eso. Esto importa sobre todo en mallas no uniformes: en la malla cuadrática <code>np.linspace(0, 1, 100)**2 * 30</code> la oferta de capital ponderada es <span class="arithmatex">\(5.9155\)</span>, y leer <code>g_dist</code> como un vector de masas daría un resultado equivocado por el ancho local de la celda en cada nodo.</li>
+<li><strong>El número de iteraciones depende de <code>Delta</code>.</strong> Con <code>Delta=1</code> el <code>max_iter=100</code> por defecto no basta (Sección 4.5). <code>converged</code> es el campo que hay que comprobar; el solucionador no emite advertencias.</li>
+<li><strong>El presupuesto de iteraciones de Brent es por pasada.</strong> <code>max_iter_ge</code> acota cada pasada de acotamiento, y <code>n_iter_ge</code> reporta la suma sobre las pasadas, de modo que el número total de resoluciones del hogar puede superar <code>max_iter_ge</code> cuando <code>tol_ge</code> fuerza un reacotamiento. Las soluciones HJB se almacenan en caché por <span class="arithmatex">\(r\)</span>, así que repetir una tasa tentativa no cuesta nada.</li>
+<li><strong><code>mass_residual</code> se mide tras la renormalización</strong> y por ello es del orden de <span class="arithmatex">\(10^{-16}\)</span> con independencia de la exactitud de la resolución lineal; certifica la normalización, no el residuo de la KFE. Calcule <code>A_generator.T @ (g_dist * w[:, None]).ravel(order="F")</code> —el generador actúa sobre masas nodales— si desea este último.</li>
+<li><strong>El orden de los estados es por columnas.</strong> <code>A_generator</code> indexa el estado <span class="arithmatex">\((i, j)\)</span> como <span class="arithmatex">\(j N_a + i\)</span>; reorganice los vectores con <code>order="F"</code>, como hace <code>solve_kfe_achdou</code>.</li>
+<li><strong><code>keys()</code> es más estrecho que <code>in</code>.</strong> La pertenencia y el subíndice cubren los quince campos de la dataclass, pero <code>keys()</code> (y por tanto <code>dict(sol)</code>, <code>**sol</code> y la iteración) enumera solo las doce claves heredadas, de modo que <code>dict(sol)</code> omite <code>g_dist</code>, <code>A_generator</code> y <code>mass_residual</code>. Léalos por atributo.</li>
+<li><strong>Truncamiento en <code>a_max</code>.</strong> La frontera superior es una restricción de estado artificial. Si una masa visible de <code>g_dist</code> se acumula en los últimos nodos, aumente <code>a_max</code> (el valor por defecto 30 es holgado para la calibración por defecto: la riqueza media es de alrededor de 6).</li>
+<li><strong>La interfaz y la economía cambiaron en 3.4.0.</strong> <code>solve_hjb_achdou</code> devolvía un diccionario plano con siete claves y usaba <code>max_iter=500</code>, <code>tol=1e-7</code> y un esquema explícito; 3.4.0 devuelve <code>HJBSolution</code>, usa por defecto <code>max_iter=100</code>, <code>tol=1e-8</code> y el esquema implícito, y hace que todos los argumentos posteriores a <code>tol</code> sean exclusivamente por nombre (<em>keyword-only</em>). También añade el término de conmutación de Poisson del ingreso que el solucionador explícito omitía, de modo que el valor y el consumo para argumentos idénticos difieren de forma sustancial respecto a 3.3.0 (Sección 2.2). El código que usaba el diccionario sigue funcionando; el código que dependía de los valores por defecto antiguos debe pasarlos explícitamente, y el código que necesita las <em>cifras</em> antiguas debe pasar <code>A_z=np.zeros((Ne, Ne))</code> con <code>compute_kfe=False</code>.</li>
+<li><strong>NumPy/SciPy puros, float64, sin aceleradores, sin red.</strong> El generador se ensambla en bucles de Python sobre <code>Na * Ne</code> estados y se factoriza con SuperLU; unos pocos miles de estados se resuelven en milisegundos, pero el costo de ensamblaje crece linealmente con <code>Na * Ne**2</code>. El módulo importa solo NumPy, SciPy, pandas y <code>puremacro.reports</code> —matplotlib se importa de forma diferida dentro de <code>plot</code>, así que <code>import puremacro.vfi</code> deja <code>matplotlib</code> fuera de <code>sys.modules</code>— y todo se ejecuta sin conexión. Esa primera importación sigue tardando segundos (2.4 s en la ejecución en frío en la que se basa esta página), mucho más que cualquier resolución de esta página.</li>
+</ul>
+<hr />
+<h2 id="referencias">Referencias</h2>
+<ul>
+<li>Achdou, Y., Han, J., Lasry, J.-M., Lions, P.-L., &amp; Moll, B. (2022). "Income and Wealth Distribution in Macroeconomics: A Continuous-Time Approach." <em>The Review of Economic Studies</em>, 89(1), 45–86.</li>
+<li>Aiyagari, S. R. (1994). "Uninsured Idiosyncratic Risk and Aggregate Saving." <em>The Quarterly Journal of Economics</em>, 109(3), 659–684.</li>
+<li>Barles, G., &amp; Souganidis, P. E. (1991). "Convergence of approximation schemes for fully nonlinear second order equations." <em>Asymptotic Analysis</em>, 4(3), 271–283.</li>
+<li>Huggett, M. (1993). "The risk-free rate in heterogeneous-agent incomplete-insurance economies." <em>Journal of Economic Dynamics and Control</em>, 17(5–6), 953–969.</li>
+<li>Young, E. R. (2010). "Solving the incomplete markets model with aggregate uncertainty using the Krusell-Smith algorithm and non-stochastic simulations." <em>Journal of Economic Dynamics and Control</em>, 34(1), 36–41.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

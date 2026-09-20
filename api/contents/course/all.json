@@ -1,0 +1,29 @@
+{
+  "content": [
+    {
+      "content": null,
+      "created": "2026-09-20T19:26:33.997596Z",
+      "format": null,
+      "hash": null,
+      "hash_algorithm": null,
+      "last_modified": "2026-09-20T19:26:33.997596Z",
+      "mimetype": null,
+      "name": "data",
+      "path": "course/data",
+      "size": null,
+      "type": "directory",
+      "writable": true
+    }
+  ],
+  "created": "2026-09-20T19:26:33.967385Z",
+  "format": "json",
+  "hash": null,
+  "hash_algorithm": null,
+  "last_modified": "2026-09-20T19:26:33.967385Z",
+  "mimetype": null,
+  "name": "course",
+  "path": "course",
+  "size": null,
+  "type": "directory",
+  "writable": true
+}

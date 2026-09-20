@@ -1,0 +1,25 @@
+{
+  "mode": "full",
+  "n_states": 51,
+  "n_districts": 12,
+  "panel_span": "1976-01-01..2025-10-01",
+  "n_state_quarters": 10194,
+  "urate_h0": 0.0007762680612857356,
+  "urate_h4": 0.0373954481837737,
+  "urate_h8": 0.05766795794852185,
+  "urate_h12": 0.054207011599124735,
+  "urate_peak_h": 11,
+  "urate_peak": 0.05908019063601494,
+  "urate_supt_excludes_zero": [
+    1,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "emp_h8": -0.03316088493468851,
+  "supt_crit_urate": 2.0332771634605566,
+  "coverage_gaps_quarters": 1,
+  "runtime_seconds": 129.7
+}
