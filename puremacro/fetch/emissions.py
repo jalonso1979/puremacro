@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
-from typing import Sequence
+from collections.abc import Sequence
 
 import numpy as np
 import pandas as pd
@@ -138,7 +138,7 @@ def fetch_wdi_emissions(
     if codes is not None and len(codes) == 0:
         return _EMPTY.copy()
 
-    requested_codes = set(c.strip().upper() for c in codes) if codes is not None else None
+    requested_codes = {c.strip().upper() for c in codes} if codes is not None else None
 
     # Determine indicators to query
     if indicators is None:
@@ -155,7 +155,7 @@ def fetch_wdi_emissions(
     else:
         country_param = "all"
 
-    records: list[dict[str, object]] = []
+    records = []
 
     for ind in target_indicators:
         query_ind = _LEGACY_TO_AR5.get(ind, ind)
@@ -176,75 +176,96 @@ def fetch_wdi_emissions(
         if not isinstance(payload, list) or len(payload) < 2 or not isinstance(payload[1], list):
             continue
 
-        for item in payload[1]:
-            if not isinstance(item, dict):
-                continue
+        batch_df = pd.DataFrame.from_records([item for item in payload[1] if isinstance(item, dict)])
+        if batch_df.empty:
+            continue
 
-            # Country code resolution
-            iso3 = item.get("countryiso3code")
-            if not iso3 or not isinstance(iso3, str):
-                country_obj = item.get("country")
-                if isinstance(country_obj, dict):
-                    iso3 = country_obj.get("id")
-            if not isinstance(iso3, str):
-                continue
-            iso3 = iso3.strip().upper()
-            if not is_country(iso3):
-                continue
-            if requested_codes is not None and iso3 not in requested_codes:
-                continue
+        # Country code resolution
+        if "countryiso3code" in batch_df.columns:
+            iso3_series = batch_df["countryiso3code"]
+        else:
+            iso3_series = pd.Series([None] * len(batch_df), index=batch_df.index)
 
-            # Value resolution
-            raw_val = item.get("value")
-            if raw_val is None or pd.isna(raw_val):
-                continue
-            try:
-                val = float(raw_val)
-            except (ValueError, TypeError, Exception):
-                continue
+        # fill missing with country.id if available
+        if "country" in batch_df.columns:
+            country_dicts = batch_df["country"]
+            mask_missing = iso3_series.isna() | (iso3_series == "")
+            if mask_missing.any():
+                def extract_country_id(c):
+                    return c.get("id") if isinstance(c, dict) else None
+                iso3_series.loc[mask_missing] = country_dicts.loc[mask_missing].apply(extract_country_id)
 
-            # Date resolution
-            raw_date = item.get("date")
-            if not raw_date:
-                continue
-            try:
-                rec_year = int(str(raw_date)[:4])
-            except (ValueError, TypeError, Exception):
-                continue
-            if rec_year < start_year or (end_year is not None and rec_year > end_year):
-                continue
-            date_ts = pd.Timestamp(f"{rec_year}-01-01")
+        batch_df["iso3"] = iso3_series.astype(str).str.strip().str.upper()
+        # Drop rows where iso3 is essentially missing or just 'NAN'/'NONE' from astype(str)
+        batch_df = batch_df[~batch_df["iso3"].isin(["NAN", "NONE", ""])]
+        if batch_df.empty:
+            continue
 
-            # Indicator metadata & scaling
-            item_ind = item.get("indicator", {})
-            ind_id = item_ind.get("id", query_ind) if isinstance(item_ind, dict) else query_ind
-            cfg = _INDICATOR_CONFIG.get(ind_id)
-            if cfg is None:
-                # Check legacy mapping
-                mapped_id = _LEGACY_TO_AR5.get(ind_id, ind_id)
-                cfg = _INDICATOR_CONFIG.get(mapped_id)
+        batch_df = batch_df[batch_df["iso3"].apply(is_country)]
+        if requested_codes is not None:
+            batch_df = batch_df[batch_df["iso3"].isin(requested_codes)]
 
-            if cfg is not None:
-                var_name = str(cfg["variable"])
-                multiplier = float(cfg["multiplier"])
-                scaled_val = val * multiplier
-            else:
-                var_name = ind_id.lower().replace(".", "_") + "_a"
-                scaled_val = val
+        if batch_df.empty:
+            continue
 
-            records.append({
-                "code": iso3,
-                "date": date_ts,
-                "variable": var_name,
-                "value": scaled_val,
-                "sa_source": "none",
-                "source": f"WorldBank:WDI:{ind_id}",
-            })
+        # Value resolution
+        if "value" not in batch_df.columns:
+            continue
+        batch_df["value"] = pd.to_numeric(batch_df["value"], errors="coerce")
+        batch_df = batch_df.dropna(subset=["value"])
+        if batch_df.empty:
+            continue
+
+        # Date resolution
+        if "date" not in batch_df.columns:
+            continue
+        batch_df["rec_year"] = batch_df["date"].astype(str).str[:4]
+        batch_df["rec_year"] = pd.to_numeric(batch_df["rec_year"], errors="coerce")
+        batch_df = batch_df.dropna(subset=["rec_year"])
+        batch_df = batch_df[batch_df["rec_year"] >= start_year]
+        if end_year is not None:
+            batch_df = batch_df[batch_df["rec_year"] <= end_year]
+        if batch_df.empty:
+            continue
+
+        batch_df["date_ts"] = pd.to_datetime(batch_df["rec_year"].astype(int).astype(str) + "-01-01")
+
+        # Indicator metadata & scaling
+        if "indicator" in batch_df.columns:
+            # Vectorized indicator processing
+            # extract id
+            def extract_id(item_ind, def_ind=query_ind):
+                return item_ind.get("id", def_ind) if isinstance(item_ind, dict) else def_ind
+            ind_ids = batch_df["indicator"].apply(extract_id)
+
+            # Map variables and multipliers
+            def map_var(ind_id):
+                cfg = _INDICATOR_CONFIG.get(ind_id) or _INDICATOR_CONFIG.get(_LEGACY_TO_AR5.get(ind_id, ind_id))
+                return str(cfg["variable"]) if cfg else ind_id.lower().replace(".", "_") + "_a"
+
+            def map_mult(ind_id):
+                cfg = _INDICATOR_CONFIG.get(ind_id) or _INDICATOR_CONFIG.get(_LEGACY_TO_AR5.get(ind_id, ind_id))
+                return float(cfg["multiplier"]) if cfg else 1.0
+
+            batch_df["variable"] = ind_ids.map(map_var)
+            batch_df["value"] = batch_df["value"] * ind_ids.map(map_mult)
+            batch_df["source"] = "WorldBank:WDI:" + ind_ids
+        else:
+            batch_df["variable"] = query_ind.lower().replace(".", "_") + "_a"
+            batch_df["source"] = "WorldBank:WDI:" + query_ind
+
+        batch_df["sa_source"] = "none"
+
+        # Select and rename columns
+        batch_df["code"] = batch_df["iso3"]
+        batch_df["date"] = batch_df["date_ts"]
+
+        records.append(batch_df[["code", "date", "variable", "value", "sa_source", "source"]])
 
     if not records:
         return _EMPTY.copy()
 
-    df = pd.DataFrame(records, columns=["code", "date", "variable", "value", "sa_source", "source"])
+    df = pd.concat(records, ignore_index=True)
     df = df.drop_duplicates(subset=["code", "date", "variable"], keep="first")
     df = df.sort_values(["code", "variable", "date"]).reset_index(drop=True)
     return df
@@ -288,7 +309,7 @@ def fetch_oecd_ghg(
     if codes is not None and len(codes) == 0:
         return _EMPTY.copy()
 
-    requested_codes = set(c.strip().upper() for c in codes) if codes is not None else None
+    requested_codes = {c.strip().upper() for c in codes} if codes is not None else None
 
     # Resolve sector codes
     if sectors is None:
@@ -320,63 +341,57 @@ def fetch_oecd_ghg(
     if sub.empty:
         return _EMPTY.copy()
 
-    records: list[dict[str, object]] = []
+    # 1. Filter out invalid areas and types
+    sub["REF_AREA"] = sub["REF_AREA"].astype(str).str.strip().str.upper()
+    if requested_codes is not None:
+        sub = sub[sub["REF_AREA"].isin(requested_codes)]
 
-    for _, row in sub.iterrows():
-        ref_area = row.get("REF_AREA")
-        if not isinstance(ref_area, str):
-            continue
-        code = ref_area.strip().upper()
-        if not is_country(code):
-            continue
-        if requested_codes is not None and code not in requested_codes:
-            continue
+    sub = sub[sub["REF_AREA"].apply(is_country)]
 
-        obs_val = row.get("OBS_VALUE")
-        if obs_val is None or pd.isna(obs_val):
-            continue
-        try:
-            val = float(obs_val)
-        except (ValueError, TypeError, Exception):
-            continue
-
-        # Scale factor: UNIT_MULT=3 means thousands of tonnes = kilotonnes (kt).
-        # If UNIT_MULT is present, scale relative to 10^3.
-        unit_mult = row.get("UNIT_MULT") if "UNIT_MULT" in row else None
-        if unit_mult is not None and not pd.isna(unit_mult):
-            try:
-                m = float(unit_mult)
-                val = val * (10.0 ** (m - 3.0))
-            except (ValueError, TypeError, Exception):
-                pass
-
-        time_period = str(row.get("TIME_PERIOD", "")).strip()
-        if not time_period:
-            continue
-        try:
-            rec_year = int(time_period[:4])
-        except (ValueError, TypeError, Exception):
-            continue
-        if rec_year < start_year or (end_year is not None and rec_year > end_year):
-            continue
-        date_ts = pd.Timestamp(f"{rec_year}-01-01")
-
-        measure = str(row.get("MEASURE", "")).strip()
-        var_name = _OECD_SECTOR_MAP.get(measure, f"ghg_{measure.lower()}_kt_a")
-
-        records.append({
-            "code": code,
-            "date": date_ts,
-            "variable": var_name,
-            "value": val,
-            "sa_source": "none",
-            "source": f"OECD:DSD_AIR_GHG@DF_AIR_GHG:{measure}",
-        })
-
-    if not records:
+    if sub.empty:
         return _EMPTY.copy()
 
-    df = pd.DataFrame(records, columns=["code", "date", "variable", "value", "sa_source", "source"])
+    # 2. Filter OBS_VALUE
+    sub["OBS_VALUE"] = pd.to_numeric(sub["OBS_VALUE"], errors="coerce")
+    sub = sub.dropna(subset=["OBS_VALUE"])
+
+    if sub.empty:
+        return _EMPTY.copy()
+
+    # 3. Unit mult
+    if "UNIT_MULT" in sub.columns:
+        sub["UNIT_MULT"] = pd.to_numeric(sub["UNIT_MULT"], errors="coerce")
+        # For non-null UNIT_MULT, val = val * 10 ** (m - 3)
+        # For null UNIT_MULT, val = val
+        multiplier = 10.0 ** (sub["UNIT_MULT"].fillna(3.0) - 3.0)
+        sub["OBS_VALUE"] = sub["OBS_VALUE"] * multiplier
+
+    # 4. time_period
+    sub["TIME_PERIOD"] = sub["TIME_PERIOD"].astype(str).str.strip().str[:4]
+    sub["TIME_PERIOD"] = pd.to_numeric(sub["TIME_PERIOD"], errors="coerce")
+    sub = sub.dropna(subset=["TIME_PERIOD"])
+    sub = sub[sub["TIME_PERIOD"] >= start_year]
+    if end_year is not None:
+        sub = sub[sub["TIME_PERIOD"] <= end_year]
+
+    if sub.empty:
+        return _EMPTY.copy()
+
+    # 5. create result cols
+    sub["code"] = sub["REF_AREA"]
+    sub["date"] = pd.to_datetime(sub["TIME_PERIOD"].astype(int).astype(str) + "-01-01")
+
+    def map_measure(m: str) -> str:
+        m = str(m).strip()
+        return _OECD_SECTOR_MAP.get(m, f"ghg_{m.lower()}_kt_a")
+
+    sub["variable"] = sub["MEASURE"].apply(map_measure)
+    sub["value"] = sub["OBS_VALUE"]
+    sub["sa_source"] = "none"
+    sub["source"] = "OECD:DSD_AIR_GHG@DF_AIR_GHG:" + sub["MEASURE"].astype(str).str.strip()
+
+    df = sub[["code", "date", "variable", "value", "sa_source", "source"]]
+
     df = df.drop_duplicates(subset=["code", "date", "variable"], keep="first")
     df = df.sort_values(["code", "variable", "date"]).reset_index(drop=True)
     return df
@@ -440,29 +455,33 @@ def fetch_emissions_panel(
         return merged.sort_values(["code", "variable", "date"]).reset_index(drop=True)
 
     # Quarterly expansion: expand each annual observation into 4 quarterly periods
-    q_records: list[dict[str, object]] = []
-    for _, row in merged.iterrows():
-        base_year = row["date"].year
-        var_name = str(row["variable"])
-        q_var = var_name[:-2] + "_q" if var_name.endswith("_a") else var_name + "_q"
-        q_source = f"resampled_from_A:{row['source']}"
+    merged["_q_var"] = merged["variable"].astype(str).str.replace(r"_a$", "_q", regex=True)
+    mask = ~merged["variable"].astype(str).str.endswith("_a")
+    if mask.any():
+        merged.loc[mask, "_q_var"] = merged.loc[mask, "variable"].astype(str) + "_q"
 
-        for m in (1, 4, 7, 10):
-            q_records.append({
-                "code": row["code"],
-                "date": pd.Timestamp(f"{base_year}-{m:02d}-01"),
-                "variable": q_var,
-                "value": row["value"],
-                "sa_source": row["sa_source"],
-                "source": q_source,
-            })
+    merged["_q_source"] = "resampled_from_A:" + merged["source"].astype(str)
 
-    if not q_records:
-        return _EMPTY.copy()
+    # Repeat rows 4 times
+    idx_repeated = merged.index.repeat(4)
+    q_df = merged.loc[idx_repeated].copy()
 
-    q_df = pd.DataFrame(q_records, columns=["code", "date", "variable", "value", "sa_source", "source"])
+    # Generate months using np.repeat to ensure alignment with the index repetition
+    months = np.tile([1, 4, 7, 10], len(merged))
+
+    # Create the new dates (base_year-month-01)
+    base_years = q_df["date"].dt.year
+    q_df["date"] = pd.to_datetime(
+        base_years.astype(str) + "-" + pd.Series(months, index=q_df.index).astype(str).str.zfill(2) + "-01",
+        format="%Y-%m-%d"
+    )
+
+    q_df["variable"] = q_df["_q_var"]
+    q_df["source"] = q_df["_q_source"]
+
+    q_df = q_df[["code", "date", "variable", "value", "sa_source", "source"]]
     q_df = q_df.sort_values(["code", "variable", "date"]).reset_index(drop=True)
     return q_df
 
 
-__all__ = ["fetch_wdi_emissions", "fetch_oecd_ghg", "fetch_emissions_panel"]
+__all__ = ["fetch_emissions_panel", "fetch_oecd_ghg", "fetch_wdi_emissions"]
