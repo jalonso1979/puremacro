@@ -167,6 +167,10 @@ def run_pytest_collect_failures(repo_root: Path) -> set[str]:
         cmd, cwd=repo_root, capture_output=True, text=True, encoding="utf-8",
         errors="replace", timeout=PYTEST_BASELINE_TIMEOUT_S,
     )
+    for line in reversed(proc.stdout.splitlines()):
+        if re.search(r"\b\d+ (passed|failed|errors?|skipped|deselected)\b", line):
+            print(f"    pytest: {line}", flush=True)
+            break
     if proc.returncode not in (0, 1):
         raise RuntimeError(
             f"pytest exited with code {proc.returncode} "
@@ -653,6 +657,8 @@ def _fan_out(
             assert proc.stdin is not None
             proc.stdin.write("\n".join(sl) + "\n")
             proc.stdin.close()
+            # communicate() otherwise tries to flush this already-closed pipe.
+            proc.stdin = None
         problems: list[str] = []
         for proc in procs:
             out, _err = proc.communicate(timeout=timeout)

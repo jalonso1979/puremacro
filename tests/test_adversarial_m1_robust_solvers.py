@@ -112,9 +112,12 @@ class TestAdversarialHawkinsSimon:
         assert t_elapsed < 0.15, f"Hawkins-Simon check took too long: {t_elapsed:.4f}s >= 0.15s"
 
         err_msg = str(exc_info.value)
-        assert "violates Hawkins-Simon viability condition" in err_msg
-        assert "spectral radius rho(B_tau) =" in err_msg
-        assert ">= 1.0" in err_msg
+        # A reducible network can leave the lower bound below one even when
+        # the dominant block is non-viable. Such a case must be rejected as
+        # unresolved, not misreported as a proof from a point estimate.
+        assert ("violates Hawkins-Simon viability condition" in err_msg
+                or "unresolved Hawkins-Simon viability" in err_msg)
+        assert "spectral bounds [" in err_msg
 
     @pytest.mark.parametrize("tau_val", [0.5, 1.0, 2.0])
     def test_subcritical_high_tariffs_valid_cw_bounds(
@@ -130,8 +133,9 @@ class TestAdversarialHawkinsSimon:
         assert cw_lower <= rho <= cw_upper + 1e-10, (
             f"Collatz-Wielandt inclusion violated: lower={cw_lower:.6f}, rho={rho:.6f}, upper={cw_upper:.6f}"
         )
-        # Verify inclusion interval tightness
-        assert (cw_upper - cw_lower) < 0.10, f"CW bounds too loose: [{cw_lower}, {cw_upper}]"
+        # Certification requires the upper bound below one. Reducibility
+        # does not guarantee a narrow global Collatz-Wielandt interval.
+        assert cw_upper < 1.0 - 1e-6
 
     def test_critical_boundary_transition_and_monotonicity(
         self, empirical_calib: TradeCalibrationResult

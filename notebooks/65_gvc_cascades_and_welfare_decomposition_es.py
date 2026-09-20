@@ -150,7 +150,6 @@ axes[0].set(title="Synthetic networks: spectral upper bound", ylabel="Upper boun
 outcomes.set_index("country")["EV_pct_consumption"].plot.bar(ax=axes[1], color=_nbstyle.NOTA, rot=0)
 axes[1].set(title="Synthetic tariff experiment", ylabel="EV / baseline consumption (%)")
 axes[1].axhline(0, color=_nbstyle.SPINE, linewidth=.6)
-plt.show()
 
 # %% [markdown]
 # ## Lectura de los resultados

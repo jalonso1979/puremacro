@@ -235,7 +235,26 @@ Los momentos suministrados deben compararse realmente. Si su cálculo no está d
 
 `run_parity_suite(test_dir, dynare_results={"modelo": referencia})` requiere referencias cargadas por el usuario. Los modelos sin referencia son `UNAVAILABLE`. Las pruebas internas de serialización no constituyen ejecuciones externas de Dynare.
 
-La CLI no puede cargar referencias de paridad; use las interfaces Python descritas arriba. No se realizó una nueva ejecución externa de Dynare de tercer orden en esta revisión. Las correcciones de riesgo se contrastaron con casos analíticos cerrados.
+La CLI no puede cargar referencias de paridad; use la API de Python con los resultados externos explícitos:
+
+```python
+# requires: standalone snippet
+import scipy.io
+
+from puremacro.dsge.parity import verify_dynare_parity, run_parity_suite
+
+# El usuario carga su archivo externo; puremacro recibe el diccionario.
+oo = scipy.io.loadmat("sw07_results.mat", squeeze_me=True, struct_as_record=False)
+report = verify_dynare_parity(
+    puremacro_model="sw07.mod", dynare_output=oo, order=2,
+)
+print(report.to_markdown())
+suite_report = run_parity_suite("models/", dynare_results={"sw07": oo}, order=2)
+assert suite_report.passed
+```
+
+Las correcciones de riesgo se contrastaron con casos analíticos y, posteriormente,
+con las ejecuciones externas de órdenes dos y tres descritas al final de esta página.
 
 ## 6. Dependencias y portabilidad
 

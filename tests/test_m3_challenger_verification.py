@@ -341,12 +341,15 @@ def test_nbstyle_figura_presets_and_overrides():
 # --- Test 5: Adversarial Residual Grayscale & SyntaxWarning Scan ---
 
 def test_all_notebooks_residual_styling_and_syntax():
-    """Scan all 130 showcase .py files for residual styling, plt calls, and syntax warnings."""
+    """Scan the complete showcase for residual styling and syntax warnings."""
     import py_compile
     import warnings
 
     py_files = _get_all_showcase_notebooks(".py")
-    assert len(py_files) == 130, f"Expected 130 showcase scripts, found {len(py_files)}"
+    assert len(py_files) >= 130
+    assert {p.stem for p in py_files} == {
+        p.stem for p in _get_all_showcase_notebooks(".ipynb")
+    }, "Every showcase must have both source and rendered notebook"
 
     # 1. Check Python 3.12+ SyntaxWarnings and compilation errors
     compile_issues = []

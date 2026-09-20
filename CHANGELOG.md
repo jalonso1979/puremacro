@@ -30,6 +30,19 @@ This file records user-visible changes per release. Internal refactors that don'
 - The new welfare model is conditional consumption welfare; investment is excluded and native OECD C includes government consumption. Full-size native GE, flexible/GPU welfare, other fiscal closures and the historical geopolitical scenario wrapper are outside the new validation.
 - Grid/refinement checks are conditional on tariff ceilings and resolution, not global Nash proofs. Absolute equilibrium tolerances must fit the calibration's units; the frozen OECD fixture uses an explicitly requested `ge_tol=1e-5`.
 
+### Known issues
+
+The following issues were also present in the 4.2.0 CI run. Follow-up is targeted
+for 4.3.1; these are not fixed by the new Hicksian policy engine.
+
+- `dataclasses.replace` can conflict with stored aliases in flexible trade configurations or retain the old variety-condensation flag. Construct a fresh configuration with the desired values.
+- The harmonic-mean estimator does not consistently reject collinear posterior draws on every numerical stack. Check covariance rank and reject singular draws before calling it.
+- Legacy flexible welfare components can close only to about `3e-8` in large monetary units. Use scale-aware closure checks; for expenditure-function welfare, use the supported consistent-accounting/Hicksian API.
+- Two VIF bit-identity checks and one exact-zero QuantReg residual-tie check differ on the current NumPy/BLAS stack. Use numerical tolerances for cross-library comparisons and audit uncertainty estimates for tied quantile samples.
+
+The release baseline records 11 affected tests with provenance and workarounds;
+the raw cross-platform CI suite may remain red on these cases.
+
 See [structural validation status](docs/STRUCTURAL_VALIDATION_STATUS.md), [policy usage](docs/trade_policy.md), and [correctness advisories](docs/ADVISORY.md) for evidence and rerun guidance.
 
 ## 4.2.0 (2026-09-18)

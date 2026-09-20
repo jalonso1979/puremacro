@@ -730,7 +730,7 @@ def test_higher_order_plot_draws_one_panel_per_label(demo, knn3):
                      spillover_orders=(1, 2))
     fig = res.plot()
     assert len(fig.axes) == 5
-    assert "order 2" in fig.axes[2].get_title()
+    assert "order 2" in fig.axes[2].get_title(loc=plt.rcParams["axes.titlelocation"])
     plt.close(fig)
     fig = res.plot(kind="cumulative", components=("indirect2",))
     assert len(fig.axes) == 1

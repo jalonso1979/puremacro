@@ -123,8 +123,8 @@ class TestTask1Order3SimulationStability10k:
 class TestTask2ExtremeShocksPrunedVsUnpruned:
     """Subject model to extreme 10-sigma shocks and verify bounded pruned trajectories vs unpruned explosion."""
 
-    def test_10_sigma_single_shock_pruned_bounded_vs_unpruned_explosion(self):
-        """Hit model with +10 sigma and -10 sigma shocks: unpruned explodes, pruned remains bounded."""
+    def test_10_sigma_single_shock_pruned_bounded(self):
+        """Both signs of a 10-sigma shock give finite, bounded pruned paths."""
         def eqs(lead, curr, lag, shocks, p):
             return [
                 curr.c**(-p.gamma) - p.beta * lead.c**(-p.gamma) * (p.alpha * curr.k**(p.alpha - 1.0) + 1.0 - p.delta),
@@ -151,36 +151,10 @@ class TestTask2ExtremeShocksPrunedVsUnpruned:
             assert not np.isinf(k_pruned).any(), f"Inf in pruned k under {label}"
             assert np.max(np.abs(k_pruned)) < 10.0, f"Pruned k exceeded bound under {label}"
 
-            # 2. Unpruned simulation
-            x_unpruned = np.zeros(sol.n_states)
-            exploded = False
-            for t in range(50):
-                u_t = shock_seq[t]
-                kx_x = np.outer(x_unpruned, x_unpruned).ravel()
-                kx_u = np.outer(x_unpruned, u_t).ravel()
-                ku_u = np.outer(u_t, u_t).ravel()
-                kx3 = np.outer(kx_x, x_unpruned).ravel()
-                kx2_u = np.outer(kx_x, u_t).ravel()
-                kx_u2 = np.outer(x_unpruned, ku_u).ravel()
-                ku3 = np.outer(ku_u, u_t).ravel()
-
-                x_next = (
-                    sol.G @ x_unpruned
-                    + sol.N @ u_t
-                    + 0.5 * (sol.H_xx @ kx_x)
-                    + sol.H_xu @ kx_u
-                    + 0.5 * (sol.H_uu @ ku_u)
-                    + (1.0 / 6.0) * (sol.H_xxx @ kx3)
-                    + 0.5 * (sol.H_xxu @ kx2_u)
-                    + 0.5 * (sol.H_xuu @ kx_u2)
-                    + (1.0 / 6.0) * (sol.H_uuu @ ku3)
-                )
-                if np.any(np.isnan(x_next)) or np.any(np.isinf(x_next)) or np.max(np.abs(x_next)) > 1e6:
-                    exploded = True
-                    break
-                x_unpruned = x_next
-
-            assert exploded is True, f"Unpruned simulation unexpectedly did not explode under {label}"
+            # Non-explosion of an unpruned local polynomial is not a solver
+            # failure. The old test demanded explosion for these parameters
+            # using a hand-written recurrence that omitted risk corrections.
+            # Tensor/path correctness is covered by the frozen Dynare cases.
 
     def test_repeated_extreme_shocks_pruned_resilience(self):
         """Sequence of 50 extreme shocks of magnitude 10*sigma alternating sign."""

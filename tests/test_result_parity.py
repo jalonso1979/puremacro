@@ -372,8 +372,9 @@ def test_vfi_solution_elevation():
     # plot with pre-allocated axes
     fig2, (ax1, ax2) = plt.subplots(1, 2)
     sol.plot(ax=(ax1, ax2), show=False)
-    assert ax1.get_title() == "Value Function V(a, z)"
-    assert ax2.get_title() == "Policy Function a'(a, z)"
+    title_loc = plt.rcParams["axes.titlelocation"]
+    assert ax1.get_title(loc=title_loc) == "Value Function V(a, z)"
+    assert ax2.get_title(loc=title_loc) == "Policy Function a'(a, z)"
 
 
 def test_vfi_problem_solve_returns_elevated_solution():

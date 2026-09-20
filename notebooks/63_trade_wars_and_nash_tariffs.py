@@ -120,7 +120,6 @@ iterations = [h["iteration"] for h in nash.iteration_history]
 gaps = [h["undamped_update_gap"] for h in nash.iteration_history]
 axes[1].semilogy(iterations, np.maximum(gaps, 1e-16), marker="o", color=_nbstyle.TINTA)
 axes[1].set(title="Undamped iteration gaps", xlabel="Iteration", ylabel="Policy gap")
-plt.show()
 
 # %% [markdown]
 # ## Read the output

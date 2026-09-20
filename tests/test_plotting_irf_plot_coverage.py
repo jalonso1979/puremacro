@@ -196,7 +196,7 @@ class TestPlotIrfContract:
             target_labels=["Y", "P"],
             shock_labels=shock_labels,
         )
-        titles = [ax.get_title() for ax in fig.axes[:2]]
+        titles = [ax.get_title(loc=plt.rcParams["axes.titlelocation"]) for ax in fig.axes[:2]]
         for sl in shock_labels:
             assert any(sl in t for t in titles)
         plt.close(fig)

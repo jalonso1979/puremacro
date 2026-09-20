@@ -22,7 +22,7 @@ The reproducible probes are in [reproduce.py](reproduce.py), with results in [ob
 
 **1. Trade: the “exact Hicksian EV” is defined by the decomposition, not independently measured. High priority; uncommitted addition.**
 
-[policy_analytics.py:1621](/Users/jalonso/Documents/RESEARCH/puremacro/puremacro/trade/policy_analytics.py:1621) takes the level of counterfactual tariff revenue divided by CPI without subtracting baseline revenue. At line 1631 it defines `ev_usd = delta_tot_usd + delta_alloc_usd + delta_tariff_rec_usd`, then checks that the same sum equals EV. The zero residual is an arithmetic identity; it cannot certify Hicksian welfare accounting.
+[policy_analytics.py:1621](https://github.com/jalonso1979/puremacro/blob/v4.2.0/puremacro/trade/policy_analytics.py#L1621) takes the level of counterfactual tariff revenue divided by CPI without subtracting baseline revenue. At line 1631 it defines `ev_usd = delta_tot_usd + delta_alloc_usd + delta_tariff_rec_usd`, then checks that the same sum equals EV. The zero residual is an arithmetic identity; it cannot certify Hicksian welfare accounting.
 
 The decisive counterexample uses **the same solved tariff equilibrium as both baseline and counterfactual**. True EV must be zero. The function returns **70.9104753232**, with an identity residual of **0**. In addition, its import-price calculation averages source-country prices before weighting by flows, and its Fisher construction omits final-demand trade. These are not sufficient statistics for a general exact expenditure-function decomposition.
 
@@ -30,7 +30,7 @@ Repair: obtain EV independently from the model's expenditure function and utilit
 
 **2. Trade: theorem “verification” mostly imposes the proposed conclusions. High priority; uncommitted addition.**
 
-[policy_analytics.py:1145](/Users/jalonso/Documents/RESEARCH/puremacro/puremacro/trade/policy_analytics.py:1145) reduces the calibration to a few averages and substitutes constructed formulas for solved Leontief and CES equilibria. Examples include setting Leontief output/imports to their baseline values, assigning CES GDP loss to a Harberger formula after computing a different GDP expression, imposing import-volume rankings, and evaluating tariff revenue on an assumed demand curve. At line 1286, `max(tot_gain - dwl_loss_loe, 0.01)` explicitly prevents the reported gain from being negative. At zero tariffs, line 1282 evaluates the large-open-economy calculation at a 10% tariff instead.
+[policy_analytics.py:1145](https://github.com/jalonso1979/puremacro/blob/v4.2.0/puremacro/trade/policy_analytics.py#L1145) reduces the calibration to a few averages and substitutes constructed formulas for solved Leontief and CES equilibria. Examples include setting Leontief output/imports to their baseline values, assigning CES GDP loss to a Harberger formula after computing a different GDP expression, imposing import-volume rankings, and evaluating tariff revenue on an assumed demand curve. At line 1286, `max(tot_gain - dwl_loss_loe, 0.01)` explicitly prevents the reported gain from being negative. At zero tariffs, line 1282 evaluates the large-open-economy calculation at a 10% tariff instead.
 
 Probe: a zero-tariff scenario reports **12.5640058386** of large-economy welfare gains and passes all four checks. The 99.3% rebate “theorem” is also a calibration-dependent numerical claim, not a general theorem established by the function.
 
@@ -38,7 +38,7 @@ Repair: separate analytical examples from empirical tests. State each propositio
 
 **3. DSGE: third-order risk slopes fail an exact polynomial benchmark. High priority; committed code.**
 
-The risk-correction assembly in [dynare.py:1520](/Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/dynare.py:1520) is incorrect for this simple model:
+The risk-correction assembly in [dynare.py:1520](https://github.com/jalonso1979/puremacro/blob/v4.2.0/puremacro/dsge/dynare.py#L1520) is incorrect for this simple model:
 
 ```text
 x_t = rho*x_(t-1) + e_t,       Var(e_t) = s²
@@ -65,15 +65,15 @@ Repair: rederive the complete risk-slope equations, including propagation/timing
 
 **4. Dynare: a 100% parity score does not establish full second-order parity. High priority; committed code.**
 
-[parity.py:238](/Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/parity.py:238) calculates steady-state discrepancies without including them in pass/fail. It checks `ghxx` and `ghs2` at order two but omits `ghxu` and `ghuu`. Some malformed/missing moment comparisons default to zero deviation; exceptions are swallowed. Column alignment also needs to be by state and shock names, not only by variable rows.
+[parity.py:238](https://github.com/jalonso1979/puremacro/blob/v4.2.0/puremacro/dsge/parity.py#L238) calculates steady-state discrepancies without including them in pass/fail. It checks `ghxx` and `ghs2` at order two but omits `ghxu` and `ghuu`. Some malformed/missing moment comparisons default to zero deviation; exceptions are swallowed. Column alignment also needs to be by state and shock names, not only by variable rows.
 
 Probe: add **1,000** to every steady state, `ghxu`, and `ghuu` entry in a second-order reference. The dashboard reports **passed=True, score=100.0**. The omitted cross-shock and shock-curvature terms are part of the second-order decision rule in the [official Dynare manual](https://www.dynare.org/manual/the-model-file.html).
 
-Repair: check every required tensor, steady states, labeled row/column ordering, finite values, shapes, covariance assumptions, and requested moments. Distinguish PASS, FAIL, and UNAVAILABLE. A comparison skipped because of an exception must not increase confidence. Also update the parity documentation: the advertised CLI deliberately exits with an error since 4.0.0 ([cli.py:167](/Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/cli.py:167)).
+Repair: check every required tensor, steady states, labeled row/column ordering, finite values, shapes, covariance assumptions, and requested moments. Distinguish PASS, FAIL, and UNAVAILABLE. A comparison skipped because of an exception must not increase confidence. Also update the parity documentation: the advertised CLI deliberately exits with an error since 4.0.0 ([cli.py:167](https://github.com/jalonso1979/puremacro/blob/v4.2.0/puremacro/dsge/cli.py#L167)).
 
 **5. VFI: least-squares termination is accepted as Euler-equation convergence. High priority; committed code.**
 
-In [collocation.py:871](/Users/jalonso/Documents/RESEARCH/puremacro/puremacro/vfi/collocation.py:871), MINPACK LM success sets `converged=True`; the final residual check can only turn the flag on, not off. LM can successfully minimize a nonzero residual without finding a root.
+In [collocation.py:871](https://github.com/jalonso1979/puremacro/blob/v4.2.0/puremacro/vfi/collocation.py#L871), MINPACK LM success sets `converged=True`; the final residual check can only turn the flag on, not off. LM can successfully minimize a nonzero residual without finding a root.
 
 Probe: supply the valid residual callback `R(s)=1`, which has no solution, and request tolerance `1e-10`. Returned result: **converged=True, residual_norm=1.0**. Related success-or-residual patterns occur in FEM and Smolyak, including fixed residual thresholds independent of requested tolerance. Those paths need the same audit.
 
@@ -81,7 +81,7 @@ Repair: compute convergence from the finite, unmodified final equilibrium residu
 
 **6. Trade: CES equilibrium solutions are postprocessed using Leontief quantities. High priority; committed code, affecting newer analyses.**
 
-[equilibrium.py:313](/Users/jalonso/Documents/RESEARCH/puremacro/puremacro/trade/equilibrium.py:313) correctly changes intermediate demand with `sigma`. However, [postprocessing.py:237](/Users/jalonso/Documents/RESEARCH/puremacro/puremacro/trade/postprocessing.py:237) reconstructs `x_mat = calib.a * ytot` regardless of substitution, and its intermediate price calculation is also Leontief. The solver passes extension settings as metadata, which does not make the postprocessor apply them.
+[equilibrium.py:313](https://github.com/jalonso1979/puremacro/blob/v4.2.0/puremacro/trade/equilibrium.py#L313) correctly changes intermediate demand with `sigma`. However, [postprocessing.py:237](https://github.com/jalonso1979/puremacro/blob/v4.2.0/puremacro/trade/postprocessing.py#L237) reconstructs `x_mat = calib.a * ytot` regardless of substitution, and its intermediate price calculation is also Leontief. The solver passes extension settings as metadata, which does not make the postprocessor apply them.
 
 Probe: a two-country/two-sector case with `sigma=2` converges to residual **8.37e-11**. Reported intermediate flows differ from the demand equations at that returned solution by **19.2481** in the table's units, and agree with the Leontief quantities exactly. Trade volumes, tariff revenue, and downstream welfare decompositions can therefore describe a different model from the one solved.
 
@@ -89,7 +89,7 @@ Repair: use a shared economic evaluation routine for both residual construction 
 
 **7. Trade: switching to Keller PAC can silently change the tariff experiment. High priority; uncommitted addition.**
 
-[solver.py:2146](/Users/jalonso/Documents/RESEARCH/puremacro/puremacro/trade/solver.py:2146) selects a target from `tau`/`tauf`, dropping `tau_fd` and `tauf_fd`. The resolved tariff arrays are not passed through to PAC.
+[solver.py:2146](https://github.com/jalonso1979/puremacro/blob/v4.2.0/puremacro/trade/solver.py#L2146) selects a target from `tau`/`tauf`, dropping `tau_fd` and `tauf_fd`. The resolved tariff arrays are not passed through to PAC.
 
 Probe: `tau_fd=[.2,0]` produces **73.4607** of tariff revenue under ordinary Newton. With `method="keller_pac"`, the returned solution is exactly the zero-tariff baseline, with zero revenue. Both report convergence.
 
@@ -99,7 +99,7 @@ Repair: pass complete start/target tariff schedules, make method changes preserv
 
 **8. MRIO: missing empirical data silently become synthetic calibrations. High priority; uncommitted addition.**
 
-The new loaders default to synthetic fallback. [data.py:1086](/Users/jalonso/Documents/RESEARCH/puremacro/puremacro/trade/data.py:1086) also takes the synthetic path whenever custom dimensions are supplied, before checking the file or the fallback option. FIGARO's synthetic records are renamed `Eurostat_FIGARO_Harmonized`; [the calibration packaging step](/Users/jalonso/Documents/RESEARCH/puremacro/puremacro/trade/data.py:1028) does not retain their provenance, year, currency-conversion assumptions, or regularization history in result metadata.
+The new loaders default to synthetic fallback. [data.py:1086](https://github.com/jalonso1979/puremacro/blob/v4.2.0/puremacro/trade/data.py#L1086) also takes the synthetic path whenever custom dimensions are supplied, before checking the file or the fallback option. FIGARO's synthetic records are renamed `Eurostat_FIGARO_Harmonized`; [the calibration packaging step](https://github.com/jalonso1979/puremacro/blob/v4.2.0/puremacro/trade/data.py#L1028) does not retain their provenance, year, currency-conversion assumptions, or regularization history in result metadata.
 
 Probe: a nonexistent file, `fallback_to_synthetic=False`, and custom dimensions return a calibration with **no warning and empty metadata**. Notebook 65 invokes default loaders and describes its cross-database results as empirical. Depending on available files, those results can instead be generated data.
 
@@ -107,7 +107,7 @@ Repair: make synthetic datasets an explicit opt-in, preserve `is_synthetic`, sou
 
 **9. Caliendo–Parro: the identity shortcut conflates tariffs with iceberg costs. High priority; committed 17 September addition.**
 
-[caliendo_parro.py:638](/Users/jalonso/Documents/RESEARCH/puremacro/puremacro/trade/caliendo_parro.py:638) returns the baseline whenever the product of tariff and iceberg changes is approximately one. Equal delivered trade costs do not mean equal government revenue or national income.
+[caliendo_parro.py:638](https://github.com/jalonso1979/puremacro/blob/v4.2.0/puremacro/trade/caliendo_parro.py#L638) returns the baseline whenever the product of tariff and iceberg changes is approximately one. Equal delivered trade costs do not mean equal government revenue or national income.
 
 Probe: increase bilateral gross tariffs to 1.2 and offset them with iceberg changes of `1/1.2`. The solver returns zero tariff revenue, zero iterations, and convergence. Its expenditure equations at the returned wages and shares imply **6.89655** revenue per country. This violates the counterfactual's fiscal accounting even before a welfare comparison.
 
@@ -115,7 +115,7 @@ Repair: short-circuit only when tariffs, iceberg costs, and the deficit closure 
 
 **10. Nash tariffs: small damped updates can be mistaken for a Nash equilibrium. High priority for equilibrium claims; committed code.**
 
-[optimal_tariffs.py:864](/Users/jalonso/Documents/RESEARCH/puremacro/puremacro/trade/optimal_tariffs.py:864) checks only the change in the relaxed tariff vector. Its local three-point search does not establish a global best response, and the routine does not require every GE evaluation to converge.
+[optimal_tariffs.py:864](https://github.com/jalonso1979/puremacro/blob/v4.2.0/puremacro/trade/optimal_tariffs.py#L864) checks only the change in the relaxed tariff vector. Its local three-point search does not establish a global best response, and the routine does not require every GE evaluation to converge.
 
 Probe with a valid positive relaxation of `1e-8`: it reports convergence after moving the first tariff to **4e-10**. That player's own reported welfare rises from **1027.06966** to **1030.25157** by unilaterally selecting a 20% tariff with the other player's tariff unchanged at zero. This is a profitable deviation, not a Nash certificate.
 
@@ -123,7 +123,7 @@ Repair: check undamped best-response residuals and unilateral deviation gains ov
 
 **11. VFI Deep Macro: training backpropagates through the next-state cache. High priority for training correctness; committed code.**
 
-[deep_macro.py:1002](/Users/jalonso/Documents/RESEARCH/puremacro/puremacro/vfi/deep_macro.py:1002) evaluates next-period consumption with the same MLP after evaluating current consumption. Each forward pass overwrites the activation cache. At line 1039, the backward pass combines current-output derivatives with next-state activations.
+[deep_macro.py:1002](https://github.com/jalonso1979/puremacro/blob/v4.2.0/puremacro/vfi/deep_macro.py#L1002) evaluates next-period consumption with the same MLP after evaluating current consumption. Each forward pass overwrites the activation cache. At line 1039, the backward pass combines current-output derivatives with next-state activations.
 
 Instrumenting one actual training iteration gives a **0.4136% relative gradient discrepancy** compared with the intended current-state backward pass using identical upstream derivatives. Its magnitude is calibration-dependent; the cache mismatch is structural. Tests of the standalone MLP derivative do not catch this composition error.
 
@@ -131,10 +131,10 @@ Repair: preserve current-state caches or re-run the current forward pass before 
 
 **Additional confirmed or materially incomplete behavior**
 
-- **VFI auxiliary values use the wrong primitives.** [collocation.py:891](/Users/jalonso/Documents/RESEARCH/puremacro/puremacro/vfi/collocation.py:891) omits productivity `z`/`A` and always uses log utility when reconstructing values from an Euler solution. With log utility and productivity 2, steady-state value is **-34.57019**, versus the analytic **1.53412**, despite convergence. Use the same utility, technology and transition primitives in both policy and value calculations.
-- **The MRIO spectral estimate is not a certificate.** [regularize.py:286](/Users/jalonso/Documents/RESEARCH/puremacro/puremacro/trade/regularize.py:286) ignores the returned Collatz–Wielandt bounds and gates viability on an unconverged power-iteration estimate. For `[[0,2],[.2,0]]`, it returns **1.1**, whereas the exact radius is **sqrt(.4)=.6324555**; bounds remain `[.2,2]`. A productive periodic network can be classified as unproductive. Use certified bounds, periodicity-safe iteration, and a fallback when the bounds straddle the threshold; report uncertainty instead of a false certificate.
-- **Markov-switching moments survive a failed solve.** [markov_switching.py:1269](/Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/markov_switching.py:1269) evaluates stability and ergodic moments even when the coupled system has not converged. The failing test's scalar polynomial `T²-3T+2.5` has no real root; it should test rejection/nonconvergence, not demand a particular unstable real solution. In the observed run, the routine reports `converged=False` but `mean_square_stable=True` and finite covariance. The residual at the returned matrices is **.58361**, versus reported `diff=.25044`. Mark stability/moments unavailable after failure and recompute diagnostics at the returned iterate.
-- **“Exact analytic VFI gradients” and “adjoint distribution sensitivities” overstate the implementation.** [analytic_gradients.py:515](/Users/jalonso/Documents/RESEARCH/puremacro/puremacro/vfi/analytic_gradients.py:515) builds both residual Jacobians by central differences. This is a useful semi-analytic IFT calculation, not a machine-precision analytic derivative. The heterogeneous-agent aggregate branch averages direct policy derivatives at a fixed distribution and leaves `grad_mu=None`; it does not solve the differentiated stationary-distribution equation or the coupled GE response. Either implement those equations or narrow the advertised scope. The module header already partially acknowledges the semi-analytic distinction, but public docstrings and the architecture description do not.
+- **VFI auxiliary values use the wrong primitives.** [collocation.py:891](https://github.com/jalonso1979/puremacro/blob/v4.2.0/puremacro/vfi/collocation.py#L891) omits productivity `z`/`A` and always uses log utility when reconstructing values from an Euler solution. With log utility and productivity 2, steady-state value is **-34.57019**, versus the analytic **1.53412**, despite convergence. Use the same utility, technology and transition primitives in both policy and value calculations.
+- **The MRIO spectral estimate is not a certificate.** [regularize.py:286](https://github.com/jalonso1979/puremacro/blob/v4.3.0/puremacro/trade/regularize.py#L286) ignores the returned Collatz–Wielandt bounds and gates viability on an unconverged power-iteration estimate. For `[[0,2],[.2,0]]`, it returns **1.1**, whereas the exact radius is **sqrt(.4)=.6324555**; bounds remain `[.2,2]`. A productive periodic network can be classified as unproductive. Use certified bounds, periodicity-safe iteration, and a fallback when the bounds straddle the threshold; report uncertainty instead of a false certificate.
+- **Markov-switching moments survive a failed solve.** [markov_switching.py:1269](https://github.com/jalonso1979/puremacro/blob/v4.2.0/puremacro/dsge/markov_switching.py#L1269) evaluates stability and ergodic moments even when the coupled system has not converged. The failing test's scalar polynomial `T²-3T+2.5` has no real root; it should test rejection/nonconvergence, not demand a particular unstable real solution. In the observed run, the routine reports `converged=False` but `mean_square_stable=True` and finite covariance. The residual at the returned matrices is **.58361**, versus reported `diff=.25044`. Mark stability/moments unavailable after failure and recompute diagnostics at the returned iterate.
+- **“Exact analytic VFI gradients” and “adjoint distribution sensitivities” overstate the implementation.** [analytic_gradients.py:515](https://github.com/jalonso1979/puremacro/blob/v4.2.0/puremacro/vfi/analytic_gradients.py#L515) builds both residual Jacobians by central differences. This is a useful semi-analytic IFT calculation, not a machine-precision analytic derivative. The heterogeneous-agent aggregate branch averages direct policy derivatives at a fixed distribution and leaves `grad_mu=None`; it does not solve the differentiated stationary-distribution equation or the coupled GE response. Either implement those equations or narrow the advertised scope. The module header already partially acknowledges the semi-analytic distinction, but public docstrings and the architecture description do not.
 
 **Interpretation of the five existing-suite failures**
 
@@ -159,7 +159,7 @@ The new trade tests in the focused run passed. That is specifically why the inde
 | Trade calibration and baseline solver | Bundled OECD inputs and externally generated reference equilibria are valuable; multiple solver paths and accounting tests | CES output mismatch, CP shortcut, and Nash convergence weaken structural conclusions; new welfare/theorem/loader layer needs immediate attention |
 | Presentation, docs, teaching | Broad bilingual material and shared result objects lower the cost of use | The newest narrative sometimes treats illustrative calculations as empirical evidence and a passed identity as model certification |
 
-The technical report should be revised before dissemination. Its abstract and introduction claim universal/bit-for-bit portability and machine-precision external certification. The actual 107-case gallery contains **59 internal, 29 analytical, 13 package, five SciPy, and one published** case; **no trade cases are registered in that gallery**. Its tolerances include numeric, coarse and qualitative checks, not only machine precision. Separate trade tests do exist and should be described separately. The more careful scope statement already in [docs/VALIDATION.md](/Users/jalonso/Documents/RESEARCH/puremacro/docs/VALIDATION.md:104) is a better standard for the report.
+The technical report should be revised before dissemination. Its abstract and introduction claim universal/bit-for-bit portability and machine-precision external certification. The actual 107-case gallery contains **59 internal, 29 analytical, 13 package, five SciPy, and one published** case; **no trade cases are registered in that gallery**. Its tolerances include numeric, coarse and qualitative checks, not only machine precision. Separate trade tests do exist and should be described separately. The more careful scope statement already in [docs/VALIDATION.md](https://github.com/jalonso1979/puremacro/blob/v4.2.0/docs/VALIDATION.md#L104) is a better standard for the report.
 
 Also distinguish “puremacro ships no compiled extension of its own” from “the complete stack has no compiled dependencies.” The installation has five mandatory packages, including requests; optional acceleration and file-format dependencies widen it further. Browser importability, browser execution at realistic sizes, cross-backend numerical agreement, and bitwise identity are different claims. The repository's own MLX tests permit looser float32 tolerances.
 
