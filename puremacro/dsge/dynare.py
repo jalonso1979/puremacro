@@ -1393,22 +1393,25 @@ def solve_dynare_3rd_order(
             params=par_dict,
         )
     else:
-        # Fallback numerical approximation
+        # Numerical third derivatives for callable models. Parsed models use
+        # symbolic derivatives; the callable path has finite-difference accuracy.
         T_entries: dict[tuple[int, int, int, int], float] = {}
-        hd3 = 1e-4
-        for p in range(K_vars):
-            step = hd3 * max(1.0, abs(u0[p]))
-            up = u0.copy()
-            up[p] += step
-            um = u0.copy()
-            um[p] -= step
-            gp_p = grad_f(up)
-            gp_m = grad_f(um)
-            H_p = (gp_p - gp_m) / (2.0 * step)
-            for i in range(N):
-                for q in range(p, K_vars):
-                    for r in range(q, K_vars):
-                        val = float(H_p[i, q]) if H_p.ndim == 2 else 0.0
+        hd3 = 1e-4 if method == "complex" else 1e-3
+        for q in range(K_vars):
+            hq = hd3 * max(1.0, abs(u0[q]))
+            for r in range(q, K_vars):
+                hr = hd3 * max(1.0, abs(u0[r]))
+                deriv = np.zeros((N, K_vars))
+                for sq in (-1.0, 1.0):
+                    for sr in (-1.0, 1.0):
+                        point = u0.copy()
+                        point[q] += sq * hq
+                        point[r] += sr * hr
+                        deriv += sq * sr * grad_f(point)
+                deriv /= 4.0 * hq * hr
+                for p in range(q + 1):
+                    for i in range(N):
+                        val = float(deriv[i, p])
                         if abs(val) > 1e-9:
                             T_entries[(i, p, q, r)] = val
         T_f = SparseDynamicTensor3D(shape=(N, K_vars, K_vars, K_vars), entries=T_entries)
@@ -1461,7 +1464,11 @@ def solve_dynare_3rd_order(
 
         gxxx_3d = g_xxx.reshape(N, n_x, n_x, n_x)
         A_g_xxx_h = A_plus @ np.einsum("iabc,ad,be,cf->idef", gxxx_3d, h_x, h_x, h_u).reshape(N, (n_x**2) * n_e)
-        C_xxu = np.einsum("ijk,jab,kc->iabc", gxx_3d, hxx_3d, h_u) + 2.0 * np.einsum("ijk,jac,kb->iabc", gxx_3d, h_xu.reshape(n_x, n_x, n_e), h_x)
+        C_xu_x = np.einsum("ijk,jac,kb->iabc", gxx_3d, h_xu.reshape(n_x, n_x, n_e), h_x)
+        # The two state derivatives occupy distinct tensor axes. Doubling one
+        # placement gives the same x⊗x contraction but incorrect mixed entries.
+        C_xxu = (np.einsum("ijk,jab,kc->iabc", gxx_3d, hxx_3d, h_u)
+                 + C_xu_x + C_xu_x.transpose(0, 2, 1, 3))
         cross_xxu = A_plus @ C_xxu.reshape(N, (n_x**2) * n_e)
 
     rhs_xxu = -(A_g_xxx_h + T_xxu + S_xxu + cross_xxu)
@@ -1481,10 +1488,12 @@ def solve_dynare_3rd_order(
         for i in range(N):
             V_uu_x = (N_uu.T @ H_f[i] @ M_x).reshape(n_e, n_e, n_x).transpose(2, 0, 1)
             V_xu_u = (N_xu.T @ H_f[i] @ M_u).reshape(n_x, n_e, n_e)
-            S_xuu[i] = (V_uu_x + 2.0 * V_xu_u).reshape(-1)
+            S_xuu[i] = (V_uu_x + V_xu_u + V_xu_u.transpose(0, 2, 1)).reshape(-1)
 
         A_g_xxx_hu = A_plus @ np.einsum("iabc,ad,be,cf->idef", gxxx_3d, h_x, h_u, h_u).reshape(N, n_x * (n_e**2))
-        C_xuu = np.einsum("ijk,ja,kbc->iabc", gxx_3d, h_x, h_uu.reshape(n_x, n_e, n_e)) + 2.0 * np.einsum("ijk,jab,kc->iabc", gxx_3d, h_xu.reshape(n_x, n_x, n_e), h_u)
+        C_xu_u = np.einsum("ijk,jab,kc->iabc", gxx_3d, h_xu.reshape(n_x, n_x, n_e), h_u)
+        C_xuu = (np.einsum("ijk,ja,kbc->iabc", gxx_3d, h_x, h_uu.reshape(n_x, n_e, n_e))
+                 + C_xu_u + C_xu_u.transpose(0, 1, 3, 2))
         cross_xuu = A_plus @ C_xuu.reshape(N, n_x * (n_e**2))
 
     rhs_xuu = -(A_g_xxx_hu + T_xuu + S_xuu + cross_xuu)
@@ -1517,30 +1526,43 @@ def solve_dynare_3rd_order(
     except scipy.linalg.LinAlgError:
         g_uuu = scipy.linalg.lstsq(A_hat, rhs_uuu)[0]
 
-    # 4e. Solve g_x_ss (volatility risk correction slope)
-    K_x_ss = np.zeros((N, n_x), dtype=float)
-    if n_x > 0:
-        term_hss = A_plus @ g_xx @ np.kron(h_ss.reshape(n_x, 1), np.eye(n_x))
-        term_xuu = A_plus @ (g_xuu.reshape(N, n_x, n_e * n_e) @ sigma_u.flatten())
-        K_x_ss = term_hss + term_xuu
-        try:
-            g_x_ss = solve_order1_sylvester(A_hat, A_plus, h_x, K_x_ss)
-        except Exception:
-            sys_1 = np.kron(np.eye(n_x), A_hat) + np.kron(h_x.T, A_plus)
-            vec_gxss = scipy.linalg.lstsq(sys_1, -K_x_ss.reshape(-1, order="F"))[0]
-            g_x_ss = vec_gxss.reshape((N, n_x), order="F")
-    else:
-        g_x_ss = np.zeros((N, 0), dtype=float)
+    # Differentiate E[f(U(q, sigma, e_next))] with respect to q and twice
+    # with respect to the perturbation scale sigma. At zero scale:
+    # F_qss = f_U U_qss + f_UU[U_q, E U_ss]
+    #         + 2 E f_UU[U_s, U_qs] + E f_UUU[U_q, U_s, U_s].
+    # Future innovations enter only the lead block. Current q is a lagged
+    # state or a realized innovation; its next-state derivative is h_q.
+    V_future = np.vstack([g_u, np.zeros((2 * N + n_e, n_e))])
+    mean_U_ss = np.concatenate([
+        g_x @ h_ss + g_uu @ vec_sigma + g_ss,
+        g_ss, np.zeros(N + n_e),
+    ])
+    gxuu_cov = np.einsum("ijab,ab->ij", g_xuu.reshape(N, n_x, n_e, n_e), sigma_u)
+    gxx_tensor = g_xx.reshape(N, n_x, n_x)
+    gxu_tensor = g_xu.reshape(N, n_x, n_e)
 
-    # 4f. Solve g_u_ss (shock volatility risk correction)
-    if n_e > 0 and n_x > 0:
-        rhs_uss = -(A_plus @ g_x_ss @ h_u + A_plus @ (g_uuu.reshape(N, n_e, n_e * n_e) @ sigma_u.flatten()))
-        try:
-            g_u_ss = scipy.linalg.solve(A_hat, rhs_uss)
-        except scipy.linalg.LinAlgError:
-            g_u_ss = scipy.linalg.lstsq(A_hat, rhs_uss)[0]
+    def risk_rhs(M_q, h_q):
+        n_q = h_q.shape[1]
+        lead_qss = np.einsum("ijk,ja,k->ia", gxx_tensor, h_q, h_ss) + gxuu_cov @ h_q
+        K_q = A_plus @ lead_qss
+        U_qs = np.zeros((K_vars, n_q, n_e))
+        U_qs[:N] = np.einsum("ije,ja->iae", gxu_tensor, h_q)
+        K_q += np.einsum("iab,aq,b->iq", H_f, M_q, mean_U_ss)
+        K_q += 2.0 * np.einsum("iab,ae,bqf,ef->iq", H_f, V_future, U_qs, sigma_u)
+        third = T_f.contract(M_q, V_future, V_future).reshape(N, n_q, n_e, n_e)
+        K_q += np.einsum("iqef,ef->iq", third, sigma_u)
+        return K_q
+
+    K_x_ss = risk_rhs(M_x, h_x)
+    if n_x:
+        g_x_ss = solve_order1_sylvester(A_hat, A_plus, h_x, K_x_ss)
     else:
-        g_u_ss = np.zeros((N, n_e), dtype=float)
+        g_x_ss = np.zeros((N, 0))
+    if n_e:
+        rhs_uss = -(risk_rhs(M_u, h_u) + A_plus @ g_x_ss @ h_u)
+        g_u_ss = scipy.linalg.solve(A_hat, rhs_uss)
+    else:
+        g_u_ss = np.zeros((N, 0))
 
     sol = Order3PrunedSolution(
         G=h_x,
@@ -2479,5 +2501,4 @@ if "puremacro.dsge" in sys.modules:
     setattr(_dsge_mod, "RamseyResult", RamseyResult)
     setattr(_dsge_mod, "detrend_bgp", detrend_bgp)
     setattr(_dsge_mod, "detrend_model", detrend_model)
-
 

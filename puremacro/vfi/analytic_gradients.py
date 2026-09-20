@@ -14,17 +14,16 @@ Applying the Implicit Function Theorem:
 
 Computational & Algorithmic Advantages:
 - Single LU Factorization: Factors J_c = \nabla_c R once in O(N^3) flops and solves for all p
-  parameter columns in O(p N^2), achieving > 5x speedup over repeated non-linear fixed-point resolves.
+  parameter columns in O(p N^2), avoiding repeated non-linear solves; speed depends on system size and conditioning.
 - Fixed-Point Chatter Elimination: Evaluates the residual system directly at the converged
   equilibrium c^*, avoiding non-linear solver convergence chatter and inner-loop tolerance inconsistencies.
-- Continuous Policy Gradients: Evaluates exact continuous sensitivities \nabla_\theta g(s) = \Phi(s) \nabla_\theta c^*
+- Continuous Policy Gradients: Evaluates continuous sensitivities \nabla_\theta g(s) = \Phi(s) \nabla_\theta c^*
   at arbitrary continuous state coordinates s.
-- Adjoint Stationary Distribution & Macro Aggregates: Computes general equilibrium
-  sensitivities \nabla_\theta K^*, \nabla_\theta C^*, \nabla_\theta r^*, \nabla_\theta w^*
-  and adjoint stationary distribution sensitivities \nabla_\theta \mu^*.
+- Aggregate sensitivities: supported representative-agent formulas are available;
+  heterogeneous-agent distribution and coupled GE sensitivities are not implemented.
 - Robust Regularization Fallback: Automatically detects high condition numbers cond(J_c) > 10^12
   or singular systems, falling back to Tikhonov regularization or truncated SVD pseudoinverse.
-- 100% Pyodide & Pure NumPy/SciPy Compliant: Zero external C-extensions, pure Python/NumPy/SciPy.
+- Uses NumPy/SciPy linear algebra; ships no compiled extension of its own.
 - Full puremacro Presentation Contract: .summary(), .plot(), .to_frame(), .to_markdown(),
   .to_latex(), .to_typst().
 """
@@ -668,7 +667,7 @@ def _compute_aggregate_gradients(
     param_names: List[str],
     ift_result_proxy: Optional[Any] = None,
 ) -> Dict[str, np.ndarray]:
-    """Compute exact parameter sensitivities of macro aggregates (K*, C*, r*, w*)."""
+    """Compute supported representative-agent aggregate sensitivities (semi-analytic)."""
     p = len(param_names)
     grad_K = np.zeros(p, dtype=np.float64)
     grad_C = np.zeros(p, dtype=np.float64)
@@ -678,60 +677,10 @@ def _compute_aggregate_gradients(
 
     # Case A: Heterogeneous-Agent General Equilibrium (AiyagariContinuousEquilibrium)
     if hasattr(solution, "distribution") and hasattr(solution.distribution, "asset_grid"):
-        dist = solution.distribution
-        k_grid = dist.asset_grid
-        mu_star = dist.marginal_assets()
-        alpha = float(getattr(problem, "params", {}).get("alpha", 0.36))
-        delta = float(getattr(problem, "params", {}).get("delta", 0.08))
-        z = float(getattr(problem, "params", {}).get("z", 1.0))
-        K_val = float(np.sum(mu_star * k_grid))
-
-        # Adjoint lottery projection sensitivity of capital supply
-        for k_idx, p_name in enumerate(param_names):
-            if hasattr(solution, "household_solution"):
-                try:
-                    # Evaluate policy gradient along asset grid
-                    h_sol = solution.household_solution
-                    dim_nodes = h_sol.mesh.dim_nodes[0] if hasattr(h_sol, "mesh") else k_grid
-                    dpol_k = np.interp(k_grid, dim_nodes, grad_coefficients[:, k_idx])
-                    grad_K[k_idx] = float(np.sum(mu_star * dpol_k))
-                except Exception:
-                    grad_K[k_idx] = 0.0
-
-            # General equilibrium price feedback
-            dK = grad_K[k_idx]
-            # r = alpha * z * K^{alpha - 1} - delta
-            dr_dK = alpha * (alpha - 1.0) * z * (K_val ** (alpha - 2.0))
-            dr_direct = 0.0
-            if p_name == "alpha":
-                dr_direct = z * (K_val ** (alpha - 1.0)) * (1.0 + alpha * np.log(max(K_val, 1e-12)))
-            elif p_name == "delta":
-                dr_direct = -1.0
-            elif p_name in ("z", "A"):
-                dr_direct = alpha * (K_val ** (alpha - 1.0))
-            grad_r[k_idx] = dr_dK * dK + dr_direct
-
-            # w = (1 - alpha) * z * K^alpha
-            dw_dK = (1.0 - alpha) * alpha * z * (K_val ** (alpha - 1.0))
-            dw_direct = 0.0
-            if p_name == "alpha":
-                dw_direct = -z * (K_val**alpha) + (1.0 - alpha) * z * (K_val**alpha) * np.log(max(K_val, 1e-12))
-            elif p_name in ("z", "A"):
-                dw_direct = (1.0 - alpha) * (K_val**alpha)
-            grad_w[k_idx] = dw_dK * dK + dw_direct
-
-            # Aggregate consumption: C = z K^alpha - delta K
-            dC_dK = alpha * z * (K_val ** (alpha - 1.0)) - delta
-            dC_direct = 0.0
-            if p_name == "alpha":
-                dC_direct = z * (K_val**alpha) * np.log(max(K_val, 1e-12))
-            elif p_name == "delta":
-                dC_direct = -K_val
-            elif p_name in ("z", "A"):
-                dC_direct = K_val**alpha
-            grad_C[k_idx] = dC_dK * dK + dC_direct
-
-        return {"K": grad_K, "C": grad_C, "r": grad_r, "w": grad_w, "mu": grad_mu}
+        raise NotImplementedError(
+            "Heterogeneous-agent sensitivities require differentiated stationary-distribution "
+            "and equilibrium equations; fixed-distribution derivatives are not GE sensitivities."
+        )
 
     # Case B: Representative Agent Continuous Projection Model
     if solution is not None and hasattr(solution, "policy"):
@@ -839,7 +788,7 @@ def compute_ift_gradients(
     backend: str = "numpy",
     **kwargs: Any,
 ) -> AnalyticGradientResult:
-    r"""Compute exact machine-precision Jacobians of continuous policy functions via IFT.
+    r"""Compute semi-analytic policy Jacobians via IFT and finite-difference residual Jacobians.
 
     Formulates the Implicit Function Theorem on continuous projection systems:
 
@@ -873,6 +822,8 @@ def compute_ift_gradients(
     """
     t0 = time.perf_counter()
 
+    if hasattr(solution, "distribution"):
+        raise NotImplementedError("Heterogeneous-agent distribution and GE sensitivities are not implemented.")
     c_star = _extract_coefficients(solution)
     param_names = _extract_param_names(problem, params)
 

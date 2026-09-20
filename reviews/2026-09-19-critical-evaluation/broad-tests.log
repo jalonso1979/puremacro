@@ -1,0 +1,143 @@
+........................................................................ [  7%]
+........................................................................ [ 15%]
+........................................................................ [ 23%]
+...........F............................................................ [ 31%]
+........................................................................ [ 39%]
+........................................................................ [ 46%]
+..........................F............................................. [ 54%]
+........................................................................ [ 62%]
+........................................................................ [ 70%]
+.............s..........s............................................... [ 78%]
+........................................................................ [ 85%]
+........................................................................ [ 93%]
+............................F..............................              [100%]
+=================================== FAILURES ===================================
+__________________ test_explosive_regime_mean_square_unstable __________________
+tests/test_dsge_markov_switching.py:583: in test_explosive_regime_mean_square_unstable
+    assert res.spectral_radius_mss > 1.0
+E   assert 0.8508472556476478 > 1.0
+E    +  where 0.8508472556476478 = MSDSGEResult(T={0: array([[0.92241382]]), 1: array([[0.92241382]])}, R={0: array([[0.48132781]]), 1: array([[0.4813278... 0.46120691],\n       [0.46120691, 0.46120691]]), M2=array([[0.42542363, 0.42542363],\n       [0.42542363, 0.42542363]])).spectral_radius_mss
+____________________ test_smc_result_presentation_contract _____________________
+.venv/lib/python3.14/site-packages/pandas/compat/_optional.py:158: in import_optional_dependency
+    module = importlib.import_module(name)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../../.local/share/uv/python/cpython-3.14.6-macos-aarch64-none/lib/python3.14/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'jinja2'
+
+The above exception was the direct cause of the following exception:
+tests/test_dsge_smc.py:490: in test_smc_result_presentation_contract
+    ltx = res.to_latex()
+          ^^^^^^^^^^^^^^
+puremacro/dsge/smc.py:423: in to_latex
+    return self.posterior_summary.to_latex(caption=caption, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/pandas/core/generic.py:3644: in to_latex
+    return self._to_latex_via_styler(
+.venv/lib/python3.14/site-packages/pandas/core/generic.py:3703: in _to_latex_via_styler
+    from pandas.io.formats.style import Styler
+.venv/lib/python3.14/site-packages/pandas/io/formats/style.py:36: in <module>
+    jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.14/site-packages/pandas/compat/_optional.py:161: in import_optional_dependency
+    raise ImportError(msg) from err
+E   ImportError: `Import Jinja2` failed. DataFrame.style requires jinja2. Use pip or conda to install the Jinja2 package.
+_______________________ test_public_api_matches_snapshot _______________________
+tests/test_public_api.py:93: in test_public_api_matches_snapshot
+    pytest.fail(
+E   Failed: Public API drift detected:
+E     + all.puremacro.trade.regularize = ['balance_gras', 'balance_quadratic', 'balance_ras', 'compute_spectral_radius', 'regularize_mrio_table', 'spectral_radius', 'validate_accounting_identities']
+E     - all.puremacro.teaching.experiment (was ['run_experiment'])
+E     ~ all.puremacro.trade: ['AllenArkolakisModel', 'AllenArkolakisResult', 'BatchedJacobianEvaluator', 'BottleneckConfig', 'CANONICAL_COUNTRY_CODES', 'CANONICAL_FINAL_DEMAND_CODES', 'CANONICAL_SCENARIOS', 'CANONICAL_SCENARIO_NAMES', 'CANONICAL_SECTOR_CODES', 'CANONICAL_SECTOR_NAMES', 'CaliendoParroModel', 'CaliendoParroResult', 'CapacityBottleneckResult', 'DeviceInfo', 'DynamicJCurveConfig', 'EU_COUNTRY_CODES', 'EffectiveRateOfProtectionResult', 'ExtendedTariffScenario', 'FiscalRecyclingConfig', 'FlexibleEquilibriumResult', 'FlexibleMarketStructureConfig', 'FlexiblePreferenceConfig', 'FlexibleTechnologyConfig', 'FlexibleTradeEquilibriumResult', 'FlexibleTradeModelConfig', 'GearyKhamisResult', 'ICIOData', 'JCurveDynamicResult', 'NashTariffResult', 'OptimalTariffResult', 'RetaliationConfig', 'RetaliationGameResult', 'RevenueRecyclingResult', 'SCENARIOS', 'ScenarioBatchResult', 'SupplyChainVulnerabilityResult', 'TariffRevenueIncidenceResult', 'TariffScenario', 'TradeCalibrationResult', 'TradeEquilibriumResult', 'WelfareDecompositionResult', 'WelfarePayoffMatrixResult', 'benchmark_real_world_tariffs', 'build_initial_guess', 'build_strategic_tariffs', 'build_tariff_matrices', 'calculate_tariff_revenue_incidence', 'calibrate_trade_model', 'compute_atkeson_burstein_markups', 'compute_benchmark_market_shares', 'compute_contractual_half_life', 'compute_convergence_diagnostics', 'compute_dixit_stiglitz_varieties', 'compute_effective_rate_of_protection', 'compute_equilibrium_residuals', 'compute_geary_khamis', 'compute_geary_khamis_ppp', 'compute_j_curve_turning_point', 'compute_nested_ces_costs', 'compute_nested_factor_demands', 'compute_postprocessing_flows', 'compute_stone_geary_final_demand', 'compute_supply_chain_vulnerability', 'compute_unilateral_optimal_tariff', 'compute_variety_price_scaling', 'compute_welfare_payoff_matrix', 'decompose_harberger_welfare', 'decompose_welfare_effects', 'detect_device', 'device_context', 'evaluate_equilibrium_residuals', 'evaluate_national_welfare', 'export_latex_tables', 'game', 'generate_mean_by_scenario_table', 'generate_selected_country_table', 'generate_weighted_mean_by_scenario_table', 'get_canonical_scenario', 'get_country_code', 'get_country_codes', 'get_eu_country_codes', 'get_final_demand_codes', 'get_memory_usage', 'get_sector_codes', 'get_sector_names', 'list_canonical_scenarios', 'load_icio_data', 'optimal_tariffs', 'pack_equilibrium_vector', 'plot_country_impacts', 'plot_scenario_distributions', 'plot_tariff_escalation_curve', 'plot_terms_of_trade_vs_welfare', 'reset_peak_memory', 'resolve_country_indices', 'restore_capital_formation', 'run_bottleneck_scenario', 'run_dynamic_j_curve_simulation', 'run_fiscal_recycling_scenario', 'run_scenario_batch', 'run_tariff_scenario', 'select_compute_device', 'simulate_analytical_j_curve', 'smooth_subsistence_scaling', 'solve_flexible_trade_equilibrium', 'solve_homotopy_continuation', 'solve_multilateral_nash_tariffs', 'solve_multilateral_ppp', 'solve_retaliation_game', 'solve_trade_equilibrium', 'solve_trade_equilibrium_gpu', 'solve_trade_equilibrium_mlx', 'to_latex_mean_by_scenario', 'to_latex_mean_by_scenario_table', 'to_latex_selected_country', 'to_latex_selected_country_table', 'to_latex_selected_country_with_row', 'to_latex_weighted_mean_by_scenario', 'to_latex_weighted_mean_by_scenario_table', 'unpack_equilibrium_vector'] -> ['AllenArkolakisModel', 'AllenArkolakisResult', 'BatchedJacobianEvaluator', 'BottleneckConfig', 'CANONICAL_COUNTRY_CODES', 'CANONICAL_FINAL_DEMAND_CODES', 'CANONICAL_SCENARIOS', 'CANONICAL_SCENARIO_NAMES', 'CANONICAL_SECTOR_CODES', 'CANONICAL_SECTOR_NAMES', 'CaliendoParroModel', 'CaliendoParroResult', 'CapacityBottleneckResult', 'DeviceInfo', 'DynamicJCurveConfig', 'EU_COUNTRY_CODES', 'EVDecompositionResult', 'EffectiveRateOfProtectionResult', 'ExtendedTariffScenario', 'FiscalRecyclingConfig', 'FlexibleEquilibriumResult', 'FlexibleMarketStructureConfig', 'FlexiblePreferenceConfig', 'FlexibleTechnologyConfig', 'FlexibleTradeEquilibriumResult', 'FlexibleTradeModelConfig', 'GearyKhamisResult', 'ICIOData', 'JCurveDynamicResult', 'NashTariffResult', 'OptimalTariffResult', 'RetaliationConfig', 'RetaliationGameResult', 'RevenueRecyclingResult', 'SCENARIOS', 'ScenarioBatchResult', 'SupplyChainVulnerabilityResult', 'TariffRevenueIncidenceResult', 'TariffScenario', 'TheoremValidationReport', 'TradeCalibrationResult', 'TradeEquilibriumResult', 'WelfareDecompositionResult', 'WelfarePayoffMatrixResult', 'benchmark_real_world_tariffs', 'build_initial_guess', 'build_strategic_tariffs', 'build_tariff_matrices', 'calculate_tariff_revenue_incidence', 'calibrate_trade_model', 'compute_atkeson_burstein_markups', 'compute_benchmark_market_shares', 'compute_contractual_half_life', 'compute_convergence_diagnostics', 'compute_dixit_stiglitz_varieties', 'compute_effective_rate_of_protection', 'compute_equilibrium_residuals', 'compute_geary_khamis', 'compute_geary_khamis_ppp', 'compute_j_curve_turning_point', 'compute_nested_ces_costs', 'compute_nested_factor_demands', 'compute_postprocessing_flows', 'compute_stone_geary_final_demand', 'compute_supply_chain_vulnerability', 'compute_unilateral_optimal_tariff', 'compute_variety_price_scaling', 'compute_welfare_payoff_matrix', 'decompose_harberger_welfare', 'decompose_hicksian_ev_3way', 'decompose_welfare_effects', 'detect_device', 'device_context', 'evaluate_equilibrium_residuals', 'evaluate_national_welfare', 'export_latex_tables', 'game', 'generate_mean_by_scenario_table', 'generate_selected_country_table', 'generate_weighted_mean_by_scenario_table', 'get_canonical_scenario', 'get_country_code', 'get_country_codes', 'get_eu_country_codes', 'get_final_demand_codes', 'get_memory_usage', 'get_sector_codes', 'get_sector_names', 'list_canonical_scenarios', 'load_icio_data', 'optimal_tariffs', 'pack_equilibrium_vector', 'plot_country_impacts', 'plot_scenario_distributions', 'plot_tariff_escalation_curve', 'plot_terms_of_trade_vs_welfare', 'reset_peak_memory', 'resolve_country_indices', 'restore_capital_formation', 'run_bottleneck_scenario', 'run_dynamic_j_curve_simulation', 'run_fiscal_recycling_scenario', 'run_scenario_batch', 'run_tariff_scenario', 'select_compute_device', 'simulate_analytical_j_curve', 'smooth_subsistence_scaling', 'solve_flexible_trade_equilibrium', 'solve_homotopy_continuation', 'solve_multilateral_nash_tariffs', 'solve_multilateral_ppp', 'solve_retaliation_game', 'solve_trade_equilibrium', 'solve_trade_equilibrium_gpu', 'solve_trade_equilibrium_mlx', 'to_latex_mean_by_scenario', 'to_latex_mean_by_scenario_table', 'to_latex_selected_country', 'to_latex_selected_country_table', 'to_latex_selected_country_with_row', 'to_latex_weighted_mean_by_scenario', 'to_latex_weighted_mean_by_scenario_table', 'unpack_equilibrium_vector', 'verify_theorems_1_to_4']
+E     ~ all.puremacro.trade._results: ['CapacityBottleneckResult', 'GearyKhamisResult', 'JCurveDynamicResult', 'NashTariffResult', 'OptimalTariffResult', 'RetaliationGameResult', 'RevenueRecyclingResult', 'ScenarioBatchResult', 'TradeCalibrationResult', 'TradeEquilibriumResult', 'WelfarePayoffMatrixResult'] -> ['CapacityBottleneckResult', 'EVDecompositionResult', 'GearyKhamisResult', 'JCurveDynamicResult', 'NashTariffResult', 'OptimalTariffResult', 'RetaliationGameResult', 'RevenueRecyclingResult', 'ScenarioBatchResult', 'TheoremValidationReport', 'TradeCalibrationResult', 'TradeEquilibriumResult', 'WelfarePayoffMatrixResult']
+E     ~ all.puremacro.trade.data: ['CANONICAL_COUNTRY_CODES', 'CANONICAL_FINAL_DEMAND_CODES', 'CANONICAL_SECTOR_CODES', 'CANONICAL_SECTOR_NAMES', 'EU_COUNTRY_CODES', 'ICIOData', 'RAW_45_SECTOR_CODES', 'RAW_45_SECTOR_NAMES', 'RAW_6_FINAL_DEMAND_CODES', 'available_reference_scenarios', 'bundled_icio_path', 'bundled_reference_path', 'bundled_workbook_path', 'get_country_codes', 'get_eu_country_codes', 'get_final_demand_codes', 'get_raw_45_sector_codes', 'get_raw_45_sector_names', 'get_raw_final_demand_codes', 'get_sector_codes', 'get_sector_names', 'load_icio_data', 'load_raw_45sector_icio', 'load_reference_solution', 'load_reference_workbook_sheet'] -> ['CANONICAL_COUNTRY_CODES', 'CANONICAL_FINAL_DEMAND_CODES', 'CANONICAL_SECTOR_CODES', 'CANONICAL_SECTOR_NAMES', 'EORA_189_COUNTRIES', 'EORA_26_SECTORS', 'EORA_FD_CATEGORIES', 'EU_COUNTRY_CODES', 'EXIOBASE_163_SECTORS', 'EXIOBASE_200_SECTORS', 'EXIOBASE_COUNTRIES', 'EXIOBASE_FD_CATEGORIES', 'FIGARO_64_SECTORS', 'FIGARO_COUNTRIES', 'FIGARO_FD_CATEGORIES', 'ICIOData', 'OECD_45_SECTORS', 'OECD_77_COUNTRIES', 'OECD_FD_CATEGORIES', 'RAW_45_SECTOR_CODES', 'RAW_45_SECTOR_NAMES', 'RAW_6_FINAL_DEMAND_CODES', 'RawIOData', 'WIOD_44_COUNTRIES', 'WIOD_56_SECTORS', 'WIOD_FD_CATEGORIES', 'available_reference_scenarios', 'bundled_icio_path', 'bundled_reference_path', 'bundled_workbook_path', 'compute_trade_balances', 'generate_synthetic_mrio', 'get_country_codes', 'get_eu_country_codes', 'get_final_demand_codes', 'get_raw_45_sector_codes', 'get_raw_45_sector_names', 'get_raw_final_demand_codes', 'get_sector_codes', 'get_sector_names', 'load_eora', 'load_exiobase', 'load_figaro', 'load_icio_data', 'load_oecd_icio_granular', 'load_raw_45sector_icio', 'load_reference_solution', 'load_reference_workbook_sheet', 'load_wiod', 'package_mrio_to_calibration_result', 'verify_accounting_invariants', 'verify_zero_leakage']
+E     ~ all.puremacro.trade.policy_analytics: ['EffectiveRateOfProtectionResult', 'SupplyChainVulnerabilityResult', 'TariffRevenueIncidenceResult', 'WelfareDecompositionResult', 'calculate_tariff_revenue_incidence', 'compute_effective_rate_of_protection', 'compute_supply_chain_vulnerability', 'decompose_welfare_effects'] -> ['EVDecompositionResult', 'EffectiveRateOfProtectionResult', 'SupplyChainVulnerabilityResult', 'TariffRevenueIncidenceResult', 'TheoremValidationReport', 'WelfareDecompositionResult', 'calculate_tariff_revenue_incidence', 'compute_effective_rate_of_protection', 'compute_supply_chain_vulnerability', 'decompose_hicksian_ev_3way', 'decompose_welfare_effects', 'verify_theorems_1_to_4']
+E     ~ all.puremacro.trade.solver: ['build_cge_sparsity_pattern', 'build_initial_guess', 'solve_equilibrium', 'solve_trade_equilibrium'] -> ['anderson_accelerate', 'build_cge_sparsity_pattern', 'build_initial_guess', 'check_hawkins_simon_viability', 'clamp_wage_displacement', 'solve_cyprus_manifold', 'solve_cyprus_manifold_step', 'solve_equilibrium', 'solve_keller_pac', 'solve_trade_equilibrium', 'svd_clamped_newton_step']
+E     + result_classes.puremacro.trade._results.EVDecompositionResult = ['alloc', 'country_code', 'ev_pct', 'ev_usd', 'residual', 'summary_df', 'tariff_rec', 'tot']
+E     + result_classes.puremacro.trade._results.TheoremValidationReport = ['all_passed', 'details', 'scenario', 'summary_df', 'theorem_1_passed', 'theorem_2_passed', 'theorem_3_passed', 'theorem_4_passed']
+E     + result_classes.puremacro.trade.data.RawIOData = ['countries', 'fd_categories', 'final_demand_matrix', 'gross_output', 'intermediate_matrix', 'sectors', 'source', 'taxes_less_subsidies', 'taxes_less_subsidies_fd', 'unit', 'value_added', 'year']
+E
+E   Regenerate snapshot only if the drift is intentional.
+=============================== warnings summary ===============================
+tests/test_dsge_bayesian_surface.py::test_tunable_qz_criterium_unit_root
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_dsge_bayesian_surface.py:186: RuntimeWarning: klein_solve: 1 generalised eigenvalue(s) lie in [1, div=1.00001) and were admitted to the stable block, so the returned state transition G has a root on or outside the unit circle. The solution is a valid non-explosive rational-expectations path, but the model is NOT stationary: unconditional moments, the unconditional variance decomposition and the Lyapunov variance do not exist for it. Pass div=1.0 to refuse such models instead.
+    sol_stable = klein_solve(A, B, n_pre=1, C=C, qz_criterium=1.0 + 1e-5)
+
+tests/test_dsge_extended_path.py::test_max_iter_cutoff_graceful_handling
+tests/test_dsge_extended_path.py::test_max_iter_cutoff_strict_raises_runtime_error
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/perfect_foresight.py:1113: UserWarning: solve_perfect_foresight did not converge in 1 iterations (residual norm 1.5592e-02, step norm 2.5801e+00)
+    warnings.warn(
+
+tests/test_dsge_extended_path.py::test_max_iter_cutoff_graceful_handling
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/perfect_foresight.py:1113: UserWarning: solve_perfect_foresight did not converge in 1 iterations (residual norm 2.4058e-04, step norm 2.6625e+00)
+    warnings.warn(
+
+tests/test_dsge_extended_path.py::test_max_iter_cutoff_graceful_handling
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/perfect_foresight.py:1113: UserWarning: solve_perfect_foresight did not converge in 1 iterations (residual norm 1.6162e-04, step norm 2.6505e+00)
+    warnings.warn(
+
+tests/test_dsge_extended_path.py::test_max_iter_cutoff_graceful_handling
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/perfect_foresight.py:1113: UserWarning: solve_perfect_foresight did not converge in 1 iterations (residual norm 1.2805e-04, step norm 2.6339e+00)
+    warnings.warn(
+
+tests/test_dsge_extended_path.py::test_max_iter_cutoff_graceful_handling
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/perfect_foresight.py:1113: UserWarning: solve_perfect_foresight did not converge in 1 iterations (residual norm 1.0118e-04, step norm 2.6134e+00)
+    warnings.warn(
+
+tests/test_dsge_gertler_karadi.py::test_gk_occbin_leverage_cap_at_the_steady_state_binds_forever
+tests/test_dsge_gertler_karadi.py::test_gk_leverage_cap_reports_a_spell_that_does_not_fit_the_horizon
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/gertler_karadi.py:968: UserWarning: solve_occbin did not produce a verified solution (converged=False): the constraint still binds in the last simulated period (t=40), so the terminal condition -- that the reference regime resumes after the horizon -- is assumed rather than verified; increase horizon. The returned path is the one solved under `result.regimes` and is a diagnostic, not a solution.
+    res_occ = solve_occbin(
+
+tests/test_dsge_gertler_karadi.py::test_gk_occbin_leverage_cap_at_the_steady_state_binds_forever
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/gertler_karadi.py:968: UserWarning: solve_occbin did not produce a verified solution (converged=False): the constraint still binds in the last simulated period (t=200), so the terminal condition -- that the reference regime resumes after the horizon -- is assumed rather than verified; increase horizon. The returned path is the one solved under `result.regimes` and is a diagnostic, not a solution.
+    res_occ = solve_occbin(
+
+tests/test_dsge_mcp_transitions.py::test_linear_model_integration
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/dynare.py:221: RuntimeWarning: klein_solve: 1 generalised eigenvalue(s) lie in [1, div=1.00000001) and were admitted to the stable block, so the returned state transition G has a root on or outside the unit circle. The solution is a valid non-explosive rational-expectations path, but the model is NOT stationary: unconditional moments, the unconditional variance decomposition and the Lyapunov variance do not exist for it. Pass div=1.0 to refuse such models instead.
+    sol_full = klein_solve(A_klein, B_klein, n_pre=n_s, C=C_klein, strict=strict, div=qz_criterium)
+
+tests/test_dynare_bayesian.py::test_persistently_infeasible_likelihood_raises_rather_than_flatlining
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_dynare_bayesian.py:240: UserWarning: estimate_dsge_bayesian: the numerical Hessian at the reported mode is not a curvature measurement (4 of the finite-difference stencil points fall outside the prior support or gave a non-finite log-posterior). The Laplace approximation is undefined there, so mode_se is returned as NaN and the proposal covariance falls back to diag(prior_std**2). A mode on a prior bound usually means the data want a value the prior forbids -- widen the bound rather than reading these standard errors.
+    estimate_dsge_bayesian(
+
+tests/test_dynare_bayesian.py::test_boundary_mode_reports_nan_se_and_a_moving_chain
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_dynare_bayesian.py:260: UserWarning: estimate_dsge_bayesian: mean acceptance rate 0.007 is outside [0.05, 0.60]; the chains are either stuck (too low) or taking steps far smaller than the posterior scale (too high). The posterior summary below is not trustworthy.
+    res = estimate_dsge_bayesian(
+
+tests/test_dynare_parity_adversarial.py::TestPfeiferSW07AdversarialParity::test_sw07_arbitrary_scrambled_order_var_parity
+  /Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/_pytest/fixtures.py:1313: PytestRemovedIn10Warning: Class-scoped fixture defined as instance method is deprecated.
+  Instance attributes set in this fixture will NOT be visible to test methods,
+  as each test gets a new instance while the fixture runs only once per class.
+  Use @classmethod decorator and set attributes on cls instead.
+  See https://docs.pytest.org/en/stable/deprecations.html#class-scoped-fixture-as-instance-method
+    fixturefunc = resolve_fixture_function(fixturedef, request)
+
+tests/test_dml_irm_iv.py::test_dml_iv_and_irm_n_folds_routing
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_dml_irm_iv.py:557: UserWarning: Weak instruments detected: Montiel Olea & Pflueger effective F-statistic is 1.21 < 10. IV estimates and standard errors may be subject to substantial bias and size distortion.
+    res_iv_2 = dml_iv(Y, D, Z, X, n_folds=2, random_state=42)
+
+tests/test_pyodide_compat.py::test_no_forbidden_runtime_imports_after_full_sweep
+  /Users/jalonso/.local/share/uv/python/cpython-3.14.6-macos-aarch64-none/lib/python3.14/importlib/__init__.py:88: FutureWarning: puremacro.lp.garch_utils is private and deprecated, will be removed in a future major release (4.0.0); use puremacro.lp._garch_utils or high-level LP functions instead.
+    return _bootstrap._gcd_import(name[level:], package, level)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================= slowest 12 durations =============================
+6.68s call     tests/test_dynare_bayesian.py::test_estimate_dsge_bayesian_synthetic_ar1
+3.97s call     tests/test_dsge_occbin_differentiable.py::test_nuts_sampling_with_zlb_zero_divergences
+3.32s call     tests/test_dsge_stoch_simul_surface.py::test_simul_replic_mc_confidence_bounds
+3.10s call     tests/test_dsge_occbin_pkf.py::TestPiecewiseKalmanFilter::test_linear_model_estimate_method_piecewise_kalman
+2.81s call     tests/test_dsge_engine_closed_form.py::test_pruned_theoretical_moments_agree_with_first_order_and_have_real_fevd
+2.62s call     tests/test_release_check.py::test_gate2_pyodide_passthrough_pass
+2.04s call     tests/test_dsge_extended_path.py::test_linear_rbc_extended_path_identically_matches_linear_simulate
+1.64s call     tests/test_dml_irm_iv.py::test_irm_overlap_trimming_clip_and_drop
+1.62s call     tests/test_dsge_extended_path.py::test_nonlinear_rbc_simulation_100_periods_zero_divergence
+1.34s call     tests/test_dsge_markov_switching.py::test_analytical_girf_matches_monte_carlo
+1.20s call     tests/test_pyodide_compat.py::test_shippable_modules_import_with_forbidden_deps_absent
+1.05s call     tests/test_dsge_extended_path.py::test_nonlinear_rbc_strictly_positive_capital_and_consumption
+=========================== short test summary info ============================
+FAILED tests/test_dsge_markov_switching.py::test_explosive_regime_mean_square_unstable
+FAILED tests/test_dsge_smc.py::test_smc_result_presentation_contract - Import...
+FAILED tests/test_public_api.py::test_public_api_matches_snapshot - Failed: P...
+3 failed, 918 passed, 2 skipped, 16 warnings in 77.93s (0:01:17)

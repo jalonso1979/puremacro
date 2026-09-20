@@ -1,0 +1,10 @@
+# Run from repository root unless noted. Raw archives and MATLAB outputs stay outside Git.
+# MATLAB requires execution outside this machine's sandbox to initialize.
+MATLAB_PREFDIR=/tmp/puremacro-matlab-prefs /Applications/MATLAB_R2026a.app/bin/matlab -batch "addpath('/Users/jalonso/Documents/RESEARCH/puremacro/tools/reference_validation'); export_dynare('/Applications/Dynare/7.0-arm64','/Users/jalonso/Documents/RESEARCH/puremacro/tests/fixtures/dynare_live','/tmp/puremacro-dynare-live');" > /tmp/puremacro-dynare-live.log 2>&1
+# All ten exports and DYNARE_EXPORT_COMPLETE were written; MATLAB crashed on shutdown.
+MPLBACKEND=Agg MPLCONFIGDIR=/tmp/puremacro-review-mpl PYTHONPATH=. .venv/bin/python tools/reference_validation/validate_dynare.py --freeze /tmp/puremacro-dynare-live --output reviews/2026-09-20-independent-validation/dynare-results.json
+# OECD ZIP downloaded through Safari from the provider URL in the fixture manifest.
+MPLBACKEND=Agg MPLCONFIGDIR=/tmp/puremacro-review-mpl PYTHONPATH=. .venv/bin/python tools/reference_validation/validate_oecd.py --source /Users/jalonso/Downloads/2016-2020_SML/2019_SML.csv --readme /tmp/puremacro-oecd-2023-readme.xlsx --output reviews/2026-09-20-independent-validation/oecd-results.json
+MPLBACKEND=Agg MPLCONFIGDIR=/tmp/puremacro-review-mpl .venv/bin/python -m pytest tests/test_live_structural_references.py tests/test_numerical_hardening.py tests/test_dsge_order3.py tests/test_trade_mrio_infrastructure.py tests/test_trade_mrio_stress_challenger.py tests/test_dynare_parity_adversarial.py tests/test_dsge_parity_dashboard.py tests/test_public_api.py -q
+# In techreport/:
+pdflatex -interaction=nonstopmode -halt-on-error puremacro_technical_report.tex

@@ -2717,7 +2717,11 @@ class FlexibleTradeEquilibriumResult:
         return pd.DataFrame(columns=["country", "sector", "labor", "capital", "xl", "xk"])
 
     def welfare_decomposition(self, base_result: Any = None) -> pd.DataFrame:
-        """Hicksian Equivalent Variation, terms-of-trade, and allocative efficiency welfare decomposition.
+        """Historical welfare proxies labeled EV, terms of trade and efficiency.
+
+        These labels do not establish a Hicksian expenditure-function calculation.
+        The separately validated ``compute_hicksian_welfare`` interface requires
+        consistent-accounting equilibria and does not cover this flexible model.
 
         Parameters
         ----------
@@ -3633,4 +3637,3 @@ __all__ = [
     "compute_convergence_diagnostics",
     "solve_flexible_trade_equilibrium",
 ]
-

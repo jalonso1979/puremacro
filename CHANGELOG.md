@@ -2,6 +2,36 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## 4.3.0 (2026-09-20)
+
+**Audited structural solvers, consistent trade accounting, and Hicksian tariff policy.**
+
+### Added
+
+- Opt-in `accounting="consistent"` for NumPy trade equilibria: producer/purchaser ledgers, complete bilateral duty schedules, output and final-expenditure taxes, fixed foreign saving, and independent physical/accounting acceptance checks.
+- `compute_hicksian_welfare` and `HicksianWelfareResult`: consumption expenditure-function EV/CV with declared non-investment baskets and exact endpoint attribution to purchaser prices, factor income and fiscal transfers.
+- Explicit `metric="hicksian_ev"` in unilateral tariff optimization, Nash best responses and fixed-action payoff matrices. Objectives share a fixed zero-tariff baseline; percentage gains and relative regret use baseline selected consumption expenditure.
+- `solve_policy_equilibrium` and `PolicyEquilibriumError`: audited Newton → hybrid → Keller continuation recovery without changing the experiment or relaxing tolerance. Failed deviations produce no payoff or convergence certificate.
+- Native OECD 2023 regular ICIO ingestion with provenance, signed investment flows and recorded regularization; frozen conserving three-region/three-sector fixture. Generated MRIO inputs require explicit opt-in.
+- Independent references: five live Dynare 7 models at orders two and three, scalar trade accounting and primal expenditure benchmarks, and a complete 41-by-41 tariff-policy grid. English/Spanish notebooks 63–65 and validation documentation accompany the APIs.
+
+### Fixed
+
+- Third-order DSGE risk-slope timing and variance contractions, including mixed-derivative permutations. Dynare parity now checks steady states and every requested tensor with label alignment; missing or malformed comparisons cannot pass.
+- Failed Markov-switching solves no longer return finite impact, stability or moment certificates.
+- VFI projection convergence now requires finite final residuals within the requested tolerance. Collocation auxiliary values respect productivity and CRRA utility; Deep Macro restores the correct activation cache for its gradient update.
+- Trade postprocessing uses the solved CES technology and fiscal settings. Keller continuation preserves all intermediate/final schedules and audits its returned state. Caliendo–Parro identity shortcuts require the complete experiment to be unchanged.
+- MRIO productivity checks handle periodic/reducible systems and report unresolved bounds explicitly. Policy searches check final simultaneous deviations; fixed-action games do not silently change a player's action between cells.
+
+### Compatibility and limits
+
+- Historical trade accounting and welfare aliases remain the defaults. Select `accounting="consistent"` and `metric="hicksian_ev"` explicitly for the new model and objective.
+- The unsupported historical TOT/Alloc/TariffRec decomposition and theorem-certification endpoints raise `NotImplementedError`. The new expenditure-function attribution does not relabel its channels as those quantities. Unimplemented heterogeneous-agent IFT distribution/GE sensitivities also fail explicitly.
+- The new welfare model is conditional consumption welfare; investment is excluded and native OECD C includes government consumption. Full-size native GE, flexible/GPU welfare, other fiscal closures and the historical geopolitical scenario wrapper are outside the new validation.
+- Grid/refinement checks are conditional on tariff ceilings and resolution, not global Nash proofs. Absolute equilibrium tolerances must fit the calibration's units; the frozen OECD fixture uses an explicitly requested `ge_tol=1e-5`.
+
+See [structural validation status](docs/STRUCTURAL_VALIDATION_STATUS.md), [policy usage](docs/trade_policy.md), and [correctness advisories](docs/ADVISORY.md) for evidence and rerun guidance.
+
 ## 4.2.0 (2026-09-18)
 
 ### Added — Flexible trade CGE, dual-mode B&W card styling, and full notebook corpus polish

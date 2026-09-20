@@ -1,0 +1,16 @@
+# From the repository root, using the existing .venv.
+PYTHONPATH=. MPLBACKEND=Agg MPLCONFIGDIR=/tmp/puremacro-review-mpl .venv/bin/python tools/reference_validation/validate_hicksian_policy.py --output reviews/2026-09-20-hicksian-policy/results.json > reviews/2026-09-20-hicksian-policy/reference-run.log 2>&1
+
+MPLBACKEND=Agg MPLCONFIGDIR=/tmp/puremacro-review-mpl .venv/bin/python -m pytest tests/test_trade_hicksian_policy.py tests/test_trade_hicksian_welfare.py tests/test_trade_consistent_accounting.py tests/test_trade_equilibrium.py tests/test_trade_calibration.py tests/test_trade_34fixes.py tests/test_trade_solver_accelerated.py tests/test_numerical_hardening.py tests/test_live_structural_references.py tests/test_public_api.py -q -rs > reviews/2026-09-20-hicksian-policy/regression-tests.log 2>&1
+
+MPLBACKEND=Agg MPLCONFIGDIR=/tmp/puremacro-review-mpl .venv/bin/python -m pytest tests/test_trade_hicksian_policy.py -q > reviews/2026-09-20-hicksian-policy/policy-tests.log 2>&1
+
+# Jupyter execution needs permission to bind local kernel ports.
+JUPYTER_DATA_DIR=/tmp/puremacro-jupyter IPYTHONDIR=/tmp/puremacro-ipython MPLBACKEND=Agg MPLCONFIGDIR=/tmp/puremacro-review-mpl .venv/bin/python tools/build_notebooks.py 63_trade_wars_and_nash_tariffs 63_trade_wars_and_nash_tariffs_es > reviews/2026-09-20-hicksian-policy/notebook-build.log 2>&1
+
+JUPYTER_DATA_DIR=/tmp/puremacro-jupyter IPYTHONDIR=/tmp/puremacro-ipython MPLBACKEND=Agg MPLCONFIGDIR=/tmp/puremacro-review-mpl .venv/bin/python -m pytest tests/test_notebooks_trade_tutorials.py -q -rs > reviews/2026-09-20-hicksian-policy/notebook-tests.log 2>&1
+
+git diff --check
+
+# From techreport/, run twice to refresh cross-references:
+pdflatex -interaction=nonstopmode -halt-on-error puremacro_technical_report.tex

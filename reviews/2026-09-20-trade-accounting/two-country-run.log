@@ -1,0 +1,121 @@
+{
+  "passed": true,
+  "cases": {
+    "baseline": {
+      "converged": true,
+      "comparisons": {
+        "producer_prices": {
+          "max_abs_error": 8.881784197001252e-16,
+          "passed": true
+        },
+        "outputs": {
+          "max_abs_error": 4.263256414560601e-14,
+          "passed": true
+        },
+        "wages": {
+          "max_abs_error": 1.1102230246251565e-15,
+          "passed": true
+        },
+        "rents": {
+          "max_abs_error": 1.1102230246251565e-15,
+          "passed": true
+        },
+        "rebates": {
+          "max_abs_error": 8.881784197001252e-15,
+          "passed": true
+        },
+        "tariffs": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "purchaser_prices": {
+          "max_abs_error": 6.661338147750939e-16,
+          "passed": true
+        },
+        "final_deliveries": {
+          "max_abs_error": 2.842170943040401e-14,
+          "passed": true
+        },
+        "income": {
+          "max_abs_error": 9.947598300641403e-14,
+          "passed": true
+        }
+      },
+      "accounts": {
+        "goods": 5.684341886080802e-14,
+        "foreign_balance": 7.105427357601002e-15,
+        "household_budget": 2.842170943040401e-14,
+        "government_budget": 1.7763568394002505e-15,
+        "gdp_income_expenditure": 2.842170943040401e-14,
+        "physical_equations": 5.684341886080802e-14
+      },
+      "producer_prices": [
+        1.0,
+        0.9999999999999991
+      ],
+      "tariff_revenue": [
+        0.0,
+        0.0
+      ],
+      "passed": true
+    },
+    "heterogeneous_tariffs": {
+      "converged": true,
+      "comparisons": {
+        "producer_prices": {
+          "max_abs_error": 4.884981308350689e-15,
+          "passed": true
+        },
+        "outputs": {
+          "max_abs_error": 4.263256414560601e-14,
+          "passed": true
+        },
+        "wages": {
+          "max_abs_error": 5.773159728050814e-15,
+          "passed": true
+        },
+        "rents": {
+          "max_abs_error": 5.773159728050814e-15,
+          "passed": true
+        },
+        "rebates": {
+          "max_abs_error": 6.394884621840902e-14,
+          "passed": true
+        },
+        "tariffs": {
+          "max_abs_error": 3.552713678800501e-14,
+          "passed": true
+        },
+        "purchaser_prices": {
+          "max_abs_error": 5.551115123125783e-15,
+          "passed": true
+        },
+        "final_deliveries": {
+          "max_abs_error": 7.815970093361102e-14,
+          "passed": true
+        },
+        "income": {
+          "max_abs_error": 5.684341886080801e-13,
+          "passed": true
+        }
+      },
+      "accounts": {
+        "goods": 5.684341886080802e-14,
+        "foreign_balance": 4.973799150320701e-14,
+        "household_budget": 2.842170943040401e-14,
+        "government_budget": 3.552713678800501e-15,
+        "gdp_income_expenditure": 5.684341886080802e-14,
+        "physical_equations": 5.684341886080802e-14
+      },
+      "producer_prices": [
+        1.0,
+        1.0328401217499743
+      ],
+      "tariff_revenue": [
+        14.603438682042407,
+        7.087466847293019
+      ],
+      "passed": true
+    }
+  }
+}

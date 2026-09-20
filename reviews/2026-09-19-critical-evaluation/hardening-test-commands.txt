@@ -1,0 +1,20 @@
+# Run from the repository root with the existing .venv.
+# Broad suite (two timing failures subsequently fixed and retested):
+MPLBACKEND=Agg MPLCONFIGDIR=/tmp/puremacro-review-mpl .venv/bin/python -m pytest tests/test_vfi tests/test_dsge tests/test_dsge*.py tests/test_dynare*.py tests/test_trade*.py tests/test_occbin_multiconstraint.py tests/test_v300*.py tests/test_numerical_hardening.py tests/test_public_api.py tests/test_release_check.py -q --tb=short --durations=15
+
+# Final MRIO, independent regressions, and API:
+MPLBACKEND=Agg MPLCONFIGDIR=/tmp/puremacro-review-mpl .venv/bin/python -m pytest tests/test_trade_mrio_infrastructure.py tests/test_trade_mrio_stress_challenger.py tests/test_numerical_hardening.py tests/test_public_api.py -q --tb=short --durations=5
+
+# Final Dynare and independent regressions:
+MPLBACKEND=Agg MPLCONFIGDIR=/tmp/puremacro-review-mpl .venv/bin/python -m pytest tests/test_numerical_hardening.py tests/test_dynare_parity_adversarial.py tests/test_dsge_parity_dashboard.py -q --tb=short
+
+# Notebook structural, scientific, bilingual and figure checks:
+MPLBACKEND=Agg MPLCONFIGDIR=/tmp/puremacro-review-mpl .venv/bin/python -m pytest tests/test_notebooks_trade_tutorials.py tests/test_notebooks/test_m5_trade_tutorials_tier5_stress.py -q --tb=short -k 'not headless and not execution_time'
+
+# All six actual notebook builds (needs Jupyter local kernel ports):
+JUPYTER_DATA_DIR=/tmp/puremacro-jupyter IPYTHONDIR=/tmp/puremacro-ipython MPLBACKEND=Agg MPLCONFIGDIR=/tmp/puremacro-review-mpl .venv/bin/python tools/build_notebooks.py 63_trade_wars_and_nash_tariffs 63_trade_wars_and_nash_tariffs_es 64_singularities_and_keller_pac 64_singularities_and_keller_pac_es 65_gvc_cascades_and_welfare_decomposition 65_gvc_cascades_and_welfare_decomposition_es
+
+# In techreport/, repeat until references settle:
+pdflatex -interaction=nonstopmode -halt-on-error puremacro_technical_report.tex
+
+git diff --check

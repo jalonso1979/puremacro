@@ -29,6 +29,12 @@ def calibrate_trade_model(
 ) -> TradeCalibrationResult:
     """Calibrate structural parameters from the processed ICIO transaction table.
 
+    ``tax_fd`` retains the MATLAB denominator (including foreign saving in the
+    investment allocation). The consistent equilibrium mode reconstructs the
+    tax share on actual final purchases from ``data_calibra``, excluding that
+    financial saving. Its production charge is a tax-inclusive share of output
+    revenue; interpreting aggregate source TLS this way is a model assumption.
+
     Parameters
     ----------
     data : np.ndarray

@@ -603,7 +603,7 @@ class TestPfeiferSW07AdversarialParity:
                 "M_": {
                     "endo_names": np.array(dr1.variable_names),
                     "exo_names": np.array(dr1.shock_names),
-                    "state_var": np.arange(1, n_x + 1)[:, None],
+                    "state_var": np.array([dr1.variable_names.index(v) + 1 for v in dr1.state_variables]),
                 },
             },
         )
@@ -636,16 +636,18 @@ class TestPfeiferSW07AdversarialParity:
                         "ghx": dr2.ghx.to_numpy()[perm, :],
                         "ghu": dr2.ghu.to_numpy()[perm, :],
                         "ghxx": ghxx_folded[perm, :],
+                        "ghxu": dr2.ghxu.to_numpy()[perm, :],
+                        "ghuu": dr2.ghuu.to_numpy()[perm, :],
                         "ghs2": dr2.ghs2.to_numpy()[perm, None],
                         "ys": dr2.ys.to_numpy()[:, None],
                         "order_var": (perm + 1)[:, None],
                     },
-                    "mean": dr2.ys.to_numpy(),
+                    # DR round-trip only: no unconditional moment reference.
                 },
                 "M_": {
                     "endo_names": np.array(dr2.variable_names),
                     "exo_names": np.array(dr2.shock_names),
-                    "state_var": np.arange(1, n_x + 1)[:, None],
+                    "state_var": np.array([dr2.variable_names.index(v) + 1 for v in dr2.state_variables]),
                 },
             },
         )
@@ -681,7 +683,7 @@ class TestPfeiferSW07AdversarialParity:
                 "M_": {
                     "endo_names": np.array(dr1.variable_names),
                     "exo_names": np.array(dr1.shock_names),
-                    "state_var": np.arange(1, 16)[:, None],
+                    "state_var": np.array([dr1.variable_names.index(v) + 1 for v in dr1.state_variables]),
                 },
             },
         )
@@ -768,7 +770,7 @@ class TestEdgeCasesAndStructuralLimitations:
             assert dr.ghx.shape == (1, 2)
         except ValueError as exc:
             # Documented empirical finding: shape (2, 1) vs index (1, 1)
-            assert "Shape of passed values is" in str(exc) or "not enough values" in str(exc)
+            assert "Shape of passed values is" in str(exc) or "not enough values" in str(exc) or "ys has" in str(exc) or "order_var" in str(exc)
 
     def test_missing_oo_dr_error_reporting(self, tmp_path: Path):
         """Passing MAT file without oo_.dr structure raises clean KeyError."""

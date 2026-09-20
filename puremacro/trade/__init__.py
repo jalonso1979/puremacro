@@ -29,6 +29,7 @@ from __future__ import annotations
 # Result containers
 from ._results import (
     CapacityBottleneckResult,
+    EVDecompositionResult,
     GearyKhamisResult,
     JCurveDynamicResult,
     NashTariffResult,
@@ -36,6 +37,7 @@ from ._results import (
     RetaliationGameResult,
     RevenueRecyclingResult,
     ScenarioBatchResult,
+    TheoremValidationReport,
     TradeCalibrationResult,
     TradeEquilibriumResult,
     WelfarePayoffMatrixResult,
@@ -208,8 +210,12 @@ from .policy_analytics import (
     calculate_tariff_revenue_incidence,
     compute_effective_rate_of_protection,
     compute_supply_chain_vulnerability,
+    decompose_hicksian_ev_3way,
     decompose_welfare_effects,
+    verify_theorems_1_to_4,
 )
+from .welfare import HicksianWelfareResult, compute_hicksian_welfare
+from .policy_solver import PolicyEquilibriumError, solve_policy_equilibrium
 
 __all__ = [
     # Result dataclasses
@@ -224,6 +230,12 @@ __all__ = [
     "OptimalTariffResult",
     "NashTariffResult",
     "WelfarePayoffMatrixResult",
+    "TheoremValidationReport",
+    "EVDecompositionResult",
+    "HicksianWelfareResult",
+    "compute_hicksian_welfare",
+    "PolicyEquilibriumError",
+    "solve_policy_equilibrium",
     # Data & Calibration entry points
     "load_icio_data",
     "calibrate_trade_model",
@@ -329,6 +341,8 @@ __all__ = [
     "decompose_welfare_effects",
     "compute_supply_chain_vulnerability",
     "calculate_tariff_revenue_incidence",
+    "verify_theorems_1_to_4",
+    "decompose_hicksian_ev_3way",
     # Flexible CGE modeling engine
     "FlexibleTechnologyConfig",
     "FlexiblePreferenceConfig",
@@ -347,4 +361,3 @@ __all__ = [
     "smooth_subsistence_scaling",
     "solve_flexible_trade_equilibrium",
 ]
-

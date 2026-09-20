@@ -420,7 +420,8 @@ class SMCResult:
     def to_latex(self, **kwargs: Any) -> str:
         """Export posterior parameter table and MDD to LaTeX format."""
         caption = f"SMC Posterior Summary (Log MDD: {self.mdd:.4f} $\\pm$ {self.mdd_se:.4f})"
-        return self.posterior_summary.to_latex(caption=caption, **kwargs)
+        from puremacro.reports import _df_to_latex
+        return "% " + caption + "\n" + _df_to_latex(self.posterior_summary, **kwargs)
 
     def to_typst(self, **kwargs: Any) -> str:
         """Export posterior parameter table to Typst document format."""

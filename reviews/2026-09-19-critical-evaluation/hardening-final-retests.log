@@ -1,0 +1,19 @@
+........................................................................ [ 75%]
+........................                                                 [100%]
+=============================== warnings summary ===============================
+tests/test_trade_mrio_stress_challenger.py::TestStressMemoryAndNumericStability::test_numeric_stability_near_zero_output
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/trade/regularize.py:98: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 5.00006499825565e-18.
+    candidate = scipy.linalg.solve(lam * np.eye(n) - B, np.ones(n))
+
+tests/test_public_api.py::test_public_api_matches_snapshot
+  /Users/jalonso/.local/share/uv/python/cpython-3.14.6-macos-aarch64-none/lib/python3.14/importlib/__init__.py:88: FutureWarning: puremacro.lp.garch_utils is private and deprecated, will be removed in a future major release (4.0.0); use puremacro.lp._garch_utils or high-level LP functions instead.
+    return _bootstrap._gcd_import(name[level:], package, level)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================= slowest 5 durations ==============================
+0.61s call     tests/test_trade_mrio_infrastructure.py::TestFullTableExecution::test_full_oecd_icio_granular_calibration_and_invariants
+0.44s call     tests/test_public_api.py::test_public_api_matches_snapshot
+0.38s call     tests/test_trade_mrio_infrastructure.py::TestFullTableExecution::test_full_figaro_calibration_and_invariants
+0.36s call     tests/test_trade_mrio_stress_challenger.py::TestStressInactiveSectors::test_phantom_injection_scaling_up_to_100_nodes[1]
+0.33s call     tests/test_trade_mrio_stress_challenger.py::TestStressInactiveSectors::test_phantom_injection_scaling_up_to_100_nodes[100]
+96 passed, 2 warnings in 5.19s

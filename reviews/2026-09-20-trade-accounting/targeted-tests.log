@@ -1,0 +1,19 @@
+........................................................................ [ 39%]
+.......................s.....sss.ssss....s.............................. [ 78%]
+.......................................                                  [100%]
+=============================== warnings summary ===============================
+tests/test_public_api.py::test_public_api_matches_snapshot
+  /Users/jalonso/.local/share/uv/python/cpython-3.14.6-macos-aarch64-none/lib/python3.14/importlib/__init__.py:88: FutureWarning: puremacro.lp.garch_utils is private and deprecated, will be removed in a future major release (4.0.0); use puremacro.lp._garch_utils or high-level LP functions instead.
+    return _bootstrap._gcd_import(name[level:], package, level)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_trade_34fixes.py:210: Apple MLX is not available
+SKIPPED [2] tests/test_trade_34fixes.py:333: got empty parameter set for (backend, device)
+SKIPPED [1] tests/test_trade_34fixes.py:353: got empty parameter set for (backend, device)
+SKIPPED [1] tests/test_trade_34fixes.py:392: Apple MLX is not available
+SKIPPED [1] tests/test_trade_34fixes.py:418: Apple MLX is not available
+SKIPPED [1] tests/test_trade_34fixes.py:435: Apple MLX is not available
+SKIPPED [1] tests/test_trade_34fixes.py:449: Apple MLX is not available
+SKIPPED [1] tests/test_trade_34fixes.py:537: Apple MLX is not available
+174 passed, 9 skipped, 1 warning in 9.20s

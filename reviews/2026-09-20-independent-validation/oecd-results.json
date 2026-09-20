@@ -1,0 +1,194 @@
+{
+  "accounting": {
+    "valid": true,
+    "max_outlays_sales_error": 2.9802322387695312e-08,
+    "trade_leakage_sum": -8.149072527885437e-10,
+    "zero_leakage_certified": true,
+    "max_budget_error": 1.1102230246251565e-16,
+    "factors_positive": true
+  },
+  "adjustments": {
+    "Z": {
+      "changed_entries": 0,
+      "max_abs_change": 0.0,
+      "net_change": 0.0
+    },
+    "F": {
+      "changed_entries": 0,
+      "max_abs_change": 0.0,
+      "net_change": 0.0
+    },
+    "VA": {
+      "changed_entries": 0,
+      "max_abs_change": 0.0,
+      "net_change": 0.0
+    },
+    "TLS": {
+      "changed_entries": 9,
+      "max_abs_change": 7.084499999415129,
+      "net_change": 6.390900067150142
+    },
+    "Y": {
+      "changed_entries": 9,
+      "max_abs_change": 7.077799916267395,
+      "net_change": -14.48539987555705
+    }
+  },
+  "final_demand_mapping": {
+    "C": [
+      "HFCE",
+      "NPISH",
+      "GGFC"
+    ],
+    "I": [
+      "GFCF",
+      "INVNT"
+    ],
+    "Cx": [
+      "DPABR"
+    ]
+  },
+  "checks": {
+    "baseline_output_recovers_transactions": {
+      "max_abs_error": 4.470348358154297e-08,
+      "passed": true
+    },
+    "baseline_prices": {
+      "max_abs_error": 6.661338147750939e-16,
+      "passed": true
+    },
+    "baseline_wages": {
+      "max_abs_error": 0.0,
+      "passed": true
+    },
+    "baseline_rents": {
+      "max_abs_error": 0.0,
+      "passed": true
+    },
+    "baseline_tariffs": {
+      "max_abs_error": 0.0,
+      "passed": true
+    },
+    "leontief_inverse_baseline": {
+      "max_abs_error": 5.587935447692871e-09,
+      "passed": true
+    },
+    "newton_pac_p_sol": {
+      "max_abs_error": 7.274181257344026e-13,
+      "passed": true
+    },
+    "newton_pac_w_sol": {
+      "max_abs_error": 5.764277943853813e-13,
+      "passed": true
+    },
+    "newton_pac_r_sol": {
+      "max_abs_error": 5.995204332975845e-13,
+      "passed": true
+    },
+    "newton_pac_y_sol": {
+      "max_abs_error": 1.3113021850585938e-06,
+      "passed": true
+    },
+    "newton_pac_tariffs": {
+      "max_abs_error": 3.282912075519562e-08,
+      "passed": true
+    },
+    "currency_unit_invariance_p_sol": {
+      "max_abs_error": 1.887379141862766e-15,
+      "passed": true
+    },
+    "currency_unit_invariance_w_sol": {
+      "max_abs_error": 2.1094237467877974e-15,
+      "passed": true
+    },
+    "currency_unit_invariance_r_sol": {
+      "max_abs_error": 2.1094237467877974e-15,
+      "passed": true
+    },
+    "currency_unit_covariance_y_sol": {
+      "max_abs_error": 2.546585164964199e-11,
+      "passed": true
+    },
+    "currency_unit_covariance_tariffs": {
+      "max_abs_error": 2.2737367544323206e-13,
+      "passed": true
+    },
+    "counterfactual_goods_clearing": {
+      "max_abs_error": 6.332993507385254e-07,
+      "passed": true
+    },
+    "counterfactual_schedule_receipts": {
+      "max_abs_error": 3.4924596548080444e-10,
+      "passed": true
+    },
+    "non_importers_receive_no_tariffs": {
+      "max_abs_error": 0.0,
+      "passed": true
+    }
+  },
+  "solvers": {
+    "baseline": {
+      "converged": true,
+      "residual_norm": 1.5634577987810871e-07
+    },
+    "tariff_newton": {
+      "converged": true,
+      "residual_norm": 1.6474514366038306e-06
+    },
+    "tariff_pac": {
+      "converged": true,
+      "residual_norm": 3.879977162113413e-06
+    },
+    "tariff_billion_usd": {
+      "converged": true,
+      "residual_norm": 1.6252487133883164e-09
+    }
+  },
+  "counterfactual": {
+    "description": "USA levies 10% on all foreign intermediate and final purchases",
+    "tariff_revenue_mode": "schedule",
+    "sigma": 0.0,
+    "unit": "current million USD",
+    "prices": [
+      [
+        1.0227060660529894,
+        0.9988328767875313,
+        0.9950589413355372
+      ],
+      [
+        1.0268937070636488,
+        0.998666364140185,
+        0.9957884073638668
+      ],
+      [
+        1.0182236530933597,
+        0.9988690678471531,
+        0.9950871010977395
+      ]
+    ],
+    "output_percent_change": [
+      [
+        -0.1131250290975716,
+        0.007790182442279914,
+        0.005759511725900168
+      ],
+      [
+        -0.06037321026430842,
+        -0.001790060949002914,
+        0.0013669865208232324
+      ],
+      [
+        0.010990201456206883,
+        -0.0004259205479528738,
+        -0.0010464487045891424
+      ]
+    ],
+    "tariff_revenue": [
+      281576.63145958283,
+      0.0,
+      0.0
+    ]
+  },
+  "passed": true,
+  "native_archive_reloaded_this_run": true
+}

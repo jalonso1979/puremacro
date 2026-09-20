@@ -1,0 +1,7 @@
+Run from the repository root. These commands use the existing virtual environment.
+
+MPLCONFIGDIR=/tmp/puremacro-review-mpl .venv/bin/python -m pytest tests/test_vfi tests/test_dsge tests/test_trade*.py tests/test_occbin_multiconstraint.py tests/test_v300*.py -q --tb=short --durations=20
+
+MPLCONFIGDIR=/tmp/puremacro-review-mpl .venv/bin/python -m pytest tests/test_dsge*.py tests/test_dynare*.py tests/test_dml*.py tests/test_nowcast tests/test_monetary_transmission.py tests/test_pyodide_compat.py tests/validation/test_validation_cases.py tests/test_public_api.py tests/test_release_check.py -q --tb=short --durations=12
+
+MPLCONFIGDIR=/tmp/puremacro-review-mpl .venv/bin/python reviews/2026-09-19-critical-evaluation/reproduce.py

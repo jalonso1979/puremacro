@@ -20,9 +20,6 @@ import pandas as pd
 
 from .data import slice_country
 from .irf_scale import to_1sd_pct
-from .lp_sm import lp_ols_hac
-from .panel_lm import panel_lp
-from .var_sm import cholesky_irf, fit_var
 
 _VALID_METHODS = ("lp", "panel_lp", "var_cholesky")
 _VALID_NORMALIZE = ("raw", "1sd_pct")
@@ -104,6 +101,7 @@ def run_experiment(
     horizons = list(horizons)
 
     if method == "lp":
+        from .lp_sm import lp_ols_hac
         if country is None:
             raise ValueError("method='lp' requires country=")
         sub = slice_country(wide, country)
@@ -123,6 +121,7 @@ def run_experiment(
         return result
 
     if method == "panel_lp":
+        from .panel_lm import panel_lp
         sub = wide
         if countries is not None:
             sub = sub.loc[sub.index.get_level_values("code").isin(countries)]
@@ -145,6 +144,7 @@ def run_experiment(
         return result
 
     # var_cholesky
+    from .var_sm import cholesky_irf, fit_var
     if country is None:
         raise ValueError("method='var_cholesky' requires country=")
     sub = slice_country(wide, country)

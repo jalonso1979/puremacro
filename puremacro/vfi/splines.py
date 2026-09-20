@@ -1146,9 +1146,9 @@ def _solve_spline_euler(
 
         res = root(residual_obj, theta_curr, method="hybr", tol=tol, options={"maxfev": max_iter * len(nodes)})
         theta_opt = res.x if res.success else theta_curr
-        converged = bool(res.success)
         n_iter = int(getattr(res, "nfev", 0))
         final_res_norm = float(np.max(np.abs(residual_obj(theta_opt))))
+        converged = bool(np.isfinite(final_res_norm) and final_res_norm <= tol)
 
         return SplineCollocationSolution(
             coefficients=theta_opt,
@@ -1195,9 +1195,9 @@ def _solve_spline_euler(
 
         res = root(residual_obj, y_curr, method="hybr", tol=tol, options={"maxfev": max_iter * len(nodes)})
         y_opt = res.x if res.success else y_curr
-        converged = bool(res.success)
         n_iter = int(getattr(res, "nfev", 0))
         final_res_norm = float(np.max(np.abs(residual_obj(y_opt))))
+        converged = bool(np.isfinite(final_res_norm) and final_res_norm <= tol)
 
         basis_opt = SchumakerSpline(nodes, y_opt)
 

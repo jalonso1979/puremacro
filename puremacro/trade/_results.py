@@ -1459,13 +1459,14 @@ class OptimalTariffResult:
     optimal_tariff_rate : float
         Optimal ad-valorem tariff rate (e.g. 0.184 for 18.4%).
     welfare_gain_pct : float
-        Percentage welfare gain relative to baseline: (W^* - W_0) / W_0 * 100.
+        For hicksian_ev: 100 * EV / baseline selected consumption expenditure.
+        Other metrics use (W^* - W_0) / W_0 * 100.
     baseline_welfare : float
-        Baseline welfare value.
+        Baseline welfare value; zero for hicksian_ev.
     optimal_welfare : float
-        Equilibrium welfare under optimal tariff.
+        Equilibrium welfare under optimal tariff; monetary EV for hicksian_ev.
     welfare_metric : str
-        Welfare objective metric ('geary_khamis', 'equivalent_variation', 'terms_of_trade').
+        Welfare objective, including explicit 'hicksian_ev' or historical metrics.
     terms_of_trade_initial : float
         Baseline terms of trade index P_X / P_M.
     terms_of_trade_optimal : float
@@ -1556,16 +1557,18 @@ class NashTariffResult:
         Equilibrium ad-valorem tariff rates chosen by each player in the Nash equilibrium.
     welfare_changes_pct : dict[str, float]
         Percentage welfare change for each strategic player relative to Free Trade.
+        For hicksian_ev, 100 * EV / baseline selected consumption expenditure.
     terms_of_trade_changes_pct : dict[str, float]
         Percentage terms of trade change for each player relative to Free Trade.
     world_welfare_change_pct : float
-        Percentage change in aggregate global real welfare.
+        Percentage change in aggregate global real welfare. For hicksian_ev,
+        summed EV / summed baseline consumption * 100, including nonplayers.
     outer_iterations : int
         Number of outer policy iterations executed.
     converged : bool
         Whether policy iteration converged within tolerance.
     outer_error : float
-        Final infinity norm policy adjustment ||tau^(k) - tau^(k-1)||_inf.
+        Final simultaneous undamped best-response tariff gap (infinity norm).
     equilibrium : TradeEquilibriumResult
         Solved CGE general equilibrium at the Nash tariff vector.
     tau_nash : np.ndarray
@@ -1653,6 +1656,8 @@ class WelfarePayoffMatrixResult:
     payoff_matrix : np.ndarray, shape (2, 2, 2)
         Payoff matrix where payoff_matrix[i, j, k] is the percentage welfare change
         of player k when player 1 plays strategy i and player 2 plays strategy j.
+        For hicksian_ev, percentages use baseline selected consumption and each
+        player has the same two fixed actions in every cell.
     scenarios : dict[str, TradeEquilibriumResult]
         Equilibrium states keyed by outcome ('CC', 'CD', 'DC', 'DD').
     summary_df : pd.DataFrame
@@ -1717,6 +1722,235 @@ class WelfarePayoffMatrixResult:
         return df_to_typst(self.summary(), **kwargs)
 
 
+@dataclass(frozen=True)
+class TheoremValidationReport:
+    """Formal theoretical bounding report for Theorems 1 to 4.
+
+    Evaluates analytical boundary conditions across general equilibrium
+    counterfactuals, covering Leontief vs CES macroeconomic contraction bounds,
+    factory-gate price escalation bounds with wage cushioning, foreign export
+    destruction lower bounds, and lump-sum tariff revenue dominance with the
+    99.3% rebate offset.
+
+    Attributes
+    ----------
+    all_passed : bool
+        Overall boolean compliance verdict across all 4 theoretical bounding theorems.
+    theorem_1_passed : bool
+        Theorem 1 verdict: GE bound inversion (SOE Leontief invariance vs CES Harberger DWL; LOE ToT inversion).
+    theorem_2_passed : bool
+        Theorem 2 verdict: Factory-gate price upper bound under fixed factor costs and GE labor-intensity threshold inversion.
+    theorem_3_passed : bool
+        Theorem 3 verdict: Foreign export destruction lower bound (|Delta X_Leo| <= |Delta X_CES|).
+    theorem_4_passed : bool
+        Theorem 4 verdict: Lump-sum tariff revenue dominance and 99.3% rebate offset.
+    details : dict[int, dict[str, Any]]
+        Structured diagnostic dictionary keyed by theorem number (1, 2, 3, 4).
+    summary_df : pd.DataFrame
+        Structured summary scorecard across all 4 theorems.
+    scenario : str, default ""
+        Evaluated policy scenario identifier.
+    """
+
+    all_passed: bool
+    theorem_1_passed: bool
+    theorem_2_passed: bool
+    theorem_3_passed: bool
+    theorem_4_passed: bool
+    details: dict[int, dict[str, Any]]
+    summary_df: pd.DataFrame
+    scenario: str = ""
+
+    @property
+    def passed(self) -> bool:
+        """Alias for all_passed."""
+        return self.all_passed
+
+    def __getitem__(self, key: int | str) -> Any:
+        """Support dictionary-style access by theorem number (int) or attribute name (str)."""
+        if isinstance(key, int):
+            if key in self.details:
+                return self.details[key]
+            raise KeyError(f"Theorem index {key} not found in details (valid: 1, 2, 3, 4).")
+        if isinstance(key, str):
+            if hasattr(self, key):
+                return getattr(self, key)
+            if key.isdigit() and int(key) in self.details:
+                return self.details[int(key)]
+            key_clean = key.lower().replace("_", "").replace(" ", "")
+            for t_idx in (1, 2, 3, 4):
+                if key_clean in (f"theorem{t_idx}", f"t{t_idx}"):
+                    return self.details[t_idx]
+            raise KeyError(f"Key '{key}' not found in TheoremValidationReport.")
+        raise TypeError(f"Key must be int or str, got {type(key).__name__}")
+
+    def summary(self, detailed: bool = False) -> pd.DataFrame:
+        """Return formatted summary DataFrame."""
+        return self.summary_df
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return summary table as a pandas DataFrame."""
+        return self.summary_df
+
+    def to_dataframe(self) -> pd.DataFrame:
+        """Return summary table as a pandas DataFrame."""
+        return self.summary_df
+
+    def to_markdown(self, **kwargs: Any) -> str:
+        """Render summary table as GitHub-flavored Markdown."""
+        return df_to_markdown(self.summary_df, **kwargs)
+
+    def to_latex(self, **kwargs: Any) -> str:
+        """Render summary table as LaTeX tabular."""
+        return df_to_latex(self.summary_df, **kwargs)
+
+    def to_typst(self, **kwargs: Any) -> str:
+        """Render summary table as Typst table."""
+        return df_to_typst(self.summary_df, **kwargs)
+
+
+@dataclass(frozen=True)
+class EVDecompositionResult:
+    """Legacy container for the quarantined three-way EV interface.
+
+    Retained for compatibility with stored results. These fields do not certify
+    a Hicksian expenditure-function decomposition. An arithmetic identity among
+    them is insufficient evidence of economic correctness.
+
+    Attributes
+    ----------
+    ev_usd : float
+        Total Hicksian Equivalent Variation in Million USD (or value levels).
+    ev_pct : float
+        Total Hicksian Equivalent Variation as a percentage of baseline GDP.
+    tot : float
+        Terms-of-trade effect component (purchasing power gains/losses from relative price shifts).
+    alloc : float
+        Allocative efficiency component (Harberger deadweight loss distortion triangles).
+    tariff_rec : float
+        Tariff revenue recycling component (deflated customs collections returned to consumers).
+    residual : float
+        Arithmetic discrepancy: ev - (tot + alloc + tariff_rec).
+    country_code : str
+        ISO-3 identifier of the evaluated economy.
+    summary_df : pd.DataFrame
+        Structured summary DataFrame detailing components, dollar values, and percentage shares.
+    """
+
+    ev_usd: float
+    ev_pct: float
+    tot: float
+    alloc: float
+    tariff_rec: float
+    residual: float
+    country_code: str
+    summary_df: pd.DataFrame
+
+    @property
+    def ev_total(self) -> float:
+        """Total EV (USD or level)."""
+        return self.ev_usd
+
+    @property
+    def terms_of_trade(self) -> float:
+        """Terms-of-trade component."""
+        return self.tot
+
+    @property
+    def allocative_efficiency(self) -> float:
+        """Allocative efficiency component."""
+        return self.alloc
+
+    @property
+    def tariff_revenue_recycling(self) -> float:
+        """Tariff revenue recycling component."""
+        return self.tariff_rec
+
+    @property
+    def exact_identity_satisfied(self) -> bool:
+        """Arithmetic residual check only; this does not certify Hicksian welfare."""
+        return bool(abs(self.residual) <= 1e-10)
+
+    def __len__(self) -> int:
+        """Returns 3, representing the 3 additive decomposition components."""
+        return 3
+
+    def __contains__(self, key: object) -> bool:
+        """Check presence of decomposition keys: 'TOT', 'Alloc', 'TariffRec'."""
+        if not isinstance(key, str):
+            return False
+        clean = key.strip().lower().replace("_", "")
+        return clean in ("tot", "alloc", "tariffrec")
+
+    def __getitem__(self, key: str) -> float:
+        """Dictionary access supporting 'TOT', 'Alloc', 'TariffRec' and case/underscore variants."""
+        if not isinstance(key, str):
+            raise TypeError(f"Key must be a str, got {type(key).__name__}")
+        clean = key.strip().lower().replace("_", "")
+        if clean in ("tot", "termsoftrade"):
+            return self.tot
+        elif clean in ("alloc", "allocative", "allocativeefficiency"):
+            return self.alloc
+        elif clean in ("tariffrec", "tariffrevenue", "tariffrecycling", "tariffrevenuerecycling"):
+            return self.tariff_rec
+        elif clean in ("ev", "evtotal", "evusd"):
+            return self.ev_usd
+        elif clean in ("evpct", "evpercent"):
+            return self.ev_pct
+        elif clean == "residual":
+            return self.residual
+        raise KeyError(
+            f"Key '{key}' not recognized in EVDecompositionResult. "
+            f"Supported keys: 'TOT', 'Alloc', 'TariffRec'."
+        )
+
+    def __iter__(self):
+        """Iterate over the 3 core decomposition keys."""
+        return iter(["TOT", "Alloc", "TariffRec"])
+
+    def items(self) -> list[tuple[str, float]]:
+        """Return list of (component_name, value) pairs."""
+        return [("TOT", self.tot), ("Alloc", self.alloc), ("TariffRec", self.tariff_rec)]
+
+    def keys(self) -> list[str]:
+        """Return list of component keys."""
+        return ["TOT", "Alloc", "TariffRec"]
+
+    def values(self) -> list[float]:
+        """Return list of component values."""
+        return [self.tot, self.alloc, self.tariff_rec]
+
+    def summary(self, detailed: bool = False) -> str | pd.DataFrame:
+        """Formatted summary string or DataFrame table."""
+        if detailed:
+            return self.summary_df
+        return (
+            f"Hicksian EV 3-Way Decomposition [{self.country_code}]: "
+            f"TOT={self.tot:.4f}, Alloc={self.alloc:.4f}, TariffRec={self.tariff_rec:.4f}, "
+            f"EV={self.ev_pct:.4f}% (${self.ev_usd:,.2f}M), Residual={self.residual:.2e}"
+        )
+
+    def to_frame(self) -> pd.DataFrame:
+        """Return summary table as a pandas DataFrame."""
+        return self.summary_df
+
+    def to_dataframe(self) -> pd.DataFrame:
+        """Return summary table as a pandas DataFrame."""
+        return self.summary_df
+
+    def to_markdown(self, **kwargs: Any) -> str:
+        """Render summary table as GitHub-flavored Markdown."""
+        return df_to_markdown(self.summary_df, **kwargs)
+
+    def to_latex(self, **kwargs: Any) -> str:
+        """Render summary table as LaTeX tabular."""
+        return df_to_latex(self.summary_df, **kwargs)
+
+    def to_typst(self, **kwargs: Any) -> str:
+        """Render summary table as Typst table."""
+        return df_to_typst(self.summary_df, **kwargs)
+
+
 __all__ = [
     "TradeCalibrationResult",
     "TradeEquilibriumResult",
@@ -1729,5 +1963,6 @@ __all__ = [
     "OptimalTariffResult",
     "NashTariffResult",
     "WelfarePayoffMatrixResult",
+    "TheoremValidationReport",
+    "EVDecompositionResult",
 ]
-

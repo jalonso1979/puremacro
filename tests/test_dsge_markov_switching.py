@@ -567,7 +567,7 @@ def test_nonzero_intercepts_and_ergodic_mean():
     assert np.max(np.abs(res.ergodic_mean.values)) > 0.05
 
 
-def test_explosive_regime_mean_square_unstable():
+def test_nonreal_roots_have_unavailable_equilibrium_moments():
     """System with explosive roots in both regimes fails Mean-Square Stability."""
     S = 2
     n = 1
@@ -580,7 +580,9 @@ def test_explosive_regime_mean_square_unstable():
 
     res = solve_ms_dsge(A, B, C, D, P, initial_T=[np.array([[1.8]]), np.array([[1.8]])])
     # Spectral radius of second moment operator should exceed 1
-    assert res.spectral_radius_mss > 1.0
+    assert not res.converged
+    assert np.isnan(res.spectral_radius_mss)
+    assert np.isnan(res.ergodic_cov.to_numpy()).all()
     assert not res.mean_square_stable
     # Ergodic covariance should safely be NaN
     assert np.isnan(res.ergodic_cov.values).all()

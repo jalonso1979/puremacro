@@ -1149,7 +1149,7 @@ class TestTier1FeatureCoverage:
         assert res_late.diff <= res_early.diff
 
     def test_t1_f07_ms_func_iter_3_regimes(self):
-        """Functional iteration successfully solves a 3-regime Markov-switching system."""
+        """A noncontractive three-regime iteration must not fabricate convergence."""
         solve_ms_dsge, _ = _require_ms_dsge()
         P3 = np.array([
             [0.8, 0.1, 0.1],
@@ -1163,7 +1163,12 @@ class TestTier1FeatureCoverage:
         D = [np.array([[1.0]]), np.array([[1.0]]), np.array([[1.0]])]
 
         res = solve_ms_dsge(A=A, B=B, C=C, D=D, transition_matrix=P3, method="functional_iteration")
-        assert res.converged is True
+        residual = max(abs(((A[i] @ sum(P3[i,j]*res.T[j] for j in range(3))
+                              + B[i]) @ res.T[i] + C[i]).item()) for i in range(3))
+        assert res.converged == (residual <= 1e-10)
+        assert res.diff == pytest.approx(residual)
+        if not res.converged:
+            assert np.isnan(res.ergodic_cov).all().all()
         assert len(res.T) == 3
 
     # -----------------------------------------------------------------------

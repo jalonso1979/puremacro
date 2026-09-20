@@ -1035,7 +1035,9 @@ def solve_deep_macro(
         sig = _sigmoid(raw_out)
         d_raw = d_share * (1.0 - 2.0 * eps_bound) * sig * (1.0 - sig)
 
-        # Vectorized backprop through all layers
+        # Euler time iteration treats the target as detached. Restore the
+        # current-state activations overwritten by the next-state evaluation.
+        mlp.forward(x_norm)
         grads = mlp.backward(d_raw)
         flat_grads = []
         for dW, db in grads:

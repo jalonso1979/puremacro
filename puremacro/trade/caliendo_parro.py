@@ -636,9 +636,10 @@ class CaliendoParroModel:
 
         # Identity shock short-circuit
         is_zero_shock = (
-            np.allclose(kappa_hat, 1.0)
-            and (deficits_new is None or np.allclose(deficits_new, self.deficits))
-            and (deficit_rule == "fixed" or np.allclose(self.deficits, 0.0))
+            np.array_equal(tau_hat_arr, np.ones_like(tau_hat_arr))
+            and np.array_equal(d_hat_arr, np.ones_like(d_hat_arr))
+            and (deficits_new is None or np.array_equal(deficits_new, self.deficits))
+            and (deficit_rule == "fixed" or np.all(self.deficits == 0.0))
         )
         if is_zero_shock:
             return CaliendoParroResult(

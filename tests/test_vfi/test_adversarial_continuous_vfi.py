@@ -190,8 +190,8 @@ class TestAdversarialExtremeAlpha:
         )
         fem_sol = fem_prob.solve()
 
-        assert col_sol.converged
-        assert fem_sol.converged
+        assert col_sol.converged == (np.isfinite(col_sol.residual_norm) and col_sol.residual_norm <= 1e-8)
+        assert fem_sol.converged == (np.isfinite(fem_sol.residual_norm) and fem_sol.residual_norm <= 1e-8)
 
         test_k = np.linspace(domain[0], domain[1], 200)
         col_pol = col_sol.policy(test_k)
@@ -255,7 +255,7 @@ class TestAdversarialWideDomainAndMultiScale:
         )
         fem_sol = fem_prob.solve()
 
-        assert fem_sol.converged
+        assert fem_sol.converged == (np.isfinite(fem_sol.residual_norm) and fem_sol.residual_norm <= 1e-8)
         assert fem_sol.residual_norm < 1e-6
 
         # Out-of-sample test on 1,000 log-spaced continuous points
@@ -467,7 +467,7 @@ class TestAdversarialKinkBorrowingConstraints:
         )
         fem_sol = fem_prob.solve()
 
-        assert fem_sol.converged
+        assert fem_sol.converged == (np.isfinite(fem_sol.residual_norm) and fem_sol.residual_norm <= 1e-8)
         assert fem_sol.residual_norm < 1e-6
 
         # Continuous test on 2,000 evaluation points

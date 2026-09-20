@@ -18,8 +18,14 @@ from typing import Any, Literal, Mapping, Sequence
 
 import numpy as np
 import pandas as pd
+from scipy.optimize import root_scalar
 
-from ._results import TradeCalibrationResult, TradeEquilibriumResult
+from ._results import (
+    EVDecompositionResult,
+    TheoremValidationReport,
+    TradeCalibrationResult,
+    TradeEquilibriumResult,
+)
 from .data import CANONICAL_COUNTRY_CODES, CANONICAL_SECTOR_CODES
 from .scenarios import TariffScenario, build_tariff_matrices
 from .solver import solve_trade_equilibrium
@@ -29,10 +35,14 @@ __all__ = [
     "WelfareDecompositionResult",
     "SupplyChainVulnerabilityResult",
     "TariffRevenueIncidenceResult",
+    "TheoremValidationReport",
+    "EVDecompositionResult",
     "compute_effective_rate_of_protection",
     "decompose_welfare_effects",
     "compute_supply_chain_vulnerability",
     "calculate_tariff_revenue_incidence",
+    "verify_theorems_1_to_4",
+    "decompose_hicksian_ev_3way",
 ]
 
 
@@ -717,19 +727,31 @@ def decompose_welfare_effects(
         # Exports from c_idx of good i
         if getattr(eq_result, "intermediate_flows", None) is not None and getattr(base_result, "intermediate_flows", None) is not None:
             # Intermediate exports
-            exp_cf_interm = np.sum(eq_result.intermediate_flows[i, c_idx, :, :][:, foreign_indices])
-            exp_base_interm = np.sum(base_result.intermediate_flows[i, c_idx, :, :][:, foreign_indices])
-            # Final demand exports
-            exp_cf_fd = np.sum(eq_result.final_demand_flows[i, c_idx, :, :][:, foreign_indices])
-            exp_base_fd = np.sum(base_result.final_demand_flows[i, c_idx, :, :][:, foreign_indices])
+            exp_cf_interm = float(np.sum(eq_result.intermediate_flows[i, c_idx, :, :][:, foreign_indices]))
+            exp_base_interm = float(np.sum(base_result.intermediate_flows[i, c_idx, :, :][:, foreign_indices]))
+
+            # Final demand exports and imports
+            has_fd = (
+                getattr(eq_result, "final_demand_flows", None) is not None
+                and getattr(base_result, "final_demand_flows", None) is not None
+            )
+            if has_fd:
+                exp_cf_fd = float(np.sum(eq_result.final_demand_flows[i, c_idx, :, :][:, foreign_indices]))
+                exp_base_fd = float(np.sum(base_result.final_demand_flows[i, c_idx, :, :][:, foreign_indices]))
+                imp_cf_fd = float(np.sum(eq_result.final_demand_flows[i, :, :, c_idx][foreign_indices, :]))
+                imp_base_fd = float(np.sum(base_result.final_demand_flows[i, :, :, c_idx][foreign_indices, :]))
+            else:
+                exp_cf_fd = 0.0
+                exp_base_fd = 0.0
+                imp_cf_fd = 0.0
+                imp_base_fd = 0.0
+
             exp_cf = float(exp_cf_interm + exp_cf_fd)
             exp_base = float(exp_base_interm + exp_base_fd)
 
             # Imports of good i into c_idx
-            imp_cf_interm = np.sum(eq_result.intermediate_flows[i, :, :, c_idx][foreign_indices, :])
-            imp_base_interm = np.sum(base_result.intermediate_flows[i, :, :, c_idx][foreign_indices, :])
-            imp_cf_fd = np.sum(eq_result.final_demand_flows[i, :, :, c_idx][foreign_indices, :])
-            imp_base_fd = np.sum(base_result.final_demand_flows[i, :, :, c_idx][foreign_indices, :])
+            imp_cf_interm = float(np.sum(eq_result.intermediate_flows[i, :, :, c_idx][foreign_indices, :]))
+            imp_base_interm = float(np.sum(base_result.intermediate_flows[i, :, :, c_idx][foreign_indices, :]))
             imp_cf = float(imp_cf_interm + imp_cf_fd)
             imp_base = float(imp_base_interm + imp_base_fd)
 
@@ -1113,4 +1135,42 @@ def calculate_tariff_revenue_incidence(
         country_code=country_code,
         sector_intermediate_burdens=sector_burdens,
         metadata={"closure_multiplier": lambda_mult},
+    )
+
+
+# =============================================================================
+# 5. verify_theorems_1_to_4 (Adversarial Theoretical Bounding Engine)
+# =============================================================================
+
+def verify_theorems_1_to_4(
+    calib: TradeCalibrationResult,
+    scenario: str = "uniform_10",
+    tau_override: np.ndarray | None = None,
+    sigma: float = 2.0,
+    foreign_elasticity: float = 1.0,
+    target_country: str = "USA",
+) -> TheoremValidationReport:
+    """Unavailable pending independent economic validation.
+
+    This interface raises rather than returning an unsupported certification.
+    """
+    raise NotImplementedError(
+        'The former implementation constructed illustrative formulas and did not independently verify economic theorems. Use solved equilibria with explicit assumptions; theorem certification is unavailable.'
+    )
+
+
+def decompose_hicksian_ev_3way(
+    calib: TradeCalibrationResult,
+    eq_result: TradeEquilibriumResult,
+    base_result: TradeEquilibriumResult | None = None,
+    target_country: str = "USA",
+    as_percent: bool = False,
+    tol: float = 1e-10,
+) -> EVDecompositionResult:
+    """Unavailable pending independent economic validation.
+
+    This interface raises rather than returning an unsupported certification.
+    """
+    raise NotImplementedError(
+        'The former TOT/Alloc/TariffRec decomposition is unavailable. Use compute_hicksian_welfare with consistent-accounting equilibria for expenditure-function EV/CV and a purchaser-price/factor-income/fiscal-transfer attribution.'
     )

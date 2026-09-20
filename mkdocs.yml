@@ -52,6 +52,7 @@ nav:
       - Quickstart: quickstart.md
       - Showcase Notebooks: notebooks.md
       - Correctness advisories: ADVISORY.md
+      - Structural validation status: STRUCTURAL_VALIDATION_STATUS.md
       - Data:
           - Quarterly National Accounts: national_accounts.md
           - Real-time data (vintages): real_time_data.md
@@ -99,6 +100,9 @@ nav:
       - Frontier Macro & Spatial Economics:
           - Deep Macro & Neural Networks: deep_macro.md
           - Quantitative Spatial & Trade General Equilibrium: spatial_and_trade_ge.md
+          - Consistent trade accounting: trade_accounting.md
+          - Hicksian consumption welfare: trade_welfare.md
+          - Hicksian tariff policy and solver recovery: trade_policy.md
           - Hardware Backends (GPU, MLX & Batched Jacobians): trade_gpu.md
       - Running Anywhere (iPad / browser): tablet.md
       - Performance & Benchmarks: benchmarks.md

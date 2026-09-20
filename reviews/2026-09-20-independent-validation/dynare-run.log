@@ -1,0 +1,655 @@
+{
+  "passed": true,
+  "cases": {
+    "correlated_cubic_order2": {
+      "passed": true,
+      "comparisons": {
+        "ys": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "shock_cov": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghx": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghu": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghxx": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghxu": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghuu": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghs2": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "simulation_path": {
+          "max_abs_error": 1.3877787807814457e-17,
+          "passed": true
+        },
+        "sample_mean": {
+          "max_abs_error": 2.42861286636753e-17,
+          "passed": true
+        },
+        "sample_covariance": {
+          "max_abs_error": 6.938893903907228e-18,
+          "passed": true
+        },
+        "sample_lag1_covariance": {
+          "max_abs_error": 6.938893903907228e-18,
+          "passed": true
+        }
+      }
+    },
+    "correlated_cubic_order3": {
+      "passed": true,
+      "comparisons": {
+        "ys": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "shock_cov": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghx": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghu": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghxx": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghxu": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghuu": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghs2": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghxxx": {
+          "max_abs_error": 8.881784197001252e-16,
+          "passed": true
+        },
+        "ghxxu": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghxuu": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghuuu": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghxss": {
+          "max_abs_error": 4.440892098500626e-16,
+          "passed": true
+        },
+        "ghuss": {
+          "max_abs_error": 4.440892098500626e-16,
+          "passed": true
+        },
+        "simulation_path": {
+          "max_abs_error": 1.7763568394002505e-15,
+          "passed": true
+        },
+        "sample_mean": {
+          "max_abs_error": 2.211772431870429e-17,
+          "passed": true
+        },
+        "sample_covariance": {
+          "max_abs_error": 2.220446049250313e-16,
+          "passed": true
+        },
+        "sample_lag1_covariance": {
+          "max_abs_error": 5.551115123125783e-17,
+          "passed": true
+        }
+      }
+    },
+    "nonlinear_multishock_order2": {
+      "passed": true,
+      "comparisons": {
+        "ys": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "shock_cov": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghx": {
+          "max_abs_error": 5.551115123125783e-17,
+          "passed": true
+        },
+        "ghu": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghxx": {
+          "max_abs_error": 6.938893903907228e-18,
+          "passed": true
+        },
+        "ghxu": {
+          "max_abs_error": 1.3877787807814457e-17,
+          "passed": true
+        },
+        "ghuu": {
+          "max_abs_error": 2.7755575615628914e-17,
+          "passed": true
+        },
+        "ghs2": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "simulation_path": {
+          "max_abs_error": 5.551115123125783e-17,
+          "passed": true
+        },
+        "sample_mean": {
+          "max_abs_error": 6.938893903907228e-18,
+          "passed": true
+        },
+        "sample_covariance": {
+          "max_abs_error": 2.168404344971009e-19,
+          "passed": true
+        },
+        "sample_lag1_covariance": {
+          "max_abs_error": 1.6263032587282567e-19,
+          "passed": true
+        }
+      }
+    },
+    "nonlinear_multishock_order3": {
+      "passed": true,
+      "comparisons": {
+        "ys": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "shock_cov": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghx": {
+          "max_abs_error": 1.1102230246251565e-16,
+          "passed": true
+        },
+        "ghu": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghxx": {
+          "max_abs_error": 6.661338147750939e-16,
+          "passed": true
+        },
+        "ghxu": {
+          "max_abs_error": 6.661338147750939e-16,
+          "passed": true
+        },
+        "ghuu": {
+          "max_abs_error": 4.440892098500626e-16,
+          "passed": true
+        },
+        "ghs2": {
+          "max_abs_error": 1.3877787807814457e-17,
+          "passed": true
+        },
+        "ghxxx": {
+          "max_abs_error": 7.771561172376096e-16,
+          "passed": true
+        },
+        "ghxxu": {
+          "max_abs_error": 6.661338147750939e-16,
+          "passed": true
+        },
+        "ghxuu": {
+          "max_abs_error": 8.881784197001252e-16,
+          "passed": true
+        },
+        "ghuuu": {
+          "max_abs_error": 1.1102230246251565e-15,
+          "passed": true
+        },
+        "ghxss": {
+          "max_abs_error": 1.3877787807814457e-17,
+          "passed": true
+        },
+        "ghuss": {
+          "max_abs_error": 1.3877787807814457e-17,
+          "passed": true
+        },
+        "simulation_path": {
+          "max_abs_error": 5.551115123125783e-17,
+          "passed": true
+        },
+        "sample_mean": {
+          "max_abs_error": 6.245004513516506e-17,
+          "passed": true
+        },
+        "sample_covariance": {
+          "max_abs_error": 1.734723475976807e-18,
+          "passed": true
+        },
+        "sample_lag1_covariance": {
+          "max_abs_error": 8.673617379884035e-19,
+          "passed": true
+        }
+      }
+    },
+    "nonlinear_state_order2": {
+      "passed": true,
+      "comparisons": {
+        "ys": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "shock_cov": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghx": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghu": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghxx": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghxu": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghuu": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghs2": {
+          "max_abs_error": 1.3877787807814457e-17,
+          "passed": true
+        },
+        "simulation_path": {
+          "max_abs_error": 5.551115123125783e-17,
+          "passed": true
+        },
+        "sample_mean": {
+          "max_abs_error": 2.7755575615628914e-17,
+          "passed": true
+        },
+        "sample_covariance": {
+          "max_abs_error": 5.421010862427522e-20,
+          "passed": true
+        },
+        "sample_lag1_covariance": {
+          "max_abs_error": 2.0328790734103208e-20,
+          "passed": true
+        }
+      }
+    },
+    "nonlinear_state_order3": {
+      "passed": true,
+      "comparisons": {
+        "ys": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "shock_cov": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghx": {
+          "max_abs_error": 1.1102230246251565e-16,
+          "passed": true
+        },
+        "ghu": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghxx": {
+          "max_abs_error": 6.661338147750939e-16,
+          "passed": true
+        },
+        "ghxu": {
+          "max_abs_error": 6.661338147750939e-16,
+          "passed": true
+        },
+        "ghuu": {
+          "max_abs_error": 4.440892098500626e-16,
+          "passed": true
+        },
+        "ghs2": {
+          "max_abs_error": 1.3877787807814457e-17,
+          "passed": true
+        },
+        "ghxxx": {
+          "max_abs_error": 7.771561172376096e-16,
+          "passed": true
+        },
+        "ghxxu": {
+          "max_abs_error": 6.661338147750939e-16,
+          "passed": true
+        },
+        "ghxuu": {
+          "max_abs_error": 8.881784197001252e-16,
+          "passed": true
+        },
+        "ghuuu": {
+          "max_abs_error": 1.1102230246251565e-15,
+          "passed": true
+        },
+        "ghxss": {
+          "max_abs_error": 1.734723475976807e-17,
+          "passed": true
+        },
+        "ghuss": {
+          "max_abs_error": 1.3877787807814457e-17,
+          "passed": true
+        },
+        "simulation_path": {
+          "max_abs_error": 5.551115123125783e-17,
+          "passed": true
+        },
+        "sample_mean": {
+          "max_abs_error": 7.632783294297951e-17,
+          "passed": true
+        },
+        "sample_covariance": {
+          "max_abs_error": 1.3010426069826053e-18,
+          "passed": true
+        },
+        "sample_lag1_covariance": {
+          "max_abs_error": 8.673617379884035e-19,
+          "passed": true
+        }
+      }
+    },
+    "quadratic_feedback_order2": {
+      "passed": true,
+      "comparisons": {
+        "ys": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "shock_cov": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghx": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghu": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghxx": {
+          "max_abs_error": 4.440892098500626e-16,
+          "passed": true
+        },
+        "ghxu": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghuu": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghs2": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "simulation_path": {
+          "max_abs_error": 2.220446049250313e-16,
+          "passed": true
+        },
+        "sample_mean": {
+          "max_abs_error": 1.1102230246251565e-16,
+          "passed": true
+        },
+        "sample_covariance": {
+          "max_abs_error": 2.6020852139652106e-18,
+          "passed": true
+        },
+        "sample_lag1_covariance": {
+          "max_abs_error": 3.469446951953614e-18,
+          "passed": true
+        }
+      }
+    },
+    "quadratic_feedback_order3": {
+      "passed": true,
+      "comparisons": {
+        "ys": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "shock_cov": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghx": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghu": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghxx": {
+          "max_abs_error": 4.440892098500626e-16,
+          "passed": true
+        },
+        "ghxu": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghuu": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghs2": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghxxx": {
+          "max_abs_error": 4.440892098500626e-16,
+          "passed": true
+        },
+        "ghxxu": {
+          "max_abs_error": 4.440892098500626e-16,
+          "passed": true
+        },
+        "ghxuu": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghuuu": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghxss": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghuss": {
+          "max_abs_error": 2.220446049250313e-16,
+          "passed": true
+        },
+        "simulation_path": {
+          "max_abs_error": 3.3306690738754696e-16,
+          "passed": true
+        },
+        "sample_mean": {
+          "max_abs_error": 2.2551405187698492e-17,
+          "passed": true
+        },
+        "sample_covariance": {
+          "max_abs_error": 6.938893903907228e-18,
+          "passed": true
+        },
+        "sample_lag1_covariance": {
+          "max_abs_error": 6.938893903907228e-18,
+          "passed": true
+        }
+      }
+    },
+    "rbc_order2": {
+      "passed": true,
+      "comparisons": {
+        "ys": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "shock_cov": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghx": {
+          "max_abs_error": 3.1086244689504383e-15,
+          "passed": true
+        },
+        "ghu": {
+          "max_abs_error": 1.2212453270876722e-15,
+          "passed": true
+        },
+        "ghxx": {
+          "max_abs_error": 1.3766765505351941e-14,
+          "passed": true
+        },
+        "ghxu": {
+          "max_abs_error": 1.3766765505351941e-14,
+          "passed": true
+        },
+        "ghuu": {
+          "max_abs_error": 1.1546319456101628e-14,
+          "passed": true
+        },
+        "ghs2": {
+          "max_abs_error": 2.448941657101633e-17,
+          "passed": true
+        },
+        "simulation_path": {
+          "max_abs_error": 2.0961010704922955e-13,
+          "passed": true
+        },
+        "sample_mean": {
+          "max_abs_error": 1.0658141036401503e-14,
+          "passed": true
+        },
+        "sample_covariance": {
+          "max_abs_error": 7.860379014346108e-14,
+          "passed": true
+        },
+        "sample_lag1_covariance": {
+          "max_abs_error": 7.80486786311485e-14,
+          "passed": true
+        }
+      }
+    },
+    "rbc_order3": {
+      "passed": true,
+      "comparisons": {
+        "ys": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "shock_cov": {
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "ghx": {
+          "max_abs_error": 2.0872192862952943e-14,
+          "passed": true
+        },
+        "ghu": {
+          "max_abs_error": 1.7763568394002505e-14,
+          "passed": true
+        },
+        "ghxx": {
+          "max_abs_error": 4.707345624410664e-14,
+          "passed": true
+        },
+        "ghxu": {
+          "max_abs_error": 4.973799150320701e-14,
+          "passed": true
+        },
+        "ghuu": {
+          "max_abs_error": 5.10702591327572e-14,
+          "passed": true
+        },
+        "ghs2": {
+          "max_abs_error": 7.063577153743061e-17,
+          "passed": true
+        },
+        "ghxxx": {
+          "max_abs_error": 9.14823772291129e-14,
+          "passed": true
+        },
+        "ghxxu": {
+          "max_abs_error": 9.903189379656396e-14,
+          "passed": true
+        },
+        "ghxuu": {
+          "max_abs_error": 1.0746958878371515e-13,
+          "passed": true
+        },
+        "ghuuu": {
+          "max_abs_error": 1.1546319456101628e-13,
+          "passed": true
+        },
+        "ghxss": {
+          "max_abs_error": 6.659034218134408e-17,
+          "passed": true
+        },
+        "ghuss": {
+          "max_abs_error": 7.394936442708944e-17,
+          "passed": true
+        },
+        "simulation_path": {
+          "max_abs_error": 2.7000623958883807e-13,
+          "passed": true
+        },
+        "sample_mean": {
+          "max_abs_error": 3.907985046680551e-14,
+          "passed": true
+        },
+        "sample_covariance": {
+          "max_abs_error": 1.0935696792557792e-13,
+          "passed": true
+        },
+        "sample_lag1_covariance": {
+          "max_abs_error": 1.0880185641326534e-13,
+          "passed": true
+        }
+      }
+    }
+  }
+}

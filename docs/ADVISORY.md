@@ -14,6 +14,35 @@ without re-running it), and what to do.
 
 ---
 
+## 2026-09-20 — structural models, affected APIs in 4.2.0 and earlier
+
+**Fixed or explicitly restricted in 4.3.0.** The review found incorrect numerical
+outputs and success flags in VFI, DSGE/Dynare and trade. Earlier introduction
+versions differ by API; the findings were reproduced on the 4.2.0 tree.
+
+| Surface | Affected condition | Rerun guidance |
+|---|---|---|
+| Third-order DSGE decision rules | Nonlinear stochastic models with timing/Hessian/variance contributions to risk slopes | Regenerate third-order rules and derived simulations, moments or likelihoods. First- and second-order rules do not contain these risk slopes. Five live Dynare models provide bounded order-two/three reference checks. |
+| Dynare parity | Order-two comparisons omitted cross/shock tensors or accepted missing/malformed references and moments | Re-run comparisons with the full requested tensors and matching labels. A prior 100% score does not establish complete parity. |
+| VFI projections and auxiliary values | Optimizer termination at a nonzero Euler residual; auxiliary value recovery with non-unit productivity or non-log utility | Require the final residual to meet the requested tolerance and regenerate affected values. Convergence at fitting nodes still does not certify off-grid accuracy. |
+| Deep Macro gradients | A second network evaluation overwrote the current-state activation cache before the detached-target weight update | Re-run training and validate held-out residuals; a small historical training loss is insufficient. |
+| Markov-switching DSGE | Failed coupled solves returned finite impacts, stability or moments | Re-solve and require convergence before interpreting these diagnostics; failed states now report unavailable outputs. |
+| Trade flows and fiscal accounts | CES solutions postprocessed with Leontief flows, incomplete fiscal schedules or inconsistent producer/purchaser valuation | Re-run affected counterfactuals. Select `accounting="consistent"` for the derived producer/purchaser model; the legacy default remains for compatibility. |
+
+Tariff policy now selects expenditure-function consumption welfare explicitly
+with `metric="hicksian_ev"`. Historical `ev`/`equivalent_variation`/`consumption`
+policy aliases remain utility proxies. The new metric uses a fixed comparison
+baseline and audited solver recovery; it does not certify a global Nash theorem.
+The draft TOT/Alloc/TariffRec and theorem endpoints are unavailable rather than
+publishing unsupported conclusions.
+
+See [supported scope and reference evidence](STRUCTURAL_VALIDATION_STATUS.md),
+[trade accounting](trade_accounting.md), [consumption welfare](trade_welfare.md)
+and [tariff policy](trade_policy.md). Full-size native GE, flexible/GPU welfare
+and general higher-order Dynare parity remain outside the validated scope.
+
+---
+
 ## 2026-09-16 — three estimators, versions up to and including 4.0.1
 
 **Fixed in 4.0.2.** Found while a course site re-derived puremacro's numbers

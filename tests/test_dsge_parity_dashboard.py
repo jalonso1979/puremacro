@@ -486,15 +486,15 @@ def test_compare_model_to_dynare_file_runner(tmp_path: Path, synthetic_first_ord
     var y1 y2 y3;
     varexo e;
     model;
-    y1 = 0.7*y1(-1) + 0.1*y2(-1) + 0.4*e;
-    y2 = 0.5*y2(-1) + 0.3*e;
-    y3 = 0.2*y1(-1) + 0.3*y2(-1) + 0.1*e;
+    y1 = 0.1 + 0.7*y1(-1) + 0.1*y2(-1) + 0.4*e;
+    y2 = 1.0 + 0.5*y2(-1) + 0.3*e;
+    y3 = -0.3 + 0.2*y1(-1) + 0.3*y2(-1) + 0.1*e;
     end;
     """
     mod_file = tmp_path / "toy.mod"
     mod_file.write_text(mod_text)
 
-    res = compare_model_to_dynare(mod_file, data["oo"], order=1)
+    res = compare_model_to_dynare(mod_file, load_dynare_dr(data["oo"]), order=1)
     assert isinstance(res, ParityDashboardResult)
     assert res.passed is True
     assert res.max_dev_ghx <= 1e-10
@@ -514,9 +514,9 @@ def test_run_parity_suite_no_longer_pairs_mat_companions(tmp_path: Path, synthet
     var y1 y2 y3;
     varexo e;
     model;
-    y1 = 0.7*y1(-1) + 0.1*y2(-1) + 0.4*e;
-    y2 = 0.5*y2(-1) + 0.3*e;
-    y3 = 0.2*y1(-1) + 0.3*y2(-1) + 0.1*e;
+    y1 = 0.1 + 0.7*y1(-1) + 0.1*y2(-1) + 0.4*e;
+    y2 = 1.0 + 0.5*y2(-1) + 0.3*e;
+    y3 = -0.3 + 0.2*y1(-1) + 0.3*y2(-1) + 0.1*e;
     end;
     """
     # Create matching .mod file alongside the .mat
@@ -533,13 +533,13 @@ def test_run_parity_suite_no_longer_pairs_mat_companions(tmp_path: Path, synthet
     assert "no Dynare reference supplied" in suite_res.results[0].details["error"]
 
     # Supplying the reference is the supported route, and it verifies for real.
-    ok = run_parity_suite(tmp_path, order=1, dynare_results={mod_file.stem: data["oo"]})
+    ok = run_parity_suite(tmp_path, order=1, dynare_results={mod_file.stem: load_dynare_dr(data["oo"])})
     assert ok.total_models == 1
     assert ok.passed is True
     assert ok.max_dev_ghx <= 1e-10
 
     # The parity the old pairing stood for is still verifiable, via the mapping.
-    direct = compare_model_to_dynare(mod_file, data["oo"], order=1)
+    direct = compare_model_to_dynare(mod_file, load_dynare_dr(data["oo"]), order=1)
     assert direct.passed is True
     assert direct.max_dev_ghx <= 1e-10
 
@@ -585,9 +585,9 @@ def test_cli_parity_execution_clean_exit(tmp_path: Path, synthetic_first_order_m
     var y1 y2 y3;
     varexo e;
     model;
-    y1 = 0.7*y1(-1) + 0.1*y2(-1) + 0.4*e;
-    y2 = 0.5*y2(-1) + 0.3*e;
-    y3 = 0.2*y1(-1) + 0.3*y2(-1) + 0.1*e;
+    y1 = 0.1 + 0.7*y1(-1) + 0.1*y2(-1) + 0.4*e;
+    y2 = 1.0 + 0.5*y2(-1) + 0.3*e;
+    y3 = -0.3 + 0.2*y1(-1) + 0.3*y2(-1) + 0.1*e;
     end;
     """
     mod_file = data["path"].with_suffix(".mod")
@@ -612,9 +612,9 @@ def test_cli_parity_format_export(tmp_path: Path, synthetic_first_order_mat):
     var y1 y2 y3;
     varexo e;
     model;
-    y1 = 0.7*y1(-1) + 0.1*y2(-1) + 0.4*e;
-    y2 = 0.5*y2(-1) + 0.3*e;
-    y3 = 0.2*y1(-1) + 0.3*y2(-1) + 0.1*e;
+    y1 = 0.1 + 0.7*y1(-1) + 0.1*y2(-1) + 0.4*e;
+    y2 = 1.0 + 0.5*y2(-1) + 0.3*e;
+    y3 = -0.3 + 0.2*y1(-1) + 0.3*y2(-1) + 0.1*e;
     end;
     """
     mod_file = data["path"].with_suffix(".mod")
@@ -676,12 +676,12 @@ def test_sw07_pfeifer_canonical_parity_audit(tmp_path: Path):
     oo_dict = {
         "dr": dr_dict,
         "mean": dr1.ys.to_numpy(),
-        "var": np.ones(40),
+        # No fabricated unit variances: this is a DR serialization test.
     }
     M_dict = {
         "endo_names": np.array(dr1.variable_names),
         "exo_names": np.array(dr1.shock_names),
-        "state_var": np.arange(1, 16)[:, None],
+        "state_var": np.array([dr1.variable_names.index(v) + 1 for v in dr1.state_variables]),
     }
     scipy.io.savemat(str(mat_path), {"oo_": oo_dict, "M_": M_dict})
 
@@ -707,14 +707,17 @@ def test_sw07_pfeifer_second_order_parity(tmp_path: Path):
         "ghx": dr2.ghx.to_numpy(),
         "ghu": dr2.ghu.to_numpy(),
         "ghxx": dr2.ghxx.to_numpy(),
+        "ghxu": dr2.ghxu.to_numpy(),
+        "ghuu": dr2.ghuu.to_numpy(),
         "ghs2": dr2.ghs2.to_numpy()[:, None],
         "ys": dr2.ys.to_numpy(),
         "order_var": np.arange(1, 41)[:, None],
     }
-    oo_dict = {"dr": dr_dict, "mean": dr2.ys.to_numpy()}
+    oo_dict = {"dr": dr_dict}
     M_dict = {
         "endo_names": np.array(dr2.variable_names),
         "exo_names": np.array(dr2.shock_names),
+        "state_var": np.array([dr2.variable_names.index(v) + 1 for v in dr2.state_variables]),
     }
     scipy.io.savemat(str(mat_path), {"oo_": oo_dict, "M_": M_dict})
 
@@ -784,6 +787,9 @@ def test_run_parity_suite_corrupted_model_isolation(tmp_path: Path):
     # Supply a reference for both models. The corrupt one cannot be built, so
     # its row must carry the error while the valid one is still evaluated.
     reference = _oo(valid_mat)
+    from puremacro.dsge.dynare_results import _to_plain_dict
+    reference = _to_plain_dict(reference)
+    reference["oo_"]["dr"]["state_var"] = np.array([1])
     res = run_parity_suite(tmp_path, dynare_results={"valid": reference, "corrupted": reference})
 
     assert res.total_models == 2
@@ -792,7 +798,7 @@ def test_run_parity_suite_corrupted_model_isolation(tmp_path: Path):
     assert rows["corrupted"].passed is False
     assert rows["corrupted"].details.get("error")
     # The healthy model was still evaluated rather than skipped.
-    assert rows["valid"].status in {"PASS", "FAIL"}
+    assert rows["valid"].status == "PASS"
     # And the aggregate stays safe to display.
     assert not np.isnan(res.max_dev_ghx)
     assert res.max_dev_ghx >= 0.0
@@ -826,7 +832,7 @@ def test_verify_dynare_parity_shock_dimension_guard():
     res = verify_dynare_parity(dr_pm, dr_dyn)
     assert res.passed is False
     assert res.score == 0.0
-    assert "Shock shape mismatch" in res.details.get("error", "")
+    assert "shock_names mismatch" in res.details.get("error", "")
 
 
 def test_verify_dynare_parity_independent_moment_tolerances():
@@ -863,7 +869,7 @@ def test_verify_dynare_parity_independent_moment_tolerances():
             "mean": dyn_mom["mean"],
             "var": dyn_mom["var"],
         },
-        "M_": {"endo_names": np.array(["y"]), "exo_names": np.array(["e"])},
+        "M_": {"endo_names": np.array(["y"]), "exo_names": np.array(["e"]), "state_var": np.array([1])},
     }
     # dev_mean = 5e-5, dev_var = 5e-4
     # Case 1: tol allows mean (1e-4) but fails var (1e-4)

@@ -1,0 +1,221 @@
+Starting Dynare (version 7.0).
+Calling Dynare with arguments: noclearall nolog
+Starting preprocessing of the model file ...
+Found 3 equation(s).
+Evaluating expressions...
+Computing static model derivatives (order 1).
+Normalizing the static model...
+Finding the optimal block decomposition of the static model...
+3 block(s) found:
+  3 recursive block(s) and 0 simultaneous block(s).
+  the largest simultaneous block has 0 equation(s)
+                                 and 0 feedback variable(s).
+Computing dynamic model derivatives (order 2).
+Normalizing the dynamic model...
+Finding the optimal block decomposition of the dynamic model...
+2 block(s) found:
+  2 recursive block(s) and 0 simultaneous block(s).
+  the largest simultaneous block has 0 equation(s)
+                                 and 0 feedback variable(s).
+Preprocessing completed.
+Preprocessing time: 0h00m00s.
+Total computing time : 0h00m01s
+Starting Dynare (version 7.0).
+Calling Dynare with arguments: noclearall nolog
+Starting preprocessing of the model file ...
+Found 3 equation(s).
+Evaluating expressions...
+Computing static model derivatives (order 1).
+Normalizing the static model...
+Finding the optimal block decomposition of the static model...
+3 block(s) found:
+  3 recursive block(s) and 0 simultaneous block(s).
+  the largest simultaneous block has 0 equation(s)
+                                 and 0 feedback variable(s).
+Computing dynamic model derivatives (order 3).
+Normalizing the dynamic model...
+Finding the optimal block decomposition of the dynamic model...
+2 block(s) found:
+  2 recursive block(s) and 0 simultaneous block(s).
+  the largest simultaneous block has 0 equation(s)
+                                 and 0 feedback variable(s).
+Preprocessing completed.
+Preprocessing time: 0h00m00s.
+Total computing time : 0h00m00s
+Starting Dynare (version 7.0).
+Calling Dynare with arguments: noclearall nolog
+Starting preprocessing of the model file ...
+Found 3 equation(s).
+Evaluating expressions...
+Computing static model derivatives (order 1).
+Normalizing the static model...
+Finding the optimal block decomposition of the static model...
+2 block(s) found:
+  1 recursive block(s) and 1 simultaneous block(s).
+  the largest simultaneous block has 2 equation(s)
+                                 and 2 feedback variable(s).
+Computing dynamic model derivatives (order 2).
+Normalizing the dynamic model...
+Finding the optimal block decomposition of the dynamic model...
+2 block(s) found:
+  1 recursive block(s) and 1 simultaneous block(s).
+  the largest simultaneous block has 2 equation(s)
+                                 and 2 feedback variable(s).
+Preprocessing completed.
+Preprocessing time: 0h00m00s.
+Total computing time : 0h00m00s
+Starting Dynare (version 7.0).
+Calling Dynare with arguments: noclearall nolog
+Starting preprocessing of the model file ...
+Found 3 equation(s).
+Evaluating expressions...
+Computing static model derivatives (order 1).
+Normalizing the static model...
+Finding the optimal block decomposition of the static model...
+2 block(s) found:
+  1 recursive block(s) and 1 simultaneous block(s).
+  the largest simultaneous block has 2 equation(s)
+                                 and 2 feedback variable(s).
+Computing dynamic model derivatives (order 3).
+Normalizing the dynamic model...
+Finding the optimal block decomposition of the dynamic model...
+2 block(s) found:
+  1 recursive block(s) and 1 simultaneous block(s).
+  the largest simultaneous block has 2 equation(s)
+                                 and 2 feedback variable(s).
+Preprocessing completed.
+Preprocessing time: 0h00m00s.
+Total computing time : 0h00m00s
+Starting Dynare (version 7.0).
+Calling Dynare with arguments: noclearall nolog
+Starting preprocessing of the model file ...
+Found 2 equation(s).
+Evaluating expressions...
+Computing static model derivatives (order 1).
+Normalizing the static model...
+Finding the optimal block decomposition of the static model...
+2 block(s) found:
+  2 recursive block(s) and 0 simultaneous block(s).
+  the largest simultaneous block has 0 equation(s)
+                                 and 0 feedback variable(s).
+Computing dynamic model derivatives (order 2).
+Normalizing the dynamic model...
+Finding the optimal block decomposition of the dynamic model...
+2 block(s) found:
+  2 recursive block(s) and 0 simultaneous block(s).
+  the largest simultaneous block has 0 equation(s)
+                                 and 0 feedback variable(s).
+Preprocessing completed.
+Preprocessing time: 0h00m00s.
+Total computing time : 0h00m00s
+Starting Dynare (version 7.0).
+Calling Dynare with arguments: noclearall nolog
+Starting preprocessing of the model file ...
+Found 2 equation(s).
+Evaluating expressions...
+Computing static model derivatives (order 1).
+Normalizing the static model...
+Finding the optimal block decomposition of the static model...
+2 block(s) found:
+  2 recursive block(s) and 0 simultaneous block(s).
+  the largest simultaneous block has 0 equation(s)
+                                 and 0 feedback variable(s).
+Computing dynamic model derivatives (order 3).
+Normalizing the dynamic model...
+Finding the optimal block decomposition of the dynamic model...
+2 block(s) found:
+  2 recursive block(s) and 0 simultaneous block(s).
+  the largest simultaneous block has 0 equation(s)
+                                 and 0 feedback variable(s).
+Preprocessing completed.
+Preprocessing time: 0h00m00s.
+Total computing time : 0h00m00s
+Starting Dynare (version 7.0).
+Calling Dynare with arguments: noclearall nolog
+Starting preprocessing of the model file ...
+Found 2 equation(s).
+Evaluating expressions...
+Computing static model derivatives (order 1).
+Normalizing the static model...
+Finding the optimal block decomposition of the static model...
+2 block(s) found:
+  2 recursive block(s) and 0 simultaneous block(s).
+  the largest simultaneous block has 0 equation(s)
+                                 and 0 feedback variable(s).
+Computing dynamic model derivatives (order 2).
+Normalizing the dynamic model...
+Finding the optimal block decomposition of the dynamic model...
+2 block(s) found:
+  2 recursive block(s) and 0 simultaneous block(s).
+  the largest simultaneous block has 0 equation(s)
+                                 and 0 feedback variable(s).
+Preprocessing completed.
+Preprocessing time: 0h00m00s.
+Total computing time : 0h00m00s
+Starting Dynare (version 7.0).
+Calling Dynare with arguments: noclearall nolog
+Starting preprocessing of the model file ...
+Found 2 equation(s).
+Evaluating expressions...
+Computing static model derivatives (order 1).
+Normalizing the static model...
+Finding the optimal block decomposition of the static model...
+2 block(s) found:
+  2 recursive block(s) and 0 simultaneous block(s).
+  the largest simultaneous block has 0 equation(s)
+                                 and 0 feedback variable(s).
+Computing dynamic model derivatives (order 3).
+Normalizing the dynamic model...
+Finding the optimal block decomposition of the dynamic model...
+2 block(s) found:
+  2 recursive block(s) and 0 simultaneous block(s).
+  the largest simultaneous block has 0 equation(s)
+                                 and 0 feedback variable(s).
+Preprocessing completed.
+Preprocessing time: 0h00m00s.
+Total computing time : 0h00m00s
+Starting Dynare (version 7.0).
+Calling Dynare with arguments: noclearall nolog
+Starting preprocessing of the model file ...
+Found 4 equation(s).
+Evaluating expressions...
+Computing static model derivatives (order 1).
+Normalizing the static model...
+Finding the optimal block decomposition of the static model...
+3 block(s) found:
+  2 recursive block(s) and 1 simultaneous block(s).
+  the largest simultaneous block has 2 equation(s)
+                                 and 2 feedback variable(s).
+Computing dynamic model derivatives (order 2).
+Normalizing the dynamic model...
+Finding the optimal block decomposition of the dynamic model...
+3 block(s) found:
+  2 recursive block(s) and 1 simultaneous block(s).
+  the largest simultaneous block has 2 equation(s)
+                                 and 2 feedback variable(s).
+Preprocessing completed.
+Preprocessing time: 0h00m00s.
+Total computing time : 0h00m00s
+Starting Dynare (version 7.0).
+Calling Dynare with arguments: noclearall nolog
+Starting preprocessing of the model file ...
+Found 4 equation(s).
+Evaluating expressions...
+Computing static model derivatives (order 1).
+Normalizing the static model...
+Finding the optimal block decomposition of the static model...
+3 block(s) found:
+  2 recursive block(s) and 1 simultaneous block(s).
+  the largest simultaneous block has 2 equation(s)
+                                 and 2 feedback variable(s).
+Computing dynamic model derivatives (order 3).
+Normalizing the dynamic model...
+Finding the optimal block decomposition of the dynamic model...
+3 block(s) found:
+  2 recursive block(s) and 1 simultaneous block(s).
+  the largest simultaneous block has 2 equation(s)
+                                 and 2 feedback variable(s).
+Preprocessing completed.
+Preprocessing time: 0h00m00s.
+Total computing time : 0h00m00s
+DYNARE_EXPORT_COMPLETE 20260920_161322_166: 10 cases

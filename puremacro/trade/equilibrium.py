@@ -188,6 +188,8 @@ def compute_equilibrium_residuals(
     tau_a: np.ndarray | None = None,
     taufd_a: np.ndarray | None = None,
     sigma: float = 0.0,
+    tariff_revenue_mode: str = "legacy_national",
+    accounting: str = "legacy",
     fiscal_closure: str = "lump_sum",
     recycling_params: dict[str, Any] | None = None,
     capacity_margins: dict[str, float] | dict[tuple[int, int], float] | np.ndarray | None = None,
@@ -198,7 +200,13 @@ def compute_equilibrium_residuals(
 ) -> np.ndarray:
     """Vectorized evaluation of all 2,001 general equilibrium residual equations.
 
-    Evaluates the system F(x) = 0 across:
+    ``accounting="consistent"`` selects producer-price trade/duties, homogeneous
+    costs, tax-inclusive actual final spending and lump-sum rebates. In that
+    mode block 4 fixes baseline foreign balances, and the first goods equation
+    fixes the first producer price to one. Postprocessing independently checks
+    the omitted goods equation and the realized trade balances.
+
+    The compatibility default ``accounting="legacy"`` evaluates F(x) across:
     - Block 0: Goods market clearing (ns*nc equations)
     - Block 1: Zero-profit price condition (ns*nc equations)
     - Block 2: Labor market clearing (nc equations)
@@ -259,14 +267,59 @@ def compute_equilibrium_residuals(
         If unknown keyword arguments are passed (a misspelled option such as
         ``fiscal_closur=`` would otherwise silently change the model solved).
     """
+
+    return _evaluate_equilibrium(
+        x, calib, tau, tau_fd, tauf, tauf_fd, replicate_matlab_precedence,
+        tau_a=tau_a, taufd_a=taufd_a, sigma=sigma, tariff_revenue_mode=tariff_revenue_mode, accounting=accounting,
+        fiscal_closure=fiscal_closure, recycling_params=recycling_params,
+        capacity_margins=capacity_margins, capacity_target_country=capacity_target_country,
+        penalty_scale=penalty_scale, penalty_exponent=penalty_exponent, **kwargs,
+    )["residuals"]
+
+
+def _evaluate_equilibrium(
+    x: np.ndarray,
+    calib: TradeCalibrationResult,
+    tau: np.ndarray | None = None,
+    tau_fd: np.ndarray | None = None,
+    tauf: np.ndarray | None = None,
+    tauf_fd: np.ndarray | None = None,
+    replicate_matlab_precedence: bool = True,
+    *,
+    tau_a: np.ndarray | None = None,
+    taufd_a: np.ndarray | None = None,
+    sigma: float = 0.0,
+    tariff_revenue_mode: str = "legacy_national",
+    accounting: str = "legacy",
+    fiscal_closure: str = "lump_sum",
+    recycling_params: dict[str, Any] | None = None,
+    capacity_margins: dict[str, float] | dict[tuple[int, int], float] | np.ndarray | None = None,
+    capacity_target_country: str = "USA",
+    penalty_scale: float = 0.05,
+    penalty_exponent: float = 8.0,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Shared economic blocks for residuals and postprocessing."""
     if kwargs:
         raise TypeError(
             f"compute_equilibrium_residuals() got unexpected keyword argument(s): {sorted(kwargs)}"
         )
 
+    if accounting not in ("legacy", "consistent"):
+        raise ValueError("accounting must be 'legacy' or 'consistent'")
+    if accounting == "consistent":
+        from ._accounting import evaluate
+        return evaluate(x, calib, tau_a if tau_a is not None else tau,
+                        taufd_a if taufd_a is not None else tau_fd, tauf, tauf_fd,
+                        sigma=sigma, fiscal_closure=fiscal_closure,
+                        recycling_params=recycling_params, capacity_margins=capacity_margins)
+
     nc = calib.n_countries
     ns = calib.n_sectors
     nfd = calib.n_final_demand
+
+    if tariff_revenue_mode not in ("legacy_national", "schedule"):
+        raise ValueError("tariff_revenue_mode must be legacy_national or schedule")
 
     # Expand tariff matrices if needed
     if tau_a is not None:
@@ -497,8 +550,18 @@ def compute_equilibrium_residuals(
         val_fd_actual = p_vec[:, np.newaxis, np.newaxis] * xc
         tariffs_fd_actual = np.sum((taufd_a - 1.0) * val_fd_actual, axis=(0, 1))
         Tarifs_Totals = tariffs_interm_actual + tariffs_fd_actual
-    else:
+    elif tariff_revenue_mode == "legacy_national":
         Tarifs_Totals = M0 * tauf_vec + MFD * tauf_fd_vec
+    else:
+        # Use the full bilateral schedule, retaining the legacy valuation
+        # convention used for trade accounts. National rate summaries cannot
+        # represent heterogeneous bilateral or sectoral tariff wedges.
+        rate_mat = np.hstack([
+            (tau_a - 1.0).reshape(ns * nc, ns * nc, order="F"),
+            (taufd_a - 1.0).reshape(ns * nc, nfd * nc, order="F"),
+        ])
+        tariff_row = np.sum(data_model_val * rate_mat, axis=0)
+        Tarifs_Totals = tariff_row[:ns * nc].reshape(nc, ns).sum(axis=1) + tariff_row[ns * nc:].reshape(nc, nfd).sum(axis=1)
 
     # 8. Paso 8: Equilibrium residual equations
     ff0 = (ytot.reshape((ns * nc, 1), order="F") - np.sum(data_model, axis=1, keepdims=True)).ravel()
@@ -508,7 +571,30 @@ def compute_equilibrium_residuals(
     ff4 = (XN - invforT_realized[:nc - 1])
     ff5 = (T.ravel() - (Tax_Total + Tarifs_Totals))
 
-    return np.concatenate([ff0, ff1, ff2, ff3, ff4, ff5])
+    return {
+        "p": p,
+        "ytot": ytot,
+        "r": r,
+        "w": w,
+        "T": T,
+        "XN": XN,
+        "invforT": invforT,
+        "p_vec": p_vec,
+        "pp": pp,
+        "xl": xl,
+        "xk": xk,
+        "ppfd": ppfd,
+        "tax_fd_arr": tax_fd_arr,
+        "cd": cd,
+        "Tax_c": Tax_c,
+        "c": c,
+        "xc": xc,
+        "x_mat": x_mat,
+        "tau_a": tau_a,
+        "taufd_a": taufd_a,
+        "Tarifs_Totals": Tarifs_Totals,
+        "residuals": np.concatenate([ff0, ff1, ff2, ff3, ff4, ff5]),
+    }
 
 
 def evaluate_equilibrium_residuals(
@@ -523,6 +609,8 @@ def evaluate_equilibrium_residuals(
     replicate_matlab_precedence: bool = True,
     *,
     sigma: float = 0.0,
+    tariff_revenue_mode: str = "legacy_national",
+    accounting: str = "legacy",
     fiscal_closure: str = "lump_sum",
     recycling_params: dict[str, Any] | None = None,
     capacity_margins: dict[str, float] | dict[tuple[int, int], float] | np.ndarray | None = None,
@@ -542,6 +630,8 @@ def evaluate_equilibrium_residuals(
         tauf_fd=tauf_fd,
         replicate_matlab_precedence=replicate_matlab_precedence,
         sigma=sigma,
+        tariff_revenue_mode=tariff_revenue_mode,
+        accounting=accounting,
         fiscal_closure=fiscal_closure,
         recycling_params=recycling_params,
         capacity_margins=capacity_margins,

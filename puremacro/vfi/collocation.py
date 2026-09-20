@@ -873,8 +873,7 @@ def _solve_collocation_euler(
 
     final_residuals = residual_obj(theta_opt)
     residual_norm = float(np.max(np.abs(final_residuals)))
-    if residual_norm < tol * 10:
-        converged = True
+    converged = bool(np.isfinite(residual_norm) and residual_norm <= tol)
 
     # Policy evaluation for value function coefficients: (I - beta * Phi_next @ Phi_inv) @ V = u
     value_coefficients = None
@@ -888,8 +887,12 @@ def _solve_collocation_euler(
         if problem.return_fn is not None:
             u_nodes = np.asarray(problem.return_fn(kp_nodes_clamped, s, **problem.params))
         elif "alpha" in problem.params:
-            c_nodes = np.maximum(s**alpha + (1.0 - delta) * s - kp_nodes_clamped, 1e-12)
-            u_nodes = np.log(c_nodes)
+            z = float(problem.params.get("z", problem.params.get("A", 1.0)))
+            gamma = float(problem.params.get("sigma", problem.params.get("gamma", 1.0)))
+            c_nodes = z * s**alpha + (1.0 - delta) * s - kp_nodes_clamped
+            if np.any(c_nodes <= 0):
+                raise ValueError("Policy implies nonpositive consumption")
+            u_nodes = np.log(c_nodes) if gamma == 1.0 else (c_nodes ** (1.0 - gamma) - 1.0) / (1.0 - gamma)
         else:
             u_nodes = None
 
@@ -905,6 +908,8 @@ def _solve_collocation_euler(
         "policy_coefficients": theta_opt,
         "value_coefficients": value_coefficients,
         "residuals": final_residuals,
+        "optimizer_success": bool(getattr(locals().get("res_lm", locals().get("res")), "success", False)),
+        "convergence_tolerance": tol,
         "nodes": nodes,
         "backend": backend,
     }

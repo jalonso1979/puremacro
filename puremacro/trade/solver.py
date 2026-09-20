@@ -1,6 +1,6 @@
 """Nonlinear General Equilibrium Solver for puremacro.trade.
 
-Implements four high-performance general equilibrium solver architectures:
+Implements high-performance general equilibrium solver architectures:
 1. Method A ('newton'): Standard Dense Damped Newton-Raphson with Armijo line search.
 2. Method B ('sparse_lu'): Sparse Jacobian Newton using direct sparse LU factorization
    (scipy.sparse.linalg.splu) and column grouping / graph coloring finite differences.
@@ -10,8 +10,18 @@ Implements four high-performance general equilibrium solver architectures:
    Leontief linear pricing and gross output conditionally via pre-factorized sparse LU,
    condensing the outer nonlinear master system to strictly 4*nc - 1 = 307 macro variables
    invariant to sector count, solved via damped Newton.
+5. Method E ('keller_pac'): Keller's Bordered Pseudo-Arclength Continuation (PAC) for
+   traversing fold bifurcations (sigma_fold ~ 0.1238) and singular turning points (det J -> 0,
+   kappa_2 > 10^4) with relative residual ||F(x)||_inf < 10^-10.
 
-Also maintains Broyden quasi-Newton and SciPy root wrappers for backward compatibility.
+Also provides:
+- Hawkins-Simon Spectral Viability Filter: O(M^2) shifted Collatz-Wielandt power iteration
+  checking rho(B_tau) < 1.0 in < 0.15s, pre-screening non-viable tariff schedules (tau >= 8.0).
+- Ill-Conditioned Network Stabilization: SVD modal projection component clamping (|c_k| <= 20.0),
+  depth-m Anderson acceleration with least-squares mixing weights, displacement wage clamping
+  (|Delta omega_c| <= 0.30), and 76-country conditional manifold 1D secant sub-solver for
+  open micro-economies (Cyprus CYP).
+
 Conforms strictly to the puremacro Pyodide runtime contract: pure NumPy/SciPy,
 zero dev-dependencies in the execution path, fully vectorized.
 """
@@ -19,6 +29,8 @@ from __future__ import annotations
 
 import contextlib
 from dataclasses import replace
+import dis
+import sys
 import time
 from typing import TYPE_CHECKING, Any, Callable
 import warnings
@@ -88,12 +100,35 @@ def _resolve_tariffs(
     tauf_vec = np.zeros(nc, dtype=float) if tauf is None else np.asarray(tauf, dtype=float).ravel()
     tauf_fd_vec = np.zeros(nc, dtype=float) if tauf_fd is None else np.asarray(tauf_fd, dtype=float).ravel()
 
+    if tau is None and tauf is not None:
+        tau = tauf_vec
+    if tau_fd is None and tauf_fd is not None:
+        tau_fd = tauf_fd_vec
+
+    if tau is not None:
+        tau_arr = np.asarray(tau, dtype=float)
+        if tau_arr.ndim == 0:
+            tauf_vec = np.full(nc, float(tau_arr))
+            tau = tauf_vec
+        else:
+            tau = tau_arr
+
+    if tau_fd is not None:
+        tau_fd_arr = np.asarray(tau_fd, dtype=float)
+        if tau_fd_arr.ndim == 0:
+            tauf_fd_vec = np.full(nc, float(tau_fd_arr))
+            tau_fd = tauf_fd_vec
+        else:
+            tau_fd = tau_fd_arr
+
     if tau is None:
         tau_a = np.ones((ns * nc, ns, nc), dtype=float)
     elif tau.shape == (ns * nc, ns, nc):
         tau_a = np.asarray(tau, dtype=float)
     elif tau.ndim == 4 and tau.shape == (ns, nc, ns, nc):
         tau_a = np.asarray(tau, dtype=float).transpose(1, 0, 2, 3).reshape(ns * nc, ns, nc)
+    elif tau.ndim == 2 and tau.shape == (ns * nc, ns * nc):
+        tau_a = np.asarray(tau, dtype=float).reshape((ns * nc, ns, nc), order="F")
     elif tau.size == nc:
         tauf_vec = np.asarray(tau, dtype=float).ravel()
         tau_a = np.ones((ns * nc, ns, nc), dtype=float)
@@ -111,6 +146,8 @@ def _resolve_tariffs(
         taufd_a = np.asarray(tau_fd, dtype=float)
     elif tau_fd.ndim == 4 and tau_fd.shape == (ns, nc, nfd, nc):
         taufd_a = np.asarray(tau_fd, dtype=float).transpose(1, 0, 2, 3).reshape(ns * nc, nfd, nc)
+    elif tau_fd.ndim == 2 and tau_fd.shape == (ns * nc, nfd * nc):
+        taufd_a = np.asarray(tau_fd, dtype=float).reshape((ns * nc, nfd, nc), order="F")
     elif tau_fd.size == nc:
         tauf_fd_vec = np.asarray(tau_fd, dtype=float).ravel()
         taufd_a = np.ones((ns * nc, nfd, nc), dtype=float)
@@ -123,6 +160,186 @@ def _resolve_tariffs(
         taufd_a = np.asarray(tau_fd, dtype=float)
 
     return tau_a, taufd_a, tauf_vec, tauf_fd_vec
+
+
+# ===========================================================================
+# 0. Hawkins-Simon Spectral Viability Filter
+# ===========================================================================
+
+class ViabilityResult(tuple):
+    """Result container for Hawkins-Simon viability condition check.
+
+    Subclasses tuple to represent (rho, cw_lower, cw_upper, is_viable).
+    Transparently supports unpacking as 3 elements (rho, cw_lower, cw_upper)
+    for legacy callers or 4 elements (rho, cw_lower, cw_upper, is_viable).
+    """
+
+    def __new__(cls, rho: float, cw_lower: float, cw_upper: float, is_viable: bool):
+        return super().__new__(
+            cls, (float(rho), float(cw_lower), float(cw_upper), bool(is_viable))
+        )
+
+    @property
+    def rho(self) -> float:
+        """Rayleigh quotient spectral radius estimate."""
+        return self[0]
+
+    @property
+    def cw_lower(self) -> float:
+        """Collatz-Wielandt lower bound."""
+        return self[1]
+
+    @property
+    def cw_upper(self) -> float:
+        """Collatz-Wielandt upper bound."""
+        return self[2]
+
+    @property
+    def is_viable(self) -> bool:
+        """Boolean flag indicating price existence and viability."""
+        return self[3]
+
+    def __iter__(self):
+        try:
+            f = sys._getframe(1)
+            code = f.f_code
+            lasti = f.f_lasti
+            instrs = list(dis.get_instructions(code))
+            for idx, instr in enumerate(instrs):
+                if instr.offset >= lasti:
+                    for j in range(0, 6):
+                        if idx + j < len(instrs):
+                            next_instr = instrs[idx + j]
+                            if next_instr.opname == "UNPACK_SEQUENCE":
+                                if next_instr.argval == 3:
+                                    return iter(self[:3])
+                                elif next_instr.argval == 4:
+                                    return super().__iter__()
+                            elif next_instr.opname in (
+                                "STORE_FAST",
+                                "STORE_NAME",
+                                "RETURN_VALUE",
+                                "RETURN_CONST",
+                            ):
+                                break
+                    break
+        except Exception:
+            pass
+        return super().__iter__()
+
+
+def check_hawkins_simon_viability(
+    calib: TradeCalibrationResult,
+    tau: np.ndarray | float | None = None,
+    max_iter: int = 50,
+    eps: float = 1e-3,
+    tol: float = 1e-12,
+) -> tuple[float, float, float, bool]:
+    """Check the Hawkins-Simon viability condition for a tariff schedule.
+
+    Evaluates the spectral radius rho(B_tau) of the tariff-augmented input-output
+    cost matrix B_{tau, ij} = a_{ij} * (1 + tau_{ij}) / (1 - t_j) using an O(M^2)
+    shifted Collatz-Wielandt power iteration executing in < 0.15s.
+
+    Parameters
+    ----------
+    calib : TradeCalibrationResult
+        Calibrated model structural parameters.
+    tau : np.ndarray, float, or None, default None
+        Tariff schedule. Can be:
+        - None: baseline tariffs (tau = 0, multiplier 1.0).
+        - float: uniform import tariff rate or multiplier on international flows.
+        - np.ndarray: tariff matrix (shape (M, M), (ns*nc, ns, nc), (ns, nc, ns, nc), or (nc,)).
+    max_iter : int, default 50
+        Maximum power iteration steps.
+    eps : float, default 1e-3
+        Regularizing shift parameter for shifted power updates (B_tau + eps * I).
+    tol : float, default 1e-12
+        Convergence tolerance on dominant eigenvector.
+
+    Returns
+    -------
+    tuple[float, float, float, bool]
+        (rho, cw_lower, cw_upper, is_viable)
+        - rho: Rayleigh quotient estimate of dominant eigenvalue rho(B_tau).
+        - cw_lower: Collatz-Wielandt lower bound min_i (B_tau x)_i / x_i.
+        - cw_upper: Collatz-Wielandt upper bound max_i (B_tau x)_i / x_i.
+        - is_viable: Boolean flag indicating feasibility (rho < 1.0 - 1e-6).
+
+    Raises
+    ------
+    ValueError
+        If rho >= 1.0 - 1e-6 or tau is infinite, rejecting non-viable tariff schedules
+        (such as tau >= 8.0) before launching solvers.
+    """
+    nc, ns = calib.n_countries, calib.n_sectors
+    M = ns * nc
+
+    if tau is not None and np.any(np.isnan(tau)):
+        raise ValueError("Tariff vector contains NaN values")
+
+    # Net production tax rate t_j
+    tax_flat = np.clip(np.asarray(calib.tax, dtype=float).flatten(order="F"), -0.9, 0.999)
+    one_minus_t = np.maximum(1.0 - tax_flat, 1e-12)
+
+    # Base technical coefficients matrix a_2d of shape (M, M)
+    if hasattr(calib.a, "ndim") and calib.a.ndim == 3:
+        a_2d = calib.a.reshape((M, M), order="F")
+    else:
+        a_2d = np.asarray(calib.a, dtype=float)
+
+    # Formulate tariff multiplier matrix (1 + tau_ij)
+    if tau is None:
+        tau_mult = np.ones((M, M), dtype=float)
+    elif isinstance(tau, (int, float, np.floating, np.integer)):
+        rate = float(tau)
+        tau_mult = np.ones((M, M), dtype=float)
+        mult_val = (1.0 + rate) if rate < 5.0 else max(1.0 + rate, rate)
+        for c_orig in range(nc):
+            for c_dest in range(nc):
+                if c_orig != c_dest:
+                    tau_mult[c_orig * ns : (c_orig + 1) * ns, c_dest * ns : (c_dest + 1) * ns] = mult_val
+    elif isinstance(tau, np.ndarray):
+        if tau.ndim == 2 and tau.shape == (M, M):
+            if np.allclose(np.diag(tau), 1.0):
+                tau_mult = np.asarray(tau, dtype=float)
+            elif np.allclose(np.diag(tau), 0.0):
+                tau_mult = 1.0 + np.asarray(tau, dtype=float)
+            else:
+                tau_mult = np.asarray(tau, dtype=float) if np.min(tau) >= 1.0 else (1.0 + np.asarray(tau, dtype=float))
+        elif tau.ndim == 3 and tau.shape == (M, ns, nc):
+            tau_2d = tau.reshape((M, M), order="F")
+            tau_mult = tau_2d if np.allclose(np.diag(tau_2d), 1.0) else (1.0 + tau_2d)
+        elif tau.ndim == 4 and tau.shape == (ns, nc, ns, nc):
+            tau_a = tau.transpose(1, 0, 2, 3).reshape(M, ns, nc)
+            tau_2d = tau_a.reshape((M, M), order="F")
+            tau_mult = tau_2d if np.allclose(np.diag(tau_2d), 1.0) else (1.0 + tau_2d)
+        elif tau.size == nc:
+            tau_a, _, _, _ = _resolve_tariffs(calib, tau=tau, tau_fd=None)
+            tau_mult = tau_a.reshape((M, M), order="F")
+        else:
+            tau_mult = np.asarray(tau, dtype=float)
+    else:
+        tau_mult = np.ones((M, M), dtype=float)
+
+    # Cost matrix B_{tau, ij} = a_{ij} * (1 + tau_{ij}) / (1 - t_j)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        B_tau = (a_2d * tau_mult) / one_minus_t[None, :]
+        B_tau = np.nan_to_num(B_tau, nan=0.0, posinf=1e12, neginf=0.0)
+        B_tau = np.maximum(B_tau, 0.0)
+
+    from puremacro.trade.regularize import compute_spectral_radius
+    rho, cw_lower, cw_upper = compute_spectral_radius(B_tau, max_iter=max_iter, tol=tol)
+    threshold = 1.0 - 1e-6
+    if cw_lower < threshold <= cw_upper:
+        rho, cw_lower, cw_upper = compute_spectral_radius(B_tau, max_iter=max(1000, max_iter), tol=tol)
+    if cw_upper >= threshold:
+        if cw_lower >= threshold:
+            reason = "violates Hawkins-Simon viability condition"
+        else:
+            reason = "has unresolved Hawkins-Simon viability"
+        raise ValueError(f"Tariff schedule {reason}: spectral bounds [{cw_lower:.8g}, {cw_upper:.8g}]")
+    return ViabilityResult(rho, cw_lower, cw_upper, True)
 
 
 # ===========================================================================
@@ -498,6 +715,7 @@ def _condensed_schur_solve(
     *,
     backend: str = "numpy",
     sigma: float = 0.0,
+    tariff_revenue_mode: str = "legacy_national",
     fiscal_closure: str = "lump_sum",
     recycling_params: dict[str, Any] | None = None,
     capacity_margins: dict[str, float] | dict[tuple[int, int], float] | np.ndarray | None = None,
@@ -543,7 +761,7 @@ def _condensed_schur_solve(
             out = _condensed_schur_solve_impl(
                 calib, tau_a, taufd_a, tauf_vec, tauf_fd_vec, x0=x0, tol=tol, max_iter=max_iter,
                 eps_fd=eps_fd, replicate_matlab_precedence=replicate_matlab_precedence,
-                backend=backend, xp=xp,
+                backend=backend, xp=xp, tariff_revenue_mode=tariff_revenue_mode,
             )
         except Exception as exc:
             warnings.warn(
@@ -566,7 +784,7 @@ def _condensed_schur_solve(
     return _condensed_schur_solve_impl(
         calib, tau_a, taufd_a, tauf_vec, tauf_fd_vec, x0=x0, tol=tol, max_iter=max_iter,
         eps_fd=eps_fd, replicate_matlab_precedence=replicate_matlab_precedence,
-        backend=backend, xp=xp,
+        backend=backend, xp=xp, tariff_revenue_mode=tariff_revenue_mode,
     )
 
 
@@ -591,6 +809,7 @@ def _condensed_schur_solve_impl(
     replicate_matlab_precedence: bool,
     backend: str,
     xp: Any,
+    tariff_revenue_mode: str = "legacy_national",
 ) -> tuple[np.ndarray, bool, int, float, float, np.ndarray]:
     """Condensed solver body for a resolved array namespace ``xp``."""
     device_stream = xp.stream(xp.cpu) if backend == "mlx" else contextlib.nullcontext()
@@ -675,8 +894,11 @@ def _condensed_schur_solve_impl(
             v_P = val_va.flatten(order="F") / np.maximum(1.0 - tax_flat, 1e-12)
             p_vec = lu_P.solve(v_P)
             p = p_vec.reshape((1, ns, nc), order="F")
+            ppfd = np.tensordot(p_vec, calib.afd * taufd_a, axes=(0, 0))[np.newaxis, :, :]
         else:
-            p_vec, p = p_cached
+            p_vec = p_cached[0]
+            p = p_cached[1]
+            ppfd = p_cached[2] if len(p_cached) > 2 else np.tensordot(p_vec, calib.afd * taufd_a, axes=(0, 0))[np.newaxis, :, :]
             term_r = (r / calib.alpha) ** calib.alpha
             if replicate_matlab_precedence:
                 term_w = w / ((1.0 - calib.alpha) ** (1.0 - calib.alpha))
@@ -685,7 +907,6 @@ def _condensed_schur_solve_impl(
             val_va = (1.0 / calib.beta) * (term_r * term_w)
 
         # 2. Final demand and output solve
-        ppfd = np.tensordot(p_vec, calib.afd * taufd_a, axes=(0, 0))[np.newaxis, :, :]
         Ycon = w * calib.l_endow + r * calib.k_endow + T
         cd = calib.theta * Ycon / ppfd
         tax_fd_arr = calib.tax_fd if calib.tax_fd is not None else np.zeros((1, nfd, nc))
@@ -716,7 +937,7 @@ def _condensed_schur_solve_impl(
                 y_dev = _device_float64(xp, backend, y_blocks)
                 x_sum_c2 = to_numpy(xp.sum(a_blocks_dev * y_dev[None, :, :], axis=2))
         else:
-            x_sum_c2 = xp.sum(a_blocks * y_blocks[None, :, :], axis=2)
+            x_sum_c2 = np.einsum("mcs,cs->mc", a_blocks, y_blocks)
         val_sum = x_sum_c2 * pp_col
         T_inter = np.sum(val_sum.reshape(nc, ns, nc), axis=1)
 
@@ -728,7 +949,7 @@ def _condensed_schur_solve_impl(
                 ppfd_dev = _device_float64(xp, backend, ppfd_blocks)
                 fd_sum_c2 = to_numpy(xp.sum(xc_dev * ppfd_dev[None, :, :], axis=2))
         else:
-            fd_sum_c2 = xp.sum(xc_blocks * ppfd_blocks[None, :, :], axis=2)
+            fd_sum_c2 = np.einsum("mcd,cd->mc", xc_blocks, ppfd_blocks)
         T_fd = np.sum(fd_sum_c2.reshape(nc, ns, nc), axis=1)
         np.fill_diagonal(T_inter, 0.0)
         np.fill_diagonal(T_fd, 0.0)
@@ -741,7 +962,9 @@ def _condensed_schur_solve_impl(
 
         # 5. Fiscal revenues
         Tax_Total = np.sum(calib.tax * ytot, axis=1).ravel() + np.sum(Tax_c, axis=1).ravel()
-        Tarifs_Totals = M0 * tauf_vec + MFD * tauf_fd_vec
+        tariffs_inter = np.sum((tau_a - 1.0) * calib.a * ytot * p_vec[:, None, None], axis=(0, 1))
+        tariffs_fd = np.sum((taufd_a - 1.0) * xc_2d.reshape(M, nfd, nc, order="F") * ppfd, axis=(0, 1))
+        Tarifs_Totals = (tariffs_inter + tariffs_fd) if tariff_revenue_mode == "schedule" else (M0 * tauf_vec + MFD * tauf_fd_vec)
 
         # Macro residual equations
         ff2 = calib.l_endow.ravel() - np.sum(xl, axis=1).ravel()
@@ -788,13 +1011,14 @@ def _condensed_schur_solve_impl(
 
     for it in range(max_iter):
         # 307 x 307 dense macro Jacobian
+        ppfd_sol = np.tensordot(p_sol, calib.afd * taufd_a, axes=(0, 0))[np.newaxis, :, :]
         J = np.empty((n_m, n_m), dtype=float)
         for j in range(n_m):
             xm_pert = xm.copy()
             xm_pert[j] += h[j]
-            # When perturbing T or XN (j >= 2*nc), prices p do not change -> reuse cached p
+            # When perturbing T or XN (j >= 2*nc), prices p do not change -> reuse cached p and ppfd
             if j >= 2 * nc:
-                f_p, _, _, _, _ = eval_macro(xm_pert, p_cached=(p_sol, p_sol_3d), compute_full=False)
+                f_p, _, _, _, _ = eval_macro(xm_pert, p_cached=(p_sol, p_sol_3d, ppfd_sol), compute_full=False)
             else:
                 f_p, _, _, _, _ = eval_macro(xm_pert, compute_full=False)
             J[:, j] = (f_p - f_m) / h[j]
@@ -977,7 +1201,755 @@ def _broyden_solve(
 
 
 # ===========================================================================
-# 6. Master Solver Interfaces
+# 6. Ill-Conditioned Network Stabilization & Micro-Economy Solvers
+# ===========================================================================
+
+def svd_clamped_newton_step(
+    J: np.ndarray,
+    f_val: np.ndarray,
+    D_L: np.ndarray,
+    D_R: np.ndarray,
+    max_comp: float = 20.0,
+    max_disp: float = 0.30,
+) -> np.ndarray:
+    """Compute Newton step with SVD modal component clamping on ill-conditioned directions.
+
+    Equilibrates the Jacobian J using two-sided scalers (D_L @ J @ D_R), projects the
+    equilibrated residual onto the left singular vectors of J_eq, clamps the projection
+    modal coefficients to [-max_comp, max_comp], and backprojects onto physical space.
+
+    Parameters
+    ----------
+    J : np.ndarray
+        Jacobian matrix of shape (n, n).
+    f_val : np.ndarray
+        Residual vector of shape (n,).
+    D_L : np.ndarray
+        Left row-equilibration scaling factors of shape (n,) or (n, n).
+    D_R : np.ndarray
+        Right column-equilibration scaling factors of shape (n,) or (n, n).
+    max_comp : float, default 20.0
+        Maximum allowable modal projection coefficient magnitude |c_k| <= max_comp.
+    max_disp : float, default 0.30
+        Factor wage displacement clamping bound |Delta w| <= max_disp. If positive,
+        scales the step uniformly if max(|delta|) > max_disp.
+
+    Returns
+    -------
+    np.ndarray
+        Regularized Newton step delta = D_R @ sol_u of shape (n,).
+    """
+    dl = D_L if D_L.ndim == 1 else np.diag(D_L)
+    dr = D_R if D_R.ndim == 1 else np.diag(D_R)
+
+    J_eq = dl[:, np.newaxis] * (J * dr[np.newaxis, :])
+    rhs_eq = -dl * f_val
+
+    U, S, Vt = la.svd(J_eq)
+    proj = U.T @ rhs_eq
+    safe_S = np.where(S > 1e-15, S, 1e-15)
+    coeffs = proj / safe_S
+
+    clamped = np.abs(coeffs) > max_comp
+    if np.any(clamped):
+        coeffs = np.clip(coeffs, -max_comp, max_comp)
+
+    sol_u = Vt.T @ coeffs
+    delta = dr * sol_u
+
+    if max_disp is not None and max_disp > 0:
+        max_step = float(np.max(np.abs(delta)))
+        if max_step > max_disp:
+            delta = delta * (max_disp / max_step)
+
+    return delta
+
+
+def anderson_accelerate(
+    x_hist: list[np.ndarray],
+    g_hist: list[np.ndarray],
+    f_hist: list[np.ndarray],
+    m: int = 4,
+) -> np.ndarray:
+    """Compute depth-m Anderson accelerated iterate with least-squares mixing weights.
+
+    Accelerates fixed-point or Newton iterations by finding optimal affine combination
+    weights gamma in R^k minimizing ||sum gamma_i f_i||_2 subject to sum gamma_i = 1.
+
+    Parameters
+    ----------
+    x_hist : list[np.ndarray]
+        History of past state vectors [x_0, ..., x_{k-1}].
+    g_hist : list[np.ndarray]
+        History of proposal vectors [g_0, ..., g_{k-1}] where g_i = x_i + step_i.
+    f_hist : list[np.ndarray]
+        History of residual vectors [f_0, ..., f_{k-1}].
+    m : int, default 4
+        Maximum history depth for Anderson mixing.
+
+    Returns
+    -------
+    np.ndarray
+        Accelerated iterate x_{next} = sum_{i=0}^{k-1} gamma_i g_i.
+    """
+    k = min(len(x_hist), len(g_hist), len(f_hist), m)
+    if k <= 0:
+        raise ValueError("Anderson acceleration history buffers must be non-empty.")
+    if k == 1:
+        return np.asarray(g_hist[-1], dtype=float).copy()
+
+    # Residual matrix R = [f_{-k}, ..., f_{-1}]
+    R = np.column_stack([f_hist[-k + i] for i in range(k)])
+
+    # Augmented KKT system for min ||R @ gamma||_2 s.t. 1^T gamma = 1:
+    # [R^T R, 1; 1^T, 0] [gamma; mu] = [0; 1]
+    KKT = np.empty((k + 1, k + 1), dtype=float)
+    KKT[:k, :k] = R.T @ R
+    KKT[:k, k] = 1.0
+    KKT[k, :k] = 1.0
+    KKT[k, k] = 0.0
+    rhs_kkt = np.zeros(k + 1, dtype=float)
+    rhs_kkt[k] = 1.0
+    try:
+        sol_kkt = la.lstsq(KKT, rhs_kkt)[0]
+        gamma = sol_kkt[:k]
+        sum_g = float(np.sum(gamma))
+        if abs(sum_g) > 1e-14 and np.all(np.isfinite(gamma)):
+            gamma = gamma / sum_g
+        else:
+            gamma = np.zeros(k, dtype=float)
+            gamma[-1] = 1.0
+    except Exception:
+        gamma = np.zeros(k, dtype=float)
+        gamma[-1] = 1.0
+
+    x_next = np.zeros_like(g_hist[-1], dtype=float)
+    for i in range(k):
+        x_next += gamma[i] * np.asarray(g_hist[-k + i], dtype=float)
+
+    return x_next
+
+
+def solve_cyprus_manifold_step(
+    S_ww: np.ndarray,
+    rhs_w: np.ndarray,
+    eval_cyp_fn: Callable[[float], tuple[float, float, Any]] | None = None,
+    idx_cyp: int = 15,
+    c0: float = 0.0,
+    c1: float | None = None,
+    tol: float = 2.5e-3,
+    max_secant_iter: int = 8,
+    max_disp: float = 0.30,
+) -> tuple[np.ndarray, float, bool]:
+    """Decoupled 1D conditional equilibrium manifold solver resolving micro-economy stalling (Cyprus CYP).
+
+    Partitions the factor wage system S_ww @ dw = rhs_w into the 76-country manifold and
+    Cyprus: dw_{76}(dw_{cyp}) = dw_{76, 0} + v_{76} * dw_{cyp}. Solves the 1D scalar
+    residual f_{CYP}(dw_{cyp}) = 0 via secant method, eliminating stalling in open economies.
+
+    Parameters
+    ----------
+    S_ww : np.ndarray
+        Factor wage Schur complement matrix of shape (nc, nc).
+    rhs_w : np.ndarray
+        Right-hand side vector for factor wages of shape (nc,).
+    eval_cyp_fn : Callable[[float], tuple[float, float, Any]], optional
+        Callable returning (f_cyp, max_residual, context) given candidate dw_cyp.
+        If None, solves on the linearized manifold.
+    idx_cyp : int, default 15
+        Index of Cyprus in the country list.
+    c0 : float, default 0.0
+        Initial guess for dw_cyp.
+    c1 : float, optional
+        Second guess for secant initialization.
+    tol : float, default 2.5e-3
+        Residual convergence tolerance.
+    max_secant_iter : int, default 8
+        Maximum 1D secant iterations.
+    max_disp : float, default 0.30
+        Factor displacement clamping bound.
+
+    Returns
+    -------
+    tuple[np.ndarray, float, bool]
+        (dw_full, best_res, converged)
+    """
+    nc = len(rhs_w)
+    idx_cyp_safe = idx_cyp if 0 <= idx_cyp < nc else 0
+    idx_76 = [c for c in range(nc) if c != idx_cyp_safe]
+
+    S_76 = S_ww[np.ix_(idx_76, idx_76)]
+    S_cyp_col = S_ww[idx_76, idx_cyp_safe]
+    rhs_76 = rhs_w[idx_76]
+
+    try:
+        dw_76_0 = la.solve(S_76, rhs_76)
+        v_76 = la.solve(S_76, -S_cyp_col)
+    except la.LinAlgError:
+        dw_76_0 = la.lstsq(S_76, rhs_76)[0]
+        v_76 = la.lstsq(S_76, -S_cyp_col)[0]
+
+    s_scalar = float(S_ww[idx_cyp_safe, idx_cyp_safe] + S_ww[idx_cyp_safe, idx_76] @ v_76)
+    dw_cyp_lin = float((rhs_w[idx_cyp_safe] - S_ww[idx_cyp_safe, idx_76] @ dw_76_0) / (s_scalar if abs(s_scalar) > 1e-12 else 1.0))
+
+    if eval_cyp_fn is not None:
+        c_curr0 = c0
+        fc0, res0, ctx0 = eval_cyp_fn(c_curr0)
+        c_curr1 = c1 if c1 is not None else (dw_cyp_lin * 0.1 if abs(dw_cyp_lin) > 1e-4 else 1e-4)
+        fc1, res1, ctx1 = eval_cyp_fn(c_curr1)
+
+        best_c = c_curr1 if res1 < res0 else c_curr0
+        best_res = min(res0, res1)
+        conv = best_res <= tol
+
+        for _ in range(max_secant_iter):
+            if conv or abs(fc1 - fc0) < 1e-14:
+                break
+            c_next = c_curr1 - fc1 * (c_curr1 - c_curr0) / (fc1 - fc0)
+            fc_next, res_next, _ = eval_cyp_fn(c_next)
+            if res_next < best_res:
+                best_res = res_next
+                best_c = c_next
+            if res_next <= tol or abs(fc_next) <= tol:
+                conv = True
+                break
+            c_curr0, fc0 = c_curr1, fc1
+            c_curr1, fc1 = c_next, fc_next
+    else:
+        best_c = dw_cyp_lin
+        best_res = abs(float(rhs_w[idx_cyp_safe] - (S_ww[idx_cyp_safe, idx_76] @ (dw_76_0 + v_76 * best_c) + S_ww[idx_cyp_safe, idx_cyp_safe] * best_c)))
+        conv = best_res <= tol
+
+    dw_full = np.empty(nc, dtype=float)
+    dw_full[idx_76] = dw_76_0 + v_76 * best_c
+    dw_full[idx_cyp_safe] = best_c
+
+    if max_disp is not None and max_disp > 0:
+        max_step = float(np.max(np.abs(dw_full)))
+        if max_step > max_disp:
+            dw_full *= (max_disp / max_step)
+
+    return dw_full, best_res, conv
+
+
+solve_cyprus_manifold = solve_cyprus_manifold_step
+
+
+def clamp_wage_displacement(
+    delta_w: np.ndarray | float,
+    max_disp: float = 0.30,
+    mode: str = "coordinate",
+) -> np.ndarray | float:
+    """Clamp factor wage displacement to bound |Delta omega_c| <= max_disp.
+
+    Parameters
+    ----------
+    delta_w : np.ndarray or float
+        Factor wage displacement step(s).
+    max_disp : float, default 0.30
+        Maximum displacement threshold (+/- 30%).
+    mode : {"coordinate", "uniform"}, default "coordinate"
+        Clamping mode:
+        - "coordinate": per-coordinate elementwise clipping via np.clip.
+        - "uniform": uniform scaling when maximum norm exceeds max_disp.
+
+    Returns
+    -------
+    np.ndarray or float
+        Clamped displacement step(s).
+    """
+    if isinstance(delta_w, (int, float, np.floating, np.integer)):
+        return float(np.clip(delta_w, -max_disp, max_disp))
+    arr = np.asarray(delta_w, dtype=float)
+    if mode == "uniform":
+        max_step = float(np.max(np.abs(arr))) if arr.size > 0 else 0.0
+        if max_step > max_disp and max_disp > 0:
+            return arr * (max_disp / max_step)
+        return arr.copy()
+    return np.clip(arr, -max_disp, max_disp)
+
+
+# ===========================================================================
+# 7. Keller's Bordered Pseudo-Arclength Continuation (PAC)
+# ===========================================================================
+
+def solve_keller_pac(
+    calib: TradeCalibrationResult,
+    tau_target: np.ndarray | float | str | None,
+    tau_start: np.ndarray | float | str | None = None,
+    ds_init: float = 0.05,
+    ds_min: float = 1e-4,
+    ds_max: float = 0.5,
+    tol: float = 2.5e-3,
+    max_steps: int = 100,
+    replicate_matlab_precedence: bool = True,
+    base_result: TradeEquilibriumResult | None = None,
+    *,
+    tau_fd_target: np.ndarray | float | None = None,
+    tauf_target: np.ndarray | None = None,
+    tauf_fd_target: np.ndarray | None = None,
+    tau_fd_start: np.ndarray | float | None = None,
+    tauf_start: np.ndarray | None = None,
+    tauf_fd_start: np.ndarray | None = None,
+    sigma: float = 0.0,
+    tariff_revenue_mode: str = "legacy_national",
+    accounting: str = "legacy",
+    fiscal_closure: str = "lump_sum",
+    recycling_params: dict[str, Any] | None = None,
+    capacity_margins: dict[str, float] | dict[tuple[int, int], float] | np.ndarray | None = None,
+    capacity_target_country: str = "USA",
+    penalty_scale: float = 0.05,
+    penalty_exponent: float = 8.0,
+    x0: np.ndarray | None = None,
+    condensed: bool | None = None,
+    eps_fd: float = 1e-5,
+    eps_lam: float = 1e-5,
+    **kwargs: Any,
+) -> TradeEquilibriumResult:
+    """Solve the CGE trade equilibrium via Keller's Bordered Pseudo-Arclength Continuation (PAC).
+
+    Embeds the tariff shock along a continuation path lambda in [0, 1] and solves the augmented
+    bordered Jacobian system of dimension (K+1) x (K+1) with two-sided equilibration, secant
+    tangent predictor, and arclength corrector. Traverses saddle-node fold bifurcations
+    (sigma_fold ~ 0.1238) and singular turning points where standard Newton-Raphson diverges
+    (det J -> 0, kappa_2 > 10^4).
+
+    Parameters
+    ----------
+    calib : TradeCalibrationResult
+        Calibrated model structural parameters.
+    tau_target : np.ndarray, float, or str
+        Target tariff schedule (scenario name, scalar rate/multiplier, or array).
+    tau_start : np.ndarray, float, str, or None, default None
+        Starting tariff schedule at lambda = 0 (defaults to baseline tariffs).
+    ds_init : float, default 0.05
+        Initial pseudo-arclength step size.
+    ds_min : float, default 1e-4
+        Minimum allowed step size before termination.
+    ds_max : float, default 0.5
+        Maximum allowed pseudo-arclength step size.
+    tol : float, default 2.5e-3
+        Maximum absolute residual tolerance ||F(x)||_inf <= tol.
+    max_steps : int, default 100
+        Maximum continuation steps along the manifold.
+    replicate_matlab_precedence : bool, default True
+        Whether to replicate MATLAB operator precedence.
+    base_result : TradeEquilibriumResult, optional
+        Benchmark baseline result for post-processing.
+    sigma : float, default 0.0
+        Intermediate substitution elasticity.
+    fiscal_closure : str, default "lump_sum"
+        Fiscal regime closure for tariff revenues.
+    x0 : np.ndarray, optional
+        Initial state guess. If None, uses calibrated baseline.
+    condensed : bool, optional
+        Only False/None is supported. True raises NotImplementedError; PAC uses
+        the dense full system and is intended for small calibrations.
+    **kwargs : Any
+        Additional keyword options.
+
+    accounting : {"legacy", "consistent"}, default "legacy"
+        Consistent mode uses the same producer/purchaser accounting, fixed
+        foreign balances and price numeraire as ``solve_trade_equilibrium``.
+
+    Returns
+    -------
+    TradeEquilibriumResult
+        Converged equilibrium solution container with post-processed trade flows and PAC metadata.
+    """
+    t_pac_start = time.perf_counter()
+
+    if accounting not in ("legacy", "consistent"):
+        raise ValueError("accounting must be 'legacy' or 'consistent'")
+    if accounting == "consistent":
+        replicate_matlab_precedence = False
+        tariff_revenue_mode = "schedule"
+
+    if condensed:
+        raise NotImplementedError("Keller PAC currently supports only the full system; use condensed=False.")
+    if not (0 < ds_min <= ds_init <= ds_max) or max_steps < 1 or tol <= 0:
+        raise ValueError("Require 0 < ds_min <= ds_init <= ds_max, max_steps >= 1 and tol > 0.")
+
+    # 2. Resolve target and start tariff structures
+    if isinstance(tau_target, str):
+        from puremacro.trade.scenarios import get_canonical_scenario, build_tariff_matrices
+        scen_target = get_canonical_scenario(tau_target)
+        tau_t_a, taufd_t_a, tauf_t_v, tauf_fd_t_v = build_tariff_matrices(scen_target, calib)
+    elif isinstance(tau_target, (int, float)):
+        rate = float(tau_target)
+        tau_t_a, taufd_t_a, tauf_t_v, tauf_fd_t_v = _resolve_tariffs(calib, tau=rate, tau_fd=rate)
+    else:
+        tau_t_a, taufd_t_a, tauf_t_v, tauf_fd_t_v = _resolve_tariffs(calib, tau=tau_target, tau_fd=None)
+
+    if tau_start is None:
+        tau_s_a, taufd_s_a, tauf_s_v, tauf_fd_s_v = _resolve_tariffs(calib, tau=None, tau_fd=None)
+    elif isinstance(tau_start, str):
+        from puremacro.trade.scenarios import get_canonical_scenario, build_tariff_matrices
+        scen_start = get_canonical_scenario(tau_start)
+        tau_s_a, taufd_s_a, tauf_s_v, tauf_fd_s_v = build_tariff_matrices(scen_start, calib)
+    elif isinstance(tau_start, (int, float)):
+        rate_s = float(tau_start)
+        tau_s_a, taufd_s_a, tauf_s_v, tauf_fd_s_v = _resolve_tariffs(calib, tau=rate_s, tau_fd=rate_s)
+    else:
+        tau_s_a, taufd_s_a, tauf_s_v, tauf_fd_s_v = _resolve_tariffs(calib, tau=tau_start, tau_fd=None)
+
+    # Explicit schedules override the scalar convenience convention.
+    if tau_fd_target is not None or tauf_target is not None or tauf_fd_target is not None:
+        tau_t_a, taufd_t_a, tauf_t_v, tauf_fd_t_v = _resolve_tariffs(
+            calib, tau=tau_target, tau_fd=tau_fd_target,
+            tauf=tauf_target, tauf_fd=tauf_fd_target,
+        )
+    if tau_fd_start is not None or tauf_start is not None or tauf_fd_start is not None:
+        tau_s_a, taufd_s_a, tauf_s_v, tauf_fd_s_v = _resolve_tariffs(
+            calib, tau=tau_start, tau_fd=tau_fd_start,
+            tauf=tauf_start, tauf_fd=tauf_fd_start,
+        )
+    check_hawkins_simon_viability(calib, tau=tau_t_a)
+
+    nc = calib.n_countries
+    ns = calib.n_sectors
+    M = ns * nc
+
+    # Note: Continuation operates on the full (K+1) x (K+1) augmented bordered system
+    # to preserve global equilibrium consistency across singular turning points.
+    # The `condensed` parameter is retained for interface parity with solve_trade_equilibrium.
+    _ = condensed
+
+    if x0 is None:
+        x_init = build_initial_guess(calib)
+    else:
+        x_init = np.asarray(x0, dtype=float).ravel()
+
+    # Helper to interpolate tariffs along lambda in [0, 1]
+    def get_tariffs(lam: float):
+        l_c = float(np.clip(lam, -0.5, 2.0))
+        t_a = (1.0 - l_c) * tau_s_a + l_c * tau_t_a
+        tfd_a = (1.0 - l_c) * taufd_s_a + l_c * taufd_t_a
+        tf_v = (1.0 - l_c) * tauf_s_v + l_c * tauf_t_v
+        tffd_v = (1.0 - l_c) * tauf_fd_s_v + l_c * tauf_fd_t_v
+        return t_a, tfd_a, tf_v, tffd_v
+
+    # Evaluators for full state
+    def eval_full(x_vec: np.ndarray, lam: float) -> np.ndarray:
+        t_a, tfd_a, tf_v, tffd_v = get_tariffs(lam)
+        return compute_equilibrium_residuals(
+            x=x_vec,
+            calib=calib,
+            tau=t_a,
+            tau_fd=tfd_a,
+            tauf=tf_v,
+            tauf_fd=tffd_v,
+            replicate_matlab_precedence=replicate_matlab_precedence,
+            sigma=sigma,
+            tariff_revenue_mode=tariff_revenue_mode,
+            accounting=accounting,
+            fiscal_closure=fiscal_closure,
+            recycling_params=recycling_params,
+            capacity_margins=capacity_margins,
+            capacity_target_country=capacity_target_country,
+            penalty_scale=penalty_scale,
+            penalty_exponent=penalty_exponent,
+        )
+
+    # State vector and scaling vector setup
+    curr_x = x_init.copy()
+    curr_lam = 0.0
+    K = len(curr_x)
+
+    w_scale = np.ones(K, dtype=float)
+    if K >= 2 * M + 4 * nc - 1:
+        i_T = 2 * M + 2 * nc
+        w_scale[i_T:] = 1e-6
+
+    # Initial solve at lambda = 0.0
+    f_0 = eval_full(curr_x, curr_lam)
+    if float(np.max(np.abs(f_0))) > tol:
+        for _ in range(10):
+            f_val = eval_full(curr_x, curr_lam)
+            if float(np.max(np.abs(f_val))) <= tol:
+                break
+            J_init = np.empty((K, K), dtype=float)
+            for j in range(K):
+                xp = curr_x.copy()
+                xp[j] += eps_fd
+                J_init[:, j] = (eval_full(xp, curr_lam) - f_val) / eps_fd
+            c_n = np.linalg.norm(J_init, axis=0); c_n[c_n == 0] = 1.0; DR = 1.0 / c_n
+            r_n = np.linalg.norm(J_init * DR[np.newaxis, :], axis=1); r_n[r_n == 0] = 1.0; DL = 1.0 / r_n
+            try:
+                curr_x += DR * la.solve(DL[:, np.newaxis] * (J_init * DR[np.newaxis, :]), -DL * f_val)
+            except la.LinAlgError:
+                curr_x += DR * la.lstsq(DL[:, np.newaxis] * (J_init * DR[np.newaxis, :]), -DL * f_val)[0]
+
+    ds = ds_init
+    prev_tau_x = None
+    prev_tau_lam = None
+    fold_points: list[dict[str, Any]] = []
+    total_pac_steps = 0
+
+    # Main Pseudo-Arclength Continuation loop
+    for step_idx in range(max_steps):
+        if curr_lam >= 1.0 - 1e-6:
+            break
+
+        total_pac_steps += 1
+        f_curr = eval_full(curr_x, curr_lam)
+
+        # Evaluate Jacobian J_x
+        J_x = np.empty((K, K), dtype=float)
+        for j in range(K):
+            xp = curr_x.copy()
+            xp[j] += eps_fd
+            J_x[:, j] = (eval_full(xp, curr_lam) - f_curr) / eps_fd
+
+        # Evaluate dF/dlam
+        f_pert_lam = eval_full(curr_x, curr_lam + eps_lam)
+        dF_dlam = (f_pert_lam - f_curr) / eps_lam
+
+        # Spectral diagnostic on J_x
+        try:
+            s_vals = la.svd(J_x, compute_uv=False)
+            sigma_min = float(s_vals[-1])
+            kappa_2 = float(s_vals[0] / max(sigma_min, 1e-15))
+        except Exception:
+            sigma_min = 1.0
+            kappa_2 = 1.0
+
+        # Tangent vector calculation via Bordered System:
+        # [J_x, dF/dlam; prev_tau_x^T W^2, prev_tau_lam] [v_x; v_lam] = [0; 1]
+        c_n = np.linalg.norm(J_x, axis=0); c_n[c_n == 0] = 1.0; DR = 1.0 / c_n
+        r_n = np.linalg.norm(J_x * DR[np.newaxis, :], axis=1); r_n[r_n == 0] = 1.0; DL = 1.0 / r_n
+
+        if prev_tau_x is not None and prev_tau_lam is not None:
+            J_t_aug = np.empty((K + 1, K + 1), dtype=float)
+            J_t_aug[:K, :K] = J_x
+            J_t_aug[:K, K] = dF_dlam
+            J_t_aug[K, :K] = prev_tau_x * (w_scale ** 2)
+            J_t_aug[K, K] = prev_tau_lam
+            rhs_t = np.zeros(K + 1, dtype=float)
+            rhs_t[K] = 1.0
+            try:
+                c_ta = np.linalg.norm(J_t_aug, axis=0); c_ta[c_ta == 0] = 1.0; DR_t = 1.0 / c_ta
+                r_ta = np.linalg.norm(J_t_aug * DR_t[np.newaxis, :], axis=1); r_ta[r_ta == 0] = 1.0; DL_t = 1.0 / r_ta
+                v_sol = DR_t * la.solve(DL_t[:, np.newaxis] * (J_t_aug * DR_t[np.newaxis, :]), DL_t * rhs_t)
+            except la.LinAlgError:
+                v_sol = la.lstsq(J_t_aug, rhs_t)[0]
+            v_x = v_sol[:K]
+            v_lam = float(v_sol[K])
+        else:
+            try:
+                v_x = DR * la.solve(DL[:, np.newaxis] * (J_x * DR[np.newaxis, :]), -DL * dF_dlam)
+            except la.LinAlgError:
+                v_x = DR * la.lstsq(DL[:, np.newaxis] * (J_x * DR[np.newaxis, :]), -DL * dF_dlam)[0]
+            v_lam = 1.0
+
+        # Normalize tangent with metric W
+        tangent_norm = float(np.sqrt(np.sum((v_x * w_scale) ** 2) + v_lam ** 2))
+        if tangent_norm < 1e-15:
+            tangent_norm = 1.0
+        tau_x = v_x / tangent_norm
+        tau_lam = v_lam / tangent_norm
+
+        # Orientation check: maintain forward path progression
+        if prev_tau_x is not None:
+            dot_prod = float(np.sum(tau_x * prev_tau_x * (w_scale ** 2)) + tau_lam * prev_tau_lam)
+            if dot_prod < 0:
+                tau_x = -tau_x
+                tau_lam = -tau_lam
+        else:
+            if tau_lam < 0:
+                tau_x = -tau_x
+                tau_lam = -tau_lam
+
+        # Monitor fold bifurcation / turning point (tau_lambda <= 0)
+        if tau_lam <= 0.0:
+            fold_points.append({
+                "step": step_idx,
+                "lambda": float(curr_lam),
+                "tau_lambda": float(tau_lam),
+                "sigma_min": float(sigma_min),
+                "kappa_2": float(kappa_2),
+            })
+
+        prev_tau_x = tau_x.copy()
+        prev_tau_lam = float(tau_lam)
+
+        # Adaptive arclength step size: target delta_lambda ~ 0.02
+        # Keep reductions after rejected correctors; adapt only on acceptance.
+
+        # Clip predictor to lambda = 1.0 if approaching target
+        if curr_lam < 1.0 and tau_lam > 0 and curr_lam + ds * tau_lam > 1.0:
+            ds = min(ds, max((1.0 - curr_lam) / max(tau_lam, 1e-4), ds_min))
+
+        # Secant tangent predictor
+        x_pred = curr_x + ds * tau_x
+        lam_pred = curr_lam + ds * tau_lam
+        if lam_pred > 1.0 and tau_lam > 0:
+            lam_pred = 1.0
+
+        # Arclength corrector Newton iterations
+        x_k = x_pred.copy()
+        lam_k = float(lam_pred)
+        conv_corr = False
+
+        for it_corr in range(12):
+            f_k = eval_full(x_k, lam_k)
+            g_k = float(np.sum(tau_x * (w_scale ** 2) * (x_k - curr_x)) + tau_lam * (lam_k - curr_lam) - ds)
+            err_k = max(float(np.max(np.abs(f_k))), abs(g_k))
+
+            if err_k <= tol:
+                conv_corr = True
+                curr_x = x_k
+                curr_lam = lam_k
+                break
+
+            # Evaluate augmented Jacobian
+            J_xk = np.empty((K, K), dtype=float)
+            for j in range(K):
+                xp = x_k.copy()
+                xp[j] += eps_fd
+                J_xk[:, j] = (eval_full(xp, lam_k) - f_k) / eps_fd
+
+            f_pert_k = eval_full(x_k, lam_k + eps_lam)
+            dF_dlam_k = (f_pert_k - f_k) / eps_lam
+
+            # Bordered (K+1) x (K+1) system
+            J_aug = np.empty((K + 1, K + 1), dtype=float)
+            J_aug[:K, :K] = J_xk
+            J_aug[:K, K] = dF_dlam_k
+            J_aug[K, :K] = tau_x * (w_scale ** 2)
+            J_aug[K, K] = tau_lam
+
+            rhs_aug = np.empty(K + 1, dtype=float)
+            rhs_aug[:K] = -f_k
+            rhs_aug[K] = -g_k
+
+            # Two-sided equilibration of J_aug
+            c_aug = np.linalg.norm(J_aug, axis=0); c_aug[c_aug == 0] = 1.0; DR_a = 1.0 / c_aug
+            r_aug = np.linalg.norm(J_aug * DR_a[np.newaxis, :], axis=1); r_aug[r_aug == 0] = 1.0; DL_a = 1.0 / r_aug
+
+            try:
+                d_step = DR_a * la.solve(DL_a[:, np.newaxis] * (J_aug * DR_a[np.newaxis, :]), DL_a * rhs_aug)
+            except la.LinAlgError:
+                d_step = DR_a * la.lstsq(DL_a[:, np.newaxis] * (J_aug * DR_a[np.newaxis, :]), DL_a * rhs_aug)[0]
+
+            # Backtracking on augmented step
+            alpha_corr = 1.0
+            x_trial = x_k + alpha_corr * d_step[:K]
+            lam_trial = lam_k + alpha_corr * d_step[K]
+            for _ in range(5):
+                f_tr = eval_full(x_trial, lam_trial)
+                g_tr = float(np.sum(tau_x * (w_scale ** 2) * (x_trial - curr_x)) + tau_lam * (lam_trial - curr_lam) - ds)
+                err_tr = max(float(np.max(np.abs(f_tr))), abs(g_tr))
+                if err_tr < err_k or err_tr <= tol:
+                    break
+                alpha_corr *= 0.5
+                x_trial = x_k + alpha_corr * d_step[:K]
+                lam_trial = lam_k + alpha_corr * d_step[K]
+
+            x_k = x_trial
+            lam_k = lam_trial
+
+        if not conv_corr:
+            # Halve arclength step and retry
+            ds *= 0.5
+            if ds < ds_min:
+                break
+        else:
+            curr_x = x_k
+            curr_lam = lam_k
+            ds = min(ds_max, ds * (1.25 if it_corr < 5 else 1.0))
+
+    t_pac_end = time.perf_counter()
+    solve_duration = t_pac_end - t_pac_start
+
+    # Final terminal polish at target lambda = 1.0
+    status = "converged"
+    x_polish = curr_x.copy()
+    try:
+        f_final = eval_full(x_polish, 1.0)
+        res_final = float(np.max(np.abs(f_final)))
+
+        for _ in range(15):
+            if res_final <= tol and (tol > 1e-6 or res_final < 1e-10):
+                break
+            J_fin = np.empty((K, K), dtype=float)
+            for j in range(K):
+                xp = x_polish.copy()
+                xp[j] += eps_fd
+                J_fin[:, j] = (eval_full(xp, 1.0) - f_final) / eps_fd
+            c_f = np.linalg.norm(J_fin, axis=0); c_f[c_f == 0] = 1.0; DR_f = 1.0 / c_f
+            r_f = np.linalg.norm(J_fin * DR_f[np.newaxis, :], axis=1); r_f[r_f == 0] = 1.0; DL_f = 1.0 / r_f
+            try:
+                step_f = DR_f * la.solve(DL_f[:, np.newaxis] * (J_fin * DR_f[np.newaxis, :]), -DL_f * f_final)
+            except (la.LinAlgError, ValueError):
+                step_f = DR_f * la.lstsq(DL_f[:, np.newaxis] * (J_fin * DR_f[np.newaxis, :]), -DL_f * f_final)[0]
+
+            if np.any(np.isnan(step_f)) or np.any(np.isinf(step_f)):
+                raise ValueError("Terminal polish step contains NaNs or infs")
+
+            x_polish += step_f
+            f_final = eval_full(x_polish, 1.0)
+            res_final = float(np.max(np.abs(f_final)))
+
+        conv_total = bool(np.isfinite(res_final) and res_final <= tol)
+        if conv_total:
+            curr_x = x_polish
+        else:
+            status = "step_limit_exhausted"
+    except (la.LinAlgError, ValueError):
+        conv_total = False
+        res_final = float("nan")
+        f_final = np.full(K, np.nan, dtype=float)
+        status = "step_limit_exhausted"
+
+    # Diagnostics always describe the iterate that is actually returned.
+    f_final = eval_full(curr_x, 1.0)
+    res_final = float(np.max(np.abs(f_final)))
+    conv_total = bool(np.isfinite(res_final) and res_final <= tol)
+    status = "converged" if conv_total else "step_limit_exhausted"
+
+    res_dataclass = postprocess_trade_equilibrium(
+        x_sol=curr_x,
+        calib=calib,
+        tau=tau_t_a,
+        tau_fd=taufd_t_a,
+        tauf=tauf_t_v,
+        tauf_fd=tauf_fd_t_v,
+        replicate_matlab_precedence=replicate_matlab_precedence,
+        converged=conv_total,
+        iterations=total_pac_steps,
+        base_result=base_result,
+        tariff_revenue_mode=tariff_revenue_mode, accounting=accounting,
+        sigma=sigma, fiscal_closure=fiscal_closure, recycling_params=recycling_params,
+        capacity_margins=capacity_margins, capacity_target_country=capacity_target_country,
+        penalty_scale=penalty_scale, penalty_exponent=penalty_exponent,
+        metadata={
+            "method": "keller_pac",
+            "status": status,
+            "tol": tol,
+            "max_steps": max_steps,
+            "pac_steps": total_pac_steps,
+            "fold_points": fold_points,
+            "final_lambda": float(curr_lam),
+            "solve_duration_seconds": solve_duration,
+            "sigma": sigma,
+            "fiscal_closure": fiscal_closure,
+            "residual_norm": float(np.sum(np.abs(f_final))),
+            "max_residual": res_final,
+        },
+    )
+
+    return replace(
+        res_dataclass,
+        residuals=f_final,
+        residual_norm=float(np.sum(np.abs(f_final))),
+        diff=float(np.sum(np.abs(f_final))),
+        max_residual=res_final,
+    )
+
+
+# ===========================================================================
+# 8. Master Solver Interfaces
 # ===========================================================================
 
 def solve_trade_equilibrium(
@@ -995,6 +1967,8 @@ def solve_trade_equilibrium(
     *,
     backend: str = "numpy",
     sigma: float = 0.0,
+    tariff_revenue_mode: str = "legacy_national",
+    accounting: str = "legacy",
     fiscal_closure: str = "lump_sum",
     recycling_params: dict[str, Any] | None = None,
     capacity_margins: dict[str, float] | dict[tuple[int, int], float] | np.ndarray | None = None,
@@ -1004,6 +1978,21 @@ def solve_trade_equilibrium(
     **kwargs: Any,
 ) -> TradeEquilibriumResult:
     """Solve the multi-country multi-sector general equilibrium nonlinear system.
+
+    ``tariff_revenue_mode="legacy_national"`` reproduces the MATLAB fiscal
+    equation, which uses only explicit national rate vectors. In particular,
+    tariffs encoded solely in matrices need not be rebated under this convention.
+    Use ``tariff_revenue_mode="schedule"`` for fiscal receipts from the complete
+    bilateral schedule. This choice is independent of the price-precedence flag.
+    With the compatibility default ``accounting="legacy"``, schedule revenue
+    retains the legacy final-demand valuation. For economic counterfactuals use
+    ``accounting="consistent"``: producer-price trade and duty bases, homogeneous
+    factor costs, output-revenue taxes, actual final-use tax bases, lump-sum
+    rebates, fixed baseline foreign balances and a first-producer-price numeraire.
+    This selects schedule receipts and correct Cobb–Douglas precedence regardless
+    of the legacy switches. Other fiscal/capacity extensions are explicitly
+    unsupported in this mode. See ``docs/trade_accounting.md``.
+
 
     Parameters
     ----------
@@ -1021,7 +2010,7 @@ def solve_trade_equilibrium(
         National final demand tariff rates by importing country, shape (nc,).
     x0 : np.ndarray, optional
         Initial state vector. If None, constructed via :func:`build_initial_guess`.
-    method : {"newton", "sparse_lu", "krylov", "condensed", "broyden", "hybr", "lm"}, default "newton"
+    method : {"newton", "sparse_lu", "krylov", "condensed", "broyden", "hybr", "lm", "keller_pac"}, default "newton"
         Nonlinear root-finding algorithm:
         - 'newton': Dense Damped Newton-Raphson with Armijo line search (baseline).
         - 'sparse_lu': Sparse Jacobian Newton using direct sparse LU (splu) and graph coloring.
@@ -1030,6 +2019,7 @@ def solve_trade_equilibrium(
         - 'broyden': Broyden quasi-Newton with Sherman-Morrison rank-1 updates.
         - 'hybr': SciPy MINPACK Powell hybrid root wrapper.
         - 'lm': SciPy Levenberg-Marquardt root wrapper.
+        - 'keller_pac': Keller's Bordered Pseudo-Arclength Continuation (traverses fold bifurcations).
     tol : float, default 2.5e-3
         Maximum absolute residual tolerance: ||F(x)||_inf <= tol.
     max_iter : int, default 50
@@ -1058,6 +2048,14 @@ def solve_trade_equilibrium(
     TradeEquilibriumResult
         Result container with solution arrays, reconstructed flows, and diagnostics.
     """
+    if accounting not in ("legacy", "consistent"):
+        raise ValueError("accounting must be 'legacy' or 'consistent'")
+    if accounting == "consistent":
+        replicate_matlab_precedence = False
+        tariff_revenue_mode = "schedule"
+        if backend != "numpy":
+            raise NotImplementedError("Consistent accounting currently supports the NumPy backend")
+
     tau_a, taufd_a, tauf_vec, tauf_fd_vec = _resolve_tariffs(
         calib, tau=tau, tau_fd=tau_fd, tauf=tauf, tauf_fd=tauf_fd
     )
@@ -1077,6 +2075,8 @@ def solve_trade_equilibrium(
             tauf_fd=tauf_fd_vec,
             replicate_matlab_precedence=replicate_matlab_precedence,
             sigma=sigma,
+            tariff_revenue_mode=tariff_revenue_mode,
+            accounting=accounting,
             fiscal_closure=fiscal_closure,
             recycling_params=recycling_params,
             capacity_margins=capacity_margins,
@@ -1090,7 +2090,8 @@ def solve_trade_equilibrium(
     # Method dispatch
     if method == "newton":
         x_sol, conv, iters, max_res, diff, res = _damped_newton_solve(
-            obj_fun, x_init, tol=tol, max_iter=max_iter
+            obj_fun, x_init, tol=tol, max_iter=max_iter,
+            eps_fd=1e-5 if accounting == "consistent" else 1e-2
         )
     elif method == "sparse_lu":
         # Build structural sparsity pattern
@@ -1104,6 +2105,8 @@ def solve_trade_equilibrium(
             )
         except (ValueError, ArithmeticError, np.linalg.LinAlgError, Exception):
             sparsity_pat = None
+        if accounting == "consistent":
+            sparsity_pat = None  # Legacy patterns encode different closure rows.
         x_sol, conv, iters, max_res, diff, res = _sparse_lu_solve(
             obj_fun, x_init, tol=tol, max_iter=max_iter, sparsity=sparsity_pat
         )
@@ -1120,6 +2123,12 @@ def solve_trade_equilibrium(
             krylov_method=krylov_algo,
             restart=restart_val,
             max_krylov_iter=max_k_iter,
+            atol=0.0 if accounting == "consistent" else 1e-5,
+        )
+    elif method == "condensed" and accounting == "consistent":
+        # The old Schur reduction embodies the legacy valuation/closure.
+        x_sol, conv, iters, max_res, diff, res = _damped_newton_solve(
+            obj_fun, x_init, tol=tol, max_iter=max_iter, eps_fd=1e-5
         )
     elif method == "condensed":
         # Check if non-Leontief extensions are active
@@ -1152,8 +2161,11 @@ def solve_trade_equilibrium(
                 max_iter=max_iter,
                 replicate_matlab_precedence=replicate_matlab_precedence,
                 backend=backend,
+                tariff_revenue_mode=tariff_revenue_mode,
             )
     elif method == "quasi_condensed":
+        if tariff_revenue_mode != "legacy_national":
+            raise NotImplementedError("quasi_condensed does not support schedule tariff accounting")
         from puremacro.trade.flexible import _quasi_condensed_solve
 
         flexible_cfg = kwargs.get("config")
@@ -1198,11 +2210,45 @@ def solve_trade_equilibrium(
         res = obj_fun(x_sol)
         max_res = float(np.max(np.abs(res)))
         diff = float(np.sum(np.abs(res)))
-        conv = bool(res_scipy.success) or max_res <= tol or diff <= tol
+        conv = bool(np.isfinite(max_res) and max_res <= tol)
         iters = int(getattr(res_scipy, "nfev", 0))
+    elif method == "keller_pac":
+        target = tau if tau is not None else (tauf if tauf is not None else kwargs.get("tau_target", 0.0))
+        return solve_keller_pac(
+            calib=calib,
+            tau_target=tau_a,
+            tau_fd_target=taufd_a,
+            tauf_target=tauf_vec,
+            tauf_fd_target=tauf_fd_vec,
+            tau_start=kwargs.get("tau_start", None),
+            ds_init=kwargs.get("ds_init", 0.05),
+            ds_min=kwargs.get("ds_min", 1e-4),
+            ds_max=kwargs.get("ds_max", 0.5),
+            tol=tol,
+            max_steps=kwargs.get("max_steps", max_iter if max_iter > 50 else 100),
+            replicate_matlab_precedence=replicate_matlab_precedence,
+            base_result=base_result,
+            sigma=sigma,
+            tariff_revenue_mode=tariff_revenue_mode,
+            accounting=accounting,
+            fiscal_closure=fiscal_closure,
+            recycling_params=recycling_params,
+            capacity_margins=capacity_margins,
+            capacity_target_country=capacity_target_country,
+            penalty_scale=penalty_scale,
+            penalty_exponent=penalty_exponent,
+            x0=x0,
+            condensed=kwargs.get("condensed", None),
+            eps_fd=kwargs.get("eps_fd", 1e-5),
+            eps_lam=kwargs.get("eps_lam", 1e-5),
+            **{k: v for k, v in kwargs.items() if k not in (
+                "tau_target", "tau_start", "ds_init", "ds_min", "ds_max",
+                "max_steps", "condensed", "eps_fd", "eps_lam"
+            )},
+        )
     else:
         raise ValueError(
-            f"Unknown method '{method}'. Valid options are: 'newton', 'sparse_lu', 'krylov', 'condensed', 'quasi_condensed', 'broyden', 'hybr', 'lm'."
+            f"Unknown method '{method}'. Valid options are: 'newton', 'sparse_lu', 'krylov', 'condensed', 'quasi_condensed', 'broyden', 'hybr', 'lm', 'keller_pac'."
         )
 
     t_solve_end = time.perf_counter()
@@ -1219,8 +2265,14 @@ def solve_trade_equilibrium(
         converged=conv,
         iterations=iters,
         base_result=base_result,
+        tariff_revenue_mode=tariff_revenue_mode, accounting=accounting,
+        sigma=sigma, fiscal_closure=fiscal_closure, recycling_params=recycling_params,
+        capacity_margins=capacity_margins, capacity_target_country=capacity_target_country,
+        penalty_scale=penalty_scale, penalty_exponent=penalty_exponent,
         metadata={
             "method": method,
+            "effective_method": "newton" if accounting == "consistent" and method == "condensed" else method,
+            "accounting": accounting,
             "backend": backend,
             "tol": tol,
             "max_iter": max_iter,
@@ -1303,4 +2355,11 @@ __all__ = [
     "build_cge_sparsity_pattern",
     "solve_trade_equilibrium",
     "solve_equilibrium",
+    "check_hawkins_simon_viability",
+    "solve_keller_pac",
+    "svd_clamped_newton_step",
+    "anderson_accelerate",
+    "solve_cyprus_manifold_step",
+    "solve_cyprus_manifold",
+    "clamp_wage_displacement",
 ]

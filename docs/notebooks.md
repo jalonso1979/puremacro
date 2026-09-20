@@ -20,6 +20,16 @@ Following `notebooks/_TEMPLATE.md`, deepened and frontier showcase notebooks adh
 6. **Your Turn**: An interactive exploratory exercise with `# ← change this` knobs, runnable defaults with assertions, and graded challenge prompts.
 7. **How Comprehensive Is This?**: Contextual cross-references connecting the showcase to related `puremacro` entry points and literature.
 
+## Trade tutorials (63–65)
+
+Both English and Spanish editions are available as percent-format Python and executed notebooks.
+
+- **`63_trade_wars_and_nash_tariffs`**: Hand-balanced two-country Hicksian tariff game with a fixed baseline, fixed matrix actions, consumption-normalized regret, final best-response checks and audited solver recovery. Boundary solutions and failed deviations are explicit; a Prisoner's Dilemma is tested, not assumed.
+- `64_singularities_and_keller_pac`: spectral bounds on the bundled OECD table, a separate scalar toy fold, dense CGE continuation on a small synthetic calibration, and a deliberately planted stiff coordinate. These examples do not establish an economic fold at a particular elasticity.
+- **`65_gvc_cascades_and_welfare_decomposition`**: Synthetic-data provenance, fixed-coefficient cost propagation and consistent-accounting Hicksian consumption EV/CV. Endpoint attribution separates purchaser prices, factor income and fiscal transfers. The historical TOT/Alloc/TariffRec decomposition and theorem certification remain unavailable.
+
+See [structural validation status](STRUCTURAL_VALIDATION_STATUS.md) for supported models, failure contracts and evidence. Generated layouts are not empirical replications of OECD, FIGARO or EXIOBASE. The tutorial results are not contemporary tariff-policy forecasts.
+
 ## Latin America Nowcasting, Interactive DML & Quantitative Policy Simulators (puremacro 3.5)
 
 Showcases `59` through `61` demonstrate `puremacro`'s frontier Latin American real-time nowcasting with Bańbura-Modugno (2014) news attribution and Berkowitz (2001) density evaluation, high-dimensional causal inference via Interactive Double Machine Learning (IRM & DML-IV) with regularized logistic coordinate descent and Montiel Olea & Pflueger effective $F$ diagnostics, and quantitative macroeconomic policy simulators across 77-country 11-sector OECD ICIO trade general equilibrium and sequence-space HANK monetary transmission.
@@ -573,6 +583,9 @@ Showcases `47` through `50` bridge theoretical macroeconometrics with applied ce
 | `60_interactive_dml_irm_and_iv` | Interactive Double ML: IRM (ATE/ATT) with regularized logistic CD, propensity overlap & DML-IV | `60_interactive_dml_irm_and_iv_es` |
 | `61_quantitative_policy_simulators` | Quantitative policy simulators: 77-country OECD ICIO trade GE & sequence-space HANK monetary transmission | `61_quantitative_policy_simulators_es` |
 | `62_flexible_trade_cge` | Flexible trade GE: Nested CES technology, Stone-Geary LES preferences & Atkeson-Burstein markups | `62_flexible_trade_cge_es` |
+| `63_trade_wars_and_nash_tariffs` | Hicksian tariff games: fixed baseline and actions, best-response regret and audited equilibrium recovery | `63_trade_wars_and_nash_tariffs_es` |
+| `64_singularities_and_keller_pac` | Singularities, fold bifurcations & Keller's pseudo-arclength continuation (PAC): bordered Jacobians, Cyprus modal clamping & error bounds | `64_singularities_and_keller_pac_es` |
+| `65_gvc_cascades_and_welfare_decomposition` | Data provenance, cost propagation and Hicksian EV/CV with price, factor-income and fiscal-transfer attribution | `65_gvc_cascades_and_welfare_decomposition_es` |
 
 ---
 

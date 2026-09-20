@@ -1072,7 +1072,7 @@ The full notice, with each file's provenance and SHA-256, ships as
 
 ## Status
 
-Production release, shipping **3.4.0**. `docs/1.0_path.md` § 5 lists which
+Production release, shipping **4.3.0**. `docs/1.0_path.md` § 5 lists which
 subpackages are inside the release-gate promise and which are
 research-experimental.
 

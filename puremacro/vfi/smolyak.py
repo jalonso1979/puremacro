@@ -1041,7 +1041,7 @@ def _solve_smolyak_euler(
 
     th_opt = th.copy()
     residual_norm = norm_init
-    converged = bool(norm_init < tol * 10)
+    converged = bool(np.isfinite(norm_init) and norm_init <= tol)
     n_iter = 0
 
     if not converged and problem.euler_residual_fn is None:
@@ -1090,7 +1090,7 @@ def _solve_smolyak_euler(
                 residual_norm = curr_norm
             if diff < 1e-8 or residual_norm < tol * 10:
                 break
-        converged = bool(residual_norm < 1e-4)
+        converged = bool(np.isfinite(residual_norm) and residual_norm <= tol)
 
     if not converged:
         # Solve using Powell's hybrid method (hybr) with fallback to LM
@@ -1102,7 +1102,7 @@ def _solve_smolyak_euler(
         if cand_norm < residual_norm:
             th_opt = cand_th
             residual_norm = cand_norm
-            converged = bool(res_root.success or residual_norm < 1e-4)
+            converged = bool(np.isfinite(residual_norm) and residual_norm <= tol)
 
         if not converged and not res_root.success:
             res_lm = root(residual_obj, th.ravel(), method="lm", tol=tol)
@@ -1111,12 +1111,11 @@ def _solve_smolyak_euler(
             if cand_lm_norm < residual_norm:
                 th_opt = res_lm.x.reshape(N, d)
                 residual_norm = cand_lm_norm
-                converged = bool(res_lm.success or residual_norm < 1e-4)
+                converged = bool(np.isfinite(residual_norm) and residual_norm <= tol)
 
     final_residuals = residual_obj(th_opt.ravel()).reshape(N, d)
     residual_norm = float(np.max(np.abs(final_residuals)))
-    if residual_norm < 1e-4:
-        converged = True
+    converged = bool(np.isfinite(residual_norm) and residual_norm <= tol)
 
     # Compute value function coefficients via policy evaluation:
     # (I - beta * Phi_next @ Phi_nodes^{-1}) V = u(kp, nodes)

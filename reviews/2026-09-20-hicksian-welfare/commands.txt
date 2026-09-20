@@ -1,0 +1,14 @@
+# From the repository root, using the existing .venv.
+PYTHONPATH=. MPLBACKEND=Agg MPLCONFIGDIR=/tmp/puremacro-review-mpl .venv/bin/python tools/reference_validation/validate_trade_welfare.py --output reviews/2026-09-20-hicksian-welfare/results.json > reviews/2026-09-20-hicksian-welfare/reference-run.log 2>&1
+
+MPLBACKEND=Agg MPLCONFIGDIR=/tmp/puremacro-review-mpl .venv/bin/python -m pytest tests/test_trade_hicksian_welfare.py tests/test_trade_consistent_accounting.py tests/test_trade_equilibrium.py tests/test_trade_calibration.py tests/test_trade_34fixes.py tests/test_trade_solver_accelerated.py tests/test_numerical_hardening.py tests/test_live_structural_references.py tests/test_public_api.py -q -rs > reviews/2026-09-20-hicksian-welfare/regression-tests.log 2>&1
+
+# Notebook execution needs permission to bind local Jupyter kernel ports.
+JUPYTER_DATA_DIR=/tmp/puremacro-jupyter IPYTHONDIR=/tmp/puremacro-ipython MPLBACKEND=Agg MPLCONFIGDIR=/tmp/puremacro-review-mpl .venv/bin/python tools/build_notebooks.py 65_gvc_cascades_and_welfare_decomposition 65_gvc_cascades_and_welfare_decomposition_es > reviews/2026-09-20-hicksian-welfare/notebook-build.log 2>&1
+
+JUPYTER_DATA_DIR=/tmp/puremacro-jupyter IPYTHONDIR=/tmp/puremacro-ipython MPLBACKEND=Agg MPLCONFIGDIR=/tmp/puremacro-review-mpl .venv/bin/python -m pytest tests/test_notebooks_trade_tutorials.py -q -rs > reviews/2026-09-20-hicksian-welfare/notebook-tests.log 2>&1
+
+git diff --check
+
+# From techreport/, run twice after changing section numbers/cross-references:
+pdflatex -interaction=nonstopmode -halt-on-error puremacro_technical_report.tex

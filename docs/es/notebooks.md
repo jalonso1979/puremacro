@@ -20,6 +20,16 @@ Siguiendo `notebooks/_TEMPLATE.md`, los cuadernos profundizados y de frontera si
 6. **Tu Turno**: Ejercicio exploratorio interactivo con controles `# ← modifica esto`, valores por defecto funcionales con aserciones y retos graduados.
 7. **¿Qué tan Exhaustivo es Esto?**: Referencias contextuales que vinculan la demostración con otros módulos de `puremacro` y la literatura.
 
+## Cuadernos de comercio (63–65)
+
+Hay ediciones en inglés y español, como Python en formato percent y cuadernos ejecutados.
+
+- `63_trade_wars_and_nash_tariffs_es`: juego hicksiano de dos países balanceado a mano, con referencia y acciones fijas, ganancias por desviación normalizadas por consumo, mejores respuestas finales y recuperación auditada. Se identifican soluciones en fronteras y desviaciones no resueltas; el dilema del prisionero se comprueba sin imponerlo.
+- `64_singularities_and_keller_pac_es`: cotas espectrales de la tabla OCDE incluida, un pliegue escalar didáctico separado, continuación CGE densa en una calibración sintética y una coordenada artificialmente rígida. No establece un pliegue económico a una elasticidad particular.
+- `65_gvc_cascades_and_welfare_decomposition_es`: procedencia de datos sintéticos, propagación de costos y EV/CV hicksianas de consumo con contabilidad coherente. La atribución separa precios al comprador, ingreso factorial y transferencias fiscales. La descomposición histórica TOT/Alloc/TariffRec y la certificación de teoremas siguen sin estar disponibles.
+
+Véase [el estado de validación estructural](../STRUCTURAL_VALIDATION_STATUS.md). Los formatos generados no replican bases empíricas de OCDE, FIGARO o EXIOBASE ni pronostican políticas arancelarias contemporáneas.
+
 ## Nowcasting de América Latina, DML Interactivo y Simuladores Cuantitativos de Política (puremacro 3.5)
 
 Las demostraciones `59` a `61` presentan las capacidades de vanguardia de `puremacro` en nowcasting en tiempo real para América Latina con atribución de noticias de Bańbura-Modugno (2014) y evaluación de densidades de Berkowitz (2001), inferencia causal en alta dimensión mediante Aprendizaje Automático Doble Interactivo (IRM y DML-IV) con descenso por coordenadas logístico regularizado y diagnósticos de $F$ efectiva de Montiel Olea y Pflueger, y simuladores cuantitativos de política macroeconómica en equilibrio general comercial con la matriz ICIO de la OCDE (77 países, 11 sectores) y transmisión monetaria en HANK en el espacio de secuencias.
@@ -576,6 +586,9 @@ Las demostraciones `47` a `50` conectan la macroeconometría teórica con la pr�
 | `60_interactive_dml_irm_and_iv_es` | Aprendizaje Automático Doble interactivo: IRM (ATE/ATT) con DC logístico, solapamiento y DML-IV | `60_interactive_dml_irm_and_iv` |
 | `61_quantitative_policy_simulators_es` | Simuladores cuantitativos: EG comercial ICIO OCDE (77 países) y transmisión monetaria HANK en secuencias | `61_quantitative_policy_simulators` |
 | `62_flexible_trade_cge_es` | EG comercial flexible: tecnología CES anidada, preferencias Stone-Geary y márgenes Atkeson-Burstein | `62_flexible_trade_cge` |
+| `63_trade_wars_and_nash_tariffs_es` | Juegos arancelarios con EV hicksiana: referencia fija, acciones constantes, mejores respuestas y recuperación auditada del equilibrio | `63_trade_wars_and_nash_tariffs` |
+| `64_singularities_and_keller_pac_es` | Singularidades, bifurcaciones de pliegue y continuación PAC de Keller: jacobianos orlados y cotas de error | `64_singularities_and_keller_pac` |
+| `65_gvc_cascades_and_welfare_decomposition_es` | Procedencia de datos, propagación de costos y EV/CV hicksianas con atribución de precios, ingreso factorial y transferencias fiscales | `65_gvc_cascades_and_welfare_decomposition` |
 
 ---
 

@@ -1,0 +1,17 @@
+# Run from the repository root, with the existing .venv.
+# Independent two-country reference:
+PYTHONPATH=. MPLBACKEND=Agg MPLCONFIGDIR=/tmp/puremacro-review-mpl .venv/bin/python tools/reference_validation/validate_trade_accounting.py --output reviews/2026-09-20-trade-accounting/two-country-results.json > reviews/2026-09-20-trade-accounting/two-country-run.log 2>&1
+
+# Frozen empirical aggregation (the full native archive is not reloaded):
+PYTHONPATH=. MPLBACKEND=Agg MPLCONFIGDIR=/tmp/puremacro-review-mpl .venv/bin/python tools/reference_validation/validate_oecd.py --accounting consistent --output reviews/2026-09-20-trade-accounting/oecd-consistent-results.json > reviews/2026-09-20-trade-accounting/oecd-consistent-run.log 2>&1
+
+# Focused accounting checks:
+MPLBACKEND=Agg MPLCONFIGDIR=/tmp/puremacro-review-mpl .venv/bin/python -m pytest tests/test_trade_consistent_accounting.py -q > reviews/2026-09-20-trade-accounting/accounting-tests.log 2>&1
+
+# Broader regression, including the focused tests above:
+MPLBACKEND=Agg MPLCONFIGDIR=/tmp/puremacro-review-mpl .venv/bin/python -m pytest tests/test_trade_consistent_accounting.py tests/test_trade_equilibrium.py tests/test_trade_calibration.py tests/test_trade_34fixes.py tests/test_trade_solver_accelerated.py tests/test_numerical_hardening.py tests/test_live_structural_references.py tests/test_public_api.py -q -rs > reviews/2026-09-20-trade-accounting/targeted-tests.log 2>&1
+
+git diff --check
+
+# From techreport/, run twice to update the changed cross-references:
+pdflatex -interaction=nonstopmode -halt-on-error puremacro_technical_report.tex

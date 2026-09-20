@@ -2,19 +2,19 @@
 
 # DSGE Parity Surface, Advanced Simulation & Parity Dashboard
 
-Puremacro 2.9.0 introduces **Tier 3: Parity & Surface Area**, completing the full Dynare operational surface area and automated parity verification under the zero-dependency **Pyodide four-package contract** (`numpy`, `scipy`, `pandas`, `matplotlib`).
+This page describes selected DSGE simulation and comparison interfaces. It does not establish the full Dynare surface or general numerical parity. See [structural validation status](STRUCTURAL_VALIDATION_STATUS.md) for independently checked cases and current limitations.
 
 This milestone delivers four core macroscopic capabilities:
 1. **`stoch_simul` Filtering & Simulation Surface**: Spectral density integration via Gauss-Legendre quadrature for theoretical HP and bandpass filtering, one-sided recursive Kalman HP filter, full cross-variable autocorrelation matrices, contemporaneous correlations, and empirical simulation moments (`simul_replic`).
 2. **Extended Path Non-Linear Stochastic Simulation (Fair & Taylor 1983)**: Global dynamic simulation without perturbation Taylor truncations, driven by a sparse SuperLU stacked Newton boundary-value solver with exact linear model invariance.
 3. **Advanced Forecasting & Shock Decompositions**: Waggoner & Zha (1999) conditional forecasting via structural shock inversion, `.mod` `shock_groups;` grammar blocks with exact machine-precision adding-up decompositions, Bayesian impulse response function (IRF) fan charts, prior predictive analysis, and tunable `qz_criterium` for unit-root and cointegrated systems.
-4. **Dynare Parity Dashboard & CLI**: Native reading of Dynare `oo_.dr` and theoretical moments (`.mat` files), automated deviation scorecards against official Dynare golden outputs, and the `puremacro-dynare parity` command-line benchmark tool.
+4. **Dynare Parity Dashboard**: Comparison of caller-supplied `oo_.dr` mappings and actual supplied moments. The caller reads any MAT file. The CLI cannot consume reference results and is unavailable; use the Python API.
 
 ---
 
 ## 1. Overview & Architecture
 
-The puremacro DSGE engine bridges exact analytical solutions, higher-order perturbation with state pruning, and non-linear sequence-space transitions. Tier 3 finalizes the complete operational surface required by central banks, international institutions, and academic researchers to transition workloads directly from legacy Dynare environments into pure Python.
+The puremacro DSGE engine bridges exact analytical solutions, higher-order perturbation with state pruning, and non-linear sequence-space transitions. Supported syntax and numerical methods form a subset; migration requires model-specific checks.
 
 | Module | Core Capability | Key Method / Algorithm | Benchmark Reference |
 | :--- | :--- | :--- | :--- |
@@ -24,7 +24,7 @@ The puremacro DSGE engine bridges exact analytical solutions, higher-order pertu
 | `puremacro.dsge.shock_groups` | Grouped shock decompositions | Exact historical attribution with adding-up balance | Dynare 4.6+ / 5.x / 6.x specification |
 | `puremacro.dsge.bayesian` | Bayesian IRFs & Prior Predictive | Posterior fan charts & prior simulation | Geweke (1999); Herbst & Schorfheide (2015) |
 | `puremacro.dsge.parity` | Parity Dashboard & Verification | Automated golden comparisons & scorecard generation | Pfeifer (2014); Dynare Benchmark Suite |
-| `puremacro.dsge.cli` | Command-line parity runner | `puremacro-dynare parity` CLI | puremacro CLI interface |
+| `puremacro.dsge.cli` | Parity CLI unavailable | Use the Python API with references | No comparison is executed |
 
 ---
 
@@ -231,7 +231,7 @@ fig = decomp.plot(variable="y")
 
 ### 5.1 Verification Engine & Metrics
 
-The parity harness (`puremacro.dsge.parity`) validates puremacro models directly against official Dynare outputs (`.mat` files containing `oo_.dr`, `oo_.mean`, `oo_.var`, `oo_.autocorr`).
+The parity harness compares a model with caller-supplied Dynare decision rules or an `oo_` mapping. It does not execute Dynare or read `.mat` files itself. Missing or malformed comparisons are UNAVAILABLE, never a pass. DR-only comparisons do not establish moment or shock-covariance parity. See [current validation limits](STRUCTURAL_VALIDATION_STATUS.md).
 
 The automated test engine checks maximum absolute deviations:
 
@@ -239,6 +239,9 @@ $$\Delta_{max}(A, B) = \max_{i,j} |A_{ij} - B_{ij}|$$
 
 | Metric | Target Array | Tolerance Threshold |
 | :--- | :--- | :--- |
+| Steady state ($ys$) | `oo_.dr.ys` | $\le 10^{-6}$ |
+| Cross state-shock ($ghxu$) | `oo_.dr.ghxu` | $\le 10^{-4}$ |
+| Shock curvature ($ghuu$) | `oo_.dr.ghuu` | $\le 10^{-4}$ |
 | First-order states ($ghx$) | `oo_.dr.ghx` | $\le 10^{-6}$ (typically $\le 10^{-12}$) |
 | First-order shocks ($ghu$) | `oo_.dr.ghu` | $\le 10^{-6}$ (typically $\le 10^{-12}$) |
 | Second-order states ($ghxx$) | `oo_.dr.ghxx` | $\le 10^{-4}$ (typically $\le 10^{-10}$) |
@@ -268,51 +271,21 @@ report = verify_dynare_parity(
 print(report.to_markdown())
 
 # Suite verification across an entire directory
-suite_report = run_parity_suite("tests/fixtures/dynare_benchmarks/")
+suite_report = run_parity_suite("models/", dynare_results={"sw07": oo}, order=2)
 assert suite_report.passed
 ```
 
-### 5.3 Command-Line Interface (`puremacro-dynare parity`)
+### 5.3 CLI availability
 
-The package registers the standalone CLI command `puremacro-dynare parity`:
+`puremacro-dynare parity` deliberately exits with an error since 4.0.0: it has
+no supported way to receive a reference. Use `verify_dynare_parity` or
+`run_parity_suite(..., dynare_results=...)` from Python, as above. A directory
+without supplied references produces UNAVAILABLE entries, not passing models.
 
-Since 4.0.0 the CLI takes `.mod` models only; it no longer looks for a
-`*_results.mat` companion. Comparing against Dynare output is done from
-Python, where you control how the results are loaded.
-
-```bash
-# Solve and report on a single .mod model
-puremacro-dynare parity models/sw07.mod --order 2
-
-# Verify all models in a directory and export LaTeX scorecard
-puremacro-dynare parity benchmarks/ --format latex --outdir reports/
-
-# Strict CI mode with custom tolerance override
-puremacro-dynare parity rbc.mod --tol 1e-8 --quiet
-```
-
-Output scorecard example:
-
-```
-================================================================================
-Dynare Parity Scorecard: sw07.mod vs sw07_results.mat
-================================================================================
-Component        Max Dev        Tolerance     Status
---------------------------------------------------------------------------------
-dr.ghx           4.12e-13       1.00e-06      PASSED
-dr.ghu           2.88e-13       1.00e-06      PASSED
-dr.ghxx          8.45e-11       1.00e-04      PASSED
-dr.ghs2          3.20e-11       1.00e-04      PASSED
-moments.var      5.14e-07       1.00e-05      PASSED
-moments.corr     2.31e-07       1.00e-05      PASSED
---------------------------------------------------------------------------------
-Overall Status: PASSED (6/6 checks clean)
-================================================================================
-```
 
 ---
 
-## 6. Pyodide Purity & Zero-Dependency Guarantee
+## 6. Runtime dependencies and portability
 
 All Tier 3 components adhere strictly to the **Pyodide four-package contract**:
 - **NumPy**: Linear algebra, vectorization, array manipulation, eigenvalues, and pseudo-random numbers.
@@ -320,4 +293,14 @@ All Tier 3 components adhere strictly to the **Pyodide four-package contract**:
 - **Pandas**: Labeled Series and DataFrames for variables, dates, and scorecards.
 - **Matplotlib**: Presentation fan charts, shock decomposition bar graphs, and IRF visualizer.
 
-No external solvers (SymPy, CasADi, JAX), parser generators (PLY, Lark, ANTLR), or compiled C/Fortran modules are required. The entire suite runs seamlessly in browser environments via WebAssembly (Pyodide), desktop environments, and high-performance server clusters.
+No external solvers (SymPy, CasADi, JAX), parser generators (PLY, Lark, ANTLR), or compiled C/Fortran modules are required. Browser and accelerator execution require validation of the particular workload. Import checks do not establish runtime performance or cross-backend numerical identity.
+
+### Independent higher-order reference benchmark (20 September 2026)
+
+Five source models were executed in Dynare 7.0 at orders two and three. The
+[reproduction tools](https://github.com/jalonso1979/puremacro/blob/v4.3.0/tools/reference_validation/README.md) compare every
+unfolded tensor, risk correction, innovation covariance, simulated path and
+sample moments against frozen external outputs. This separate benchmark does
+not extend `verify_dynare_parity` beyond orders one and two. Read the
+[results and runtime caveat](https://github.com/jalonso1979/puremacro/blob/v4.3.0/reviews/2026-09-20-independent-validation/REPORT.md)
+before interpreting it as evidence for other models or runtimes.

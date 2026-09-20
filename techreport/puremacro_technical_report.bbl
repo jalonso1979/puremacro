@@ -1,0 +1,449 @@
+\begin{thebibliography}{56}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Abadie et~al.(2010)Abadie, Diamond, and Hainmueller]{abadie2010}
+Alberto Abadie, Alexis Diamond, and Jens Hainmueller.
+\newblock Synthetic control methods for comparative case studies: Estimating
+  the effect of {California}'s tobacco control program.
+\newblock \emph{Journal of the American Statistical Association}, 105\penalty0
+  (490):\penalty0 493--505, 2010.
+\newblock \doi{10.1198/jasa.2009.ap08746}.
+
+\bibitem[Achdou et~al.(2022)Achdou, Han, Lasry, Lions, and Moll]{achdou2022}
+Yves Achdou, Jiequn Han, Jean-Michel Lasry, Pierre-Louis Lions, and Benjamin
+  Moll.
+\newblock Income and wealth distribution in macroeconomics: A continuous-time
+  approach.
+\newblock \emph{The Review of Economic Studies}, 89\penalty0 (1):\penalty0
+  45--86, 2022.
+\newblock \doi{10.1093/restud/rdab002}.
+
+\bibitem[Ad{\"a}mmer(2019)]{adammer2019}
+Philipp Ad{\"a}mmer.
+\newblock {lpirfs}: An {R} package to estimate impulse response functions by
+  local projections.
+\newblock \emph{The R Journal}, 11\penalty0 (2), 2019.
+\newblock \doi{10.32614/RJ-2019-052}.
+
+\bibitem[Adjemian et~al.(2024)Adjemian, Juillard, Karam{\'e}, Mutschler,
+  Pfeifer, Ratto, Rion, and Villemot]{dynare2024}
+St{\'e}phane Adjemian, Michel Juillard, Fr{\'e}d{\'e}ric Karam{\'e}, Willi
+  Mutschler, Johannes Pfeifer, Marco Ratto, Normann Rion, and S{\'e}bastien
+  Villemot.
+\newblock Dynare: Reference manual, version 6.
+\newblock Dynare Working Papers~80, CEPREMAP, 2024.
+\newblock URL \url{https://ideas.repec.org/p/cpm/dynare/080.html}.
+
+\bibitem[Aiyagari(1994)]{aiyagari1994}
+S.~Rao Aiyagari.
+\newblock Uninsured idiosyncratic risk and aggregate saving.
+\newblock \emph{The Quarterly Journal of Economics}, 109\penalty0 (3):\penalty0
+  659--684, 1994.
+\newblock \doi{10.2307/2118417}.
+
+\bibitem[Allen and Arkolakis(2014)]{allenarkolakis2014}
+Treb Allen and Costas Arkolakis.
+\newblock Trade and the topography of the spatial economy.
+\newblock \emph{The Quarterly Journal of Economics}, 129\penalty0 (3):\penalty0
+  1085--1140, 2014.
+\newblock \doi{10.1093/qje/qju016}.
+
+\bibitem[Anderson and Rubin(1949)]{andersonrubin1949}
+T.~W. Anderson and Herman Rubin.
+\newblock Estimation of the parameters of a single equation in a complete
+  system of stochastic equations.
+\newblock \emph{The Annals of Mathematical Statistics}, 20\penalty0
+  (1):\penalty0 46--63, 1949.
+\newblock \doi{10.1214/aoms/1177730090}.
+
+\bibitem[Antol{\'i}n-D{\'i}az and Rubio-Ram{\'i}rez(2018)]{antolindiaz2018}
+Juan Antol{\'i}n-D{\'i}az and Juan~F. Rubio-Ram{\'i}rez.
+\newblock Narrative sign restrictions for {SVARs}.
+\newblock \emph{American Economic Review}, 108\penalty0 (10):\penalty0
+  2802--2829, 2018.
+\newblock \doi{10.1257/aer.20161852}.
+
+\bibitem[Arkhangelsky et~al.(2021)Arkhangelsky, Athey, Hirshberg, Imbens, and
+  Wager]{arkhangelsky2021}
+Dmitry Arkhangelsky, Susan Athey, David~A. Hirshberg, Guido~W. Imbens, and
+  Stefan Wager.
+\newblock Synthetic difference-in-differences.
+\newblock \emph{American Economic Review}, 111\penalty0 (12):\penalty0
+  4088--4118, 2021.
+\newblock \doi{10.1257/aer.20190159}.
+
+\bibitem[Atkeson and Burstein(2008)]{atkesonburstein2008}
+Andrew Atkeson and Ariel Burstein.
+\newblock Pricing-to-market, trade costs, and international relative prices.
+\newblock \emph{American Economic Review}, 98\penalty0 (5):\penalty0
+  1998--2031, 2008.
+\newblock \doi{10.1257/aer.98.5.1998}.
+
+\bibitem[Auclert et~al.(2021)Auclert, Bard{\'o}czy, Rognlie, and
+  Straub]{auclert2021}
+Adrien Auclert, Bence Bard{\'o}czy, Matthew Rognlie, and Ludwig Straub.
+\newblock Using the sequence-space {Jacobian} to solve and estimate
+  heterogeneous-agent models.
+\newblock \emph{Econometrica}, 89\penalty0 (5):\penalty0 2375--2408, 2021.
+\newblock \doi{10.3982/ECTA17434}.
+
+\bibitem[Ba{\'n}bura and Modugno(2014)]{banburamodugno2014}
+Marta Ba{\'n}bura and Michele Modugno.
+\newblock Maximum likelihood estimation of factor models on datasets with
+  arbitrary pattern of missing data.
+\newblock \emph{Journal of Applied Econometrics}, 29\penalty0 (1):\penalty0
+  133--160, 2014.
+\newblock \doi{10.1002/jae.2306}.
+
+\bibitem[Batista et~al.(2024)Batista, Coleman, Furusawa, Hu, Lunagariya, Lyon,
+  McKay, Oyama, Sargent, Shi, Stachurski, Winant, Watkins, Yang, and
+  Zhang]{quantecon2024}
+Quentin Batista, Chase Coleman, Yuya Furusawa, Shu Hu, Smit Lunagariya, Spencer
+  Lyon, Matthew McKay, Daisuke Oyama, Thomas~J. Sargent, Zejin Shi, John
+  Stachurski, Pablo Winant, Natasha Watkins, Ziyue Yang, and Hengcheng Zhang.
+\newblock {QuantEcon.py}: A community based {Python} library for quantitative
+  economics.
+\newblock \emph{Journal of Open Source Software}, 9\penalty0 (93):\penalty0
+  5585, 2024.
+\newblock \doi{10.21105/joss.05585}.
+
+\bibitem[Blanchard and Kahn(1980)]{blanchardkahn1980}
+Olivier~Jean Blanchard and Charles~M. Kahn.
+\newblock The solution of linear difference models under rational expectations.
+\newblock \emph{Econometrica}, 48\penalty0 (5):\penalty0 1305--1311, 1980.
+\newblock \doi{10.2307/1912186}.
+
+\bibitem[Blanchard and Quah(1989)]{blanchardquah1989}
+Olivier~Jean Blanchard and Danny Quah.
+\newblock The dynamic effects of aggregate demand and supply disturbances.
+\newblock \emph{The American Economic Review}, 79\penalty0 (4):\penalty0
+  655--673, 1989.
+
+\bibitem[Caliendo and Parro(2015)]{caliendoparro2015}
+Lorenzo Caliendo and Fernando Parro.
+\newblock Estimates of the trade and welfare effects of {NAFTA}.
+\newblock \emph{The Review of Economic Studies}, 82\penalty0 (1):\penalty0
+  1--44, 2015.
+\newblock \doi{10.1093/restud/rdu035}.
+
+\bibitem[Callaway and Sant'Anna(2021)]{callaway2021}
+Brantly Callaway and Pedro H.~C. Sant'Anna.
+\newblock Difference-in-differences with multiple time periods.
+\newblock \emph{Journal of Econometrics}, 225\penalty0 (2):\penalty0 200--230,
+  2021.
+\newblock \doi{10.1016/j.jeconom.2020.12.001}.
+
+\bibitem[Card(1995)]{card1995}
+David Card.
+\newblock Using geographic variation in college proximity to estimate the
+  return to schooling.
+\newblock In Louis~N. Christofides, E.~Kenneth Grant, and Robert Swidinsky,
+  editors, \emph{Aspects of Labour Market Behaviour: Essays in Honour of {John}
+  {Vanderkamp}}, pages 201--222. University of Toronto Press, Toronto, 1995.
+
+\bibitem[Carroll(2006)]{carroll2006}
+Christopher~D. Carroll.
+\newblock The method of endogenous gridpoints for solving dynamic stochastic
+  optimization problems.
+\newblock \emph{Economics Letters}, 91\penalty0 (3):\penalty0 312--320, 2006.
+\newblock \doi{10.1016/j.econlet.2005.09.013}.
+
+\bibitem[Carroll et~al.(2018)Carroll, Kaufman, Kazil, Palmer, and
+  White]{carroll2018hark}
+Christopher~D. Carroll, Alexander~M. Kaufman, Jacqueline~L. Kazil, Nathan~M.
+  Palmer, and Matthew~N. White.
+\newblock The {Econ-ARK} and {HARK}: Open source tools for computational
+  economics.
+\newblock In \emph{Proceedings of the 17th {Python} in Science Conference},
+  pages 25--30, 2018.
+\newblock \doi{10.25080/Majora-4af1f417-004}.
+
+\bibitem[Chernozhukov et~al.(2018)Chernozhukov, Chetverikov, Demirer, Duflo,
+  Hansen, Newey, and Robins]{chernozhukov2018}
+Victor Chernozhukov, Denis Chetverikov, Mert Demirer, Esther Duflo, Christian
+  Hansen, Whitney Newey, and James Robins.
+\newblock Double/debiased machine learning for treatment and structural
+  parameters.
+\newblock \emph{The Econometrics Journal}, 21\penalty0 (1):\penalty0 C1--C68,
+  2018.
+\newblock \doi{10.1111/ectj.12097}.
+
+\bibitem[Driscoll and Kraay(1998)]{driscollkraay1998}
+John~C. Driscoll and Aart~C. Kraay.
+\newblock Consistent covariance matrix estimation with spatially dependent
+  panel data.
+\newblock \emph{Review of Economics and Statistics}, 80\penalty0 (4):\penalty0
+  549--560, 1998.
+\newblock \doi{10.1162/003465398557825}.
+
+\bibitem[Engle et~al.(2013)Engle, Ghysels, and Sohn]{engleghyselssohn2013}
+Robert~F. Engle, Eric Ghysels, and Bumjean Sohn.
+\newblock Stock market volatility and macroeconomic fundamentals.
+\newblock \emph{The Review of Economics and Statistics}, 95\penalty0
+  (3):\penalty0 776--797, 2013.
+\newblock \doi{10.1162/REST_a_00300}.
+
+\bibitem[Giannone et~al.(2008)Giannone, Reichlin, and Small]{giannone2008}
+Domenico Giannone, Lucrezia Reichlin, and David Small.
+\newblock Nowcasting: The real-time informational content of macroeconomic
+  data.
+\newblock \emph{Journal of Monetary Economics}, 55\penalty0 (4):\penalty0
+  665--676, 2008.
+\newblock \doi{10.1016/j.jmoneco.2008.05.010}.
+
+\bibitem[Golosov et~al.(2014)Golosov, Hassler, Krusell, and
+  Tsyvinski]{golosov2014}
+Mikhail Golosov, John Hassler, Per Krusell, and Aleh Tsyvinski.
+\newblock Optimal taxes on fossil fuel in general equilibrium.
+\newblock \emph{Econometrica}, 82\penalty0 (1):\penalty0 41--88, 2014.
+\newblock \doi{10.3982/ECTA10217}.
+
+\bibitem[Harris et~al.(2020)Harris, Millman, {van der Walt}, Gommers, Virtanen,
+  Cournapeau, Wieser, Taylor, Berg, Smith, Kern, Picus, Hoyer, {van Kerkwijk},
+  Brett, Haldane, {Fern{\'a}ndez del R{\'i}o}, Wiebe, Peterson,
+  G{\'e}rard-Marchant, Sheppard, Reddy, Weckesser, Abbasi, Gohlke, and
+  Oliphant]{numpy2020}
+Charles~R. Harris, K.~Jarrod Millman, St{\'e}fan~J. {van der Walt}, Ralf
+  Gommers, Pauli Virtanen, David Cournapeau, Eric Wieser, Julian Taylor,
+  Sebastian Berg, Nathaniel~J. Smith, Robert Kern, Matti Picus, Stephan Hoyer,
+  Marten~H. {van Kerkwijk}, Matthew Brett, Allan Haldane, Jaime {Fern{\'a}ndez
+  del R{\'i}o}, Mark Wiebe, Pearu Peterson, Pierre G{\'e}rard-Marchant, Kevin
+  Sheppard, Tyler Reddy, Warren Weckesser, Hameer Abbasi, Christoph Gohlke, and
+  Travis~E. Oliphant.
+\newblock Array programming with {NumPy}.
+\newblock \emph{Nature}, 585\penalty0 (7825):\penalty0 357--362, 2020.
+\newblock \doi{10.1038/s41586-020-2649-2}.
+
+\bibitem[Hoffman and Gelman(2014)]{hoffman2014}
+Matthew~D. Hoffman and Andrew Gelman.
+\newblock The {No-U-Turn Sampler}: Adaptively setting path lengths in
+  {Hamiltonian Monte Carlo}.
+\newblock \emph{Journal of Machine Learning Research}, 15\penalty0
+  (47):\penalty0 1593--1623, 2014.
+
+\bibitem[Huggett(1993)]{huggett1993}
+Mark Huggett.
+\newblock The risk-free rate in heterogeneous-agent incomplete-insurance
+  economies.
+\newblock \emph{Journal of Economic Dynamics and Control}, 17\penalty0
+  (5--6):\penalty0 953--969, 1993.
+\newblock \doi{10.1016/0165-1889(93)90024-M}.
+
+\bibitem[Hunter(2007)]{hunter2007}
+John~D. Hunter.
+\newblock Matplotlib: A {2D} graphics environment.
+\newblock \emph{Computing in Science \& Engineering}, 9\penalty0 (3):\penalty0
+  90--95, 2007.
+\newblock \doi{10.1109/MCSE.2007.55}.
+
+\bibitem[Iskhakov et~al.(2017)Iskhakov, J{\o}rgensen, Rust, and
+  Schjerning]{iskhakov2017}
+Fedor Iskhakov, Thomas~H. J{\o}rgensen, John Rust, and Bertel Schjerning.
+\newblock The endogenous grid method for discrete-continuous dynamic choice
+  models with (or without) taste shocks.
+\newblock \emph{Quantitative Economics}, 8\penalty0 (2):\penalty0 317--365,
+  2017.
+\newblock \doi{10.3982/QE643}.
+
+\bibitem[Jord{\`a}(2005)]{jorda2005}
+{\`O}scar Jord{\`a}.
+\newblock Estimation and inference of impulse responses by local projections.
+\newblock \emph{The American Economic Review}, 95\penalty0 (1):\penalty0
+  161--182, 2005.
+\newblock \doi{10.1257/0002828053828518}.
+
+\bibitem[Judd(1992)]{judd1992}
+Kenneth~L. Judd.
+\newblock Projection methods for solving aggregate growth models.
+\newblock \emph{Journal of Economic Theory}, 58\penalty0 (2):\penalty0
+  410--452, 1992.
+\newblock \doi{10.1016/0022-0531(92)90061-L}.
+
+\bibitem[Kim et~al.(2008)Kim, Kim, Schaumburg, and Sims]{kim2008}
+Jinill Kim, Sunghyun Kim, Ernst Schaumburg, and Christopher~A. Sims.
+\newblock Calculating and using second-order accurate solutions of discrete
+  time dynamic equilibrium models.
+\newblock \emph{Journal of Economic Dynamics and Control}, 32\penalty0
+  (11):\penalty0 3397--3440, 2008.
+\newblock \doi{10.1016/j.jedc.2008.02.008}.
+
+\bibitem[Klein(2000)]{klein2000}
+Paul Klein.
+\newblock Using the generalized {Schur} form to solve a multivariate linear
+  rational expectations model.
+\newblock \emph{Journal of Economic Dynamics and Control}, 24\penalty0
+  (10):\penalty0 1405--1423, 2000.
+\newblock \doi{10.1016/S0165-1889(99)00045-7}.
+
+\bibitem[Krueger and Kubler(2004)]{kruegerkubler2004}
+Dirk Krueger and Felix Kubler.
+\newblock Computing equilibrium in {OLG} models with stochastic production.
+\newblock \emph{Journal of Economic Dynamics and Control}, 28\penalty0
+  (7):\penalty0 1411--1436, 2004.
+\newblock \doi{10.1016/S0165-1889(03)00111-8}.
+
+\bibitem[McGrattan(1996)]{mcgrattan1996}
+Ellen~R. McGrattan.
+\newblock Solving the stochastic growth model with a finite element method.
+\newblock \emph{Journal of Economic Dynamics and Control}, 20\penalty0
+  (1--3):\penalty0 19--42, 1996.
+\newblock \doi{10.1016/0165-1889(94)00842-0}.
+
+\bibitem[McKinney(2010)]{mckinney2010}
+Wes McKinney.
+\newblock Data structures for statistical computing in {Python}.
+\newblock In \emph{Proceedings of the 9th {Python} in Science Conference},
+  pages 56--61, 2010.
+\newblock \doi{10.25080/Majora-92bf1922-00a}.
+
+\bibitem[Mertens and Ravn(2013)]{mertensravn2013}
+Karel Mertens and Morten~O. Ravn.
+\newblock The dynamic effects of personal and corporate income tax changes in
+  the {United States}.
+\newblock \emph{American Economic Review}, 103\penalty0 (4):\penalty0
+  1212--1247, 2013.
+\newblock \doi{10.1257/aer.103.4.1212}.
+
+\bibitem[Montiel~Olea and Pflueger(2013)]{montieloleapflueger2013}
+Jos{\'e}~Luis Montiel~Olea and Carolin Pflueger.
+\newblock A robust test for weak instruments.
+\newblock \emph{Journal of Business \& Economic Statistics}, 31\penalty0
+  (3):\penalty0 358--369, 2013.
+\newblock \doi{10.1080/00401706.2013.806694}.
+
+\bibitem[Mroz(1987)]{mroz1987}
+Thomas~A. Mroz.
+\newblock The sensitivity of an empirical model of married women's hours of
+  work to economic and statistical assumptions.
+\newblock \emph{Econometrica}, 55\penalty0 (4):\penalty0 765--799, 1987.
+\newblock \doi{10.2307/1911029}.
+
+\bibitem[Newey and West(1987)]{neweywest1987}
+Whitney~K. Newey and Kenneth~D. West.
+\newblock A simple, positive semi-definite, heteroskedasticity and
+  autocorrelation consistent covariance matrix.
+\newblock \emph{Econometrica}, 55\penalty0 (3):\penalty0 703--708, 1987.
+\newblock \doi{10.2307/1913610}.
+
+\bibitem[Nordhaus(2018)]{nordhaus2018}
+William Nordhaus.
+\newblock Projections and uncertainties about climate change in an era of
+  minimal climate policies.
+\newblock \emph{American Economic Journal: Economic Policy}, 10\penalty0
+  (3):\penalty0 333--360, 2018.
+\newblock \doi{10.1257/pol.20170046}.
+
+\bibitem[Pfaff(2008)]{pfaff2008}
+Bernhard Pfaff.
+\newblock {VAR}, {SVAR} and {SVEC} models: Implementation within {R} package
+  vars.
+\newblock \emph{Journal of Statistical Software}, 27\penalty0 (4), 2008.
+\newblock \doi{10.18637/jss.v027.i04}.
+
+\bibitem[Plagborg-M{\o}ller and Wolf(2021)]{plagborgmollerwolf2021}
+Mikkel Plagborg-M{\o}ller and Christian~K. Wolf.
+\newblock Local projections and {VARs} estimate the same impulse responses.
+\newblock \emph{Econometrica}, 89\penalty0 (2):\penalty0 955--980, 2021.
+\newblock \doi{10.3982/ECTA17813}.
+
+\bibitem[Romer and Romer(2010)]{romer2010}
+Christina~D. Romer and David~H. Romer.
+\newblock The macroeconomic effects of tax changes: Estimates based on a new
+  measure of fiscal shocks.
+\newblock \emph{American Economic Review}, 100\penalty0 (3):\penalty0 763--801,
+  2010.
+\newblock \doi{10.1257/aer.100.3.763}.
+
+\bibitem[Rubio-Ram{\'i}rez et~al.(2010)Rubio-Ram{\'i}rez, Waggoner, and
+  Zha]{rubioramirez2010}
+Juan~F. Rubio-Ram{\'i}rez, Daniel~F. Waggoner, and Tao Zha.
+\newblock Structural vector autoregressions: Theory of identification and
+  algorithms for inference.
+\newblock \emph{The Review of Economic Studies}, 77\penalty0 (2):\penalty0
+  665--696, 2010.
+\newblock \doi{10.1111/j.1467-937X.2009.00578.x}.
+
+\bibitem[Seabold and Perktold(2010)]{statsmodels2010}
+Skipper Seabold and Josef Perktold.
+\newblock statsmodels: Econometric and statistical modeling with {Python}.
+\newblock In \emph{Proceedings of the 9th {Python} in Science Conference},
+  pages 92--96, 2010.
+\newblock \doi{10.25080/Majora-92bf1922-011}.
+
+\bibitem[Sheppard(2025)]{arch}
+Kevin Sheppard.
+\newblock {bashtage/arch}, 2025.
+\newblock Version 8.0.0.
+
+\bibitem[Sims(1980)]{sims1980}
+Christopher~A. Sims.
+\newblock Macroeconomics and reality.
+\newblock \emph{Econometrica}, 48\penalty0 (1):\penalty0 1--48, 1980.
+\newblock \doi{10.2307/1912017}.
+
+\bibitem[Smolyak(1963)]{smolyak1963}
+Sergei~A. Smolyak.
+\newblock Quadrature and interpolation formulas for tensor products of certain
+  classes of functions.
+\newblock \emph{Soviet Mathematics Doklady}, 4:\penalty0 240--243, 1963.
+
+\bibitem[Stock and Watson(2018)]{stockwatson2018}
+James~H. Stock and Mark~W. Watson.
+\newblock Identification and estimation of dynamic causal effects in
+  macroeconomics using external instruments.
+\newblock \emph{The Economic Journal}, 128\penalty0 (610):\penalty0 917--948,
+  2018.
+\newblock \doi{10.1111/ecoj.12593}.
+
+\bibitem[Sun and Abraham(2021)]{sunabraham2021}
+Liyang Sun and Sarah Abraham.
+\newblock Estimating dynamic treatment effects in event studies with
+  heterogeneous treatment effects.
+\newblock \emph{Journal of Econometrics}, 225\penalty0 (2):\penalty0 175--199,
+  2021.
+\newblock \doi{10.1016/j.jeconom.2020.09.006}.
+
+\bibitem[{The Pyodide development team}(2021)]{pyodide}
+{The Pyodide development team}.
+\newblock {pyodide/pyodide}, 2021.
+
+\bibitem[Uhlig(2005)]{uhlig2005}
+Harald Uhlig.
+\newblock What are the effects of monetary policy on output? {Results} from an
+  agnostic identification procedure.
+\newblock \emph{Journal of Monetary Economics}, 52\penalty0 (2):\penalty0
+  381--419, 2005.
+\newblock \doi{10.1016/j.jmoneco.2004.05.007}.
+
+\bibitem[Virtanen et~al.(2020)Virtanen, Gommers, Oliphant, Haberland, Reddy,
+  Cournapeau, Burovski, Peterson, Weckesser, Bright, {van der Walt}, Brett,
+  Wilson, Millman, Mayorov, Nelson, Jones, Kern, Larson, Carey, Polat, Feng,
+  Moore, VanderPlas, Laxalde, Perktold, Cimrman, Henriksen, Quintero, Harris,
+  Archibald, Ribeiro, Pedregosa, {van Mulbregt}, and {SciPy 1.0
+  Contributors}]{scipy2020}
+Pauli Virtanen, Ralf Gommers, Travis~E. Oliphant, Matt Haberland, Tyler Reddy,
+  David Cournapeau, Evgeni Burovski, Pearu Peterson, Warren Weckesser, Jonathan
+  Bright, St{\'e}fan~J. {van der Walt}, Matthew Brett, Joshua Wilson, K.~Jarrod
+  Millman, Nikolay Mayorov, Andrew R.~J. Nelson, Eric Jones, Robert Kern, Eric
+  Larson, C~J Carey, {\.I}lhan Polat, Yu~Feng, Eric~W. Moore, Jake VanderPlas,
+  Denis Laxalde, Josef Perktold, Robert Cimrman, Ian Henriksen, E.~A. Quintero,
+  Charles~R. Harris, Anne~M. Archibald, Ant{\^o}nio~H. Ribeiro, Fabian
+  Pedregosa, Paul {van Mulbregt}, and {SciPy 1.0 Contributors}.
+\newblock {SciPy} 1.0: Fundamental algorithms for scientific computing in
+  {Python}.
+\newblock \emph{Nature Methods}, 17\penalty0 (3):\penalty0 261--272, 2020.
+\newblock \doi{10.1038/s41592-019-0686-2}.
+
+\bibitem[Young(2010)]{young2010}
+Eric~R. Young.
+\newblock Solving the incomplete markets model with aggregate uncertainty using
+  the {Krusell--Smith} algorithm and non-stochastic simulations.
+\newblock \emph{Journal of Economic Dynamics and Control}, 34\penalty0
+  (1):\penalty0 36--41, 2010.
+\newblock \doi{10.1016/j.jedc.2008.11.010}.
+
+\end{thebibliography}

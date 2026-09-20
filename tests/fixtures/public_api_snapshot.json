@@ -2640,6 +2640,7 @@
       "DeviceInfo",
       "DynamicJCurveConfig",
       "EU_COUNTRY_CODES",
+      "EVDecompositionResult",
       "EffectiveRateOfProtectionResult",
       "ExtendedTariffScenario",
       "FiscalRecyclingConfig",
@@ -2650,10 +2651,12 @@
       "FlexibleTradeEquilibriumResult",
       "FlexibleTradeModelConfig",
       "GearyKhamisResult",
+      "HicksianWelfareResult",
       "ICIOData",
       "JCurveDynamicResult",
       "NashTariffResult",
       "OptimalTariffResult",
+      "PolicyEquilibriumError",
       "RetaliationConfig",
       "RetaliationGameResult",
       "RevenueRecyclingResult",
@@ -2662,6 +2665,7 @@
       "SupplyChainVulnerabilityResult",
       "TariffRevenueIncidenceResult",
       "TariffScenario",
+      "TheoremValidationReport",
       "TradeCalibrationResult",
       "TradeEquilibriumResult",
       "WelfareDecompositionResult",
@@ -2681,6 +2685,7 @@
       "compute_equilibrium_residuals",
       "compute_geary_khamis",
       "compute_geary_khamis_ppp",
+      "compute_hicksian_welfare",
       "compute_j_curve_turning_point",
       "compute_nested_ces_costs",
       "compute_nested_factor_demands",
@@ -2691,6 +2696,7 @@
       "compute_variety_price_scaling",
       "compute_welfare_payoff_matrix",
       "decompose_harberger_welfare",
+      "decompose_hicksian_ev_3way",
       "decompose_welfare_effects",
       "detect_device",
       "device_context",
@@ -2732,6 +2738,7 @@
       "solve_homotopy_continuation",
       "solve_multilateral_nash_tariffs",
       "solve_multilateral_ppp",
+      "solve_policy_equilibrium",
       "solve_retaliation_game",
       "solve_trade_equilibrium",
       "solve_trade_equilibrium_gpu",
@@ -2743,10 +2750,12 @@
       "to_latex_selected_country_with_row",
       "to_latex_weighted_mean_by_scenario",
       "to_latex_weighted_mean_by_scenario_table",
-      "unpack_equilibrium_vector"
+      "unpack_equilibrium_vector",
+      "verify_theorems_1_to_4"
     ],
     "puremacro.trade._results": [
       "CapacityBottleneckResult",
+      "EVDecompositionResult",
       "GearyKhamisResult",
       "JCurveDynamicResult",
       "NashTariffResult",
@@ -2754,6 +2763,7 @@
       "RetaliationGameResult",
       "RevenueRecyclingResult",
       "ScenarioBatchResult",
+      "TheoremValidationReport",
       "TradeCalibrationResult",
       "TradeEquilibriumResult",
       "WelfarePayoffMatrixResult"
@@ -2766,15 +2776,34 @@
       "CANONICAL_FINAL_DEMAND_CODES",
       "CANONICAL_SECTOR_CODES",
       "CANONICAL_SECTOR_NAMES",
+      "EORA_189_COUNTRIES",
+      "EORA_26_SECTORS",
+      "EORA_FD_CATEGORIES",
       "EU_COUNTRY_CODES",
+      "EXIOBASE_163_SECTORS",
+      "EXIOBASE_200_SECTORS",
+      "EXIOBASE_COUNTRIES",
+      "EXIOBASE_FD_CATEGORIES",
+      "FIGARO_64_SECTORS",
+      "FIGARO_COUNTRIES",
+      "FIGARO_FD_CATEGORIES",
       "ICIOData",
+      "OECD_45_SECTORS",
+      "OECD_77_COUNTRIES",
+      "OECD_FD_CATEGORIES",
       "RAW_45_SECTOR_CODES",
       "RAW_45_SECTOR_NAMES",
       "RAW_6_FINAL_DEMAND_CODES",
+      "RawIOData",
+      "WIOD_44_COUNTRIES",
+      "WIOD_56_SECTORS",
+      "WIOD_FD_CATEGORIES",
       "available_reference_scenarios",
       "bundled_icio_path",
       "bundled_reference_path",
       "bundled_workbook_path",
+      "compute_trade_balances",
+      "generate_synthetic_mrio",
       "get_country_codes",
       "get_eu_country_codes",
       "get_final_demand_codes",
@@ -2783,10 +2812,18 @@
       "get_raw_final_demand_codes",
       "get_sector_codes",
       "get_sector_names",
+      "load_eora",
+      "load_exiobase",
+      "load_figaro",
       "load_icio_data",
+      "load_oecd_icio_granular",
       "load_raw_45sector_icio",
       "load_reference_solution",
-      "load_reference_workbook_sheet"
+      "load_reference_workbook_sheet",
+      "load_wiod",
+      "package_mrio_to_calibration_result",
+      "verify_accounting_invariants",
+      "verify_zero_leakage"
     ],
     "puremacro.trade.equilibrium": [
       "EquilibriumVariables",
@@ -2878,14 +2915,22 @@
       "plot_terms_of_trade_vs_welfare"
     ],
     "puremacro.trade.policy_analytics": [
+      "EVDecompositionResult",
       "EffectiveRateOfProtectionResult",
       "SupplyChainVulnerabilityResult",
       "TariffRevenueIncidenceResult",
+      "TheoremValidationReport",
       "WelfareDecompositionResult",
       "calculate_tariff_revenue_incidence",
       "compute_effective_rate_of_protection",
       "compute_supply_chain_vulnerability",
-      "decompose_welfare_effects"
+      "decompose_hicksian_ev_3way",
+      "decompose_welfare_effects",
+      "verify_theorems_1_to_4"
+    ],
+    "puremacro.trade.policy_solver": [
+      "PolicyEquilibriumError",
+      "solve_policy_equilibrium"
     ],
     "puremacro.trade.postprocessing": [
       "compute_postprocessing_flows",
@@ -2894,6 +2939,15 @@
       "intermediate_matrix_to_tensor",
       "intermediate_tensor_to_matrix",
       "postprocess_trade_equilibrium"
+    ],
+    "puremacro.trade.regularize": [
+      "balance_gras",
+      "balance_quadratic",
+      "balance_ras",
+      "compute_spectral_radius",
+      "regularize_mrio_table",
+      "spectral_radius",
+      "validate_accounting_identities"
     ],
     "puremacro.trade.scenarios": [
       "CANONICAL_SCENARIOS",
@@ -2908,10 +2962,17 @@
       "run_tariff_scenario"
     ],
     "puremacro.trade.solver": [
+      "anderson_accelerate",
       "build_cge_sparsity_pattern",
       "build_initial_guess",
+      "check_hawkins_simon_viability",
+      "clamp_wage_displacement",
+      "solve_cyprus_manifold",
+      "solve_cyprus_manifold_step",
       "solve_equilibrium",
-      "solve_trade_equilibrium"
+      "solve_keller_pac",
+      "solve_trade_equilibrium",
+      "svd_clamped_newton_step"
     ],
     "puremacro.trade.tables": [
       "export_latex_tables",
@@ -2925,6 +2986,10 @@
       "to_latex_selected_country_with_row",
       "to_latex_weighted_mean_by_scenario",
       "to_latex_weighted_mean_by_scenario_table"
+    ],
+    "puremacro.trade.welfare": [
+      "HicksianWelfareResult",
+      "compute_hicksian_welfare"
     ],
     "puremacro.uncertainty": [
       "BreakResult",
@@ -6007,6 +6072,16 @@
       "scenario_name",
       "target_country"
     ],
+    "puremacro.trade._results.EVDecompositionResult": [
+      "alloc",
+      "country_code",
+      "ev_pct",
+      "ev_usd",
+      "residual",
+      "summary_df",
+      "tariff_rec",
+      "tot"
+    ],
     "puremacro.trade._results.GearyKhamisResult": [
       "category_codes",
       "converged",
@@ -6119,6 +6194,16 @@
       "sector_codes",
       "trade_balance_table"
     ],
+    "puremacro.trade._results.TheoremValidationReport": [
+      "all_passed",
+      "details",
+      "scenario",
+      "summary_df",
+      "theorem_1_passed",
+      "theorem_2_passed",
+      "theorem_3_passed",
+      "theorem_4_passed"
+    ],
     "puremacro.trade._results.TradeCalibrationResult": [
       "T",
       "TT",
@@ -6216,6 +6301,21 @@
       "fd_codes",
       "matrix",
       "sector_codes"
+    ],
+    "puremacro.trade.data.RawIOData": [
+      "countries",
+      "fd_categories",
+      "final_demand_matrix",
+      "gross_output",
+      "intermediate_matrix",
+      "metadata",
+      "sectors",
+      "source",
+      "taxes_less_subsidies",
+      "taxes_less_subsidies_fd",
+      "unit",
+      "value_added",
+      "year"
     ],
     "puremacro.trade.extensions.BottleneckConfig": [
       "capacity_margins",
@@ -6386,6 +6486,25 @@
       "name",
       "sectoral_tariffs",
       "us_import_tariffs"
+    ],
+    "puremacro.trade.welfare.HicksianWelfareResult": [
+      "consumption_base",
+      "consumption_categories",
+      "consumption_counterfactual",
+      "country_code",
+      "cv",
+      "decomposition_residual",
+      "domestic_tax_rebate_effect",
+      "ev",
+      "ev_pct_consumption",
+      "ev_pct_gdp",
+      "factor_income_effect",
+      "fiscal_transfer_effect",
+      "metadata",
+      "price_effect",
+      "price_index",
+      "tariff_rebate_effect",
+      "utility_ratio"
     ],
     "puremacro.validation._model.CaseResult": [
       "citation",

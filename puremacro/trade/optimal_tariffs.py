@@ -147,6 +147,7 @@ def evaluate_national_welfare(
     *,
     base_welfare: float | None = None,
     base_equilibrium: TradeEquilibriumResult | None = None,
+    consumption_categories: Sequence[int] = (0,),
     tau: np.ndarray | None = None,
     tau_fd: np.ndarray | None = None,
     replicate_matlab_precedence: bool = True,
@@ -154,16 +155,23 @@ def evaluate_national_welfare(
 ) -> float:
     """Evaluate national economic welfare for a sovereign economy or regional bloc.
 
-    Supports three micro-founded welfare metrics:
+    Supports historical policy-objective metrics:
     1. ``'geary_khamis'`` (or ``'gk'``): Multilateral Geary-Khamis Purchasing Power
        Parity (PPP) real GDP in international reference dollars:
        :math:`W_c = \\sum_m \\pi_m q_{mc}`, valuing absorption at world shadow prices.
-    2. ``'equivalent_variation'`` (or ``'ev'``): Cobb-Douglas consumer utility /
-       real household consumption expenditure:
+    2. ``'equivalent_variation'`` (or ``'ev'``): historical Cobb-Douglas utility
+       proxy (despite the alias, this is not money-metric Hicksian EV):
        :math:`U_c = Y_c^{\\text{disp}} / P_c^{\\text{CPI}}`.
     3. ``'terms_of_trade'`` (or ``'tot'``): Sovereign terms-of-trade index:
        :math:`\\text{TOT}_c = P_{X, c} / P_{M, c}`.
     4. ``'harberger'``: Terms-of-trade effect plus tariff revenue minus deadweight loss.
+
+    ``metric="hicksian_ev"`` evaluates expenditure-function consumption EV in
+    calibration value units. It requires consistent baseline and counterfactual
+    equilibria, and sums monetary EV across bloc members. Select consumption
+    baskets with ``consumption_categories`` (default ``(0,)``); investment is
+    excluded. Legacy aliases above remain unchanged. For CV and attribution,
+    use :func:`puremacro.trade.compute_hicksian_welfare`.
 
     Parameters
     ----------
@@ -184,12 +192,15 @@ def evaluate_national_welfare(
         Solved net foreign transfers (current account balances).
     country_idx : int or str, default 'USA'
         Target country index, ISO-3 code (e.g. 'USA', 'CHN'), or regional bloc ('EUR').
-    metric : {'geary_khamis', 'equivalent_variation', 'terms_of_trade', 'harberger'}, default 'geary_khamis'
+    metric : {'hicksian_ev', 'geary_khamis', 'equivalent_variation', 'terms_of_trade', 'harberger'}, default 'geary_khamis'
         Economic welfare objective function metric.
     base_welfare : float, optional
         Baseline welfare value for calculating relative percentage welfare changes.
     base_equilibrium : TradeEquilibriumResult, optional
         Benchmark equilibrium result for price and terms of trade indexing.
+        Required as an explicit fixed comparison state for ``hicksian_ev``.
+    consumption_categories : Sequence[int], default (0,)
+        Final-use categories in Hicksian consumption utility; excludes investment.
 
     Returns
     -------
@@ -220,6 +231,13 @@ def evaluate_national_welfare(
         raise ValueError(f"No matching countries found for country_idx={country_idx}.")
 
     metric_clean = str(metric).lower().strip()
+    if metric_clean == "hicksian_ev":
+        from .welfare import compute_hicksian_welfare
+        if eq is None or base_equilibrium is None:
+            raise ValueError("Hicksian EV requires solved consistent states and an explicit fixed baseline")
+        return float(sum(compute_hicksian_welfare(
+            calib, eq, base_result=base_equilibrium, target_country=i,
+            consumption_categories=consumption_categories).ev for i in c_indices))
 
     # Fast path when TradeEquilibriumResult is provided
     if eq is not None:
@@ -360,7 +378,7 @@ def evaluate_national_welfare(
         return float(harb["net_welfare_change"])
 
     raise ValueError(
-        f"Unknown welfare metric '{metric}'. Valid options are: 'geary_khamis', 'equivalent_variation', 'terms_of_trade', 'harberger'."
+        f"Unknown welfare metric '{metric}'. Valid options are: 'hicksian_ev', 'geary_khamis', 'equivalent_variation', 'terms_of_trade', 'harberger'."
     )
 
 
@@ -481,6 +499,15 @@ def build_strategic_tariffs(
 # 2. Unilateral Optimal Tariff Optimization
 # ==============================================================================
 
+def _solve_policy_equilibrium(calib: TradeCalibrationResult, **kwargs: Any) -> TradeEquilibriumResult:
+    """Legacy schedule-revenue solve; Hicksian policy uses policy_solver instead."""
+    kwargs.setdefault("tol", 1e-8)
+    result = solve_trade_equilibrium(calib, tariff_revenue_mode="schedule", **kwargs)
+    if not result.converged or not np.isfinite(result.max_residual):
+        raise RuntimeError(f"Policy equilibrium did not converge (residual={result.max_residual})")
+    return result
+
+
 def compute_unilateral_optimal_tariff(
     calib: TradeCalibrationResult,
     country_idx: int | str = "USA",
@@ -501,8 +528,17 @@ def compute_unilateral_optimal_tariff(
         \tau^* = \arg\max_{\tau \in [0, \bar{\tau}]} W_c(\tau, \boldsymbol{0}_{-c})
         \quad \text{s.t.} \quad \mathbf{F}(\mathbf{x}^*; \tau) = \mathbf{0}
 
-    using bounded golden-section / Brent optimization accelerated by the
-    condensed Schur complement CGE solver.
+    With ``metric="hicksian_ev"``, use one audited zero-tariff baseline, a
+    full-interval grid and (for ``bounded``) refinement of every sampled local
+    peak. All equilibrium solves use consistent accounting and audited recovery.
+    Welfare levels are EV; percentages divide by baseline selected consumption,
+    since baseline EV is zero. A boundary optimum is conditional on the ceiling.
+    Other metrics retain their historical condensed-solver path.
+
+    Hicksian keyword options: ``consumption_categories=(0,)``,
+    ``base_equilibrium=None``, ``sigma=0``, ``ge_tol=1e-8``, ``ge_method="auto"``,
+    ``ge_max_iter=100`` and ``ge_max_steps=100``. Failed GE/refinement raises;
+    no penalty payoff replaces a failed candidate. See ``docs/trade_policy.md``.
 
     Parameters
     ----------
@@ -512,7 +548,7 @@ def compute_unilateral_optimal_tariff(
         Sovereign economy setting the optimal tariff ('USA', 'CHN', 'EUR', etc.).
     target_countries : Sequence[str], optional
         Target trading partners. If None, applies universally to all foreign partners.
-    metric : {'geary_khamis', 'equivalent_variation', 'terms_of_trade', 'harberger'}, default 'geary_khamis'
+    metric : {'hicksian_ev', 'geary_khamis', 'equivalent_variation', 'terms_of_trade', 'harberger'}, default 'geary_khamis'
         Sovereign welfare objective function metric.
     tariff_max : float, default 0.50
         Maximum ad-valorem tariff rate ceiling (0.50 = 50%).
@@ -533,15 +569,24 @@ def compute_unilateral_optimal_tariff(
         Frozen dataclass containing the optimal tariff rate, welfare gain,
         terms-of-trade impact, welfare curve, and solved equilibrium state.
     """
+    if str(metric).strip().lower() == "hicksian_ev":
+        from ._hicksian_policy import unilateral
+        return unilateral(calib, country_idx, target_countries, tariff_max, num_grid,
+                          tol, x0, method, policy_mode, **kwargs)
+    if tariff_max <= 0 or num_grid < 2 or tol <= 0:
+        raise ValueError("tariff_max and tol must be positive, num_grid at least two")
+    if method not in ("grid", "bounded"):
+        raise ValueError("method must be grid or bounded")
+    ge_tol = float(kwargs.get("ge_tol", min(1e-8, tol * .01)))
     country_code = get_country_code(calib, country_idx)
     target_tuple = tuple(target_countries) if target_countries is not None else None
 
     # 1. Baseline Free Trade solve
-    res_base = solve_trade_equilibrium(
+    res_base = _solve_policy_equilibrium(
         calib,
         x0=x0,
         method="condensed",
-        tol=2.5e-3,
+        tol=ge_tol,
     )
     base_welfare = evaluate_national_welfare(
         calib,
@@ -566,13 +611,13 @@ def compute_unilateral_optimal_tariff(
             policy_mode=policy_mode,
             target_countries=target_countries,
         )
-        eq_sol = solve_trade_equilibrium(
+        eq_sol = _solve_policy_equilibrium(
             calib,
             tau=tau,
             tau_fd=tau_fd,
             x0=x_cache,
             method="condensed",
-            tol=2.5e-3,
+            tol=ge_tol,
         )
         x_cache = eq_sol.x_sol.copy()
         w_val = evaluate_national_welfare(
@@ -617,7 +662,7 @@ def compute_unilateral_optimal_tariff(
                 lambda t: -eval_at_tariff(t)[0],
                 bounds=(b_low, b_high),
                 method="bounded",
-                options={"xatol": tol, "maxiter": 6},
+                options={"xatol": tol, "maxiter": 100},
             )
             if opt_res.success:
                 cand_rate = float(opt_res.x)
@@ -650,6 +695,9 @@ def compute_unilateral_optimal_tariff(
             "method": method,
             "tol": tol,
             "policy_mode": policy_mode,
+            "tariff_revenue_mode": "schedule",
+            "ge_tol": ge_tol,
+            "search_scope": "grid plus refinement around the sampled maximum",
         },
     )
 
@@ -672,7 +720,7 @@ def solve_multilateral_nash_tariffs(
     initial_tariffs: Mapping[str, float] | None = None,
     **kwargs: Any,
 ) -> NashTariffResult:
-    """Solve the simultaneous non-cooperative multilateral Nash tariff equilibrium.
+    """Search for a multilateral tariff equilibrium and check unilateral deviations.
 
     Finds a joint policy profile :math:`\\boldsymbol{\\tau}^* = (\\tau_1^*, \\dots, \\tau_P^*)`
     such that each sovereign player's tariff is a mutual best response:
@@ -680,7 +728,17 @@ def solve_multilateral_nash_tariffs(
         \\tau_i^* = \\arg\\max_{\\tau_i \\in [0, \\bar{\\tau}]} W_i(\\tau_i, \\boldsymbol{\\tau}_{-i}^*)
         \\quad \\forall i \\in \\mathcal{P}
 
-    accelerated by condensed Schur complement CGE decomposition and damped Gauss-Seidel iteration.
+    The Hicksian path (``metric="hicksian_ev"``) uses consistent accounting,
+    audited Newton/hybrid/continuation solves and a fixed zero-tariff baseline.
+    It supports ``best_response`` only. EV percentages and relative regret use
+    baseline selected consumption expenditure, including all countries in the
+    world aggregate. Final simultaneous deviations, not damped update sizes,
+    control convergence. Exhausted GE recovery raises without a payoff.
+
+    Hicksian options match ``compute_unilateral_optimal_tariff`` and add
+    ``best_response_grid_size=9`` and ``regret_tol`` (defaults to ``tol``).
+    Regret tolerance is a consumption fraction, not a percentage. Grid/local
+    refinement is not a global optimality proof; see ``docs/trade_policy.md``.
 
     Parameters
     ----------
@@ -688,7 +746,7 @@ def solve_multilateral_nash_tariffs(
         Calibrated model structural parameters.
     player_countries : Sequence[str], default ('USA', 'CHN', 'EUR', 'CAN', 'MEX')
         List of active strategic sovereign powers or regional blocs.
-    metric : {'geary_khamis', 'equivalent_variation', 'terms_of_trade', 'harberger'}, default 'geary_khamis'
+    metric : {'hicksian_ev', 'geary_khamis', 'equivalent_variation', 'terms_of_trade', 'harberger'}, default 'geary_khamis'
         Sovereign national welfare objective function.
     method : {'best_response', 'gradient'}, default 'best_response'
         Game-theoretic fixed point algorithm:
@@ -697,7 +755,7 @@ def solve_multilateral_nash_tariffs(
     relaxation : float, default 0.5
         Under-relaxation damping parameter :math:`\\theta \\in (0, 1]` preventing policy oscillations.
     tol : float, default 1e-4
-        Infinity-norm policy convergence threshold: :math:`\\max_i |\\tau_i^{(k)} - \\tau_i^{(k-1)}| < \\text{tol}`.
+        Undamped best-response infinity-norm convergence threshold: :math:`\\max_i |\\tau_i^{(k)} - \\tau_i^{(k-1)}| < \\text{tol}`.
     max_iter : int, default 30
         Maximum outer policy iterations.
     tariff_max : float, default 1.5
@@ -705,7 +763,7 @@ def solve_multilateral_nash_tariffs(
     x0 : np.ndarray, optional
         Initial general equilibrium state guess.
     policy_mode : str, default 'universal'
-        Tariff instrument mode ('universal', 'bilateral', 'sectoral').
+        Tariff instrument mode ('universal', 'final_only', 'intermediate_only').
     initial_tariffs : Mapping[str, float], optional
         Starting tariff policy profile. If None, starts from 0% Free Trade.
 
@@ -717,6 +775,10 @@ def solve_multilateral_nash_tariffs(
     """
     if "players" in kwargs:
         player_countries = kwargs.pop("players")
+    if str(metric).strip().lower() == "hicksian_ev":
+        from ._hicksian_policy import nash
+        return nash(calib, player_countries, method, relaxation, tol, max_iter,
+                    tariff_max, x0, policy_mode, initial_tariffs, **kwargs)
 
     resolved_players: list[str] = []
     c_codes = list(calib.country_codes) if calib.country_codes else []
@@ -729,14 +791,25 @@ def solve_multilateral_nash_tariffs(
         else:
             resolved_players.append(str(p).strip().upper())
     players = tuple(resolved_players)
+    grid_size = int(kwargs.pop("best_response_grid_size", 9))
+    regret_tol = float(kwargs.pop("regret_tol", tol))
+    ge_tol = float(kwargs.pop("ge_tol", min(1e-7, tol * 0.01)))
+    if not players or len(set(players)) != len(players):
+        raise ValueError("Supply at least one distinct strategic player")
+    if not (0 < relaxation <= 1) or tol <= 0 or max_iter < 1 or tariff_max <= 0 or grid_size < 3:
+        raise ValueError("Require 0 < relaxation <= 1, positive tolerances/limits and grid size >= 3")
+    if regret_tol < 0 or ge_tol <= 0:
+        raise ValueError("Regret tolerance must be nonnegative and GE tolerance positive")
 
     # 1. Baseline Free Trade solve
     res_base = solve_trade_equilibrium(
         calib,
         x0=x0,
-        method="condensed",
-        tol=2.5e-3,
+        method="condensed", tariff_revenue_mode="schedule",
+        tol=ge_tol,
     )
+    if not res_base.converged:
+        raise RuntimeError("Baseline GE failed; tariff-game payoffs are unavailable")
     base_welfares = {
         p: evaluate_national_welfare(calib, res_base, country_idx=p, metric=metric)
         for p in players
@@ -751,10 +824,61 @@ def solve_multilateral_nash_tariffs(
         else:
             tau_curr[p] = 0.0
 
+    if any(not np.isfinite(v) or v < 0 or v > tariff_max for v in tau_curr.values()):
+        raise ValueError("Initial tariffs must lie within [0, tariff_max]")
     x_state = res_base.x_sol.copy()
     history: list[dict[str, Any]] = []
     converged = False
     outer_error = 1.0
+
+    inner_failures = []
+    payoff_cache = {}
+
+    def payoff(profile, player):
+        nonlocal x_state
+        key = tuple(float(profile[p]) for p in players)
+        if key not in payoff_cache:
+            if all(v == 0.0 for v in key):
+                payoff_cache[key] = dict(base_welfares)
+            else:
+                ta, tf = build_strategic_tariffs(calib, profile, policy_mode=policy_mode)
+                try:
+                    eq = solve_trade_equilibrium(calib, tau=ta, tau_fd=tf, x0=x_state,
+                        method="condensed", tariff_revenue_mode="schedule", tol=ge_tol)
+                    if not eq.converged or not np.isfinite(eq.max_residual):
+                        raise RuntimeError(f"GE residual {eq.max_residual} exceeds tolerance")
+                    values = {p: evaluate_national_welfare(
+                        calib, eq, country_idx=p, metric=metric, base_equilibrium=res_base, tau=ta, tau_fd=tf,
+                    ) for p in players}
+                    if not all(np.isfinite(v) for v in values.values()):
+                        raise ValueError("Nonfinite policy payoff")
+                except (ValueError, RuntimeError, np.linalg.LinAlgError) as exc:
+                    inner_failures.append({"profile": dict(profile), "error": str(exc)})
+                    payoff_cache[key] = {p: float("nan") for p in players}
+                else:
+                    x_state = eq.x_sol.copy()
+                    payoff_cache[key] = values
+        return payoff_cache[key][player]
+
+    def best_response(profile, player):
+        def objective(rate):
+            return payoff({**profile, player: float(rate)}, player)
+        grid = np.unique(np.append(np.linspace(0.0, tariff_max, grid_size), profile[player]))
+        values = np.array([objective(rate) for rate in grid])
+        finite = np.isfinite(values)
+        if not finite.all():
+            return profile[player], float("nan")
+        candidates = list(zip(values, grid))
+        # Refine every sampled local peak, including both boundary brackets.
+        for j in range(len(grid)):
+            if (j == 0 or values[j] >= values[j - 1]) and (j == len(grid) - 1 or values[j] >= values[j + 1]):
+                lo, hi = grid[max(0, j - 1)], grid[min(len(grid) - 1, j + 1)]
+                opt = minimize_scalar(lambda t: -objective(t), bounds=(lo, hi), method="bounded",
+                                      options={"xatol": max(tol * 0.1, 1e-8)})
+                if opt.success and np.isfinite(opt.fun):
+                    candidates.append((-float(opt.fun), float(opt.x)))
+        value, rate = max(candidates, key=lambda pair: pair[0])
+        return rate, value
 
     t_start = time.perf_counter()
 
@@ -763,70 +887,9 @@ def solve_multilateral_nash_tariffs(
         tau_cand: dict[str, float] = {}
 
         if method == "best_response":
-            # Gauss-Seidel Best-Response loop over players
             for p in players:
-                # 1D objective for player p given rivals' latest policies
-                def player_obj(t_val: float) -> float:
-                    nonlocal x_state
-                    t_val = max(float(t_val), 0.0)
-                    temp_profile = copy.deepcopy(tau_curr)
-                    temp_profile[p] = t_val
-                    if all(abs(v) < 1e-6 for v in temp_profile.values()):
-                        return base_welfares[p]
-                    tau_t, tau_fd_t = build_strategic_tariffs(calib, temp_profile, policy_mode=policy_mode)
-                    eq_t = solve_trade_equilibrium(
-                        calib,
-                        tau=tau_t,
-                        tau_fd=tau_fd_t,
-                        x0=x_state,
-                        method="condensed",
-                        tol=2.5e-3,
-                    )
-                    x_state = eq_t.x_sol.copy()
-                    return evaluate_national_welfare(
-                        calib,
-                        eq_t,
-                        country_idx=p,
-                        metric=metric,
-                        base_equilibrium=res_base,
-                        tau=tau_t,
-                        tau_fd=tau_fd_t,
-                    )
-
-                # 3-point quadratic vertex local search around current policy
-                p_curr = tau_curr[p]
-                delta_t = 0.04
-                t_low = max(0.0, p_curr - delta_t)
-                t_mid = p_curr
-                t_high = min(tariff_max, p_curr + delta_t)
-
-                w_mid = player_obj(t_mid)
-                w_low = player_obj(t_low) if abs(t_low - t_mid) > 1e-5 else w_mid
-                w_high = player_obj(t_high) if abs(t_high - t_mid) > 1e-5 else w_mid
-
-                # Quadratic vertex estimate: w(t) = a*(t - t_mid)^2 + b*(t - t_mid) + c
-                cand_rate = t_mid
-                if (t_mid > t_low) and (t_high > t_mid):
-                    d1 = (w_mid - w_low) / (t_mid - t_low)
-                    d2 = (w_high - w_mid) / (t_high - t_mid)
-                    denom_a = t_high - t_low
-                    a_quad = (d2 - d1) / denom_a
-                    b_quad = 0.5 * (d1 + d2)
-                    if a_quad < -1e-8:
-                        # Strictly concave peak
-                        vertex_delta = -b_quad / (2.0 * a_quad)
-                        vertex_delta = float(np.clip(vertex_delta, -0.15, 0.15))
-                        cand_rate = float(np.clip(t_mid + vertex_delta, 0.0, tariff_max))
-                    else:
-                        # Boundary or flat
-                        pts = [(w_low, t_low), (w_mid, t_mid), (w_high, t_high)]
-                        cand_rate = float(max(pts, key=lambda x: x[0])[1])
-                else:
-                    pts = [(w_low, t_low), (w_mid, t_mid), (w_high, t_high)]
-                    cand_rate = float(max(pts, key=lambda x: x[0])[1])
-
+                cand_rate, _ = best_response(tau_curr, p)
                 tau_cand[p] = cand_rate
-                # In Gauss-Seidel, update immediately for subsequent players
                 tau_curr[p] = float((1.0 - relaxation) * tau_prev[p] + relaxation * cand_rate)
 
         elif method == "gradient":
@@ -837,16 +900,13 @@ def solve_multilateral_nash_tariffs(
                 # Forward and backward difference
                 prof_plus = copy.deepcopy(tau_prev)
                 prof_plus[p] = min(tariff_max, tau_prev[p] + h_fd)
-                tau_p, tau_fd_p = build_strategic_tariffs(calib, prof_plus, policy_mode=policy_mode)
-                eq_p = solve_trade_equilibrium(calib, tau=tau_p, tau_fd=tau_fd_p, x0=x_state, method="condensed")
-
                 prof_minus = copy.deepcopy(tau_prev)
                 prof_minus[p] = max(0.0, tau_prev[p] - h_fd)
-                tau_m, tau_fd_m = build_strategic_tariffs(calib, prof_minus, policy_mode=policy_mode)
-                eq_m = solve_trade_equilibrium(calib, tau=tau_m, tau_fd=tau_fd_m, x0=x_state, method="condensed")
-
-                w_plus = evaluate_national_welfare(calib, eq_p, country_idx=p, metric=metric, base_equilibrium=res_base, tau=tau_p, tau_fd=tau_fd_p)
-                w_minus = evaluate_national_welfare(calib, eq_m, country_idx=p, metric=metric, base_equilibrium=res_base, tau=tau_m, tau_fd=tau_fd_m)
+                w_plus = payoff(prof_plus, p)
+                w_minus = payoff(prof_minus, p)
+                if not np.isfinite(w_plus) or not np.isfinite(w_minus):
+                    grad[p] = 0.0
+                    continue
                 h_actual = float(prof_plus[p] - prof_minus[p])
                 grad[p] = (w_plus - w_minus) / h_actual if h_actual > 1e-8 else 0.0
 
@@ -861,21 +921,25 @@ def solve_multilateral_nash_tariffs(
             raise ValueError(f"Unknown Nash method '{method}'. Valid options: 'best_response', 'gradient'.")
 
         # Check convergence
-        outer_error = float(max(abs(tau_curr[p] - tau_prev[p]) for p in players))
+        outer_error = float(max(abs(tau_cand[p] - tau_prev[p]) for p in players)) if method == "best_response" else float(max(abs(tau_curr[p] - tau_prev[p]) / relaxation for p in players))
         history.append({
             "iteration": it + 1,
             "tariffs": copy.deepcopy(tau_curr),
             "error": outer_error,
         })
 
-        if outer_error < tol:
+        if inner_failures:
+            # The declared deviation search is unresolved. Repeating policy
+            # updates cannot certify it; return diagnostics for this candidate.
+            break
+        if outer_error <= tol and not inner_failures:
             converged = True
             break
 
     t_duration = time.perf_counter() - t_start
 
     # 4. Final equilibrium solve at Nash tariffs
-    if all(abs(v) < 1e-6 for v in tau_curr.values()):
+    if all(v == 0.0 for v in tau_curr.values()):
         res_nash = res_base
         tau_nash, tau_fd_nash = None, None
     else:
@@ -885,15 +949,23 @@ def solve_multilateral_nash_tariffs(
             tau=tau_nash,
             tau_fd=tau_fd_nash,
             x0=x_state,
-            method="condensed",
-            tol=2.5e-3,
+            method="condensed", tariff_revenue_mode="schedule",
+            tol=ge_tol,
         )
 
     # Compute outcomes
-    player_welfares = {
-        p: evaluate_national_welfare(calib, res_nash, country_idx=p, metric=metric, base_equilibrium=res_base, tau=tau_nash, tau_fd=tau_fd_nash)
-        for p in players
-    }
+    try:
+        if not res_nash.converged:
+            raise RuntimeError("Final GE did not converge")
+        player_welfares = {
+            p: evaluate_national_welfare(calib, res_nash, country_idx=p, metric=metric,
+                base_equilibrium=res_base, tau=tau_nash, tau_fd=tau_fd_nash) for p in players
+        }
+        if not all(np.isfinite(v) for v in player_welfares.values()):
+            raise ValueError("Nonfinite final payoff")
+    except (ValueError, RuntimeError, np.linalg.LinAlgError) as exc:
+        inner_failures.append({"profile": dict(tau_curr), "error": str(exc)})
+        player_welfares = {p: float("nan") for p in players}
     welfare_changes_pct = {
         p: ((player_welfares[p] - base_welfares[p]) / abs(base_welfares[p])) * 100.0
         for p in players
@@ -907,6 +979,22 @@ def solve_multilateral_nash_tariffs(
         tot_b = float(res_base.terms_of_trade[c_idx]) if res_base.terms_of_trade is not None else 1.0
         tot_n = float(res_nash.terms_of_trade[c_idx]) if res_nash.terms_of_trade is not None else 1.0
         tot_changes_pct[p] = ((tot_n - tot_b) / tot_b) * 100.0 if tot_b != 0.0 else 0.0
+
+    # Verify deviations against the final, simultaneous profile. This is a
+    # numerical search over a declared grid with local refinement, not a proof
+    # of global optimality for an arbitrary welfare function.
+    regrets, responses, boundary = {}, {}, {}
+    for p in players:
+        rate, value = best_response(tau_curr, p)
+        responses[p] = rate
+        regrets[p] = max(0.0, value - player_welfares[p]) if np.isfinite(value) and np.isfinite(player_welfares[p]) else float("inf")
+        boundary[p] = "lower" if rate <= tol else ("upper" if rate >= tariff_max - tol else "interior")
+    max_regret = max(regrets.values())
+    relative_regret = max(regrets[p] / max(abs(player_welfares[p]), 1.0) if np.isfinite(player_welfares[p]) else float("inf") for p in players)
+    outer_error = max(abs(responses[p] - tau_curr[p]) for p in players)
+    if not np.isfinite(max_regret):
+        outer_error = float("inf")
+    converged = bool(res_nash.converged and not inner_failures and outer_error <= tol and relative_regret <= regret_tol)
 
     return NashTariffResult(
         strategic_players=players,
@@ -927,7 +1015,12 @@ def solve_multilateral_nash_tariffs(
         baseline_welfares=base_welfares,
         iteration_history=history,
         metadata={
-            "duration_seconds": t_duration,
+            "duration_seconds": time.perf_counter() - t_start,
+            "max_regret": max_regret, "relative_max_regret": relative_regret,
+            "player_regrets": regrets, "best_responses": responses,
+            "best_response_boundaries": boundary, "inner_solver_failures": inner_failures,
+            "best_response_grid_size": grid_size, "regret_tol": regret_tol, "ge_tol": ge_tol,
+            "verification": "full-interval grid with bounded local refinement; no global-optimality proof",
             "relaxation": relaxation,
             "tol": tol,
             "max_iter": max_iter,
@@ -964,8 +1057,17 @@ def compute_welfare_payoff_matrix(
         \\text{Player A Defects } (\\tau_A = \\tau_A^*) & (+\\mathcal{G}_A, -\\mathcal{L}_B) & (-\\Delta W_A^{\\text{Nash}}, -\\Delta W_B^{\\text{Nash}})
         \\end{array}
 
-    Demonstrating that while defection is a strictly dominant strategy for both sovereign
-    powers, non-cooperative retaliation produces a Pareto-inferior Prisoner's Dilemma.
+    The returned payoffs determine whether this finite game is a Prisoner's
+    Dilemma. Dominant defection and Pareto inferiority are not assumed.
+
+    With ``metric="hicksian_ev"``, all cells share one fixed zero-tariff
+    baseline and two fixed actions per player. Payoffs are EV as a percentage
+    of baseline selected consumption. A positive action comes from
+    ``optimal_*``, otherwise ``nash_*``, otherwise the unilateral optimum.
+    Conflicting supplied rates raise; supplied ``nash_*`` are explicitly
+    unverified fixed actions, never a continuous-game Nash certificate.
+    Mutual positive actions carry no assumed welfare sign. Hicksian equilibrium
+    options match ``compute_unilateral_optimal_tariff``. See ``docs/trade_policy.md``.
 
     Parameters
     ----------
@@ -975,7 +1077,7 @@ def compute_welfare_payoff_matrix(
         First strategic sovereign authority.
     player_b : str, default 'CHN'
         Second strategic sovereign authority.
-    metric : {'geary_khamis', 'equivalent_variation', 'terms_of_trade', 'harberger'}, default 'geary_khamis'
+    metric : {'hicksian_ev', 'geary_khamis', 'equivalent_variation', 'terms_of_trade', 'harberger'}, default 'geary_khamis'
         Sovereign welfare objective function.
     optimal_a : float, optional
         Unilateral optimal tariff rate for Player A. If None, computed automatically.
@@ -995,11 +1097,15 @@ def compute_welfare_payoff_matrix(
     WelfarePayoffMatrixResult
         Normal-form payoff matrix container with formatted DataFrame summary.
     """
+    if str(metric).strip().lower() == "hicksian_ev":
+        from ._hicksian_policy import payoff_matrix
+        return payoff_matrix(calib, player_a, player_b, optimal_a, optimal_b,
+                             nash_a, nash_b, x0, policy_mode, **kwargs)
     p_a = player_a.strip().upper()
     p_b = player_b.strip().upper()
 
     # 1. Baseline Free Trade solve (C, C)
-    res_cc = solve_trade_equilibrium(calib, x0=x0, method="condensed", tol=2.5e-3)
+    res_cc = _solve_policy_equilibrium(calib, x0=x0, method="condensed", tol=1e-8)
     w_a_0 = evaluate_national_welfare(calib, res_cc, country_idx=p_a, metric=metric)
     w_b_0 = evaluate_national_welfare(calib, res_cc, country_idx=p_b, metric=metric)
 
@@ -1030,6 +1136,8 @@ def compute_welfare_payoff_matrix(
             policy_mode=policy_mode,
             max_iter=15,
         )
+        if not nash_res.converged:
+            raise RuntimeError("Cannot label a payoff cell Nash: best responses are unresolved")
         rate_nash_a = nash_res.nash_tariffs.get(p_a, rate_a)
         rate_nash_b = nash_res.nash_tariffs.get(p_b, rate_b)
     else:
@@ -1039,17 +1147,17 @@ def compute_welfare_payoff_matrix(
     # 3. Solve remaining 3 cells:
     # Cell DC: Player A defects, Player B cooperates
     tau_dc, tau_fd_dc = build_strategic_tariffs(calib, {p_a: {p_b: rate_a}}, policy_mode=policy_mode)
-    res_dc = solve_trade_equilibrium(calib, tau=tau_dc, tau_fd=tau_fd_dc, x0=res_cc.x_sol, method="condensed")
+    res_dc = _solve_policy_equilibrium(calib, tau=tau_dc, tau_fd=tau_fd_dc, x0=res_cc.x_sol, method="condensed")
 
     # Cell CD: Player A cooperates, Player B defects
     tau_cd, tau_fd_cd = build_strategic_tariffs(calib, {p_b: {p_a: rate_b}}, policy_mode=policy_mode)
-    res_cd = solve_trade_equilibrium(calib, tau=tau_cd, tau_fd=tau_fd_cd, x0=res_cc.x_sol, method="condensed")
+    res_cd = _solve_policy_equilibrium(calib, tau=tau_cd, tau_fd=tau_fd_cd, x0=res_cc.x_sol, method="condensed")
 
     # Cell DD: Mutual Defection (Trade War)
     tau_dd, tau_fd_dd = build_strategic_tariffs(
         calib, {p_a: {p_b: rate_nash_a}, p_b: {p_a: rate_nash_b}}, policy_mode=policy_mode
     )
-    res_dd = solve_trade_equilibrium(calib, tau=tau_dd, tau_fd=tau_fd_dd, x0=res_dc.x_sol, method="condensed")
+    res_dd = _solve_policy_equilibrium(calib, tau=tau_dd, tau_fd=tau_fd_dd, x0=res_dc.x_sol, method="condensed")
 
     scenarios = {"CC": res_cc, "DC": res_dc, "CD": res_cd, "DD": res_dd}
 
@@ -1152,6 +1260,11 @@ def benchmark_real_world_tariffs(
     pd.DataFrame
         Publication-grade comparative summary table matching LaTeX table format.
     """
+    if str(metric).strip().lower() == "hicksian_ev":
+        raise NotImplementedError(
+            "The historical geopolitical wrapper does not support Hicksian policy certification. "
+            "Use explicit schedules with solve_policy_equilibrium and evaluate_national_welfare, "
+            "or compute_welfare_payoff_matrix for fixed-action games.")
     country_codes = list(calib.country_codes) if calib.country_codes else list(CANONICAL_COUNTRY_CODES)
     has_usa = "USA" in country_codes
     p_usa = "USA" if has_usa else country_codes[0]
@@ -1162,7 +1275,7 @@ def benchmark_real_world_tariffs(
     p_mex = "MEX" if ("MEX" in country_codes) else (country_codes[1] if len(country_codes) > 1 else country_codes[0])
 
     # Benchmark Free Trade
-    res_base = solve_trade_equilibrium(calib, x0=x0, method="condensed", tol=2.5e-3)
+    res_base = _solve_policy_equilibrium(calib, x0=x0, method="condensed", tol=1e-8)
     w_base_usa = evaluate_national_welfare(calib, res_base, country_idx=p_usa, metric=metric)
     w_base_chn = evaluate_national_welfare(calib, res_base, country_idx=p_chn, metric=metric)
     w_base_eur = evaluate_national_welfare(calib, res_base, country_idx=p_eur, metric=metric)
@@ -1203,7 +1316,7 @@ def benchmark_real_world_tariffs(
     # 2. US Unilateral Optimal
     if t_opt_us > 1e-4:
         tau_us, tau_fd_us = build_strategic_tariffs(calib, {p_usa: t_opt_us}, policy_mode=policy_mode)
-        res_us = solve_trade_equilibrium(calib, tau=tau_us, tau_fd=tau_fd_us, x0=res_base.x_sol, method="condensed")
+        res_us = _solve_policy_equilibrium(calib, tau=tau_us, tau_fd=tau_fd_us, x0=res_base.x_sol, method="condensed")
         imp_us = calc_impacts(res_us, tau_us, tau_fd_us)
     else:
         res_us = res_base
@@ -1212,7 +1325,7 @@ def benchmark_real_world_tariffs(
     # 3. China Unilateral Optimal
     if t_opt_cn > 1e-4:
         tau_cn, tau_fd_cn = build_strategic_tariffs(calib, {p_chn: t_opt_cn}, policy_mode=policy_mode)
-        res_cn = solve_trade_equilibrium(calib, tau=tau_cn, tau_fd=tau_fd_cn, x0=res_base.x_sol, method="condensed")
+        res_cn = _solve_policy_equilibrium(calib, tau=tau_cn, tau_fd=tau_fd_cn, x0=res_base.x_sol, method="condensed")
         imp_cn = calc_impacts(res_cn, tau_cn, tau_fd_cn)
     else:
         res_cn = res_base
@@ -1221,7 +1334,7 @@ def benchmark_real_world_tariffs(
     # 4. EU Unilateral Optimal
     if t_opt_eu > 1e-4:
         tau_eu, tau_fd_eu = build_strategic_tariffs(calib, {p_eur: t_opt_eu}, policy_mode=policy_mode)
-        res_eu = solve_trade_equilibrium(calib, tau=tau_eu, tau_fd=tau_fd_eu, x0=res_base.x_sol, method="condensed")
+        res_eu = _solve_policy_equilibrium(calib, tau=tau_eu, tau_fd=tau_fd_eu, x0=res_base.x_sol, method="condensed")
         imp_eu = calc_impacts(res_eu, tau_eu, tau_fd_eu)
     else:
         res_eu = res_base
@@ -1230,7 +1343,7 @@ def benchmark_real_world_tariffs(
     # 5. Bilateral US-China Nash Game
     if (t_nash_us > 1e-4) or (t_nash_cn > 1e-4):
         tau_bi, tau_fd_bi = build_strategic_tariffs(calib, {p_usa: {p_chn: t_nash_us}, p_chn: {p_usa: t_nash_cn}}, policy_mode=policy_mode)
-        res_bi = solve_trade_equilibrium(calib, tau=tau_bi, tau_fd=tau_fd_bi, x0=res_us.x_sol, method="condensed")
+        res_bi = _solve_policy_equilibrium(calib, tau=tau_bi, tau_fd=tau_fd_bi, x0=res_us.x_sol, method="condensed")
         imp_bi = calc_impacts(res_bi, tau_bi, tau_fd_bi)
     else:
         res_bi = res_base
@@ -1239,7 +1352,7 @@ def benchmark_real_world_tariffs(
     # 6. Multilateral 5-Bloc Nash War
     if any(v > 1e-4 for v in multi_sched.values()):
         tau_multi, tau_fd_multi = build_strategic_tariffs(calib, multi_sched, policy_mode=policy_mode)
-        res_multi = solve_trade_equilibrium(calib, tau=tau_multi, tau_fd=tau_fd_multi, x0=res_bi.x_sol, method="condensed")
+        res_multi = _solve_policy_equilibrium(calib, tau=tau_multi, tau_fd=tau_fd_multi, x0=res_bi.x_sol, method="condensed")
         imp_multi = calc_impacts(res_multi, tau_multi, tau_fd_multi)
     else:
         res_multi = res_base
@@ -1248,7 +1361,7 @@ def benchmark_real_world_tariffs(
     # 7. 2024-2026 Proposed (Universal 10% + Retaliation)
     rw1_sched = {p_usa: 0.10, p_chn: 0.15, p_eur: 0.10, p_can: 0.10, p_mex: 0.10}
     tau_rw1, tau_fd_rw1 = build_strategic_tariffs(calib, rw1_sched)
-    res_rw1 = solve_trade_equilibrium(calib, tau=tau_rw1, tau_fd=tau_fd_rw1, x0=res_base.x_sol, method="condensed")
+    res_rw1 = _solve_policy_equilibrium(calib, tau=tau_rw1, tau_fd=tau_fd_rw1, x0=res_base.x_sol, method="condensed")
     imp_rw1 = calc_impacts(res_rw1, tau_rw1, tau_fd_rw1)
 
     # 8. 2024-2026 Punitive (60% CHN, 25% USMCA)
@@ -1259,7 +1372,7 @@ def benchmark_real_world_tariffs(
         p_mex: {p_usa: 0.25},
     }
     tau_rw2, tau_fd_rw2 = build_strategic_tariffs(calib, rw2_sched)
-    res_rw2 = solve_trade_equilibrium(calib, tau=tau_rw2, tau_fd=tau_fd_rw2, x0=res_rw1.x_sol, method="condensed")
+    res_rw2 = _solve_policy_equilibrium(calib, tau=tau_rw2, tau_fd=tau_fd_rw2, x0=res_rw1.x_sol, method="condensed")
     imp_rw2 = calc_impacts(res_rw2, tau_rw2, tau_fd_rw2)
 
     rows = [

@@ -276,11 +276,14 @@ def load_dynare_dr(
     order_var = dr.get("order_var", None)
     if order_var is not None:
         ov = np.asarray(order_var, dtype=int).ravel()
-        if len(ov) == n_v:
-            p_idx = ov - 1 if np.min(ov) >= 1 else ov
-            inv_p = np.argsort(p_idx)
-            ghx = ghx[inv_p, :]
-            ghu = ghu[inv_p, :]
+        if len(ov) != n_v:
+            raise ValueError("order_var must contain one index per endogenous variable")
+        p_idx = ov - 1 if np.min(ov) >= 1 else ov
+        if sorted(p_idx.tolist()) != list(range(n_v)):
+            raise ValueError("order_var must be a permutation of the endogenous variables")
+        inv_p = np.argsort(p_idx)
+        ghx = ghx[inv_p, :]
+        ghu = ghu[inv_p, :]
 
     # Steady state (ys) - in official Dynare, ys is already stored in declaration order
     ys_raw = dr.get("ys", None)
@@ -288,7 +291,7 @@ def load_dynare_dr(
         ys_raw = oo.get("steady_state", np.zeros(n_v))
     ys = np.asarray(ys_raw, dtype=float).ravel()
     if len(ys) != n_v:
-        ys = np.resize(ys, n_v)
+        raise ValueError(f"ys has {len(ys)} entries; expected {n_v}")
 
     # Name resolution hierarchy
     if var_names is not None:
@@ -300,6 +303,13 @@ def load_dynare_dr(
 
     if state_names is not None:
         s_names = tuple(state_names)
+    elif dr.get("state_var") is not None:
+        # Indices refer to declared variables, ordered as the actual DR columns.
+        # They can differ from M_.state_var at the current parameterization.
+        s_idx = np.asarray(dr["state_var"]).ravel().astype(int) - 1
+        if len(s_idx) != n_x or np.any((s_idx < 0) | (s_idx >= n_v)) or len(set(s_idx)) != n_x:
+            raise ValueError("oo_.dr.state_var does not identify the ghx columns")
+        s_names = tuple(v_names[i] for i in s_idx)
     elif "state_var" in M and M["state_var"] is not None and np.size(M["state_var"]) > 0:
         sv_obj = M["state_var"]
         if isinstance(sv_obj, dict) and "declaration_order" in sv_obj:
@@ -354,7 +364,7 @@ def load_dynare_dr(
     if "ghs2" in dr and dr["ghs2"] is not None:
         ghs2_raw = np.asarray(dr["ghs2"], dtype=float).ravel()
         if len(ghs2_raw) != n_v:
-            ghs2_raw = np.resize(ghs2_raw, n_v)
+            raise ValueError(f"ghs2 has {len(ghs2_raw)} entries; expected {n_v}")
         if order_var is not None and len(ov) == n_v:
             ghs2_raw = ghs2_raw[inv_p]
     else:
@@ -452,4 +462,3 @@ def load_dynare_moments(results: dict) -> dict[str, np.ndarray]:
         out["autocorr"] = np.array([], dtype=float)
 
     return out
-

@@ -1,0 +1,10 @@
+var y c k a; varexo e;
+parameters alpha beta delta rho; alpha=.33;beta=.99;delta=.025;rho=.9;
+model;
+1/c=beta/c(+1)*(alpha*exp(a(+1))*k^(alpha-1)+1-delta);
+k=exp(a)*k(-1)^alpha+(1-delta)*k(-1)-c;
+a=rho*a(-1)+e;
+y=exp(a)*k(-1)^alpha;
+end;
+initval; y=3.0153277085137282;c=2.3066172319875173;k=28.348419061048435;a=0;end;
+shocks;var e;stderr .01;end;

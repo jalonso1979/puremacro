@@ -951,7 +951,7 @@ class FEMProblem:
             nodal_policy = np.maximum(nodal_policy, float(borrow_bound))
 
         res_norm = float(np.max(np.abs(residual_system(nodal_policy))))
-        converged = bool(sol_root.success or res_norm < tol * 10 or res_norm < 1e-6)
+        converged = bool(np.isfinite(res_norm) and res_norm <= tol)
         if not converged or res_norm > 1e-6:
             alt_method = "lm" if root_method != "lm" else "broyden1"
             sol_alt = root(residual_system, nodal_policy, method=alt_method, tol=tol)
@@ -962,7 +962,7 @@ class FEMProblem:
             if alt_res_norm < res_norm:
                 nodal_policy = alt_policy
                 res_norm = alt_res_norm
-                converged = bool(sol_alt.success or res_norm < 1e-6)
+                converged = bool(np.isfinite(res_norm) and res_norm <= tol)
 
         n_iter = int(getattr(sol_root, "nfev", getattr(sol_root, "nit", 0)))
 

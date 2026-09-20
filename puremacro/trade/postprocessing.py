@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 import numpy as np
 
-from puremacro.trade.equilibrium import compute_equilibrium_residuals, unpack_equilibrium_vector
+from puremacro.trade.equilibrium import _evaluate_equilibrium, compute_equilibrium_residuals, unpack_equilibrium_vector
 
 if TYPE_CHECKING:
     from puremacro.trade._results import TradeCalibrationResult, TradeEquilibriumResult
@@ -132,10 +132,15 @@ def compute_postprocessing_flows(
     replicate_matlab_precedence: bool = True,
     base_result: TradeEquilibriumResult | None = None,
     matlab_compat: bool = True,
+    **model_options: Any,
 ) -> dict[str, Any]:
     """Compute post-processing flows, transaction matrices, prices, and aggregates.
 
-    Vectorized port of MATLAB `ff_eval.m` (lines 1–179).
+    The default is a vectorized port of MATLAB `ff_eval.m` (lines 1–179).
+    ``accounting="consistent"`` instead reports producer-price bilateral trade,
+    purchaser-price expenditure, nominal tax/factor-payment tables and a fixed-
+    basket purchaser CPI. It returns the actual solved producer price, and
+    metadata records all account residuals and the price/foreign-balance closure.
 
     Parameters
     ----------
@@ -165,76 +170,35 @@ def compute_postprocessing_flows(
     ns = calib.n_sectors
     nfd = calib.n_final_demand
 
-    if tau is None:
-        tau_a = np.ones((ns * nc, ns, nc), dtype=float)
-    elif tau.shape == (ns * nc, ns, nc):
-        tau_a = np.asarray(tau, dtype=float)
-    elif tau.ndim == 4 and tau.shape == (ns, nc, ns, nc):
-        tau_a = np.asarray(tau, dtype=float).transpose(1, 0, 2, 3).reshape(ns * nc, ns, nc)
-    else:
-        tau_a = np.asarray(tau, dtype=float)
-
-    if tau_fd is None:
-        taufd_a = np.ones((ns * nc, nfd, nc), dtype=float)
-    elif tau_fd.shape == (ns * nc, nfd, nc):
-        taufd_a = np.asarray(tau_fd, dtype=float)
-    elif tau_fd.ndim == 4 and tau_fd.shape == (ns, nc, nfd, nc):
-        taufd_a = np.asarray(tau_fd, dtype=float).transpose(1, 0, 2, 3).reshape(ns * nc, nfd, nc)
-    else:
-        taufd_a = np.asarray(tau_fd, dtype=float)
-
-    tauf_vec = np.zeros(nc, dtype=float) if tauf is None else np.asarray(tauf, dtype=float).ravel()
-    tauf_fd_vec = np.zeros(nc, dtype=float) if tauf_fd is None else np.asarray(tauf_fd, dtype=float).ravel()
-
-    # 1. Unpack state vector
-    vars_eq = unpack_equilibrium_vector(x_sol, ns=ns, nc=nc, nfd=nfd, return_levels=True)
-    p, ytot, r, w, T, XN, invforT = (
-        vars_eq.p,
-        vars_eq.y,
-        vars_eq.r,
-        vars_eq.w,
-        vars_eq.T,
-        vars_eq.XN,
-        vars_eq.invforT,
+    blocks = _evaluate_equilibrium(
+        x_sol, calib, tau, tau_fd, tauf, tauf_fd, replicate_matlab_precedence,
+        **model_options,
     )
-    p_vec = p.flatten(order="F")
-
-    # 2. Paso 1 & 2: Zero-profit prices (pp) and factor demands (xl, xk)
-    term_r = (r / calib.alpha) ** calib.alpha
-    if replicate_matlab_precedence:
-        term_w = w / ((1.0 - calib.alpha) ** (1.0 - calib.alpha))
-    else:
-        term_w = (w / (1.0 - calib.alpha)) ** (1.0 - calib.alpha)
-    val_va = (1.0 / calib.beta) * (term_r * term_w)
-
-    inter_cost = np.tensordot(p_vec, calib.a * tau_a, axes=(0, 0))[np.newaxis, :, :]
-    pp = (val_va + inter_cost) / (1.0 - calib.tax)
-    mask_active = (ytot > 0)
-    pp = np.where(mask_active, pp, 1.0)
-
-    ratio_rw = ((1.0 - calib.alpha) * r) / (calib.alpha * w)
-    ratio_wr = (calib.alpha * w) / ((1.0 - calib.alpha) * r)
-    xl = np.where(mask_active, (ytot / calib.beta) * (ratio_rw ** calib.alpha), 0.0)
-    xk = np.where(mask_active, (ytot / calib.beta) * (ratio_wr ** (1.0 - calib.alpha)), 0.0)
-
-    # 3. Paso 3: Final demand prices (ppfd) and tax-inclusive consumer prices (Pfd_final)
-    ppfd = np.tensordot(p_vec, calib.afd * taufd_a, axes=(0, 0))[np.newaxis, :, :]
-    tax_fd_arr = calib.tax_fd if calib.tax_fd is not None else np.zeros((1, nfd, nc))
+    if model_options.get("accounting", "legacy") == "consistent":
+        from ._accounting import postprocess
+        return postprocess(blocks, calib, base_result)
+    p = blocks["p"]
+    ytot = blocks["ytot"]
+    r = blocks["r"]
+    w = blocks["w"]
+    T = blocks["T"]
+    XN = blocks["XN"]
+    invforT = blocks["invforT"]
+    p_vec = blocks["p_vec"]
+    pp = blocks["pp"]
+    xl = blocks["xl"]
+    xk = blocks["xk"]
+    ppfd = blocks["ppfd"]
+    tax_fd_arr = blocks["tax_fd_arr"]
+    cd = blocks["cd"]
+    Tax_c = blocks["Tax_c"]
+    c = blocks["c"]
+    xc = blocks["xc"]
+    x_mat = blocks["x_mat"]
+    tau_a = blocks["tau_a"]
+    taufd_a = blocks["taufd_a"]
+    Tarifs_Totals = blocks["Tarifs_Totals"]
     Pfd_final = (1.0 + tax_fd_arr) * ppfd
-
-    # 4. Paso 4: Income, consumption allocation, and final demand deliveries
-    l_endow_3d = calib.l_endow.reshape((1, 1, nc))
-    k_endow_3d = calib.k_endow.reshape((1, 1, nc))
-    Ycon = w * l_endow_3d + r * k_endow_3d + T
-    cd = calib.theta * Ycon / ppfd
-    Tax_c = tax_fd_arr * ppfd * cd
-
-    c = cd.copy()
-    c[:, 1:2, :] -= invforT.reshape((1, 1, nc)) / ppfd[:, 1:2, :]
-    xc = calib.afd * (c - tax_fd_arr * cd)
-
-    # 5. Paso 5: Intermediate demand quantities
-    x_mat = calib.a * ytot
     interm_matrix = x_mat.reshape((ns * nc, ns * nc), order="F")
     interm_tensor = interm_matrix.reshape((ns, nc, ns, nc), order="F")
 
@@ -268,7 +232,10 @@ def compute_postprocessing_flows(
     tau_a_mat = tau_a.reshape(ns * nc, ns * nc, order="F")
     taufd_a_mat = taufd_a.reshape(ns * nc, nfd * nc, order="F")
     tariff_rates = np.hstack([tau_a_mat - 1.0, taufd_a_mat - 1.0])
-    data_tariff = np.sum(data_model_val * tariff_rates, axis=0, keepdims=True)
+    tariff_values = data_model_val
+    if model_options.get("fiscal_closure", "lump_sum") not in ("lump_sum", "baseline", ""):
+        tariff_values = data_model * p_vec[:, None]
+    data_tariff = np.sum(tariff_values * tariff_rates, axis=0, keepdims=True)
 
     row_tax = np.hstack([
         (calib.tax * ytot).reshape(1, ns * nc, order="F"),
@@ -350,15 +317,7 @@ def compute_postprocessing_flows(
     terms_of_trade = px / pm
 
     # 11. Residual vector evaluation
-    residuals = compute_equilibrium_residuals(
-        x_sol,
-        calib,
-        tau=tau_a,
-        tau_fd=taufd_a,
-        tauf=tauf_vec,
-        tauf_fd=tauf_fd_vec,
-        replicate_matlab_precedence=replicate_matlab_precedence,
-    )
+    residuals = blocks["residuals"]
     diff = float(np.sum(np.abs(residuals)))
     max_res = float(np.max(np.abs(residuals)))
 
@@ -384,6 +343,7 @@ def compute_postprocessing_flows(
         "imports": imports,
         "net_exports": net_exports,
         "tariffs": tariffs_total,
+        "fiscal_tariffs": blocks["Tarifs_Totals"],
         "tariffs_interm": tariffs_interm,
         "tariffs_fd": tariffs_fd,
         "gdp": gdp_mp,
@@ -414,6 +374,7 @@ def postprocess_trade_equilibrium(
     base_result: TradeEquilibriumResult | None = None,
     metadata: dict[str, Any] | None = None,
     matlab_compat: bool = True,
+    **model_options: Any,
 ) -> TradeEquilibriumResult:
     """Post-process equilibrium solution and package into TradeEquilibriumResult container.
 
@@ -461,10 +422,14 @@ def postprocess_trade_equilibrium(
         replicate_matlab_precedence=replicate_matlab_precedence,
         base_result=base_result,
         matlab_compat=matlab_compat,
+        **model_options,
     )
 
     meta = dict(metadata) if metadata is not None else {}
+    meta.update(model_options)
     meta.update({
+        "tariff_revenue_mode": model_options.get("tariff_revenue_mode", "legacy_national"),
+        "fiscal_tariffs": flows["fiscal_tariffs"],
         "matlab_compat": matlab_compat,
         "replicate_matlab_precedence": replicate_matlab_precedence,
         "bilateral_trade": flows["bilateral_trade"],
@@ -473,6 +438,14 @@ def postprocess_trade_equilibrium(
         "data_model_vf": flows["data_model_vf"],
         "data_tariff_vf": flows["data_tariff_vf"],
     })
+
+    meta.update(flows.get("accounting_metadata", {}))
+    if meta.get("accounting") == "consistent":
+        tolerance = float(meta.get("tol", 1e-8))
+        physical = meta["physical_residuals"]
+        converged = bool(converged and meta["demand_feasible"] and np.isfinite(physical).all()
+                         and np.max(np.abs(physical)) <= tolerance
+                         and np.isfinite(flows["max_residual"]) and flows["max_residual"] <= tolerance)
 
     return TradeEquilibriumResult(
         x_sol=np.asarray(x_sol, dtype=float).ravel(),

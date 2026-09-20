@@ -1,0 +1,149 @@
+{
+  "oracle": "scalar CES GE + primal baseline expenditure; 41 x 41 complete tariff grid",
+  "sigma": 2.0,
+  "tariff_bounds": [
+    0.0,
+    0.4
+  ],
+  "consumption_categories": [
+    0,
+    2
+  ],
+  "unilateral": {
+    "A": {
+      "runtime_rate": 0.4,
+      "independent_grid_rate": 0.4,
+      "ev_error": 4.630074101896753e-12,
+      "largest_grid_improvement_ev": 0.0,
+      "percent_ev": 9.102834660094734,
+      "boundary": "upper",
+      "passed": true
+    },
+    "B": {
+      "runtime_rate": 0.4,
+      "independent_grid_rate": 0.4,
+      "ev_error": 2.106759211528697e-12,
+      "largest_grid_improvement_ev": 0.0,
+      "percent_ev": 14.808385055209039,
+      "boundary": "upper",
+      "passed": true
+    }
+  },
+  "nash": {
+    "converged": true,
+    "runtime_rates": {
+      "A": 0.39999897600000006,
+      "B": 0.39999897600000006
+    },
+    "independent_discrete_nash": [
+      [
+        0.4,
+        0.4
+      ]
+    ],
+    "ev_errors": [
+      5.2586823784395165e-11,
+      8.770317805328887e-11
+    ],
+    "independent_grid_regrets_ev": [
+      8.086832587572701e-06,
+      2.2446192359915074e-05
+    ],
+    "independent_relative_regrets": [
+      1.72060267820696e-07,
+      3.0748208712212886e-07
+    ],
+    "reported_relative_regret": 3.074932880618435e-07,
+    "reported_policy_gap": 1.023999999960612e-06,
+    "passed": true
+  },
+  "fixed_action_matrix": {
+    "max_percent_ev_error": 1.5000800601683295e-10,
+    "passed": true
+  },
+  "fallback": {
+    "attempts": [
+      {
+        "method": "newton",
+        "seed": "calibrated",
+        "requested_tolerance": 1e-10,
+        "accepted": false,
+        "solver_converged": false,
+        "solver_max_residual": null,
+        "error": "Solver did not return a converged equilibrium",
+        "warnings": [
+          "invalid value encountered in divide"
+        ]
+      },
+      {
+        "method": "hybr",
+        "seed": "calibrated",
+        "requested_tolerance": 1e-10,
+        "accepted": true,
+        "solver_converged": true,
+        "solver_max_residual": 2.1316282072803006e-14,
+        "audited_max_residual": 4.618527782440651e-13,
+        "warnings": []
+      }
+    ],
+    "price_error": 4.907185768843192e-14,
+    "passed": true
+  },
+  "passed": true,
+  "oecd_aggregation": {
+    "native_archive_reloaded_this_run": false,
+    "unit": "M_USD",
+    "dimensions": [
+      3,
+      3
+    ],
+    "consumption_categories": [
+      0
+    ],
+    "consumption_mapping": "HFCE + NPISH + GGFC (includes government consumption)",
+    "ge_tol": 1e-05,
+    "strict_tolerance_probe": {
+      "accepted": false,
+      "attempts": [
+        {
+          "method": "newton",
+          "seed": "calibrated",
+          "requested_tolerance": 1e-08,
+          "accepted": false,
+          "solver_converged": false,
+          "solver_max_residual": 2.0489096641540527e-08,
+          "error": "Solver did not return a converged equilibrium",
+          "warnings": []
+        },
+        {
+          "method": "hybr",
+          "seed": "calibrated",
+          "requested_tolerance": 1e-08,
+          "accepted": false,
+          "solver_converged": false,
+          "solver_max_residual": 2.60770320892334e-08,
+          "error": "Solver did not return a converged equilibrium",
+          "warnings": []
+        },
+        {
+          "method": "keller_pac",
+          "seed": "calibrated",
+          "requested_tolerance": 1e-08,
+          "accepted": false,
+          "solver_converged": false,
+          "solver_max_residual": 2.9802322387695312e-08,
+          "error": "Solver did not return a converged equilibrium",
+          "warnings": []
+        }
+      ]
+    },
+    "unilateral_grid_rate": 0.1,
+    "unilateral_boundary": "upper",
+    "unilateral_direct_ev_error": 5.762558430433273e-09,
+    "world_scope": "all calibrated countries, including nonplayers",
+    "world_direct_percent_ev_error": 3.1020325197417264e-14,
+    "one_iteration_candidate_converged": false,
+    "candidate_max_residual": 3.3527612686157227e-08,
+    "passed": true
+  }
+}

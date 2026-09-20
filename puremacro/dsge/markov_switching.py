@@ -852,6 +852,10 @@ def _solve_coupled_quadratic_newton(
                     delta_i = delta[i * n**2 : (i + 1) * n**2].reshape((n, n), order="F")
                     T[i] += 0.1 * delta_i
 
+        diff = max(float(np.max(np.abs(
+            (A[i] @ sum(P[i, k] * T[k] for k in range(S)) + B[i]) @ T[i] + C[i]
+        ))) for i in range(S))
+        converged = bool(np.isfinite(diff) and diff <= tol)
         return T, converged, iterations, diff
 
     if initial_T is not None:
@@ -943,34 +947,12 @@ def _solve_coupled_quadratic_fp(
             T_new.append(T_up)
 
         T = T_new
-        diff = max_diff
-        if max_diff < tol:
+        diff = max(float(np.max(np.abs(
+            (A[i] @ sum(P[i, k] * T[k] for k in range(S)) + B[i]) @ T[i] + C[i]
+        ))) for i in range(S))
+        if np.isfinite(diff) and diff <= tol:
             converged = True
             break
-
-    if not converged and max_iter >= 100:
-        # Complex fixed-point relaxation for systems with roots outside real manifold
-        T_c = [np.full((n, n), 0.5 + 0.5j) for _ in range(S)]
-        for it_c in range(1, max_iter + 1):
-            max_diff_c = 0.0
-            T_c_new = []
-            for i in range(S):
-                T_sum_c = sum(P[i, k] * T_c[k] for k in range(S))
-                Omega_i_c = A[i] @ T_sum_c + B[i]
-                try:
-                    T_cand_c = -scipy.linalg.solve(Omega_i_c, C[i])
-                except scipy.linalg.LinAlgError:
-                    T_cand_c = -scipy.linalg.solve(Omega_i_c + 1e-8 * np.eye(n), C[i])
-                T_up_c = 0.5 * T_c[i] + 0.5 * T_cand_c
-                max_diff_c = max(max_diff_c, float(np.max(np.abs(T_up_c - T_c[i]))))
-                T_c_new.append(T_up_c)
-            T_c = T_c_new
-            if max_diff_c < tol:
-                converged = True
-                diff = max_diff_c
-                iterations = it_c
-                T = [np.real(Ti) for Ti in T_c]
-                break
 
     return T, converged, iterations, diff
 
@@ -1249,30 +1231,45 @@ def solve_ms_dsge(
     else:
         raise ValueError(f"Unknown method '{method}'; expected 'newton' or 'functional_iteration'.")
 
-    # 3. Compute shock impact matrices R_1, ..., R_S
-    # R_i = - [A_i (sum_k P[i, k] T_k) + B_i]^{-1} D_i
-    R_list = []
-    for i in range(S):
-        T_sum = sum(P[i, k] * T_list[k] for k in range(S))
-        Omega_i = A_list[i] @ T_sum + B_list[i]
-        try:
-            Ri = -scipy.linalg.solve(Omega_i, D_list[i])
-        except scipy.linalg.LinAlgError:
-            Ri = -scipy.linalg.lstsq(Omega_i, D_list[i])[0]
-        R_list.append(Ri)
-
-    # 4. Compute intercept vectors c_1, ..., c_S
-    c_list = _solve_intercepts(A_list, B_list, T_list, K_list, P)
-
-    # 5. Stability operators (M1, M2)
-    M1, M2, rho_M1, rho_M2 = _compute_mss_operators(T_list, P, A_list, B_list, C_list)
-    mean_square_stable = bool(rho_M2 < 1.0)
-
-    # 6. Ergodic distribution and unconditional moments
+    diff = max(float(np.max(np.abs(
+        (A_list[i] @ sum(P[i, k] * T_list[k] for k in range(S)) + B_list[i]) @ T_list[i] + C_list[i]
+    ))) for i in range(S))
+    converged = bool(np.isfinite(diff) and diff <= tol)
     pi_infty = markov_stationary(P)
-    bar_y, var_y = _compute_ergodic_moments(
-        T_list, R_list, c_list, P, pi_infty, M1, M2, rho_M1, rho_M2, Sigma_eps
-    )
+    if converged:
+        # 3. Compute shock impact matrices R_1, ..., R_S
+        # R_i = - [A_i (sum_k P[i, k] T_k) + B_i]^{-1} D_i
+        R_list = []
+        for i in range(S):
+            T_sum = sum(P[i, k] * T_list[k] for k in range(S))
+            Omega_i = A_list[i] @ T_sum + B_list[i]
+            try:
+                Ri = -scipy.linalg.solve(Omega_i, D_list[i])
+            except scipy.linalg.LinAlgError:
+                Ri = -scipy.linalg.lstsq(Omega_i, D_list[i])[0]
+            R_list.append(Ri)
+
+        # 4. Compute intercept vectors c_1, ..., c_S
+        c_list = _solve_intercepts(A_list, B_list, T_list, K_list, P)
+
+        # 5. Stability operators (M1, M2)
+        M1, M2, rho_M1, rho_M2 = _compute_mss_operators(T_list, P, A_list, B_list, C_list)
+        mean_square_stable = bool(rho_M2 < 1.0)
+
+        # 6. Ergodic distribution and unconditional moments
+        bar_y, var_y = _compute_ergodic_moments(
+            T_list, R_list, c_list, P, pi_infty, M1, M2, rho_M1, rho_M2, Sigma_eps
+        )
+
+    else:
+        # A non-solution has no implied equilibrium stability or ergodic moments.
+        R_list = [np.full((n, n_shk), np.nan) for _ in range(S)]
+        c_list = [np.full(n, np.nan) for _ in range(S)]
+        M1 = np.full((S * n, S * n), np.nan)
+        M2 = np.full((S * n**2, S * n**2), np.nan)
+        rho_M1 = rho_M2 = float("nan")
+        mean_square_stable = False
+        bar_y, var_y = np.full(n, np.nan), np.full((n, n), np.nan)
 
     ergodic_dist_series = pd.Series(pi_infty, index=list(reg_names_tuple), name="ergodic_probability")
     ergodic_mean_series = pd.Series(bar_y, index=list(var_names_tuple), name="ergodic_mean")

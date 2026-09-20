@@ -817,7 +817,7 @@ como `puremacro/trade/_datafiles/SOURCES.md`.
 
 ## Estado
 
-Versión de producción, distribuyendo **3.4.0**. `docs/1.0_path.md` § 5 enumera qué subpaquetes están dentro de la promesa del gate de publicación y cuáles son experimentales.
+Versión de producción, distribuyendo **4.3.0**. `docs/1.0_path.md` § 5 enumera qué subpaquetes están dentro de la promesa del gate de publicación y cuáles son experimentales.
 
 La CI está activa y corre en cada push: la suite sobre tres sistemas operativos y tres versiones de Python (3.11, 3.12 y 3.13), el contrato con Pyodide, mypy, la guardia de deriva contra referencias, `mkdocs build --strict`, el despliegue del playground y una publicación en PyPI disparada por etiqueta mediante trusted publishing. Véase `.github/workflows/`. Aun así ejecute `python tools/release_check.py` localmente antes de etiquetar: los gates 5 y 6 son opcionales y la CI no los corre.
 

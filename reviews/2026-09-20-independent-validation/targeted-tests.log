@@ -1,0 +1,22 @@
+........................................................................ [ 36%]
+........................................................................ [ 73%]
+.....................................................                    [100%]
+=============================== warnings summary ===============================
+tests/test_trade_mrio_stress_challenger.py::TestStressMemoryAndNumericStability::test_numeric_stability_near_zero_output
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/trade/regularize.py:98: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 5.00006499825565e-18.
+    candidate = scipy.linalg.solve(lam * np.eye(n) - B, np.ones(n))
+
+tests/test_dynare_parity_adversarial.py::TestPfeiferSW07AdversarialParity::test_sw07_arbitrary_scrambled_order_var_parity
+  /Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/_pytest/fixtures.py:1313: PytestRemovedIn10Warning: Class-scoped fixture defined as instance method is deprecated.
+  Instance attributes set in this fixture will NOT be visible to test methods,
+  as each test gets a new instance while the fixture runs only once per class.
+  Use @classmethod decorator and set attributes on cls instead.
+  See https://docs.pytest.org/en/stable/deprecations.html#class-scoped-fixture-as-instance-method
+    fixturefunc = resolve_fixture_function(fixturedef, request)
+
+tests/test_public_api.py::test_public_api_matches_snapshot
+  /Users/jalonso/.local/share/uv/python/cpython-3.14.6-macos-aarch64-none/lib/python3.14/importlib/__init__.py:88: FutureWarning: puremacro.lp.garch_utils is private and deprecated, will be removed in a future major release (4.0.0); use puremacro.lp._garch_utils or high-level LP functions instead.
+    return _bootstrap._gcd_import(name[level:], package, level)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+197 passed, 3 warnings in 10.55s

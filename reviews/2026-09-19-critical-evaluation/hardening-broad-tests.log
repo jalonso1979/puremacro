@@ -1,0 +1,308 @@
+........................................................................ [  2%]
+........................................................................ [  4%]
+........................................................................ [  6%]
+........................................................................ [  8%]
+.................................s...................................s.. [ 10%]
+........................................................................ [ 12%]
+.............................................s.......................... [ 14%]
+.......ss............................................................... [ 16%]
+........................................................................ [ 18%]
+................................s...........................s.s......... [ 21%]
+............................s.............................ss............ [ 23%]
+........................................................................ [ 25%]
+........................................................................ [ 27%]
+........................................................................ [ 29%]
+........................................................................ [ 31%]
+........................................................................ [ 33%]
+........................................................................ [ 35%]
+..................................s..................................... [ 37%]
+........................................................................ [ 39%]
+........................................................................ [ 42%]
+........................................................................ [ 44%]
+........................................................................ [ 46%]
+........................................................................ [ 48%]
+........................................................................ [ 50%]
+........................................................................ [ 52%]
+........................................................................ [ 54%]
+........................................................................ [ 56%]
+........................................................s.....sss.ssss.. [ 58%]
+..sxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...................................... [ 60%]
+........................................................................ [ 63%]
+........................................................................ [ 65%]
+........................................................................ [ 67%]
+...........................................................xxxxxxxxxxxxx [ 69%]
+xxxxxxxxxxxx............................................................ [ 71%]
+........................................................................ [ 73%]
+........................................................................ [ 75%]
+.................F.......................F............................ss [ 77%]
+........................................................................ [ 79%]
+........................................................................ [ 81%]
+........................................................................ [ 84%]
+........................................................................ [ 86%]
+.....ssssssxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx [ 88%]
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx [ 90%]
+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx [ 92%]
+xxxxxxxxx............................................................... [ 94%]
+...........xxxx......................................................... [ 96%]
+........................................................................ [ 98%]
+.........................................                                [100%]
+=================================== FAILURES ===================================
+_ TestCollatzWielandtSpectralRadius.test_collatz_wielandt_speed_on_large_network _
+tests/test_trade_mrio_infrastructure.py:424: in test_collatz_wielandt_speed_on_large_network
+    assert elapsed < 0.15, f"Spectral radius check took too long: {elapsed:.4f}s"
+E   AssertionError: Spectral radius check took too long: 0.1962s
+E   assert 0.19621825218200684 < 0.15
+_ TestStressCollatzWielandtSpectralRadius.test_spectral_radius_speed_m_3465_under_0_15s _
+tests/test_trade_mrio_stress_challenger.py:318: in test_spectral_radius_speed_m_3465_under_0_15s
+    assert median_time < 0.15, f"Median runtime {median_time:.4f}s exceeds 0.15s"
+E   AssertionError: Median runtime 0.1958s exceeds 0.15s
+E   assert 0.1957538749993546 < 0.15
+----------------------------- Captured stdout call -----------------------------
+
+[BENCHMARK] M=3,465 Collatz-Wielandt: min=0.1896s, median=0.1958s, max=0.2003s
+=============================== warnings summary ===============================
+tests/test_vfi/test_challenger_p1_p2.py::TestMultiBackendFallback::test_numpy_and_numba_backend_parity
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_vfi/test_challenger_p1_p2.py:549: UserWarning: Backend 'numba' requested but not available; falling back to 'numpy'.
+    dist_nb = continuous_stationary_distribution(pol, k_grid, backend="numba")
+
+tests/test_vfi/test_continuous_e2e.py::TestTier1F5MultiBackendAcceleration::test_t1_f5_02_backend_numba_execution_and_fallback
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_vfi/test_continuous_e2e.py:418: UserWarning: Backend 'numba' requested but not available; falling back to 'numpy'.
+    sol_nb = prob.solve(backend="numba")
+
+tests/test_vfi/test_continuous_e2e.py::TestTier3CrossFeatureCombinations::test_t3_07_multi_backend_fem_numpy_vs_numba
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_vfi/test_continuous_e2e.py:1025: UserWarning: Backend 'numba' requested but not available; falling back to 'numpy'.
+    sol_nb = prob.solve(backend="numba")
+
+tests/test_vfi/test_fem.py::TestFEMBackendsAndFunctionalAPI::test_solve_backend_fallback_cupy
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_vfi/test_fem.py:532: UserWarning: Backend 'cupy' requested but not available; falling back to 'numpy'.
+    sol = prob.solve(backend="cupy")
+
+tests/test_dsge/test_ast_parser.py::test_shocks_block_parsing
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/_parser.py:1952: UserWarning: parse_mod: the shocks; block declares no variance for ['e3'] — following Dynare (M_.Sigma_e starts at zero), their innovation variance is 0, so they are inert in the moments, the IRFs and the second-order risk correction ghs2. Add 'var <name>; stderr <value>;' to the shocks; block if that is not what you meant.
+    return parser.parse()
+
+tests/test_dsge/test_build.py::test_hopeless_guess_reports_failure_to_converge
+tests/test_dsge/test_build.py::test_a_nan_steady_state_residual_is_rejected
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_dsge/test_build.py:25: RuntimeWarning: invalid value encountered in scalar power
+    1 / x.c - p.beta * (p.alpha * xp.z * xp.k ** (p.alpha - 1)) / xp.c,
+
+tests/test_dsge/test_build.py::test_hopeless_guess_reports_failure_to_converge
+tests/test_dsge/test_build.py::test_a_nan_steady_state_residual_is_rejected
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_dsge/test_build.py:26: RuntimeWarning: invalid value encountered in scalar power
+    x.c + xp.k - x.z * x.k ** p.alpha,
+
+tests/test_dsge/test_build.py::test_hopeless_guess_reports_failure_to_converge
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_dsge/test_build.py:27: RuntimeWarning: invalid value encountered in scalar power
+    xp.z - x.z ** p.rho * np.exp(e.eps),
+
+tests/test_dsge/test_build.py::test_a_non_finite_jacobian_is_named_rather_than_handed_to_lapack
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/build.py:2007: RuntimeWarning: overflow encountered in divide
+    jac[:, j] = out.imag / _CSTEP
+
+tests/test_dsge/test_build.py::test_a_non_finite_probe_does_not_silently_disable_the_check
+tests/test_dsge/test_build.py::test_a_non_finite_probe_does_not_silently_disable_the_check
+tests/test_dsge/test_build.py::test_a_non_finite_probe_does_not_silently_disable_the_check
+tests/test_dsge/test_build.py::test_a_non_finite_probe_does_not_silently_disable_the_check
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_dsge/test_build.py:419: RuntimeWarning: invalid value encountered in scalar power
+    xp.z - x.z ** p.rho * np.exp(e.eps) + 0.0 * (x.k - KSS) ** 1.5]
+
+tests/test_dsge/test_diagnostics.py::test_nan_steady_state_residual_detection
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_dsge/test_diagnostics.py:531: RuntimeWarning: invalid value encountered in scalar divide
+    return [curr.x / curr.y, curr.y - 1.0]
+
+tests/test_dsge/test_diagnostics.py::test_nan_steady_state_residual_detection
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_dsge/test_diagnostics.py:531: RuntimeWarning: divide by zero encountered in scalar divide
+    return [curr.x / curr.y, curr.y - 1.0]
+
+tests/test_dsge/test_estimate_dsge.py::test_estimate_dsge_hessian_overflow_falls_back_to_prior_stds
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/estimate.py:1088: UserWarning: estimate_dsge: chain 0 accept_rate=0.780 outside [0.10, 0.50]; mixing may be poor.
+    warnings.warn(
+
+tests/test_dsge/test_estimate_dsge.py::test_mode_search_that_never_moves_is_reported_as_such
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/estimate.py:1088: UserWarning: estimate_dsge: chain 0 accept_rate=0.660 outside [0.10, 0.50]; mixing may be poor.
+    warnings.warn(
+
+tests/test_dsge/test_presentation.py::test_osr_result_presentation_from_model
+tests/test_dsge/test_presentation.py::test_osr_result_presentation_from_model
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/build.py:819: ZeroVarianceWarning: forecast-error variance is zero for r_nat@h=1, r_nat@h=4, r_nat@h=8, r_nat@h=16, r_nat@h=32, r_nat@h=Infinity; the variance shares of those rows are undefined and reported as NaN.
+    df_fevd = self.fevd(horizons=fevd_horizons, sigma=sigma)
+
+tests/test_dsge/test_steady.py::test_homotopy_continuation_adaptive_bisection_converges_where_direct_fails
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_dsge/test_steady.py:305: RuntimeWarning: invalid value encountered in scalar power
+    1.0 / x.c - beta * (1.0 / xp.c) * (alpha * A * xp.k ** (alpha - 1.0) + 1.0 - delta),
+
+tests/test_dsge/test_steady.py::test_homotopy_continuation_adaptive_bisection_converges_where_direct_fails
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_dsge/test_steady.py:306: RuntimeWarning: invalid value encountered in scalar power
+    x.c + xp.k - (A * x.k ** alpha + (1.0 - delta) * x.k),
+
+tests/test_dsge/test_steady.py::test_homotopy_continuation_stalled_raises_informative_error
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_dsge/test_steady.py:355: RuntimeWarning: invalid value encountered in sqrt
+    return [x.x - np.sqrt(p.val)]
+
+tests/test_dsge/test_sw07_data.py::test_bundled_sw07_data_loads
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_dsge/test_sw07_data.py:13: UserWarning: Could not infer format, so each element will be parsed individually, falling back to `dateutil`. To ensure parsing is consistent and as-expected, please specify a format.
+    df = pd.read_csv(csv_path, comment="#", parse_dates=["date"], index_col="date")
+
+tests/test_dsge/test_sw07_data.py::test_bundled_sw07_data_date_range
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_dsge/test_sw07_data.py:24: UserWarning: Could not infer format, so each element will be parsed individually, falling back to `dateutil`. To ensure parsing is consistent and as-expected, please specify a format.
+    df = pd.read_csv(pkg / "_sw07_data.csv", comment="#", parse_dates=["date"], index_col="date")
+
+tests/test_dsge/test_sw07_estimate_smoke.py::test_estimate_sw07_with_user_data_runs
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/estimate.py:765: UserWarning: estimate_dsge: initial_params['crhoms'] = 0.0 is outside the prior support [0.01, 0.9999]; using 0.011 instead. The value you supplied has zero prior density, so it cannot be a mode.
+    init_vec = _initial_vec_from_dict(initial_params, priors,
+
+tests/test_dsge/test_sw07_estimate_smoke.py::test_estimate_sw07_with_user_data_runs
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/estimate.py:765: UserWarning: estimate_dsge: initial_params['crhopinf'] = 0.0 is outside the prior support [0.01, 0.9999]; using 0.011 instead. The value you supplied has zero prior density, so it cannot be a mode.
+    init_vec = _initial_vec_from_dict(initial_params, priors,
+
+tests/test_dsge/test_sw07_estimate_smoke.py::test_estimate_sw07_with_user_data_runs
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/estimate.py:765: UserWarning: estimate_dsge: initial_params['crhow'] = 0.0 is outside the prior support [0.001, 0.9999]; using 0.002 instead. The value you supplied has zero prior density, so it cannot be a mode.
+    init_vec = _initial_vec_from_dict(initial_params, priors,
+
+tests/test_dsge/test_sw07_estimate_smoke.py::test_estimate_sw07_with_user_data_runs
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/estimate.py:765: UserWarning: estimate_dsge: initial_params['cmap'] = 0.0 is outside the prior support [0.01, 0.9999]; using 0.011 instead. The value you supplied has zero prior density, so it cannot be a mode.
+    init_vec = _initial_vec_from_dict(initial_params, priors,
+
+tests/test_dsge/test_sw07_estimate_smoke.py::test_estimate_sw07_with_user_data_runs
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/estimate.py:765: UserWarning: estimate_dsge: initial_params['cmaw'] = 0.0 is outside the prior support [0.01, 0.9999]; using 0.011 instead. The value you supplied has zero prior density, so it cannot be a mode.
+    init_vec = _initial_vec_from_dict(initial_params, priors,
+
+tests/test_dsge/test_sw07_estimate_smoke.py::test_estimate_sw07_with_user_data_runs
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/estimate.py:899: UserWarning: estimate_dsge: the mode search stopped before converging ('STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT') after improving the log-posterior by 649.47. The best point found is returned as `mode`, but it is not a verified stationary point -- re-run from it if you need the actual mode.
+    warnings.warn(
+
+tests/test_dsge/test_sw07_estimate_smoke.py::test_estimate_sw07_with_user_data_runs
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/estimate.py:986: UserWarning: estimate_dsge: Hessian-based proposal failed (LinAlgError: numerical Hessian is not finite at the reported mode; parameters on a prior bound: ['cprobw', 'cprobp', 'cfc', 'crr', 'ctrend']); falling back to diag(prior_stds**2).
+    warnings.warn(
+
+tests/test_dsge/test_sw07_estimate_smoke.py::test_estimate_sw07_with_user_data_runs
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/estimate.py:1088: UserWarning: estimate_dsge: chain 0 accept_rate=0.000 outside [0.10, 0.50]; mixing may be poor.
+    warnings.warn(
+
+tests/test_dsge/test_sw07_observation.py::test_make_state_space_log_likelihood_finite_at_mode
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_dsge/test_sw07_observation.py:69: UserWarning: Could not infer format, so each element will be parsed individually, falling back to `dateutil`. To ensure parsing is consistent and as-expected, please specify a format.
+    df = pd.read_csv(pkg / "_sw07_data.csv", comment="#", parse_dates=["date"], index_col="date")
+
+tests/test_dsge_bayesian_surface.py::test_tunable_qz_criterium_unit_root
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_dsge_bayesian_surface.py:186: RuntimeWarning: klein_solve: 1 generalised eigenvalue(s) lie in [1, div=1.00001) and were admitted to the stable block, so the returned state transition G has a root on or outside the unit circle. The solution is a valid non-explosive rational-expectations path, but the model is NOT stationary: unconditional moments, the unconditional variance decomposition and the Lyapunov variance do not exist for it. Pass div=1.0 to refuse such models instead.
+    sol_stable = klein_solve(A, B, n_pre=1, C=C, qz_criterium=1.0 + 1e-5)
+
+tests/test_dsge_extended_path.py::test_max_iter_cutoff_graceful_handling
+tests/test_dsge_extended_path.py::test_max_iter_cutoff_strict_raises_runtime_error
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/perfect_foresight.py:1113: UserWarning: solve_perfect_foresight did not converge in 1 iterations (residual norm 1.5592e-02, step norm 2.5801e+00)
+    warnings.warn(
+
+tests/test_dsge_extended_path.py::test_max_iter_cutoff_graceful_handling
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/perfect_foresight.py:1113: UserWarning: solve_perfect_foresight did not converge in 1 iterations (residual norm 2.4058e-04, step norm 2.6625e+00)
+    warnings.warn(
+
+tests/test_dsge_extended_path.py::test_max_iter_cutoff_graceful_handling
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/perfect_foresight.py:1113: UserWarning: solve_perfect_foresight did not converge in 1 iterations (residual norm 1.6162e-04, step norm 2.6505e+00)
+    warnings.warn(
+
+tests/test_dsge_extended_path.py::test_max_iter_cutoff_graceful_handling
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/perfect_foresight.py:1113: UserWarning: solve_perfect_foresight did not converge in 1 iterations (residual norm 1.2805e-04, step norm 2.6339e+00)
+    warnings.warn(
+
+tests/test_dsge_extended_path.py::test_max_iter_cutoff_graceful_handling
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/perfect_foresight.py:1113: UserWarning: solve_perfect_foresight did not converge in 1 iterations (residual norm 1.0118e-04, step norm 2.6134e+00)
+    warnings.warn(
+
+tests/test_dsge_gertler_karadi.py::test_gk_occbin_leverage_cap_at_the_steady_state_binds_forever
+tests/test_dsge_gertler_karadi.py::test_gk_leverage_cap_reports_a_spell_that_does_not_fit_the_horizon
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/gertler_karadi.py:968: UserWarning: solve_occbin did not produce a verified solution (converged=False): the constraint still binds in the last simulated period (t=40), so the terminal condition -- that the reference regime resumes after the horizon -- is assumed rather than verified; increase horizon. The returned path is the one solved under `result.regimes` and is a diagnostic, not a solution.
+    res_occ = solve_occbin(
+
+tests/test_dsge_gertler_karadi.py::test_gk_occbin_leverage_cap_at_the_steady_state_binds_forever
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/gertler_karadi.py:968: UserWarning: solve_occbin did not produce a verified solution (converged=False): the constraint still binds in the last simulated period (t=200), so the terminal condition -- that the reference regime resumes after the horizon -- is assumed rather than verified; increase horizon. The returned path is the one solved under `result.regimes` and is a diagnostic, not a solution.
+    res_occ = solve_occbin(
+
+tests/test_dsge_mcp_transitions.py::test_linear_model_integration
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/dynare.py:221: RuntimeWarning: klein_solve: 1 generalised eigenvalue(s) lie in [1, div=1.00000001) and were admitted to the stable block, so the returned state transition G has a root on or outside the unit circle. The solution is a valid non-explosive rational-expectations path, but the model is NOT stationary: unconditional moments, the unconditional variance decomposition and the Lyapunov variance do not exist for it. Pass div=1.0 to refuse such models instead.
+    sol_full = klein_solve(A_klein, B_klein, n_pre=n_s, C=C_klein, strict=strict, div=qz_criterium)
+
+tests/test_dynare_bayesian.py::test_persistently_infeasible_likelihood_raises_rather_than_flatlining
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_dynare_bayesian.py:240: UserWarning: estimate_dsge_bayesian: the numerical Hessian at the reported mode is not a curvature measurement (4 of the finite-difference stencil points fall outside the prior support or gave a non-finite log-posterior). The Laplace approximation is undefined there, so mode_se is returned as NaN and the proposal covariance falls back to diag(prior_std**2). A mode on a prior bound usually means the data want a value the prior forbids -- widen the bound rather than reading these standard errors.
+    estimate_dsge_bayesian(
+
+tests/test_dynare_bayesian.py::test_boundary_mode_reports_nan_se_and_a_moving_chain
+  /Users/jalonso/Documents/RESEARCH/puremacro/tests/test_dynare_bayesian.py:260: UserWarning: estimate_dsge_bayesian: mean acceptance rate 0.007 is outside [0.05, 0.60]; the chains are either stuck (too low) or taking steps far smaller than the posterior scale (too high). The posterior summary below is not trustworthy.
+    res = estimate_dsge_bayesian(
+
+tests/test_dynare_parity_adversarial.py::TestPfeiferSW07AdversarialParity::test_sw07_arbitrary_scrambled_order_var_parity
+  /Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/_pytest/fixtures.py:1313: PytestRemovedIn10Warning: Class-scoped fixture defined as instance method is deprecated.
+  Instance attributes set in this fixture will NOT be visible to test methods,
+  as each test gets a new instance while the fixture runs only once per class.
+  Use @classmethod decorator and set attributes on cls instead.
+  See https://docs.pytest.org/en/stable/deprecations.html#class-scoped-fixture-as-instance-method
+    fixturefunc = resolve_fixture_function(fixturedef, request)
+
+tests/test_trade_mrio_stress_challenger.py::TestStressMemoryAndNumericStability::test_numeric_stability_near_zero_output
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/trade/regularize.py:93: LinAlgWarning: An ill-conditioned matrix detected: slice 0 has rcond = 5.00006499825565e-18.
+    rho = float(np.max(np.abs(scipy.linalg.eigvals(B))))
+
+tests/test_trade_tier5_adversarial_solvers_mrio.py::TestAdversarialKellerPAC::test_keller_pac_premature_step_limit_gap
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/trade/equilibrium.py:83: RuntimeWarning: overflow encountered in exp
+    p = np.exp(p_raw).reshape((1, ns, nc), order="F")
+
+tests/test_trade_tier5_adversarial_solvers_mrio.py::TestAdversarialKellerPAC::test_keller_pac_premature_step_limit_gap
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/trade/equilibrium.py:85: RuntimeWarning: overflow encountered in exp
+    r = np.exp(r_raw).reshape((1, 1, nc), order="F")
+
+tests/test_trade_tier5_adversarial_solvers_mrio.py::TestAdversarialKellerPAC::test_keller_pac_premature_step_limit_gap
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/trade/equilibrium.py:86: RuntimeWarning: overflow encountered in exp
+    w = np.exp(w_raw).reshape((1, 1, nc), order="F")
+
+tests/test_trade_tier5_adversarial_solvers_mrio.py::TestAdversarialKellerPAC::test_keller_pac_premature_step_limit_gap
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/trade/equilibrium.py:477: RuntimeWarning: invalid value encountered in divide
+    ratio_rw = ((1.0 - calib.alpha) * r_use) / (calib.alpha * w_use)
+
+tests/test_trade_tier5_adversarial_solvers_mrio.py::TestAdversarialKellerPAC::test_keller_pac_premature_step_limit_gap
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/trade/equilibrium.py:478: RuntimeWarning: invalid value encountered in divide
+    ratio_wr = (calib.alpha * w_use) / ((1.0 - calib.alpha) * r_use)
+
+tests/test_trade_tier5_adversarial_solvers_mrio.py::TestAdversarialKellerPAC::test_keller_pac_premature_step_limit_gap
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/trade/equilibrium.py:490: RuntimeWarning: invalid value encountered in divide
+    cd = calib.theta * Ycon / ppfd
+
+tests/test_trade_tier5_adversarial_solvers_mrio.py::TestAdversarialKellerPAC::test_keller_pac_premature_step_limit_gap
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/trade/equilibrium.py:492: RuntimeWarning: invalid value encountered in multiply
+    Tax_c = tax_fd_arr * ppfd * cd
+
+tests/test_trade_tier5_adversarial_solvers_mrio.py::TestAdversarialKellerPAC::test_keller_pac_premature_step_limit_gap
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/trade/equilibrium.py:511: RuntimeWarning: invalid value encountered in multiply
+    data_model_val = data_model * data_model_p
+
+tests/test_trade_tier5_adversarial_solvers_mrio.py::TestAdversarialKellerPAC::test_keller_pac_premature_step_limit_gap
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/trade/equilibrium.py:551: RuntimeWarning: invalid value encountered in subtract
+    ff1 = (pp.reshape((ns * nc, 1), order="F") - p.reshape((ns * nc, 1), order="F")).ravel()
+
+tests/test_trade_tier5_adversarial_solvers_mrio.py::TestAdversarialKellerPAC::test_keller_pac_premature_step_limit_gap
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/trade/solver.py:1867: RuntimeWarning: invalid value encountered in subtract
+    J_fin[:, j] = (eval_full(xp, 1.0) - f_final) / eps_fd
+
+tests/test_public_api.py::test_public_api_matches_snapshot
+  /Users/jalonso/.local/share/uv/python/cpython-3.14.6-macos-aarch64-none/lib/python3.14/importlib/__init__.py:88: FutureWarning: puremacro.lp.garch_utils is private and deprecated, will be removed in a future major release (4.0.0); use puremacro.lp._garch_utils or high-level LP functions instead.
+    return _bootstrap._gcd_import(name[level:], package, level)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================= slowest 15 durations =============================
+96.54s call     tests/test_vfi/test_vfi_krusell_smith.py::test_krusell_smith_degenerate_reduces_to_aiyagari
+36.58s call     tests/test_dsge/test_sw07_estimate_smoke.py::test_estimate_sw07_with_user_data_runs
+22.36s call     tests/test_vfi/test_vfi_krusell_smith.py::test_krusell_smith_converges_high_r2_and_mean_K
+19.76s call     tests/test_dsge/test_estimate_from_mod.py::test_estimate_recovers_known_parameters
+15.30s call     tests/test_vfi/test_vfi_estimate.py::test_model_based_recovery_beta_from_mean_assets
+13.37s call     tests/test_v300_nuts.py::test_dsge_nuts_estimation_end_to_end
+12.75s call     tests/test_vfi/test_vfi_ge_types.py::test_two_identical_types_equal_one_type
+11.40s call     tests/test_trade_scenarios.py::TestWarmStartedBatchSolve::test_continuation_single_newton_step
+8.50s call     tests/test_vfi/test_vfi_ge_types.py::test_one_type_ge_matches_plain_aiyagari
+8.18s call     tests/test_vfi/test_vfi_multi_asset_compose.py::test_general_equilibrium_with_multi_asset
+7.98s call     tests/test_vfi/test_vfi_aiyagari_endogenous.py::test_r_star_does_not_depend_on_the_guess
+7.06s call     tests/test_dsge/test_estimate_from_mod.py::test_posterior_mode_matches_ordinary_least_squares_on_the_same_series
+6.90s call     tests/test_vfi/test_vfi_transition.py::test_transition_returns_to_steady_state_from_perturbed_dist
+6.81s call     tests/test_dynare_bayesian.py::test_estimate_dsge_bayesian_synthetic_ar1
+6.22s call     tests/test_vfi/test_vfi_huggett.py::test_huggett_more_risk_lowers_rate
+=========================== short test summary info ============================
+FAILED tests/test_trade_mrio_infrastructure.py::TestCollatzWielandtSpectralRadius::test_collatz_wielandt_speed_on_large_network
+FAILED tests/test_trade_mrio_stress_challenger.py::TestStressCollatzWielandtSpectralRadius::test_spectral_radius_speed_m_3465_under_0_15s
+2 failed, 3120 passed, 30 skipped, 7 deselected, 274 xfailed, 61 warnings in 469.45s (0:07:49)

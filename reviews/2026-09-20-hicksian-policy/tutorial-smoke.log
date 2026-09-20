@@ -1,0 +1,18 @@
+/Users/jalonso/Documents/RESEARCH/puremacro/notebooks/63_trade_wars_and_nash_tariffs.py:123: UserWarning: FigureCanvasAgg is non-interactive, and thus cannot be shown
+  plt.show()
+{'source': 'hand-balanced teaching table', 'is_synthetic': True, 'unit': 'illustrative value units'}
+Optimal tariff on the declared interval: 0.3
+EV / baseline consumption (%): 7.145081703233689
+Boundary: upper
+                       B: 0%                B: 10%
+A: 0%   (+0.0000%, +0.0000%)  (-3.5645%, +4.5201%)
+A: 10%  (+2.6308%, -2.1820%)  (-1.0039%, +2.4065%)
+Is this finite game a Prisoner's Dilemma? False
+Candidate tariffs: {'A': 0.29999923199999995, 'B': 0.29999923199999995}
+Numerical convergence: True
+Final simultaneous best-response gap: 7.680000000398479e-07
+Maximum regret / baseline consumption: 2.56241740872982e-07
+Boundary status: {'A': 'upper', 'B': 'upper'}
+Final GE attempts: [{'method': 'newton', 'seed': 'warm', 'requested_tolerance': 1e-09, 'accepted': True, 'solver_converged': True, 'audited_max_residual': 1.5660361896152608e-10, 'warnings': []}]
+Alternative candidate: {'A': 0.19999744000000003, 'B': 0.19999744000000003}
+Converged / gap / relative regret: True 2.5599999999847967e-06 9.583755619847738e-07

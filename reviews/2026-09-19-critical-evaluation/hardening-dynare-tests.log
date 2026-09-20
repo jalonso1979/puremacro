@@ -1,0 +1,13 @@
+........................................................................ [ 67%]
+...................................                                      [100%]
+=============================== warnings summary ===============================
+tests/test_dynare_parity_adversarial.py::TestPfeiferSW07AdversarialParity::test_sw07_arbitrary_scrambled_order_var_parity
+  /Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/_pytest/fixtures.py:1313: PytestRemovedIn10Warning: Class-scoped fixture defined as instance method is deprecated.
+  Instance attributes set in this fixture will NOT be visible to test methods,
+  as each test gets a new instance while the fixture runs only once per class.
+  Use @classmethod decorator and set attributes on cls instead.
+  See https://docs.pytest.org/en/stable/deprecations.html#class-scoped-fixture-as-instance-method
+    fixturefunc = resolve_fixture_function(fixturedef, request)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+107 passed, 1 warning in 1.74s

@@ -18,7 +18,7 @@ from ._results import (
     ModelParityResult,
     ParityDashboardResult,
 )
-from .dynare_results import load_dynare_dr, load_dynare_moments
+from .dynare_results import load_dynare_dr, load_dynare_moments, _to_plain_dict
 
 _MAT_INPUT_REMOVED = (
     "puremacro 4.0.0 no longer reads MATLAB .mat files. Pass the Dynare oo_ "
@@ -30,6 +30,10 @@ _MAT_INPUT_REMOVED = (
 
 
 DEFAULT_TOLERANCES: dict[str, float] = {
+    "ys": 1e-6,
+    "ghxu": 1e-4,
+    "ghuu": 1e-4,
+    "shock_cov": 1e-10,
     "ghx": 1e-6,
     "ghu": 1e-6,
     "ghxx": 1e-4,
@@ -79,6 +83,8 @@ def verify_dynare_parity(
     ParityDashboardResult
         Consolidated scorecard with per-variable deviations and overall parity score.
     """
+    if order not in (1, 2):
+        raise ValueError("Parity supports orders 1 and 2 only")
     t0 = time.perf_counter()
     tolerances = _resolve_tolerances(tol)
     model_name = "model"
@@ -118,250 +124,158 @@ def verify_dynare_parity(
         else:
             raise TypeError(f"Cannot extract decision rules from {type(pm_model)}")
 
-    # 2. Resolve Dynare output
-    dyn_moments: dict[str, np.ndarray] = {}
+    def unavailable(message, **details):
+        return ParityDashboardResult(
+            passed=False, score=0.0, model_name=model_name,
+            total_models=1, passed_models=0, failed_models=1,
+            tolerances=tolerances, max_dev_ghx=np.nan, max_dev_ghu=np.nan,
+            max_dev_ghxx=np.nan, max_dev_ghs2=np.nan,
+            max_dev_moments=np.nan, max_dev_dr=np.nan,
+            details={"status": "UNAVAILABLE", "error": message,
+                     "runtime_sec": time.perf_counter() - t0, **details},
+        )
+
+    # Missing tensors are not zero tensors. Incomplete references cannot pass.
+    dyn_moments = {}
+    raw = None
     if isinstance(dynare_output, (str, Path)):
         raise TypeError(_MAT_INPUT_REMOVED)
-    elif isinstance(dynare_output, (DynareDR, Dynare2ndDR)):
+    if isinstance(dynare_output, (DynareDR, Dynare2ndDR)):
         dyn_dr = dynare_output
     elif isinstance(dynare_output, dict):
+        raw = _to_plain_dict(dynare_output)
+        fields = raw.get("oo_", {}).get("dr", {})
+        required = ["ghx", "ghu"] + (["ghxx", "ghxu", "ghuu", "ghs2"] if order == 2 else [])
+        missing = [k for k in required if fields.get(k) is None]
+        if fields.get("ys") is None and raw.get("oo_", {}).get("steady_state") is None:
+            missing.append("ys")
+        if missing:
+            return unavailable(f"Missing decision-rule fields: {missing}", order2_missing=order == 2)
         try:
-            dyn_dr = load_dynare_dr(dynare_output, order=order)
-        except KeyError as exc:
-            if order >= 2 and ("ghxx" in str(exc) or "ghs2" in str(exc)):
-                runtime_sec = time.perf_counter() - t0
-                return ParityDashboardResult(
-                    passed=False,
-                    score=0.0,
-                    model_name=model_name,
-                    total_models=1,
-                    passed_models=0,
-                    failed_models=1,
-                    tolerances=tolerances,
-                    max_dev_ghx=np.nan,
-                    max_dev_ghu=np.nan,
-                    max_dev_ghxx=np.nan,
-                    max_dev_ghs2=np.nan,
-                    max_dev_moments=np.nan,
-                    max_dev_dr=np.nan,
-                    details={"error": str(exc), "runtime_sec": runtime_sec, "order2_missing": True},
-                )
-            raise
-        try:
-            dyn_moments = load_dynare_moments(dynare_output)
-        except (ValueError, ArithmeticError, np.linalg.LinAlgError, LookupError, KeyError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
-            dyn_moments = {}
+            dyn_dr = load_dynare_dr(raw, order=order)
+            parsed = load_dynare_moments(raw)
+            # Only actual supplied moments are requested; deterministic steady
+            # states are not a substitute for unconditional means at order two.
+            dyn_moments = {k: parsed[k] for k in ("mean", "var", "autocorr")
+                           if k in raw["oo_"] and raw["oo_"][k] is not None}
+        except (KeyError, TypeError, ValueError) as exc:
+            return unavailable(str(exc), order2_missing=order == 2)
     else:
         raise TypeError(f"Unrecognized dynare_output type: {type(dynare_output)}")
 
-    # 3. Variable alignment & validation
     pm_vars = list(pm_dr.variable_names)
-    dyn_vars = list(getattr(dyn_dr, "variable_names", []))
+    dyn_vars = list(dyn_dr.variable_names)
+    for attr in ("variable_names", "state_variables", "shock_names"):
+        left, right = list(getattr(pm_dr, attr)), list(getattr(dyn_dr, attr))
+        if len(set(left)) != len(left) or len(set(right)) != len(right) or set(left) != set(right):
+            return unavailable(f"{attr} mismatch or duplicate labels: {left} vs {right}")
+    if not pm_vars:
+        return unavailable("No endogenous variables supplied")
 
-    if dyn_vars and set(dyn_vars) != set(pm_vars):
-        runtime_sec = time.perf_counter() - t0
-        return ParityDashboardResult(
-            passed=False,
-            score=0.0,
-            model_name=model_name,
-            total_models=1,
-            passed_models=0,
-            failed_models=1,
-            tolerances=tolerances,
-            max_dev_ghx=np.nan,
-            max_dev_ghu=np.nan,
-            max_dev_ghxx=np.nan,
-            max_dev_ghs2=np.nan,
-            max_dev_moments=np.nan,
-            max_dev_dr=np.nan,
-            details={
-                "error": f"Variable names mismatch: {pm_vars} vs {dyn_vars}",
-                "runtime_sec": runtime_sec,
-            },
-        )
-
-    # 4. Numerical comparisons of decision rules
-    pm_ghx = np.asarray(pm_dr.ghx.loc[pm_vars], dtype=float)
-    dyn_ghx = np.asarray(dyn_dr.ghx.loc[pm_vars], dtype=float)
-    if pm_ghx.shape != dyn_ghx.shape:
-        runtime_sec = time.perf_counter() - t0
-        return ParityDashboardResult(
-            passed=False,
-            score=0.0,
-            model_name=model_name,
-            total_models=1,
-            passed_models=0,
-            failed_models=1,
-            tolerances=tolerances,
-            max_dev_ghx=np.nan,
-            max_dev_ghu=np.nan,
-            max_dev_ghxx=np.nan,
-            max_dev_ghs2=np.nan,
-            max_dev_moments=np.nan,
-            max_dev_dr=np.nan,
-            details={"error": f"ghx shape mismatch: {pm_ghx.shape} vs {dyn_ghx.shape}", "runtime_sec": runtime_sec},
-        )
-
-    pm_ghu = np.asarray(pm_dr.ghu.loc[pm_vars], dtype=float)
-    dyn_ghu = np.asarray(dyn_dr.ghu.loc[pm_vars], dtype=float)
-    if pm_ghu.shape != dyn_ghu.shape:
-        runtime_sec = time.perf_counter() - t0
-        return ParityDashboardResult(
-            passed=False,
-            score=0.0,
-            model_name=model_name,
-            total_models=1,
-            passed_models=0,
-            failed_models=1,
-            tolerances=tolerances,
-            max_dev_ghx=np.nan,
-            max_dev_ghu=np.nan,
-            max_dev_ghxx=np.nan,
-            max_dev_ghs2=np.nan,
-            max_dev_moments=np.nan,
-            max_dev_dr=np.nan,
-            details={
-                "error": f"Shock shape mismatch: puremacro {pm_ghu.shape} vs Dynare {dyn_ghu.shape}",
-                "runtime_sec": runtime_sec,
-            },
-        )
-
-    diff_ghx = np.abs(pm_ghx - dyn_ghx)
-    diff_ghu = np.abs(pm_ghu - dyn_ghu)
-
-    max_dev_ghx = float(np.nanmax(diff_ghx)) if diff_ghx.size > 0 else 0.0
-    max_dev_ghu = float(np.nanmax(diff_ghu)) if diff_ghu.size > 0 else 0.0
-
-    per_var_ghx = np.nanmax(diff_ghx, axis=1) if diff_ghx.size > 0 else np.zeros(len(pm_vars))
-    per_var_ghu = np.nanmax(diff_ghu, axis=1) if diff_ghu.size > 0 else np.zeros(len(pm_vars))
-
-    pm_ys = np.asarray(pm_dr.ys.loc[pm_vars], dtype=float).ravel()
-    dyn_ys = np.asarray(dyn_dr.ys.loc[pm_vars], dtype=float).ravel()
-    diff_ys = np.abs(pm_ys - dyn_ys) if len(dyn_ys) == len(pm_ys) else np.zeros_like(per_var_ghx)
-
-    # Second-order comparisons if requested
-    max_dev_ghxx = 0.0
-    max_dev_ghs2 = 0.0
-    per_var_ghxx = np.zeros(len(pm_vars))
-    per_var_ghs2 = np.zeros(len(pm_vars))
-    order2_missing = False
-
-    if order >= 2:
-        if isinstance(dyn_dr, Dynare2ndDR) and hasattr(pm_dr, "ghxx"):
-            pm_ghxx = np.asarray(pm_dr.ghxx.loc[pm_vars], dtype=float)
-            dyn_ghxx = np.asarray(dyn_dr.ghxx.loc[pm_vars], dtype=float)
-            diff_ghxx = np.abs(pm_ghxx - dyn_ghxx)
-            max_dev_ghxx = float(np.nanmax(diff_ghxx)) if diff_ghxx.size > 0 else 0.0
-            per_var_ghxx = np.nanmax(diff_ghxx, axis=1) if diff_ghxx.size > 0 else np.zeros(len(pm_vars))
-
-            pm_ghs2 = np.asarray(pm_dr.ghs2.loc[pm_vars], dtype=float).ravel()
-            dyn_ghs2 = np.asarray(dyn_dr.ghs2.loc[pm_vars], dtype=float).ravel()
-            diff_ghs2 = np.abs(pm_ghs2 - dyn_ghs2) if len(dyn_ghs2) == len(pm_ghs2) else np.zeros(len(pm_vars))
-            max_dev_ghs2 = float(np.nanmax(diff_ghs2)) if diff_ghs2.size > 0 else 0.0
-            per_var_ghs2 = diff_ghs2
-        else:
-            order2_missing = True
-
-    # 5. Theoretical moments comparisons if available
-    max_dev_moments = 0.0
-    dev_mean = 0.0
-    dev_var = 0.0
-    moments_dict: dict[str, Any] = {}
-    if dyn_moments and hasattr(pm_model, "theoretical_moments"):
+    fields = ["ys", "ghx", "ghu"] + (["ghxx", "ghxu", "ghuu", "ghs2"] if order == 2 else [])
+    deviations = {}
+    n_x, n_u, n_v = len(pm_dr.state_variables), len(pm_dr.shock_names), len(pm_vars)
+    sizes = {"ys": None, "ghs2": None, "ghx": n_x, "ghu": n_u,
+             "ghxx": n_x**2, "ghxu": n_x * n_u, "ghuu": n_u**2}
+    for name in fields:
         try:
-            th_mom = pm_model.theoretical_moments(ar=5)
-            pm_mean = np.asarray(getattr(th_mom, "mean", np.array([])), dtype=float).ravel()
-            dyn_mean = np.asarray(dyn_moments.get("mean", np.array([])), dtype=float).ravel()
-            dev_mean = float(np.nanmax(np.abs(pm_mean - dyn_mean))) if len(dyn_mean) == len(pm_mean) and len(dyn_mean) > 0 else 0.0
+            left, right = getattr(pm_dr, name), getattr(dyn_dr, name)
+            if not left.index.is_unique or not right.index.is_unique:
+                raise ValueError(f"{name}: duplicate row labels")
+            if set(left.index) != set(pm_vars) or set(right.index) != set(pm_vars):
+                raise ValueError(f"{name}: row labels mismatch")
+            if sizes[name] is not None:
+                if (not left.columns.is_unique or not right.columns.is_unique
+                        or set(left.columns) != set(right.columns)
+                        or len(left.columns) != sizes[name]):
+                    raise ValueError(f"{name}: column labels or tensor dimensions mismatch")
+                a = left.loc[pm_vars].to_numpy(dtype=float)
+                b = right.loc[pm_vars, left.columns].to_numpy(dtype=float)
+            else:
+                a = left.loc[pm_vars].to_numpy(dtype=float).reshape(n_v, 1)
+                b = right.loc[pm_vars].to_numpy(dtype=float).reshape(n_v, 1)
+            if a.shape != b.shape or not np.all(np.isfinite(a)) or not np.all(np.isfinite(b)):
+                raise ValueError(f"{name}: incompatible shapes or non-finite values")
+            deviations[name] = np.max(np.abs(a - b), axis=1, initial=0.0)
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            return unavailable(str(exc), order2_missing=order == 2 and not hasattr(dyn_dr, "ghxx"))
 
-            pm_var = np.asarray(getattr(th_mom, "variance", np.array([])), dtype=float).ravel()
-            dyn_var = np.asarray(dyn_moments.get("var", np.array([])), dtype=float)
-            if dyn_var.ndim == 2:
-                dyn_var = np.diag(dyn_var)
-            dyn_var = dyn_var.ravel()
-            dev_var = float(np.nanmax(np.abs(pm_var - dyn_var))) if len(dyn_var) == len(pm_var) and len(dyn_var) > 0 else 0.0
-
-            max_dev_moments = max(dev_mean, dev_var)
-            moments_dict = {
-                "dev_mean": dev_mean,
-                "dev_var": dev_var,
-                "tol_mean": tolerances.get("mean", 1e-5),
-                "tol_var": tolerances.get("var", 1e-5),
-            }
-        except (ValueError, ArithmeticError, np.linalg.LinAlgError, LookupError, KeyError, AssertionError, TypeError, RuntimeError, OSError, ConnectionError, Exception):
-            pass
-
-    # 6. Scorecard compilation
-    rows = []
-    total_checks = 0
-    passed_checks = 0
-
-    tol_ghx = tolerances.get("ghx", 1e-6)
-    tol_ghu = tolerances.get("ghu", 1e-6)
-    tol_ghxx = tolerances.get("ghxx", 1e-4)
-    tol_ghs2 = tolerances.get("ghs2", 1e-4)
-
-    for i, var in enumerate(pm_vars):
-        v_pass = (per_var_ghx[i] <= tol_ghx) and (per_var_ghu[i] <= tol_ghu)
-        total_checks += 2
-        passed_checks += int(per_var_ghx[i] <= tol_ghx) + int(per_var_ghu[i] <= tol_ghu)
-
-        row_data: dict[str, Any] = {
-            "dev_ghx": per_var_ghx[i],
-            "dev_ghu": per_var_ghu[i],
-            "dev_ys": diff_ys[i],
-            "tol_ghx": tol_ghx,
-            "tol_ghu": tol_ghu,
-        }
-        if order >= 2:
-            row_data["dev_ghxx"] = per_var_ghxx[i]
-            row_data["dev_ghs2"] = per_var_ghs2[i]
-            row_data["tol_ghxx"] = tol_ghxx
-            row_data["tol_ghs2"] = tol_ghs2
-            total_checks += 2
-            passed_checks += int(per_var_ghxx[i] <= tol_ghxx) + int(per_var_ghs2[i] <= tol_ghs2)
-            if (per_var_ghxx[i] > tol_ghxx) or (per_var_ghs2[i] > tol_ghs2):
-                v_pass = False
-
-        row_data["status"] = "PASS" if v_pass else "FAIL"
-        rows.append(row_data)
-
+    rows = {f"dev_{k}": v for k, v in deviations.items()}
+    rows.update({f"tol_{k}": tolerances[k] for k in fields})
+    flags = np.column_stack([deviations[k] <= tolerances[k] for k in fields])
+    rows["status"] = np.where(np.all(flags, axis=1), "PASS", "FAIL")
     df_dr = pd.DataFrame(rows, index=pm_vars)
-    df_mom = pd.DataFrame([moments_dict]) if moments_dict else pd.DataFrame()
+    passed_checks, total_checks = int(flags.sum()), flags.size
+    moment_rows = []
+    unavailable_moments = False
+    if dyn_moments:
+        try:
+            if not hasattr(pm_model, "theoretical_moments"):
+                raise ValueError("Supplied reference moments cannot be compared to a decision-rule-only object")
+            ar = np.asarray(dyn_moments.get("autocorr", np.empty((0, 5)))).shape[-1]
+            th = pm_model.theoretical_moments(ar=ar)
+            perm = [dyn_vars.index(v) for v in pm_vars]
+            for key, expected in dyn_moments.items():
+                expected = np.asarray(expected, dtype=float)
+                if key == "mean":
+                    actual = th.moments.loc[pm_vars, "Mean"].to_numpy() if hasattr(th, "moments") else np.asarray(th.mean).reshape(n_v)
+                    expected = expected.reshape(n_v)[perm]
+                elif key == "var":
+                    actual = th.covariance.loc[pm_vars, pm_vars].to_numpy() if hasattr(th, "covariance") else np.diag(np.asarray(th.variance).reshape(n_v))
+                    if expected.size == n_v:
+                        expected = expected.reshape(n_v)[perm]
+                        actual = np.diag(actual)
+                    else:
+                        expected = expected.reshape(n_v, n_v)[np.ix_(perm, perm)]
+                else:
+                    actual = th.autocorr.loc[pm_vars].to_numpy()
+                    if expected.ndim == 3:
+                        expected = np.stack([np.diag(expected[:, :, j]) for j in range(expected.shape[-1])], axis=1)
+                    expected = expected.reshape(n_v, -1)[perm]
+                if actual.shape != expected.shape or not np.all(np.isfinite(expected)) or not np.all(np.isfinite(actual)):
+                    raise ValueError(f"{key}: moment shape mismatch or non-finite values")
+                dev = float(np.max(np.abs(actual - expected), initial=0.0))
+                ok = dev <= tolerances[key]
+                moment_rows.append({"moment": key, "deviation": dev, "tolerance": tolerances[key], "status": "PASS" if ok else "FAIL"})
+                passed_checks += int(ok)
+                total_checks += 1
+        except (AttributeError, KeyError, TypeError, ValueError, np.linalg.LinAlgError) as exc:
+            unavailable_moments = True
+            total_checks += 1
+            moment_rows.append({"moment": "unavailable", "deviation": np.nan, "status": "UNAVAILABLE", "error": str(exc)})
 
-    score = 100.0 * (passed_checks / max(total_checks, 1))
-    passed = (score == 100.0) and not order2_missing
-    if dev_mean > tolerances.get("mean", 1e-5) or dev_var > tolerances.get("var", 1e-5):
-        passed = False
-
-    runtime_sec = time.perf_counter() - t0
-    max_dev_dr = max(max_dev_ghx, max_dev_ghu, max_dev_ghxx)
-    details = {
-        "order": order,
-        "runtime_sec": runtime_sec,
-        "n_vars": len(pm_vars),
-        "n_shocks": pm_ghu.shape[1],
-        "n_states": pm_ghx.shape[1],
-        "order2_missing": order2_missing,
-    }
-
+    # A DR contains covariance-scaled risk terms but no covariance metadata.
+    # Compare shock covariance when supplied on both models; otherwise record
+    # its unavailability without claiming a moments/innovation-distribution test.
+    covariance_status = "UNAVAILABLE"
+    dyn_cov = raw.get("M_", {}).get("Sigma_e") if raw is not None else None
+    pm_cov = getattr(pm_model, "shock_cov", getattr(pm_model, "Sigma", None))
+    if dyn_cov is not None and pm_cov is not None:
+        try:
+            a, b = np.asarray(pm_cov, dtype=float), np.asarray(dyn_cov, dtype=float)
+            perm = [list(dyn_dr.shock_names).index(v) for v in pm_dr.shock_names]
+            b = b.reshape(n_u, n_u)[np.ix_(perm, perm)]
+            ok = (a.shape == b.shape and np.all(np.isfinite(a)) and np.all(np.isfinite(b))
+                  and np.max(np.abs(a - b), initial=0.0) <= tolerances["shock_cov"])
+        except (ValueError, TypeError):
+            ok = False
+        passed_checks += int(ok)
+        total_checks += 1
+        covariance_status = "PASS" if ok else "FAIL"
+    passed = passed_checks == total_checks and not unavailable_moments
+    maxima = {k: float(np.max(v, initial=0.0)) for k, v in deviations.items()}
     return ParityDashboardResult(
-        passed=passed,
-        score=score,
-        dr_diff=df_dr,
-        moments_diff=df_mom,
-        tolerances=tolerances,
-        model_name=model_name,
-        total_models=1,
-        passed_models=1 if passed else 0,
-        failed_models=0 if passed else 1,
-        max_dev_ghx=max_dev_ghx,
-        max_dev_ghu=max_dev_ghu,
-        max_dev_ghxx=max_dev_ghxx,
-        max_dev_ghs2=max_dev_ghs2,
-        max_dev_moments=max_dev_moments,
-        max_dev_dr=max_dev_dr,
-        details=details,
+        passed=passed, score=100.0 * passed_checks / total_checks, dr_diff=df_dr,
+        moments_diff=pd.DataFrame(moment_rows), tolerances=tolerances, model_name=model_name,
+        total_models=1, passed_models=int(passed), failed_models=int(not passed),
+        max_dev_ghx=maxima["ghx"], max_dev_ghu=maxima["ghu"],
+        max_dev_ghxx=maxima.get("ghxx", 0.0), max_dev_ghs2=maxima.get("ghs2", 0.0),
+        max_dev_moments=float("nan") if unavailable_moments else max([r["deviation"] for r in moment_rows] or [0.0]),
+        max_dev_dr=max(maxima.values()),
+        details={"order": order, "status": "UNAVAILABLE" if unavailable_moments else ("PASS" if passed else "FAIL"),
+                 "runtime_sec": time.perf_counter() - t0, "n_vars": n_v, "n_states": n_x, "n_shocks": n_u,
+                 "order2_missing": False, "moments_status": "NOT_REQUESTED" if not dyn_moments else ("UNAVAILABLE" if unavailable_moments else "COMPARED"),
+                 "covariance_status": covariance_status, "max_deviations": maxima},
     )
 
 
@@ -457,7 +371,7 @@ def run_parity_suite(
                     n_vars=len(res.dr_diff) if res.dr_diff is not None else 0,
                     n_shocks=res.details.get("n_shocks", 0),
                     passed=res.passed,
-                    status="PASS" if res.passed else "FAIL",
+                    status=res.details.get("status", "PASS" if res.passed else "FAIL"),
                     max_dev_ghx=res.max_dev_ghx,
                     max_dev_ghu=res.max_dev_ghu,
                     max_dev_ghxx=res.max_dev_ghxx,

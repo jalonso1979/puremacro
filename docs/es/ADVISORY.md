@@ -14,6 +14,43 @@ sin volver a correrla) y qué hacer.
 
 ---
 
+## 2026-09-20 — modelos estructurales, APIs afectadas en 4.2.0 y anteriores
+
+**Corregidas o restringidas explícitamente en 4.3.0.** La revisión reprodujo
+resultados numéricos y señales de éxito incorrectos en VFI, DSGE/Dynare y comercio
+sobre el código de 4.2.0; la primera versión afectada depende de cada API.
+
+- **DSGE de tercer orden:** recalcular reglas y simulaciones, momentos o
+  verosimilitudes que dependen de pendientes de riesgo en modelos estocásticos
+  no lineales. Las reglas de primero y segundo orden no contienen esas pendientes.
+- **Paridad con Dynare:** repetir comparaciones de segundo orden con todos los
+  tensores y etiquetas. La puntuación anterior podía omitir términos o aceptar
+  referencias incompletas; no acreditaba paridad completa.
+- **Proyecciones VFI:** exigir el residuo final solicitado, no solo la terminación
+  del optimizador. Regenerar valores auxiliares con productividad distinta de uno
+  o utilidad distinta de logaritmo. La exactitud fuera de la malla sigue pendiente.
+- **Deep Macro:** repetir el entrenamiento y comprobar residuos fuera de la
+  muestra; se corrigió la caché de activaciones usada en el gradiente.
+- **DSGE con cambios de régimen:** no interpretar impactos, estabilidad o momentos
+  de soluciones fallidas; ahora se reportan como no disponibles.
+- **Comercio:** repetir contrafactuales CES y experimentos con recaudación o
+  valoración inconsistente. Seleccionar `accounting="consistent"` para el modelo
+  derivado de precios al productor y comprador; el modo histórico sigue por
+  compatibilidad.
+
+La política arancelaria selecciona bienestar de consumo basado en la función de
+gasto mediante `metric="hicksian_ev"`. Los alias históricos conservan sus proxies.
+La referencia es fija y los equilibrios se auditan; no se certifica un teorema
+global de Nash. Las interfaces preliminares TOT/Alloc/TariffRec y de certificación
+de teoremas siguen no disponibles por carecer de fundamento independiente.
+
+Véase [el alcance y las referencias](../STRUCTURAL_VALIDATION_STATUS.md),
+[la contabilidad](../trade_accounting.md), [el bienestar](../trade_welfare.md) y
+[la política arancelaria](../trade_policy.md). Estas referencias delimitan qué
+resultados se han validado y qué extensiones siguen pendientes.
+
+---
+
 ## 2026-09-16 — tres estimadores, versiones hasta 4.0.1 inclusive
 
 **Corregido en 4.0.2.** Se encontraron cuando un sitio de curso volvió a derivar

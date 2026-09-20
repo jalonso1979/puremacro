@@ -120,7 +120,7 @@ puremacro/
 │   ├── dcegm.py           ← Discrete Choice EGM + fast Upper Envelope filter
 │   ├── continuous_distribution.py ← Young (2010) continuous density & Aiyagari GE
 │   ├── continuous_transition.py   ← Non-linear MIT transitions + sequence Broyden
-│   ├── analytic_gradients.py      ← Machine-precision IFT parameter Jacobians
+│   ├── analytic_gradients.py      ← Semi-analytic IFT parameter Jacobians
 │   ├── deep_macro.py      ← Deep Macro PINNs in pure NumPy + ergodic sampling
 │   └── hjb_achdou.py      ← Implicit upwind M-matrix solver, adjoint KFE, continuous Aiyagari GE
 ├── trade/                 ← Quantitative international trade general equilibrium
@@ -747,19 +747,19 @@ Milestone 3.3.0 introduces nine high-performance engines spanning continuous sta
   - *Aggregation*: Integrates capital supply $K_t^s = \int k \, d\mu_t$ at every period.
 - **Broyden Quasi-Newton Solver**: Updates the aggregate path $\{K_t\}_{t=1}^T$ to clear goods and factor markets $\mathcal{H}_t(\{K_s\}) = K_t^s - K_t^d = 0$ via sequence-space Broyden updates, bypassing expensive $T \times T$ numerical Jacobian re-evaluations.
 
-#### 6. Exact Analytic IFT Jacobians & Structural Estimation (`vfi/analytic_gradients.py`)
+#### 6. Semi-analytic IFT Jacobians & Structural Estimation (`vfi/analytic_gradients.py`)
 - **Implicit Function Theorem Formulation**: For continuous dynamic models parameterized by structural vector $\theta = (\beta, \gamma, \alpha, \delta, \rho, \sigma)$, the optimal continuous policy $c^*$ satisfies the continuous Euler residual system $\mathcal{R}(c^*; \theta) = \mathbf{0}$. By the Implicit Function Theorem:
   $$\nabla_\theta c^* = - \left[ \frac{\partial \mathcal{R}}{\partial c^*} \right]^{-1} \frac{\partial \mathcal{R}}{\partial \theta}$$
+- **Derivative accuracy**: Residual Jacobians are computed by central differences. Their accuracy depends on step size, conditioning, and the accuracy of the policy solve. Heterogeneous-agent distribution and coupled GE derivatives are not implemented.
 - **Single-Solve Efficiency**: The Jacobian $\partial \mathcal{R}/\partial c^*$ is a tridiagonal or sparse banded matrix. Computing $\nabla_\theta c^*$ requires only a single linear solve per parameter rather than re-solving the full dynamic program, achieving $60\times+$ computational speedups over finite differences.
-- **Structural GMM & SMM Estimation**: Propagates exact policy derivatives into moment Jacobians $\nabla_\theta m(\theta)$, enabling fast and robust gradient-based optimization (L-BFGS-B, Gauss-Newton) for structural macroeconometric estimation.
+- **Structural GMM & SMM Estimation**: Propagates semi-analytic policy derivatives into moment Jacobians $\nabla_\theta m(\theta)$, enabling fast and robust gradient-based optimization (L-BFGS-B, Gauss-Newton) for structural macroeconometric estimation.
 
 #### 7. Deep Macro & Physics-Informed Neural Networks (`vfi/deep_macro.py`)
 - **Pure NumPy MLP Architecture**: Implements neural network approximations of high-dimensional macroeconomic decision rules $c = g_\phi(\mathbf{s})$ entirely in pure NumPy without TensorFlow or PyTorch dependencies, running natively under Pyodide and WebAssembly.
 - **Feasibility-Constrained Output Activations**: Hard-codes physical resource constraints directly into network architectures:
   $$c = \text{softplus}(z_c) \cdot W, \quad k' = \text{sigmoid}(z_k) \cdot W$$
   ensuring that consumption is strictly positive, capital is non-negative, and the budget constraint $c + k' \le W$ is satisfied by construction everywhere in state space.
-- **Physics-Informed Loss Function**: Trains network weights $\phi$ by minimizing the mean squared residual of economic equilibrium conditions (Euler equations, market clearing):
-  $$\mathcal{L}(\phi) = \frac{1}{B} \sum_{b=1}^B \left\| u'(c_b) - \beta \mathbb{E}\left[ u'(c_{b+1}) R_{b+1} \right] \right\|^2$$
+- **Detached-target Euler time iteration**: Network updates minimize squared consumption-share deviations from a target constructed from the previous policy evaluation. The target is held fixed during backpropagation; this is not differentiation of the full Euler-residual objective. Held-out Euler errors determine the reported convergence flag, and training can fail.
 - **Ergodic Trajectory Sampling**: Avoids the exponential curse of grid-based discretization by sampling training points $\mathbf{s}_b$ along simulated ergodic paths of the economic system (Maliar, Maliar & Winant 2021), enabling accurate solutions for models with 10+ continuous state variables (e.g. multi-country neoclassical growth).
 
 #### 8. Quantitative Trade General Equilibrium: Caliendo-Parro (2015) (`trade/caliendo_parro.py`)
@@ -769,7 +769,7 @@ Milestone 3.3.0 introduces nine high-performance engines spanning continuous sta
   2. *Unit Costs*: $\hat{c}_{i,j} = \hat{w}_i^{\beta_{i,j}} \prod_{k=1}^J \hat{P}_{i,k}^{\gamma_{i,k,j}}$
   3. *Expenditure Shares*: $\hat{\pi}_{n,i,j} = \left( \frac{\hat{c}_{i,j} \hat{\tau}_{n,i,j}}{\hat{P}_{n,j}} \right)^{-\theta_j}$
   4. *Goods Market Clearing & Trade Balances*: Incorporates tariff revenue, deficit adjustments, and cross-sector demand linkages.
-- **Numerical Solver**: Employs a damped fixed-point iteration on wages $\hat{\mathbf{w}}$ and prices $\hat{\mathbf{P}}$ with adaptive acceleration, guaranteeing convergence to the unique trade equilibrium.
+- **Numerical Solver**: Employs a damped fixed-point iteration on wages $\hat{\mathbf{w}}$ and prices $\hat{\mathbf{P}}$ with adaptive acceleration, with convergence assessed numerically; uniqueness and global convergence are not guaranteed.
 
 #### 9. Quantitative Spatial Economics: Allen-Arkolakis (2014) (`spatial/allen_arkolakis.py`)
 - **Economic Geography Gravity GE**: Formulates general equilibrium across discrete spatial locations $i \in \{1, \dots, N\}$ on a continuous geographic plane with bilateral iceberg transport costs $\tau_{i,j} \ge 1$, labor mobility, Marshallian agglomeration spillovers ($\alpha$), and amenity congestion ($\beta$).

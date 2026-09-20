@@ -1,0 +1,165 @@
+{
+  "passed": true,
+  "cases": {
+    "A": {
+      "comparisons": {
+        "ev": {
+          "actual": -12.950515148028964,
+          "reference": -12.950515148029695,
+          "max_abs_error": 7.300826609935029e-13,
+          "passed": true
+        },
+        "cv": {
+          "actual": -19.770888592806283,
+          "reference": -19.77088859280758,
+          "max_abs_error": 1.2967404927621828e-12,
+          "passed": true
+        },
+        "price_effect": {
+          "actual": -17.07286730349771,
+          "reference": -17.072867303497983,
+          "max_abs_error": 2.7355895326763857e-13,
+          "passed": true
+        },
+        "factor_income_effect": {
+          "actual": -4.7644954031858076,
+          "reference": -4.764495403185966,
+          "max_abs_error": 1.580957587066223e-13,
+          "passed": true
+        },
+        "fiscal_transfer_effect": {
+          "actual": 8.886847558654546,
+          "reference": 8.886847558654502,
+          "max_abs_error": 4.440892098500626e-14,
+          "passed": true
+        }
+      },
+      "decomposition_residual": 5.329070518200751e-15,
+      "expenditure_oracle": [
+        47.00000000000038,
+        34.04948485197068,
+        71.75249426300529,
+        51.98160567019771
+      ],
+      "passed": true
+    },
+    "B": {
+      "comparisons": {
+        "ev": {
+          "actual": 18.769253840701587,
+          "reference": 18.769253840702234,
+          "max_abs_error": 6.465938895416912e-13,
+          "passed": true
+        },
+        "cv": {
+          "actual": 31.223108452718336,
+          "reference": 31.223108452711983,
+          "max_abs_error": 6.352252057695296e-12,
+          "passed": true
+        },
+        "price_effect": {
+          "actual": -45.00419184327967,
+          "reference": -45.00419184326465,
+          "max_abs_error": 1.5020873433968518e-11,
+          "passed": true
+        },
+        "factor_income_effect": {
+          "actual": 53.48192826358063,
+          "reference": 53.481928263589374,
+          "max_abs_error": 8.746781077206833e-12,
+          "passed": true
+        },
+        "fiscal_transfer_effect": {
+          "actual": 10.291517420400623,
+          "reference": 10.29151742040209,
+          "max_abs_error": 1.4672707493446069e-12,
+          "passed": true
+        }
+      },
+      "decomposition_residual": 7.105427357601002e-15,
+      "expenditure_oracle": [
+        72.99999999999832,
+        91.76925384070056,
+        121.43726843872466,
+        152.66037689143664
+      ],
+      "passed": true
+    }
+  },
+  "oecd_aggregation": {
+    "passed": true,
+    "unit": "M_USD",
+    "consumption_categories": [
+      0
+    ],
+    "consumption_mapping": "HFCE + NPISH + GGFC (model aggregate, not household-only data)",
+    "native_archive_reloaded_this_run": false,
+    "countries": {
+      "USA": {
+        "ev": 27901.72009207731,
+        "cv": 27907.04514660753,
+        "ev_pct_consumption": 0.16636712706435366,
+        "ev_pct_gdp": 0.13050326226682707,
+        "price_effect": -3203.1424398301065,
+        "factor_income_effect": -187418.0230990435,
+        "fiscal_transfer_effect": 218522.88563094413,
+        "decomposition_residual": 6.781192496418953e-09,
+        "direct_quantity_ev_error": 6.5847416408360004e-09,
+        "passed": true
+      },
+      "CHN": {
+        "ev": -262.92554634652396,
+        "cv": -264.20039956085014,
+        "ev_pct_consumption": -0.0033792351125346487,
+        "ev_pct_gdp": -0.0018273037385048406,
+        "price_effect": -37634.430285867726,
+        "factor_income_effect": 34255.28472747317,
+        "fiscal_transfer_effect": 3116.2200120511557,
+        "decomposition_residual": -3.121840563835576e-09,
+        "direct_quantity_ev_error": 2.313583991053747e-09,
+        "passed": true
+      },
+      "REST": {
+        "ev": 10445.732619967548,
+        "cv": 10503.146820051305,
+        "ev_pct_consumption": 0.027404252961258202,
+        "ev_pct_gdp": 0.020055058023179497,
+        "price_effect": -208964.43771198968,
+        "factor_income_effect": 201474.41926289588,
+        "fiscal_transfer_effect": 17935.75106899237,
+        "decomposition_residual": 6.897244020365179e-08,
+        "direct_quantity_ev_error": 6.427399057429284e-08,
+        "passed": true
+      }
+    }
+  },
+  "ces_solver_boundary": {
+    "passed": true,
+    "description": "Strong heterogeneous shock, CES elasticity 0.5; failed states must have no welfare",
+    "methods": {
+      "newton": {
+        "converged": false,
+        "warnings": [
+          "invalid value encountered in divide"
+        ],
+        "welfare_available": false,
+        "reason": "Hicksian welfare requires converged equilibria",
+        "passed": true
+      },
+      "hybr": {
+        "converged": true,
+        "warnings": [],
+        "ev": 6.53181685960925,
+        "welfare_available": true,
+        "passed": true
+      },
+      "keller_pac": {
+        "converged": true,
+        "warnings": [],
+        "ev": 6.531816859577174,
+        "welfare_available": true,
+        "passed": true
+      }
+    }
+  }
+}

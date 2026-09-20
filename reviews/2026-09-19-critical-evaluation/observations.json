@@ -1,0 +1,111 @@
+{
+  "vfi_false_convergence": {
+    "converged": true,
+    "residual": 1.0,
+    "expected_converged": false
+  },
+  "vfi_value_productivity": {
+    "reported": -34.57019237775294,
+    "analytic": 1.5341194319232947
+  },
+  "dsge_third_order_risk": [
+    {
+      "rho": 0.5,
+      "ghxss_reported": 0.061600810536980764,
+      "ghxss_analytic": 0.03080040526849038,
+      "ghuss_reported": 0.12320162107396151,
+      "ghuss_analytic": 0.06160081053698076,
+      "max_cubic_error": 8.881784197001252e-16
+    },
+    {
+      "rho": 0.8,
+      "ghxss_reported": 0.3699376947040501,
+      "ghxss_analytic": 0.29595015576324,
+      "ghuss_reported": 0.4624221183800626,
+      "ghuss_analytic": 0.36993769470405,
+      "max_cubic_error": 1.7763568394002505e-15
+    }
+  ],
+  "dynare_false_parity": {
+    "passed": true,
+    "score": 100.0,
+    "expected_passed": false
+  },
+  "pac_ignores_final_demand_tariff": {
+    "all_converged": true,
+    "newton_tariff_revenue": [
+      73.46069735719462,
+      0.0
+    ],
+    "pac_tariff_revenue": [
+      0.0,
+      0.0
+    ],
+    "pac_max_difference_from_zero_tariff_baseline": 0.0
+  },
+  "ev_identical_equilibria": {
+    "reported_ev": 70.91047532316786,
+    "reported_identity_residual": 0.0,
+    "expected_ev": 0.0
+  },
+  "theorem_zero_tariff": {
+    "passed": true,
+    "reported_loe_welfare_gain": 12.564005838621263,
+    "expected_gain": 0.0
+  },
+  "ces_postprocessing": {
+    "converged": true,
+    "solver_residual": 8.36735125631094e-11,
+    "flow_error_against_ces_demand": 19.248110877633508,
+    "flow_error_against_leontief_demand": 0.0
+  },
+  "cp_offsetting_cost_changes": {
+    "reported_revenue": [
+      0.0,
+      0.0
+    ],
+    "revenue_from_expenditure_equations_at_returned_wages_and_shares": [
+      6.896551724137929,
+      6.896551724137929
+    ],
+    "reported_iterations": 0
+  },
+  "mrio_disabled_fallback_bypassed": {
+    "returned_countries": 2,
+    "returned_sectors": 2,
+    "warnings": 0,
+    "metadata": {},
+    "expected": "Missing-file error, or explicit rejection of conflicting options"
+  },
+  "periodic_matrix_spectral_radius": {
+    "reported": 1.1000000000000003,
+    "lower": 0.2,
+    "upper": 2.0,
+    "analytic": 0.6324555320336759
+  },
+  "nash_premature_convergence": {
+    "converged": true,
+    "tariffs": {
+      "AUS": 4e-10,
+      "AUT": 0.0
+    },
+    "outer_error": 4e-10,
+    "payoffs_at_zero_and_20pct_tariff": [
+      1027.069657905935,
+      1030.2515693740363
+    ]
+  },
+  "ms_stability_after_failed_solve": {
+    "converged": false,
+    "mean_square_stable": true,
+    "reported_residual": 0.2504377231951276,
+    "actual_residual": 0.5836057951262079,
+    "finite_ergodic_covariance": true
+  },
+  "deep_macro_wrong_forward_cache": {
+    "relative_gradient_error": [
+      0.004136215339506017
+    ],
+    "expected": 0.0
+  }
+}

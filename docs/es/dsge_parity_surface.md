@@ -2,19 +2,19 @@
 
 # Superficie de paridad DSGE, simulación avanzada y panel de verificación
 
-Puremacro 2.9.0 incorpora el módulo **Tier 3: Paridad y superficie operativa**, completando la superficie funcional integral de Dynare y la verificación automatizada de paridad bajo el estricto **contrato de cuatro paquetes de Pyodide** (`numpy`, `scipy`, `pandas`, `matplotlib`).
+Esta página describe interfaces seleccionadas de simulación DSGE y comparación. No establece compatibilidad integral con Dynare. Véase [el estado de validación estructural](../STRUCTURAL_VALIDATION_STATUS.md) para los casos comprobados y sus limitaciones.
 
 Esta versión introduce cuatro capacidades macroeconómicas fundamentales:
 1. **Superficie de filtrado y momentos de `stoch_simul`**: Integración de la densidad espectral mediante cuadratura de Gauss-Legendre para filtrado teórico HP y paso de banda, filtro HP uniselectivo (causal) recursivo de Kalman, matrices completas de autocorrelación cruzada, correlaciones contemporáneas y momentos empíricos de simulación Monte Carlo (`simul_replic`).
 2. **Simulación estocástica no lineal por sendero extendido (Fair y Taylor 1983)**: Simulación dinámica global sin truncamientos de Taylor por perturbación local, impulsada por un motor de Newton apilado disperso SuperLU con invariancia exacta para modelos lineales.
 3. **Pronóstico condicional y descomposición avanzada de perturbaciones**: Pronóstico condicional según Waggoner y Zha (1999) mediante inversión de perturbaciones estructurales, bloques de sintaxis `.mod` `shock_groups;` con balance contable exacto a precisión de máquina, gráficos de abanico (*fan charts*) para funciones de impulso-respuesta (IRF) bayesianas, análisis predictivo a priori y criterio `qz_criterium` ajustable para sistemas cointegrados o con raíces unitarias.
-4. **Panel de paridad con Dynare e interfaz de línea de comandos (CLI)**: Lectura nativa de archivos `.mat` de Dynare (`oo_.dr`, `oo_.mean`, `oo_.var`, `oo_.autocorr`), cuadro de mando automatizado de discrepancias frente a salidas oficiales de referencia y la herramienta de evaluación en consola `puremacro-dynare parity`.
+4. **Panel de paridad con Dynare**: Compara diccionarios `oo_.dr` y momentos efectivamente suministrados por el usuario. El usuario carga los archivos MAT. La CLI de paridad no acepta referencias y no está disponible; use la API de Python.
 
 ---
 
 ## 1. Visión general y arquitectura
 
-El motor DSGE de puremacro unifica soluciones analíticas exactas, perturbaciones de orden superior con poda de estados (*pruning*) y transiciones no lineales en el espacio de secuencias. El módulo Tier 3 consolida la superficie operativa requerida por bancos centrales, organismos internacionales e investigadores académicos para migrar modelos directamente desde entornos clásicos de Dynare a Python puro.
+El motor DSGE de puremacro unifica soluciones analíticas exactas, perturbaciones de orden superior con poda de estados (*pruning*) y transiciones no lineales en el espacio de secuencias. La sintaxis y los métodos admitidos forman un subconjunto; migrar un modelo requiere comprobaciones específicas.
 
 | Módulo | Capacidad central | Algoritmo principal | Referencia canónica |
 | :--- | :--- | :--- | :--- |
@@ -24,7 +24,7 @@ El motor DSGE de puremacro unifica soluciones analíticas exactas, perturbacione
 | `puremacro.dsge.shock_groups` | Descomposición agrupada de perturbaciones | Atribución histórica exacta con balance contable riguroso | Especificación Dynare 4.6+ / 5.x / 6.x |
 | `puremacro.dsge.bayesian` | IRF bayesianas y predictivo a priori | Gráficos de abanico posteriores y simulación a priori | Geweke (1999); Herbst y Schorfheide (2015) |
 | `puremacro.dsge.parity` | Panel de paridad y verificación | Comparación automatizada frente a valores oficiales de referencia | Pfeifer (2014); Suite de referencia de Dynare |
-| `puremacro.dsge.cli` | Evaluador de paridad en consola | CLI `puremacro-dynare parity` | Interfaz CLI de puremacro |
+| `puremacro.dsge.cli` | CLI de paridad no disponible | Use la API Python con referencias | Interfaz CLI de puremacro |
 
 ---
 
@@ -227,97 +227,27 @@ fig = decomp.plot(variable="y")
 
 ---
 
-## 5. Panel de paridad con Dynare y CLI
+## 5. Panel de paridad con Dynare
 
-### 5.1 Motor de verificación y umbrales de tolerancia
+`verify_dynare_parity(model, dynare_output, order=2)` compara estados estacionarios y todos los tensores solicitados: `ghx`, `ghu`, `ghxx`, `ghxu`, `ghuu`, `ghs2`. Alinea nombres de variables, estados, shocks y columnas de productos de Kronecker. Los datos faltantes, no finitos o incompatibles no pueden aprobar la comparación. `oo_.dr.state_var` identifica las columnas efectivas de estados.
 
-La infraestructura de paridad (`puremacro.dsge.parity`) contrasta directamente las soluciones obtenidas en puremacro frente a las salidas oficiales generadas por Dynare (archivos `.mat` con estructuras `oo_.dr`, `oo_.mean`, `oo_.var`, `oo_.autocorr`).
+Los momentos suministrados deben compararse realmente. Si su cálculo no está disponible, el resultado indica `UNAVAILABLE`. Una comparación limitada a reglas de decisión no establece paridad de momentos ni de covarianzas de innovaciones.
 
-El motor compara las discrepancias absolutas máximas:
+`run_parity_suite(test_dir, dynare_results={"modelo": referencia})` requiere referencias cargadas por el usuario. Los modelos sin referencia son `UNAVAILABLE`. Las pruebas internas de serialización no constituyen ejecuciones externas de Dynare.
 
-$$\Delta_{max}(A, B) = \max_{i,j} |A_{ij} - B_{ij}|$$
+La CLI no puede cargar referencias de paridad; use las interfaces Python descritas arriba. No se realizó una nueva ejecución externa de Dynare de tercer orden en esta revisión. Las correcciones de riesgo se contrastaron con casos analíticos cerrados.
 
-| Métrica | Matriz objetivo | Umbral de tolerancia |
-| :--- | :--- | :--- |
-| Estados de primer orden ($ghx$) | `oo_.dr.ghx` | $\le 10^{-6}$ (típicamente $\le 10^{-12}$) |
-| Perturbaciones de primer orden ($ghu$) | `oo_.dr.ghu` | $\le 10^{-6}$ (típicamente $\le 10^{-12}$) |
-| Estados de segundo orden ($ghxx$) | `oo_.dr.ghxx` | $\le 10^{-4}$ (típicamente $\le 10^{-10}$) |
-| Corrección de riesgo ($ghs2$) | `oo_.dr.ghs2` | $\le 10^{-4}$ (típicamente $\le 10^{-10}$) |
-| Medias ergódicas | `oo_.mean` | $\le 10^{-5}$ |
-| Varianzas ergódicas | `oo_.var` | $\le 10^{-5}$ |
-| Autocorrelaciones | `oo_.autocorr` | $\le 10^{-5}$ |
+## 6. Dependencias y portabilidad
 
-### 5.2 Uso desde Python
+Puremacro no distribuye una extensión compilada propia. NumPy y SciPy contienen componentes compilados; las dependencias base también incluyen pandas, Matplotlib y requests. La importación en Pyodide, la ejecución en navegador y la igualdad entre backends requieren verificaciones diferentes.
 
-```python
-# requires: standalone snippet
-import scipy.io
+### Referencias externas de orden superior (20 de septiembre de 2026)
 
-from puremacro.dsge.parity import verify_dynare_parity, run_parity_suite
-
-# puremacro 4.0.0 no lee archivos de MATLAB: cargue usted mismo la estructura
-# oo_ de Dynare y pase el diccionario. Todo lo demás no cambia.
-oo = scipy.io.loadmat("sw07_results.mat", squeeze_me=True, struct_as_record=False)
-
-# Verificación de un modelo individual
-report = verify_dynare_parity(
-    puremacro_model="sw07.mod",
-    dynare_output=oo,
-    order=2,
-)
-print(report.to_markdown())
-
-# Verificación masiva de un directorio completo de modelos
-suite_report = run_parity_suite("tests/fixtures/dynare_benchmarks/")
-assert suite_report.passed
-```
-
-### 5.3 Interfaz de línea de comandos (`puremacro-dynare parity`)
-
-El paquete proporciona el comando CLI nativo `puremacro-dynare parity`:
-
-Desde 4.0.0 la interfaz de línea de comandos acepta únicamente modelos
-`.mod`; ya no busca un archivo `*_results.mat` asociado. La comparación con
-la salida de Dynare se hace desde Python, donde usted decide cómo cargarla.
-
-```bash
-# Resolver un archivo .mod individual y emitir el informe
-puremacro-dynare parity models/sw07.mod --order 2
-
-# Evaluar todos los modelos de un directorio y exportar la tarjeta de evaluación en LaTeX
-puremacro-dynare parity benchmarks/ --format latex --outdir reports/
-
-# Modo estricto para CI con tolerancia personalizada
-puremacro-dynare parity rbc.mod --tol 1e-8 --quiet
-```
-
-Ejemplo de salida en consola:
-
-```
-================================================================================
-Dynare Parity Scorecard: sw07.mod vs sw07_results.mat
-================================================================================
-Component        Max Dev        Tolerance     Status
---------------------------------------------------------------------------------
-dr.ghx           4.12e-13       1.00e-06      PASSED
-dr.ghu           2.88e-13       1.00e-06      PASSED
-dr.ghxx          8.45e-11       1.00e-04      PASSED
-dr.ghs2          3.20e-11       1.00e-04      PASSED
-moments.var      5.14e-07       1.00e-05      PASSED
-moments.corr     2.31e-07       1.00e-05      PASSED
---------------------------------------------------------------------------------
-Overall Status: PASSED (6/6 checks clean)
-================================================================================
-```
-
----
-
-## 6. Conformidad con Pyodide y garantía de cero dependencias externas
-
-Todos los algoritmos de Tier 3 cumplen estrictamente el **contrato de cuatro paquetes de Pyodide**:
-- **NumPy**: Álgebra lineal, vectorización, manipulación matricial, autovalores y generación pseudoaleatoria.
-- **SciPy**: Sistemas lineales dispersos (`scipy.sparse.linalg.splu`), funciones especiales (`erf`, `normcdf`) y factorizaciones matriciales (`scipy.linalg.ordqz`).
-- **Pandas**: Estructuras Series y DataFrames etiquetadas para variables, fechas y paneles de control.
-- **Matplotlib**: Visualización de gráficos de abanico, descomposiciones históricas en barras e impulso-respuesta.
-
-No se requiere ningún software o solucionador externo adicional (sin SymPy, sin CasADi, sin JAX), generadores de analizadores sintácticos (sin PLY, ni Lark, ni ANTLR) ni extensiones binarias compiladas en C o Fortran. La totalidad del paquete se ejecuta fluidamente en entornos web vía WebAssembly (Pyodide), estaciones de trabajo y centros de computación de alto rendimiento.
+Se ejecutaron cinco modelos en Dynare 7.0, a órdenes dos y tres. Las
+[herramientas de reproducción](https://github.com/jalonso1979/puremacro/blob/v4.3.0/tools/reference_validation/README.md)
+comparan todos los tensores desplegados, correcciones de riesgo, covarianzas
+de innovaciones, trayectorias simuladas y momentos muestrales con resultados
+externos conservados. Esta prueba separada no amplía `verify_dynare_parity`
+más allá de los órdenes uno y dos. Consulte los
+[resultados y la salvedad del entorno MATLAB](https://github.com/jalonso1979/puremacro/blob/v4.3.0/reviews/2026-09-20-independent-validation/REPORT.md);
+la evidencia se limita a los modelos y configuraciones ensayados.
