@@ -34,7 +34,6 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-
 _DDL_HTTP_CACHE = """
 CREATE TABLE IF NOT EXISTS http_cache (
     key            TEXT PRIMARY KEY,
@@ -291,6 +290,7 @@ def store_realtime_vintages(
     """
     if df is None or len(df) == 0:
         return 0
+    import numpy as np
     import pandas as pd
     c = conn or get_conn()
     date_col = "date" if "date" in df.columns else "observation_date"
@@ -300,33 +300,34 @@ def store_realtime_vintages(
         missing = required - set(df.columns)
         raise ValueError(f"store_realtime_vintages missing columns: {sorted(missing)}")
 
-    records = []
-    for _, row in df.iterrows():
-        val = row["value"]
-        if pd.isna(val):
-            val_float = None
-        else:
-            try:
-                val_float = float(val)
-            except (ValueError, TypeError, Exception):
-                continue
-        try:
-            parsed_obs = pd.to_datetime(row[date_col])
-            parsed_vin = pd.to_datetime(row[vin_col])
-            if pd.isna(parsed_obs) or pd.isna(parsed_vin):
-                continue
-            obs_d = parsed_obs.strftime("%Y-%m-%d")
-            vin_d = parsed_vin.strftime("%Y-%m-%d")
-        except (ValueError, ArithmeticError, Exception):
-            continue
-        records.append((
-            str(row["provider"]),
-            str(row["country"]).upper(),
-            str(row["series_id"]),
-            obs_d,
-            vin_d,
-            val_float,
-        ))
+    orig_isna = df["value"].isna()
+    val_parsed = pd.to_numeric(df["value"], errors='coerce')
+    failed_val_mask = val_parsed.isna() & ~orig_isna
+
+    obs_parsed = pd.to_datetime(df[date_col], errors='coerce')
+    vin_parsed = pd.to_datetime(df[vin_col], errors='coerce')
+
+    failed_obs_mask = obs_parsed.isna()
+    failed_vin_mask = vin_parsed.isna()
+
+    keep_mask = ~(failed_val_mask | failed_obs_mask | failed_vin_mask)
+
+    if not keep_mask.any():
+        return 0
+
+    df_keep = df[keep_mask]
+    obs_keep = obs_parsed[keep_mask].dt.strftime("%Y-%m-%d")
+    vin_keep = vin_parsed[keep_mask].dt.strftime("%Y-%m-%d")
+    val_keep = val_parsed[keep_mask]
+
+    val_final = np.where(val_keep.isna(), None, val_keep)
+
+    provider = df_keep["provider"].astype(str)
+    country = df_keep["country"].astype(str).str.upper()
+    series = df_keep["series_id"].astype(str)
+
+    records = list(zip(provider, country, series, obs_keep, vin_keep, val_final))
+
     if not records:
         return 0
     c.executemany(
@@ -425,13 +426,13 @@ def record_connector_event(
 
 
 __all__ = [
-    "default_db_path",
     "bootstrap_schema",
-    "get_conn",
     "close_conn",
+    "default_db_path",
+    "get_conn",
     "migrate_from_flat_files",
-    "store_realtime_vintages",
     "query_realtime_vintages",
     "record_connector_event",
+    "store_realtime_vintages",
 ]
 

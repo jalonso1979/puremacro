@@ -1,3 +1,6 @@
 ## 2026-08-31 - Memory reallocation in numpy simulation loops
 **Learning:** Calling `np.concatenate` to manage rolling history buffers in tight simulation loops (like for Generalized IRF trajectories across `H` steps and `M` parallel histories) is a significant bottleneck due to constant reallocation and copying of the whole buffer, even though the arrays are relatively small per iteration. Pre-allocating the full future length works but increases peak memory. Simply slicing and re-assigning inplace (`buf[:, :-1] = buf[:, 1:]` and `buf[:, -1] = y`) gives ~15% speedup vs `np.concatenate` without the overhead and memory jump of full pre-allocation.
 **Action:** When shifting time buffers inplace in high-throughput hot loops with Numpy, use slicing and inplace assignment instead of `np.concatenate` to minimize reallocation.
+## 2024-11-20 - Vectorizing Pandas SQLite Insertion
+**Learning:** When vectorizing `df.iterrows()` loops that prepare data for SQLite via `executemany`, `pd.to_numeric` can introduce `np.nan` values. These `NaN`s do not map correctly to SQL `NULL`s when sent directly.
+**Action:** Use `np.where(series.isna(), None, series)` after numeric conversion to explicitly substitute `np.nan` with Python's `None`, ensuring correct SQL `NULL` insertion while avoiding object-type array overhead early in the pipeline.
