@@ -34,7 +34,6 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-
 _DDL_HTTP_CACHE = """
 CREATE TABLE IF NOT EXISTS http_cache (
     key            TEXT PRIMARY KEY,
@@ -300,33 +299,39 @@ def store_realtime_vintages(
         missing = required - set(df.columns)
         raise ValueError(f"store_realtime_vintages missing columns: {sorted(missing)}")
 
-    records = []
-    for _, row in df.iterrows():
-        val = row["value"]
-        if pd.isna(val):
-            val_float = None
-        else:
-            try:
-                val_float = float(val)
-            except (ValueError, TypeError, Exception):
-                continue
-        try:
-            parsed_obs = pd.to_datetime(row[date_col])
-            parsed_vin = pd.to_datetime(row[vin_col])
-            if pd.isna(parsed_obs) or pd.isna(parsed_vin):
-                continue
-            obs_d = parsed_obs.strftime("%Y-%m-%d")
-            vin_d = parsed_vin.strftime("%Y-%m-%d")
-        except (ValueError, ArithmeticError, Exception):
-            continue
-        records.append((
-            str(row["provider"]),
-            str(row["country"]).upper(),
-            str(row["series_id"]),
-            obs_d,
-            vin_d,
-            val_float,
-        ))
+    import numpy as np
+
+    df_clean = df.copy()
+
+    # 1. Parse value
+    # To mimic original where pd.isna is None, but parse failures skip
+    was_na = pd.isna(df_clean["value"])
+    df_clean["value_float"] = pd.to_numeric(df_clean["value"], errors='coerce')
+    # If it wasn't na, but now is na, it's a parse failure -> drop
+    parse_fail_value = (~was_na) & pd.isna(df_clean["value_float"])
+
+    # 2. Parse dates
+    obs_dt = pd.to_datetime(df_clean[date_col], errors='coerce')
+    vin_dt = pd.to_datetime(df_clean[vin_col], errors='coerce')
+
+    # Valid rows mask
+    valid_mask = (~parse_fail_value) & (~pd.isna(obs_dt)) & (~pd.isna(vin_dt))
+
+    df_valid = df_clean[valid_mask].copy()
+    obs_valid = obs_dt[valid_mask]
+    vin_valid = vin_dt[valid_mask]
+
+    df_valid["obs_str"] = obs_valid.dt.strftime("%Y-%m-%d")
+    df_valid["vin_str"] = vin_valid.dt.strftime("%Y-%m-%d")
+
+    # Ensure NaN values are Python None for SQL
+    df_valid["value_sql"] = np.where(pd.isna(df_valid["value_float"]), None, df_valid["value_float"])
+    df_valid["provider_str"] = df_valid["provider"].astype(str)
+    df_valid["country_str"] = df_valid["country"].astype(str).str.upper()
+    df_valid["series_id_str"] = df_valid["series_id"].astype(str)
+
+    records = list(df_valid[["provider_str", "country_str", "series_id_str", "obs_str", "vin_str", "value_sql"]].itertuples(index=False, name=None))
+
     if not records:
         return 0
     c.executemany(
@@ -425,13 +430,13 @@ def record_connector_event(
 
 
 __all__ = [
-    "default_db_path",
     "bootstrap_schema",
-    "get_conn",
     "close_conn",
+    "default_db_path",
+    "get_conn",
     "migrate_from_flat_files",
-    "store_realtime_vintages",
     "query_realtime_vintages",
     "record_connector_event",
+    "store_realtime_vintages",
 ]
 
