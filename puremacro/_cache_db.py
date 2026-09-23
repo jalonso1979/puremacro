@@ -300,35 +300,38 @@ def store_realtime_vintages(
         missing = required - set(df.columns)
         raise ValueError(f"store_realtime_vintages missing columns: {sorted(missing)}")
 
-    records = []
-    for _, row in df.iterrows():
-        val = row["value"]
-        if pd.isna(val):
-            val_float = None
-        else:
-            try:
-                val_float = float(val)
-            except (ValueError, TypeError, Exception):
-                continue
-        try:
-            parsed_obs = pd.to_datetime(row[date_col])
-            parsed_vin = pd.to_datetime(row[vin_col])
-            if pd.isna(parsed_obs) or pd.isna(parsed_vin):
-                continue
-            obs_d = parsed_obs.strftime("%Y-%m-%d")
-            vin_d = parsed_vin.strftime("%Y-%m-%d")
-        except (ValueError, ArithmeticError, Exception):
-            continue
-        records.append((
-            str(row["provider"]),
-            str(row["country"]).upper(),
-            str(row["series_id"]),
-            obs_d,
-            vin_d,
-            val_float,
-        ))
-    if not records:
+    import numpy as np
+
+    # Vectorized conversion
+    orig_isna = pd.isna(df["value"])
+    val_float = pd.to_numeric(df["value"], errors='coerce')
+    failed_value_mask = pd.isna(val_float) & ~orig_isna
+
+    obs_dates = pd.to_datetime(df[date_col], errors='coerce')
+    vin_dates = pd.to_datetime(df[vin_col], errors='coerce')
+    failed_date_mask = pd.isna(obs_dates) | pd.isna(vin_dates)
+
+    valid_mask = ~(failed_value_mask | failed_date_mask)
+    valid_df = df[valid_mask].copy()
+    if len(valid_df) == 0:
         return 0
+
+    val_float = val_float[valid_mask]
+    obs_dates = obs_dates[valid_mask]
+    vin_dates = vin_dates[valid_mask]
+
+    obs_d_str = obs_dates.dt.strftime("%Y-%m-%d")
+    vin_d_str = vin_dates.dt.strftime("%Y-%m-%d")
+
+    records = list(zip(
+        valid_df["provider"].astype(str),
+        valid_df["country"].astype(str).str.upper(),
+        valid_df["series_id"].astype(str),
+        obs_d_str,
+        vin_d_str,
+        np.where(pd.isna(val_float), None, val_float)
+    ))
+
     c.executemany(
         "INSERT OR REPLACE INTO realtime_vintages "
         "(provider, country, series_id, observation_date, vintage_date, value) "
