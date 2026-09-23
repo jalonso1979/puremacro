@@ -12,6 +12,7 @@ Decomposes revisions to nowcasts between data vintages:
 
 The decomposition is mathematically exact: |Δ ŷ - Σ impact| < 10^-10.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -143,51 +144,80 @@ class NewsDecompositionResult:
 
     def to_frame(self) -> pd.DataFrame:
         """Consolidated breakdown table of releases and revisions."""
-        records = []
+        dfs = []
         if not self.news_table.empty:
-            for _, row in self.news_table.iterrows():
-                records.append({
+            df_news = pd.DataFrame(
+                {
                     "type": "release",
-                    "series": row["series"],
-                    "period": row["period"],
-                    "actual_or_updated": row["actual"],
-                    "forecast_or_previous": row["forecast"],
-                    "surprise_or_revision": row["surprise"],
-                    "weight": row["weight"],
-                    "impact": row["impact"],
-                })
+                    "series": self.news_table["series"],
+                    "period": self.news_table["period"],
+                    "actual_or_updated": self.news_table["actual"],
+                    "forecast_or_previous": self.news_table["forecast"],
+                    "surprise_or_revision": self.news_table["surprise"],
+                    "weight": self.news_table["weight"],
+                    "impact": self.news_table["impact"],
+                }
+            )
+            dfs.append(df_news)
+
         if not self.revision_table.empty:
-            for _, row in self.revision_table.iterrows():
-                records.append({
+            df_rev = pd.DataFrame(
+                {
                     "type": "revision",
-                    "series": row["series"],
-                    "period": row["period"],
-                    "actual_or_updated": row["updated_val"],
-                    "forecast_or_previous": row["previous_val"],
-                    "surprise_or_revision": row["revision"],
-                    "weight": row["weight"],
-                    "impact": row["impact"],
-                })
-        if not records:
-            return pd.DataFrame(columns=[
-                "type", "series", "period", "actual_or_updated",
-                "forecast_or_previous", "surprise_or_revision", "weight", "impact",
-            ])
-        df_res = pd.DataFrame(records)
-        num_cols = [c for c in df_res.columns if c in {"actual_or_updated", "forecast_or_previous", "surprise_or_revision", "weight", "impact"}]
+                    "series": self.revision_table["series"],
+                    "period": self.revision_table["period"],
+                    "actual_or_updated": self.revision_table["updated_val"],
+                    "forecast_or_previous": self.revision_table["previous_val"],
+                    "surprise_or_revision": self.revision_table["revision"],
+                    "weight": self.revision_table["weight"],
+                    "impact": self.revision_table["impact"],
+                }
+            )
+            dfs.append(df_rev)
+
+        if not dfs:
+            return pd.DataFrame(
+                columns=[
+                    "type",
+                    "series",
+                    "period",
+                    "actual_or_updated",
+                    "forecast_or_previous",
+                    "surprise_or_revision",
+                    "weight",
+                    "impact",
+                ]
+            )
+
+        df_res = pd.concat(dfs, ignore_index=True)
+        num_cols = [
+            c
+            for c in df_res.columns
+            if c
+            in {
+                "actual_or_updated",
+                "forecast_or_previous",
+                "surprise_or_revision",
+                "weight",
+                "impact",
+            }
+        ]
         df_res[num_cols] = df_res[num_cols].round(4)
         return df_res
 
     def to_markdown(self, **kwargs: Any) -> str:
         from puremacro.reports import _df_to_markdown
+
         return _df_to_markdown(self.to_frame(), **kwargs)
 
     def to_latex(self, **kwargs: Any) -> str:
         from puremacro.reports import _df_to_latex
+
         return _df_to_latex(self.to_frame(), **kwargs)
 
     def to_typst(self, **kwargs: Any) -> str:
         from puremacro.reports import _df_to_typst
+
         return _df_to_typst(self.to_frame(), **kwargs)
 
     def plot(self, *, ax: Any = None, title: str | None = None) -> Any:
@@ -247,14 +277,22 @@ def _prepare_panels(
     # If VintagePanel
     if hasattr(old_vintage, "df") and hasattr(old_vintage, "as_of"):
         # If wide frame already or panel
-        df_old = old_vintage.as_of(old_vintage.df["vintage"].max()) if not old_vintage.df.empty else pd.DataFrame()
+        df_old = (
+            old_vintage.as_of(old_vintage.df["vintage"].max())
+            if not old_vintage.df.empty
+            else pd.DataFrame()
+        )
     elif isinstance(old_vintage, pd.DataFrame):
         df_old = old_vintage.copy()
     else:
         df_old = None
 
     if hasattr(new_vintage, "df") and hasattr(new_vintage, "as_of"):
-        df_new = new_vintage.as_of(new_vintage.df["vintage"].max()) if not new_vintage.df.empty else pd.DataFrame()
+        df_new = (
+            new_vintage.as_of(new_vintage.df["vintage"].max())
+            if not new_vintage.df.empty
+            else pd.DataFrame()
+        )
     elif isinstance(new_vintage, pd.DataFrame):
         df_new = new_vintage.copy()
     else:
@@ -298,7 +336,12 @@ def _prepare_panels(
 
 
 def banbura_modugno_news(
-    model: DynamicFactorModel | DynamicFactorModelResult | KalmanDFMResult | StateSpaceModel,
+    model: (
+        DynamicFactorModel
+        | DynamicFactorModelResult
+        | KalmanDFMResult
+        | StateSpaceModel
+    ),
     old_vintage: Any,
     new_vintage: Any,
     target_series: str | int = 0,
@@ -380,10 +423,14 @@ def banbura_modugno_news(
             target_col_idx = cols.index(target_series)
             target_var_name = target_series
         else:
-            raise KeyError(f"Target series {target_series!r} not in panel columns: {cols}")
+            raise KeyError(
+                f"Target series {target_series!r} not in panel columns: {cols}"
+            )
     else:
         target_col_idx = int(target_series)
-        target_var_name = cols[target_col_idx] if target_col_idx < len(cols) else f"x{target_col_idx}"
+        target_var_name = (
+            cols[target_col_idx] if target_col_idx < len(cols) else f"x{target_col_idx}"
+        )
 
     if target_period is None or target_period == -1:
         target_row_idx = T - 1
@@ -451,15 +498,17 @@ def banbura_modugno_news(
         raw_diff = raw_upd - raw_prev
         w = float(imp / raw_diff) if abs(raw_diff) > 1e-12 else 0.0
 
-        revision_records.append({
-            "series": var_name,
-            "period": per_name,
-            "previous_val": raw_prev,
-            "updated_val": raw_upd,
-            "revision": raw_diff,
-            "weight": w,
-            "impact": imp,
-        })
+        revision_records.append(
+            {
+                "series": var_name,
+                "period": per_name,
+                "previous_val": raw_prev,
+                "updated_val": raw_upd,
+                "revision": raw_diff,
+                "weight": w,
+                "impact": imp,
+            }
+        )
         impact_revisions[var_name] = impact_revisions.get(var_name, 0.0) + imp
 
     # 3. New Releases (News Innovation) via Analytical Projection Gain
@@ -509,9 +558,8 @@ def banbura_modugno_news(
         for i, (t_i, j_i) in enumerate(rel_coords):
             for l, (t_l, j_l) in enumerate(rel_coords):
                 cov_alpha = get_cov(t_i, t_l)
-                Sigma_I[i, l] = (
-                    Z_full[j_i] @ cov_alpha @ Z_full[j_l].T
-                    + (H[j_i, j_l] if t_i == t_l else 0.0)
+                Sigma_I[i, l] = Z_full[j_i] @ cov_alpha @ Z_full[j_l].T + (
+                    H[j_i, j_l] if t_i == t_l else 0.0
                 )
 
         # Cross-covariance with target state α_{t*} (m x n_u)
@@ -538,15 +586,17 @@ def banbura_modugno_news(
             imp = float(w * surp)
 
             hat_raw = float(new_arr[t_i, j_i] - surp)
-            news_records.append({
-                "series": var_name,
-                "period": per_name,
-                "actual": float(new_arr[t_i, j_i]),
-                "forecast": hat_raw,
-                "surprise": surp,
-                "weight": w,
-                "impact": imp,
-            })
+            news_records.append(
+                {
+                    "series": var_name,
+                    "period": per_name,
+                    "actual": float(new_arr[t_i, j_i]),
+                    "forecast": hat_raw,
+                    "surprise": surp,
+                    "weight": w,
+                    "impact": imp,
+                }
+            )
             impact_releases[var_name] = impact_releases.get(var_name, 0.0) + imp
 
         delta_news_target = float(np.sum([r["impact"] for r in news_records]))
@@ -561,11 +611,35 @@ def banbura_modugno_news(
     total_impact = float(sum_rev_impact + delta_news_target)
     decomp_error = float(abs(revision - total_impact))
 
-    df_news = pd.DataFrame(news_records) if news_records else pd.DataFrame(
-        columns=["series", "period", "actual", "forecast", "surprise", "weight", "impact"]
+    df_news = (
+        pd.DataFrame(news_records)
+        if news_records
+        else pd.DataFrame(
+            columns=[
+                "series",
+                "period",
+                "actual",
+                "forecast",
+                "surprise",
+                "weight",
+                "impact",
+            ]
+        )
     )
-    df_rev = pd.DataFrame(revision_records) if revision_records else pd.DataFrame(
-        columns=["series", "period", "previous_val", "updated_val", "revision", "weight", "impact"]
+    df_rev = (
+        pd.DataFrame(revision_records)
+        if revision_records
+        else pd.DataFrame(
+            columns=[
+                "series",
+                "period",
+                "previous_val",
+                "updated_val",
+                "revision",
+                "weight",
+                "impact",
+            ]
+        )
     )
 
     return NewsDecompositionResult(

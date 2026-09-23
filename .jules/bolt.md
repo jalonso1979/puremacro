@@ -1,3 +1,3 @@
-## 2026-08-31 - Memory reallocation in numpy simulation loops
-**Learning:** Calling `np.concatenate` to manage rolling history buffers in tight simulation loops (like for Generalized IRF trajectories across `H` steps and `M` parallel histories) is a significant bottleneck due to constant reallocation and copying of the whole buffer, even though the arrays are relatively small per iteration. Pre-allocating the full future length works but increases peak memory. Simply slicing and re-assigning inplace (`buf[:, :-1] = buf[:, 1:]` and `buf[:, -1] = y`) gives ~15% speedup vs `np.concatenate` without the overhead and memory jump of full pre-allocation.
-**Action:** When shifting time buffers inplace in high-throughput hot loops with Numpy, use slicing and inplace assignment instead of `np.concatenate` to minimize reallocation.
+## 2024-05-19 - Pandas iterrows() bottleneck
+**Learning:** The use of `iterrows()` in pandas is extremely slow for looping over rows and should be avoided for production operations. In `store_realtime_vintages` and `news.to_frame`, switching to vectorization and `pd.concat` yielded a ~20x performance improvement in benchmarks.
+**Action:** Always prefer vectorization (`pd.to_numeric`, `pd.to_datetime`, column assignment) or list comprehension with `zip()` over `iterrows()` when processing DataFrames.
