@@ -30,6 +30,7 @@ snapshot storage) degrade to a warning.
 from __future__ import annotations
 
 import os
+import re
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -269,6 +270,52 @@ def migrate_from_flat_files(
     return migrated
 
 
+_ISO_DAY = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
+
+
+def _iso_day(x) -> str | None:
+    """``pd.to_datetime(x)`` as ``YYYY-MM-DD``; None if it fails or is NaT."""
+    import pandas as pd
+    try:
+        parsed = pd.to_datetime(x)
+        if pd.isna(parsed):
+            return None
+        return parsed.strftime("%Y-%m-%d")
+    except (ValueError, ArithmeticError, Exception):
+        return None
+
+
+def _iso_days(col) -> list[str | None]:
+    """:func:`_iso_day` of every element of ``col``, parsed once per distinct value.
+
+    A vintage frame repeats each observation date across vintages and each
+    vintage date across observations, so distinct values are few. They keep
+    the scalar parse because one vectorised ``pd.to_datetime`` over the column
+    infers a single format from the first element and turns every row written
+    another way into NaT, which would silently drop those rows. Only values the
+    scalar parse cannot disagree with are vectorised: a datetime64 column, and
+    strings already written ``YYYY-MM-DD``.
+    """
+    import pandas as pd
+    codes, uniques = pd.factorize(col)
+    days: list[str | None] = [None] * len(uniques)
+    if isinstance(uniques, pd.DatetimeIndex):
+        days = list(uniques.strftime("%Y-%m-%d"))
+    else:
+        iso = [i for i, u in enumerate(uniques)
+               if isinstance(u, str) and _ISO_DAY.fullmatch(u)]
+        if iso:
+            parsed = pd.to_datetime(pd.Index([uniques[i] for i in iso]),
+                                    format="%Y-%m-%d", errors="coerce")
+            for i, p in zip(iso, parsed):
+                if not pd.isna(p):
+                    days[i] = p.strftime("%Y-%m-%d")
+    for i, d in enumerate(days):
+        if d is None:
+            days[i] = _iso_day(uniques[i])
+    return [days[k] if k >= 0 else None for k in codes]
+
+
 def store_realtime_vintages(
     df,
     *,
@@ -301,8 +348,14 @@ def store_realtime_vintages(
         raise ValueError(f"store_realtime_vintages missing columns: {sorted(missing)}")
 
     records = []
-    for _, row in df.iterrows():
-        val = row["value"]
+    for provider, country, series_id, obs_d, vin_d, val in zip(
+        df["provider"].tolist(),
+        df["country"].tolist(),
+        df["series_id"].tolist(),
+        _iso_days(df[date_col]),
+        _iso_days(df[vin_col]),
+        df["value"].tolist(),
+    ):
         if pd.isna(val):
             val_float = None
         else:
@@ -310,19 +363,12 @@ def store_realtime_vintages(
                 val_float = float(val)
             except (ValueError, TypeError, Exception):
                 continue
-        try:
-            parsed_obs = pd.to_datetime(row[date_col])
-            parsed_vin = pd.to_datetime(row[vin_col])
-            if pd.isna(parsed_obs) or pd.isna(parsed_vin):
-                continue
-            obs_d = parsed_obs.strftime("%Y-%m-%d")
-            vin_d = parsed_vin.strftime("%Y-%m-%d")
-        except (ValueError, ArithmeticError, Exception):
+        if obs_d is None or vin_d is None:
             continue
         records.append((
-            str(row["provider"]),
-            str(row["country"]).upper(),
-            str(row["series_id"]),
+            str(provider),
+            str(country).upper(),
+            str(series_id),
             obs_d,
             vin_d,
             val_float,

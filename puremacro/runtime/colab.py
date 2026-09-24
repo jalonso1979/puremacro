@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64
 import io
 import json
+from html import escape
 from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence
 
@@ -455,23 +456,27 @@ def show_colab_offload_dialog(
     try:
         from IPython.display import HTML, display
 
+        # Paths and titles are user text: escape them, or a '&' or '<' in a
+        # notebook path breaks the card.
+        e_title, e_path = escape(str(title)), escape(str(abs_path))
+        e_name, e_folder = escape(p.name), escape(str(drive_folder))
         html_content = f"""
-        <div style="border: 2px solid #4285F4; border-radius: 8px; padding: 16px; margin: 10px 0; background: #f8fafd; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <div role="region" aria-label="{e_title}" style="border: 2px solid #4285F4; border-radius: 8px; padding: 16px; margin: 10px 0; background: #f8fafd; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
             <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                <span style="font-size: 24px; margin-right: 10px;">🚀</span>
-                <h3 style="margin: 0; color: #1a73e8;">{title}</h3>
+                <span style="font-size: 24px; margin-right: 10px;" aria-hidden="true">🚀</span>
+                <h3 style="margin: 0; color: #1a73e8;">{e_title}</h3>
             </div>
             <p style="margin: 4px 0 12px 0; color: #3c4043;">
-                Notebook ready at: <code>{abs_path}</code>
+                Notebook ready at: <code>{e_path}</code>
             </p>
             <ol style="margin: 0 0 12px 0; padding-left: 20px; color: #3c4043;">
-                <li>Open <a href="https://colab.research.google.com" target="_blank" style="color: #1a73e8; font-weight: bold;">Google Colab</a> in Safari or Chrome.</li>
-                <li>Upload <code>{p.name}</code>.</li>
+                <li>Open <a href="https://colab.research.google.com" target="_blank" rel="noopener noreferrer" aria-label="Google Colab (opens in a new tab)" style="color: #1a73e8; font-weight: bold;">Google Colab</a> in Safari or Chrome.</li>
+                <li>Upload <code>{e_name}</code>.</li>
                 <li>Run the authentication cell and sign in with your Google Account.</li>
-                <li>Output cartridge will automatically sync back to <code>MyDrive/{drive_folder}/</code>.</li>
+                <li>Output cartridge will automatically sync back to <code>MyDrive/{e_folder}/</code>.</li>
             </ol>
-            <a href="https://colab.research.google.com" target="_blank" style="display: inline-block; background-color: #1a73e8; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-weight: 500; font-size: 13px;">
-                Open Google Colab ↗
+            <a href="https://colab.research.google.com" target="_blank" rel="noopener noreferrer" aria-label="Open Google Colab (opens in a new tab)" style="display: inline-block; background-color: #1a73e8; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-weight: 500; font-size: 13px;">
+                Open Google Colab <span aria-hidden="true">↗</span>
             </a>
         </div>
         """

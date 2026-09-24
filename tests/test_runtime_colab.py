@@ -102,3 +102,40 @@ def test_show_colab_offload_dialog(tmp_path):
         assert "offloaded.ipynb" in res.data
     else:
         assert "Test Offload Dialog" in str(res)
+
+
+def test_show_colab_offload_dialog_html_card(tmp_path, monkeypatch):
+    """Inside a kernel the card escapes user text and marks its new-tab links."""
+    import sys
+    import types
+
+    from puremacro.runtime.colab import show_colab_offload_dialog
+
+    class _Kernel:  # any shell class other than TerminalInteractiveShell
+        pass
+
+    class _HTML:
+        def __init__(self, data):
+            self.data = data
+
+    ipython = types.ModuleType("IPython")
+    ipython.get_ipython = lambda: _Kernel()
+    display_mod = types.ModuleType("IPython.display")
+    display_mod.HTML = _HTML
+    display_mod.display = lambda obj: None
+    ipython.display = display_mod
+    monkeypatch.setitem(sys.modules, "IPython", ipython)
+    monkeypatch.setitem(sys.modules, "IPython.display", display_mod)
+
+    nb = tmp_path / "r&d.ipynb"  # "<" is not a legal Windows file name character
+    nb.write_text("{}", encoding="utf-8")
+    res = show_colab_offload_dialog(nb, title="Fit <DSGE> & wait", drive_folder="jobs&co")
+
+    html = res.data
+    assert "Fit &lt;DSGE&gt; &amp; wait" in html
+    assert "<DSGE>" not in html
+    assert "r&amp;d.ipynb" in html
+    assert "MyDrive/jobs&amp;co/" in html
+    assert html.count('target="_blank"') == html.count('rel="noopener noreferrer"') == 2
+    assert html.count("(opens in a new tab)") == 2
+    assert '<span style="font-size: 24px; margin-right: 10px;" aria-hidden="true">' in html
