@@ -15,7 +15,6 @@ Salvaged from the automated (Jules "Bolt"/"Palette") branches before they were d
 ### Internal
 
 - `store_realtime_vintages` parses each distinct date once instead of each row: about 15× faster on connector snapshots (datetime64 columns) and 55× on ISO date strings, with identical stored rows. The automated patches that vectorised it with one `pd.to_datetime` over the column were rejected: they drop rows in a second date format and can misdate `01/02/2020` after a `13/02/2020` row. The new tests pin both cases.
-- The DCC log-likelihood evaluates `slogdet` and `solve` over all periods in one batched call (about 2× per evaluation; relative difference below 2e-15).
 - Adopted bot-written tests that exercise real code: `sa_audit`, `build_coverage_report`, `attach_structural_covariates`, `compute_garch_sigma`, `disk_cache_path` and the local-projection `_within_demean`.
 
 ## 4.3.0 (2026-09-20)
