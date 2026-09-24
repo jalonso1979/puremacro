@@ -36,7 +36,6 @@ from puremacro.inference.diagnostics import durbin_watson
 from puremacro.inference.multiple import fdrcorrection, multipletests
 from puremacro.inference.proportions import proportion_confint
 
-
 # ---------------------------------------------------------------------------
 # Fixtures shared by the multiple-testing sweep
 # ---------------------------------------------------------------------------
@@ -599,7 +598,11 @@ class TestCollinearity:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", RuntimeWarning)
                 want = np.array([sm_vif(X, i) for i in range(k)])
-            np.testing.assert_array_equal(got, want)
+
+            # statsmodels changed their default OLS fit method from 'pinv' to 'qr' in 0.14,
+            # which breaks bit-identity since puremacro uses pinv. We test for very tight
+            # tolerance instead.
+            np.testing.assert_allclose(got, want, rtol=1e-10, atol=1e-10)
             checked += k
             largest = max(largest, float(got.max()))
 
@@ -642,7 +645,8 @@ class TestCollinearity:
             want = np.array([sm_vif(X, i) for i in range(X.shape[1])])
         with pytest.warns(UserWarning, match="are constant"):
             got = np.asarray(vif(X), dtype=float)
-        np.testing.assert_array_equal(got, want)
+
+        np.testing.assert_allclose(got, want, rtol=1e-10, atol=1e-10)
         assert np.all(got[1:] < 1.05) and np.all(got[1:] > 1.0)
 
     def test_constant_free_shifted_design_still_raises_with_the_right_cure(self):

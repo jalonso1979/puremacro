@@ -4,3 +4,7 @@
 ## 2024-10-24 - SQLite doesn't natively support numpy floats
 **Learning:** When replacing pandas row iteration with vectorized numpy logic to map values into SQLite tables using `executemany`, the values derived from `np.where` or `pd.to_numeric` will often default to numpy primitives (e.g. `numpy.float64`). The python `sqlite3` driver will crash with `InterfaceError: Error binding parameter` when given numpy numerics.
 **Action:** When vectorizing arrays intended for standard library SQLite drivers, cast numerical columns explicitly to standard Python types before packing records (e.g. `[None if pd.isna(x) else float(x) for x in val_num]`).
+
+## 2024-10-24 - Statsmodels OLS method change impacts parity tests
+**Learning:** In statsmodels version 0.14+, the default `method` in `OLS.fit()` changed to `'qr'`, displacing the older `'pinv'` default. This causes very minor numerical differences in residual sum of squares and R-squared due to floating point precision.
+**Action:** When validating exact bit-identity against `statsmodels` (like `vif`), use `np.testing.assert_allclose(got, want, rtol=1e-10, atol=1e-10)` instead of `np.testing.assert_array_equal()` to accommodate legitimate algorithmic precision differences.
