@@ -44,16 +44,17 @@ def _dcc_loglik(params: np.ndarray, e: np.ndarray, Qbar: np.ndarray) -> float:
     if a < 0 or b < 0 or a + b >= 0.999:
         return 1e10
     _, R = _dcc_recursion(e, a, b, Qbar)
-    ll = 0.0
-    for t in range(R.shape[0]):
-        sign, logdet = np.linalg.slogdet(R[t])
-        if sign <= 0:
-            return 1e10
-        try:
-            quad = e[t] @ np.linalg.solve(R[t], e[t])
-        except np.linalg.LinAlgError:
-            return 1e10
-        ll += -0.5 * (logdet + quad - e[t] @ e[t])
+    # Batched over t: the optimiser calls this hundreds of times, and the
+    # per-t slogdet/solve loop was about half of each evaluation.
+    sign, logdet = np.linalg.slogdet(R)
+    if np.any(sign <= 0):
+        return 1e10
+    try:
+        x = np.linalg.solve(R, e[:, :, None])[:, :, 0]
+    except np.linalg.LinAlgError:
+        return 1e10
+    quad = np.einsum("ti,ti->t", e, x)
+    ll = -0.5 * np.sum(logdet + quad - np.einsum("ti,ti->t", e, e))
     return float(-ll)
 
 
