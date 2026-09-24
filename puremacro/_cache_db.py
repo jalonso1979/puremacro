@@ -34,7 +34,6 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-
 _DDL_HTTP_CACHE = """
 CREATE TABLE IF NOT EXISTS http_cache (
     key            TEXT PRIMARY KEY,
@@ -300,35 +299,43 @@ def store_realtime_vintages(
         missing = required - set(df.columns)
         raise ValueError(f"store_realtime_vintages missing columns: {sorted(missing)}")
 
-    records = []
-    for _, row in df.iterrows():
-        val = row["value"]
-        if pd.isna(val):
-            val_float = None
-        else:
-            try:
-                val_float = float(val)
-            except (ValueError, TypeError, Exception):
-                continue
-        try:
-            parsed_obs = pd.to_datetime(row[date_col])
-            parsed_vin = pd.to_datetime(row[vin_col])
-            if pd.isna(parsed_obs) or pd.isna(parsed_vin):
-                continue
-            obs_d = parsed_obs.strftime("%Y-%m-%d")
-            vin_d = parsed_vin.strftime("%Y-%m-%d")
-        except (ValueError, ArithmeticError, Exception):
-            continue
-        records.append((
-            str(row["provider"]),
-            str(row["country"]).upper(),
-            str(row["series_id"]),
-            obs_d,
-            vin_d,
-            val_float,
-        ))
-    if not records:
+    # Vectorize parsing and filtering instead of slow .iterrows()
+    val_num = pd.to_numeric(df["value"], errors="coerce")
+    obs_dt = pd.to_datetime(df[date_col], errors="coerce")
+    vin_dt = pd.to_datetime(df[vin_col], errors="coerce")
+
+    # If the original value was not natively missing but pd.to_numeric failed to parse it,
+    # it becomes NaN. We only keep rows where the conversion was successful, OR the value was genuinely missing natively.
+    valid = obs_dt.notna() & vin_dt.notna() & ~(val_num.isna() & pd.notna(df["value"]))
+    if not valid.any():
         return 0
+
+    val_num = val_num[valid]
+    obs_dt = obs_dt[valid]
+    vin_dt = vin_dt[valid]
+
+    provider_str = df.loc[valid, "provider"].astype(str)
+    country_str = df.loc[valid, "country"].astype(str).str.upper()
+    series_str = df.loc[valid, "series_id"].astype(str)
+
+    obs_str = obs_dt.dt.strftime("%Y-%m-%d")
+    vin_str = vin_dt.dt.strftime("%Y-%m-%d")
+
+    # Map pandas NaN to Python None, and ensure valid values are standard Python floats
+    # This prevents sqlite3 InterfaceError from passing numpy float64 directly
+    val_final = [None if pd.isna(x) else float(x) for x in val_num]
+
+    records = list(
+        zip(
+            provider_str,
+            country_str,
+            series_str,
+            obs_str,
+            vin_str,
+            val_final,
+        )
+    )
+
     c.executemany(
         "INSERT OR REPLACE INTO realtime_vintages "
         "(provider, country, series_id, observation_date, vintage_date, value) "
@@ -425,13 +432,13 @@ def record_connector_event(
 
 
 __all__ = [
-    "default_db_path",
     "bootstrap_schema",
-    "get_conn",
     "close_conn",
+    "default_db_path",
+    "get_conn",
     "migrate_from_flat_files",
-    "store_realtime_vintages",
     "query_realtime_vintages",
     "record_connector_event",
+    "store_realtime_vintages",
 ]
 
