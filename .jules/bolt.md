@@ -1,3 +1,10 @@
 ## 2026-08-31 - Memory reallocation in numpy simulation loops
 **Learning:** Calling `np.concatenate` to manage rolling history buffers in tight simulation loops (like for Generalized IRF trajectories across `H` steps and `M` parallel histories) is a significant bottleneck due to constant reallocation and copying of the whole buffer, even though the arrays are relatively small per iteration. Pre-allocating the full future length works but increases peak memory. Simply slicing and re-assigning inplace (`buf[:, :-1] = buf[:, 1:]` and `buf[:, -1] = y`) gives ~15% speedup vs `np.concatenate` without the overhead and memory jump of full pre-allocation.
 **Action:** When shifting time buffers inplace in high-throughput hot loops with Numpy, use slicing and inplace assignment instead of `np.concatenate` to minimize reallocation.
+## 2024-10-24 - SQLite doesn't natively support numpy floats
+**Learning:** When replacing pandas row iteration with vectorized numpy logic to map values into SQLite tables using `executemany`, the values derived from `np.where` or `pd.to_numeric` will often default to numpy primitives (e.g. `numpy.float64`). The python `sqlite3` driver will crash with `InterfaceError: Error binding parameter` when given numpy numerics.
+**Action:** When vectorizing arrays intended for standard library SQLite drivers, cast numerical columns explicitly to standard Python types before packing records (e.g. `[None if pd.isna(x) else float(x) for x in val_num]`).
+
+## 2024-10-24 - Statsmodels OLS method change impacts parity tests
+**Learning:** In statsmodels version 0.14+, the default `method` in `OLS.fit()` changed to `'qr'`, displacing the older `'pinv'` default. This causes very minor numerical differences in residual sum of squares and R-squared due to floating point precision.
+**Action:** When validating exact bit-identity against `statsmodels` (like `vif`), use `np.testing.assert_allclose(got, want, rtol=1e-10, atol=1e-10)` instead of `np.testing.assert_array_equal()` to accommodate legitimate algorithmic precision differences.
