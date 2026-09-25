@@ -1,0 +1,3 @@
+## 2024-09-25 - Accessible Inline HTML in Jupyter Notebooks
+**Learning:** When generating inline HTML for Jupyter notebook outputs (e.g., using `IPython.display.HTML`), accessibility is just as important as in standard web pages. Screen readers may misinterpret decorative emojis or symbols if they are not explicitly hidden, and external links opening in new tabs without proper `rel` and `aria-label` attributes pose security and usability risks.
+**Action:** Always wrap decorative emojis or symbols in `<span aria-hidden="true">`. For external links (`target="_blank"`), always include `rel="noopener noreferrer"` and an explicit `aria-label` to provide context for screen reader users.
