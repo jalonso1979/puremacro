@@ -299,8 +299,6 @@ def store_realtime_vintages(
         missing = required - set(df.columns)
         raise ValueError(f"store_realtime_vintages missing columns: {sorted(missing)}")
 
-    # Vectorize row parsing for a ~99% performance improvement over .iterrows()
-    # Preserves original try/except behavior by coercing errors and masking failures.
     val_was_na = df["value"].isna()
     val_parsed = pd.to_numeric(df["value"], errors="coerce")
     val_failed = (~val_was_na) & val_parsed.isna()
@@ -439,4 +437,3 @@ __all__ = [
     "record_connector_event",
     "store_realtime_vintages",
 ]
-
