@@ -34,7 +34,6 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-
 _DDL_HTTP_CACHE = """
 CREATE TABLE IF NOT EXISTS http_cache (
     key            TEXT PRIMARY KEY,
@@ -300,35 +299,33 @@ def store_realtime_vintages(
         missing = required - set(df.columns)
         raise ValueError(f"store_realtime_vintages missing columns: {sorted(missing)}")
 
-    records = []
-    for _, row in df.iterrows():
-        val = row["value"]
-        if pd.isna(val):
-            val_float = None
-        else:
-            try:
-                val_float = float(val)
-            except (ValueError, TypeError, Exception):
-                continue
-        try:
-            parsed_obs = pd.to_datetime(row[date_col])
-            parsed_vin = pd.to_datetime(row[vin_col])
-            if pd.isna(parsed_obs) or pd.isna(parsed_vin):
-                continue
-            obs_d = parsed_obs.strftime("%Y-%m-%d")
-            vin_d = parsed_vin.strftime("%Y-%m-%d")
-        except (ValueError, ArithmeticError, Exception):
-            continue
-        records.append((
-            str(row["provider"]),
-            str(row["country"]).upper(),
-            str(row["series_id"]),
-            obs_d,
-            vin_d,
-            val_float,
-        ))
-    if not records:
+    import numpy as np
+
+    is_missing_val = df["value"].isna()
+    val_float = pd.to_numeric(df["value"], errors="coerce")
+    val_failed = val_float.isna() & ~is_missing_val
+
+    parsed_obs = pd.to_datetime(df[date_col], errors="coerce")
+    parsed_vin = pd.to_datetime(df[vin_col], errors="coerce")
+    obs_failed = parsed_obs.isna()
+    vin_failed = parsed_vin.isna()
+
+    valid = ~(val_failed | obs_failed | vin_failed)
+
+    if not valid.any():
         return 0
+
+    df_valid = df[valid]
+    provider_v = df_valid["provider"].astype(str).tolist()
+    country_v = df_valid["country"].astype(str).str.upper().tolist()
+    series_id_v = df_valid["series_id"].astype(str).tolist()
+    obs_d_v = parsed_obs[valid].dt.strftime("%Y-%m-%d").tolist()
+    vin_d_v = parsed_vin[valid].dt.strftime("%Y-%m-%d").tolist()
+
+    val_float_v = val_float[valid]
+    val_float_arr = np.where(val_float_v.isna(), None, val_float_v.astype(float)).tolist()
+
+    records = list(zip(provider_v, country_v, series_id_v, obs_d_v, vin_d_v, val_float_arr))
     c.executemany(
         "INSERT OR REPLACE INTO realtime_vintages "
         "(provider, country, series_id, observation_date, vintage_date, value) "
@@ -425,13 +422,13 @@ def record_connector_event(
 
 
 __all__ = [
-    "default_db_path",
     "bootstrap_schema",
-    "get_conn",
     "close_conn",
+    "default_db_path",
+    "get_conn",
     "migrate_from_flat_files",
-    "store_realtime_vintages",
     "query_realtime_vintages",
     "record_connector_event",
+    "store_realtime_vintages",
 ]
 
