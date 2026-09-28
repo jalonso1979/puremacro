@@ -34,7 +34,6 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-
 _DDL_HTTP_CACHE = """
 CREATE TABLE IF NOT EXISTS http_cache (
     key            TEXT PRIMARY KEY,
@@ -300,35 +299,40 @@ def store_realtime_vintages(
         missing = required - set(df.columns)
         raise ValueError(f"store_realtime_vintages missing columns: {sorted(missing)}")
 
-    records = []
-    for _, row in df.iterrows():
-        val = row["value"]
-        if pd.isna(val):
-            val_float = None
-        else:
-            try:
-                val_float = float(val)
-            except (ValueError, TypeError, Exception):
-                continue
-        try:
-            parsed_obs = pd.to_datetime(row[date_col])
-            parsed_vin = pd.to_datetime(row[vin_col])
-            if pd.isna(parsed_obs) or pd.isna(parsed_vin):
-                continue
-            obs_d = parsed_obs.strftime("%Y-%m-%d")
-            vin_d = parsed_vin.strftime("%Y-%m-%d")
-        except (ValueError, ArithmeticError, Exception):
-            continue
-        records.append((
-            str(row["provider"]),
-            str(row["country"]).upper(),
-            str(row["series_id"]),
-            obs_d,
-            vin_d,
-            val_float,
-        ))
-    if not records:
+    import numpy as np
+
+    df_clean = df.copy()
+
+    # Coerce to numeric/datetime but preserve original error-skipping semantics
+    df_clean["value"] = pd.to_numeric(df_clean["value"], errors="coerce")
+    original_nan_mask = df["value"].isna()
+    coerced_nan_mask = df_clean["value"].isna() & ~original_nan_mask
+
+    df_clean[date_col] = pd.to_datetime(df_clean[date_col], errors="coerce")
+    df_clean[vin_col] = pd.to_datetime(df_clean[vin_col], errors="coerce")
+
+    # Filter out unparseable rows or missing required dates
+    mask = ~coerced_nan_mask & df_clean[date_col].notna() & df_clean[vin_col].notna()
+    df_clean = df_clean[mask]
+
+    if len(df_clean) == 0:
         return 0
+
+    df_clean["provider"] = df_clean["provider"].astype(str)
+    df_clean["country"] = df_clean["country"].astype(str).str.upper()
+    df_clean["series_id"] = df_clean["series_id"].astype(str)
+    df_clean[date_col] = df_clean[date_col].dt.strftime("%Y-%m-%d")
+    df_clean[vin_col] = df_clean[vin_col].dt.strftime("%Y-%m-%d")
+
+    # Convert pandas/numpy NaNs to native Python None for SQLite execution
+    df_clean["value"] = df_clean["value"].astype(object)
+    df_clean["value"] = np.where(df_clean["value"].isna(), None, df_clean["value"])
+
+    records = list(
+        df_clean[
+            ["provider", "country", "series_id", date_col, vin_col, "value"]
+        ].itertuples(index=False, name=None)
+    )
     c.executemany(
         "INSERT OR REPLACE INTO realtime_vintages "
         "(provider, country, series_id, observation_date, vintage_date, value) "
@@ -425,13 +429,13 @@ def record_connector_event(
 
 
 __all__ = [
-    "default_db_path",
     "bootstrap_schema",
-    "get_conn",
     "close_conn",
+    "default_db_path",
+    "get_conn",
     "migrate_from_flat_files",
-    "store_realtime_vintages",
     "query_realtime_vintages",
     "record_connector_event",
+    "store_realtime_vintages",
 ]
 
