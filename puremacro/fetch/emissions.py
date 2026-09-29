@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
-from typing import Sequence
+from collections.abc import Sequence
 
 import numpy as np
 import pandas as pd
@@ -440,29 +440,42 @@ def fetch_emissions_panel(
         return merged.sort_values(["code", "variable", "date"]).reset_index(drop=True)
 
     # Quarterly expansion: expand each annual observation into 4 quarterly periods
-    q_records: list[dict[str, object]] = []
-    for _, row in merged.iterrows():
-        base_year = row["date"].year
-        var_name = str(row["variable"])
-        q_var = var_name[:-2] + "_q" if var_name.endswith("_a") else var_name + "_q"
-        q_source = f"resampled_from_A:{row['source']}"
-
-        for m in (1, 4, 7, 10):
-            q_records.append({
-                "code": row["code"],
-                "date": pd.Timestamp(f"{base_year}-{m:02d}-01"),
-                "variable": q_var,
-                "value": row["value"],
-                "sa_source": row["sa_source"],
-                "source": q_source,
-            })
-
-    if not q_records:
+    if merged.empty:
         return _EMPTY.copy()
 
-    q_df = pd.DataFrame(q_records, columns=["code", "date", "variable", "value", "sa_source", "source"])
+    n = len(merged)
+
+    # Repeat scalars 4 times
+    code = np.repeat(merged["code"].values, 4)
+    value = np.repeat(merged["value"].values, 4)
+    sa_source = np.repeat(merged["sa_source"].values, 4)
+
+    # Dates
+    base_years = merged["date"].dt.year.values
+    years = np.repeat(base_years, 4)
+    months = np.tile([1, 4, 7, 10], n)
+    dates = pd.to_datetime([f"{y}-{m:02d}-01" for y, m in zip(years, months)])
+
+    # Variables
+    vars_series = pd.Series(merged["variable"].astype(str).values)
+    vars_q = np.where(vars_series.str.endswith("_a"), vars_series.str.slice(0, -2) + "_q", vars_series + "_q")
+    variable = np.repeat(vars_q, 4)
+
+    # Sources
+    sources = "resampled_from_A:" + merged["source"].astype(str).values
+    source = np.repeat(sources, 4)
+
+    q_df = pd.DataFrame({
+        "code": code,
+        "date": dates,
+        "variable": variable,
+        "value": value,
+        "sa_source": sa_source,
+        "source": source
+    })
+
     q_df = q_df.sort_values(["code", "variable", "date"]).reset_index(drop=True)
     return q_df
 
 
-__all__ = ["fetch_wdi_emissions", "fetch_oecd_ghg", "fetch_emissions_panel"]
+__all__ = ["fetch_emissions_panel", "fetch_oecd_ghg", "fetch_wdi_emissions"]
