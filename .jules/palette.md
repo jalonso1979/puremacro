@@ -1,0 +1,3 @@
+## 2025-02-27 - Inline HTML Accessibility
+**Learning:** Decorative emojis (🚀, ↗) in inline HTML must have `aria-hidden="true"`, and external links with `target="_blank"` must include `rel="noopener noreferrer"` and explicit `aria-label`s for proper screen reader accessibility.
+**Action:** Apply `aria-hidden="true"` to decorative symbols and `rel="noopener noreferrer"` + `aria-label` to new tab links whenever generating inline HTML content (e.g. for Jupyter/Colab dialogs).
