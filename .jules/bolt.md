@@ -1,3 +1,7 @@
 ## 2026-08-31 - Memory reallocation in numpy simulation loops
 **Learning:** Calling `np.concatenate` to manage rolling history buffers in tight simulation loops (like for Generalized IRF trajectories across `H` steps and `M` parallel histories) is a significant bottleneck due to constant reallocation and copying of the whole buffer, even though the arrays are relatively small per iteration. Pre-allocating the full future length works but increases peak memory. Simply slicing and re-assigning inplace (`buf[:, :-1] = buf[:, 1:]` and `buf[:, -1] = y`) gives ~15% speedup vs `np.concatenate` without the overhead and memory jump of full pre-allocation.
 **Action:** When shifting time buffers inplace in high-throughput hot loops with Numpy, use slicing and inplace assignment instead of `np.concatenate` to minimize reallocation.
+
+## 2024-10-01 - Vectorizing SQLite array insertion drops NaN compatibility
+**Learning:** SQLite `.executemany` expects missing values as standard Python `None`, but `np.where(mask, None, array)` results in an array containing `None` items alongside native NumPy datatypes (like `numpy.float64`). When these are passed directly to `sqlite3`, it raises unhelpful type errors. Native floats must be explicitly cast using `[float(x) if x is not None else None for x in arr]`.
+**Action:** When vectorizing DB inserts in pandas/NumPy pipelines for sqlite, always explicitly cast arrays containing nullable numerics back into pure python list-comprehensions `[float(x) ...]` to correctly handle Python's DB API datatypes.

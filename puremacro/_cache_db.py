@@ -34,7 +34,6 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-
 _DDL_HTTP_CACHE = """
 CREATE TABLE IF NOT EXISTS http_cache (
     key            TEXT PRIMARY KEY,
@@ -300,35 +299,35 @@ def store_realtime_vintages(
         missing = required - set(df.columns)
         raise ValueError(f"store_realtime_vintages missing columns: {sorted(missing)}")
 
-    records = []
-    for _, row in df.iterrows():
-        val = row["value"]
-        if pd.isna(val):
-            val_float = None
-        else:
-            try:
-                val_float = float(val)
-            except (ValueError, TypeError, Exception):
-                continue
-        try:
-            parsed_obs = pd.to_datetime(row[date_col])
-            parsed_vin = pd.to_datetime(row[vin_col])
-            if pd.isna(parsed_obs) or pd.isna(parsed_vin):
-                continue
-            obs_d = parsed_obs.strftime("%Y-%m-%d")
-            vin_d = parsed_vin.strftime("%Y-%m-%d")
-        except (ValueError, ArithmeticError, Exception):
-            continue
-        records.append((
-            str(row["provider"]),
-            str(row["country"]).upper(),
-            str(row["series_id"]),
-            obs_d,
-            vin_d,
-            val_float,
-        ))
-    if not records:
+    import numpy as np
+
+    obs = pd.to_datetime(df[date_col], errors="coerce")
+    vin = pd.to_datetime(df[vin_col], errors="coerce")
+    valid_dates = obs.notna() & vin.notna()
+
+    val_orig = df["value"]
+    val_num = pd.to_numeric(val_orig, errors="coerce")
+    valid_val = val_orig.isna() | val_num.notna()
+
+    mask = valid_dates & valid_val
+
+    if not mask.any():
         return 0
+
+    df_valid = df[mask]
+    obs_valid = obs[mask].dt.strftime("%Y-%m-%d").tolist()
+    vin_valid = vin[mask].dt.strftime("%Y-%m-%d").tolist()
+
+    val_valid = val_num[mask].astype(object)
+    val_valid_arr = np.where(val_valid.isna(), None, val_valid).tolist()
+    # Need explicitly native Python floats for SQLite
+    val_valid_list = [float(x) if x is not None else None for x in val_valid_arr]
+
+    prov_valid = df_valid["provider"].astype(str).tolist()
+    country_valid = df_valid["country"].astype(str).str.upper().tolist()
+    series_valid = df_valid["series_id"].astype(str).tolist()
+
+    records = list(zip(prov_valid, country_valid, series_valid, obs_valid, vin_valid, val_valid_list))
     c.executemany(
         "INSERT OR REPLACE INTO realtime_vintages "
         "(provider, country, series_id, observation_date, vintage_date, value) "
@@ -425,13 +424,13 @@ def record_connector_event(
 
 
 __all__ = [
-    "default_db_path",
     "bootstrap_schema",
-    "get_conn",
     "close_conn",
+    "default_db_path",
+    "get_conn",
     "migrate_from_flat_files",
-    "store_realtime_vintages",
     "query_realtime_vintages",
     "record_connector_event",
+    "store_realtime_vintages",
 ]
 
