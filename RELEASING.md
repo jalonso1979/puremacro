@@ -191,14 +191,18 @@ before submitting — they have tightened at least once.*
 submittable**. The length and section requirements (§6.1) and the ORCID (§6.2) were
 closed in the 3.3.0–3.4.0 rewrite and are kept below as the record of what the paper now
 has to keep true. What is left is §6.3: the public repository's first commit is dated
-2026-07-20, so the roughly six months of public history JOSS looks for are not there
-until early 2027. Until then the paper is a draft that has to stay in step with the
-release it describes (§6.5).
+2026-07-20, and JOSS requires more than six months of public history, so the project
+**cannot be submitted before 2027-01-21**. Until then the paper is a draft that has to
+stay in step with the release it describes (§6.5).
 
 ### 6.1 Length and sections — done, keep it that way
 
-JOSS asks for **750–1750 words**. The rewritten draft is **~1,670** (body text, front
-matter and HTML comments excluded), and it carries all six required sections:
+JOSS asks for **750–1750 words** ("papers significantly longer than 1750 words may be
+asked to reduce the length"). At 4.4.0 the draft is **~1,630 words of prose**: front
+matter, HTML comments, headings, the figure caption and `[@...]` citations are excluded.
+Counted raw from the Markdown (headings, caption and citation keys included) it is
+~1,760. Rendered with author–year citations it is ~1,870. So it sits at the limit: do not
+add text without cutting some. It carries all six required sections:
 
 | section | state |
 |---|---|
@@ -209,7 +213,7 @@ matter and HTML comments excluded), and it carries all six required sections:
 | Research impact statement | ✓ — teaching use at ITAM, reproducible material, community readiness |
 | AI usage disclosure | ✓ — drafted; the AUTHOR comment in that section still has to be worked through before submitting |
 
-There is no longer a `# Features` section. The draft tracks **3.4.0**: whenever the module
+There is no longer a `# Features` section. The draft tracks **4.4.0**: whenever the module
 count, line count, test count, validation-check count or notebook count moves, refresh
 them in the same pass (§6.5).
 
@@ -219,42 +223,70 @@ them in the same pass (§6.5).
 (ITAM) record in the public ORCID registry as of 2026-09-13. Confirm it is yours and
 delete the AUTHOR comment that follows the front matter.
 
-### 6.3 The public history is short — disclose it, do not rewrite it
+### 6.3 Eligibility: not before 2027-01-21 — wait it out, do not rewrite history
 
-JOSS looks for roughly **six months of public development history with activity spanning
-it**. This repo's first commit is a single `Initial public release (v0.92.0)` squash of
-1,256 files dated 2026-07-20, so a reviewer sees a short public log for a library of ~750
-shipped modules. The earlier history is real but lives in the private `uncertainty_examples`
-monorepo, under `puremacro/`, from 2026-04-28.
+**This section previously said the opposite.** It advised submitting early and explaining
+the private history in the *comments to the editor* box. JOSS's rule does not allow that.
+`docs/submitting.md` (<https://joss.readthedocs.io/en/latest/submitting.html>, checked
+2026-10-02) says, verbatim:
 
-**This was investigated and rejected.** Re-splitting with
-`git filter-repo --subdirectory-filter puremacro` against the monorepo branch
-`feature/puremacro-v0.93.0` does work — it yields 965 commits spanning 2026-04-28 to
-2026-07-25 — and a scan of every text blob in that history for AWS, FRED and Banxico key
-formats came back clean. It was still the wrong trade:
+> The repository must have been public for more than six months prior to submission, with
+> active development spanning that period.
 
-- it buys ~11 weeks of earlier eligibility (2026-10-28 instead of 2027-01-19);
-- it rewrites **every** SHA, so `v1.0.0`–`v1.3.1` move and the commits PyPI actually built
-  from stop existing under those hashes;
-- it publishes 965 commit messages out of a private repository;
-- the trees do not line up — the private history carries `matlab/`, `.claude/`,
-  `egg-info` and a v0.93.0 tip against the public repo's v0.92.0 root, so the version
-  timeline would read "0.93.0" and then "Initial public release (v0.92.0)";
-- and the first cleaning pass still missed the nested `.DS_Store` files, which is the
-  real argument: after a force-push, every miss is permanent.
+> Projects developed privately are not eligible until there is a public record of open
+> development: at least six months of public history prior to submission, with evidence
+> of releases, public issues and pull requests.
 
-**Do this instead.** Say it plainly in the *comments to the editor* box on the submission
-form, and again in the review thread if asked:
+> A repository made public immediately before submission, or one showing development
+> concentrated into a few days or weeks, will not be accepted.
+
+> We run automated checks on commit distribution — a repo dump is not a history.
+
+The private history does not count, and an editor note cannot make it count. This repo's
+public history starts with the squash commit `Initial public release (v0.92.0)` (1,256
+files), dated **2026-07-20**. More than six months after that is **2027-01-21 at the
+earliest**. Before submitting, check on GitHub when the repository was actually made
+public. If that was after 2026-07-20, the date moves with it.
+
+Until then, the things that decide eligibility are all things you can build now:
+
+- **Keep development visible and spread out.** Make regular commits and releases across
+  October to January, not a burst just before submitting. The automated check looks at
+  how commits are distributed over time.
+- **Public issues and pull requests.** JOSS asks for "evidence of releases, public issues
+  and pull requests". Track real bugs and features as GitHub issues, and land some
+  changes through PRs instead of direct pushes to `main`. The 20 merged Jules PRs already
+  count.
+- **GitHub Releases, not just tags** (see §6.4). They are the release evidence a reviewer
+  sees.
+
+**Rewriting history to import the private commits was investigated and rejected.**
+Re-splitting with `git filter-repo --subdirectory-filter puremacro` against the monorepo
+branch `feature/puremacro-v0.93.0` does work. It yields 965 commits spanning 2026-04-28
+to 2026-07-25, and a scan of every text blob in that history for AWS, FRED and Banxico
+key formats came back clean. It is still the wrong trade:
+
+- JOSS counts how long the repository has been *public*, and imported old commit dates do
+  not change that. So it would probably not move eligibility at all.
+- It rewrites **every** SHA. `v1.0.0`–`v1.3.1` would move, and the commits PyPI actually
+  built from would no longer exist under those hashes.
+- It publishes 965 commit messages out of a private repository.
+- The trees do not line up. The private history carries `matlab/`, `.claude/`, `egg-info`
+  and a v0.93.0 tip, while the public repo's root is v0.92.0. The version timeline would
+  read "0.93.0" and then "Initial public release (v0.92.0)".
+- The first cleaning pass still missed the nested `.DS_Store` files. That is the real
+  argument: after a force-push, every miss is permanent.
+
+**At submission (2027-01-21 or later)**, still say plainly in the *comments to the editor*
+box where the earlier history went. It no longer argues for eligibility; it is context, and
+the AI-usage disclosure has to cover the private period anyway:
 
 > `puremacro` was developed from 2026-04-28 inside a private monorepo
 > (`uncertainty_examples`), as the `puremacro/` subdirectory, and was extracted into this
 > standalone public repository on 2026-07-20. The extraction squashed the prior history
-> into the initial commit, so the commit log here begins in July; development did not.
-> Release history is continuous across the move, from v0.92.0 through the current
-> release, and is visible in `CHANGELOG.md` and in the tag list.
-
-Costs nothing, is true, and editors accept it. Revisit only if an editor specifically
-asks for the history to be present in the repository itself.
+> into the initial commit. The public history since then is more than six months long,
+> and release history is continuous from v0.92.0 through the current release
+> (`CHANGELOG.md`, tags and GitHub Releases).
 
 ### 6.4 Zenodo comes *after* acceptance, not before
 
@@ -269,7 +301,7 @@ This repo has tags through `v3.3.0` but only one Release (`v1.0.0`), so
 ### 6.5 Refresh the paper's numbers with every release it claims to describe
 
 `paper/paper.md` quotes counts that move under it. Recompute all of them in one pass and
-edit the text; each was last refreshed for 3.4.0 on 2026-09-16.
+edit the text; each was last refreshed for 4.4.0 (commit 703c4bce) on 2026-10-02.
 
 ```bash
 # modules and lines (the "Scale" paragraph)
@@ -302,9 +334,64 @@ docker run --rm --volume $PWD/paper:/data --user $(id -u):$(id -g) \
   --env JOURNAL=joss openjournals/inara
 ```
 
+Without Docker (verified 2026-10-02 at 4.4.0 with pandoc 3.11 and TeX Live 2025
+lualatex; the draft builds with no pandoc or citeproc warnings). It needs:
+
+- the `openjournals/inara` sources (`main` tarball);
+- the **Hack** font: the template's `\setmonofont{Hack}` does not resolve to
+  "Hack Nerd Font";
+- the Libre Franklin fonts that ship in inara's `fonts/`.
+
+```bash
+OJ=/path/to/oj; SRC=/path/to/inara-main          # SRC = unpacked inara tarball
+mkdir -p $OJ && cp -R $SRC/resources/* $OJ/ && cp -R $SRC/data $OJ/data
+export OSFONTDIR=/path/to/Hack/ttf:$SRC/fonts/libre-franklin
+cp -R paper /tmp/paperbuild && cd /tmp/paperbuild   # build in a scratch copy
+pandoc --data-dir=$OJ/data --defaults=shared --defaults=pdf \
+  --defaults=$OJ/joss/defaults.yaml --resource-path=.:$OJ \
+  --variable=joss --variable=draft:true --metadata=draft:true paper.md
+```
+
 Then open <https://joss.theoj.org/papers/new> with the repository URL. Review is
 conversational and public on GitHub; you are expected to answer reviewers within 2 weeks
 and land changes within 4–6.
 
 What JOSS checks that this repo already satisfies: an OSI licence (MIT, and GitHub's
 licensee detects it), documentation, automated tests, and a functioning CI.
+
+### 6.7 The bundled OECD ICIO data: redistribution is permitted, with conditions
+
+Reviewers check the licences of bundled data. The wheel ships
+`puremacro/trade/_datafiles/icio_77c_11s.npz`, an aggregation of an OECD ICIO export
+(see that directory's `SOURCES.md`). The OECD Terms and Conditions were read on
+2026-10-02, from an archived copy of
+<https://www.oecd.org/en/about/terms-conditions.html> dated 2026-09-30 (oecd.org returns
+403 to automated clients). The terms are "Last updated on 1 July 2024". OECD **data**
+is governed by their §3 "Data", which is not CC BY 4.0: CC BY 4.0 covers only OECD
+*written content*. Its "Permitted Use" clause reads:
+
+> Except where additional restrictions apply as stated above, you can extract from,
+> download, copy, adapt, print, distribute, share and embed Data for any purpose, even
+> for commercial use. You must give appropriate credit to the OECD by using the citation
+> associated with the relevant Data […]. When sharing or licensing work created using the
+> Data, you agree to include the same acknowledgment requirement in any sub-licenses
+> that you grant, along with the requirement that any further sub-licensees do the same.
+
+Redistributing the fixture in the wheel is therefore allowed. Two of the conditions are
+not yet met in full. These are licensing-text decisions for you; nothing has been changed:
+
+- **Citation.** The ICIO ReadMe (2025 edition) asks for "OECD. (2025) OECD Inter-Country
+  Input-Output Tables, https://oe.cd/icio". `SOURCES.md` credits "the OECD ICIO tables"
+  without that citation (or the one for the edition actually used), and its source link is
+  the retired `oecd.org/sti/ind/...htm` URL.
+- **Pass-through.** `SOURCES.md` does not say that redistributors must carry the same
+  acknowledgment requirement forward. Its "Terms" row also paraphrases the terms instead
+  of naming §3 of the 1 July 2024 Terms and Conditions.
+- **Third-party data.** §3 makes the user responsible for checking third-party
+  ownership. The ICIO ReadMe flags Israel's data as supplied "by and under the
+  responsibility of the relevant Israeli authorities or third party". Nothing restricts
+  redistribution there, but note it.
+- **Corrupted derivative.** The fixture comes from a decimal-point-corrupted export (see
+  `SOURCES.md` and `docs/ADVISORY.md`, 2026-09-22). The terms do not forbid that.
+  `SOURCES.md` already labels it a regression fixture and not OECD estimates; keep that
+  label wherever the data are credited to the OECD.
