@@ -34,6 +34,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
+
 _DDL_HTTP_CACHE = """
 CREATE TABLE IF NOT EXISTS http_cache (
     key            TEXT PRIMARY KEY,
@@ -419,13 +420,13 @@ def record_connector_event(
 
 
 __all__ = [
-    "bootstrap_schema",
-    "close_conn",
     "default_db_path",
+    "bootstrap_schema",
     "get_conn",
+    "close_conn",
     "migrate_from_flat_files",
+    "store_realtime_vintages",
     "query_realtime_vintages",
     "record_connector_event",
-    "store_realtime_vintages",
 ]
 

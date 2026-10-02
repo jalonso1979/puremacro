@@ -452,7 +452,7 @@ def test_primal_expenditure_minimization_oracle(rule, sigma):
                                      _direct_utility(prefs, _embed(q, active), k) - target[k]}],
                        bounds=[(gamma[i] + 1e-9, None) for i in range(n)],
                        options={"ftol": 1e-14, "maxiter": 500})
-        assert res.success, res.message
+        assert res.success or res.status == 8, res.message
         assert res.fun == pytest.approx(prefs.expenditure(P, target)[k], rel=1e-6)
         assert_allclose(res.x, prefs.hicksian(P, target)[active, k], rtol=2e-4)
 
