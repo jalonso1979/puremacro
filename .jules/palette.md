@@ -1,0 +1,4 @@
+
+## 2024-10-02 - Ensure External Links are Accessible and Safe in Jupyter HTML Outputs
+**Learning:** When outputting raw HTML into a Jupyter or Colab notebook interface via `IPython.display.HTML`, the same accessibility and security standards apply as standard web development. Decorative unicode emojis (like `🚀` or `↗`) are read out by screen readers, confusing the context. Links that open in a new tab (`target="_blank"`) lack `rel="noopener noreferrer"` and descriptive `aria-label`s, which causes security/performance risks and poor screen reader context.
+**Action:** When working in Python environments that emit HTML (like `puremacro/runtime/colab.py`), always ensure unicode symbols inside tags have `aria-hidden="true"` and `_blank` anchor tags include explicit screen-reader labels and the `noopener noreferrer` rel attribute.
