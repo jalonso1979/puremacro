@@ -1186,6 +1186,49 @@
       "fetch_wtui_m",
       "fetch_wui_m_full"
     ],
+    "puremacro.fetch.micro": [
+      "METHODS",
+      "MicroFrame",
+      "SurveyDesign",
+      "fetch_acs_pums",
+      "fetch_cps_basic",
+      "fetch_scf",
+      "replicate_variance",
+      "rubin_combine"
+    ],
+    "puremacro.fetch.micro._design": [
+      "METHODS",
+      "MicroFrame",
+      "SurveyDesign",
+      "replicate_variance",
+      "rubin_combine"
+    ],
+    "puremacro.fetch.micro.census": [
+      "CPS_IDS",
+      "MAX_VARIABLES",
+      "PUMS_IDS",
+      "fetch_acs_pums",
+      "fetch_cps_basic",
+      "fetch_records",
+      "variables"
+    ],
+    "puremacro.fetch.micro.scf": [
+      "assemble",
+      "available_years",
+      "fetch_scf",
+      "prepare_replicates",
+      "prepare_summary",
+      "scf_urls"
+    ],
+    "puremacro.fetch.registry": [
+      "AUTH_LEVELS",
+      "KINDS",
+      "SourceInfo",
+      "info",
+      "load",
+      "register",
+      "sources"
+    ],
     "puremacro.financial_panel": [
       "build_financial_panel"
     ],
@@ -5310,6 +5353,39 @@
       "series_id",
       "source",
       "units"
+    ],
+    "puremacro.fetch.micro._design.MicroFrame": [
+      "codebook",
+      "data",
+      "design",
+      "query",
+      "source",
+      "unit",
+      "vintage"
+    ],
+    "puremacro.fetch.micro._design.SurveyDesign": [
+      "implicate",
+      "method",
+      "mse",
+      "note",
+      "psu",
+      "replicate_weights",
+      "scale",
+      "strata",
+      "weight"
+    ],
+    "puremacro.fetch.registry.SourceInfo": [
+      "auth",
+      "credential",
+      "description",
+      "freq",
+      "id",
+      "kind",
+      "loader",
+      "note",
+      "provider",
+      "redistributable",
+      "terms_url"
     ],
     "puremacro.forecast.penalized.PenalizedForecastResult": [
       "bic_path",
