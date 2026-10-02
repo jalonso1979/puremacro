@@ -1,9 +1,29 @@
 # Draft issue for the Dynare tracker
 
 Target: <https://git.dynare.org/Dynare/dynare/-/issues>. Attach
-`dynare_order3_autocovariance_fix.diff` (in this folder; it applies with
-`git apply` to `matlab/+pruned_SS/pruned_state_space_system.m`). Everything
-below the line is the proposed issue text.
+`dynare_order3_autocovariance_fix.diff` (in this folder). It patches
+`matlab/+pruned_SS/pruned_state_space_system.m`. Everything below the line is the
+proposed issue text.
+
+Pre-posting checks (re-verified 2026-10-02; not posted):
+
+- **The diff applies.** `git apply --check` succeeds against the installed Dynare 8
+  snapshot `8-2026-05-26-1803` and Dynare 7.0. It fails against 6.4 and the
+  `7-2025-11-07-1744` snapshot: the `end` line at 1106 that the diff removes carries
+  trailing whitespace there. `patch -l -p1 --dry-run` applies on both.
+- **Dynare `master` was not checked.** git.dynare.org served an HTML page instead of
+  the raw file to a script. Before posting, open the file on `master` and confirm that
+  the line numbers and the hunks still match.
+- **The tables match.** Every number in the tables below equals
+  `tests/fixtures/dynare_order3_pruned_moments.json`, which holds live Dynare 8
+  output. The closed form was recomputed independently from the formulas in the
+  text. The "patched" rows equal puremacro's exact moments
+  (`tests/test_dsge_order3_moments.py`, 29 passed).
+- **Not re-run:** the patched Dynare function itself. That needs MATLAB; the
+  2026-09-23 session ran it.
+- **Derivative caveat.** The derivative caveat in "Proposed fix" was added after
+  checking `+identification/get_jacobians.m`. It calls the function with
+  `compute_derivs=1`.
 
 ---
 
@@ -27,10 +47,11 @@ machine precision.
 
 - Versions: Dynare 8 snapshot 2026-05-26 (`8-2026-05-26-1803`, MATLAB R2026a),
   which we ran. The same code (lines 805-815 and 1030-1111, identical up to
-  trailing whitespace) is in 6.4 and 7.0; we did not run those.
+  trailing whitespace) is in 6.4 and 7.0; we did not run those. The diff applies
+  with `git apply` to the 8 snapshot and to 7.0, and with `patch -l -p1` to 6.4.
 - Consumers of `Var_yi`/`Corr_yi` (and `dVar_yi`/`dCorr_yi`) at order 3:
   - `stoch_simul(order=3, pruning)`: the printed autocorrelation table and `oo_.autocorr`
-    (`disp_th_moments_pruned_state_space.m`);
+    (`moments/disp_th_moments_pruned_state_space.m`);
   - identification at order 3 (`+identification/get_jacobians.m`, `numerical_objective.m`);
   - posterior theoretical moments with pruning (`estimation/dsge_simulated_theoretical_covariance.m`);
   - `method_of_moments` GMM at order 3 when autocovariances are matched (`+mom/objective_function.m`).
@@ -111,7 +132,8 @@ dated `t-i+1, ..., t-1` are uncorrelated with `inov_{t-i}`. The last term,
 `D E[inov_t inov_{t-i}'] D'`, is left out. Both omitted pieces come from `inov6`.
 At lag 0 the formula at lines 1039-1042 is complete, which is why `Var_y` is
 right. Removing exactly these two pieces from an exact implementation
-reproduces Dynare's `Corr_yi` to 5e-14 on five test models.
+reproduces Dynare's `Corr_yi` to 5e-14 on six test models (the two above and four
+others).
 
 ## Proposed fix
 
@@ -143,9 +165,14 @@ The `compute_derivs` branch builds `dA`, `dB`, `dC`, `dD`, `dVarinov` and
 - replace the `inov6` block of `dVarinov` with the derivative of the centred block;
 - set `dE_inovzlag1` to zero.
 
-We did not patch or test that branch. Once it is changed, `E_inovzlagi`,
-`dE_inovzlagi` and the order-3 branches of the `Var_y` and `Var_yi`
-computations can be removed.
+We did not patch or test that branch. **The attached diff should not be merged
+without it.** With `compute_derivs=1`, which order-3 identification uses
+(`+identification/get_jacobians.m`), the patched `A`, `C` and `E_inovzlag1` would be
+combined with the uncentred `dA`, `dC` and `dE_inovzlag1`. That would make `dVar_z`
+and `dVar_y` inconsistent, and those two are correct today. The diff is meant to
+demonstrate the fix for `compute_derivs=0`. Once the derivative branch is changed,
+`E_inovzlagi`, `dE_inovzlagi` and the order-3 branches of the `Var_y` and `Var_yi`
+computations (and their derivatives) can be removed.
 
 ## Context
 
