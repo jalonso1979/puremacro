@@ -11,7 +11,8 @@ from puremacro.connectedness.bk2018 import barunik_krehlik
 
 
 def test_dynare_vfi_model():
-    m = Model("Test Model")
+    with pytest.deprecated_call(match="puremacro.dp.Model"):
+        m = Model("Test Model")
     m.set_param("beta", 0.95).set_param("gamma", 1.5)
     m.add_state("k", 0.2, 10.0, 25)
     m.add_shock("z", 0.85, 0.10, 3)

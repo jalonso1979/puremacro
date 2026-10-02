@@ -3987,6 +3987,21 @@
       "SW07EstimatorExperiment",
       "compare_sw07_estimator_phases",
       "run_sw07_estimator_experiment"
+    ],
+    "puremacro.dp": [
+      "AR1",
+      "DPSolution",
+      "Markov",
+      "Model",
+      "ModelSpecError",
+      "crra"
+    ],
+    "puremacro.dp.model": [
+      "Model"
+    ],
+    "puremacro.dp.processes": [
+      "AR1",
+      "Markov"
     ]
   },
   "result_classes": {
@@ -8593,6 +8608,17 @@
       "observed_fits",
       "paired_differences",
       "summary"
+    ],
+    "puremacro.dp.processes.AR1": [
+      "m",
+      "method",
+      "n",
+      "rho",
+      "sigma"
+    ],
+    "puremacro.dp.processes.Markov": [
+      "P",
+      "grid"
     ]
   }
 }
