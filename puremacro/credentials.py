@@ -74,7 +74,7 @@ SERVICES: dict[str, ServiceCredentialSpec] = {
         name="census",
         env_vars=("CENSUS_API_KEY", "PUREMACRO_CENSUS_API_KEY"),
         signup_url="https://api.census.gov/data/key_signup.html",
-        description="Census BFS / ACS connectors",
+        description="Census Microdata API (ACS PUMS, CPS); fetch.micro.census",
     ),
     "banxico": ServiceCredentialSpec(
         name="banxico",

@@ -12,7 +12,7 @@ import json
 import re
 from pathlib import Path
 from typing import Optional
-from urllib.parse import urlparse
+from urllib.parse import quote_plus, urlencode, urlparse
 
 try:
     import requests
@@ -55,22 +55,53 @@ def _write_manifest(d: dict) -> None:
         pass
 
 
+def _with_query(url: str, params: Optional[dict]) -> str:
+    if not params:
+        return url
+    return url + ("&" if urlparse(url).query else "?") + urlencode(params, safe=",:*")
+
+
+def _redact(exc: BaseException, secret_params: Optional[dict]) -> None:
+    secrets = [str(v) for v in (secret_params or {}).values() if v]
+    secrets += [quote_plus(v) for v in secrets]
+    if not secrets:
+        return
+    def clean(a):
+        if not isinstance(a, str):
+            a = str(a)
+        for v in secrets:
+            a = a.replace(v, "***")
+        return a
+    exc.args = tuple(clean(a) for a in exc.args)
+
+
 def cached_get(
     url: str,
     *,
     refresh: bool = False,
     headers: Optional[dict] = None,
     timeout: int = 60,
+    params: Optional[dict] = None,
+    secret_params: Optional[dict] = None,
 ) -> bytes:
     """GET the URL, cache the bytes on disk, return bytes.
 
     Re-fetches if ``refresh=True`` or the cache file is missing.
     Updates the manifest with the fetch timestamp each time bytes are written.
+
+    ``params`` are appended to the query string and are part of the cache
+    identity. ``secret_params`` (an API key) are sent with the request but
+    never reach the cache path or the manifest: the on-disk file name and
+    ``_manifest.json`` are derived from ``url`` + ``params`` alone, so a key
+    passed this way is not written anywhere under ``data/raw``. Never put a
+    key in ``url`` or ``params`` directly.
     """
     if requests is None:
         raise RuntimeError(
             "puremacro.fetch needs `requests` for a live fetch; install it, or "
             "work from the on-disk cache under data/raw/.")
+    url = _with_query(url, params)
+    request_url = _with_query(url, secret_params)
     target = _path_for(url)
     # The cache is a convenience, never a requirement: on a read-only or
     # sandboxed install (an iPad, a container with the package baked into the
@@ -91,8 +122,14 @@ def cached_get(
     final_headers = {"User-Agent": "uncertainty_examples/1.0 (research@itam.mx)"}
     if headers:
         final_headers.update(headers)
-    resp = requests.get(url, headers=final_headers, timeout=timeout)
-    resp.raise_for_status()
+    try:
+        resp = requests.get(request_url, headers=final_headers, timeout=timeout)
+        resp.raise_for_status()
+    except Exception as exc:
+        # requests puts the full URL in its error text; keep the key out of
+        # tracebacks and logs.
+        _redact(exc, secret_params)
+        raise
     if not cacheable:
         return resp.content
     try:

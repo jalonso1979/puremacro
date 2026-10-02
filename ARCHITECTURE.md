@@ -438,6 +438,7 @@ These are the load-bearing imports. If you change one of these arrows, double-ch
 | `vfi/deep_macro` | **Stable** | Physics-Informed Neural Networks (PINNs) in pure NumPy for ultra-high-dimensional dynamic models (10+ states) with ergodic sampling. |
 | `vfi/hjb_achdou` | **Stable** | Canonical implicit upwind finite-difference scheme (sparse M-matrix system $(\rho I - A^n) v^{n+1} = u(c^n)$), adjoint continuous-time KFE stationary distribution $g(a, z)$, and continuous Aiyagari GE. Rewritten at 3.4.0 and unit-tested, not replication-tested, so **Stable** rather than **Mature**. Its income process differs from the 3.3.0 explicit solver — see the 3.4.0 CHANGELOG. |
 | `causal/dml` | **Stable** | Double / Debiased Machine Learning (Chernozhukov et al. 2018) for partially linear regression: the class `DoubleMLPLR`, the one-call `dml_plr`, and `DMLResult`. $K$-fold cross-fitting with pure-NumPy regularized learners — `LassoCoordinateDescent` (`'lasso'`) and `RidgeGCV` (`'ridge'`) only, plus any object with `fit` / `predict`. No elastic net. |
+| `fetch/registry`, `fetch/micro` | **Experimental** | Registry metadata is hand-audited; microdata providers are offline-tested against synthetic payloads, and live checks (`pytest -m network`, SCF 2022 published median and mean net worth) are opt-in. |
 | `fetch/realtime/{banxico, inegi, bcb, bcch}` | **Best-effort** | Latin America real-time central bank and statistical agency data connectors with offline `.pmz` cartridges and schema canaries. Network-dependent, so the same tier as the rest of `fetch/*` (and outside the 1.0 promise, per `docs/1.0_path.md`). Their vintages are local snapshot dates, not publication dates. |
 | `trade/gpu/{backend, batched_jacobian, homotopy, mlx_solver, solver_gpu}` | **Experimental** | Optional torch / MLX accelerators for the Caliendo-Parro solve (`pip install "puremacro[gpu]"`). **Outside the four-package Pyodide contract**: torch and mlx are never imported at module import time and never required — without them the solve runs on the NumPy evaluator. Auto-selected float32 devices fall back to the float64 host evaluator for Jacobians. |
 | `trade/caliendo_parro` | **Stable** | Multi-country, multi-sector trade general equilibrium with input-output linkages, intermediate goods, and tariffs solved via exact hat algebra (`CaliendoParroModel`). |
@@ -678,6 +679,28 @@ FRED's OECD-MEI family, which stopped updating in January 2024, and no
 offline test could notice. `openpyxl` is needed only by the ONS
 workbook reader and is lazy-imported there, so the Pyodide import
 contract is unchanged. Reference: `docs/real_time_data.md`.
+
+### Source registry and survey microdata (unreleased)
+
+`puremacro.fetch.registry` is one table of every reachable source
+(`SourceInfo`: id, kind, provider, lazy `module:attribute` loader,
+credential, auth level, terms URL, `redistributable`). It describes the
+existing fetchers without changing their signatures, and reads the
+`narrative.sources` connector map on first use so text connectors appear
+as `kind="text"`. `registry.sources(kind)` replaces docstring discovery;
+`registry.load(id)` imports the callable.
+
+`puremacro.fetch.micro` returns survey records as a `MicroFrame`: data
+plus a `SurveyDesign` (weight, replicate weights, method, scale,
+implicate column). Estimators (`mean`, `total`, `quantile`, `share`)
+return estimate, replicate standard error and unweighted n; implicates
+combine by Rubin's rules. Providers: Census Microdata API (ACS PUMS with
+80 SDR replicates; CPS basic monthly, weights only, so `se` is NaN) and
+the Fed SCF summary extract (five implicates, 999 bootstrap replicates).
+The design and estimators are NumPy/pandas only; provider modules load
+lazily. Keyed requests go through `fetch._http.cached_get(...,
+secret_params=...)`, which keeps the key out of the cache path, the
+manifest and error text.
 
 ### F2 closure (0.67.0+)
 
