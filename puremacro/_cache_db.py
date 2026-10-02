@@ -300,35 +300,30 @@ def store_realtime_vintages(
         missing = required - set(df.columns)
         raise ValueError(f"store_realtime_vintages missing columns: {sorted(missing)}")
 
-    records = []
-    for _, row in df.iterrows():
-        val = row["value"]
-        if pd.isna(val):
-            val_float = None
-        else:
-            try:
-                val_float = float(val)
-            except (ValueError, TypeError, Exception):
-                continue
-        try:
-            parsed_obs = pd.to_datetime(row[date_col])
-            parsed_vin = pd.to_datetime(row[vin_col])
-            if pd.isna(parsed_obs) or pd.isna(parsed_vin):
-                continue
-            obs_d = parsed_obs.strftime("%Y-%m-%d")
-            vin_d = parsed_vin.strftime("%Y-%m-%d")
-        except (ValueError, ArithmeticError, Exception):
-            continue
-        records.append((
-            str(row["provider"]),
-            str(row["country"]).upper(),
-            str(row["series_id"]),
-            obs_d,
-            vin_d,
-            val_float,
-        ))
-    if not records:
+    orig_isna = pd.isna(df["value"])
+    coerced_vals = pd.to_numeric(df["value"], errors="coerce")
+    invalid_val = (~orig_isna) & coerced_vals.isna()
+
+    obs_dates = pd.to_datetime(df[date_col], errors="coerce")
+    vin_dates = pd.to_datetime(df[vin_col], errors="coerce")
+    invalid_dates = obs_dates.isna() | vin_dates.isna()
+
+    valid_mask = ~(invalid_val | invalid_dates)
+
+    if not valid_mask.any():
         return 0
+
+    obs_valid = obs_dates[valid_mask].dt.strftime("%Y-%m-%d").values
+    vin_valid = vin_dates[valid_mask].dt.strftime("%Y-%m-%d").values
+
+    vals_valid = coerced_vals[valid_mask].values
+    val_floats = [float(x) if not pd.isna(x) else None for x in vals_valid]
+
+    providers = df["provider"][valid_mask].astype(str).values
+    countries = df["country"][valid_mask].astype(str).str.upper().values
+    series_ids = df["series_id"][valid_mask].astype(str).values
+
+    records = list(zip(providers, countries, series_ids, obs_valid, vin_valid, val_floats))
     c.executemany(
         "INSERT OR REPLACE INTO realtime_vintages "
         "(provider, country, series_id, observation_date, vintage_date, value) "

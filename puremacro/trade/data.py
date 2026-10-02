@@ -743,7 +743,7 @@ def _resolve_raw_45_path(custom_path: str | Path | None = None) -> Path:
 
     # Canonical search candidates: clean ICIOextended releases before the legacy export.
     here = Path(__file__).resolve()
-    roots = [here.parents[3] / "IO", here.parents[2] / "IO", here.parents[4] / "IO",
+    roots = [here.parents[3] / "IO", here.parents[2] / "IO",
              Path.cwd(), Path.cwd() / "IO"]
     candidates = [root / "ICIOextended" / name for name in ("2020_SML.csv", "2019_SML.csv") for root in roots]
     candidates += [root / "computation" / "7_TIO_77c_vf" / "data_2020_SML.csv" for root in roots]
