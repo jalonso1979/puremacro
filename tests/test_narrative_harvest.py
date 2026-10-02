@@ -130,6 +130,7 @@ def test_harvest_narrative_corpus_mock(monkeypatch):
     corpus = harvest_narrative_corpus(
         sources=["fed_decision"],
         max_docs_per_source=10,
+        use_cache=False,
     )
 
     assert len(corpus) == 1
