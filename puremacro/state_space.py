@@ -416,6 +416,42 @@ def kalman_smoother(
     T_obs, m = a_filt.shape
     a_sm = np.zeros_like(a_filt)
     P_sm = np.zeros_like(P_filt)
+
+    if not diffuse_states:
+        # Backward state-smoothing recursion of de Jong (1989) / Durbin and
+        # Koopman (2012, sec. 4.4.4). It is algebraically the RTS smoother but
+        # inverts only the innovation covariance F_t, never P_pred. The RTS
+        # gain needs P_pred^{-1}, and P_pred is singular whenever the state
+        # has more dimensions than shocks (the DSGE filter state [x_t; u_t] is
+        # the standard case): pinv then keeps or drops a direction with
+        # singular value ~1e-18 depending on last-bit SVD differences, and the
+        # smoothed path moves by up to ~1e-6 between LAPACK builds.
+        Z = model.Z
+        innov = out["innov"]
+        F_arr = out["F"]
+        K_arr = out["K"]
+        r = np.zeros(m)
+        N = np.zeros((m, m))
+        for t in range(T_obs - 1, -1, -1):
+            obs = ~np.isnan(innov[t])
+            if obs.any():
+                Z_t = Z[obs]
+                F_t = F_arr[t][np.ix_(obs, obs)]
+                L_t = Tm - K_arr[t][:, obs] @ Z_t
+                Zt_Finv = np.linalg.solve(F_t, Z_t).T
+                r = Zt_Finv @ innov[t][obs] + L_t.T @ r
+                N = Zt_Finv @ Z_t + L_t.T @ N @ L_t
+            else:
+                r = Tm.T @ r
+                N = Tm.T @ N @ Tm
+            P_t = P_pred[t]
+            a_sm[t] = a_pred[t] + P_t @ r
+            P_sm[t] = P_t - P_t @ N @ P_t
+        out["a_smooth"] = a_sm
+        out["P_smooth"] = P_sm
+        return out
+
+    # Exact-diffuse periods store no F/K, so they keep the RTS form.
     a_sm[-1] = a_filt[-1]
     P_sm[-1] = P_filt[-1]
 

@@ -15,23 +15,12 @@ adding the trend back to the fitted observables and the forecast, exactly as
 Dynare does. ``StateSpaceModel`` is time-invariant by construction, so a
 time-varying measurement intercept cannot live inside the filter.
 
-**The first smoothed period is not reproducible to machine precision across
-platforms.** Carrying the innovation in the state makes ``P_pred`` structurally
-rank-deficient — the augmented state has ``n_states + n_shocks`` dimensions
-driven by ``n_shocks`` innovations — and :func:`~puremacro.state_space.kalman_smoother`
-builds its RTS gain from ``numpy.linalg.pinv`` of that matrix. On a small RBC
-the condition number runs 1e15 to 8e15 with the smallest singular value sitting
-at the default pinv cutoff, so whether the near-null direction is kept or
-discarded is settled by last-bit differences in the SVD and differs between
-LAPACK builds.
-
-The consequence is confined to ``t = 0``: with no measurement error the fit
-from ``t = 1`` onward reproduces the observations to machine precision on every
-platform, while the first period can differ by around 3e-06 on an observable of
-magnitude 2. Read ``shocks.iloc[0]`` and ``states.iloc[0]`` with that in mind.
-A rank-aware smoother gain would remove the platform dependence; it changes
-``kalman_smoother`` for every caller, so it is tracked separately rather than
-folded in here.
+Carrying the innovation in the state makes ``P_pred`` structurally singular
+(``n_states + n_shocks`` dimensions driven by ``n_shocks`` innovations).
+:func:`~puremacro.state_space.kalman_smoother` therefore uses the backward
+recursion that inverts only the innovation covariance ``F_t``; an RTS gain
+built from ``pinv(P_pred)`` made the first smoothed period depend on the
+LAPACK build.
 """
 from __future__ import annotations
 

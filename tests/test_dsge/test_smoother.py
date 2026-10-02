@@ -49,31 +49,14 @@ def _simulate(model, u, obs):
     return pd.DataFrame(y, columns=list(obs))
 
 
-# ---------------------------------------------------------------------------
-# Why the FIRST smoothed period gets a looser tolerance than the rest.
-#
-# The augmented filter state is [x_t; u_t] — here 3 dimensions driven by a
-# single shock — so `P_pred` is structurally rank-deficient by construction.
-# Measured: cond(P_pred) is 1e15 to 8e15, and its smallest singular value
-# (2.4e-18 at t=1) sits right at the default cutoff `np.linalg.pinv` uses,
-# s0 * max(M,N) * eps = 1.8e-18. The RTS gain in `kalman_smoother` is built
-# from that pinv, so whether the near-null direction is kept or discarded is
-# decided by last-bit differences in the SVD and flips between LAPACK builds.
-#
-# It is a DISCONTINUITY, not a sensitivity: on this machine a 1e-8 relative
-# perturbation of P0 moves t=0 by 2.3e-08 while 1e-6, 1e-4, 1e-2 and 1e-1 move
-# it by exactly zero. So a test asserting "the boundary moves" is not a stable
-# property, and an earlier version of one failed on 3 of 9 CI targets with
-# dev[0] == 0.0. What IS stable is that the interior is exact everywhere and
-# the boundary can differ by ~3e-06 on an observable of magnitude ~2. The
-# split below asserts exactly that, and no more.
-#
-# Tracked as deferred finding F3: a rank-aware or Cholesky-based smoother gain
-# would remove the platform dependence, but it changes `kalman_smoother` for
-# every caller and belongs in its own change.
-# ---------------------------------------------------------------------------
-_INTERIOR = dict(rtol=0, atol=1e-8)
-_FIRST_PERIOD = dict(rtol=0, atol=1e-4)
+# The filter state [x_t; u_t] has more dimensions than shocks, so P_pred is
+# singular by construction. `kalman_smoother` used to build an RTS gain from
+# pinv(P_pred), whose smallest singular value (~1e-18) sat at pinv's cutoff:
+# a 1e-12 relative change in P0 moved the t=0 shock by 1.3e-06, and the
+# interior carried ~1e-08 of noise that failed this file on Windows CI. The
+# smoother now inverts only F_t, so every period, t=0 included, is held to
+# the same tolerance.
+_TOL = dict(rtol=0, atol=1e-10)
 
 def test_smoother_recovers_the_simulated_shocks(rbc):
     """One observable, one shock, no measurement error, known x_0."""
@@ -93,8 +76,7 @@ def test_smoothed_observables_reproduce_the_data(rbc):
     data = _simulate(rbc, rng.standard_normal((120, 1)) * 0.01, ["c"])
     res = rbc.smoother(data)
     got, want = res.smoothed_obs["c"].to_numpy(), data["c"].to_numpy()
-    np.testing.assert_allclose(got[1:], want[1:], **_INTERIOR)
-    np.testing.assert_allclose(got[:1], want[:1], **_FIRST_PERIOD)
+    np.testing.assert_allclose(got, want, **_TOL)
 
 
 def test_smoother_output_shapes_and_labels(rbc):
@@ -139,8 +121,7 @@ def test_observation_trends_round_trip(rbc):
     trended["c"] = trended["c"] + 0.002 * np.arange(len(trended))
     res = rbc.smoother(trended, observation_trends={"c": 0.002})
     got, want = res.smoothed_obs["c"].to_numpy(), trended["c"].to_numpy()
-    np.testing.assert_allclose(got[1:], want[1:], **_INTERIOR)
-    np.testing.assert_allclose(got[:1], want[:1], **_FIRST_PERIOD)
+    np.testing.assert_allclose(got, want, **_TOL)
 
 
 def test_forecast_mean_converges_to_the_steady_state(rbc):
@@ -191,8 +172,7 @@ def test_smoothed_shocks_agree_with_the_shock_decomposition_path(rbc):
     res = rbc.smoother(data)
     dec = res.shock_decomposition()
     got, want = dec.smoothed_shocks["eps"].to_numpy(), res.shocks["eps"].to_numpy()
-    np.testing.assert_allclose(got[1:], want[1:], **_INTERIOR)
-    np.testing.assert_allclose(got[:1], want[:1], **_FIRST_PERIOD)
+    np.testing.assert_allclose(got, want, **_TOL)
 
 
 def test_forecast_observation_trends_applied_to_subset_and_reordered_variables(rbc):
