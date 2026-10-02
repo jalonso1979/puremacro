@@ -12,7 +12,7 @@ import json
 import re
 from pathlib import Path
 from typing import Optional
-from urllib.parse import quote_plus, urlencode, urlparse
+from urllib.parse import quote, quote_plus, urlencode, urlparse
 
 try:
     import requests
@@ -58,7 +58,7 @@ def _write_manifest(d: dict) -> None:
 def _with_query(url: str, params: Optional[dict]) -> str:
     if not params:
         return url
-    return url + ("&" if urlparse(url).query else "?") + urlencode(params, safe=",:*")
+    return url + ("&" if urlparse(url).query else "?") + urlencode(params, safe=",:*", quote_via=quote)
 
 
 def _redact(exc: BaseException, secret_params: Optional[dict]) -> None:

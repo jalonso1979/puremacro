@@ -211,7 +211,7 @@ class MicroFrame:
     def _estimate(self, col, by, stat: Callable) -> pd.DataFrame:
         d = self.design
         x_all = (col if isinstance(col, pd.Series) else self.data[col])
-        x_all = pd.to_numeric(x_all, errors="coerce")
+        x_all = pd.to_numeric(x_all, errors="coerce").to_numpy(dtype=float)
         by_cols = [by] if isinstance(by, str) else list(by or [])
         wcols = [d.weight, *(d.replicate_weights if d.has_variance else ())]
         W_all = self.data[wcols].to_numpy(dtype=float, na_value=0.0)
@@ -223,7 +223,7 @@ class MicroFrame:
         rows = []
         for key, idx in groups.items():
             idx = np.asarray(idx)
-            x = x_all.to_numpy()[idx]
+            x = x_all[idx]
             keep = ~np.isnan(x)
             est, se, m = self._combine(x[keep], W_all[idx][keep],
                                        imp_all[idx][keep], stat)

@@ -71,3 +71,11 @@ def test_params_append_to_an_existing_query(cache, monkeypatch):
     monkeypatch.setattr(_http, "requests", fake)
     _http.cached_get("https://h/x?y=1", params={"z": 2})
     assert fake.urls == ["https://h/x?y=1&z=2"]
+
+
+def test_spaces_are_percent_encoded(cache, monkeypatch):
+    """Census geography names contain spaces ("public use microdata area")."""
+    fake = _Requests()
+    monkeypatch.setattr(_http, "requests", fake)
+    _http.cached_get("https://h/x", params={"for": "public use microdata area:*"})
+    assert fake.urls == ["https://h/x?for=public%20use%20microdata%20area:*"]
