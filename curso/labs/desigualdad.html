@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="es" data-lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-title-es="Desigualdad y ahorro precautorio · Laboratorios MAV" data-title-en="Inequality and precautionary saving · MAV Labs">Desigualdad y ahorro precautorio · Laboratorios MAV</title>
+<meta name="description" content="Laboratorio interactivo: resuelve el modelo de Aiyagari (1994) en el navegador y mira cómo el riesgo no asegurable baja la tasa de interés, genera desigualdad en la riqueza y dispersa la propensión marginal a consumir.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23111'/%3E%3Cpath d='M6 26L26 6' stroke='%23888' stroke-width='1.5' stroke-dasharray='2 2.5'/%3E%3Cpath d='M6 26C17 26 23 22 26 6' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/mav.css?v=dbf54522">
+<style>
+  /* page-only additions: paired charts, the computing state and the MPC decomposition */
+  .pair { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  @media (min-width: 1150px) { .pair { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .charts .chart-card, #tiles { transition: opacity .2s; }
+  .charts .is-busy { opacity: .45; }
+  .lab-status { font-size: .85rem; color: var(--muted); margin: 0 0 -12px; min-height: 1.5em; }
+  .lab-status .spin { display: inline-block; width: .8em; height: .8em; margin-right: 6px; vertical-align: -1px;
+    border: 2px solid var(--rule); border-top-color: var(--ink); border-radius: 50%; animation: mav-spin .8s linear infinite; }
+  @keyframes mav-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .lab-status .spin { animation: none; } }
+  .ctl-group { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600;
+    margin: 20px 0 10px; padding-top: 12px; border-top: 1px solid var(--rule); }
+  .ctl .ctl-note + .ctl-note { margin-top: 0; }
+  .decomp { border-top: 1px solid var(--ink); padding-top: 10px; align-self: start; }
+  .decomp h3 { font-size: 1rem; margin: 0 0 8px; }
+  .decomp .big { font-size: 1.35rem; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; margin: 4px 0 2px; }
+  .decomp .under { font-size: .8rem; color: var(--muted); margin-bottom: 14px; }
+  .decomp p { font-size: .92rem; margin: 0 0 .8em; }
+  .bar { transition: opacity .1s; }
+  #tiles.tiles { grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); }
+  .two > * { min-width: 0; }   /* lets wide equations scroll inside their column on phones */
+  @media (max-width: 560px) { .decomp .big { font-size: 1.1rem; } }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="../index.html">MAV <span class="es">· Laboratorios</span><span class="en">· Labs</span></a>
+    <nav class="topnav" aria-label="Principal">
+      <a href="../index.html" class="hide-sm"><span class="es">Laboratorios</span><span class="en">All labs</span></a>
+      <a href="https://jorgealonsoortiz.work/macro-avanzada/" data-curso="https://jorgealonsoortiz.work/macro-avanzada/" class="hide-sm"><span class="es">El curso</span><span class="en">The course</span></a>
+      <a href="https://jorgealonsoortiz.work/puremacro/" class="hide-sm">puremacro</a>
+      <span class="lang-toggle" role="group" aria-label="Idioma / Language">
+        <button type="button" data-lang="es">ES</button><button type="button" data-lang="en">EN</button>
+      </span>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero wrap">
+    <p class="kicker"><span class="es">Unidad A6 · Mercados incompletos, heterogeneidad y HANK</span><span class="en">Unit A6 · Incomplete markets, heterogeneity and HANK</span></p>
+    <h1><span class="es">¿Qué pasa cuando nadie puede asegurar su ingreso?</span><span class="en">What happens when no one can insure their income?</span></h1>
+    <p class="lead">
+      <span class="es">Hogares idénticos de entrada, con choques de ingreso que no pueden asegurar y un límite para endeudarse. Este laboratorio resuelve el equilibrio de Aiyagari (1994) en tu navegador: el ahorro precautorio baja la tasa de interés por debajo de 1/β − 1, aparece una distribución de la riqueza y, con ella, propensiones a consumir muy distintas. Cuando el estado agregado es una distribución, la propensión agregada deja de ser un parámetro libre.</span>
+      <span class="en">Households start out identical, face income shocks they cannot insure, and can borrow only up to a limit. This lab solves the Aiyagari (1994) equilibrium in your browser: precautionary saving pushes the interest rate below 1/β − 1, a wealth distribution emerges and, with it, very different propensities to consume. When the aggregate state is a distribution, the aggregate propensity stops being a free parameter.</span>
+    </p>
+  </section>
+
+  <section class="wrap lab" aria-label="Laboratorio">
+    <aside class="controls" id="controls">
+      <h2><span class="es">Controles</span><span class="en">Controls</span></h2>
+    </aside>
+    <div class="charts" id="charts">
+      <p class="lab-status" id="status" role="status" aria-live="polite"></p>
+      <div id="tiles" aria-live="polite"></div>
+      <div id="chart-market"></div>
+      <div class="pair"><div id="chart-dist"></div><div id="chart-lorenz"></div></div>
+      <div class="pair"><div id="chart-policy"></div><div id="chart-mpc"></div></div>
+      <div class="pair"><div id="chart-quint"></div><div id="decomp" class="decomp" aria-live="polite"></div></div>
+    </div>
+  </section>
+
+  <section class="band section rule-top">
+    <div class="wrap two">
+      <div>
+        <h2><span class="es">Qué probar</span><span class="en">Things to try</span></h2>
+        <ol class="try">
+          <li><span class="es">Con la calibración del curso, r* = 2.03% contra 4.17% con mercados completos. Baja σ<sub>ε</sub> a 0.05: el riesgo casi desaparece, la oferta de capital se aplana contra 1/β − 1 y r* sube a 4.00%. Esos dos puntos de diferencia son ahorro precautorio puro. Regresa a 0.20 y sube γ a 4: con más prudencia, r* cae a −0.04%.</span><span class="en">At the course calibration r* = 2.03%, against 4.17% with complete markets. Lower σ<sub>ε</sub> to 0.05: risk nearly vanishes, capital supply flattens against 1/β − 1, and r* rises to 4.00%. Those two points are pure precautionary saving. Go back to 0.20 and raise γ to 4: with more prudence, r* falls to −0.04%.</span></li>
+          <li><span class="es">Sube σ<sub>ε</sub> de 0.20 a 0.30: r* cae a 0.33%, K/Y pasa de 3.59 a 4.32 y el Gini, de 0.53 a 0.56. Ahora regresa σ<sub>ε</sub> a 0.20 y sube ρ de 0.90 a 0.95. La desviación estándar incondicional del log-ingreso baja de 0.69 a 0.64 (la nota bajo el control lo muestra), pero el Gini llega a 0.65: el riesgo persistente genera mucha más desigualdad.</span><span class="en">Raise σ<sub>ε</sub> from 0.20 to 0.30: r* falls to 0.33%, K/Y goes from 3.59 to 4.32 and the Gini from 0.53 to 0.56. Now set σ<sub>ε</sub> back to 0.20 and raise ρ from 0.90 to 0.95. The unconditional standard deviation of log income falls from 0.69 to 0.64 (the note under the control shows it), yet the Gini reaches 0.65: persistent risk generates far more inequality.</span></li>
+          <li><span class="es">Afloja el límite de endeudamiento: ā de 0 a 3. Los hogares necesitan menos colchón, ahorran menos, r* sube a 2.40% y K/Y baja a 3.46. Casi uno de cada cuatro hogares queda endeudado, el Gini salta a 0.68 y la masa en la restricción baja de 2.0% a 1.0%.</span><span class="en">Loosen the borrowing limit: ā from 0 to 3. Households need a smaller buffer and save less, so r* rises to 2.40% and K/Y falls to 3.46. Almost one household in four ends up in debt, the Gini jumps to 0.68, and the mass at the constraint falls from 2.0% to 1.0%.</span></li>
+          <li><span class="es">Mira la PMC. En la restricción es 0.60 y lejos de ella, 0.07; el agregado es su promedio ponderado por la distribución. Cambia γ a 1 (el cuaderno usa utilidad logarítmica): la masa restringida sube a 7.3% y la PMC media pasa de 0.083 a 0.117. Regresa a γ = 2 y sube la transferencia a 1.0: la PMC media baja a 0.069 porque c(a, z) es cóncava. Ni el tamaño del choque ni la distribución son neutrales.</span><span class="en">Look at the MPC. At the constraint it is 0.60 and far from it 0.07; the aggregate is their average weighted by the distribution. Set γ to 1 (the notebook uses log utility): the constrained mass rises to 7.3% and the average MPC goes from 0.083 to 0.117. Return to γ = 2 and raise the transfer to 1.0: the average MPC falls to 0.069 because c(a, z) is concave. Neither the size of the shock nor the distribution is neutral.</span></li>
+        </ol>
+      </div>
+      <div>
+        <h2><span class="es">La matemática</span><span class="en">The math</span></h2>
+        <details class="math" open>
+          <summary><span class="es">El hogar</span><span class="en">The household</span></summary>
+          <p><span class="es">Con utilidad CRRA, productividad \(z\) que no se puede asegurar y un límite de endeudamiento \(\bar a\):</span><span class="en">With CRRA utility, productivity \(z\) that cannot be insured and a borrowing limit \(\bar a\):</span></p>
+          $$v(a,z)=\max_{a'\ge-\bar a}\Big\{\frac{c^{1-\gamma}}{1-\gamma}+\beta\sum_{z'}\Pi(z,z')\,v(a',z')\Big\}$$
+          $$c=(1+r)\,a+w\,e^{z}-a'$$
+          <p><span class="es">con \(z'=\rho z+\varepsilon'\), \(\varepsilon'\sim\mathcal N(0,\sigma_\varepsilon^2)\), discretizado en siete estados. La condición de Euler lleva el multiplicador \(\nu\ge0\) de la restricción:</span><span class="en">with \(z'=\rho z+\varepsilon'\), \(\varepsilon'\sim\mathcal N(0,\sigma_\varepsilon^2)\), discretized on seven states. The Euler equation carries the multiplier \(\nu\ge0\) on the constraint:</span></p>
+          $$c^{-\gamma}=\beta(1+r)\sum_{z'}\Pi(z,z')\,c(a',z')^{-\gamma}+\nu,\qquad \nu\,(a'+\bar a)=0$$
+          <p><span class="es">Como \(u'''>0\), el riesgo eleva \(\mathbb E\,u'(c')\) y el hogar ahorra de más: es el motivo precautorio.</span><span class="en">Because \(u'''>0\), risk raises \(\mathbb E\,u'(c')\) and the household saves more: the precautionary motive.</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">Grillas endógenas (Carroll 2006)</span><span class="en">Endogenous grid method (Carroll 2006)</span></summary>
+          <p><span class="es">Se fija el activo de mañana \(a'\) en la malla y se invierte la Euler, sin maximizar ni buscar raíces:</span><span class="en">Fix tomorrow's asset \(a'\) on the grid and invert the Euler equation, with no maximization or root finding:</span></p>
+          $$\tilde c(a',z)=\Big[\beta(1+r)\sum_{z'}\Pi(z,z')\,c_n(a',z')^{-\gamma}\Big]^{-1/\gamma}$$
+          $$\tilde a(a',z)=\frac{\tilde c(a',z)+a'-w e^{z}}{1+r}$$
+          <p><span class="es">Se interpola \((\tilde a,\tilde c)\) de regreso en la malla; si \(a<\tilde a(-\bar a,z)\) la restricción se activa y \(c=(1+r)a+we^{z}+\bar a\). Se itera hasta que \(\lVert c_{n+1}-c_n\rVert_\infty<10^{-9}\). La malla tiene 300 nodos, \(a_i=-\bar a+(a_{\max}+\bar a)\,u_i^{3}\) con \(u_i\) equiespaciado, apretados junto a la restricción, donde vive la curvatura; \(a_{\max}=100\) se estira si hay masa en el tope.</span><span class="en">Interpolate \((\tilde a,\tilde c)\) back on the grid; where \(a<\tilde a(-\bar a,z)\) the constraint binds and \(c=(1+r)a+we^{z}+\bar a\). Iterate until \(\lVert c_{n+1}-c_n\rVert_\infty<10^{-9}\). The grid has 300 nodes, \(a_i=-\bar a+(a_{\max}+\bar a)\,u_i^{3}\) with evenly spaced \(u_i\), packed near the constraint where the curvature lives; \(a_{\max}=100\) is stretched if mass reaches the top.</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">Distribución: la lotería de Young (2010)</span><span class="en">Distribution: Young's (2010) lottery</span></summary>
+          <p><span class="es">Sea \(j=j(a,z)\) el nodo con \(a_j\le a'(a,z)&lt;a_{j+1}\). La masa \(\mu(a,z)\) se reparte entre \(a_j\) y \(a_{j+1}\) con pesos que preservan la media, y luego \(z\) se mueve con \(\Pi\):</span><span class="en">Let \(j=j(a,z)\) be the node with \(a_j\le a'(a,z)&lt;a_{j+1}\). The mass \(\mu(a,z)\) is split between \(a_j\) and \(a_{j+1}\) with weights that preserve the mean, and then \(z\) moves with \(\Pi\):</span></p>
+          $$\omega(a,z)=\frac{a_{j+1}-a'(a,z)}{a_{j+1}-a_j}$$
+          $$\mu'(a_i,z')=\sum_{a,z}\Pi(z,z')\,\mu(a,z)\big[\omega\,\mathbf 1\{j=i\}+(1-\omega)\,\mathbf 1\{j=i-1\}\big]$$
+          <p><span class="es">La distribución estacionaria es el punto fijo \(\mu=T\mu\), sin simular a nadie. Cerca de \(r=1/\beta-1\) la riqueza deriva lentamente y la iteración simple se vuelve lenta; ahí el laboratorio resuelve \((I-T+v\mathbf 1^\top)\,\mu=v\) con GMRES.</span><span class="en">The stationary distribution is the fixed point \(\mu=T\mu\), with no simulation. Near \(r=1/\beta-1\) wealth drifts slowly and plain iteration crawls; there the lab solves \((I-T+v\mathbf 1^\top)\,\mu=v\) with GMRES.</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">Equilibrio general</span><span class="en">General equilibrium</span></summary>
+          <p><span class="es">Empresas Cobb–Douglas con \(\alpha=0.36\), \(\delta=0.08\) y trabajo efectivo \(L=\sum_z\pi(z)e^{z}\):</span><span class="en">Cobb–Douglas firms with \(\alpha=0.36\), \(\delta=0.08\) and effective labor \(L=\sum_z\pi(z)e^{z}\):</span></p>
+          $$r=\alpha\Big(\frac{K}{L}\Big)^{\alpha-1}-\delta,\qquad w=(1-\alpha)\Big(\frac{K}{L}\Big)^{\alpha}$$
+          $$A(r)\equiv\sum_{a,z}a\,\mu_r(a,z)\;=\;K^{d}(r)\equiv L\Big(\frac{\alpha}{r+\delta}\Big)^{\frac{1}{1-\alpha}}$$
+          <p><span class="es">\(A(r)\) crece con \(r\) y diverge cuando \(r\to1/\beta-1\); \(K^d\) decrece. Por eso \(r^*<1/\beta-1\) y \(K/Y=\alpha/(r^*+\delta)\) es mayor que con mercados completos. La raíz se busca con el método de Brent.</span><span class="en">\(A(r)\) rises with \(r\) and diverges as \(r\to1/\beta-1\); \(K^d\) falls. Hence \(r^*<1/\beta-1\), and \(K/Y=\alpha/(r^*+\delta)\) is higher than with complete markets. The root is found with Brent's method.</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">PMC y Gini</span><span class="en">MPC and Gini</span></summary>
+          <p><span class="es">Una transferencia de \(T\) bienes hoy equivale a \(T/(1+r)\) unidades más de activo al inicio del periodo:</span><span class="en">A transfer of \(T\) goods today is worth \(T/(1+r)\) more units of beginning-of-period assets:</span></p>
+          $$\mathrm{PMC}(a,z)=\frac{c\big(a+\tfrac{T}{1+r},z\big)-c(a,z)}{T}$$
+          $$\overline{\mathrm{PMC}}=\sum_{a,z}\mu(a,z)\,\mathrm{PMC}(a,z)$$
+          <p><span class="es">Lejos de la restricción la PMC baja hacia \(\kappa=1-[\beta(1+r)]^{1/\gamma}/(1+r)\), sin alcanzarlo; con mercados completos, \(\beta(1+r)=1\) y la PMC es \(1-\beta\) para todos. El Gini sale de la curva de Lorenz \((P_i,S_i)\): \(G=1-\sum_i(P_i-P_{i-1})(S_i+S_{i-1})\). Con deuda la riqueza acumulada puede ser negativa y el Gini puede pasar de 1.</span><span class="en">Far from the constraint the MPC falls toward \(\kappa=1-[\beta(1+r)]^{1/\gamma}/(1+r)\) without reaching it; with complete markets, \(\beta(1+r)=1\) and the MPC is \(1-\beta\) for everyone. The Gini comes from the Lorenz curve \((P_i,S_i)\): \(G=1-\sum_i(P_i-P_{i-1})(S_i+S_{i-1})\). With debt, cumulative wealth can be negative and the Gini can exceed 1.</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">Tauchen o Rouwenhorst</span><span class="en">Tauchen or Rouwenhorst</span></summary>
+          <p><span class="es">El mazo usa Tauchen con \(m=3\) desviaciones estándar. Rouwenhorst reproduce exactamente la varianza y la autocorrelación del AR(1) con cualquier número de estados; Tauchen con siete estados se degrada cuando \(\rho\to1\) (Kopecky y Suen 2010). Con \(\rho=0.98\) y \(\sigma_\varepsilon=0.20\), Tauchen da \(r^*=1.81\%\) y un Gini de 0.82; Rouwenhorst, \(r^*=0.22\%\) y 0.71.</span><span class="en">The deck uses Tauchen with \(m=3\) standard deviations. Rouwenhorst matches the variance and autocorrelation of the AR(1) exactly for any number of states; Tauchen with seven states degrades as \(\rho\to1\) (Kopecky and Suen 2010). With \(\rho=0.98\) and \(\sigma_\varepsilon=0.20\), Tauchen gives \(r^*=1.81\%\) and a Gini of 0.82; Rouwenhorst gives \(r^*=0.22\%\) and 0.71.</span></p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="section wrap">
+    <h2><span class="es">Llévalo más lejos</span><span class="en">Take it further</span></h2>
+    <div class="two">
+      <ul class="links">
+        <li><a href="https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T06_A_wealth_inequality_es.ipynb" class="es">Cuaderno T06_A en Colab: desigualdad de la riqueza, Huggett, colas de Pareto y la escalera de la PMC →</a><a href="https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T06_A_wealth_inequality.ipynb" class="en">Notebook T06_A in Colab: wealth inequality, Huggett, Pareto tails and the MPC ladder →</a></li>
+        <li><a href="../diapositivas/MAV_06_mercados_incompletos_heterogeneidad_y_hank.pdf" data-deck="6"><span class="es">Diapositivas 6: mercados incompletos, heterogeneidad y HANK →</span><span class="en">Slides 6: incomplete markets, heterogeneity and HANK (Spanish) →</span></a></li>
+        <li><a href="https://jorgealonsoortiz.work/puremacro/"><span class="es">En Python: </span><span class="en">In Python: </span><code>puremacro.vfi.solve_egm</code>, <code>puremacro.vfi.lottery_distribution</code>, <code>puremacro.vfi.aiyagari_steady_state</code> →</a></li>
+      </ul>
+      <div>
+        <p class="small"><span class="es">Ojo con la calibración: el cuaderno T06_A usa utilidad logarítmica y cinco estados, y por eso obtiene r* = 3.06% y un Gini de 0.63. Este laboratorio usa la del mazo: γ = 2, ρ = 0.90, σ<sub>ε</sub> = 0.20, Tauchen con siete estados.</span><span class="en">Mind the calibration: notebook T06_A uses log utility and five states, which is why it gets r* = 3.06% and a Gini of 0.63. This lab uses the deck's: γ = 2, ρ = 0.90, σ<sub>ε</sub> = 0.20, Tauchen with seven states.</span></p>
+        <p class="small" id="source"></p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span class="es">Macroeconomía Avanzada · ITAM · Jorge Alonso-Ortiz. Código MIT; textos y diapositivas <a href="https://creativecommons.org/licenses/by/4.0/deed.es">CC BY 4.0</a>. Fuente en</span><span class="en">Advanced Macroeconomics · ITAM · Jorge Alonso-Ortiz. Code MIT; text and slides <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Source at</span>
+    <a href="https://github.com/jalonso1979/puremacro/tree/main/curso">github.com/jalonso1979/puremacro</a>.
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script defer src="../assets/mav.js?v=25ec1916"></script>
+<script defer src="desigualdad.js?v=cf2b5349"></script>
+</body>
+</html>

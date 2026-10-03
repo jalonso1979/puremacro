@@ -1,0 +1,58 @@
+[    0.0s] mode=full  out=/Users/jalonso/Library/CloudStorage/GoogleDrive-jorge.alonsoortiz@gmail.com/My Drive/MAV/uncertainty_examples/puremacro/docs/research/uncertainty_identification/output
+[    0.0s] Phase 3: narrative_t2 (Type II @ Lehman+COVID) and narrative_t3 (Type II @ Lehman, Type III @ COVID) added to menu + grid
+[    0.0s] FULL mode caps (runtime budget ~20 min): VAR bootstraps 100 (grid) / 300 (menu); sign draws 1200/3000; narrative draws 1200/6000 (grid narrative cells restricted to lt); magmav bands only in the menu (100); rigobon+ICA custom bootstrap 60/200; GK rotations 5000; median p-value B=2000.
+[    0.0s] using frozen panel panel_monthly.csv (pass --refresh-data to rebuild)
+[    0.0s] panel loaded: 1519 rows, cols=['epu', 'wui', 'jln', 'vix', 'ip', 'emp', 'ffr']
+[    0.0s] baseline dataset: proxy=epu 1954-07-01 -> 2025-11-01, lt-detrended, T=857
+[    4.1s]   menu chol_first: peak=-1.225 at h=24, h12=-0.872  (4.1s)
+[    8.1s]   menu chol_last : peak=-1.110 at h=24, h12=-0.737  (4.0s)
+[    8.8s]   menu sign      : peak=-3.312 at h=24, h12=-3.070  (0.8s)
+[   10.5s]   menu narrative : peak=-2.716 at h=24, h12=-2.463  (1.7s)
+[   14.6s]   menu proxy     : peak=-3.118 at h=24, h12=-2.954  (4.0s)
+[   18.9s]   menu maxshare  : peak=-1.371 at h=24, h12=-1.033  (4.3s)
+[   21.7s]   menu rigobon   : peak=+1.433 at h= 5, h12=+0.928  (2.8s)
+[   29.5s]   menu magmav    : peak=-1.246 at h=24, h12=-0.901  (7.9s)
+[   32.7s]   menu nongauss  : peak=-1.154 at h=24, h12=-0.797  (3.1s)
+[   34.2s]   menu la_lp     : peak=-0.799 at h=16, h12=-0.657  (1.5s)
+[   35.8s]   menu narrative_t2: peak=-2.904 at h=24, h12=-2.679  (1.6s)
+[   37.5s]   menu narrative_t3: peak=-2.576 at h=24, h12=-2.451  (1.6s)
+[   41.0s] GK overlay: sign accepted 715/3000, narrative 1087/1436 trad. (ESS 1087), GK set from 1181/5000 admissible rotations  (3.5s)
+[   41.4s] wrote fig_gk_overlay.pdf/.png + gk_overlay.csv
+[   43.0s]   evsweep all4           : h12=-2.375 [-4.038, -0.469] width 3.569, narr 1042/1388 (1.6s)
+[   44.7s]   evsweep only_1987-10   : h12=-2.415 [-4.145, -0.199] width 3.946, narr 1150/1435 (1.7s)
+[   46.4s]   evsweep only_2001-09   : h12=-2.932 [-4.898, -0.310] width 4.588, narr 1430/1474 (1.7s)
+[   48.1s]   evsweep only_2008-09   : h12=-3.097 [-5.028, -0.871] width 4.157, narr 1403/1457 (1.7s)
+[   49.7s]   evsweep only_2020-03   : h12=-2.911 [-4.962, -0.432] width 4.529, narr 1435/1444 (1.7s)
+[   51.4s]   evsweep drop_1987-10   : h12=-2.902 [-4.826, -0.719] width 4.107, narr 1285/1378 (1.7s)
+[   53.1s]   evsweep drop_2001-09   : h12=-2.386 [-4.072, -0.497] width 3.576, narr 1097/1436 (1.7s)
+[   54.7s]   evsweep drop_2008-09   : h12=-2.425 [-4.248, -0.159] width 4.088, narr 1165/1427 (1.6s)
+[   56.4s]   evsweep drop_2020-03   : h12=-2.391 [-4.138, -0.605] width 3.532, narr 1106/1439 (1.7s)
+[   56.6s] wrote fig_event_sweep.pdf/.png + event_sweep.csv
+[   58.8s]   phsweep chol_first p= 3: peak=-1.050 h12=-0.895
+[   61.0s]   phsweep chol_last  p= 3: peak=-0.960 h12=-0.794
+[   61.5s]   phsweep sign       p= 3: peak=-2.993 h12=-2.957
+[   63.7s]   phsweep proxy      p= 3: peak=-2.906 h12=-2.865
+[   66.0s]   phsweep maxshare   p= 3: peak=-1.192 h12=-1.052
+[   70.1s]   phsweep chol_first p= 6: peak=-1.225 h12=-0.872
+[   74.2s]   phsweep chol_last  p= 6: peak=-1.110 h12=-0.737
+[   74.9s]   phsweep sign       p= 6: peak=-3.318 h12=-3.026
+[   79.0s]   phsweep proxy      p= 6: peak=-3.118 h12=-2.954
+[   83.3s]   phsweep maxshare   p= 6: peak=-1.371 h12=-1.033
+[   89.8s]   phsweep chol_first p=12: peak=-1.171 h12=-0.816
+[   96.3s]   phsweep chol_last  p=12: peak=-1.059 h12=-0.660
+[   97.4s]   phsweep sign       p=12: peak=-3.298 h12=-3.180
+[  104.0s]   phsweep proxy      p=12: peak=-2.397 h12=-2.270
+[  110.9s]   phsweep maxshare   p=12: peak=-1.270 h12=-0.967
+[  111.1s] wrote fig_ph_sweep.pdf/.png + ph_sweep.csv
+[  111.1s] spec grid: 288 cells
+[  273.8s] curve: 207 estimated, 81 skipped/failed
+[  273.8s]     skipped ×33: narrative kept only under lt (baseline detrending) — Phase 2 grid scope; skip logged
+[  273.8s]     skipped ×24: duplicate of sample=full (same effective window)
+[  273.8s]     skipped ×11: la_lp is detrend-invariant; kept only under lt
+[  273.8s]     skipped ×9: ValueError: run_scheme[magmav]: identification failed (eu=(0, 0), k_breaks=4) — Cholesky fallback rejected as a distinct scheme; spec marked failed.
+[  273.8s]     skipped ×4: ValueError: run_scheme[narrative_t3]: Type III restricts the COVID month, which is outside this cell's window — cell would duplicate narrative_t2.
+[  273.9s] bootstrap p-value for H0: median peak effect = 0  ->  p = 0.0000 (B=2000)
+[  274.2s] wrote fig_spec_curve.pdf/.png (207 plotted specs, mode=full)
+[  274.2s] summary.json written: {"recursive": -1.0522, "sign": -3.8986, "proxy": -8.6832, "max-share": -1.2932, "heteroskedasticity": -1.194, "non-Gaussian": -1.0361, "local-projection": -0.9042, "narrative-sign": -3.4033}
+[  274.2s] determinism check: reloading frozen csv, recomputing 12 specs …
+[  283.2s] determinism check PASSED (same seed -> same figure data)

@@ -1,0 +1,17 @@
+[    0.0s] Phase-2 merged panel: 51 states x 200 quarters, 10194 rows
+[    0.0s] mean pairwise cross-district shock correlation: +0.112
+[   14.0s] exposure[mfg]: 51/51 states, share range [0.010, 0.261] (missing: [])
+[   14.0s] exposure[mining]: 45/51 states, share range [0.000, 0.082] (missing: ['DC', 'DE', 'FL', 'HI', 'MD', 'NE'])
+[   15.4s] WARN panel: 45 states with filings, 2260 state-quarters; 17 states covered through 2015-2021 (LP subset)
+[   15.5s] MLS panel: 51 states x 61 quarters (1998-01-01..2013-01-01; absent months filled as 0)
+[   15.5s] WARN LP subset: 17 states, 6/12 districts with >=2 states (FRAGILE — see warn_coverage.csv)
+[   16.8s] spec[urate_mfg]: peak h=9 beta=+0.0415 (DK se 0.0193, WC p=0.158) n=6273, 51 states / 12 districts
+[   18.0s] spec[emp_mfg]: peak h=12 beta=-0.1167 (DK se 0.0413, WC p=0.146) n=6120, 51 states / 12 districts
+[   18.9s] spec[urate_mining]: peak h=8 beta=-0.0381 (DK se 0.0097, WC p=0.052) n=5580, 45 states / 12 districts
+[   19.4s] spec[mls_mfg]: peak h=1 beta=-0.0194 (DK se 0.0094, WC p=0.052) n=2856, 51 states / 12 districts
+[   19.4s] spec[warn_mfg_FRAGILE]: peak h=0 beta=-0.2196 (DK se 0.0466, WC p=0.269) n=408, 17 states / 8 districts
+[   19.6s] leads[urate_mfg_leads]: h=-4: -0.0208 (p_wc 0.23), h=-3: -0.0143 (p_wc 0.27), h=-2: -0.0157 (p_wc 0.05)
+[   19.7s] leads[mls_mfg_leads]: h=-4: +0.0038 (p_wc 0.81), h=-3: -0.0130 (p_wc 0.10), h=-2: -0.0249 (p_wc 0.16)
+[   22.1s] placebo: 200 derangements, mean +0.0185, sd 0.0148, randomization p=0.075
+[   22.2s] jackknife: beta(h=9) range [+0.0350, +0.0455]
+[   22.8s] figures written

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es" data-lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-title-es="Filtros: HP frente a Hamilton · Laboratorios MAV" data-title-en="Filters: HP versus Hamilton · MAV Labs">Filtros: HP frente a Hamilton · Laboratorios MAV</title>
+<meta name="description" content="Laboratorio interactivo: separa tendencia y ciclo del PIB con Hodrick–Prescott y con Hamilton (2018), y mira cuánto cambia el ciclo al final de la muestra.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23111'/%3E%3Cpath d='M5 21c4 0 5-10 9-10s5 10 9 10 3-5 4-5' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/mav.css?v=dbf54522">
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="../index.html">MAV <span class="es">· Laboratorios</span><span class="en">· Labs</span></a>
+    <nav class="topnav" aria-label="Principal">
+      <a href="../index.html" class="hide-sm"><span class="es">Laboratorios</span><span class="en">All labs</span></a>
+      <a href="https://jorgealonsoortiz.work/macro-avanzada/" data-curso="https://jorgealonsoortiz.work/macro-avanzada/" class="hide-sm"><span class="es">El curso</span><span class="en">The course</span></a>
+      <a href="https://jorgealonsoortiz.work/puremacro/" class="hide-sm">puremacro</a>
+      <span class="lang-toggle" role="group" aria-label="Idioma / Language">
+        <button type="button" data-lang="es">ES</button><button type="button" data-lang="en">EN</button>
+      </span>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero wrap">
+    <p class="kicker"><span class="es">Unidad A1 · Hechos estilizados</span><span class="en">Unit A1 · Stylized facts</span></p>
+    <h1><span class="es">¿Cuánto del ciclo lo pone el filtro?</span><span class="en">How much of the cycle comes from the filter?</span></h1>
+    <p class="lead">
+      <span class="es">El ciclo económico no se observa: se estima separando una tendencia. Compara Hodrick–Prescott con la regresión de Hamilton (2018), cambia los parámetros y mira qué pasa en el último dato, justo donde se toman las decisiones de política.</span>
+      <span class="en">The business cycle is not observed; it is estimated by removing a trend. Compare Hodrick–Prescott with Hamilton's (2018) regression, change the parameters, and watch what happens at the latest observation, exactly where policy decisions are made.</span>
+    </p>
+  </section>
+
+  <section class="wrap lab" aria-label="Laboratorio">
+    <aside class="controls" id="controls">
+      <h2><span class="es">Controles</span><span class="en">Controls</span></h2>
+    </aside>
+    <div class="charts">
+      <div id="tiles" aria-live="polite"></div>
+      <div id="chart-cycle"></div>
+      <div id="chart-realtime"></div>
+      <div id="chart-level"></div>
+    </div>
+  </section>
+
+  <section class="band section rule-top">
+    <div class="wrap two">
+      <div>
+        <h2><span class="es">Qué probar</span><span class="en">Things to try</span></h2>
+        <ol class="try">
+          <li><span class="es">Sube λ de 1,600 a 129,600. La tendencia se vuelve más rígida y el «ciclo» absorbe movimientos de más largo plazo: la volatilidad del ciclo HP sube sin que cambie un solo dato.</span><span class="en">Raise λ from 1,600 to 129,600. The trend stiffens and the "cycle" absorbs longer swings: the volatility of the HP cycle rises without a single data point changing.</span></li>
+          <li><span class="es">Lleva la fecha de corte a 2008T3, antes de Lehman. Compara el ciclo HP que se veía entonces con el que se estima hoy para ese mismo trimestre. Esa diferencia es el sesgo de extremo.</span><span class="en">Move the cutoff to 2008Q3, before Lehman. Compare the HP cycle you would have seen then with today's estimate for the same quarter. That gap is the end-point bias.</span></li>
+          <li><span class="es">Cambia a México y busca 1995, 2009 y 2020. ¿Coinciden los dos filtros en el signo? ¿Y en la amplitud?</span><span class="en">Switch to Mexico and look at 1995, 2009 and 2020. Do the two filters agree on the sign? On the amplitude?</span></li>
+          <li><span class="es">Con Hamilton, cambia el horizonte h de 8 a 4 trimestres. Hamilton recomienda h = 8 para datos trimestrales: dos años, más que la mayoría de las recesiones.</span><span class="en">With Hamilton, change the horizon h from 8 to 4 quarters. Hamilton recommends h = 8 for quarterly data: two years, longer than most recessions.</span></li>
+        </ol>
+      </div>
+      <div>
+        <h2><span class="es">La matemática</span><span class="en">The math</span></h2>
+        <details class="math" open>
+          <summary>Hodrick–Prescott</summary>
+          <p><span class="es">La tendencia \(\tau_t\) resuelve</span><span class="en">The trend \(\tau_t\) solves</span></p>
+          $$\min_{\{\tau_t\}} \sum_{t=1}^{T}(y_t-\tau_t)^2+\lambda\sum_{t=2}^{T-1}\big[(\tau_{t+1}-\tau_t)-(\tau_t-\tau_{t-1})\big]^2$$
+          <p><span class="es">La solución es lineal, \((I+\lambda K^\top K)\,\tau=y\), y usa datos futuros: al final de la muestra solo hay datos de un lado, y la estimación se revisa conforme llegan nuevos trimestres.</span><span class="en">The solution is linear, \((I+\lambda K^\top K)\,\tau=y\), and uses future data: at the end of the sample there is data on one side only, and the estimate is revised as new quarters arrive.</span></p>
+        </details>
+        <details class="math">
+          <summary>Hamilton (2018)</summary>
+          <p><span class="es">Regresión por MCO de \(y_{t+h}\) sobre una constante y los últimos \(p\) valores observados en \(t\):</span><span class="en">OLS regression of \(y_{t+h}\) on a constant and the last \(p\) values observed at \(t\):</span></p>
+          $$y_{t+h}=\beta_0+\beta_1 y_t+\beta_2 y_{t-1}+\dots+\beta_p y_{t-p+1}+v_{t+h}$$
+          <p><span class="es">El ciclo es el residuo \(\hat v_{t+h}\): lo que no se podía prever con \(h\) trimestres de anticipación. No usa datos futuros, pero pierde las primeras \(h+p-1\) observaciones.</span><span class="en">The cycle is the residual \(\hat v_{t+h}\): what could not be forecast \(h\) quarters ahead. It uses no future data, but loses the first \(h+p-1\) observations.</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">Ciclo en tiempo real</span><span class="en">Real-time cycle</span></summary>
+          <p><span class="es">Para cada trimestre \(s\), el ciclo «en tiempo real» es el último valor del filtro aplicado solo a \(y_1,\dots,y_s\). El ciclo «final» usa toda la muestra. Aquí se usan los datos de hoy para todas las fechas, así que la diferencia mide solo el problema del extremo, no las revisiones de los datos.</span><span class="en">For each quarter \(s\), the "real-time" cycle is the last value of the filter applied to \(y_1,\dots,y_s\) only. The "final" cycle uses the whole sample. Today's data are used for every date, so the gap measures only the end-point problem, not data revisions.</span></p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="section wrap">
+    <h2><span class="es">Llévalo más lejos</span><span class="en">Take it further</span></h2>
+    <div class="two">
+      <ul class="links">
+        <li><a href="https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_A_business_cycle_facts_es.ipynb" class="es">Cuaderno T01_A en Colab: hechos del ciclo desde el lado del trabajo →</a><a href="https://colab.research.google.com/github/jalonso1979/puremacro/blob/main/curso/notebooks/T01_A_business_cycle_facts.ipynb" class="en">Notebook T01_A in Colab: business-cycle facts from the labor side →</a></li>
+        <li><a href="../diapositivas/MAV_01_medicion_del_ciclo.pdf" data-deck="1"><span class="es">Diapositivas 1: medición del ciclo →</span><span class="en">Slides 1: measuring the cycle (Spanish) →</span></a></li>
+        <li><a href="https://jorgealonsoortiz.work/puremacro/"><span class="es">En Python: </span><span class="en">In Python: </span><code>puremacro.data.hp_filter</code>, <code>puremacro.cycles.hamilton_filter</code> →</a></li>
+      </ul>
+      <p class="small" id="source"></p>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span class="es">Macroeconomía Avanzada · ITAM · Jorge Alonso-Ortiz. Código MIT; textos y diapositivas <a href="https://creativecommons.org/licenses/by/4.0/deed.es">CC BY 4.0</a>. Fuente en</span><span class="en">Advanced Macroeconomics · ITAM · Jorge Alonso-Ortiz. Code MIT; text and slides <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Source at</span>
+    <a href="https://github.com/jalonso1979/puremacro/tree/main/curso">github.com/jalonso1979/puremacro</a>.
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script defer src="../assets/mav.js?v=25ec1916"></script>
+<script defer src="../assets/num.js?v=7de34487"></script>
+<script defer src="filtros.js?v=13073941"></script>
+</body>
+</html>

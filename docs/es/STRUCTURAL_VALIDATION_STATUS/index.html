@@ -1,0 +1,5845 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Production-grade Macroeconometric and Heterogeneous-Agent Structural Modeling Engine in Pure Python">
+      
+      
+        <meta name="author" content="puremacro contributors">
+      
+      
+        <link rel="canonical" href="https://jalonso1979.github.io/puremacro/docs/es/STRUCTURAL_VALIDATION_STATUS/">
+      
+      
+        <link rel="prev" href="../ADVISORY/">
+      
+      
+        <link rel="next" href="../national_accounts/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Estado de validación estructural - puremacro</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#estado-de-validacion-de-los-solvers-estructurales" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="puremacro" class="md-header__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            puremacro
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Estado de validación estructural
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-purple"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  
+  English Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+  Documentación en Español
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="puremacro" class="md-nav__button md-logo" aria-label="puremacro" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    puremacro
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/jalonso1979/puremacro" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    jalonso1979/puremacro
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    English Documentation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    English Documentation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../research_workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Research workflows
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../empirical_research/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-data studies and published replication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sw07_finite_sample/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SW07 finite-sample diagnosis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sw07_estimator_experiment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SW07 estimator controls
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../distributional_trade_ge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distributional trade GE application
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Showcase Notebooks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Correctness advisories
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../STRUCTURAL_VALIDATION_STATUS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structural validation status
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_11" id="__nav_1_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quarterly National Accounts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-time data (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../real_time_latam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Latin America real-time connectors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Long national accounts panel
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global Macro Data Ecosystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_12" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_12" id="__nav_1_12_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometric Engines
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Econometric Engines
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR & FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Narrative Sign Restrictions SVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR with Stochastic Volatility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Smooth Local Projections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modern Difference-in-Differences
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Honest DiD Sensitivity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../causal_dml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Double / Debiased Machine Learning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dml_irm_iv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Double ML for Treatment Effects & IV (IRM & DML-IV)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Econometrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Global VAR (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Estimation & Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GDP Nowcasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../nowcast_latam_news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Latin America Real-Time Nowcasting & News
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Penalized Forecasting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_13" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_13" id="__nav_1_13_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publication & Reporting
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_13">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publication & Reporting
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manuscript Tables & Exports
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_14" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_14" id="__nav_1_14_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Structural Models
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_14">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Structural Models
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../structural_bridge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Empirical-to-structural estimation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sequence-Space HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Non-Linear HANK Transitions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../policy_simulators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomic Policy Simulators & Browser Labs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gertler-Karadi (2011) DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Climate Macro (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Sketchpad & Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Higher-Order & Constraints
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Parity & Surface Area
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradients, NUTS & HANK Bridge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Frontier (Policy, DSGE-VAR & News)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Non-linear Particle Filtering & Regime Switching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dsge_stacked_newton/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stacked-Time Newton-Krylov (Perfect Foresight)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_15" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_15" id="__nav_1_15_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Dynamic Programming & Projection Solvers
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_15_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_15">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Continuous Dynamic Programming & Projection Solvers
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vfi_continuous_projection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Projection Solvers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vfi_splines_and_sparse_grids/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Splines & Sparse Grids
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dcegm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Discrete Choice EGM (DC-EGM)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vfi_continuous_equilibrium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Distributions & General Equilibrium
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vfi_hjb_continuous/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous-Time HJB & Adjoint KFE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vfi_continuous_transition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuous Transition Dynamics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../vfi_analytic_gradients/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parameter Gradients (IFT)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_16" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_16" id="__nav_1_16_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Frontier Macro & Spatial Economics
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_16_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_16">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Frontier Macro & Spatial Economics
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deep_macro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deep Macro & Neural Networks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../spatial_and_trade_ge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quantitative Spatial & Trade General Equilibrium
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_accounting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Consistent trade accounting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_welfare/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hicksian consumption welfare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hicksian tariff policy and solver recovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_gpu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hardware Backends (GPU, MLX & Batched Jacobians)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_mrio/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Native MRIO tables, provenance and aggregation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_condensed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Condensed one-factor Leontief tariff model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_ces_newton/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exact CES block Newton on consistent accounting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_household/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Household preferences and exact welfare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_distributional/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distributional household incidence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_continuation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parameter continuation and multistart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_stability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reduced local stability (experimental)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trade_dynamic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dynamic MRIO with sector-specific capital
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running Anywhere (iPad / browser)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance & Benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1_19" >
+        
+          
+          <label class="md-nav__link" for="__nav_1_19" id="__nav_1_19_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_1_19_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1_19">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replication gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation & goldens
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../research_benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Independent research benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Connector health
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credentials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cache database
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signal contract
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples gallery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lexicon review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Path to 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentación en Español
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Documentación en Español
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Inicio rápido
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../research_workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Flujos de investigación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../empirical_research/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estudios empíricos y replicación publicada
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sw07_finite_sample/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnóstico SW07 en muestra finita
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sw07_estimator_experiment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Controles del estimador SW07
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../distributional_trade_ge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aplicación distributiva de comercio GE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuadernos de demostración
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ADVISORY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Avisos de corrección
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estado de validación estructural
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_11" id="__nav_2_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Datos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../national_accounts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuentas nacionales trimestrales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../real_time_data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Datos en tiempo real (vintages)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../real_time_latam/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Conectores en tiempo real de América Latina
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../long_panel/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Panel largo de cuentas nacionales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data_ecosystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ecosistema de datos macro globales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_12" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_12" id="__nav_2_12_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Motores econométricos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Motores econométricos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../var/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR y FAVAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../narrative_sign_svar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SVAR con restricciones narrativas de signo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bvar_sv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BVAR con volatilidad estocástica
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../smooth_lp/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Proyecciones locales suavizadas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diferencias en diferencias modernas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../honest_did/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sensibilidad en DiD honesto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../causal_dml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aprendizaje automático doble / desesgado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dml_irm_iv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Doble ML para efectos de tratamiento e instrumentos (IRM y DML-IV)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spatial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Econometría espacial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gvar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VAR global (GVAR)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_estimation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estimación y diagnósticos DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nowcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nowcasting del PIB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nowcast_latam_news/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nowcasting en tiempo real de América Latina y descomposición de noticias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../forecast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pronóstico penalizado
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_13" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_13" id="__nav_2_13_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publicación e informes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_13">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Publicación e informes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reporting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tablas y exportación de manuscritos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_14" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_14" id="__nav_2_14_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelos estructurales
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_14">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Modelos estructurales
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../structural_bridge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estimación empírica-estructural
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HANK en el espacio de secuencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hank_nonlinear/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transiciones no lineales en HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../policy_simulators/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Simuladores de política macroeconómica y laboratorios interactivos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gertler_karadi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de Gertler-Karadi (2011)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../climate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomía del clima (DICE)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_build/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cuaderno de bocetos DSGE y Dynare
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_higher_order/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE de orden superior y restricciones
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_parity_surface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Paridad y superficie operativa DSGE
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_v3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Gradientes, NUTS y Puente HANK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_phase_c/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Frontera (Política, DSGE-VAR y Noticias)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_phase_d/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DSGE Filtrado de Partículas No Lineal y Cambio de Régimen
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dsge_stacked_newton/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Newton-Krylov apilado en el tiempo (previsión perfecta)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_15" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_15" id="__nav_2_15_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Programación dinámica continua y solucionadores de proyección
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_15_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_15">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Programación dinámica continua y solucionadores de proyección
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_continuous_projection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Solucionadores de proyección continua
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_splines_and_sparse_grids/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Splines y mallas dispersas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dcegm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DC-EGM de elección discreta
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_continuous_equilibrium/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distribuciones continuas y equilibrio general
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_hjb_continuous/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HJB en tiempo continuo y KFE adjunta
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_continuous_transition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dinámica de transición continua
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vfi_analytic_gradients/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gradientes paramétricos (TFI)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_16" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_16" id="__nav_2_16_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Macroeconomía de frontera y economía espacial
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_16_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_16">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Macroeconomía de frontera y economía espacial
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deep_macro/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deep Macro y redes neuronales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../spatial_and_trade_ge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Economía espacial cuantitativa y equilibrio general de comercio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_accounting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contabilidad comercial consistente
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_welfare/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bienestar hicksiano de consumo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_policy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Política arancelaria hicksiana y recuperación del solver
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_gpu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backends de hardware (GPU, MLX y jacobianos por lotes)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_mrio/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tablas MRIO nativas, procedencia y agregación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_condensed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Modelo arancelario Leontief condensado de un factor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_ces_newton/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Newton exacto por bloques con CES anidada sobre la contabilidad consistente
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_household/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Preferencias del hogar y bienestar exacto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_distributional/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incidencia distributiva por hogar
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_continuation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Continuación de parámetros y arranques múltiples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_stability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estabilidad local reducida (experimental)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trade_dynamic/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MRIO dinámico con capital específico por sector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tablet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ejecución en cualquier entorno (iPad / navegador)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendimiento y pruebas comparativas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_19" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_19" id="__nav_2_19_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Referencia
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_19_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_19">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Referencia
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de replicación
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../VALIDATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validación y referencias
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../research_benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benchmarks independientes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CONNECTOR_HEALTH/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Estado de conectores
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CREDENTIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credenciales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CACHE_DB/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Base de datos de caché
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SIGNAL_CONTRACT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contrato de señales
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples_gallery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Galería de ejemplos
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lexicon_review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Revisión de léxico
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../1.0_path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ruta a 1.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<blockquote>
+<p>🇬🇧 <a href="../../STRUCTURAL_VALIDATION_STATUS/">English</a> · 🇪🇸 Español</p>
+</blockquote>
+<h1 id="estado-de-validacion-de-los-solvers-estructurales">Estado de validación de los solvers estructurales</h1>
+<p>Actualizado el 23 de septiembre de 2026 con filas para los motores MRIO portados del
+espacio de investigación IO (tablas nativas, el modelo Leontief condensado, el Newton por
+bloques con CES anidada, las preferencias del hogar, la continuación de parámetros, la
+estabilidad reducida, el MRIO dinámico y el Newton-Krylov apilado), para la procedencia de
+la tabla incluida, la contabilidad consistente en tablas reales de la OCDE, la ruta
+comercial flexible y la determinación dinámica, y con las filas revisadas por las
+correcciones de la auditoría posterior a 4.3.0. La actualización del 20 de septiembre de
+2026 siguió a los contraejemplos independientes de
+<a href="https://github.com/jalonso1979/puremacro/blob/v4.3.0/reviews/2026-09-19-critical-evaluation/REVIEW.md">la evaluación crítica</a>.
+Véase también el <a href="https://github.com/jalonso1979/puremacro/blob/v4.3.0/reviews/2026-09-20-independent-validation/REPORT.md">seguimiento con Dynare en vivo y la OCDE nativa</a>.
+La posterior <a href="https://github.com/jalonso1979/puremacro/blob/v4.3.0/reviews/2026-09-20-trade-accounting/REPORT.md">corrección de la contabilidad comercial</a>
+añade un modelo opcional de precios de productor/comprador comprobado de forma
+independiente. La disponibilidad de una función, la convergencia numérica y la
+replicación independiente son afirmaciones distintas. Superar una comprobación
+de residuos no valida un modelo económico.</p>
+<table>
+<thead>
+<tr>
+<th>Superficie</th>
+<th>Cálculo soportado y contrato de aceptación</th>
+<th>Evidencia y límites pendientes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Equilibrio de comercio</td>
+<td><code>accounting="consistent"</code> usa costes de factores homogéneos, valores a precios de productor/comprador, impuestos sobre el ingreso por ventas, participaciones efectivas del impuesto sobre el gasto final, ahorro externo de referencia fijo (en unidades del numerario por defecto, o como proporción del ingreso factorial mundial con <code>foreign_saving_units="world_income"</code>) y un numerario explícito. Newton, LU disperso, Newton-Krylov, Broyden y Keller se detienen solo cuando los residuos resueltos y las ecuaciones físicas comprobadas (la ecuación de bienes omitida y los saldos externos realizados) cumplen <code>tol</code>; sus pasos de diferencias finitas escalan con cada incógnita (<code>h_j = eps * max(|x_j|, s_j)</code>), de modo que la resolución no depende de la unidad monetaria. SciPy hybrid/LM usan su propio criterio de parada y se auditan después.</td>
+<td>Solución escalar independiente de dos países y una agregación conservativa de la OCDE, con identidades presupuestarias/PIB y escalado de moneda. <code>test_consistent_oecd_empirical_aggregation</code> pasa con Python 3.13.12 / NumPy 2.4.6 / SciPy 1.18.1 (Newton arancelario: 6 iteraciones, residuo máximo 4.8e-8 con <code>tol = 1e-5</code> millones de USD; antes de la corrección se detenía en 8.3e-6 y se rechazaba en 1.03e-5). El fixture OCDE en USD (<code>validate=False</code>, <code>tol</code> 10 USD) y una tabla sintética no negativa con semilla fija de 20 países x 11 sectores en USD convergen (<code>tests/test_trade_solver_audit_fixes.py</code>). Con ahorro externo distinto de cero el cierre por defecto depende del orden de los países (la VE del país A en la tabla de bienestar de dos países es -27.55% del consumo con A primero y -45.99% con B primero); <code>"world_income"</code> elimina esa dependencia (hasta 7e-11). El equilibrio general nativo a tamaño completo (77x11 o mayor) sigue sin verificar; la contabilidad consistente rechaza la tabla heredada 77x11 incluida. Soporta NumPy, Leontief/CES y devoluciones de suma fija; otros reciclajes fiscales, costes de capacidad y GPU no están disponibles explícitamente en este modo. El valor por defecto <code>accounting="legacy"</code> conserva las convenciones históricas de MATLAB. Véanse <a href="../trade_accounting/">las ecuaciones y el alcance</a>.</td>
+</tr>
+<tr>
+<td>Ingresos arancelarios</td>
+<td>En el modo consistente, todos los aranceles usan precios del exportador y el calendario bilateral completo, los pagan una vez los compradores y se devuelven una vez a los hogares importadores. Los metadatos exponen los ingresos por impuestos domésticos y los libros a precios de productor/comprador.</td>
+<td><code>tariff_revenue_mode="schedule"</code> por sí solo conserva la valoración heredada. Los ingresos fiscales históricos <code>legacy_national</code> pueden diferir de los aranceles de transacción reportados. Use <code>accounting="consistent"</code> para los contrafactuales nuevos. La TLS de la columna de producción de la OCDE se modela como un impuesto a la producción; los datos no identifican un calendario completo de impuestos a los productos/IVA.</td>
+</tr>
+<tr>
+<td>PAC de Keller</td>
+<td>Calendarios completos de partida/objetivo para insumos intermedios y demanda final; continuación densa del sistema completo; aceptación final basada en residuos. Un <code>tau_target</code> escalar (cualquier entrada real 0-d) se aplica también a las importaciones de demanda final salvo con <code>scalar_applies_to_final_demand=False</code>, y la elección se registra en <code>metadata["scalar_tariff_convention"]</code>. <code>condensed=True</code> no está disponible explícitamente.</td>
+<td>Acuerdo Newton/PAC para un experimento arancelario pequeño. La ilustración escalar de un pliegue en el cuaderno no es evidencia de que el solver CGE público atraviese un pliegue económico, y las docstrings del solver ya no afirman un pliegue en <code>sigma_fold ~ 0.1238</code>: en la calibración de dos países del cuaderno 64 con sigma = 0.1238 y un arancel del 25%, PAC no registra ningún evento de pliegue y el Newton simple también converge (8 iteraciones). No se ha demostrado el cruce de ningún pliegue económico. <code>metadata["fold_points"]</code> contiene eventos fusionados: las detecciones consecutivas de <code>tau_lambda &lt;= 0</code> forman un único evento con <code>first_step</code>, <code>last_step</code>, <code>n_detections</code> y un <code>kind</code> (<code>lambda_reversal</code>, <code>factor_price_boundary</code> o <code>no_lambda_reversal</code>), y <code>metadata["fold_detections"]</code> conserva el recuento bruto. Con sigma = 0 y un arancel del 232% en la misma calibración, un precio de factor tiende a cero: PAC se estanca cerca de lambda = 0.992 sin converger y registra un único evento <code>factor_price_boundary</code> de 55 detecciones, que 4.3.0 listaba como 55 puntos de pliegue distintos. La puerta Hawkins-Simon de Leontief se aplica también con <code>sigma &gt; 0</code>, donde los costes unitarios CES son como mucho el coste Leontief, de modo que puede rechazar calendarios CES resolubles.</td>
+</tr>
+<tr>
+<td>Caliendo–Parro</td>
+<td>El atajo de identidad exige que aranceles, costes iceberg y cierre del déficit permanezcan individualmente sin cambios.</td>
+<td>Los cambios compensatorios de aranceles/costes iceberg deben conservar la recaudación. No se realizó una nueva replicación en vivo de los resultados cuantitativos publicados por los autores.</td>
+</tr>
+<tr>
+<td>Juegos arancelarios</td>
+<td>El <code>metric="hicksian_ev"</code> explícito usa contabilidad consistente, una sola referencia fija sin aranceles, ganancias/arrepentimiento normalizados por el consumo y acciones fijas en las matrices de pagos. La malla/refinamiento en todo el intervalo y las desviaciones simultáneas finales determinan la convergencia numérica. La recuperación auditada Newton → híbrido → continuación conserva el modelo y la tolerancia; las desviaciones fallidas lanzan una excepción sin pago. Un calendario Leontief cuya cota inferior de Collatz–Wielandt es al menos uno se rechaza antes de cualquier intento (<code>PolicyEquilibriumError.viability</code>); los demás resultados del examen se registran en <code>metadata["policy_viability"]</code>.</td>
+<td>Equilibrio CES escalar independiente y referencia primal de gasto en una malla arancelaria de 41 por 41, más pruebas de falsa convergencia/recuperación. Este benchmark alcanza su techo arancelario; no se establecen ni óptimos interiores ni unicidad global de Nash. Los objetivos históricos por defecto no cambian. Véanse <a href="../trade_policy/">uso, evidencia y límites</a>.</td>
+</tr>
+<tr>
+<td>Bienestar hicksiano de consumo</td>
+<td><code>compute_hicksian_welfare</code> evalúa la VE/VC de la función de gasto a partir de equilibrios con contabilidad consistente, con categorías de consumo explícitas y precios de comprador. Una atribución de Shapley por extremos separada usa precios, renta de factores y transferencias fiscales.</td>
+<td>Minimización independiente del gasto a nivel de origen, los seis órdenes de atribución, comprobaciones de dualidad, escalado de moneda y la agregación de la OCDE. La inversión queda excluida; la C nativa de la OCDE incluye el consumo público. Es bienestar de consumo condicional, no utilidad a lo largo de la vida ni una descomposición causal de eficiencia. Véanse <a href="../trade_welfare/">la derivación y la evidencia</a>.</td>
+</tr>
+<tr>
+<td>Descomposición histórica de la VE y certificación de teoremas</td>
+<td><code>decompose_hicksian_ev_3way</code> y <code>verify_theorems_1_to_4</code> siguen lanzando <code>NotImplementedError</code>.</td>
+<td>Sus antiguas fórmulas TOT/Alloc/TariffRec y sus conclusiones de teoremas carecían de fundamento. La nueva interfaz de bienestar no reetiqueta sus canales derivados como esas magnitudes. Las pruebas históricas siguen siendo fallos esperados no ejecutados, no validación económica. Los alias heredados de utilidad de los juegos arancelarios y los proxies del modelo flexible no están cubiertos por la nueva evidencia.</td>
+</tr>
+<tr>
+<td>Adaptadores MRIO</td>
+<td>Los archivos fuente ausentes fallan por defecto. Los datos generados requieren aceptación explícita. Las calibraciones conservan fuente, año, unidades, semilla de generación o hash del archivo, supuestos de conversión y resúmenes de ajustes. Los cargadores armonizados de FIGARO, EXIOBASE, WIOD y Eora entregan C/I/Cx con el cierre del saldo externo en la formación bruta de capital fijo (I); su Cx son variaciones de existencias con signo y objetos valiosos (EXIOBASE: más su columna de exportaciones), no compras de los residentes en el exterior, según se registra en <code>metadata["final_use_mapping"]</code> y <code>metadata["final_use_semantics"]</code>. <code>load_raw_45sector_icio</code> comprueba el MD5 del archivo que resuelve y rechaza la exportación dañada <code>data_2020_SML.csv</code>.</td>
+<td>CSV OCDE 2023 regular / 2019 nativo: los 77 países × 45 sectores se ingieren por etiquetas y se calibran, con los márgenes OUT originales, las variaciones de existencias con signo y las reparaciones registradas. Los seis usos finales se asignan a C/I/Cx para coincidir con el cierre de inversión. Una agregación conservativa de 3 regiones × 3 sectores supera las comprobaciones de referencia, contabilidad y contrafactual arancelario. Los cargadores armonizados de FIGARO/EXIOBASE/WIOD/Eora solo están verificados con fixtures sintéticos; la paridad con los archivos nativos no está verificada (los archivos nativos de FIGARO y EXIOBASE se leen con <code>puremacro.trade.mrio</code>). Otras ediciones/proveedores nativos y el equilibrio general a tamaño completo siguen sin verificar. Las participaciones de trabajo/capital de 2/3 y 1/3 siguen siendo supuestos.</td>
+</tr>
+<tr>
+<td>Productividad MRIO</td>
+<td>Bloques fuertemente conexos, iteración de potencias desplazada con una diagonal positiva pequeña (<code>shift=1e-3</code>; 4.3.0 usaba la suma máxima de filas y dejaba sin resolver las tablas reales), cotas de Collatz–Wielandt y refinamiento por iteración inversa con un vector resolvente positivo para bloques sin resolver de hasta 1024 filas. Un intervalo que cruza el umbral de viabilidad queda sin resolver; no es un certificado. <code>check_hawkins_simon_viability</code> lee los calendarios arancelarios exactamente como <code>solve_trade_equilibrium</code> y devuelve un <code>ViabilityResult</code> de cuatro campos; <code>solve_policy_equilibrium</code> rechaza antes de cualquier intento un calendario Leontief cuya cota inferior es al menos uno.</td>
+<td>Matrices periódicas, reducibles y casi críticas (rho = 0.998) y la tabla 77x11 incluida con tipos arancelarios de 3.65 a 10 coinciden con los autovalores densos (<code>tests/test_trade_ingestion_audit_fixes.py</code>); la <code>A</code> real de la OCDE 2019 certifica rho = 0.634194 y <code>1.55 A</code> certifica 0.983001. La estimación espectral escalar por sí sola no es un certificado de productividad. No se garantiza ninguna cota de tiempo (0.02-0.11 s por calendario en la tabla incluida).</td>
+</tr>
+<tr>
+<td>Tabla OCDE 77x11 incluida</td>
+<td><code>load_icio_data()</code> y las soluciones de referencia de MATLAB siguen siendo idénticas bit a bit a la cadena original, para que las pruebas de paridad sigan siendo comprobaciones externas.</td>
+<td>La exportación de origen (<code>data_2020_SML.csv</code>, md5 <code>d1b887aa...</code>) perdió el punto decimal en los valores con 3-4 decimales y puso a cero los valores inferiores a 0.001: valor agregado mundial 7.05e11 frente a 7.97e7 millones de USD en la publicación limpia OCDE 2020; coinciden el 35.5% de las celdas intermedias 77x11 y 1 de las 847 celdas de valor agregado; 2.10 millones de las 7.82 millones de celdas intermedias nativas positivas valen cero en la exportación. Toda cifra de la tabla incluida es un fixture de regresión de software, no una magnitud de la OCDE. <code>load_icio_data(return_structured=True).metadata</code> lo registra como <code>BUNDLED_ICIO_PROVENANCE</code> (<code>is_regression_fixture=True</code>, el MD5 de la exportación); el retorno como array simple no lleva metadatos. <code>load_raw_45sector_icio</code> rechaza esa exportación por su suma de verificación. Véase <a href="../ADVISORY/">el aviso</a>.</td>
+</tr>
+<tr>
+<td>Tablas MRIO nativas (<code>puremacro.trade.mrio</code>)</td>
+<td>Lectores guiados por etiquetas para OCDE ICIO 2023 (<code>read_oecd_native</code>, se rechaza la suma del <code>data_2020_SML.csv</code> corrupto y se avisa ante ediciones desconocidas), Eurostat FIGARO 2026 (<code>read_figaro_native</code>, reparaciones de redondeo acotadas registradas) y EXIOBASE 3.8.2 (<code>read_exiobase_native</code>, CSR; los miembros del archivo, o un directorio extraído pasado con <code>archive=</code>, se contrastan con el tamaño y el CRC-32 del archivo; un directorio leído solo se avisa como no autenticado); las sumas registradas están ligadas a su año. <code>regularize_table</code> acepta una tabla solo cuando superan la guarda de identidad (error mediano de fila &lt;= 1e-5, celdas de producción nula vacías), las puertas de impuestos residuales (&lt;= 1e-4 de la TLS mundial, &lt;= 1e-2 de la producción de la celda) y la puerta de saldo mundial fob (&lt;= 1e-9 del PIB mundial), y devuelve cada valor de puerta con las celdas infractoras; con <code>strict=False</code> una tabla fallida se marca <code>regularized=False</code> y la agregación y el puente de calibración avisan. <code>aggregate_mrio</code> es <code>P M P^T</code> exacto con conservación y una puerta de identidad de 1e-8; <code>coarse_tariff_rates</code> implementa las reglas IO <code>11o</code>/<code>11b</code> para tipos no negativos; <code>to_calibration_matrix</code> construye filas de trabajo y capital que <code>calibrate_trade_model</code> acepta (ambos factores estrictamente positivos en cada celda activa de una tabla regularizada; un valor agregado factorial negativo lanza un error).</td>
+<td>Fixtures derivados a mano con los formatos oficiales de FIGARO y EXIOBASE; paridad con <code>table_from_arrays</code>, <code>aggregate_icio</code> y <code>coarse_11o</code>/<code>coarse_11b</code> del IO incluido en vendor en un subproceso (diferencia máxima 0, 2.8e-17 en los tipos 11o) y concordancia con <code>dynamic_model.native_data</code> y <code>calibrate_databases_2019.figaro</code> sobre los archivos reales de 2019 hasta el orden de suma en coma flotante (0 en cada arreglo de OCDE y EXIOBASE y frente a <code>calibrate_databases_2019.figaro</code>, como mucho 9.3e-10 en la producción de FIGARO frente a <code>native_data</code>), marcadas como lentas: OCDE 25 fantasmas, PIB mundial 87,854,087; FIGARO 67 fantasmas, 9 suelos, y la tabla regularizada de 50 x 64 supera <code>calibrate_trade_model</code>; EXIOBASE 1,084 fantasmas, 89 suelos, núcleo extraído autenticado frente al archivo registrado. Límites citados de los registros IO: "active_mask means positive reported output; it is not an economic feasibility certificate"; FIGARO "Territorial consumption is retained; a residence bridge has not been validated"; EXIOBASE "This 2019 release is a nowcast; no stronger measurement claim is implied"; <code>residence_welfare_comparable: False</code> para los tres. No se resuelve ningún equilibrio sobre FIGARO ni EXIOBASE (EXIOBASE no se calibra: el puente densifica una <code>Z</code> cuadrada de 7,987); otras ediciones y años, y GTAP (HARPY con licencia GPL-3, datos con licencia) quedan fuera de la validación. La tabla 77x11 incluida procede del archivo corrupto de la OCDE (VA mundial 7.05e11 frente a 7.97e7 en la publicación limpia de 2020; el 35.5% de las celdas intermedias coincide y el valor agregado coincide en 1 de 847 celdas); sus pruebas de paridad son regresiones internamente consistentes, no comprobaciones empíricas. Véanse <a href="../trade_mrio/">las tablas nativas</a>.</td>
+</tr>
+<tr>
+<td>Contabilidad consistente en tablas reales de la OCDE</td>
+<td><code>accounting="consistent"</code>, <code>compute_hicksian_welfare</code>, <code>solve_policy_equilibrium</code> y el Newton exacto por bloques CES exigen coeficientes de uso final no negativos.</td>
+<td>La tabla 77x11 incluida tiene tres celdas de inversión agregada negativas (<code>afd</code> mínimo -0.144, <code>theta</code> mínimo -0.133) y la calibración granular regularizada de 45 sectores también contiene agregados de existencias con signo, de modo que hoy la contabilidad consistente solo corre sobre tablas construidas a mano y sobre el fixture OCDE congelado de 3 regiones/3 sectores. Una categoría de uso final para existencias con signo es la tarea pendiente que levantaría esta restricción; mientras tanto, <code>puremacro.trade.condensed</code> trata las existencias con signo como exógenas y es la ruta soportada para tablas de tamaño completo.</td>
+</tr>
+<tr>
+<td>Modelo arancelario Leontief condensado de un factor</td>
+<td><code>puremacro.trade.condensed.solve_condensed</code> elimina exactamente precios y producciones (dos factorizaciones LU), resuelve el sistema 2N <code>(log w, Y/Y0)</code> hasta <code>max|r| &lt;= 1e-12</code> con el residuo de Walras omitido <code>&lt;= 1e-10</code>, condiciona la existencia a una cota de Collatz-Wielandt <code>rho(B_tau) &lt; 1 - 1e-3</code> (las cotas no concluyentes lanzan un error y nunca afirman inexistencia; se rechazan los multiplicadores menores que uno, de modo que la cota con el arancel completo cubre cada etapa de continuación) y, con <code>certify=True</code> (por defecto), acepta un estado solo tras un certificado independiente de flujos brutos de diez bloques (beneficio nulo, vaciado de bienes, mercados de factores, presupuestos, renta, identidad de recaudación, cierre, cuenta corriente, suma mundial, numerario) a <code>1e-10</code>, en el que las celdas fantasma entran con su verdadera razón de producción. Los resultados con <code>certify=False</code> son de diagnóstico y nunca <code>passed</code>. Las medidas no dependen del numerario por construcción; <code>separate_baseline_tariffs</code> apila los incrementos sobre los aranceles observados.</td>
+<td>Reproducción de la referencia a <code>1e-14</code>, certificados de <code>1.1e-13</code> (sintético 3x4), <code>9.8e-13</code> (fixture OCDE 3x3) y <code>2.7e-13</code> (puente de la tabla 77x11 incluida), certificados de tablas en unidades naturales con de una a seis celdas fantasma, inyección de fallos en el certificado a <code>1e-5</code> relativo, aditividad de la descomposición de la VE a <code>1e-12</code>, invarianza al numerario <code>1.8e-11</code>, neutralidad de los aranceles sobre existencias con el cierre de factores, homogeneidad de unidades, tipo efectivo exacto (existencias gravadas y no gravadas), comportamientos de continuación/longitud de arco/arranques múltiples/respaldo y paridad en subproceso con el motor IO incluido en vendor: bit a bit en la tabla sintética (también con aranceles de referencia, el cierre de PIB mundial con un numerario de salario nacional, inversión fija y existencias no gravadas), dentro de <code>1e-12</code> en el fixture OCDE 3x3 y en el puente 77x11 (observado <code>6.4e-14</code> en salarios y precios, <code>4.3e-13</code> pp en las medidas principales). Con la edición limpia OCDE 2019 a la resolución nativa 77 x 45, un arancel uniforme de EE. UU. del 10% sobre mercancías reproduce exactamente las cifras publicadas de la reconstrucción IO (precios al consumo relativos a los salarios <code>+0.722154%</code>, EV <code>-0.005924%</code> del PIB base; Agregar de 11 sectores <code>+0.705964%</code> y <code>-0.009092%</code>), certificado <code>6.9e-13</code>. Citando la documentación IO: "No global uniqueness, universal fold threshold, or global Newton guarantee is asserted."; "Numerical residual checks do not establish global equilibrium existence, uniqueness, or optimality."; "These are floating-point verification criteria, not formal interval root enclosures." La longitud de arco y los arranques múltiples son evidencia, no pruebas. No se ha exhibido un punto de retorno económico: el monitor de pliegues se ejercita con un cambio de signo sintético del determinante y con una frontera de existencia (un arancel de EE. UU. del 500% en la economía sintética 3x4 supera la puerta de existencia, pero el equilibrio con salario estadounidense positivo termina cerca de un arancel del 259%, donde la continuación se detiene y <code>FoldDetected</code> salta ante un jacobiano numéricamente singular); no es un umbral universal de pliegue. Un factor compuesto, tecnología Leontief y una VE estática que incluye la inversión en la absorción: los resultados no son comparables uno a uno con <code>accounting="consistent"</code>. Las reglas arancelarias gruesas de 45 a 11 y el lector de la OCDE están en <code>puremacro.trade.mrio</code>, no en este módulo, y no se porta el registro de escenarios del artículo; las ejecuciones de 45 sectores requieren factorizaciones densas <code>3465 x 3465</code> y no son un objetivo del navegador. Véanse <a href="../trade_condensed/">uso, ecuaciones y límites</a>.</td>
+</tr>
+<tr>
+<td>Newton exacto por bloques con CES anidada</td>
+<td><code>solve_ces_block_newton</code> y <code>continue_tariff_homotopy</code> resuelven las ecuaciones de la contabilidad consistente con una tecnología CES anidada de tres niveles normalizada en la referencia (más el nido K/L) usando el jacobiano exacto: dos factorizaciones LU <code>M x M</code> y un complemento de Schur macro de <code>(3N+1)</code> filas, Newton amortiguado con filtro de admisibilidad. Una sola prueba de aceptación, compartida con la auditoría del posprocesado: el residuo impuesto escalado es como máximo <code>tol</code>, toda fila en niveles (incluidas la ecuación de bienes omitida y las balanzas exteriores realizadas) es como máximo <code>tol * max(scale)</code>, y un certificado de flujos independiente es como máximo <code>1e-8</code>. Cada etapa de la homotopía supera las mismas pruebas, y los fallos lanzan <code>CESNewtonError</code> con el historial, las etapas y el último resultado aceptado.</td>
+<td>Oráculo de inversa exacta por paso complejo en puntos que no son equilibrio (<code>6e-14</code> en las tablas construidas a mano y OCDE 3x3, <code>2e-12</code> en 20x11), diferencias centrales de <code>_accounting.evaluate</code> con tecnología plana (<code>1e-6</code>), paridad del residuo fila a fila (<code>1e-12</code>), límites Leontief y CES plana frente a los solvers por diferencias finitas, reproducción de la referencia, identidades de Euler y Shephard, libros contables dentro de <code>1e-10</code> veces la mayor escala de referencia, un barrido de aceptación de 66 resoluciones, sensibilidad del certificado (cada clave salta ante la violación que nombra; se rechaza una tecnología que viola Euler), homogeneidad, cambio de unidad monetaria, una raíz densa independiente y un golden autogenerado de la OCDE. Una tabla sintética de 77x11 se resuelve en menos de un segundo en un caso moderado del 10% (unos segundos con elasticidad de origen 4). Los límites de IO se aplican literalmente: "The proof is a conditional local identity, not a convergence or global-equilibrium theorem"; "The discrete checks do not certify a continuous branch between stages. ... failed procedures are not nonexistence certificates"; "all CES elasticities are explicitly stylized". La auditoría IO aceptó 12 de 21 perfiles nativos de elasticidades y dejó 9 sin resolver (residuos de <code>1.7e-4</code> a <code>1.4e-3</code>). Un Newton directo con elasticidad de origen 4 en la tabla aleatoria de 20x11 falla y necesita la homotopía. Con otras tablas arancelarias aleatorias el iterado queda contra la inversión nula y el error nombra la categoría y el país que restringen; en el caso examinado la raíz cercana tiene inversión negativa (el ahorro exterior fijo supera la participación de la inversión en la renta). La elasticidad de origen unitaria en la tabla OCDE 3x3 es un punto casi singular del jacobiano de referencia (valor singular mínimo <code>4.8e-6</code> en 0.99, comprobado con diferencias centrales de <code>_accounting.evaluate</code>) donde el Newton por bloques falla. Esos casos lanzan un error y se documentan, no se resuelven. Los multiplicadores prohibitivos (1e8) llevan las filas en niveles a un suelo de redondeo por encima de la cota por defecto; hace falta un <code>tol</code> más laxo. El bienestar hicksiano solo está disponible con tecnología plana; no se afirma paridad con el modelo IO DEK de un factor. Véase <a href="../trade_ces_newton/">derivación y evidencia</a>.</td>
+</tr>
+<tr>
+<td>Preferencias y bienestar del hogar</td>
+<td><code>puremacro.trade.household</code> evalúa la demanda de compuestos sectoriales con cestas fijas, Cobb-Douglas, Stone-Geary y CES a partir de una función de gasto exacta normalizada en la referencia; <code>compute_household_welfare</code> devuelve VE = e(p0,u1) - e(p0,u0) y VC = e(p1,u1) - e(p1,u0), positivas para las ganancias, con porcentajes sobre el presupuesto base del hogar. <code>calibrate_household</code> impone la agregación de Engel mediante una reparación auditada y exige <code>0 &lt; lambda &lt;= 1/max(eta)</code>; <code>fit_supernumerary_share</code> es una proyección regional acotada por mínimos cuadrados ponderados con los residuos informados. Los puentes vuelven a auditar los resultados consistentes exactamente como <code>compute_hicksian_welfare</code> (un <code>tau_fd</code> opcional se resuelve y se contrasta con el calendario registrado). Los resultados heredados deben cumplir la tolerancia registrada de su resolución, se valoran a los precios del estado en <code>x_sol</code>, y el <code>tau_fd</code> de la resolución se audita frente al <code>p_fd</code> almacenado, que solo identifica tipos nacionales: los calendarios heredados específicos por origen o sector lanzan un error salvo con <code>trust_tau_fd_detail=True</code>, en cuyo caso solo se verifican sus agregados por categoría. Las violaciones de dominio lanzan un error en lugar de recortarse.</td>
+<td>Doce pruebas IO de comportamiento/dualidad portadas; matrices de Slutsky analíticas frente a diferencias centrales (5e-8), minimización primal del gasto con SLSQP (1e-6), identidades de bienestar con base general e invertidas, cambio de unidad monetaria, paridad con el módulo flexible con la renta de referencia (1e-12, objetivos unitarios y un <code>mu_s = 1 - lambda*eta</code> bidimensional con objetivos no unitarios y un <code>lambda</code> regional), su divergencia fuera de la referencia y su asimetría de Slutsky con razones de renta 0.8, 1 y 1.2 (0.15, 0.06, 0.02 frente a cerca de 2e-8 en el sistema exacto), reproducción del bienestar hicksiano con cestas fijas (1e-10, categorías 0 y 2, tablas 3x2 cuadradas y no cuadradas), un certificado independiente de flujos de demanda final (1e-12), identidad Leontief heredada, resoluciones heredadas con la tolerancia por defecto, la puerta de residuos y rechazos de campos manipulados, y paridad en proceso idéntica bit a bit con el módulo IO. Citando la documentación IO: la calibración "is a disclosed transfer and reconciliation, not native microdata estimation"; "a calibrated parameter is not thereby empirically identified for 2019"; en el LES "substitution restrictions are therefore substantive: matching income elasticities and projecting compensated own-price targets does not reproduce a general CDE substitution matrix"; "These remain static policy comparisons, not lifetime welfare". La participación supernumeraria no está identificada por los datos IO (<code>None</code> usa 0.5 por defecto y el supuesto se registra en los metadatos); los calendarios heredados específicos por sector se aceptan por confianza cuando se permite explícitamente (un calendario distinto con los mismos agregados desplaza la VE Cobb-Douglas un 12 por ciento en la tabla sintética); la VE/VC de los puentes hereda el numerario y las convenciones de ahorro externo del equilibrio (dependiente del orden de los países con ahorro externo distinto de cero); la categoría 0 de la OCDE incluida contiene el consumo público; no se incluyen objetivos CDE de GTAP; no se portan la integración en equilibrio general de IO, la continuación arancelaria ni el diagnóstico de estabilidad local; los resultados del modelo flexible no tienen puente. Véase <a href="../trade_household/">preferencias del hogar</a>.</td>
+</tr>
+<tr>
+<td>Continuación de parámetros y arranques múltiples</td>
+<td><code>continue_parameter</code>/<code>sigma_path</code> siguen un parámetro del modelo (la elasticidad intermedia) con calendarios arancelarios completos y fijos, con pasos adaptativos de parámetro natural (mitad tras un fallo, crecimiento tras etapas de como mucho <code>fast_iterations</code> iteraciones, parada en <code>min_step</code> conservando el último estado auditado); <code>try_starts</code> prueba arranques con nombre en un objetivo exacto. Una etapa se acepta solo si el estado declara convergencia, lleva contabilidad consistente, transferencias de suma fija y exactamente el <code>sigma</code> y los calendarios solicitados, supera la reevaluación de contabilidad consistente de todas las ecuaciones en su tolerancia registrada con todos los campos reportados iguales al equilibrio recalculado con <code>1e-8</code>, tiene un residuo auditado no mayor que la <code>tol</code> solicitada y, salvo con <code>allow_fallback=True</code>, se resolvió con Newton desde el arranque en caliente y no mediante la escalera de respaldo ni desde otra semilla. <code>sigma_path</code> resuelve un arranque ausente con la escalera auditada completa (el arranque se audita, no se sigue). Las trayectorias sin resolver lanzan <code>ParameterContinuationFailure</code> con el último estado auditado y los intentos del solucionador; los arranques múltiples sin resolver no devuelven estado.</td>
+<td>Tabla sintética 3x3 (<code>tol=1e-9</code>): extremo de la trayectoria frente a la solución directa <code>3.1e-11</code>, reanudación <code>1.2e-11</code>, cada prueba una resolución de Newton en caliente; paridad guionizada de la ley de pasos con <code>continue_origin</code>/<code>try_direct_target</code> de IO (fracciones aceptadas, pruebas rechazadas y estados idénticos, incluida una etapa con exactamente <code>fast_iterations</code> iteraciones y un paso limitado; los mutantes de las reglas de crecimiento, tope y reducción la hacen fallar). Fixture OECD incluido de 3 regiones, <code>sigma_path(calib, tau, tau_fd, 0.5, tol=1e-5)</code> con un arancel uniforme del 10% a las importaciones de EE. UU.: coincide con la solución directa con precisión relativa <code>2.9e-13</code> en precios y <code>3.0e-13</code> en PIB (cota de la prueba <code>1e-6</code>); su arranque en sigma 0 procede del respaldo de Keller porque Newton se detiene con <code>converged=False</code> en un residuo de <code>8.3e-6</code>. Sigma de 0 a 2 queda sin resolver en la fracción 0.370 (sigma 0.740), y de 2 a 0 en la fracción 0.479 (sigma 1.041), porque todos los métodos de <code>solve_policy_equilibrium</code> fallan en sigma 0.91, 0.95, 1.0, 1.01 y 1.04 en esa tabla; la herramienta lo reporta. La tabla incluida 77x11 la rechaza la contabilidad consistente. La auditoría es el propio evaluador del modelo, no un oráculo independiente; no se evalúa la estabilidad local. Límites de IO (texto de IO; <code>result.qualification</code> lo adapta a trayectorias de parámetros): "An admissible exact-target equilibrium found from an alternative start or production-elasticity path is not established as belonging to the forward low-elasticity tariff branch ... neither convergence nor unsuccessful searches prove global uniqueness or nonexistence"; las ejecuciones de producción de IO dejaron sin resolver las once recuperaciones GTAP de baja elasticidad. Véase <a href="../trade_continuation/">uso, evidencia y límites</a>.</td>
+</tr>
+<tr>
+<td>Estabilidad local reducida (experimental)</td>
+<td><code>reduced_stability</code> clasifica un equilibrio convergido bajo una única ley explícita de ajuste de los precios relativos de los factores, con precios al productor, bienes y presupuestos fiscales vaciándose en cada vector de precios de factores; el jacobiano reducido es el complemento de Schur de un jacobiano por diferencias finitas de los residuos físicos, los saldos se redenominan en renta mundial de factores y el resultado lleva la banda de signo, el umbral de rango, el rango y los errores de homogeneidad, de Walras y de la nueva resolución independiente. Bajo la contabilidad consistente la homogeneidad y la identidad de Walras son exactas, así que su incumplimiento lanza un error. Clasificación dependiente del cierre y de la partición; evidencia, no veredicto.</td>
+<td>Jacobiano reducido en forma cerrada de un ejemplo Cobb-Douglas de dos países (2.3e-10), nueva resolución independiente del bloque rápido (&lt;= 2.8e-9), homogeneidad e identidad de Walras ponderada por valor (&lt;= 2e-9, también fuera del equilibrio sobre la variedad de vaciado rápido), invarianza del espectro a la referencia (1.8e-10), velocidades de ajuste frente a eig(diag(d) A) (2.2e-10), partición ingenua degenerada detectada a escala unitaria, x1e6 y en millones de USD, comprobación de signo por tanteo de Euler, acuerdo legacy/consistente sin impuestos ni aranceles (1.3e-10), ejecuciones con la OCDE 3x3 y con la tabla 77x11 incluida. Ambos fixtures sintéticos y el fixture OCDE se clasifican inestables con coeficientes de abastecimiento fijos y estables cuando la elasticidad de sustitución de intermedios alcanza uno; la contabilidad legacy con impuestos a la producción o precedencia MATLAB no es homogénea de grado uno e invierte el veredicto de la OCDE. Texto IO: "A local stability result is conditional on the specified relative-wage adjustment process, not a uniqueness theorem"; "Numerical verification does not establish empirical identification, global uniqueness, or stability under every possible adjustment process." No es un certificado de unicidad; sin tamaños nativos de 45 sectores (coste del jacobiano por diferencias finitas). Véanse <a href="../trade_stability/">la derivación y la evidencia</a>.</td>
+</tr>
+<tr>
+<td>Equilibrio general comercial flexible (<code>solve_flexible_trade_equilibrium</code>, ruta cuasi condensada)</td>
+<td>Los ajustes flexibles activos (tecnología CES, márgenes de capacidad, subsistencia, abastecimiento de Armington, márgenes variables) se resuelven por la ruta de Newton cuasi condensada en calibraciones de hasta 100 celdas país-sector, o de cualquier tamaño con <code>method="quasi_condensed"</code>; en otro caso la llamada lanza <code>ValueError</code> salvo con <code>allow_legacy_fallback=True</code>, que devuelve el equilibrio heredado marcado con <code>metadata["flexible_settings_applied"] = False</code>. Solo contabilidad heredada; el abastecimiento de la demanda final es de coeficientes fijos salvo que se fije <code>sigma_trade</code>.</td>
+<td>Contrastado: reproducción de la referencia con demanda final con signo (2x2, 77x11); continuidad en el umbral de enrutamiento (1e-6); identidades de beneficio nulo más cuña de margen y de renta de beneficios (1e-8); agotamiento de costes con capacidad (1e-9); reproducibilidad del residuo (1e-10); el cuadro de asignación de factores vacía las dotaciones con aranceles (1e-8). No validado: el bienestar (solo proxy histórico; su índice de precios supone Armington 5 sin aranceles y un índice LES Cobb-Douglas); la contabilidad consistente; la balanza comercial valorada a precios de comprador con Armington (se conserva la valoración heredada ppfd; <code>metadata["trade_balance_valuation"] == "ppfd_legacy"</code>; los flujos a precios de comprador se reportan aparte); las propiedades <code>exports</code>/<code>imports</code>/<code>terms_of_trade</code> de los resultados enrutados (ecuaciones de flujos heredadas; use los flujos de los metadatos). 4.2.0 y 4.3.0 ignoraban estos ajustes (véase <a href="../ADVISORY/">el aviso</a>).</td>
+</tr>
+<tr>
+<td>MRIO dinámico con capital por sector</td>
+<td><code>puremacro.trade.dynamic</code>: recalibración exactamente estacionaria con un libro de ajustes informado, eliminación exacta por fecha a <code>N + 2C</code> incógnitas, JVP analíticos, un certificado independiente de 17 entradas a <code>max(1e-8, tol)</code> en cada fecha aceptada, estados estacionarios condensados exactos en <code>2C</code>, transiciones con Newton apilado sin matriz y aceptación por horizonte que exige una ventana de 20 fechas a <code>1e-5</code>, bienestar a <code>1e-4</code> pp y una comprobación terminal (<code>state_gap</code> a <code>1e-4</code>, estado <code>verified</code>; <code>discounted_wealth</code> opcional a <code>1e-6</code>, estado <code>verified_window_and_welfare</code>). Las comparaciones de horizonte exigen la misma economía (calibración, coste de ajuste, aversión al riesgo, numerario), las mismas fronteras y la misma política anunciada. Las transiciones pasan por un informe de determinación de Blanchard-Kahn (<code>DynamicDeterminacyError</code>), que rechaza puntos no estacionarios. Las huellas de las políticas se derivan de las tablas de tipos, de modo que una política reconstruida con <code>dataclasses.replace</code> nunca se resuelve como la anterior.</td>
+<td>Fixture analítico de dos países: cuentas escalares independientes, JVP frente a diferencias centrales, condensación frente al problema completo, paridad idéntica bit a bit con el motor IO (calibración, estados estacionarios, una senda de 24 fechas y una de 60 fechas con <code>lgmres</code> y precondicionador de capital), 3.4e-13 frente a <code>solve_perfect_foresight</code> a 40 fechas, backends iterativos frente a LU dispersa hasta 1e-10 en una tabla dispersa con semilla fija. Tabla 77x11 incluida: libro de calibración, estados estacionarios, una senda de 40 fechas al 1%, el fallo al 5% en IRL:GOV en la fecha frontera terminal y (lento) paridad IO bit a bit de la calibración permisiva y de la senda de 40 fechas al 1%, 846 raíces estables para 847 stocks con raíz inestable 1.00185 que carga el 90% en Irlanda: el cierre linealizado es localmente indeterminado en esta tabla, de modo que <code>state_gap</code> rechaza la escalera 160/320/640 mientras que <code>discounted_wealth</code> la acepta, y el choque admisible se reduce con el horizonte (aranceles de EE. UU. sobre mercancías del 1% al 4% se resuelven a 40 fechas, el 3% también a 160; el 4% se estanca a 160 y el 5% a 40; un fallo de la búsqueda lineal es un indicio, no una prueba, de que no existe senda interior). Las limitaciones IO se aplican literalmente: "A single IO table does not identify historical capital stocks, depreciation, adjustment costs, or intertemporal preferences"; "This is an interior investment model; it does not claim to solve an investment-irreversibility complementarity problem"; la ejecución de EXIOBASE es solo <code>verified_window_and_welfare</code> y "No GTAP horizon is accepted yet"; aprovisionamiento fijo, trabajo inelástico, autarquía financiera y consumo público dentro de la cesta del hogar. Véase <a href="../trade_dynamic/">trade_dynamic.md</a>.</td>
+</tr>
+<tr>
+<td>Determinación del MRIO dinámico</td>
+<td><code>puremacro.trade.dynamic.stability_report</code> cuenta los autovalores generalizados estables frente a los stocks de capital predeterminados; <code>solve_dynamic_transition</code> rechaza estados estacionarios indeterminados salvo con <code>require_determinacy=False</code>.</td>
+<td>En la tabla 77x11 incluida y en una agregación limpia de la OCDE 2020 el cierre tiene 846 raíces estables para 847 stocks (raíz inestable 1.00185 y 1.000024, con cerca del 90% de la carga en Irlanda y el 8% en Luxemburgo): no se respalda ninguna cifra de bienestar dinámico sobre tablas OCDE 77x11. El fixture analítico de dos países es determinado (4/4). El registro IO acepta la ejecución de EXIOBASE 49x163 solo como <code>verified_window_and_welfare</code> (brecha logarítmica terminal 0.00989) y no acepta ningún horizonte de GTAP.</td>
+</tr>
+<tr>
+<td>DSGE de tercer orden</td>
+<td>Las pendientes de riesgo incluyen el calendario de los estados, términos en cadena del hessiano y contracciones de varianza de terceras derivadas. Los modelos parseados usan derivadas simbólicas; el respaldo para modelos definidos como funciones tiene precisión de diferencias finitas.</td>
+<td>Cinco modelos ejecutados en Dynare 7.0 en vivo en órdenes dos y tres, incluidos choques correlacionados, estados no lineales y un modelo RBC. Todos los tensores desplegados, correcciones de riesgo, covarianzas y simulaciones/momentos con innovaciones comunes coinciden (error máximo de tensor 1.15e-13; error de trayectoria 2.70e-13). El ensamblaje de derivadas mixtas conserva ahora cada permutación de índices. Es un benchmark acotado, no paridad general. MATLAB completó las exportaciones pero falló al cerrar; véanse las notas de reproducción. Momentos exactos con poda (después de 4.3.0): la identidad del espacio de estados reproduce el simulador podado a 2e-15; medias y covarianzas coinciden con los momentos podados de Dynare 8 en seis modelos (2e-13) y con una forma cerrada (3e-15). Las autocorrelaciones de orden 3 de Dynare omiten un término de correlación; una forma cerrada y las propias simulaciones de Dynare de 4e6 períodos coinciden con puremacro (<code>tests/test_dsge_order3_moments.py</code>).</td>
+</tr>
+<tr>
+<td>Panel de paridad con Dynare</td>
+<td>Los órdenes uno y dos comparan estados estacionarios y todos los tensores solicitados (<code>ghx</code>, <code>ghu</code>, <code>ghxx</code>, <code>ghxu</code>, <code>ghuu</code>, <code>ghs2</code>), alineados por etiquetas. Los <code>oo_.mean/var/autocorr</code> suministrados se comparan con los momentos del objeto resuelto en el orden comparado: en orden 2, la media corregida por riesgo y los segundos momentos de primer orden, que es la convención de <code>stoch_simul(order=2)</code> sin <code>pruning</code>. <code>M_.Sigma_e</code> se compara con la covarianza que declara el objeto. Las filas de autocorrelación de variables con varianza nula que son NaN en ambos lados cuentan como coincidentes y se listan en <code>details["moments_excluded"]</code>. Una entrada ausente, no finita (en un solo lado), mal formada o vacía, incluidos el <code>oo_.dr = []</code> inicial de Dynare y la salida de <code>loadmat</code> como arreglo de registros, es no disponible.</td>
+<td>Los fixtures de Dynare 7 en vivo se exportaron con <code>nomoments</code>, así que la paridad de momentos de orden 2 se contrasta con las fórmulas de <code>stoch_simul</code> aplicadas a las propias reglas de decisión de Dynare (concordancia 3.6e-15 en la media, 7.0e-14 en la varianza, 1.8e-14 en la autocorrelación en <code>rbc</code>), no con momentos reportados por Dynare. Una referencia de <code>stoch_simul(order=2, pruning)</code> reporta segundos momentos podados: compárela con <code>pruning=True</code>, que usa los momentos podados exactos (las medias, covarianzas y autocorrelaciones podadas de Dynare 8 se reproducen a 7e-14 en los cinco modelos en vivo y en un modelo con forma cerrada). Los fixtures de serialización autogenerados son pruebas internas, no oráculos externos de Dynare. La CLI de paridad no puede consumir referencias y termina con un error explicativo; use la API de Python.</td>
+</tr>
+<tr>
+<td>DSGE con cambio de régimen markoviano</td>
+<td>Los residuos de las ecuaciones acopladas se recalculan en las matrices devueltas. La convergencia es <code>diff &lt;= tol</code> (absoluta), o cada entrada del residuo dentro de <code>tol</code> o dentro de <code>rtol</code> (64 eps) de las magnitudes de sus propios términos que se cancelan (error hacia atrás por componentes; el menor <code>rtol</code> que certifica se reporta como <code>relative_residual</code>). Las soluciones fallidas tienen impactos de choques, radios de estabilidad y momentos ergódicos no disponibles.</td>
+<td>Un fallo de raíz real no debe devolver una covarianza de equilibrio finita ni un certificado de estabilidad. Los momentos finitos requieren además estabilidad tras la convergencia. Casos contrastados: reescalado uniforme hasta 1e9; una ecuación reescalada por 1e6 y 1e9 en tres modelos (las ecuaciones O(1) siguen cumpliendo <code>tol</code> y T queda a menos de 1e-9 de la solución sin escalar); unidades de variables que abarcan 1e14; modelos O(1) (incluido un <code>tol</code> más estricto del usuario) idénticos bit a bit a la puerta absoluta.</td>
+</tr>
+<tr>
+<td>Newton-Krylov apilado en el tiempo</td>
+<td><code>solve_stacked_newton_krylov</code> acepta una senda solo cuando el residuo apilado cumple <code>|F|_inf &lt;= tol * s</code> (s la escala del bloque estacionario) y el siguiente paso de Newton es menor que <code>1e-10 * max(1, |Y|_inf)</code>; <code>step_tol=None</code> omite la prueba del paso (con <code>jacobian_scale=1.0</code> es la regla IO de <code>native_solver._newton</code>). El movimiento de Newton se acota en unidades de la senda (<code>0.75 * max(1, |Y|_inf)</code>) y se acepta mediante una búsqueda lineal de Armijo de 24 intentos. Una dirección devuelta en el tope de Krylov se registra (estado y residuo lineal verdadero recalculado) y se somete a la búsqueda lineal como cualquier otra, igual que en el motor IO; por sí sola no es un error. Las búsquedas lineales fallidas, los límites de iteraciones, los errores o valores no finitos dentro de una resolución lineal, un residuo en un suelo de ruido que cumple la tolerancia mientras la prueba del paso no puede cumplirse, y una matriz apilada estacionaria que no se puede factorizar lanzan <code>StackedNewtonError</code> con el último estado adjunto y la causa en <code>converged_by</code>. Los pivotes de block-Thomas con una estimación de condición de LAPACK inferior a <code>n * eps</code>, o una factorización cuyo error hacia atrás con un vector supera 1e-10, recurren a SuperLU (registrado en el nombre del precondicionador). Cuando ambas entradas son objetos <code>StackedNewtonResult</code>, <code>compare_horizons</code> exige entradas convergidas, fronteras idénticas y la misma senda exógena mantenida más allá del horizonte corto; los arreglos, DataFrames y entradas <code>PerfectForesightResult</code> se comparan tal como se dan.</td>
+<td>Oráculos de resolución densa hasta 1e-12 (bloques constantes y por fecha, con y sin bloques temporales), identidad de la inversa exacta en un ciclo de Krylov, paridad con <code>solve_perfect_foresight</code> en Ramsey y en una transición de crecimiento de 20 sectores hasta 1e-8 (observado 7e-11 y 3.5e-11), invarianza al escalado de ecuaciones (1e-9) y de variables (unidades de 1e-3 a 1e4, 1e-9 relativo, mismos recuentos de Newton), regresiones de pivotes a nivel de redondeo y mal condicionados (<code>B = U V</code> de rango deficiente, números de condición apilados 616 y 941; <code>B = [[1, 1], [1, 1 + 1e-12]]</code>), el contrato de fallo, incluidos errores dentro de la resolución de Krylov y un suelo de ruido del residuo de 1e-12, y paridad con el motor IO en su fixture analítico de dos países (inversa por bloques hasta 5e-11, observado 2e-13; con <code>side="left"</code> y <code>jacobian_scale=1.0</code>, <code>_newton</code> hasta 1e-13, observado 0.0, y <code>solve_transition</code> hasta 1e-9, observado 3e-14; aceptación solo por residuo en el suelo de ruido, observado 0.0; <code>compare_horizons</code> en transiciones con arancel anunciado de 20/40/80 fechas hasta 1e-12, observado 2e-15). La evidencia cubre solo fixtures analíticos de tamaño DSGE. La memoria es <code>O(T n^2)</code> (cerca de 3.2 GB con <code>n_vars = 1000</code>, <code>T = 200</code>); los sistemas MRIO nativos necesitan una eliminación estructurada. Citando la documentación IO: "Preconditioner speed and memory must be established by executions; block structure alone does not establish native-scale performance."; "These linear identities do not guarantee numerical accuracy or nonlinear convergence."; "No GTAP horizon is accepted yet." Aquí no se resuelve ninguna transición MRIO a escala nativa; no se portan las variantes IO de capital, Schur, periódica, barrida, Galerkin, deflactada y Jacobi deflactada; MCP y el modo de sorpresa de <code>solve_perfect_foresight</code> no están disponibles. Véanse <a href="../dsge_stacked_newton/">uso y evidencia</a>.</td>
+</tr>
+<tr>
+<td>Proyecciones VFI</td>
+<td>Las banderas de colocación de Euler, FEM, Smolyak y splines exigen residuos finales finitos dentro de la tolerancia solicitada. La terminación del optimizador por sí sola es insuficiente.</td>
+<td>Un residuo en los nodos de ajuste no establece precisión fuera de la malla, factibilidad, complementariedad ni optimalidad global. Los dominios adversos pueden devolver aproximaciones útiles con <code>converged=False</code>. Las variantes de Bellman tienen sus propios criterios de iteración.</td>
+</tr>
+<tr>
+<td>Valores auxiliares de colocación</td>
+<td>La política y el valor usan una sola curvatura CRRA (<code>sigma</code>, alias <code>gamma</code>) y la productividad del modelo en los bloques de Euler, Coleman, Bellman y evaluación de la política. Los parámetros de <code>return_fn</code>/<code>euler_residual_fn</code> del usuario se transmiten sin interpretar.</td>
+<td>Casos contrastados: la forma cerrada del crecimiento logarítmico determinista con cada forma de escribir la curvatura; la identidad de Bellman con CRRA(2) y CRRA(3); concordancia de políticas Euler/Bellman (1.1e-6) con sigma = 2; la sensibilidad TFI respecto de <code>gamma</code> frente a la columna de <code>sigma</code> y una nueva resolución por diferencias finitas. El recorte en la frontera limita la interpretación fuera del dominio elegido. Desde 4.5.0 <code>puremacro.vfi.splines</code> y <code>puremacro.vfi.smolyak</code> siguen la misma regla (<code>sigma</code> y, si falta, <code>gamma</code>); <code>solve_smolyak(method="bellman")</code> solo cubre utilidad logarítmica con depreciación total y en otro caso lanza un error.</td>
+</tr>
+<tr>
+<td>Deep Macro</td>
+<td>Iteración temporal de Euler con objetivo desacoplado. La caché hacia adelante del estado actual se restaura antes de actualizar los pesos.</td>
+<td>Un gradiente completo del paso de entrenamiento se comprueba por diferencias finitas. El éxito del entrenamiento depende de la calibración y de la semilla; incluso la trayectoria determinista por defecto de diez países puede no superar el criterio de Euler fuera de muestra. Una pérdida de entrenamiento pequeña por sí sola no es convergencia.</td>
+</tr>
+<tr>
+<td>Sensibilidades VFI</td>
+<td>Soluciones lineales por el TFI usando jacobianos de residuos por diferencias centrales: derivadas semianalíticas.</td>
+<td>La precisión depende de los pasos de diferenciación y del condicionamiento. Las sensibilidades de distribución y de equilibrio general con agentes heterogéneos no están disponibles hasta que se implementen la KFE diferenciada y las ecuaciones de equilibrio acopladas.</td>
+</tr>
+</tbody>
+</table>
+<p>La galería de validación de 110 casos (versión 4.5.0, todos superados) contiene 59
+casos internos, 31 analíticos, 13 de paquetes, cinco de SciPy y dos de referencia
+publicada. Tiene varias clases
+de tolerancia y no contiene casos de comercio; las pruebas separadas de comercio
+deben evaluarse por separado. La galería no certifica cada función, cada backend
+ni cada despliegue.</p>
+<p>Puremacro no distribuye ninguna extensión compilada propia. NumPy/SciPy y otros
+paquetes base incluyen componentes compilados; las dependencias obligatorias
+incluyen además pandas, Matplotlib y requests. La importabilidad en Pyodide, la
+ejecución realista en el navegador, la concordancia en GPU y la reproducibilidad
+bit a bit requieren pruebas distintas.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,77 @@
+{
+  "curso": "Macroeconomía Avanzada (MAV), ITAM, otoño 2026",
+  "mazos": [
+    {
+      "numero": 1,
+      "archivo": "MAV_01_medicion_del_ciclo.pdf",
+      "titulo_es": "Medición del ciclo: contabilidad nacional, filtros y hechos estilizados",
+      "titulo_en": "Measuring the cycle: national accounts, filters and stylized facts",
+      "semanas": "1–2",
+      "bytes": 959330,
+      "paginas": 54
+    },
+    {
+      "numero": 2,
+      "archivo": "MAV_02_modelo_neoclasico_de_crecimiento.pdf",
+      "titulo_es": "El modelo neoclásico de crecimiento",
+      "titulo_en": "The neoclassical growth model",
+      "semanas": "3–4",
+      "bytes": 967430,
+      "paginas": 68
+    },
+    {
+      "numero": 3,
+      "archivo": "MAV_03_riesgo_e_incertidumbre.pdf",
+      "titulo_es": "Riesgo e incertidumbre",
+      "titulo_en": "Risk and uncertainty",
+      "semanas": "5",
+      "bytes": 721734,
+      "paginas": 45
+    },
+    {
+      "numero": 4,
+      "archivo": "MAV_04_ciclos_economicos_reales_y_contabilidad_del_ciclo.pdf",
+      "titulo_es": "Ciclos económicos reales y contabilidad del ciclo",
+      "titulo_en": "Real business cycles and business-cycle accounting",
+      "semanas": "7–8",
+      "bytes": 1002696,
+      "paginas": 74
+    },
+    {
+      "numero": 5,
+      "archivo": "MAV_05_identificacion_empirica.pdf",
+      "titulo_es": "Identificación empírica: SVAR, evidencia narrativa y proyecciones locales",
+      "titulo_en": "Empirical identification: SVARs, narrative evidence and local projections",
+      "semanas": "9–10",
+      "bytes": 1272957,
+      "paginas": 82
+    },
+    {
+      "numero": 6,
+      "archivo": "MAV_06_mercados_incompletos_heterogeneidad_y_hank.pdf",
+      "titulo_es": "Mercados incompletos, heterogeneidad y HANK",
+      "titulo_en": "Incomplete markets, heterogeneity and HANK",
+      "semanas": "11",
+      "bytes": 528132,
+      "paginas": 37
+    },
+    {
+      "numero": 7,
+      "archivo": "MAV_07_mecanismos.pdf",
+      "titulo_es": "Mecanismos: trabajo, capital y economía pequeña y abierta",
+      "titulo_en": "Mechanisms: labour, capital and the small open economy",
+      "semanas": "13–14",
+      "bytes": 1092967,
+      "paginas": 82
+    },
+    {
+      "numero": 8,
+      "archivo": "MAV_08_mercados_no_competitivos.pdf",
+      "titulo_es": "Mercados no competitivos: precios rígidos y fricciones laborales",
+      "titulo_en": "Non-competitive markets: sticky prices and labour-market frictions",
+      "semanas": "15–16",
+      "bytes": 838230,
+      "paginas": 69
+    }
+  ]
+}

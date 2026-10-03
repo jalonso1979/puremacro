@@ -1,0 +1,59 @@
+=== (a) eigenvector loadings of the nonzero finite roots (port default calibration) ===
+ modulus  smin     a   mun    ph     k     n     c     y   l_w     u     i     b   l_o
+   0.500 0.000 0.000 1.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000 0.000
+   0.595 0.000 0.000 0.000 0.000 0.551 0.714 0.108 0.651 0.523 0.690 0.470 0.408 1.000
+   0.781 0.000 0.304 0.000 0.000 1.000 0.196 0.028 0.365 0.200 0.574 0.322 0.039 0.130
+   0.900 0.000 0.000 0.000 1.000 0.146 0.001 0.013 0.000 0.012 0.040 0.014 0.098 0.009
+   1.068 0.000 0.000 0.000 0.000 1.000 0.488 0.178 0.342 0.172 0.013 0.136 0.061 0.460
+   1.158 0.000 0.000 0.000 0.000 1.000 0.305 0.088 0.306 0.152 0.005 0.202 0.059 0.218
+   1.967 0.000 0.000 0.000 0.000 0.287 1.000 0.131 0.367 0.247 0.225 0.205 0.525 0.566
+
+(reading: 0.5/0.7807/0.9 load exclusively on mun/a/ph = the AR(1)
+ shock block; the remaining four are the endogenous (k,n)-system
+ roots, loading on c,y,k,n,l_w,u,i,b,l_o)
+
+=== (b) quartet sensitivity to adjustment costs ===
+param   value  endo_1  endo_2  endo_3  endo_4
+ psik 2.75000 0.60299 1.06845 1.15204 1.96772
+ psik 2.25000 0.58628 1.06850 1.16360 1.96690
+ psin 3.52000 0.60515 1.06848 1.15748 1.89417
+ psin 2.88000 0.58380 1.06848 1.15765 2.05723
+base quartet: [0.59503 1.06848 1.15757 1.96733]
+(roots that move with psik = capital-adjustment pair; with psin = fertility-adjustment pair)
+
+=== (c) replication of the original Dynare `check` eigenvalues ===
+
+fertility_adj_costs.mod
+  exact-SS max|resid| = 2.78e-17
+  SS (ours) :  {'a': 0.0, 'mun': 0.3, 'ph': 0.019803, 'k': 0.841844, 'n': 0.526141, 'c': 0.237904, 'y': 0.564566, 'l_w': 0.337637, 'u': 1.45004, 'i': 0.142513, 'b': 0.034883, 'l_o': 0.550914}
+  Dynare    : [0.1    0.5844 0.8889 0.9    0.96   1.254  1.856 ]
+  this port : [0.1    0.5844 0.8889 0.9    0.96   1.2543 1.8561]
+  max |diff| = 2.91e-04  -> EQUATIONS VALIDATED
+  n_stable = 12 (12 = BK passes)
+
+bayesian_estimation.mod
+  exact-SS max|resid| = 1.39e-17
+  SS (ours) :  {'a': 0.0, 'mun': 0.462465, 'ph': -0.029559, 'k': 1.033825, 'n': 1.066294, 'c': 0.266226, 'y': 0.481514, 'l_w': 0.26552, 'u': 1.137443, 'i': 0.114395, 'b': 0.06729, 'l_o': 0.474782}
+  Dynare    : [0.5    0.6838 0.7807 0.9    0.9197 1.192  1.549 ]
+  this port : [0.5    0.6838 0.7807 0.9    0.9197 1.1924 1.5488]
+  max |diff| = 4.33e-04  -> EQUATIONS VALIDATED
+  n_stable = 12 (12 = BK passes)
+
+=== (d) ablation from the Bayesian calibration (BK OK) toward the port's conventions ===
+  Bayesian .mod baseline (exact SS)          n_stable=12  quartet=[0.6838 0.9197 1.1924 1.5488]  margin=0.0803
+  + barp: log(1/1.03) -> 0                   n_stable=12  quartet=[0.6841 0.9195 1.1929 1.5491]  margin=0.0805
+  + omega: 2.0 -> 2.5                        n_stable=12  quartet=[0.6771 0.9276 1.1814 1.5591]  margin=0.0724
+  + g: 0.0175 -> 0.017                       n_stable=12  quartet=[0.6836 0.9201 1.1919 1.5491]  margin=0.0799
+  + all three port constants                 n_stable=12  quartet=[0.6772 0.9278 1.1813 1.5596]  margin=0.0722
+  Bayesian params, NO exact SS (initval pt)  n_stable=12  quartet=[0.6623 0.9308 1.1598 1.5506]  margin=0.0692
+  port LM params + exact SS repair: SS solve FAILED: exact_steady_state: no root (success=False, max|resid|=5.603e+01); guess may be in the wrong basin
+
+=== (e) BGP least-squares flatness at the port's LM endpoint ===
+  residual norm at LM endpoint: 0.075101 (a true root would be ~0)
+  singular values of the 13x13 BGP Jacobian at the endpoint:
+    [6.9712e+00 3.9928e+00 3.0479e+00 2.0628e+00 1.9351e+00 1.1316e+00 9.9936e-01 8.6145e-01 6.5328e-01
+ 1.5563e-01 4.0334e-02 2.3045e-16 3.7990e-24]
+  condition number = 1.835e+24; 2 singular value(s) < 1e-6 * s_max
+  -> the LM endpoint sits in a near-flat valley of an inconsistent
+     system: the returned 'BGP' is arithmetic-dependent, which is
+     exactly what 02's basin experiment shows.
