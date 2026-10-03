@@ -38,6 +38,13 @@ def draw_card(ax, x, y, w, h, title, subtitle="", bg_color=C_BG_CARD, border_col
         zorder=2
     )
     ax.add_patch(rect)
+    if title and h > 0.5:
+        # Column containers: the title as a label on the top border, so it never
+        # collides with the first inner card (the subtitle is omitted).
+        ax.text(x + 0.03 * w, y + h + 0.015, title,
+                fontsize=10.5, fontweight="bold", color=title_color, zorder=4, va="center",
+                bbox=dict(boxstyle="round,pad=0.3", facecolor="#ffffff", edgecolor=border_color, linewidth=1.0))
+        return
     if title:
         ax.text(x + 0.02 * w, y + h - 0.06 * h, title,
                 fontsize=11, fontweight="bold", color=title_color, zorder=3, va="top")
@@ -59,7 +66,7 @@ def generate_graphical_abstract():
     ax.add_patch(banner)
     ax.text(0.5, 0.955, "puremacro: Universal Quantitative Macroeconomics & Econometrics",
             ha="center", va="center", color="#ffffff", fontsize=16, fontweight="bold")
-    ax.text(0.5, 0.92, "Pure Scientific-Python Stack  •  Zero C-Extensions  •  Workstation to WebAssembly Portability  •  Self-Verifying Oracles",
+    ax.text(0.5, 0.92, "Scientific-Python Stack  •  No Compiled Extension of Its Own  •  Workstation and Browser  •  Oracle-Checked Results",
             ha="center", va="center", color="#e0e7ff", fontsize=9.5)
 
     # Three Main Architectural Columns:
@@ -74,7 +81,7 @@ def generate_graphical_abstract():
     # Subcards in Col 1
     # 1.1 Strict Dependency Invariant
     draw_card(ax, 0.035, 0.58, 0.24, 0.22, "Strict Four-Package Core", "", bg_color=C_BLUE_LIGHT, border_color="#bfdbfe")
-    ax.text(0.045, 0.74, "• Core: NumPy, SciPy, pandas, Matplotlib\n• Requests only in data ingestion layer\n• ZERO custom C/C++/Rust extensions\n• Strictly no Numba or Cython in core\n• Run-time sandboxes prevent leakages",
+    ax.text(0.045, 0.74, "• Core: NumPy, SciPy, pandas, Matplotlib\n• requests only in the data-ingestion layer\n• No compiled extension of its own\n• Numba and GPU backends are opt-in\n• Subprocess import sweeps enforce it",
             fontsize=8.2, color=C_TEXT_DARK, va="top", linespacing=1.4)
 
     # 1.2 Dual Execution Runtime
@@ -112,12 +119,12 @@ def generate_graphical_abstract():
             fontsize=7.8, color=C_TEXT_DARK, va="top", linespacing=1.35)
 
     # --- COLUMN 3: VERIFICATION & ADOPTION ---
-    draw_card(ax, 0.71, 0.04, 0.27, 0.83, "3. Verification & Impact", "Self-Certifying Evidence",
+    draw_card(ax, 0.71, 0.04, 0.27, 0.83, "3. Verification & Impact", "Oracle-Checked Evidence",
               bg_color="#f9fafb", border_color="#cbd5e1", title_color=C_PRIMARY)
 
     # 3.1 Oracle Hardening
     draw_card(ax, 0.725, 0.58, 0.24, 0.22, "The Oracle Validation Gallery", "", bg_color=C_BLUE_LIGHT, border_color="#bfdbfe")
-    ax.text(0.735, 0.74, "• 107 Checks across 15 Subsystems (100% Pass)\n• Oracles: statsmodels, arch, linearmodels\n• Offline serialization of oracle references\n• ZERO oracle run-time import footprint\n• Numerical accuracy verified to 10^-15",
+    ax.text(0.735, 0.74, "• 110 checks across 15 subsystems (all pass)\n• 20 external, 31 analytical, 59 internal\n• Oracles: statsmodels, arch, SciPy, tables\n• Oracle libraries never imported at run time\n• Case-specific tolerances, stated per check",
             fontsize=8.2, color=C_TEXT_DARK, va="top", linespacing=1.4)
 
     # 3.2 Empirical Landmark Replications
@@ -127,7 +134,7 @@ def generate_graphical_abstract():
 
     # 3.3 Classroom & Open Science
     draw_card(ax, 0.725, 0.06, 0.24, 0.23, "Classroom & Web Deployment", "", bg_color=C_AMBER_LIGHT, border_color="#fde68a")
-    ax.text(0.735, 0.22, "• Adopted in ITAM Macroeconomía Avanzada\n• 60 Bilingual (EN/ES) Notebook Pairs\n• Interactive JupyterLite WebAssembly site\n• 755 modules, 240k LOC, 14.3k tests\n• Open Source (MIT) on PyPI",
+    ax.text(0.735, 0.22, "• Adopted in ITAM Macroeconomía Avanzada\n• 70 bilingual (EN/ES) notebook pairs\n• Interactive JupyterLite WebAssembly site\n• 806 modules, 281k lines, ~19k tests\n• MIT licence; PyPI releases gated on CI",
             fontsize=8.2, color=C_TEXT_DARK, va="top", linespacing=1.4)
 
     # Arrows between columns
@@ -169,7 +176,7 @@ def generate_architecture_oracle_figure():
             fontsize=8.5, color=C_TEXT_DARK, va="top", linespacing=1.35)
 
     draw_card(ax, 0.05, 0.10, 0.38, 0.20, "Frozen Oracle Test Fixtures", "", bg_color="#e0e7ff", border_color="#a5b4fc")
-    ax.text(0.065, 0.24, "• High-precision JSON & NumPy binary fixtures (.npz)\n• Stored in puremacro/validation/fixtures/\n• Shipped directly inside the pure-Python wheel (< 2 MB total)\n• Zero external dependency overhead for downstream users",
+    ax.text(0.065, 0.24, "• High-precision JSON & NumPy binary fixtures (.npz)\n• Stored in puremacro/validation/goldens/\n• Shipped inside the pure-Python wheel (about 160 kB)\n• Zero external dependency overhead for downstream users",
             fontsize=8.5, color=C_TEXT_DARK, va="top", linespacing=1.35)
 
     # Connecting Flow Arrow
@@ -190,14 +197,14 @@ def generate_architecture_oracle_figure():
               bg_color="#f0fdf4", border_color="#86efac", title_color=C_HIGHLIGHT)
 
     draw_card(ax, 0.54, 0.64, 0.41, 0.16, "Strict Import Invariant Boundary", "", bg_color="#ffffff", border_color="#cbd5e1")
-    ax.text(0.555, 0.75, "Enforced by automated CI subprocess sweeps:\n• statsmodels, arch, linearmodels, numba FORBIDDEN in sys.modules\n• Pure NumPy, SciPy, pandas, Matplotlib ONLY\n• Sandboxed execution guarantees pure Python execution",
+    ax.text(0.555, 0.75, "Enforced by automated CI subprocess sweeps:\n• statsmodels, arch, linearmodels never imported by the core\n• NumPy, SciPy, pandas, Matplotlib (+ requests for data)\n• Numba-backed kernels are opt-in and excluded from the sweep",
             fontsize=8.5, color=C_TEXT_DARK, va="top", linespacing=1.35)
 
     draw_card(ax, 0.54, 0.37, 0.41, 0.21, "puremacro.validation.scorecard()", "", bg_color=C_BLUE_LIGHT, border_color="#93c5fd")
-    ax.text(0.555, 0.52, "• 107 Validation checks across 15 economic subsystems\n• 19 External reference checks (vs stored fixtures, diff < 10^-14)\n• 29 Analytical checks (closed-form identities, Euler residuals)\n• 59 Internal consistency checks (cross-algorithm & simulated recovery)\n• Executes in < 45 seconds on standard laptop or browser",
+    ax.text(0.555, 0.52, "• 110 validation checks across 15 economic subsystems\n• 20 external reference checks (stored fixtures, stated tolerances)\n• 31 analytical checks (closed-form identities, Euler residuals)\n• 59 internal consistency checks (cross-algorithm & simulated recovery)\n• Runs in about 12 seconds on a laptop",
             fontsize=8.5, color=C_TEXT_DARK, va="top", linespacing=1.35)
 
-    draw_card(ax, 0.54, 0.10, 0.41, 0.21, "Deployment Targets (Zero Installation Friction)", "", bg_color="#ffffff", border_color="#bbf7d0")
+    draw_card(ax, 0.54, 0.10, 0.41, 0.21, "Deployment Targets", "", bg_color="#ffffff", border_color="#bbf7d0")
     ax.text(0.555, 0.25, "• Local Workstations: pip install puremacro (Linux, macOS, Win)\n• Web Browsers: JupyterLite & Pyodide (Wasm) zero-install\n• Mobile / Tablets: Full offline capability on Juno.sh for iPad\n• Compute Offload: One-click export to Google Colab for large MCMC",
             fontsize=8.5, color=C_TEXT_DARK, va="top", linespacing=1.35)
 
