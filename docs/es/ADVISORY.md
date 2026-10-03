@@ -14,6 +14,176 @@ sin volver a correrla) y qué hacer.
 
 ---
 
+## 2026-10-02 — `solve_trade_equilibrium(method="quasi_condensed")` informaba `converged=True` con un residuo grande, versiones 4.2.0 a 4.4.0
+
+**Corregido después de 4.4.0** (véase la sección Unreleased de `CHANGELOG.md`).
+La rama `quasi_condensed` de `solve_trade_equilibrium` tomaba la bandera de
+convergencia del solver cuasi-condensado (flexible), pero el residuo, los
+flujos y los precios del posprocesamiento heredado, evaluado con la convención
+de precios de MATLAB del solver (`replicate_matlab_precedence=True`), que la
+solución cuasi-condensada no usa. La bandera y el residuo informado no
+concordaban. En la calibración 2x2 del cuaderno 62 con un arancel del 25% y
+`tol=1e-10`, 4.4.0 devolvía `converged=True` con `max_residual` 0.0487
+(`residual_norm` 0.155); con `sigma_y=0.5`, 0.498. Ahora el residuo es el que
+juzgó la bandera, los flujos se posprocesan con la convención cuasi-condensada
+y coinciden hasta 1e-8 con una solución Newton heredada del mismo modelo
+(`replicate_matlab_precedence=False`), y las opciones flexibles activas
+lanzan `ValueError`, porque los campos de flujos heredados de
+`TradeEquilibriumResult` no pueden describirlas.
+
+| Superficie | Condición afectada | No afectada cuando | Recomendación |
+|---|---|---|---|
+| `solve_trade_equilibrium(..., method="quasi_condensed")` | cualquier llamada | — | `x_sol` era la solución cuasi-condensada y la bandera era correcta para ese modelo; los campos de residuo y los flujos no. Vuelva a correr con la versión corregida, o use `solve_flexible_trade_equilibrium(..., method="quasi_condensed")`. |
+| ídem, con `sigma_y > 0` o un `config` activo | flujos, precios, IPC, términos de intercambio | — | Describen el modelo heredado, no el resuelto; tome los flujos de `metadata` de `solve_flexible_trade_equilibrium`. |
+| ídem, con `fiscal_closure`/`recycling_params`/`sigma`/`capacity_margins` | la solución ignoraba la opción | la opción estaba en su valor por defecto | El equilibrio devuelto no resuelve el modelo pedido. |
+
+`solve_flexible_trade_equilibrium` nunca usó esta rama; sus `converged` y
+`residual_norm` eran coherentes.
+
+### ¿Le afecta?
+
+```python
+res = solve_trade_equilibrium(calib, ..., method="quasi_condensed")
+res.converged and res.max_residual > res.metadata["tol"]   # True → bandera y residuo discrepaban
+```
+
+### Qué hay que volver a correr
+
+- Cualquier cuadro construido con los flujos, precios, IPC o términos de
+  intercambio de un resultado de
+  `solve_trade_equilibrium(..., method="quasi_condensed")`.
+
+---
+
+## 2026-10-02 — Las propiedades de flujos de `FlexibleTradeEquilibriumResult` ignoraban el modelo resuelto, versiones 4.2.0 a 4.4.0
+
+**Corregido después de 4.4.0** (véase la sección Unreleased de `CHANGELOG.md`).
+Las propiedades `exports`, `imports`, `cpi`, `terms_of_trade`, `gdp` y
+`gdp_fc` de un resultado de `solve_flexible_trade_equilibrium` evaluaban las
+ecuaciones de flujos heredadas Cobb-Douglas/Leontief en `x_sol` sin aranceles
+y con la convención de precios de MATLAB, fuera cual fuera la llamada. Medido
+en 4.4.0, calibración 2x2 del cuaderno 62, arancel del 25% a los insumos
+intermedios del país B:
+
+- ruta heredada (configuración por defecto): exportaciones `[60.73, 68.94]`
+  frente a `[60.73, 69.19]` de `solve_trade_equilibrium` con los mismos
+  argumentos;
+- ruta cuasi-condensada, configuración por defecto: exportaciones
+  `[55.87, 63.12]` frente a `[56.73, 64.26]` de una solución Newton heredada
+  del mismo modelo;
+- ruta cuasi-condensada, `sigma_trade=5`: exportaciones `[58.20, 59.86]`
+  frente a los flujos bilaterales resueltos `[62.15, 58.26]`.
+
+`cpi`, `terms_of_trade` y `gdp`/`gdp_fc` coincidían en los dos casos con
+configuración por defecto (dependen del estado, no de las cantidades que
+dependen del arancel); con una configuración activa el IPC y los términos de
+intercambio heredados describen otro modelo, y con `variable_markups=True`
+`gdp` omitía los beneficios de margen. Las propiedades describen ahora el
+modelo resuelto; `cpi`/`terms_of_trade` lanzan `NotImplementedError` con una
+configuración activa. 4.4.0 documentaba la mitad cuasi-condensada como
+problema conocido; la mitad de la ruta heredada no se conocía.
+
+| Superficie | Condición afectada | No afectada cuando | Recomendación |
+|---|---|---|---|
+| `exports`, `imports` | cualquier `tau`, `tau_fd`, `tauf`, `tauf_fd`; cualquier configuración activa en la ruta cuasi-condensada | sin aranceles y con la configuración por defecto en la ruta heredada | Vuelva a correr, o sume filas/columnas de `metadata["bilateral_trade"]` (ruta cuasi-condensada). |
+| `cpi`, `terms_of_trade` | configuración flexible activa | configuración por defecto | No hay índice sustituto para el modelo flexible; use los flujos de `metadata`. |
+| `gdp` | `variable_markups=True` | sin márgenes | Sume `metadata["markup_profits"]`, o use `metadata["household_income"]`. |
+| `welfare_decomposition` | — | siempre: conserva su aproximación histórica y sus valores | Sin cambios. |
+
+### ¿Le afecta?
+
+```python
+res = solve_flexible_trade_equilibrium(calib, ...)
+tariffs = any(v is not None for v in res.metadata["tariff_inputs"].values())
+tariffs or bool(res.metadata["active_flexible_settings"])   # True → vuelva a correr
+```
+
+### Qué hay que volver a correr
+
+- Volúmenes de comercio, balanzas comerciales y efectos de términos de
+  intercambio leídos de estas propiedades en escenarios arancelarios o con
+  opciones flexibles activas.
+
+---
+
+## 2026-10-02 — Grados de libertad de la posterior de Σ en `minnesota_gibbs`, versiones 0.92.0 a 4.4.0
+
+**Corregido después de 4.4.0** (véase la sección Unreleased de `CHANGELOG.md`).
+Bańbura, Giannone y Reichlin (2010; ECB WP 966, p. 12, ec. 7) añaden la
+previa impropia `|Ψ|^-(n+3)/2` a las observaciones ficticias, lo que da
+`Ψ | Y ~ iW(Σ̃, T_d + 2 + T - k)`. `minnesota_gibbs` usaba `T_d + T - k`. La
+media posterior de Σ, `Σ̃ / (ν - n - 1)`, era por tanto demasiado grande en el
+factor `(ν - n + 1)/(ν - n - 1)`: 5.3% en un VAR(1) de 3 variables con 39
+observaciones, 1.0% con 3 variables, 4 rezagos y 200 trimestres. Los
+coeficientes simulados heredan la escala a través de `Σ ⊗ (X*'X*)⁻¹`, así que
+su dispersión posterior era demasiado amplia en cerca de la mitad de ese
+porcentaje. La media posterior de los coeficientes (`A_mean`,
+`intercept_mean`), `minnesota_posterior` y la verosimilitud marginal de
+`minnesota_optimal_lambda` no se ven afectadas.
+
+| Superficie | Condición afectada | No afectada cuando | Recomendación |
+|---|---|---|---|
+| `Sigma_draws`, `nu_post` y bandas posteriores de `A_draws`/`intercept_draws` de `minnesota_gibbs` | siempre | estimaciones puntuales de `A_mean`/`intercept_mean` | Vuelva a correr; el efecto decrece como `2/(T + T_d - k - n)`. |
+
+### ¿Le afecta?
+
+```python
+T, n = Y.shape                              # sus datos y el orden de rezagos p
+nu_old = (T - p) + (n * p + n + 1) - (n * p + 1)   # T + T_d - k que usaba 4.4.0
+(nu_old - n + 1) / (nu_old - n - 1) - 1     # sobreestimación relativa de E[Σ | Y]
+```
+
+### Qué hay que volver a correr
+
+- Bandas de credibilidad de respuestas al impulso, pronósticos y
+  descomposiciones de varianza calculadas con simulaciones de
+  `minnesota_gibbs`, sobre todo con muestras cortas o sistemas grandes.
+
+---
+
+## 2026-10-02 — Los solvers de splines y Smolyak ignoraban `gamma` y resolvían utilidad logarítmica en sus métodos de Bellman, versiones 3.3.0 a 4.4.0
+
+**Corregido después de 4.4.0** (véase la sección Unreleased de `CHANGELOG.md`).
+Tres errores relacionados en el modelo de crecimiento incorporado de
+`puremacro.vfi.splines` y `puremacro.vfi.smolyak`, verificados con la ecuación
+de Euler del modelo CRRA escrita a mano:
+
+1. Ambos leían solo `params["sigma"]`. `params={"gamma": 2}` (la grafía de
+   `CollocationProblem`, `FEMProblem` y los motores discretos) resolvía en
+   silencio utilidad logarítmica: residuo de Euler 0.151 (splines) y 0.0345
+   (Smolyak, 2 capitales) en la política devuelta, que informaba
+   `converged=True`.
+2. El solver de Bellman con splines (`method="bellman"`) usaba utilidad
+   logarítmica con cualquier curvatura: residuo 0.151 con `sigma=2`.
+3. `solve_smolyak(method="bellman")` iteraba sobre la política cerrada
+   `k'_m = alpha_m beta Y` de utilidad logarítmica con depreciación total y la
+   devolvía con `converged=True` para cualquier `sigma`, `gamma`, `delta` o
+   `return_fn` (residuo 0.0345 con `sigma=2`). Ahora lanza
+   `NotImplementedError` fuera de ese caso.
+
+| Superficie | Condición afectada | No afectada cuando | Recomendación |
+|---|---|---|---|
+| splines y Smolyak con `method="euler"` | `params` tiene `gamma` y no `sigma` | se da `sigma`, o curvatura 1 | Vuelva a correr con la versión corregida, o pase `sigma`. |
+| splines con `method="bellman"` | `sigma` (o `gamma`) ≠ 1 | utilidad logarítmica | Vuelva a correr con la versión corregida. |
+| `solve_smolyak(method="bellman")` | `sigma`/`gamma` ≠ 1, `delta` ≠ 1 o un `return_fn` | utilidad logarítmica con depreciación total | Use `method="euler"`. |
+
+### ¿Le afecta?
+
+```python
+p = problem.params
+curv = p.get("sigma", p.get("gamma", 1.0))
+("gamma" in p and "sigma" not in p and curv != 1.0) \
+    or (problem.method == "bellman" and (curv != 1.0 or p.get("delta", 1.0) != 1.0))   # True → vuelva a correr
+```
+
+### Qué hay que volver a correr
+
+- Políticas, funciones de valor, valores marginales y gradientes IFT de estos
+  solvers con utilidad no logarítmica (y, para Bellman con Smolyak,
+  depreciación parcial).
+
+---
+
 ## 2026-10-02 — `vif` con datos en niveles y constante, versiones 2.6.0 a 4.3.0
 
 **Corregido en 4.4.0.** `inference.collinearity.vif` reproducía
