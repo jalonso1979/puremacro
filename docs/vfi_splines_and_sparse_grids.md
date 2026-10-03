@@ -114,7 +114,8 @@ Rather than evaluating all $m(\mu + 1)^d$ points of the full tensor product, the
 | **Continuous Dimension** | $d = 1$ (univariate) | $d \in [2, 6]$ (multivariate) |
 | **Shape Preservation** | Guaranteed with `spline_type="schumaker"` | Preserves high polynomial accuracy across hypercubes |
 | **Knot / Level Tuning** | `n_knots` (default 20), `bc_type="clamped"` | `mu` in $[1, 4]$ (default 2) |
-| **Solution Method** | `"euler"` (policy) or `"bellman"` (value) | `"euler"` (policy) or `"bellman"` (value) |
+| **Solution Method** | `"euler"` (policy) or `"bellman"` (value) | `"euler"` (policy) or `"bellman"` (value; log utility with full depreciation only, otherwise `NotImplementedError`) |
+| **CRRA curvature** | `params["sigma"]`, alias `params["gamma"]` | `params["sigma"]`, alias `params["gamma"]` |
 | **Supported Backends** | NumPy, Numba, Apple MLX, CuPy | NumPy, Numba, Apple MLX, CuPy |
 
 ---
