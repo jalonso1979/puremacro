@@ -300,35 +300,36 @@ def store_realtime_vintages(
         missing = required - set(df.columns)
         raise ValueError(f"store_realtime_vintages missing columns: {sorted(missing)}")
 
-    records = []
-    for _, row in df.iterrows():
-        val = row["value"]
-        if pd.isna(val):
-            val_float = None
-        else:
-            try:
-                val_float = float(val)
-            except (ValueError, TypeError, Exception):
-                continue
-        try:
-            parsed_obs = pd.to_datetime(row[date_col])
-            parsed_vin = pd.to_datetime(row[vin_col])
-            if pd.isna(parsed_obs) or pd.isna(parsed_vin):
-                continue
-            obs_d = parsed_obs.strftime("%Y-%m-%d")
-            vin_d = parsed_vin.strftime("%Y-%m-%d")
-        except (ValueError, ArithmeticError, Exception):
-            continue
-        records.append((
-            str(row["provider"]),
-            str(row["country"]).upper(),
-            str(row["series_id"]),
-            obs_d,
-            vin_d,
-            val_float,
-        ))
-    if not records:
+    obs_dates = pd.to_datetime(df[date_col], errors="coerce")
+    vin_dates = pd.to_datetime(df[vin_col], errors="coerce")
+    vals = pd.to_numeric(df["value"], errors="coerce")
+
+    # If the original value wasn't null but the coerced value is NaN, it means
+    # it was an unparseable value and the row should be skipped.
+    valid_mask = obs_dates.notna() & vin_dates.notna()
+    is_valid_value = df["value"].isna() | vals.notna()
+    valid_mask = valid_mask & is_valid_value
+
+    if not valid_mask.any():
         return 0
+
+    providers = df["provider"][valid_mask].astype(str)
+    countries = df["country"][valid_mask].astype(str).str.upper()
+    series_ids = df["series_id"][valid_mask].astype(str)
+    obs_dates_str = obs_dates[valid_mask].dt.strftime("%Y-%m-%d")
+    vin_dates_str = vin_dates[valid_mask].dt.strftime("%Y-%m-%d")
+
+    valid_vals = vals[valid_mask]
+    val_list = [float(x) if not pd.isna(x) else None for x in valid_vals]
+
+    records = list(zip(
+        providers,
+        countries,
+        series_ids,
+        obs_dates_str,
+        vin_dates_str,
+        val_list
+    ))
     c.executemany(
         "INSERT OR REPLACE INTO realtime_vintages "
         "(provider, country, series_id, observation_date, vintage_date, value) "
