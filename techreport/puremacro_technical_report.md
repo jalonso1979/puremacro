@@ -449,7 +449,7 @@ Outside the gallery, `ab_gmm` reproduces three Stata `xtabond` examples to every
 Version 4.4.0 adds `puremacro.validation.run_research_benchmarks` ([docs](../docs/research_benchmarks.md)): eight offline comparisons whose references come from outside the code under test, each recording sources, units, tolerances, limitations and a perturbed-output negative control, and exported as JSON and Markdown dossiers. In release 4.5.0 seven of the eight pass:
 
 | Case | Reference | Result |
-| :--- | :--- | :---: |
+| :---------------------------------------- | :-------------------------------- | :------: |
 | Linear minimum distance: GLS fit and full parameter covariance | analytical | pass |
 | Stone–Geary welfare | independent SciPy primal optimization | pass |
 | Household incidence with expansion weights and rebates | analytical | pass |
@@ -515,7 +515,7 @@ Longer-term directions from earlier versions of this report (nonlinear sequence-
 **Four authors, one rule.** This report and the library it describes were written by one economist and three AI coding agents. The arrangement worked because of a rule older than the agents: *no number ships unless something that did not produce it agrees with it*, whether a published table, a closed form, exact arithmetic, another library or Dynare. Agents propose, implement and audit; the oracle decides; the human author decides what is released.
 
 | Contribution (CRediT-style) | Jorge Alonso Ortiz | Claude | Codex | Antigravity |
-|---|:---:|:---:|:---:|:---:|
+|----------------------------------------------|:------------:|:-------:|:-------:|:-----------:|
 | Conceptualization and research design | ● | | | |
 | Methodology and economic modelling | ● | ◐ | | |
 | Software implementation | ● | ● | | |
