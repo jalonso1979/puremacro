@@ -1,0 +1,3 @@
+## 2025-02-28 - Accessible inline HTML for Jupyter Notebook outputs
+**Learning:** When injecting raw HTML into Jupyter notebooks or interactive kernels (via `IPython.display.HTML`), decorative text or emojis must be wrapped in `<span aria-hidden="true">`, and external links (`target="_blank"`) must use `rel="noopener noreferrer"` and an explicit `aria-label`. Without these attributes, screen readers may misinterpret decorative emojis or leave the user without context for external links.
+**Action:** Always include full accessibility attributes (`aria-hidden`, `aria-label`, `rel="noopener noreferrer"`) when hand-crafting inline HTML components or dialogs, even if they are only rendered inside notebook interfaces.
