@@ -1,7 +1,7 @@
 """Build puremacro_technical_report.pdf from puremacro_technical_report.md.
 
 The Markdown file is the source of truth. This script converts its body with
-pandoc, wraps it in the report's LaTeX house style (navy headings, boxed
+pandoc, wraps it in the report's LaTeX house style (grayscale headings, boxed
 call-outs, running heads) with a hand-set title page, and compiles with
 LuaLaTeX so the few symbols outside Latin Modern (★ ● ◐ Σ, superscripts) fall
 back to DejaVu Serif. Relative links are pointed at the tagged release on
@@ -48,11 +48,12 @@ PREAMBLE = r"""\documentclass[11pt,letterpaper]{article}
             citecolor=navy,urlcolor=forest,pdfauthor={Jorge Alonso Ortiz, Claude, Codex, Antigravity},
             pdftitle={puremacro: A Unified, Dependency-Minimal Scientific-Python Engine for
             Quantitative Macroeconomics and Macroeconometrics}]{hyperref}
-\definecolor{navy}{HTML}{1E3D59}
-\definecolor{forest}{HTML}{17B978}
-\definecolor{slate}{HTML}{334155}
-\definecolor{lightslate}{HTML}{F8FAFC}
-\definecolor{cardborder}{HTML}{CBD5E1}
+% Grayscale house style: the report prints identically in black and white.
+\definecolor{navy}{gray}{0.08}       % headings, rules, title
+\definecolor{forest}{gray}{0.32}     % hyperlinks
+\definecolor{slate}{gray}{0.25}
+\definecolor{lightslate}{gray}{0.955} % call-out fill
+\definecolor{cardborder}{gray}{0.55}  % call-out frame
 \titleformat{\section}{\Large\bfseries\color{navy}}{\thesection}{1em}{}[\titlerule]
 \titleformat{\subsection}{\large\bfseries\color{navy}}{\thesubsection}{1em}{}
 \titleformat{\subsubsection}{\normalsize\bfseries\color{navy}}{\thesubsubsection}{1em}{}
@@ -68,7 +69,7 @@ PREAMBLE = r"""\documentclass[11pt,letterpaper]{article}
 \setlength{\parindent}{0pt}
 \captionsetup{font=small,labelfont={bf,color=navy}}
 % Block quotes in the source are the report's call-out boxes.
-\renewenvironment{quote}{\begin{tcolorbox}[colback=lightslate,colframe=navy,boxrule=0.8pt,
+\renewenvironment{quote}{\begin{tcolorbox}[colback=lightslate,colframe=cardborder,boxrule=0.6pt,
   arc=3mm,left=10pt,right=10pt,top=6pt,bottom=6pt,breakable]}{\end{tcolorbox}}
 % Helpers that pandoc's LaTeX writer expects.
 \providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
