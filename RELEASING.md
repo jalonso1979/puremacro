@@ -25,8 +25,8 @@ is installed.*
 
 | file | trigger | what it does |
 |---|---|---|
-| `ci.yml` | push / PR to `main` | pytest on 9 targets (ubuntu + macos + windows × Python 3.11–3.13; 3.10 is below `requires-python` and was dropped), then `release_check.py --no-tests` on ubuntu/3.11 and ubuntu/3.12, and a strict `mkdocs build` on ubuntu/3.12 |
-| `release.yml` | push of a `v*` tag | build → `twine check` → publish to PyPI (`environment: pypi`, `id-token: write`) |
+| `ci.yml` | push / PR to `main`; also called by `release.yml` (`workflow_call`) | pytest on 9 targets (ubuntu + macos + windows × Python 3.11–3.13; 3.10 is below `requires-python` and was dropped), then `release_check.py --no-tests` on ubuntu/3.11 and ubuntu/3.12, and a strict `mkdocs build` on ubuntu/3.12 |
+| `release.yml` | push of a `v*` tag | job `ci` runs the whole `ci.yml` on the tagged commit; only if it passes (`needs: ci`) does `build-and-publish` build → `twine check` → publish to PyPI (`environment: pypi`, `id-token: write`). A red suite blocks the upload, and the tag is left in place: fix forward with a new tag, or re-run the failed jobs if the failure was flaky |
 | `pages.yml` | push to `main`, or manual | builds the JupyterLite playground + mkdocs site, deploys to Pages |
 
 **There is exactly one publishing workflow.** A second one (`publish.yml`) used to exist on
@@ -126,9 +126,10 @@ Everything here is local and reversible until step 7.
 7. **Push — this is the irreversible step.**
    ```bash
    git push origin HEAD:main
-   git push origin refs/tags/vX.Y.Z          # ← fires release.yml, publishes to PyPI
+   git push origin refs/tags/vX.Y.Z          # ← fires release.yml: full CI, then PyPI
    ```
-8. **Watch it land:**
+8. **Watch it land.** Publishing waits for the full CI matrix on the tag, about 50
+   minutes, so PyPI shows the new version only after that:
    ```bash
    gh run list --workflow=release.yml --limit 1
    ```

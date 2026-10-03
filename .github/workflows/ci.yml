@@ -5,6 +5,10 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  # release.yml calls this workflow on the tagged commit and publishes to PyPI
+  # only if every job here passes. Keep it free of event-specific conditions
+  # (inside a call, github.event_name is the caller's "push" of a tag).
+  workflow_call:
 
 jobs:
   test:

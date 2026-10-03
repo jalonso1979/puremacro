@@ -11,8 +11,17 @@ on:
     tags: ['v*']
 
 jobs:
+  # The full CI matrix (ci.yml, via workflow_call) on the exact tagged commit.
+  # Publishing waits for it: a red suite never reaches PyPI. The publish job
+  # below stays in this file, so the Trusted Publisher (workflow = release.yml,
+  # environment = pypi) is unchanged; do not rename this file or move that job.
+  ci:
+    name: CI on the tagged commit
+    uses: ./.github/workflows/ci.yml
+
   build-and-publish:
     name: build + publish (PyPI trusted publishing)
+    needs: ci
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
