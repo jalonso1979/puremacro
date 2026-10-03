@@ -2,7 +2,17 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
-## Unreleased
+## 4.5.0 (2026-10-03)
+
+**Honest convergence and corrected numbers: the wrong-number and false-success known issues of 4.4.0, each checked against an independent reference.**
+
+### Changed
+
+Calls that used to return a silently wrong or unverified result now raise:
+
+- `solve_trade_equilibrium(method="quasi_condensed")` with active flexible settings (`sigma_y`, or a `config` with an active block) or with options that route ignored (non-lump-sum `fiscal_closure`, `recycling_params`, `sigma > 0`, `capacity_margins`) raises `ValueError`; use `solve_flexible_trade_equilibrium(method="quasi_condensed")`.
+- `FlexibleTradeEquilibriumResult.cpi` and `.terms_of_trade` raise `NotImplementedError` on a quasi-condensed solve with an active configuration, which has no consistent legacy index.
+- `solve_smolyak(method="bellman")` raises `NotImplementedError` outside log utility with full depreciation; use `method="euler"`.
 
 ### Fixed
 

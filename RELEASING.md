@@ -2,14 +2,13 @@
 
 How to cut a release. Read §1 once; after that §3 is the whole procedure.
 
-*Release preparation rechecked for **4.4.0**, 2026-10-02: full baseline gate
-with an empty `tests/known_failures.json` (18,453 passed, 0 failed), clean
-`git archive` build, installed-wheel checks and CI on all nine targets. The
-research-candidate evidence is in
-[reviews/2026-10-01-research-release-candidate](reviews/2026-10-01-research-release-candidate/README.md).
-Run the gate as `python tools/release_check.py` from any environment: since
-4.4.0, Gate 3 snapshots the repository's package even when another puremacro
-is installed.*
+*Release preparation rechecked for **4.5.0**, 2026-10-03: full baseline gate
+with an empty `tests/known_failures.json` (18,513 passed, 0 failed) and the
+fast gates at the bumped version. 4.5.0 is the first release published through
+the CI-gated `release.yml`: the full nine-target matrix runs on the tagged
+commit and PyPI upload waits for it. Run the gate as
+`python tools/release_check.py` from any environment: since 4.4.0, Gate 3
+snapshots the repository's package even when another puremacro is installed.*
 
 ## 1. What the setup actually is
 
