@@ -319,8 +319,13 @@ def minnesota_gibbs(
     (see ``_build_minnesota_dummies``); the augmented OLS system has a
     closed-form NIW posterior:
 
-        Sigma | Y ~ IW(S_post, nu_post)
+        Sigma | Y ~ IW(S_post, nu_post),  nu_post = T_d + 2 + T - k
         vec(B) | Sigma, Y ~ N(vec(B_post), Sigma kron (X*'X*)^{-1})
+
+    (BGR eq. 7; ``T_d`` dummy rows, ``T`` observations after the ``p``
+    initial lags, ``k = 1 + n p``; the ``+ 2`` comes from the improper prior
+    ``|Sigma|^{-(n+3)/2}``. puremacro 4.4.0 and earlier used
+    ``T_d + T - k``.)
 
     where (Y*, X*) stack data and dummies, ``B`` is ``(1 + n p, n)`` with the
     intercept in row 0 and ``A_k[i, j]`` (coefficient of ``y_j`` at lag ``k``
@@ -356,7 +361,7 @@ def minnesota_gibbs(
         intercept_draws : (n_draws, n)
         A_mean        : (p, n, n) exact posterior mean of the A_k (B_post)
         intercept_mean : (n,) exact posterior mean of the intercept
-        nu_post       : posterior degrees of freedom
+        nu_post       : posterior degrees of freedom of Sigma, T_d + 2 + T - k
         lambda1, lambda2, lambda3 : hyperparameters actually used
     """
     if lags is not None:
@@ -381,7 +386,10 @@ def minnesota_gibbs(
     B_post = XtX_inv @ X_aug.T @ Y_aug                       # (k, n)
     resid = Y_aug - X_aug @ B_post
     S_post = resid.T @ resid                                  # (n, n)
-    nu_post = Y_aug.shape[0] - X_aug.shape[1]
+    # BGR (2010) eq. (7): with the improper prior |Psi|^-(n+3)/2 that makes the
+    # prior mean of Psi exist, Psi | Y ~ iW(S_post, T_d + 2 + T - k). Up to
+    # 4.4.0 the "+ 2" was missing (docs/ADVISORY.md).
+    nu_post = Y_aug.shape[0] + 2 - X_aug.shape[1]
 
     # Pre-Cholesky once with scale-invariant relative jitter; redraw each iter
     diag_kron = np.diag(XtX_inv)

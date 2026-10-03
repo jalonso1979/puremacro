@@ -2825,14 +2825,45 @@ def solve_trade_equilibrium(
     elif method == "quasi_condensed":
         if tariff_revenue_mode != "legacy_national":
             raise NotImplementedError("quasi_condensed does not support schedule tariff accounting")
-        from puremacro.trade.flexible import _quasi_condensed_solve
+        from puremacro.trade.flexible import _active_flexible_settings, _quasi_condensed_solve
 
+        # This route solves the quasi-condensed (flexible) equations and none of
+        # the legacy-solver options below (consistent accounting is refused
+        # earlier); refuse them instead of reporting a solution of a model they
+        # do not describe.
+        ignored = [
+            name for name, unsupported in (
+                (f"fiscal_closure={fiscal_closure!r}", fiscal_closure not in ("lump_sum", "baseline", "")),
+                ("recycling_params", recycling_params is not None),
+                (f"sigma={sigma!r}", sigma > 0.0),
+                ("capacity_margins", capacity_margins is not None),
+            ) if unsupported
+        ]
+        if ignored:
+            raise ValueError(
+                f"method='quasi_condensed' does not implement {', '.join(ignored)}; use another "
+                "method, or solve_flexible_trade_equilibrium for the flexible model's own settings."
+            )
         flexible_cfg = kwargs.get("config")
         if flexible_cfg is None:
             from puremacro.trade.flexible import FlexibleTechnologyConfig, FlexibleTradeModelConfig
             flexible_cfg = FlexibleTradeModelConfig(
                 technology=FlexibleTechnologyConfig(sigma_y=kwargs.get("sigma_y", 0.0))
             )
+        active_flexible = _active_flexible_settings(flexible_cfg)
+        if active_flexible:
+            # TradeEquilibriumResult's flows, prices and CPI are the legacy
+            # Cobb-Douglas/Leontief flow equations, which do not describe a model
+            # with these settings.
+            raise ValueError(
+                f"Flexible settings {list(active_flexible)} are solved by "
+                "solve_flexible_trade_equilibrium(..., method='quasi_condensed'), whose result "
+                "carries the flows of that model; solve_trade_equilibrium returns legacy flow "
+                "accounting and accepts method='quasi_condensed' only for the default configuration."
+            )
+        # The default configuration solves the legacy equations at the flexible
+        # pricing convention; post-process (flows and residual) at that convention.
+        replicate_matlab_precedence = bool(flexible_cfg.technology.replicate_matlab_precedence)
         x_sol, conv, iters, max_res, diff, res, meta = _quasi_condensed_solve(
             calib=calib,
             config=flexible_cfg,
@@ -2853,17 +2884,22 @@ def solve_trade_equilibrium(
         from scipy.optimize import root
 
         n = len(x_init)
-        opts: dict[str, Any] = {}
+        # MINPACK stops on a *relative* step (xtol) and, for lm, a relative
+        # reduction of the sum of squares (ftol); ``tol`` is an absolute bound
+        # on the residual, judged below. Up to 4.4.0 ``tol`` was passed as
+        # xtol, so hybr could stop with max|F| above tol (1.8e-7 for tol 1e-7
+        # on the 2x2 tariff-shock test) and report converged=False.
+        opts: dict[str, Any] = {"xtol": 1e-12}
         if method == "hybr":
             opts["maxfev"] = max(2000, max_iter * n)
         elif method == "lm":
             opts["maxiter"] = max(2000, max_iter * n)
+            opts["ftol"] = 1e-12
 
         res_scipy = root(
             obj_fun,
             x_init,
             method=method,
-            tol=tol,
             options=opts,
         )
         x_sol = np.asarray(res_scipy.x, dtype=float).ravel()
@@ -2960,7 +2996,9 @@ def solve_trade_equilibrium(
         },
     )
 
-    if method == "condensed" or sigma > 0.0 or fiscal_closure not in ("lump_sum", "baseline", "") or capacity_margins is not None:
+    if (method in ("condensed", "quasi_condensed") or sigma > 0.0
+            or fiscal_closure not in ("lump_sum", "baseline", "") or capacity_margins is not None):
+        # quasi_condensed: report the residual its convergence flag was judged on.
         res_dataclass = replace(
             res_dataclass,
             residuals=res,

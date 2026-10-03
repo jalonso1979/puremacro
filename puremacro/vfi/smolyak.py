@@ -27,6 +27,7 @@ from scipy.optimize import root
 
 from puremacro import _backend as _bk
 from puremacro.reports import _df_to_latex, _df_to_markdown, _df_to_typst
+from puremacro.vfi.collocation import _crra_curvature
 
 
 # ---------------------------------------------------------------------------
@@ -664,7 +665,7 @@ class SmolyakSolution:
         params = self.metadata.get("params", {})
         beta = float(self.metadata.get("beta", 0.96))
         delta = float(params.get("delta", 1.0))
-        sigma = float(params.get("sigma", 1.0))
+        sigma = _crra_curvature(params)
         z = float(params.get("z", params.get("A", 1.0)))
 
         if "alphas" in params:
@@ -963,7 +964,7 @@ def _solve_smolyak_euler(
     params = problem.params
     beta = problem.beta
     delta = float(params.get("delta", 1.0))
-    sigma = float(params.get("sigma", 1.0))
+    sigma = _crra_curvature(params)
     z = float(params.get("z", params.get("A", 1.0)))
 
     if "alphas" in params:
@@ -1179,8 +1180,18 @@ def _solve_smolyak_bellman(
     params = problem.params
     beta = problem.beta
     delta = float(params.get("delta", 1.0))
-    sigma = float(params.get("sigma", 1.0))
+    sigma = _crra_curvature(params)
     z = float(params.get("z", params.get("A", 1.0)))
+    if sigma != 1.0 or delta != 1.0 or problem.return_fn is not None:
+        # The iteration below evaluates the closed-form policy
+        # k'_m = alpha_m beta Y of log utility with full depreciation; it does
+        # not maximise. 4.4.0 and earlier returned that policy (converged=True)
+        # for any curvature or depreciation (docs/ADVISORY.md).
+        raise NotImplementedError(
+            "solve_smolyak(method='bellman') implements only the built-in model with log utility "
+            f"and full depreciation (got sigma={sigma!r}, delta={delta!r}"
+            f"{', a return_fn' if problem.return_fn is not None else ''}); use method='euler'."
+        )
 
     if "alphas" in params:
         alphas = np.asarray(params["alphas"], dtype=np.float64)

@@ -114,7 +114,8 @@ En lugar de evaluar todos los $m(\mu + 1)^d$ puntos del producto tensorial compl
 | **Dimensión continua** | $d = 1$ (univariado) | $d \in [2, 6]$ (multivariado) |
 | **Preservación de forma** | Garantizada con `spline_type="schumaker"` | Alta precisión polinómica en hipercubos continuos |
 | **Parámetros de malla** | `n_knots` (def. 20), `bc_type="clamped"` | `mu` en $[1, 4]$ (def. 2) |
-| **Método de solución** | `"euler"` (política) o `"bellman"` (valor) | `"euler"` (política) o `"bellman"` (valor) |
+| **Método de solución** | `"euler"` (política) o `"bellman"` (valor) | `"euler"` (política) o `"bellman"` (valor; solo utilidad logarítmica con depreciación total, si no `NotImplementedError`) |
+| **Curvatura CRRA** | `params["sigma"]`, alias `params["gamma"]` | `params["sigma"]`, alias `params["gamma"]` |
 | **Aceleración disponible** | NumPy, Numba, Apple MLX, CuPy | NumPy, Numba, Apple MLX, CuPy |
 
 ---

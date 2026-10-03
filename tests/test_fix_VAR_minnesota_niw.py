@@ -314,3 +314,43 @@ def test_validation_case_fails_on_the_prefix_builder(monkeypatch):
     monkeypatch.setattr(bvar_mod, "_build_minnesota_dummies", _prefix_builder)
     r = _run_case("var.bvar_minnesota_analytical_posterior")
     assert not r.passed
+
+
+# ---------------------------------------------------------------------------
+# Posterior degrees of freedom of Sigma (BGR 2010 eq. 7)
+# ---------------------------------------------------------------------------
+
+def test_sigma_posterior_degrees_of_freedom_follow_bgr_eq7():
+    """BGR (2010, ECB WP 966 p. 12) eq. (7): with the improper prior
+    |Psi|^-(n+3)/2, Psi | Y ~ iW(S~, T_d + 2 + T - k). Up to 4.4.0 the sampler
+    used T_d + T - k, which inflates E[Sigma | Y] = S~ / (nu - n - 1) by
+    (nu - n + 1) / (nu - n - 1): 5.3% on this short sample.
+
+    The oracle is the paper's formula evaluated on the eq. (5) dummies built
+    by hand, and the inverse-Wishart mean S / (nu - n - 1).
+    """
+    df = _var1_panel(T=40, seed=5)
+    p, lambda1, ips = 1, 0.2, 1e3
+    Y = df.to_numpy()
+    n = Y.shape[1]
+    sigmas = np.array([_univariate_sigma(Y[:, i], p) for i in range(n)])
+    Yd, Xd = _bgr_eq5_block(sigmas, p, lambda1, 1.0, ips)
+    X = np.column_stack([np.ones(len(Y) - p), Y[:-1]])
+    Ys = np.vstack([Y[p:], Yd])
+    Xs = np.vstack([X, Xd])
+    B = np.linalg.solve(Xs.T @ Xs, Xs.T @ Ys)
+    S = (Ys - Xs @ B).T @ (Ys - Xs @ B)
+    T_d, T, k = Yd.shape[0], len(Y) - p, Xd.shape[1]
+    nu = T_d + 2 + T - k
+
+    n_draws = 20000
+    g = minnesota_gibbs(df, p, n_draws=n_draws, burn=0, lambda1=lambda1,
+                        intercept_prior_std=ips, rng=np.random.default_rng(11))
+    assert g["nu_post"] == nu
+    mean_exact = S / (nu - n - 1)
+    draws = g["Sigma_draws"]
+    mc_se = draws.std(axis=0) / np.sqrt(n_draws)
+    assert np.all(np.abs(draws.mean(axis=0) - mean_exact) < 5 * mc_se)
+    # The old degrees of freedom are far outside the Monte Carlo band.
+    mean_old = S / (nu - 2 - n - 1)
+    assert np.all(np.abs(np.diag(mean_old - mean_exact)) > 20 * np.diag(mc_se))
