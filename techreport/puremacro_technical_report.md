@@ -1,21 +1,27 @@
 # puremacro: A Unified, Dependency-Minimal Scientific-Python Engine for Quantitative Macroeconomics and Macroeconometrics
 ## Architecture, Algorithmic Foundations, Numerical Validation, and Browser-Native Reproducibility
 
-**Jorge Alonso Ortiz**\
-Department of Economics, Instituto Tecnológico Autónomo de México (ITAM)\
-Río Hondo No. 1, Col. Progreso Tizapán, Mexico City, 01080, Mexico\
-Email: [jorge.alonso@itam.mx](mailto:jorge.alonso@itam.mx) | ORCID: [0000-0002-5941-9928](https://orcid.org/0000-0002-5941-9928)\
-Technical Report & Working Paper v4.3 — audited trade policy, 20 September 2026\
+**Jorge Alonso Ortiz**<sup>1,★</sup> · **Claude**<sup>2</sup> · **Codex**<sup>3</sup> · **Antigravity**<sup>4</sup>
+
+<sup>1</sup> Department of Economics, Instituto Tecnológico Autónomo de México (ITAM), Río Hondo No. 1, Col. Progreso Tizapán, Mexico City, 01080, Mexico. Email: [jorge.alonso@itam.mx](mailto:jorge.alonso@itam.mx) | ORCID: [0000-0002-5941-9928](https://orcid.org/0000-0002-5941-9928)\
+<sup>2</sup> AI coding agent, Anthropic (Claude Opus 5, Opus 5.5, Fable 5 and Fable 5.1)\
+<sup>3</sup> AI coding agent, OpenAI\
+<sup>4</sup> AI coding agent, Google\
+<sup>★</sup> Corresponding author. The human author directed the project, made every design and release decision, and takes sole responsibility for the content; the three AI coauthors are credited for their work but cannot be held accountable for it. See [Authorship and contributions](#authorship-and-contributions).
+
+Technical Report & Working Paper v4.5 — honest convergence, 3 October 2026\
 GitHub Repository: [https://github.com/jalonso1979/puremacro](https://github.com/jalonso1979/puremacro)\
 Interactive Platform: [https://jalonso1979.github.io/puremacro/](https://jalonso1979.github.io/puremacro/)
 
-> **Validation scope, 20 September 2026.** Feature descriptions below are not universal accuracy or convergence guarantees. Read [Structural validation status](../docs/STRUCTURAL_VALIDATION_STATUS.md) before using the newest trade, higher-order DSGE or VFI outputs. The gallery contains 59 internal, 29 analytical, 13 package, five SciPy and one published-reference case, with no trade cases. A follow-up ran five models in Dynare 7.0 at orders two and three and validated native OECD 2023/2019 ingestion and calibration, with counterfactuals on a conserving small aggregation. GPU and browser workloads remain unverified; see the [independent-validation report](../reviews/2026-09-20-independent-validation/REPORT.md), including the MATLAB shutdown caveat.
+> **Validation scope, 3 October 2026 (version 4.5.0).** Feature descriptions below are not universal accuracy or convergence guarantees. Read [Structural validation status](../docs/STRUCTURAL_VALIDATION_STATUS.md) and the [correctness advisories](../docs/ADVISORY.md) before using the newest trade, higher-order DSGE or VFI outputs. The gallery contains 59 internal, 31 analytical, 13 package, five SciPy and two published-reference cases (110, all passing), with no trade cases. Since 4.4.0 the full test suite passes with no accepted failures and continuous integration is green on all nine targets (Linux, macOS and Windows, Python 3.11–3.13); since 4.5.0 nothing reaches PyPI unless that matrix passes on the tagged commit. A September follow-up ran five models in Dynare 7.0 at orders two and three and validated native OECD 2023/2019 ingestion and calibration, with counterfactuals on a conserving small aggregation. GPU and browser workloads remain unverified; see the [independent-validation report](../reviews/2026-09-20-independent-validation/REPORT.md), including the MATLAB shutdown caveat.
 
 ---
 
 ### Abstract
-Puremacro is an open-source Python library for empirical macroeconometrics and quantitative macroeconomic models. It combines estimation, DSGE perturbation, heterogeneous-agent methods, dynamic programming and quantitative trade in a shared scientific-Python environment. The package ships no compiled extension of its own; its scientific dependencies include compiled components. Its 107-case validation gallery combines internal consistency, analytical results and selected external references with case-specific tolerances. This is evidence for the tested configurations, not certification of the complete feature inventory or universal cross-platform numerical identity. A September 2026 review identified structural-model defects and unsupported claims. The resulting hardening adds residual-based failure contracts, complete second-order decision-rule comparisons, corrected third-order risk slopes, shared trade-flow evaluation and explicit data provenance. The historical TOT/Alloc/TariffRec decomposition and automated trade theorem certification remain unavailable. A subsequent expenditure-function interface supplies Hicksian consumption EV/CV and an endpoint price, factor-income and fiscal-transfer attribution. The follow-up adds ten live Dynare model/order references and one native OECD archive validation; general higher-order parity, other native MRIO providers/editions, full-size native GE and realistic browser/GPU workloads still require further validation.
+Puremacro is an open-source Python library for empirical macroeconometrics and quantitative macroeconomic models. It combines estimation, DSGE perturbation, heterogeneous-agent methods, dynamic programming and quantitative trade in a shared scientific-Python environment. The package ships no compiled extension of its own; its scientific dependencies include compiled components. Its 110-case validation gallery combines internal consistency, analytical results and selected external references with case-specific tolerances. This is evidence for the tested configurations, not certification of the complete feature inventory or universal cross-platform numerical identity. A September 2026 review identified structural-model defects and unsupported claims. The resulting hardening adds residual-based failure contracts, complete second-order decision-rule comparisons, corrected third-order risk slopes, shared trade-flow evaluation and explicit data provenance. The historical TOT/Alloc/TariffRec decomposition and automated trade theorem certification remain unavailable. A subsequent expenditure-function interface supplies Hicksian consumption EV/CV and an endpoint price, factor-income and fiscal-transfer attribution. The follow-up adds ten live Dynare model/order references and one native OECD archive validation; general higher-order parity, other native MRIO providers/editions, full-size native GE and realistic browser/GPU workloads still require further validation.
 
+
+> **What changed in 4.4 and 4.5.** *Version 4.4.0 (2 October 2026)* added empirical-to-structural research workflows (`puremacro.structural`: labelled moment targets with full covariance, bounded minimum-distance estimation, joint-HAC local-projection targets, an observed-data SW07 study and an exact finite-sample SW07 diagnostic), the original-data Romer–Romer (2010) baseline, INEGI ENIGH 2024 distributional tariff incidence, seven new MRIO trade engines and a stacked-time Newton–Krylov solver. It also shipped the verified fixes of a library-wide review, resolved every accepted test failure carried since 4.2.0, and corrected `vif`, which on levels data lost digits exactly as statsmodels does (an impossible VIF of 0.053 became the exact 1.005). *Version 4.5.0 (3 October 2026)* is a trust release: the quasi-condensed trade route no longer reports `converged=True` beside a residual of 0.05, flexible trade results report the solved model's flows, `minnesota_gibbs` follows Bańbura, Giannone and Reichlin (2010) eq. (7) (its posterior Σ was 5.3% too large), the VFI solvers honour the `gamma` curvature alias, and calls that cannot be answered honestly now raise instead of returning an unverified number. Each defect has an entry in the [correctness advisories](../docs/ADVISORY.md).
 ---
 
 ### Graphical Abstract
@@ -411,6 +417,28 @@ Crucially, all 60 example notebooks and 22 course lessons are hosted online via 
 The software resolves the long-standing computational trilemma in macroeconomics, delivering identical, within tested tolerances numerical execution on high-performance CPython workstations, in client-side WebAssembly browsers, and on mobile tablet devices. Its oracle architecture provides uncompromised empirical rigor, verifying 107 numerical checks across 15 subsystems to machine precision without imposing brittle external dependencies on downstream users.
 
 Future development of `puremacro` will advance along four strategic horizons. First, the heterogeneous-agent engine will be extended to accommodate non-linear aggregate transition episodes featuring occasionally binding borrowing constraints in sequence space. Second, the macroeconometric modules will integrate deep neural network architectures directly into shock extraction and high-dimensional factor analysis using vectorized NumPy primitives. Third, the trade and environmental modules will be expanded to encompass spatial climate damage heterogeneity and natural capital depletion within multi-region general equilibrium models. Fourth, the interactive web platform will incorporate dynamic simulation dashboards enabling researchers, students, and policymakers to evaluate monetary, fiscal, and trade counterfactuals directly on the open web.
+
+---
+
+### Authorship and contributions
+
+**Four authors, one rule.** This report and the library it describes were written by one economist and three AI coding agents. The arrangement worked because of a rule older than the agents: *no number ships unless something that did not produce it agrees with it*, whether a published table, a closed form, exact arithmetic, another library or Dynare. Agents propose, implement and audit; the oracle decides; the human author decides what is released.
+
+| Contribution (CRediT-style) | Jorge Alonso Ortiz | Claude | Codex | Antigravity |
+|---|:---:|:---:|:---:|:---:|
+| Conceptualization and research design | ● | | | |
+| Methodology and economic modelling | ● | ◐ | | |
+| Software implementation | ● | ● | | |
+| Validation, tests and replication checks | ● | ● | ● | ● |
+| Code review and adversarial audits | ● | ● | ● | ● |
+| Documentation, notebooks and course material | ● | ● | ● | ● |
+| Supervision, release decisions and accountability | ● | | | |
+
+*● lead or substantial contribution · ◐ supporting contribution.*
+
+**By the numbers (git history, 20 July – 3 October 2026).** 323 commits in the public repository; 184 carry a `Co-Authored-By: Claude` trailer (Opus 5: 131, Opus 5.5: 21, Fable 5.1: 18, Fable 5: 14). Codex and Antigravity worked through the author's own commits, so their contributions are recorded here and in the roles above rather than in commit metadata. Google's Jules agent authored 20 merged code-health pull requests on 31 August and 1 September 2026, which we acknowledge with thanks.
+
+**Responsibility.** The AI coauthors are listed because their contributions were substantial, not because they meet the accountability that authorship normally implies: they cannot answer for the work, consent to its publication or correct it later. Every claim, design choice and release in this report is the human author's responsibility. Venues whose policies do not admit AI tools as authors — including the *Journal of Open Source Software*, for which a separate paper is in preparation — receive a version with a single human author and an AI-use disclosure instead.
 
 ---
 
