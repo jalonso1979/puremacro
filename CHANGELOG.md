@@ -28,6 +28,42 @@ Each defect has an entry in `docs/ADVISORY.md`.
 
 **Empirical-to-structural research workflows, seven new MRIO trade engines, and the verified fixes of the 30 September library review.**
 
+**Narrative corpus is now stored and exportable.** `harvest_narrative_corpus`
+used to keep nothing: its SQLite table was never written (and had no text
+column), and `use_cache`/`db_path` were ignored. Harvests now upsert into a
+`CorpusStore` (`narrative_corpus.db` beside the HTTP cache), which keeps full
+text (latest version, with a flag and the previous hash when a document
+was edited; see `store.revised()`) and a log of harvest runs; `store.load()`
+returns the accumulated corpus. `NarrativeCorpus` gains `to_frame(metadata=
+"promote"|"json"|"drop")`, `to_jsonl`/`from_jsonl` (no dependency),
+`to_parquet`/`from_parquet` (`io` extra), `from_frame`, `from_records` (any
+connector's output, including query-driven ones), and a provenance
+`manifest()` written next to every export, with `verify_manifest` to check a
+re-harvest against it.
+
+Harvest fixes that changed what the corpus contains:
+
+- In a fresh session `harvest_narrative_corpus` returned an empty corpus: it
+  looked connectors up with `getattr(sources, module_name)`, which is `None`
+  until the lazily loaded submodule has been imported, and skipped them
+  silently. Connectors are now imported on demand.
+- Three registry entries named functions that do not exist (`us_federal_register`,
+  `us_dod_contracts`, `uk_obr`) and harvested nothing; fixed.
+- Connectors that yield legacy `(date, text, url)` 3-tuples (the RSS/Atom
+  helpers: `uk_hmt`, `uk_obr`, `de_bmf`, `fr_tresor`, `it_mef`, `eu_ecfin`,
+  `ca_dof`, `us_treasury`, `us_dod_contracts`) were rejected by the schema
+  check, so these sources were always empty. They are now accepted.
+- The per-record `doctype` that 33 connectors emit was ignored (harvest read
+  `doc_type`); both are now read.
+- A failing connector was swallowed by a bare `except`. Failures are now in
+  `corpus.harvest_report` and raise a warning (`on_error="warn"|"raise"|"ignore"`).
+- Newly registered: `us_treasury`, `mas`, `macro_blogs`, `bluesky`; and, via
+  `QUERY_SOURCE_REGISTRY` + `source_kwargs`, `gdelt`, `google_news`, `reddit`,
+  `hackernews`, `local_csv`. Unknown source names now raise instead of being
+  dropped silently.
+- Harvested `doc_id`s now also hash the record's explicit title (or `id`), and
+  records sharing a key but differing in text get distinct ids.
+
 **Controlled SW07 estimator and GE incidence applications.** A fast exact
 finite-sample expectation map supports paired comparisons of moment corrections
 and oracle/HAC weights, with separate calibration/validation draws, authenticated

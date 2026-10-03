@@ -78,6 +78,7 @@ from .scoring.multilingual import (
 from .quality.schedule_estimator import estimate_implementation_profile
 from .classifier import PolicyActionClassifier
 from .harvest import (
+    QUERY_SOURCE_REGISTRY,
     SOURCE_REGISTRY,
     NarrativeDocument,
     NarrativeCorpus,
@@ -100,7 +101,8 @@ __all__ = [
     "consensus_disagreement", "CROSS_SOURCE_GROUPS",
     "epu", "mpu", "gpr", "tone", "wui", "lui", "ltui", "ltui_up", "ltui_down", "lwui", "lwui_wage",
     # Harvesting & Corpus
-    "SOURCE_REGISTRY", "NarrativeDocument", "NarrativeCorpus", "harvest_narrative_corpus",
+    "SOURCE_REGISTRY", "QUERY_SOURCE_REGISTRY", "NarrativeDocument", "NarrativeCorpus",
+    "harvest_narrative_corpus", "CorpusStore",
     # Multilingual & Classification
     "MULTILINGUAL_LEXICONS", "MultilingualScoreResult", "score_multilingual", "infer_policy_stance",
     "PolicyActionClassifier", "estimate_implementation_profile",
@@ -143,6 +145,11 @@ _LAZY_SOURCE_EXPORTS = frozenset({
 
 
 def __getattr__(name):
+    if name == "CorpusStore":
+        # Lazy: sqlite3 is a separately loaded package under Pyodide.
+        from .store import CorpusStore
+        globals()[name] = CorpusStore
+        return CorpusStore
     if name in _LAZY_SOURCE_EXPORTS:
         from . import sources
         value = getattr(sources, name)
