@@ -79,6 +79,7 @@ class Model:
         self._newborns = None
         self._aggregates: dict[str, Any] = {}
         self._clear: str | None = None
+        self._taste: float | str | None = None
 
     # ------------------------------------------------------------------ declarations
     def parameters(self, **values) -> Model:
@@ -153,6 +154,17 @@ class Model:
     def subject_to(self, *constraints: str) -> Model:
         """Feasibility conditions such as ``"c > 0"``; infeasible choices get payoff -inf."""
         self._constraints.extend(str(c) for c in constraints)
+        return self
+
+    def taste_shocks(self, scale) -> Model:
+        """Type-I extreme value shocks on the discrete choice with scale ``scale``
+        (a number or a parameter name): values become log-sums and choices logit.
+        Solved by ``method="egm"`` only."""
+        if not isinstance(scale, str):
+            scale = float(scale)
+            if not np.isfinite(scale) or scale < 0:
+                raise ModelSpecError(f"taste-shock scale must be >= 0; got {scale}")
+        self._taste = scale
         return self
 
     def discount(self, beta: str = "beta") -> Model:
@@ -300,6 +312,11 @@ class _Compiled:
             raise ModelSpecError("prices were declared but no clear() condition")
         if m._clear is not None and not m._prices:
             raise ModelSpecError("clear() needs a price declared with prices()")
+        if m._taste is not None:
+            if m._discrete is None:
+                raise ModelSpecError("taste_shocks() needs a discrete choice")
+            if isinstance(m._taste, str) and (m._taste not in m._params or np.ndim(m._params[m._taste])):
+                raise ModelSpecError(f"taste-shock scale {m._taste!r} must be a scalar parameter")
 
         # parse
         timed = self.state_names + self.shock_names + ([m._discrete[0]] if m._discrete else [])
@@ -462,15 +479,26 @@ class _Compiled:
         if self.z_grids:
             n_z = int(np.prod([g.size for g in self.z_grids]))
             zs = [zc.reshape(1, n_z) for zc in np.meshgrid(*self.z_grids, indexing="ij")]
-        args: list[Any] = []
-        if self.model._discrete:
-            args.append(self.model._discrete[1][pold])
-        args += nxt + cur + zs
-        if self.finite:
-            args.append(int(age or 0))
-        args += list(params.values())
-        out = fn(*args, xp=np)
-        return np.broadcast_to(np.asarray(out, dtype=float), pol.shape).copy()
+
+        def call(dv, nxt_):
+            args: list[Any] = [dv] if self.model._discrete else []
+            args += nxt_ + cur + zs
+            if self.finite:
+                args.append(int(age or 0))
+            args += list(params.values())
+            return np.broadcast_to(np.asarray(fn(*args, xp=np), dtype=float), pol.shape)
+
+        probs = getattr(sol, "choice_prob", None)
+        if probs is None:
+            return call(self.model._discrete[1][pold] if self.model._discrete else None, nxt).copy()
+        # taste shocks: average over options with their choice probabilities
+        probs = probs if age is None else probs[age]
+        aps = sol.aprime_by_choice if age is None else sol.aprime_by_choice[age]
+        out = np.zeros(pol.shape)
+        for k, dv in enumerate(self.model._discrete[1]):
+            with np.errstate(invalid="ignore"):
+                out += np.where(probs[k] > 0, probs[k] * call(dv, [aps[k]]), 0.0)
+        return out
 
     def aggregate_values(self, sol, mu, params: dict) -> dict:
         out = {}
@@ -494,6 +522,8 @@ class _Compiled:
         m = self.model
         if method == "egm":
             return self._solve_egm(tol, max_iter, distribution, xtol, max_evals)
+        if m._taste is not None:
+            raise ModelSpecError("taste shocks are solved by method='egm' only")
         options = dict(tol=tol, n_howard=int(howard), howard=int(howard) > 0, max_iter=max_iter)
         if self.finite:
             if m._prices:

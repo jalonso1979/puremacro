@@ -286,3 +286,84 @@ def test_return_that_depends_on_the_discrete_choice_is_rejected():
     m.local("c = (1 + r + 0.01*h)*a + h*exp(z) + (1 - h)*b - a(+1)")
     with pytest.raises(ModelSpecError, match="not to depend on the discrete choice"):
         m.solve("egm")
+
+
+# ---------------------------------------------------------------- taste shocks
+def retire(T, sigma, n_a=2001, terminal=None):
+    m = dp.Model("work or not")
+    m.parameters(beta=BETA, r=0.03, chi=0.4, sig=sigma)
+    m.state("a", np.linspace(0.0, 20.0, n_a))
+    m.discrete("h", [0.0, 1.0])
+    m.local("c = (1 + r)*a + 0.3 + 0.9*h - a(+1)")
+    m.reward("log(c) - chi*h")
+    m.subject_to("c > 0")
+    m.taste_shocks("sig")
+    m.horizon(T, terminal=terminal)
+    return m
+
+
+def logsum(v, s):
+    top = np.max(v, axis=0)
+    return top + s * np.log(np.sum(np.exp((v - top) / s), axis=0))
+
+
+def test_taste_shocks_last_period_is_the_closed_form_logit():
+    s = 0.2
+    sol = retire(1, s, n_a=11).solve("egm")
+    a = sol.grids["a"]
+    v = np.stack([np.log(1.03 * a + 0.3), np.log(1.03 * a + 1.2) - 0.4])
+    np.testing.assert_allclose(sol.V[0, :, 0], logsum(v, s), rtol=0, atol=1e-12)
+    p1 = 1.0 / (1.0 + np.exp((v[0] - v[1]) / s))
+    np.testing.assert_allclose(sol.raw.choice_prob[0, 1, :, 0], p1, rtol=0, atol=1e-12)
+    np.testing.assert_allclose(sol.policy("h")[0, :, 0], p1, rtol=0, atol=1e-12)
+
+
+def test_taste_shocks_two_periods_match_brute_force():
+    s = 0.2
+    sol = retire(2, s).solve("egm")
+    a = sol.grids["a"]
+    R, beta = 1.03, BETA
+
+    def V1(x):
+        return logsum(np.stack([np.log(R * x + 0.3), np.log(R * x + 1.2) - 0.4]), s)
+
+    ap = np.linspace(0.0, 20.0, 200_001)
+    v0 = []
+    for y, cost in ((0.3, 0.0), (1.2, 0.4)):
+        coh = R * a[:, None] + y
+        with np.errstate(all="ignore"):
+            obj = np.where(coh - ap[None, :] > 0, np.log(coh - ap[None, :]), -np.inf) - cost + beta * V1(ap)[None, :]
+        v0.append(obj.max(axis=1))
+    np.testing.assert_allclose(sol.V[0, :, 0], logsum(np.stack(v0), s), rtol=0, atol=1e-5)
+
+
+def test_vanishing_taste_shocks_approach_the_deterministic_choice():
+    m0 = retire(5, 0.0, n_a=401)
+    m0._taste = None
+    det = m0.solve("egm")
+    near = retire(5, 1e-4, n_a=401).solve("egm")
+    assert np.max(np.abs(near.V - det.V)) < 1e-3
+    assert near.raw.choice_prob is not None and det.raw.choice_prob is None
+
+
+def test_taste_shocks_infinite_horizon_distribution_and_means():
+    m = labour(n_a=150)
+    m.parameters(sig=0.05)
+    m.taste_shocks("sig")
+    sol = m.solve("egm", tol=1e-9)
+    probs = sol.raw.choice_prob
+    np.testing.assert_allclose(probs.sum(axis=0), 1.0, atol=1e-12)
+    assert sol.distribution.sum() == pytest.approx(1.0, abs=1e-10)
+    assert sol.aggregates["H"] == pytest.approx(float(np.sum(sol.distribution * probs[1])), abs=1e-12)
+    det = labour(n_a=150).solve("egm", tol=1e-9)
+    assert np.all(sol.V >= det.V - 1e-8)          # the log-sum is at least the max
+    assert 0.0 < sol.aggregates["H"] < 1.0
+
+
+def test_taste_shocks_need_egm_and_a_discrete_choice():
+    with pytest.raises(ModelSpecError, match="method='egm' only"):
+        retire(2, 0.2, n_a=11).solve()
+    m = household()
+    m.taste_shocks(0.1)
+    with pytest.raises(ModelSpecError, match="needs a discrete choice"):
+        m.solve("egm")

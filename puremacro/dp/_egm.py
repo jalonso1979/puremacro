@@ -23,13 +23,18 @@ Euler equation u'(c_j) = beta s_j R_{j+1} E u'(c_{j+1}) with survival ``s_j``.
 With a ``terminal`` value its marginal value is taken by finite differences on
 the grid; without one, the last age consumes everything above the borrowing limit.
 
-With a discrete choice (deterministic, no taste shocks) each option's
+With a discrete choice each option's
 conditional value is not concave, so the Euler inversion is followed by an upper
 envelope (Iskhakov, Jorgensen, Rust and Schjerning 2017): every pair of adjacent
 endogenous points is a candidate segment, the corner choices a(+1) at the ends of
 the grid are candidates where their Kuhn-Tucker condition holds, and each target point takes the best candidate,
 valued as u(c) plus the interpolated continuation at the implied a(+1).
 Infinite horizons with a discrete choice iterate that step to a fixed point.
+With EV1 taste shocks of scale sigma (``Model.taste_shocks``) the value is the
+log-sum over options, choices are logit, the Euler right side averages marginal
+utility over options, and the distribution splits mass by choice probability.
+With them, ``c``/``aprime`` on the result are probability-weighted means and
+model expressions are averaged over options the same way.
 """
 from __future__ import annotations
 
@@ -59,7 +64,10 @@ class EGMHouseholdSolution:
     R: float                 # gross return the budget implies
     income: np.ndarray       # y(z), (n_z,); (n_d, n_z) with a discrete choice
     egm: EGMSolution | None = field(repr=False)
-    policy_d: np.ndarray | None = None     # (n_a, n_z) discrete-choice indices
+    policy_d: np.ndarray | None = None     # (n_a, n_z) discrete-choice indices (most likely option)
+    choice_prob: np.ndarray | None = None  # (n_d, n_a, n_z) logit probabilities (taste shocks only)
+    c_by_choice: np.ndarray | None = None
+    aprime_by_choice: np.ndarray | None = None
 
 
 @dataclass
@@ -71,7 +79,10 @@ class EGMLifeCycleSolution:
     horizon: int
     R: np.ndarray            # (horizon,) gross return by age
     income: np.ndarray       # (horizon, n_z) y_j(z); (horizon, n_d, n_z) with a discrete choice
-    policy_d: np.ndarray | None = None     # (horizon, n_a, n_z) discrete-choice indices
+    policy_d: np.ndarray | None = None     # (horizon, n_a, n_z) discrete-choice indices (most likely option)
+    choice_prob: np.ndarray | None = None  # (horizon, n_d, n_a, n_z) logit probabilities (taste shocks only)
+    c_by_choice: np.ndarray | None = None
+    aprime_by_choice: np.ndarray | None = None
 
 
 class EGMPlan:
@@ -261,7 +272,15 @@ class EGMPlan:
     def distribution(self, sol) -> np.ndarray:
         if isinstance(sol, EGMLifeCycleSolution):
             return self._cohort_distribution(sol)
-        return lottery_distribution(sol.aprime, self.a, self.comp.P)
+        if sol.choice_prob is None:
+            return lottery_distribution(sol.aprime, self.a, self.comp.P)
+        mu = np.full(sol.c.shape, 1.0 / sol.c.size)
+        for _ in range(100_000):
+            new = self._push(mu, sol)
+            if np.max(np.abs(new - mu)) < 1e-12:
+                return new / new.sum()
+            mu = new
+        raise RuntimeError("stationary distribution with taste shocks did not converge")
 
     def _terminal(self):
         m, a = self.comp.model, self.a
@@ -326,7 +345,7 @@ class EGMPlan:
     def _dc_step(self, funcs, R, Y, W, rhs):
         """One DC-EGM step. ``W[a', z]`` is the discounted expected continuation and
         ``rhs[a', z]`` the discounted expected marginal value (None: last age, no
-        continuation). Returns consumption, value and choice index, each (n_a, n_z)."""
+        continuation). Returns consumption and value by option, (n_d, n_a, n_z)."""
         a, n_z = self.a, self.n_z
         n_d = len(funcs)
         c_all = np.empty((n_d, a.size, n_z))
@@ -343,30 +362,59 @@ class EGMPlan:
             m_e = c_e + a[:, None]
             for z in range(n_z):
                 c_all[k, :, z], v_all[k, :, z] = _upper_envelope(coh[:, z], m_e[:, z], c_e[:, z], a, W[:, z], u)
-        d_idx = np.argmax(v_all, axis=0)
-        c = np.take_along_axis(c_all, d_idx[None], axis=0)[0]
-        v = np.take_along_axis(v_all, d_idx[None], axis=0)[0]
-        return c, v, d_idx
+        return c_all, v_all
 
-    def _marginal(self, funcs, c, d_idx):
-        mu = np.empty_like(c)
+    @staticmethod
+    def _combine(v_all, sigma: float):
+        """Value and choice probabilities: the max and its one-hot choice without
+        taste shocks, the log-sum and logit probabilities with EV1 scale ``sigma``."""
+        d_idx = np.argmax(v_all, axis=0)
+        vmax = np.take_along_axis(v_all, d_idx[None], axis=0)[0]
+        if sigma == 0.0:
+            probs = (np.arange(v_all.shape[0])[:, None, None] == d_idx[None]).astype(float)
+            return vmax, probs, d_idx
+        with np.errstate(all="ignore"):
+            e = np.exp((v_all - vmax[None]) / sigma)
+        tot = e.sum(axis=0)
+        return vmax + sigma * np.log(tot), e / tot[None], d_idx
+
+    @staticmethod
+    def _marginal(funcs, c_all, probs):
+        mu = np.zeros(c_all.shape[1:])
         for k, (_, up, _) in enumerate(funcs):
-            mask = d_idx == k
-            mu[mask] = up(c[mask])
+            mu += np.where(probs[k] > 0, probs[k] * up(np.maximum(c_all[k], 1e-300)), 0.0)
         return mu
+
+    def _by_choice(self, R, Y, c_all):
+        """Next assets by option (clipped to the grid) and the consumption the clip implies."""
+        coh = R * self.a[:, None] + Y[:, None, :]
+        ap = np.clip(coh - c_all, self.a[0], self.a[-1])
+        return coh - ap, ap
+
+    def _taste_scale(self, params: dict) -> float:
+        t = self.comp.model._taste
+        if t is None:
+            return 0.0
+        val = float(params[f"p_{t}"]) if isinstance(t, str) else float(t)
+        if not np.isfinite(val) or val < 0:
+            raise ModelSpecError(f"taste-shock scale must be >= 0; got {val}")
+        return val
 
     def _solve_discrete_life_cycle(self, params: dict) -> EGMLifeCycleSolution:
         comp, P = self.comp, self.comp.P
-        a, n_a, n_z = self.a, self.a.size, self.n_z
+        n_a, n_z, n_d = self.a.size, self.n_z, self.dvals.size
         J = int(comp.model._horizon or 0)
         surv = self._survival()
         terminal, dV = self._terminal()
-        Rs, Ys = np.empty(J), np.empty((J, self.dvals.size, n_z))
+        sigma = self._taste_scale(params)
+        Rs, Ys = np.empty(J), np.empty((J, n_d, n_z))
         funcs = []
         for j in range(J):
             Rs[j], Ys[j] = self.budgets(params, age=j)
             funcs.append(self._dc_funcs(self.at_age(params, j), Rs[j], Ys[j]))
-        c = np.empty((J, n_a, n_z))
+        c_all = np.empty((J, n_d, n_a, n_z))
+        ap_all = np.empty((J, n_d, n_a, n_z))
+        probs = np.empty((J, n_d, n_a, n_z))
         V = np.empty((J, n_a, n_z))
         d_idx = np.empty((J, n_a, n_z), dtype=np.int64)
         for j in range(J - 1, -1, -1):
@@ -377,40 +425,60 @@ class EGMPlan:
                 W, rhs = b * (terminal @ P.T), b * (dV @ P.T)
             else:
                 W = b * (V[j + 1] @ P.T)
-                rhs = b * ((Rs[j + 1] * self._marginal(funcs[j + 1], c[j + 1], d_idx[j + 1])) @ P.T)
-            c[j], V[j], d_idx[j] = self._dc_step(funcs[j], Rs[j], Ys[j], W, rhs)
-        coh = Rs[:, None, None] * a[None, :, None] + np.take_along_axis(
-            np.broadcast_to(Ys[:, :, None, :], (J, self.dvals.size, n_a, n_z)), d_idx[:, None], axis=1)[:, 0]
-        aprime = np.clip(coh - c, a[0], a[-1])
-        return EGMLifeCycleSolution(V=V, c=coh - aprime, aprime=aprime, horizon=J, R=Rs, income=Ys,
-                                    policy_d=d_idx)
+                rhs = b * ((Rs[j + 1] * self._marginal(funcs[j + 1], c_all[j + 1], probs[j + 1])) @ P.T)
+            cj, vj = self._dc_step(funcs[j], Rs[j], Ys[j], W, rhs)
+            V[j], probs[j], d_idx[j] = self._combine(vj, sigma)
+            c_all[j], ap_all[j] = self._by_choice(Rs[j], Ys[j], cj)
+        return self._discrete_result(EGMLifeCycleSolution, sigma, c_all, ap_all, probs, d_idx,
+                                     V=V, horizon=J, R=Rs, income=Ys)
 
     def _solve_discrete_infinite(self, params: dict, *, tol: float, max_iter: int) -> EGMHouseholdSolution:
         P, b = self.comp.P, self.comp.beta
         R, Y = self.budgets(params)
+        sigma = self._taste_scale(params)
         funcs = self._dc_funcs(params, R, Y)
-        c, V, d_idx = self._dc_step(funcs, R, Y, None, None)
+        c_all, v_all = self._dc_step(funcs, R, Y, None, None)
+        V, probs, d_idx = self._combine(v_all, sigma)
         sup = np.inf
         for it in range(1, max_iter + 1):
             W = b * (V @ P.T)
-            rhs = b * ((R * self._marginal(funcs, c, d_idx)) @ P.T)
-            c_new, V_new, d_idx = self._dc_step(funcs, R, Y, W, rhs)
-            sup = float(max(np.max(np.abs(c_new - c)), np.max(np.abs(V_new - V))))
-            c, V = c_new, V_new
+            rhs = b * ((R * self._marginal(funcs, c_all, probs)) @ P.T)
+            c_new, v_all = self._dc_step(funcs, R, Y, W, rhs)
+            V_new, probs, d_idx = self._combine(v_all, sigma)
+            with np.errstate(invalid="ignore"):
+                dc = np.where(probs > 0, np.abs(c_new - c_all), 0.0)
+            sup = float(max(np.max(dc), np.max(np.abs(V_new - V))))
+            c_all, V = c_new, V_new
             if sup < tol:
                 break
         else:
             raise RuntimeError(f"DC-EGM did not converge in {max_iter} iterations (sup-norm {sup:.3e} > tol {tol:.1e})")
-        coh = R * self.a[:, None] + np.take_along_axis(
-            np.broadcast_to(Y[:, None, :], (self.dvals.size,) + c.shape), d_idx[None], axis=0)[0]
-        aprime = np.clip(coh - c, self.a[0], self.a[-1])
-        return EGMHouseholdSolution(V=V, c=coh - aprime, aprime=aprime, n_iter=it, sup_norm=sup, R=R,
-                                    income=Y, egm=None, policy_d=d_idx)
+        c_all, ap_all = self._by_choice(R, Y, c_all)
+        return self._discrete_result(EGMHouseholdSolution, sigma, c_all, ap_all, probs, d_idx,
+                                     V=V, n_iter=it, sup_norm=sup, R=R, income=Y, egm=None)
+
+    @staticmethod
+    def _discrete_result(cls, sigma, c_all, ap_all, probs, d_idx, **kw):
+        ax = c_all.ndim - 3                      # option axis: 0, or 1 after the age axis
+        if sigma == 0.0:
+            c = np.take_along_axis(c_all, np.expand_dims(d_idx, ax), axis=ax).squeeze(ax)
+            ap = np.take_along_axis(ap_all, np.expand_dims(d_idx, ax), axis=ax).squeeze(ax)
+            return cls(c=c, aprime=ap, policy_d=d_idx, **kw)
+        return cls(c=(probs * c_all).sum(axis=ax), aprime=(probs * ap_all).sum(axis=ax), policy_d=d_idx,
+                   choice_prob=probs, c_by_choice=c_all, aprime_by_choice=ap_all, **kw)
+
+    def _push(self, mu, sol, age=None):
+        a, P = self.a, self.comp.P
+        if sol.choice_prob is None:
+            return lottery_push(mu, sol.aprime if age is None else sol.aprime[age], a, P)
+        probs = sol.choice_prob if age is None else sol.choice_prob[age]
+        aps = sol.aprime_by_choice if age is None else sol.aprime_by_choice[age]
+        return sum(lottery_push(mu * probs[k], aps[k], a, P) for k in range(probs.shape[0]))
 
     def _cohort_distribution(self, sol: EGMLifeCycleSolution) -> np.ndarray:
         from puremacro.vfi.finite_horizon import _z_stationary
 
-        a, n_a, n_z, P = self.a, self.a.size, self.n_z, self.comp.P
+        n_a, n_z, P = self.a.size, self.n_z, self.comp.P
         nb = self.comp.model._newborns
         if nb is None:
             mu0 = np.zeros((n_a, n_z))
@@ -423,7 +491,7 @@ class EGMPlan:
         dist = np.empty((sol.horizon, n_a, n_z))
         dist[0] = mu0
         for j in range(sol.horizon - 1):
-            dist[j + 1] = lottery_push(dist[j], sol.aprime[j], a, P)
+            dist[j + 1] = self._push(dist[j], sol, j)
         return dist
 
     def equilibrium(self, *, tol, max_iter, xtol, max_evals):

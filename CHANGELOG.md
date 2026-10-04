@@ -49,6 +49,13 @@ distribution's mass sits on grid nodes. `vfi.DCEGMProblem` is unchanged: its
 horizon repeats one stationary step and returns only the first period, so it
 cannot carry age-varying income or survival.
 
+`Model.taste_shocks(scale)` adds type-I extreme value shocks to the discrete
+choice (solved by `method="egm"` only): values are log-sums, choices logit, the
+Euler right side averages marginal utility over options and the distribution
+splits mass by choice probability, so `mean("h")` is the participation rate.
+The last period matches the closed-form logit to 1e-12 and a two-period model
+matches a 200,001-point brute-force maximisation to 1e-5.
+
 ## 4.5.0 (2026-10-03)
 
 **Honest convergence and corrected numbers: the wrong-number and false-success known issues of 4.4.0, each checked against an independent reference.**
