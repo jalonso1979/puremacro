@@ -244,7 +244,7 @@ def calib3() -> TradeCalibrationResult:
 @pytest.fixture(scope="module")
 def empirical_calib() -> TradeCalibrationResult:
     """Empirical 77-country 11-sector calibration from bundled OECD ICIO data."""
-    return calibrate_trade_model(load_icio_data(), ns=11, nc=77, nfd=3, validate=True)
+    return calibrate_trade_model(load_icio_data(source="legacy"), ns=11, nc=77, nfd=3, validate=True)
 
 
 # ===========================================================================

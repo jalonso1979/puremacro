@@ -48,8 +48,8 @@ Niveles de tolerancia: `EXACT` (rtol 1e-10) · `TIGHT` (1e-6) · `NUMERIC` (1e-2
 
 ## Cobertura
 
-**110 casos en 15 subsistemas — todos pasan.** Por mecanismo: internal 59,
-analytical 31, package 13, scipy 5, published 2.
+**114 casos en 16 subsistemas — todos pasan.** Por mecanismo: internal 62,
+analytical 31, package 14, scipy 5, published 2.
 
 | Subsistema | Casos | Referencia(s) |
 |---|---|---|
@@ -68,6 +68,7 @@ analytical 31, package 13, scipy 5, published 2.
 | `narrative` | 7 | Puntuación léxica de valor conocido sobre texto construido; identidades de monotonía / estandarización del índice |
 | `cointegration` | 4 | FM-OLS y DOLS recuperan una β de cointegración plantada; ambos coinciden; DOLS mitiga el sesgo de endogeneidad |
 | `spatial` | 12 | I de Moran / C de Geary con sus momentos de Cliff-Ord vs `esda` (PySAL); HAC de Conley con radio 0 = HC0 y = un doble bucle de Bartlett explícito; HAC espacio-temporal de núcleo plano = Driscoll-Kraay; la log-verosimilitud concentrada SAR/SEM en ρ=0 = la log-verosimilitud gaussiana MCO; SDM = SAR sobre el diseño aumentado y SLX = MCO sobre él; los impactos de LeSage-Pace = un `(I−ρW)⁻¹(Iβ+Wθ)` denso por fuerza bruta; el panel espacial en ρ=0 = EF a dos vías; la corrección de Lee-Yu reescala σ² exactamente por T/(T−1); `spatial_lp` sin desbordamiento = `panel_lp` |
+| `Trade` | 4 | Tabla limpia 77x11 de la OCDE 2020 (`load_icio_data(source="oecd2020")`, construida por `tools/build_icio_77c_11s.py`): la agregación conserva el valor agregado y la producción bruta mundiales del archivo nativo (congelados en `MANIFEST_OECD2020.json`); cada columna industrial cuadra con valor agregado positivo; el equilibrio sin aranceles del modelo calibrado es el año base (precios, salarios y rentas unitarios); el vector de equilibrio base coincide con la solución del modelo MATLAB heredado sobre la misma tabla (`trade_reference_solutions_oecd2020.npz`, referencia externa copiada tal cual) |
 
 Cada caso lleva su cita completa en el código (`ValidationCase.citation`),
 mostrada en la columna `citation` de `scorecard()`. Las referencias clave incluyen

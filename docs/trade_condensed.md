@@ -20,7 +20,7 @@ from puremacro.trade.condensed import (
     BalancedIOTable, build_tariff_wedges, calibrate_condensed, compute_measures, solve_condensed,
 )
 
-legacy = calibrate_trade_model(load_icio_data())
+legacy = calibrate_trade_model(load_icio_data(source="legacy"))
 table = BalancedIOTable.from_trade_calibration(legacy, negative_investment="to_inventory")
 print(table.report.negative_investment_cells)   # ('LTU_MINQ->LTU', 'UKR_MINQ->UKR', 'VNM_MANU->VNM')
 calib = calibrate_condensed(table, allow_empty_purchases_abroad=True)

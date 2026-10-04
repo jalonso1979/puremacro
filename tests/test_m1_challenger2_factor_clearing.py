@@ -32,14 +32,14 @@ from puremacro.trade.flexible import (
 @pytest.fixture(scope="module")
 def empirical_calib():
     """Load empirical 77-country, 11-sector OECD ICIO calibration."""
-    raw = load_icio_data()
+    raw = load_icio_data(source="legacy")
     return calibrate_trade_model(raw, ns=11, nc=77, nfd=3, validate=True)
 
 
 @pytest.fixture(scope="module")
 def empirical_raw():
     """Load raw OECD ICIO data matrix."""
-    return load_icio_data()
+    return load_icio_data(source="legacy")
 
 
 class TestEmpiricalFactorMarketClearing:

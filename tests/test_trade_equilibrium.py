@@ -122,7 +122,7 @@ def synthetic_2c_2s_calib() -> TradeCalibrationResult:
 @pytest.fixture(scope="module")
 def empirical_calib() -> TradeCalibrationResult:
     """Calibrate full 77-country 11-sector empirical model from the bundled ICIO data."""
-    return calibrate_trade_model(load_icio_data(), ns=11, nc=77, nfd=3, validate=True)
+    return calibrate_trade_model(load_icio_data(source="legacy"), ns=11, nc=77, nfd=3, validate=True)
 
 
 # ---------------------------------------------------------------------------

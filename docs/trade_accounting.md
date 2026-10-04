@@ -47,7 +47,7 @@ suits the table above (values in tens), while the frozen OECD 3-region x
 `5e-8`; use `1e-5` to `1e-7` there, and rescale the tolerance when you change
 the currency unit. Consistent accounting needs a calibration whose final-use
 coefficients and expenditure shares are nonnegative: the bundled legacy
-77-country x 11-sector table (`load_icio_data()`) is rejected with a
+77-country x 11-sector table (`load_icio_data(source="legacy")`) is rejected with a
 `ValueError` (three negative investment cells and one negative investment
 share); use native ingestion with `package_mrio_to_calibration_result`, the
 frozen OECD fixture, or your own balanced table.

@@ -109,7 +109,7 @@ def synthetic_calib():
 @pytest.fixture(scope="module")
 def icio_calib():
     """Load canonical OECD ICIO benchmark calibration."""
-    return calibrate_trade_model(load_icio_data())
+    return calibrate_trade_model(load_icio_data(source="legacy"))
 
 
 # =============================================================================

@@ -578,7 +578,7 @@ def test_household_expenditure_from_calibration_matches_flexible_benchmark(calib
 
 
 def test_bundled_oecd_table_category_zero_is_admissible():
-    calib = calibrate_trade_model(load_icio_data(), ns=11, nc=77, nfd=3, validate=True)
+    calib = calibrate_trade_model(load_icio_data(source="legacy"), ns=11, nc=77, nfd=3, validate=True)
     x0 = household_expenditure_from_calibration(calib, 0)
     assert x0.shape == (11, 77) and np.all(x0 > 0)
     prefs = calibrate_household(x0, "stone_geary", sector_codes=calib.sector_codes, country_codes=calib.country_codes)

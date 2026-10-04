@@ -31,7 +31,7 @@ from puremacro.trade.dynamic import (
     stability_report,
 )
 
-icio = load_icio_data(return_structured=True)
+icio = load_icio_data(source="legacy", return_structured=True)
 # Three cells of the bundled investment column are negative: choose a policy.
 accounts = DynamicAccounts.from_icio(icio, negative_investment="to_inventory")
 calibration = calibrate_dynamic(

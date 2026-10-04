@@ -17,7 +17,7 @@
 #
 # Todas las cifras provienen de una tabla balanceada a mano con dos países y dos sectores, en unidades de valor ilustrativas; los códigos A, B, FOOD y MANU no se refieren a economías observadas. Las secciones 1-3 evalúan los bloques de costos, demanda y precios de la biblioteca a precios dados. Las secciones 4-6 resuelven un equilibrio arancelario, muestran cuánto depende su respuesta de una elasticidad y comparan dos cierres contables.
 #
-# La tabla 77x11 incluida que devuelve `load_icio_data()` es un conjunto de datos de prueba de regresión del software, agregado a partir de una exportación corrupta de la OCDE (los números perdieron el punto decimal); no es una fuente de estimaciones: véase la entrada del 2026-09-22 de [docs/es/ADVISORY.md](../docs/es/ADVISORY.md). La primera celda de código solo lee su etiqueta de procedencia.
+# La tabla 77x11 incluida que devuelve `load_icio_data(source="legacy")` es un conjunto de datos de prueba de regresión del software, agregado a partir de una exportación corrupta de la OCDE (los números perdieron el punto decimal); no es una fuente de estimaciones: véase la entrada del 2026-09-22 de [docs/es/ADVISORY.md](../docs/es/ADVISORY.md). La primera celda de código solo lee su etiqueta de procedencia.
 
 # %% [markdown]
 # ## El método en matemáticas
@@ -64,7 +64,7 @@ from puremacro.trade.flexible import (
 )
 
 # The bundled 77x11 table is a regression fixture (docs/ADVISORY.md): read its label, nothing else.
-fixture = load_icio_data(return_structured=True)
+fixture = load_icio_data(source="legacy", return_structured=True)
 assert fixture.metadata["is_regression_fixture"]
 print("Bundled 77x11 table", fixture.matrix.shape, "->", fixture.metadata["use"])
 

@@ -380,7 +380,7 @@ def test_stone_geary_warns_when_subsistence_exceeds_budget(notebook64_cge):
 # ---------------------------------------------------------------------------
 
 def test_bundled_icio_records_regression_fixture_provenance():
-    icio = load_icio_data(return_structured=True)
+    icio = load_icio_data(source="legacy", return_structured=True)
     assert icio.metadata["is_regression_fixture"] is True
     assert icio.metadata["source_export_md5"] == "d1b887aaafa54ab3f28fde78fcd21cdf"
     assert "ADVISORY" in icio.metadata["advisory"]

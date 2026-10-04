@@ -149,7 +149,7 @@ def oecd3_calib(oecd3_table) -> CondensedCalibration:
 
 @pytest.fixture(scope="module")
 def legacy_calib():
-    return calibrate_trade_model(load_icio_data())
+    return calibrate_trade_model(load_icio_data(source="legacy"))
 
 
 @pytest.fixture(scope="module")

@@ -87,7 +87,7 @@ def _assert_brackets(bounds, truth, rel=1e-12):
 
 @pytest.fixture(scope="module")
 def bundled_calibration():
-    return calibrate_trade_model(load_icio_data(), ns=11, nc=77, nfd=3)
+    return calibrate_trade_model(load_icio_data(source="legacy"), ns=11, nc=77, nfd=3)
 
 
 def _bundled_cost_matrix(calib, rate: float) -> np.ndarray:

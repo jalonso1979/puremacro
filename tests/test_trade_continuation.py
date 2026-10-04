@@ -772,7 +772,7 @@ def test_frozen_oecd_fixture_unit_elasticity_region_is_reported_not_hidden():
 def test_bundled_77x11_calibration_is_rejected_by_consistent_accounting():
     """The bundled 77x11 table has three negative investment cells; consistent
     accounting (and therefore every helper here) refuses it before any solve."""
-    calib = calibrate_trade_model(load_icio_data())
+    calib = calibrate_trade_model(load_icio_data(source="legacy"))
     assert int((calib.afd < 0).sum()) == 3
     with pytest.raises(ValueError, match="nonnegative"):
         sigma_path(calib, None, None, 2., tol=1e-5)

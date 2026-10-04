@@ -49,7 +49,7 @@ from puremacro.trade.solver import build_initial_guess, solve_trade_equilibrium
 @pytest.fixture(scope="module")
 def empirical_calib() -> TradeCalibrationResult:
     """Load empirical 77-country, 11-sector OECD ICIO calibration."""
-    raw = load_icio_data()
+    raw = load_icio_data(source="legacy")
     return calibrate_trade_model(raw, ns=11, nc=77, nfd=3, validate=True)
 
 

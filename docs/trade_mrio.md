@@ -18,7 +18,7 @@ from puremacro.trade.mrio import (
     regularize_table, to_calibration_matrix,
 )
 
-calib = calibrate_trade_model(load_icio_data())
+calib = calibrate_trade_model(load_icio_data(source="legacy"))
 table = MRIOTable.from_trade_calibration(calib, negative_investment="to_inventory")
 print(table.summary())
 print(table.accounting_report().to_markdown())

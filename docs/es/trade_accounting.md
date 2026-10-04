@@ -49,7 +49,7 @@ el fixture OECD congelado de 3 regiones x 3 sectores en millones de USD
 `1e-7` y reescale la tolerancia al cambiar la unidad monetaria. La contabilidad
 consistente requiere una calibración con coeficientes de uso final y
 participaciones de gasto no negativos: la tabla heredada incluida de 77 países x
-11 sectores (`load_icio_data()`) se rechaza con un `ValueError` (tres celdas de
+11 sectores (`load_icio_data(source="legacy")`) se rechaza con un `ValueError` (tres celdas de
 inversión negativas y una participación de inversión negativa); use la ingesta
 nativa con `package_mrio_to_calibration_result`, el fixture OECD congelado o su
 propia tabla equilibrada.

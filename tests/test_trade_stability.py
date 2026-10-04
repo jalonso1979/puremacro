@@ -539,7 +539,7 @@ def test_hicksian_two_country_ces_model_is_stable_and_reports_labels():
 @pytest.mark.slow
 def test_bundled_77x11_legacy_run():
     from puremacro.trade.data import load_icio_data
-    calib = calibrate_trade_model(load_icio_data(), ns=11, nc=77, nfd=3)
+    calib = calibrate_trade_model(load_icio_data(source="legacy"), ns=11, nc=77, nfd=3)
     result = solve_trade_equilibrium(calib)
     assert result.converged
     tic = time.perf_counter()

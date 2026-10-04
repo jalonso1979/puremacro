@@ -17,7 +17,7 @@
 #
 # All numbers come from a hand-balanced table with two countries and two sectors in illustrative value units; the codes A, B, FOOD and MANU do not refer to observed economies. Sections 1-3 evaluate the library's cost, demand and pricing blocks at given prices. Sections 4-6 solve a tariff equilibrium, show how its answer depends on one elasticity, and compare two accounting closures.
 #
-# The bundled 77x11 table returned by `load_icio_data()` is a software regression fixture aggregated from a corrupted OECD export (numbers lost their decimal points), not a source of estimates: see the 2026-09-22 entry of [docs/ADVISORY.md](../docs/ADVISORY.md). The first code cell only reads its provenance label.
+# The bundled 77x11 table returned by `load_icio_data(source="legacy")` is a software regression fixture aggregated from a corrupted OECD export (numbers lost their decimal points), not a source of estimates: see the 2026-09-22 entry of [docs/ADVISORY.md](../docs/ADVISORY.md). The first code cell only reads its provenance label.
 
 # %% [markdown]
 # ## The method in math
@@ -64,7 +64,7 @@ from puremacro.trade.flexible import (
 )
 
 # The bundled 77x11 table is a regression fixture (docs/ADVISORY.md): read its label, nothing else.
-fixture = load_icio_data(return_structured=True)
+fixture = load_icio_data(source="legacy", return_structured=True)
 assert fixture.metadata["is_regression_fixture"]
 print("Bundled 77x11 table", fixture.matrix.shape, "->", fixture.metadata["use"])
 

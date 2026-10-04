@@ -434,7 +434,7 @@ def test_bundled_77x11_threshold_is_certified_on_both_sides():
     from puremacro.trade import load_icio_data
     from puremacro.trade.solver import _hawkins_simon_certificate
 
-    calib = calibrate_trade_model(load_icio_data())
+    calib = calibrate_trade_model(load_icio_data(source="legacy"))
     assert _hawkins_simon_certificate(calib, 3.6)[3] == "viable"
     assert _hawkins_simon_certificate(calib, 3.8)[3] == "violated"
     with pytest.raises(ValueError, match="violates"):

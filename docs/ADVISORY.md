@@ -14,6 +14,45 @@ without re-running it), and what to do.
 
 ---
 
+## 2026-10-03 — the legacy 77x11 aggregation misplaced rest-of-world final demand, all versions; a clean table ships in 4.6.0
+
+**Not a solver defect; a second defect of the legacy data fixture, found while
+replacing it. Fixed in 4.6.0 by a new bundled table; the legacy table is kept
+unchanged for its MATLAB parity suites.**
+
+While porting the MATLAB aggregation `Agregar_11s.m` to Python
+(`tools/build_icio_77c_11s.py`, verified against the bundled
+`icio_77c_11s.npz` cell by cell: 99.92% bit-equal, maximum difference 7.6e-5 on
+values of order 1e9), two indexing defects of that script surfaced in addition
+to the decimal corruption recorded on 2026-09-22. In the block that reassembles
+the table around the rest-of-world country (ROW), the loop meant to fill ROW's
+final-demand sales to the other 76 countries writes into the intermediate block
+instead (`data7fd` written as `data7`), so those sales sit in the intermediate
+columns of the first countries while the ROW final-demand block is empty; and
+the loop meant to fill the tax and value-added cells of ROW's own final-demand
+columns writes into ROW's flow rows (`data5Tfd` written as `data5fd`). On the
+legacy table this moves 3,203 cells and 4.9e9 (corrupted-export units) between
+blocks; on the clean 2020 release it would move 1.2e5 USD million. Every
+number derived from the legacy table inherits both defects.
+
+The 4.6.0 replacement is `icio_77c_11s_oecd2020.npz`, built from the clean
+OECD ICIO 2023-edition 2020 file (MD5 `d3e0f4979d85d6c0bb7cf4c43e324287`) with
+the corrected aggregation; `MANIFEST_OECD2020.json` records the array digest,
+the recipe and the native world totals it conserves (value added 7.97e7 USD
+million; output 1.66e8). The author's legacy MATLAB model, run unchanged on the
+clean table, is bundled as `trade_reference_solutions_oecd2020.npz` so the
+parity check survives the data change, and four gallery cases (`Trade`) check
+conservation, column balance, the base equilibrium and that MATLAB parity.
+
+| Surface | Affected condition | Unaffected when | Guidance |
+|---|---|---|---|
+| `load_icio_data()` without `source=`, all versions | Returns the legacy table; from 4.6.0 with a `FutureWarning` (once per process) | `source="oecd2020"` | Pass `source="oecd2020"` for anything empirical; `source="legacy"` keeps the regression fixture explicitly. The default switches to `"oecd2020"` in 5.0. |
+| Notebooks 61, 62, 64 and their Spanish twins; the trade documentation snippets | They read the legacy table (now pinned with `source="legacy"` so their numbers are unchanged) | — | Their magnitudes remain illustrations of the solver on a regression fixture, not OECD-based estimates, exactly as the 2026-09-22 entry says. |
+| `trade_reference_solutions.npz`, `trade_results_workbook.npz` | MATLAB solutions of the legacy table | `load_reference_solution(..., source="oecd2020")` | Use the clean-table references for new parity work; `REFERENCE_MANIFEST_OECD2020.json` lists the scenarios available. |
+| `load_oecd_icio_granular`, `puremacro.trade.mrio.read_oecd_native`, `load_raw_45sector_icio` | None: they read the native files by labels | — | Unchanged. |
+
+---
+
 ## 2026-10-02 — `solve_trade_equilibrium(method="quasi_condensed")` reported `converged=True` with a large residual, versions 4.2.0 to 4.4.0
 
 **Fixed after 4.4.0** (see the Unreleased section of `CHANGELOG.md`). The
@@ -272,7 +311,13 @@ shock from the native model, is affected.
 - **Any citation of -1673.72, -1686.09 or -2524.36 as SW07 results.** With the
   fixes, the optimised posterior mode on the bundled data has log posterior
   -822.04 and Laplace log marginal density -902.83. SW07's own -905.8 (Table 2)
-  uses a 1956-65 training-sample prior and is not a comparable target.
+  is computed over 1966-2004 with 1956:1-1965:4 as a training sample; since
+  4.6.0 `sw07_laplace_mdd` reproduces that computation on the authors' data
+  (presample and diffuse initialisation), giving -932.3, and Dynare 8 on the
+  public replication files and the authors' own mode gives -923.1 with the
+  file's options (puremacro at the same point: -922.4). The printed -905.8 is
+  reproduced by neither and remains not a comparable target (see
+  `docs/replication.md`).
 - **In this repository:** notebooks 41 and 42 (English and Spanish),
   `docs/replication.md` and the JOSS draft cite the affected numbers.
 
@@ -1324,7 +1369,7 @@ Measured against the clean OECD 2020 release (MD5 `d3e0f4979d85d6c0bb7cf4c43e324
 
 | Surface | Affected condition | Guidance |
 |---|---|---|
-| `load_icio_data()`, the bundled 77x11 calibration, notebooks 61-65, `trade_reference_solutions.npz`, `trade_results_workbook.npz` | Any economic magnitude, share or elasticity computed from the bundled table | Treat these as software regression fixtures: the parity suites compare puremacro with MATLAB solutions of the **same** table and remain internally consistent. Do not report their outputs as OECD-based estimates. |
+| `load_icio_data(source="legacy")`, the bundled 77x11 calibration, notebooks 61-65, `trade_reference_solutions.npz`, `trade_results_workbook.npz` | Any economic magnitude, share or elasticity computed from the bundled table | Treat these as software regression fixtures: the parity suites compare puremacro with MATLAB solutions of the **same** table and remain internally consistent. Do not report their outputs as OECD-based estimates. |
 | `load_raw_45sector_icio()` without a `path` (4.3.0 and earlier) | The default search list started with `computation/7_TIO_77c_vf/data_2020_SML.csv`, the corrupted export, and read it without a checksum | The fixed release searches the clean `ICIOextended/2020_SML.csv` and `2019_SML.csv` first, checks the MD5 of the resolved file, refuses the corrupted export with `MRIOIntegrityError` (a `ValueError`) naming the clean-release checksums, and warns on unknown digests. Pass the clean `2019_SML.csv` (MD5 `28cba31491177955445051d459053744`) or `2020_SML.csv` explicitly. |
 | Native readers (`load_oecd_icio_granular`, `puremacro.trade.mrio.read_oecd_native`) | None: they read the OECD 2023 regular CSV by labels | Use these for new empirical work; they record the source checksum in metadata. |
 

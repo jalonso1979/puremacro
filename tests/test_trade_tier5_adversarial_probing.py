@@ -208,7 +208,7 @@ def singular_fold_cge_model() -> TradeCalibrationResult:
 @pytest.fixture(scope="module")
 def icio_77c_model() -> TradeCalibrationResult:
     """Aggregated 77-country, 11-sector OECD ICIO trade model."""
-    raw_data = load_icio_data(sectors=11)
+    raw_data = load_icio_data(source="legacy", sectors=11)
     return calibrate_trade_model(raw_data, ns=11, nc=77, nfd=3, validate=False)
 
 

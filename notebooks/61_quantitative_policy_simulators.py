@@ -63,7 +63,7 @@ print("Quantitative Macro Policy Simulators: Trade Policy GE & Monetary Transmis
 # Inspect the empirical inter-country input-output (ICIO) transaction foundation.
 # The table contains 77 canonical economies, 11 aggregated industries, and 3 final demand
 # categories, forming an 850 x 1078 structural transaction system.
-icio = load_icio_data(return_structured=True)
+icio = load_icio_data(source="legacy", return_structured=True)
 
 print(f"Bundled OECD ICIO Structural Container:")
 print(f"  Matrix Dimensions         : {icio.matrix.shape[0]} rows x {icio.matrix.shape[1]} columns")

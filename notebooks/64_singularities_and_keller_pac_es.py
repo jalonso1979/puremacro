@@ -422,7 +422,7 @@ ax1.legend(loc="lower right", fontsize=8)
 # La tabla 77x11 incluida en el paquete es un conjunto de datos de prueba de regresión, no datos de la OCDE (ver la tabla del inicio). Aquí solo sirve para ejercitar el certificado sobre una matriz de 847 filas. La verificación pública recorta las tasas del impuesto a la producción a $[-0.9, 0.999]$, así que las cotas corresponden a esa matriz recortada.
 
 # %%
-calib_icio = calibrate_trade_model(load_icio_data(sectors=11), ns=11, nc=77, nfd=3, validate=True)
+calib_icio = calibrate_trade_model(load_icio_data(source="legacy", sectors=11), ns=11, nc=77, nfd=3, validate=True)
 codes = list(calib_icio.country_codes)
 n_clipped = int(np.sum(np.asarray(calib_icio.tax) < -0.9))
 print(f"{len(codes)} regions ({len(codes) - 1} economies and {codes[-1]}), "

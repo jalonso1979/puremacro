@@ -481,7 +481,7 @@ def test_isic_a_c_goods_rule_on_figaro_isic_sections_bundled_and_exiobase_codes(
 def test_from_icio_bundled_table_requires_an_explicit_negative_investment_policy():
     from puremacro.trade import calibrate_trade_model, load_icio_data
 
-    icio = load_icio_data(return_structured=True)
+    icio = load_icio_data(source="legacy", return_structured=True)
     with pytest.raises(ValueError, match="3 negative fixed-investment cells"):
         DynamicAccounts.from_icio(icio)
     acc = DynamicAccounts.from_icio(icio, negative_investment="to_inventory")
@@ -1532,7 +1532,7 @@ def test_parity_with_solve_perfect_foresight_at_forty_dates(native_fixture):
 def bundled_economy():
     from puremacro.trade import load_icio_data
 
-    accounts = DynamicAccounts.from_icio(load_icio_data(return_structured=True), negative_investment="to_inventory")
+    accounts = DynamicAccounts.from_icio(load_icio_data(source="legacy", return_structured=True), negative_investment="to_inventory")
     with pytest.raises(ValueError, match="ARG"):
         calibrate_dynamic(accounts)
     calibration = calibrate_dynamic(accounts, factor_policy="reclassify_losses", investment_policy="reallocate",
@@ -1629,7 +1629,7 @@ def test_parity_with_io_engine_on_the_bundled_77x11_table(bundled_economy):
     from puremacro.trade import load_icio_data
 
     cal, eco = bundled_economy
-    accounts = DynamicAccounts.from_icio(load_icio_data(return_structured=True), negative_investment="to_inventory")
+    accounts = DynamicAccounts.from_icio(load_icio_data(source="legacy", return_structured=True), negative_investment="to_inventory")
     io_cal = ne.calibrate_native(accounts, factor_policy="reclassify_losses", investment_policy="reallocate",
                                  accounting_policy="reconcile_rounding")
     for name in ("y0", "VA0", "b", "tax", "alpha", "omegaC", "omegaCtax", "omegaI", "tC", "tI", "C0", "I0",

@@ -422,7 +422,7 @@ ax1.legend(loc="lower right", fontsize=8)
 # The bundled 77x11 table is a regression fixture, not OECD data (see the table at the top). It is used here only to exercise the certificate on an 847-row matrix. The public check clips production tax rates to $[-0.9, 0.999]$, so the bounds are for that clipped matrix.
 
 # %%
-calib_icio = calibrate_trade_model(load_icio_data(sectors=11), ns=11, nc=77, nfd=3, validate=True)
+calib_icio = calibrate_trade_model(load_icio_data(source="legacy", sectors=11), ns=11, nc=77, nfd=3, validate=True)
 codes = list(calib_icio.country_codes)
 n_clipped = int(np.sum(np.asarray(calib_icio.tax) < -0.9))
 print(f"{len(codes)} regions ({len(codes) - 1} economies and {codes[-1]}), "

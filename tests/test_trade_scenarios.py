@@ -574,7 +574,7 @@ class TestWarmStartedBatchSolve:
 
     def test_warm_started_batch_performance(self) -> None:
         """Execute full batch warm-started from reference solutions in < 60s."""
-        data_mat = load_icio_data()
+        data_mat = load_icio_data(source="legacy")
         calib = calibrate_trade_model(data_mat, ns=11, nc=77, nfd=3)
 
         base_eq = _equilibrium_from_reference("base")
@@ -618,7 +618,7 @@ class TestWarmStartedBatchSolve:
 
     def test_continuation_single_newton_step(self) -> None:
         """Verify warm-started continuation from base to t10 runs 1 Newton step in < 60s."""
-        data_mat = load_icio_data()
+        data_mat = load_icio_data(source="legacy")
         calib = calibrate_trade_model(data_mat, ns=11, nc=77, nfd=3)
 
         base_mat = reference_or_skip("base")

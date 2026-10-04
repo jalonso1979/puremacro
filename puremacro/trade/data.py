@@ -492,8 +492,66 @@ BUNDLED_ICIO_PROVENANCE: dict[str, Any] = {
 """Provenance of the bundled 77x11 table (``ICIOData.metadata`` of :func:`load_icio_data`)."""
 
 
-def bundled_icio_path() -> Path:
-    """Absolute path to the ICIO matrix bundled inside the installed package.
+OECD2020_ICIO_PROVENANCE: dict[str, Any] = {
+    "source": "puremacro/trade/_datafiles/icio_77c_11s_oecd2020.npz (bundled with puremacro)",
+    "derived_from": ("OECD ICIO 2023 edition, 2020 table (2020_SML.csv, MD5 "
+                     "d3e0f4979d85d6c0bb7cf4c43e324287), aggregated to 77 countries x 11 sectors by "
+                     "tools/build_icio_77c_11s.py, a verified Python port of the legacy MATLAB "
+                     "Agregar_11s.m with its two indexing defects corrected"),
+    "source_export_md5": "d3e0f4979d85d6c0bb7cf4c43e324287",
+    "source_export_status": "clean OECD release (registered in puremacro.trade.mrio.OECD_ICIO_MD5)",
+    "is_regression_fixture": False,
+    "use": ("OECD-based 77x11 table for empirical work and for the clean-table parity suites; "
+            "cite the OECD ICIO tables as the source"),
+    "manifest": "puremacro/trade/_datafiles/MANIFEST_OECD2020.json (array SHA-256, recipe, totals)",
+    "advisory": "docs/ADVISORY.md, 2026-10-03 entry: the legacy 77x11 aggregation misplaced ROW final demand",
+    "legacy_alternative": "load_icio_data(source='legacy') keeps the MATLAB-parity regression fixture",
+}
+"""Provenance of the clean OECD 2020 table (``load_icio_data(source="oecd2020")``)."""
+
+_BUNDLED_ICIO_FILES: dict[str, str] = {
+    "legacy": "icio_77c_11s.npz",
+    "oecd2020": "icio_77c_11s_oecd2020.npz",
+}
+"""Bundled 77x11 tables by ``source`` name."""
+
+_BUNDLED_ICIO_PROVENANCE: dict[str, dict[str, Any]] = {
+    "legacy": BUNDLED_ICIO_PROVENANCE,
+    "oecd2020": OECD2020_ICIO_PROVENANCE,
+}
+
+_DEFAULT_SOURCE_WARNED = False
+
+
+def _resolve_bundled_source(source: str | None) -> str:
+    """Validate ``source``; the implicit default is the legacy table, with a FutureWarning once."""
+    global _DEFAULT_SOURCE_WARNED
+    if source is None:
+        if not _DEFAULT_SOURCE_WARNED:
+            _DEFAULT_SOURCE_WARNED = True
+            warnings.warn(
+                "load_icio_data() without `source=` returns the legacy MATLAB-parity fixture, "
+                "which was built from a corrupted OECD export (see BUNDLED_ICIO_PROVENANCE). "
+                "Pass source='oecd2020' for the clean OECD 2020 table, or source='legacy' to keep "
+                "this table explicitly. The default becomes 'oecd2020' in puremacro 5.0.",
+                FutureWarning,
+                stacklevel=3,
+            )
+        return "legacy"
+    if source not in _BUNDLED_ICIO_FILES:
+        raise ValueError(
+            f"unknown bundled ICIO source {source!r}; expected one of "
+            f"{sorted(_BUNDLED_ICIO_FILES)}"
+        )
+    return source
+
+
+def bundled_icio_path(source: str = "legacy") -> Path:
+    """Absolute path to a 77x11 ICIO matrix bundled inside the installed package.
+
+    ``source="legacy"`` (default) is the MATLAB-parity regression fixture
+    described below; ``source="oecd2020"`` is the clean OECD 2020 table
+    (:data:`OECD2020_ICIO_PROVENANCE`, built by ``tools/build_icio_77c_11s.py``).
 
     puremacro ships the 77-country, 11-sector transaction matrix of the MATLAB
     reference model as a compressed ``.npz`` so the trade model reproduces
@@ -506,7 +564,11 @@ def bundled_icio_path() -> Path:
     regression fixture, not OECD data (:data:`BUNDLED_ICIO_PROVENANCE`,
     ``docs/ADVISORY.md`` 2026-09-22).
     """
-    return Path(__file__).resolve().parent / "_datafiles" / "icio_77c_11s.npz"
+    if source not in _BUNDLED_ICIO_FILES:
+        raise ValueError(
+            f"unknown bundled ICIO source {source!r}; expected one of {sorted(_BUNDLED_ICIO_FILES)}"
+        )
+    return Path(__file__).resolve().parent / "_datafiles" / _BUNDLED_ICIO_FILES[source]
 
 
 def bundled_workbook_path() -> Path:
@@ -539,21 +601,30 @@ def load_reference_workbook_sheet(sheet: str) -> np.ndarray:
         return np.asarray(bundle[key])
 
 
-def bundled_reference_path() -> Path:
-    """Absolute path to the bundled MATLAB-derived reference solutions."""
-    return Path(__file__).resolve().parent / "_datafiles" / "trade_reference_solutions.npz"
+def bundled_reference_path(source: str = "legacy") -> Path:
+    """Absolute path to the bundled MATLAB reference solutions.
+
+    ``source="legacy"`` is the file solved on the legacy table (``icio_77c_11s.npz``);
+    ``source="oecd2020"`` the file solved on the clean OECD 2020 table
+    (``REFERENCE_MANIFEST_OECD2020.json`` records each scenario's convergence).
+    """
+    files = {"legacy": "trade_reference_solutions.npz",
+             "oecd2020": "trade_reference_solutions_oecd2020.npz"}
+    if source not in files:
+        raise ValueError(f"unknown reference source {source!r}; expected one of {sorted(files)}")
+    return Path(__file__).resolve().parent / "_datafiles" / files[source]
 
 
-def available_reference_scenarios() -> list[str]:
-    """Tariff scenarios whose reference solution ships with puremacro."""
-    path = bundled_reference_path()
+def available_reference_scenarios(source: str = "legacy") -> list[str]:
+    """Scenario names with a bundled reference solution (``'base'``, ``'t10'``, ...)."""
+    path = bundled_reference_path(source)
     if not path.is_file():
         return []
     with np.load(path) as bundle:
-        return sorted({name.split("__", 1)[0] for name in bundle.files})
+        return sorted({name.split("__", 1)[0] for name in bundle.files if "__" in name})
 
 
-def load_reference_solution(scenario: str = "base") -> dict[str, np.ndarray]:
+def load_reference_solution(scenario: str = "base", source: str = "legacy") -> dict[str, np.ndarray]:
     """Return the reference equilibrium arrays for one tariff scenario.
 
     These are verbatim copies of the MATLAB ``results_77c_11s_*.mat`` outputs of
@@ -566,6 +637,10 @@ def load_reference_solution(scenario: str = "base") -> dict[str, np.ndarray]:
     ----------
     scenario : str, default 'base'
         One of :func:`available_reference_scenarios`, e.g. ``'base'`` or ``'t10'``.
+    source : {"legacy", "oecd2020"}, default "legacy"
+        Which table the MATLAB model was solved on: the legacy fixture, or the
+        clean OECD 2020 table (new in 4.6.0; see
+        ``_datafiles/REFERENCE_MANIFEST_OECD2020.json`` for convergence records).
 
     Raises
     ------
@@ -573,7 +648,7 @@ def load_reference_solution(scenario: str = "base") -> dict[str, np.ndarray]:
         If the scenario has no bundled reference. ``t10_54`` is the known gap:
         its source file is a dataless placeholder in the author's storage.
     """
-    path = bundled_reference_path()
+    path = bundled_reference_path(source)
     if not path.is_file():
         raise FileNotFoundError(
             f"Bundled trade reference solutions missing at {path}; reinstall puremacro."
@@ -587,21 +662,22 @@ def load_reference_solution(scenario: str = "base") -> dict[str, np.ndarray]:
         }
     if not arrays:
         raise KeyError(
-            f"No bundled reference for scenario {scenario!r}; "
-            f"available: {available_reference_scenarios()}"
+            f"No bundled reference for scenario {scenario!r} (source={source!r}); "
+            f"available: {available_reference_scenarios(source)}"
         )
     return arrays
 
 
-def _load_icio_array(custom_path: str | Path | None = None) -> np.ndarray:
+def _load_icio_array(custom_path: str | Path | None = None, source: str = "legacy") -> np.ndarray:
     """Return the (850, 1078) ICIO matrix as float64.
 
-    With no argument the bundled dataset is used. ``custom_path`` accepts a
-    ``.npz`` written by numpy (key ``data``, or the single stored array) or a
+    With no ``custom_path`` the bundled table named by ``source`` is used
+    (``"legacy"`` or ``"oecd2020"``). ``custom_path`` accepts a ``.npz``
+    written by numpy (key ``data``, or the single stored array) or a
     delimited text table; MATLAB ``.mat`` input was removed in 4.0.0.
     """
     if custom_path is None:
-        target = bundled_icio_path()
+        target = bundled_icio_path(source)
         if not target.is_file():
             raise FileNotFoundError(
                 f"Bundled ICIO dataset missing at {target}. A source checkout or "
@@ -610,7 +686,7 @@ def _load_icio_array(custom_path: str | Path | None = None) -> np.ndarray:
     else:
         target = Path(custom_path)
         if target.is_dir():
-            for name in ("icio_77c_11s.npz", "data_77c_11s.npz"):
+            for name in ("icio_77c_11s_oecd2020.npz", "icio_77c_11s.npz", "data_77c_11s.npz"):
                 if (target / name).is_file():
                     target = target / name
                     break
@@ -924,19 +1000,28 @@ def load_raw_45sector_icio(
 def load_icio_data(
     path: str | Path | None = None,
     *,
+    source: str | None = None,
     return_structured: bool = False,
     sectors: int = 11,
     aggregate_sectors: bool = True,
     regularize: bool = True,
 ) -> np.ndarray | ICIOData:
-    """Load the 77-country ICIO table: the bundled 11-sector fixture, or a raw 45-sector file.
+    """Load the 77-country ICIO table: a bundled 11-sector table, or a raw 45-sector file.
 
     Parameters
     ----------
     path : str or Path, optional
-        Path to a ``.npz`` or delimited text table. If omitted, the dataset
-        bundled with puremacro is used, so no file outside the installation is
-        needed. MATLAB ``.mat`` input was removed in 4.0.0.
+        Path to a ``.npz`` or delimited text table. If omitted, a table
+        bundled with puremacro is used (see ``source``), so no file outside
+        the installation is needed. MATLAB ``.mat`` input was removed in 4.0.0.
+    source : {"oecd2020", "legacy"}, optional
+        Which bundled 77x11 table to load when ``path`` is omitted.
+        ``"oecd2020"`` is the clean OECD ICIO 2023-edition 2020 table
+        aggregated by ``tools/build_icio_77c_11s.py``
+        (:data:`OECD2020_ICIO_PROVENANCE`); ``"legacy"`` is the MATLAB-parity
+        regression fixture described in the Notes. Omitting ``source`` still
+        returns the legacy table, with a ``FutureWarning`` (once per process):
+        the default becomes ``"oecd2020"`` in puremacro 5.0. New in 4.6.0.
     return_structured : bool, default False
         If True, returns an :class:`ICIOData` container exposing slicing properties.
         If False, returns the raw float64 array of shape (850, 1078) or (3468, 3696).
@@ -976,8 +1061,10 @@ def load_icio_data(
     """
     is_45 = (sectors == 45) or (not aggregate_sectors)
     if path is not None:
+        if source is not None:
+            raise ValueError("pass either `path` (a file of your own) or `source` (a bundled table), not both")
         p_str = str(path)
-        if p_str.endswith(".csv") or "2020" in p_str or "45s" in p_str:
+        if p_str.endswith(".csv") or ("2020" in p_str and "oecd2020" not in p_str) or "45s" in p_str:
             is_45 = True
 
     if is_45:
@@ -987,7 +1074,8 @@ def load_icio_data(
             return_structured=return_structured,
         )
 
-    raw_data = _load_icio_array(path)
+    resolved = _resolve_bundled_source(source) if path is None else "legacy"
+    raw_data = _load_icio_array(path, source=resolved)
 
     if return_structured:
         return ICIOData(
@@ -995,7 +1083,7 @@ def load_icio_data(
             country_codes=CANONICAL_COUNTRY_CODES,
             sector_codes=CANONICAL_SECTOR_CODES,
             fd_codes=CANONICAL_FINAL_DEMAND_CODES,
-            metadata=dict(BUNDLED_ICIO_PROVENANCE) if path is None else {},
+            metadata=dict(_BUNDLED_ICIO_PROVENANCE[resolved]) if path is None else {},
         )
 
     return raw_data
@@ -2356,6 +2444,7 @@ def verify_accounting_invariants(calib: TradeCalibrationResult) -> dict[str, Any
 
 
 __all__ = [
+    "OECD2020_ICIO_PROVENANCE",
     "bundled_icio_path",
     "bundled_reference_path",
     "bundled_workbook_path",

@@ -71,6 +71,9 @@ def test_no_matlab_sources_are_distributed():
     # Keep an exact allowlist: a new runtime dependency must still fail here.
     development_references = {
         "tools/reference_validation/export_dynare.m",
+        # Driver of the 2026-10-03 MATLAB run that produced the clean-table trade
+        # references; the model code it calls is not in the repository.
+        "tools/reference_validation/trade_clean_table/run_scenarios_clean.m",
         "curso/notebooks/modelos/rbc_mexico_dual/Output/rbc_mexico_dual_results.mat",
     }
     offenders = [
@@ -93,7 +96,7 @@ def test_trade_calibration_data_ships_with_the_package():
     # It must live inside the installed package, not beside the checkout.
     assert Path(puremacro.__file__).resolve().parent in path.parents
 
-    matrix = load_icio_data()
+    matrix = load_icio_data(source="legacy")
     assert matrix.shape == (850, 1078)
     assert matrix.dtype == np.float64
 

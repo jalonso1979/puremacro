@@ -1391,7 +1391,7 @@ class TestCalibrationBridge:
         calibrate_trade_model(D, ns=2, nc=2, nfd=3)
 
     def test_from_trade_calibration_bundled_negative_cells_and_round_trip(self):
-        calib = calibrate_trade_model(load_icio_data())
+        calib = calibrate_trade_model(load_icio_data(source="legacy"))
         with pytest.raises(m.MRIOIntegrityError, match="to_inventory"):
             m.MRIOTable.from_trade_calibration(calib)
         t = m.MRIOTable.from_trade_calibration(calib, negative_investment="to_inventory")
