@@ -356,9 +356,45 @@ def build_fixture(csv_path: Path, out_paths, *, n_keep: int = 200,
     return payload
 
 
+AUTHORS_CSV = ROOT / "puremacro" / "dsge" / "_sw07_usmodel_data.csv"
+_AUTHORS_MAP = {"dy": "gdp_growth", "dc": "cons_growth", "dinve": "inv_growth", "dw": "wage_growth",
+                "labobs": "log_hours", "pinfobs": "infl", "robs": "ffr"}
+
+
+def write_authors_csv(mat_path: Path, out_path: Path = AUTHORS_CSV) -> pd.DataFrame:
+    """Convert the authors' ``usmodel_data.mat`` (AER replication files, 1947Q3-2004Q4)
+    verbatim into the bundled ``_sw07_usmodel_data.csv``. Development tool only: the
+    library never reads MATLAB files."""
+    import scipy.io as sio
+
+    m = sio.loadmat(str(mat_path))
+    n = int(np.asarray(m["dy"]).size)
+    idx = [str(q) for q in pd.period_range("1947Q3", periods=n, freq="Q")]
+    df = pd.DataFrame({v: np.asarray(m[k], dtype=float).ravel() for k, v in _AUTHORS_MAP.items()}, index=idx)
+    df.index.name = "date"
+    header = [
+        f"# puremacro SW07 dataset, the authors' series: {idx[0]} to {idx[-1]} ({n} quarterly obs)",
+        "# Source: usmodel_data.mat of the Smets and Wouters (2007) AER replication files",
+        "# (https://www.aeaweb.org/articles?id=10.1257/aer.97.3.586), as redistributed in Johannes Pfeifer's",
+        "# DSGE_mod repository (Smets_Wouters_2007/usmodel_data.mat). The data are the authors' replication",
+        "# data; the GPL-3 licence of DSGE_mod covers its Dynare code, not these numbers.",
+        "# Converted verbatim by tools/build_sw07_data.py authors; column mapping dy->gdp_growth, dc->cons_growth,",
+        "# dinve->inv_growth, dw->wage_growth, labobs->log_hours, pinfobs->infl, robs->ffr. Units as in the paper's",
+        "# data appendix: growth rates and inflation in 100 x log differences, hours 100 x log (the authors' level,",
+        "# mean -0.81 over 1966Q1-2004Q4; _sw07_data.csv demeans to 0), federal funds rate in quarterly percent.",
+        "# The 1966Q1-2004Q4 rows are the paper's estimation sample; 1956Q1-1965Q4 is the Table 2 training sample.",
+    ]
+    out_path.write_text("\n".join(header) + "\n" + df.to_csv(float_format="%.12g", lineterminator="\n"),
+                        encoding="utf-8")
+    return df
+
+
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
+    a = sub.add_parser("authors", help="convert the authors' usmodel_data.mat into the bundled CSV")
+    a.add_argument("--mat", type=Path, required=True, help="path to usmodel_data.mat (AER replication files)")
+    a.add_argument("--out", type=Path, default=AUTHORS_CSV)
     d = sub.add_parser("data", help="download FRED series and write the CSV")
     d.add_argument("--cache", type=Path, default=None, help="directory of cached fredgraph CSVs")
     d.add_argument("--out", type=Path, default=DEFAULT_CSV)
@@ -366,7 +402,10 @@ def main(argv=None) -> None:
     f.add_argument("--csv", type=Path, default=DEFAULT_CSV)
     f.add_argument("--out", type=Path, nargs="+", default=list(DEFAULT_FIXTURES))
     args = ap.parse_args(argv)
-    if args.cmd == "data":
+    if args.cmd == "authors":
+        out = write_authors_csv(args.mat, args.out)
+        print(f"wrote {args.out} ({len(out)} quarters)")
+    elif args.cmd == "data":
         out = build_data(args.out, args.cache)
         print(f"wrote {args.out} ({len(out)} quarters)")
         print(out.describe().T[["mean", "std", "min", "max"]])

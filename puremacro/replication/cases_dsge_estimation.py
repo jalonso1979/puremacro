@@ -174,6 +174,28 @@ def _eval_sw07_structural_params() -> dict[str, float]:
     return {k: mode[k] for k in _MODE_CASE_PARAMS}
 
 
+def _authors_mode_reference() -> dict:
+    """The authors' posterior mode and Dynare 8's log posterior there (package data)."""
+    import json
+
+    res = resources.files("puremacro.dsge").joinpath("_references/sw07_usmodel_mode.json")
+    return json.loads(res.read_text(encoding="utf-8"))
+
+
+def _eval_sw07_log_posterior_at_authors_mode() -> dict[str, float]:
+    """puremacro's log posterior at the authors' own mode, authors' data, AER .mod options.
+
+    ``first_obs=71`` (1965Q1), ``presample=4`` and ``lik_init=2`` of the
+    replication ``.mod``, so the likelihood is that of 1966Q1-2004Q4 with the
+    four 1965 quarters initialising the filter from the diffuse start."""
+    from puremacro.dsge.sw07_marginal import sw07_log_posterior
+
+    ref = _authors_mode_reference()
+    lp = sw07_log_posterior(ref["mode"], dataset="authors", first_obs="1965Q1", last_obs="2004Q4",
+                            presample=4, lik_init="diffuse")
+    return {"log_posterior_at_authors_mode": float(lp)}
+
+
 _PAPER = (
     "Smets & Wouters (2007), 'Shocks and Frictions in US Business Cycles: "
     "A Bayesian DSGE Approach', AER 97(3):586-606"
@@ -181,6 +203,26 @@ _PAPER = (
 _SOURCE = "bundled:_sw07_data.csv + package:replication/data/" + _FIXTURE_NAME
 
 CASES: list[ReplicationCase] = [
+    ReplicationCase(
+        id="dsge_estimation.sw07_log_posterior_at_authors_mode_vs_dynare",
+        family="dsge_estimation",
+        paper=_PAPER,
+        title="Smets-Wouters: log posterior at the authors' mode on the authors' data equals Dynare 8's",
+        title_es="Smets-Wouters: log-posteriori en la moda de los autores sobre sus datos igual a la de Dynare 8",
+        source="package:dsge/_references/sw07_usmodel_mode.json + bundled:_sw07_usmodel_data.csv",
+        estimate=_eval_sw07_log_posterior_at_authors_mode,
+        target={"log_posterior_at_authors_mode": -841.4621},
+        target_kind=TargetKind.POINT,
+        tol=Tol.TIGHT,
+        citation="Dynare 8 (snapshot 8-2026-05-26-1803, MATLAB R2026a, 2026-10-03) on Pfeifer's "
+                 "Smets_Wouters_2007.mod with the AER replication data and mode file: 'Initial value "
+                 "of the log posterior (or likelihood): -841.4621'; Laplace log data density -923.05.",
+        notes="External-software check of the SW07 model, data handling, presample and diffuse "
+              "initialisation at one and the same parameter vector: puremacro gives -840.81 (0.65 log "
+              "points, 0.08%). With Dynare's own Hessian the Laplace density is -922.40 against "
+              "Dynare's -923.05. The paper's Table 2 figure, -905.8, is reproduced by neither: see "
+              "docs/replication.md.",
+    ),
     ReplicationCase(
         id="dsge_estimation.sw07_log_posterior_at_mode",
         family="dsge_estimation",

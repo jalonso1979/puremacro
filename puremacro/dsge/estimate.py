@@ -197,22 +197,38 @@ def _make_neg_log_posterior(
     penalty: float = np.inf,
     failure: "_LikelihoodFailure | None" = None,
     caller: str = "estimate_dsge",
+    presample: int = 0,
+    lik_init: str = "stationary",
+    diffuse_scale: float = 10.0,
 ):
     """Closure returning -log_posterior(vec).
 
-    The Kalman recursion is started from the model's **unconditional**
-    state distribution (:func:`_stationary_init`), not from
-    ``kalman_filter``'s approximately-diffuse ``P0 = 1e6 * I``; see the
-    module docstring for why the likelihood level depends on that choice.
-    A draw whose transition matrix has a (near-)unit root has no
-    unconditional distribution — the diffuse default is used for it and a
-    ``UserWarning`` naming ``caller`` is emitted once per closure.
+    With ``lik_init="stationary"`` (default) the Kalman recursion is started
+    from the model's **unconditional** state distribution
+    (:func:`_stationary_init`), not from ``kalman_filter``'s
+    approximately-diffuse ``P0 = 1e6 * I``; see the module docstring for why
+    the likelihood level depends on that choice. A draw whose transition
+    matrix has a (near-)unit root has no unconditional distribution — the
+    diffuse default is used for it and a ``UserWarning`` naming ``caller`` is
+    emitted once per closure. ``lik_init="diffuse"`` starts every draw from
+    ``P0 = diffuse_scale * I`` (Dynare's ``lik_init=2`` with its default
+    ``Harvey_scale_factor = 10``) and ``a0`` at the state steady state.
+
+    ``presample`` (Dynare's option of the same name) runs the filter through
+    the first ``presample`` rows of ``y`` from that initialisation and drops
+    their likelihood contributions: the likelihood is that of
+    ``y[presample:]`` conditional on ``y[:presample]``. New in 4.6.0.
 
     ``penalty`` is the value returned when a draw is infeasible.  It is
     ``+inf`` for the MCMC target (an infeasible draw must be rejected) and
     a large finite number for the mode optimiser (L-BFGS-B cannot
     finite-difference across ``inf`` and would stop at iteration 1).
     """
+    if lik_init not in ("stationary", "diffuse"):
+        raise ValueError(f"{caller}: lik_init must be 'stationary' or 'diffuse', got {lik_init!r}")
+    presample = int(presample)
+    if presample < 0 or presample >= len(y):
+        raise ValueError(f"{caller}: presample must lie in [0, {len(y) - 1}], got {presample}")
     warned = [False]
 
     def neg_log_post(vec: np.ndarray) -> float:
@@ -226,7 +242,11 @@ def _make_neg_log_posterior(
         try:
             ssm = observation_eq(params)
             a0, P0 = _stationary_init(ssm)
-            if P0 is None and not warned[0]:
+            if lik_init == "diffuse":
+                m_states = ssm.T.shape[0]
+                a0 = np.zeros(m_states) if a0 is None else a0
+                P0 = float(diffuse_scale) * np.eye(m_states)
+            elif P0 is None and not warned[0]:
                 warned[0] = True
                 warnings.warn(
                     f"{caller}: the transition matrix at some parameter "
@@ -240,7 +260,13 @@ def _make_neg_log_posterior(
                     UserWarning,
                     stacklevel=2,
                 )
-            out = kalman_filter(y, ssm, a0=a0, P0=P0)
+            if presample > 0:
+                pre = kalman_filter(y[:presample], ssm, a0=a0, P0=P0)
+                # One-step-ahead state after the last presample observation.
+                a0, P0 = pre["a_pred"][-1], pre["P_pred"][-1]
+                out = kalman_filter(y[presample:], ssm, a0=a0, P0=P0)
+            else:
+                out = kalman_filter(y, ssm, a0=a0, P0=P0)
             ll = out["loglik"]
         except (np.linalg.LinAlgError, ValueError, RuntimeError,
                 ZeroDivisionError, FloatingPointError) as exc:
@@ -785,9 +811,18 @@ def estimate_dsge(
     n_chains: int = 2,
     burn_in: int = 2_000,
     seed: int = 0,
+    presample: int = 0,
+    lik_init: str = "stationary",
     **kwargs,
 ) -> DSGEPosteriorResult | NUTSResult:
     """Bayesian DSGE estimation via Random-Walk Metropolis-Hastings or NUTS.
+
+    ``presample`` and ``lik_init`` (``"stationary"`` or ``"diffuse"``) are
+    Dynare's options of the same names and apply to ``method="kalman"``
+    only: the filter runs through the first ``presample`` observations from
+    the chosen initialisation and the likelihood is that of the remaining
+    observations conditional on them. ``data_n_obs`` of the result counts
+    the observations that enter the likelihood. New in 4.6.0.
 
     Supports standard linear Kalman filtering (method="kalman"),
     Piecewise Kalman Filtering (method="piecewise_kalman") for occasionally
@@ -805,6 +840,14 @@ def estimate_dsge(
     if method not in ("piecewise_kalman", "particle_smc") and constraint is None and data[list(observed_vars)].isna().any().any():
         raise ValueError("data contains NaN in observed_vars")
     y = data[list(observed_vars)].to_numpy()
+    presample = int(presample)
+    if (presample != 0 or lik_init != "stationary") and method != "kalman":
+        raise ValueError("estimate_dsge: presample and lik_init are supported for method='kalman' only")
+    if presample < 0 or len(data) - presample < 10:
+        raise ValueError(
+            f"estimate_dsge: presample={presample} leaves {len(data) - presample} observations "
+            "for the likelihood; need >= 10"
+        )
 
     _validate_priors(priors, caller="estimate_dsge")
 
@@ -994,10 +1037,12 @@ def estimate_dsge(
             raise ValueError("estimate_dsge: observation_eq is required when method='kalman'.")
         neg_log_post = _make_neg_log_posterior(
             y, observation_eq, priors, names, fixed, failure=failure,
+            presample=presample, lik_init=lik_init,
         )
         neg_log_post_opt = _make_neg_log_posterior(
             y, observation_eq, priors, names, fixed,
             penalty=_OPT_PENALTY, failure=failure,
+            presample=presample, lik_init=lik_init,
         )
         _check_stochastic_singularity(
             y, observation_eq, _vec_to_dict(init_vec, names, fixed),
@@ -1247,7 +1292,7 @@ def estimate_dsge(
         mode=mode_dict,
         mode_hessian_inv=inv_H,
         n_burn_in=burn_in,
-        data_n_obs=len(data),
+        data_n_obs=len(data) - presample,
         seed=seed,
         model_name=model_name,
         log_post_mode=lp_mode,

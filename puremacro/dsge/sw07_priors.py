@@ -71,6 +71,27 @@ PRIORS: dict[str, dict] = {
 }
 
 
+# === Starting values of the estimated_params block in sw07_pfeifer.mod ============
+# The INITVAL column (lines 364-399 of the .mod): the authors' own mode estimates at
+# full precision. estimate_sw07() starts its mode search here by default since 4.6.0;
+# through 4.5.0 it started from the rounded Table 1a/1b Mode column, two entries of
+# which lie outside the prior support, and the clipped start left the default
+# 100-iteration optimiser short of the mode. tests/test_dsge/test_sw07_mod_initial_values.py
+# parses the .mod file and checks that this dict matches it.
+SW07_MOD_INITIAL_VALUES: dict[str, float] = {
+    "ea": 0.4618, "eb": 0.1818513, "eg": 0.6090, "eqs": 0.46017, "em": 0.2397,
+    "epinf": 0.1455, "ew": 0.2089,
+    "crhoa": 0.9676, "crhob": 0.2703, "crhog": 0.9930, "crhoqs": 0.5724, "crhoms": 0.3,
+    "crhopinf": 0.8692, "crhow": 0.9546, "cmap": 0.7652, "cmaw": 0.8936,
+    "csadjcost": 6.3325, "csigma": 1.2312, "chabb": 0.7205, "cprobw": 0.7937, "csigl": 2.8401,
+    "cprobp": 0.7813, "cindw": 0.4425, "cindp": 0.3291, "czcap": 0.2648, "cfc": 1.4672,
+    "crpi": 1.7985, "crr": 0.8258, "cry": 0.0893, "crdy": 0.2239,
+    "constepinf": 0.7, "constebeta": 0.7420, "constelab": 1.2918, "ctrend": 0.3982,
+    "cgy": 0.05, "calfa": 0.24,
+}
+"""INITVAL of each estimated parameter in _references/sw07_pfeifer.mod (PRIORS order)."""
+
+
 # === Public API (delegators to puremacro.dsge.priors) =========================
 
 def log_prior(params: dict) -> float:
@@ -100,6 +121,7 @@ def param_names() -> tuple[str, ...]:
 
 __all__ = [
     "PRIORS",
+    "SW07_MOD_INITIAL_VALUES",
     "log_prior",
     "prior_means",
     "prior_stds",

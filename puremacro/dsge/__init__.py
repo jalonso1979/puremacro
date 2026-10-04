@@ -59,6 +59,8 @@ from .nuts import nuts_sample
 from ._gradients import ScoreDiagnosticsResult
 from .bayesian import BayesianEstimationResult, estimate_dsge_bayesian
 from .sw07_estimate import estimate_sw07
+from .sw07_data import load_sw07_data
+from .sw07_marginal import SW07MarginalLikelihoodResult, sw07_laplace_mdd, sw07_log_posterior
 from .fertility_adj_costs import solve_bgp, solve_fertility
 from .pruning import (
     PrunedDSGESolution,
@@ -185,6 +187,7 @@ __all__ = [
     "OccBinConstraint", "OccBinResult", "solve_occbin", "solve_multiconstraint_occbin",
     "solve_gertler_karadi", "GertlerKaradiResult", "GK2011_PARAMS", "solve_steady_state", "build_gertler_karadi_model",
     "estimate_dsge", "estimate_dsge_bayesian", "estimate_sw07",
+    "load_sw07_data", "sw07_laplace_mdd", "sw07_log_posterior", "SW07MarginalLikelihoodResult",
     "solve_bgp", "solve_fertility",
     "PrunedDSGESolution", "PrunedSimulationResult", "canonical_growth_2nd_order",
     "FEVDResult", "ShockDecompResult", "compute_fevd", "compute_shock_decomposition",

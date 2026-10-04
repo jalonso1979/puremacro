@@ -292,6 +292,8 @@ def test_dsge_estimation_cases_pass():
     from puremacro.replication import run_all
 
     results = {r.id: r for r in run_all(family="dsge_estimation")}
-    assert len(results) == 4
+    # 4.4.0: mode, Laplace, harmonic mean, structural parameters; 4.6.0 adds the
+    # Dynare 8 check of the log posterior at the authors' mode.
+    assert len(results) == 5
     for cid, r in results.items():
         assert r.passed, (cid, r.margin, r.error, r.metrics)
