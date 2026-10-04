@@ -1,0 +1,3 @@
+## 2026-10-06 - Inline HTML Component Accessibility (Jupyter display)
+**Learning:** Python repositories generating inline HTML widgets (e.g. for Jupyter display `IPython.display.HTML`) frequently suffer from missed accessibility best practices because they aren't parsed by standard frontend linters (like ESLint JSX a11y). Issues like decorative emojis lacking `aria-hidden="true"`, or `target="_blank"` links missing `rel="noopener noreferrer"` and `aria-label`s are common in these Python string literals.
+**Action:** When working in Python backend or data science repos, proactively search for `IPython.display.HTML` or raw HTML template strings. Ensure these embedded web snippets meet identical strict a11y requirements as traditional React/TSX frontend files.
