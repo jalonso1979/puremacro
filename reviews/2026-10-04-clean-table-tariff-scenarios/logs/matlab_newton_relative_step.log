@@ -1,0 +1,64 @@
+SCEN base iter 1 diff=1.479201e-07 elapsed=1s
+SCEN base done converged=1 iters=1 final_diff=1.479201e-07 elapsed=1s
+SCEN t10 iter 1 diff=1.393949e+05 elapsed=0s
+SCEN t10 iter 2 diff=9.079295e+04 elapsed=122s
+SCEN t10 iter 3 diff=4.646638e+04 elapsed=613s
+SCEN t10 iter 4 diff=2.359920e+04 elapsed=726s
+SCEN t10 iter 5 diff=9.171358e+02 elapsed=837s
+SCEN t10 iter 6 diff=3.675796e+02 elapsed=974s
+SCEN t10 iter 7 diff=2.608867e+03 elapsed=1137s
+SCEN t10 iter 8 diff=7.611171e+02 elapsed=1225s
+SCEN t10 iter 9 diff=1.545370e+03 elapsed=1294s
+SCEN t10 iter 10 diff=6.959202e+02 elapsed=1359s
+SCEN t10 iter 11 diff=1.667123e+02 elapsed=1419s
+SCEN t10 iter 12 diff=4.403357e+01 elapsed=1502s
+SCEN t10 iter 13 diff=1.436271e+02 elapsed=1566s
+SCEN t10 iter 14 diff=4.762154e+01 elapsed=1621s
+SCEN t10 iter 15 diff=4.560495e+01 elapsed=1671s
+SCEN t10 iter 16 diff=4.823788e+01 elapsed=1722s
+SCEN t10 iter 17 diff=4.396042e+01 elapsed=1819s
+SCEN t10 iter 18 diff=5.353860e+01 elapsed=2008s
+SCEN t10 iter 19 diff=3.872605e+01 elapsed=2229s
+SCEN t10 iter 20 diff=1.003291e+02 elapsed=2393s
+SCEN t10 iter 21 diff=3.863735e+01 elapsed=2555s
+SCEN t10 iter 22 diff=1.084294e+02 elapsed=2676s
+SCEN t10 iter 23 diff=3.994547e+01 elapsed=2815s
+SCEN t10 iter 24 diff=7.573487e+01 elapsed=2917s
+SCEN t10 iter 25 diff=3.532790e+01 elapsed=2986s
+SCEN t10 iter 26 diff=1.665015e+03 elapsed=3083s
+SCEN t10 iter 27 diff=4.362807e+02 elapsed=3145s
+SCEN t10 iter 28 diff=1.169765e+02 elapsed=3198s
+SCEN t10 iter 29 diff=4.264634e+01 elapsed=3261s
+SCEN t10 iter 30 diff=5.395566e+01 elapsed=3350s
+SCEN t10 iter 31 diff=3.838762e+01 elapsed=3417s
+SCEN t10 iter 32 diff=1.088867e+02 elapsed=3485s
+SCEN t10 iter 33 diff=4.023350e+01 elapsed=3545s
+SCEN t10 iter 34 diff=8.047439e+01 elapsed=3636s
+SCEN t10 iter 35 diff=3.545490e+01 elapsed=3721s
+SCEN t10 iter 36 diff=4.516238e+02 elapsed=3789s
+SCEN t10 iter 37 diff=1.229384e+02 elapsed=3865s
+SCEN t10 iter 38 diff=4.202452e+01 elapsed=3923s
+SCEN t10 iter 39 diff=6.096322e+01 elapsed=3972s
+SCEN t10 iter 40 diff=3.552696e+01 elapsed=4019s
+SCEN t10 iter 41 diff=4.691571e+02 elapsed=4066s
+SCEN t10 iter 42 diff=1.276658e+02 elapsed=4112s
+SCEN t10 iter 43 diff=4.372984e+01 elapsed=4159s
+SCEN t10 iter 44 diff=5.059950e+01 elapsed=4205s
+SCEN t10 iter 45 diff=4.092825e+01 elapsed=4253s
+SCEN t10 iter 46 diff=7.024171e+01 elapsed=4299s
+SCEN t10 iter 47 diff=3.511162e+01 elapsed=4344s
+SCEN t10 iter 48 diff=3.584501e+27 elapsed=4390s
+SCEN t10 iter 49: error isnan ff
+SCEN t10 done converged=0 iters=49 final_diff=NaN elapsed=4435s
+SCEN t10_25 iter 1: error isnan ff
+SCEN t10_25 done converged=0 iters=1 final_diff=NaN elapsed=0s
+SCEN t10_54 iter 1: error isnan ff
+SCEN t10_54 done converged=0 iters=1 final_diff=NaN elapsed=0s
+SCEN t10_75 iter 1: error isnan ff
+SCEN t10_75 done converged=0 iters=1 final_diff=NaN elapsed=0s
+SCEN t10_125 iter 1: error isnan ff
+SCEN t10_125 done converged=0 iters=1 final_diff=NaN elapsed=0s
+SCEN t10_145 iter 1: error isnan ff
+SCEN t10_145 done converged=0 iters=1 final_diff=NaN elapsed=0s
+DONE_OK
+matlab exit=0

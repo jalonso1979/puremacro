@@ -2,6 +2,13 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## Unreleased
+
+### Documentation
+
+- Why the clean OECD 2020 table has no tariff-scenario references (`reviews/2026-10-04-clean-table-tariff-scenarios/`): seven root-finders fail with one signature. After row/column equilibration the legacy system's Jacobian is regular at the base (condition number 9.4e3), and a damped Newton on the equilibrated system reproduces MATLAB's legacy-table t10 reference from a cold start to 2.1e-12; on the clean table it stalls at every positive US tariff tried (1, 2, 5, 10%) as one singular value falls to order 1e-7 in a direction confined to Costa Rica's transfer, factor prices and prices, and Levenberg–Marquardt ends at a residual minimum (maximum residual 0.79), not a root. The obstruction is attributed to the legacy closure on the clean data; the technical report's Section 8.9 and conclusion, `SOURCES.md` and the reference-validation README now say so.
+- `tools/reference_validation/trade_clean_table/`: `equilibrated_newton.py` (the validated equilibrated Newton, `PM_TABLE=legacy` for the control), `equilibrated_lm.py` and `polish_rate.m` (re-solves a puremacro root with the unchanged MATLAB model so a future reference stays MATLAB's own), for any later attempt.
+
 ## 4.6.0 (2026-10-04)
 
 **Clean trade data, a gallery that passes in the browser runtime, and the Smets–Wouters training sample: the 77x11 OECD table is rebuilt from a clean release with its MATLAB base-solution reference, the 114-case validation gallery runs in Pyodide, the SW07 Table 2 computation is implemented and checked against Dynare 8, and the opt-in tests gate every release.**

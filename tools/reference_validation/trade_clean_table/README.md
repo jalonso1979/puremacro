@@ -19,3 +19,22 @@ the arrays verbatim into the bundled `.npz` and writes `REFERENCE_MANIFEST_OECD2
 To reproduce: place the three model files and `data_77c_11s_clean.mat` next to the driver and run
 `matlab -batch "run('run_scenarios_clean.m')"`. One Newton iteration takes about 45 s on a
 12-core laptop (2,001 unknowns, 2,001 model evaluations per Jacobian).
+
+## Tariff scenarios (4 October 2026)
+
+Only the base scenario is bundled. No root was found for the tariff scenarios on the clean
+table; the diagnosis, the logs of every attempt and the control on the legacy table are in
+`reviews/2026-10-04-clean-table-tariff-scenarios/REPORT.md`. The scripts used are kept here
+for any later attempt:
+
+* `equilibrated_newton.py <scratch_dir> <rate> <tag>` — damped Newton with Ruiz row/column
+  equilibration and backtracking, on puremacro's transcription of the legacy residual. With
+  `PM_TABLE=legacy` it reproduces MATLAB's bundled t10 reference from a cold start to a
+  maximum relative difference of 2.1e-12; this is the solver to use first.
+* `equilibrated_lm.py <scratch_dir> <rate> <tag> [warm.mat]` — Levenberg–Marquardt on the
+  same equilibrated system, optionally from a stalled iterate.
+* `polish_rate.m` — loads a puremacro root, checks it was computed for the same tariff
+  schedule, and re-solves it with the unchanged MATLAB model functions, so that any future
+  bundled reference is MATLAB's own solution and remains an external check.
+
+Both Python scripts write to `<scratch_dir>/matlab/`, which must exist.

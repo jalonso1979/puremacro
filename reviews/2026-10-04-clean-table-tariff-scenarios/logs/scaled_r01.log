@@ -1,0 +1,10 @@
+r01: start max|f|=1.943e+03 L1=1.405e+04
+  iter 1: lam=1 max|f|=1.028e+02 L1=9.131e+02 cond=9.44e+03 [26s]
+  iter 2: lam=1 max|f|=8.486e+00 L1=6.538e+01 cond=1.50e+04 [57s]
+  iter 3: lam=1 max|f|=2.204e-01 L1=2.968e+00 cond=1.08e+04 [85s]
+  iter 4: lam=0.000244 max|f|=2.204e-01 L1=2.967e+00 cond=9.56e+05 [116s]
+  iter 5: lam=3.05e-05 max|f|=2.204e-01 L1=2.967e+00 cond=3.00e+06 [146s]
+  iter 6: lam=7.63e-06 max|f|=2.204e-01 L1=2.967e+00 cond=4.83e+06 [176s]
+  iter 7: no descent (lam=3.0e-08); stopping
+r01: done converged(max)=False L1=2.967e+00 max|f|=2.204e-01 [203s]
+saved

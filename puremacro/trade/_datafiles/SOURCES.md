@@ -60,6 +60,14 @@ lists the scenarios present, each run's convergence flag, Newton iterations and
 final L1 residual, and the digest of the table they were solved on. Scenarios
 still absent from the file are listed there too.
 
+Only `base` is present. The six tariff scenarios are absent because no root of
+the legacy equation system was found for them on the clean table: at every
+positive US tariff tried, the row/column-equilibrated Jacobian turns
+near-singular in Costa Rica's block, while the same solver reproduces the
+legacy table's t10 reference to 2.1e-12. Evidence, logs and the solver scripts
+are in `reviews/2026-10-04-clean-table-tariff-scenarios/` and
+`tools/reference_validation/trade_clean_table/`.
+
 ---
 
 ## `icio_77c_11s.npz` — OECD Inter-Country Input-Output tables (regression fixture)
