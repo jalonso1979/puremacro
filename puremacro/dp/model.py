@@ -452,7 +452,7 @@ class _Compiled:
         n_a = int(np.prod(shape))
         cur = [c.reshape(n_a, 1) for c in np.meshgrid(*self.state_grids, indexing="ij")]
         if hasattr(sol, "aprime"):          # EGM: continuous next-state values
-            pol = np.asarray(sol.aprime)
+            pol = np.asarray(sol.aprime if age is None else sol.aprime[age])
             nxt = [pol]
         else:
             pol = sol.policy_aprime if age is None else sol.policy_aprime[age]
@@ -512,6 +512,12 @@ class _Compiled:
         from puremacro.dp._egm import EGMPlan
 
         plan = EGMPlan(self)
+        if self.finite:
+            if self.model._prices:
+                raise ModelSpecError("equilibrium with a finite horizon (OLG) is not supported yet")
+            params = self.param_values()
+            sol = plan.solve_life_cycle(params)
+            return DPSolution(self, sol, params=params, distribution=plan.distribution(sol), method="egm")
         if self.model._prices:
             eq, params, aggs = plan.equilibrium(tol=tol, max_iter=max_iter, xtol=xtol, max_evals=max_evals)
             (pname, _), = self.model._prices.items()

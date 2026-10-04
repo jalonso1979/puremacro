@@ -29,6 +29,30 @@ class EGMSolution:
     sup_norm: float
 
 
+def egm_step(rhs, a_grid, income, R, u_prime_inv):
+    """One EGM inversion: consumption on ``a_grid`` today given the Euler right side.
+
+    ``rhs[i, z]`` is beta * E[R' u'(c') | z] when next assets are ``a_grid[i]``;
+    the budget today is c + a' = R*a + income[z]. Points whose endogenous assets
+    fall below the first one are borrowing-constrained (a' = a_grid[0]).
+    Returns consumption, shape (n_a, n_z), floored at 1e-10.
+    """
+    a = np.asarray(a_grid, dtype=float)
+    inc = np.asarray(income, dtype=float)
+    n_a, n_z = rhs.shape
+    c_endog = u_prime_inv(rhs)                           # current c if next assets = a-node
+    a_endog = (c_endog + a[:, None] - inc[None, :]) / R  # endogenous current assets
+    coh = R * a[:, None] + inc[None, :]
+    c_new = np.empty((n_a, n_z))
+    for zi in range(n_z):
+        ae = a_endog[:, zi]
+        ce = c_endog[:, zi]
+        c_un = np.interp(a, ae, ce)                      # unconstrained (clamped outside)
+        c_con = coh[:, zi] - a[0]                        # constrained: a' = a_min
+        c_new[:, zi] = np.where(a <= ae[0], c_con, c_un)
+    return np.maximum(c_new, 1e-10)
+
+
 def solve_egm(a_grid, z_grid, income, P_z, *, beta, r, gamma=None,
               u_prime=None, u_prime_inv=None, c0=None,
               tol: float = 1e-9, max_iter: int = 10_000):
@@ -79,17 +103,7 @@ def solve_egm(a_grid, z_grid, income, P_z, *, beta, r, gamma=None,
     sup = np.inf
     for it in range(1, max_iter + 1):
         Emu = u_prime(c) @ P.T                          # E_{z'|z}[u'(c')], indexed (a', z)
-        rhs = beta * R * Emu
-        c_endog = u_prime_inv(rhs)                       # current c if next assets = a-node
-        a_endog = (c_endog + a[:, None] - inc[None, :]) / R   # endogenous current assets
-        c_new = np.empty((n_a, n_z))
-        for zi in range(n_z):
-            ae = a_endog[:, zi]
-            ce = c_endog[:, zi]
-            c_un = np.interp(a, ae, ce)                  # unconstrained (clamped outside)
-            c_con = coh[:, zi] - a_min                   # constrained: a' = a_min
-            c_new[:, zi] = np.where(a <= ae[0], c_con, c_un)
-        c_new = np.maximum(c_new, 1e-10)
+        c_new = egm_step(beta * R * Emu, a, inc, R, u_prime_inv)
         sup = float(np.max(np.abs(c_new - c)))
         c = c_new
         if sup < tol:
@@ -104,4 +118,4 @@ def solve_egm(a_grid, z_grid, income, P_z, *, beta, r, gamma=None,
     return EGMSolution(c=c, aprime=aprime, n_iter=it, sup_norm=sup)
 
 
-__all__ = ["solve_egm", "EGMSolution"]
+__all__ = ["solve_egm", "egm_step", "EGMSolution"]

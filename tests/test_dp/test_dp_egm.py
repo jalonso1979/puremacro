@@ -131,8 +131,6 @@ def test_huggett_with_negative_borrowing_limit():
 
 
 @pytest.mark.parametrize("change, match", [
-    (lambda m: m.discrete("h", [0.0, 1.0]), "discrete"),
-    (lambda m: m.horizon(5), "infinite horizon"),
     (lambda m: m.state("k", np.linspace(0.1, 1.0, 5)), "exactly one state"),
     (lambda m: m.local("c = w*exp(z) + (1 + r)*a - a(+1) - 0.01*a(+1)^2"), "not to depend on a"),
     (lambda m: m.local("c = w*exp(z) + (1 + r)*a + 0.01*a^2 - a(+1)"), "linear in a"),
@@ -147,4 +145,144 @@ def test_models_outside_egm_are_rejected(change, match):
         m._locals = m._locals[:1]
     change(m)
     with pytest.raises(ModelSpecError, match=match):
+        m.solve("egm")
+
+
+# ---------------------------------------------------------------- life cycle
+def two_period(survival=None, terminal=None, T=2):
+    m = dp.Model("two period")
+    m.parameters(beta=BETA, r=0.03, y=1.0)
+    m.state("a", np.linspace(0.0, 20.0, 201))
+    m.local("c = (1 + r)*a + y - a(+1)")
+    m.reward("log(c)")
+    m.subject_to("c > 0")
+    m.horizon(T, survival=survival, terminal=terminal)
+    return m
+
+
+@pytest.mark.parametrize("s0", [1.0, 0.5])
+def test_two_period_log_utility_is_exact(s0):
+    sol = two_period(survival=[s0, 1.0]).solve("egm")
+    R, y, b = 1.03, 1.0, BETA * s0
+    a = sol.grids["a"]
+    c = sol.policy("c")[:, :, 0]
+    np.testing.assert_allclose(c[1], R * a + y, rtol=0, atol=1e-12)
+    c0 = np.minimum((R * a + y + y / R) / (1 + b), R * a + y)     # kink where a' hits 0
+    np.testing.assert_allclose(c[0], c0, rtol=0, atol=1e-12)
+    np.testing.assert_allclose(sol.V[1, :, 0], np.log(R * a + y), rtol=0, atol=1e-12)
+
+
+def test_terminal_value_enters_through_its_slope():
+    a = np.linspace(0.0, 20.0, 2001)
+    k, R, y = 3.0, 1.03, 1.0
+    m = two_period(terminal=(k * np.log(a + 1.0))[:, None], T=1)
+    m._states = [("a", a)]
+    sol = m.solve("egm")
+    c_exact = np.minimum((R * a + y + 1.0) / (1 + BETA * k), R * a + y)
+    np.testing.assert_allclose(sol.policy("c")[0, :, 0], c_exact, rtol=0, atol=1e-4)
+
+
+def life_cycle(n_a=120):
+    T = 40
+    ages = np.arange(T)
+    m = dp.Model("life cycle")
+    m.parameters(beta=0.96, gamma=2.0, r=0.04, kappa=np.exp(0.1 * ages - 0.0025 * ages ** 2))
+    m.exogenous("z", dp.AR1(rho=0.95, sigma=0.15, n=5))
+    m.state("a", np.linspace(0.0, 40.0, n_a))
+    m.local("c = (1 + r)*a + kappa*exp(z) - a(+1)")
+    m.reward("crra(c, gamma)")
+    m.subject_to("c > 0")
+    m.horizon(T)
+    return m
+
+
+def test_life_cycle_egm_is_closer_to_fine_vfi_than_coarse_vfi():
+    e, v = life_cycle().solve("egm"), life_cycle().solve()
+    fine = life_cycle(n_a=119 * 10 + 1).solve()          # contains the coarse nodes
+    V_ref = fine.V[:, ::10, :]
+    assert np.median(np.abs(e.V - V_ref)) < 0.6 * np.median(np.abs(v.V - V_ref))
+    assert np.max(np.abs(e.mean("a") - fine.mean("a"))) < 0.03
+    assert np.max(np.abs(v.mean("a") - fine.mean("a"))) > 0.1
+    np.testing.assert_allclose(e.distribution.sum(axis=(1, 2)), 1.0, atol=1e-12)
+    assert e.method == "egm" and e.V.shape == (40, 120, 5)
+
+
+def test_life_cycle_age_varying_return_is_read_per_age():
+    T = 3
+    m = dp.Model("varying r")
+    m.parameters(beta=BETA, r=np.array([0.0, 0.05, 0.10]), y=1.0)
+    m.state("a", np.linspace(0.0, 10.0, 101))
+    m.local("c = (1 + r)*a + y - a(+1)")
+    m.reward("log(c)")
+    m.subject_to("c > 0")
+    m.horizon(T)
+    sol = m.solve("egm")
+    np.testing.assert_allclose(sol.raw.R, [1.0, 1.05, 1.10], atol=1e-12)
+    # age 1 is a two-period problem with R1 = 1.05 today and R2 = 1.10 tomorrow
+    a = sol.grids["a"]
+    R1, R2 = 1.05, 1.10
+    c1 = np.minimum((R1 * a + 1.0 + 1.0 / R2) / (1 + BETA), R1 * a + 1.0)
+    np.testing.assert_allclose(sol.policy("c")[1, :, 0], c1, rtol=0, atol=1e-12)
+
+
+# ---------------------------------------------------------------- discrete choice (DC-EGM)
+def labour(n_a=100, a_max=60.0, T=None, discrete=True, chi=0.5):
+    m = dp.Model("labour")
+    m.parameters(beta=0.95, gamma=2.0, r=0.03, chi=chi, b=0.3)
+    m.exogenous("z", dp.AR1(rho=0.9, sigma=0.2, n=5))
+    m.state("a", np.linspace(0.0, a_max, n_a))
+    if discrete:
+        m.discrete("h", [0.0, 1.0])
+        m.local("c = (1 + r)*a + h*exp(z) + (1 - h)*b - a(+1)")
+        m.reward("crra(c, gamma) - chi*h")
+    else:
+        m.local("c = (1 + r)*a + exp(z) - a(+1)")
+        m.reward("crra(c, gamma)")
+    m.subject_to("c > 0")
+    m.aggregate(H="h" if discrete else "1", A="a")
+    if T:
+        m.horizon(T)
+    return m
+
+
+def test_a_dominated_option_reproduces_plain_egm():
+    # working pays the same as not working (b = 1 = exp(0) is not used: income is
+    # exp(z) either way) but costs chi, so h = 0 everywhere and DC-EGM is EGM
+    m = labour(n_a=200, a_max=200.0)
+    m._locals = []
+    m.local("c = (1 + r)*a + exp(z) - a(+1)")
+    dc = m.solve("egm", tol=1e-10)
+    plain = labour(n_a=200, a_max=200.0, discrete=False).solve("egm", tol=1e-10)
+    assert dc.raw.policy_d.max() == 0
+    np.testing.assert_allclose(dc.raw.c, plain.raw.c, rtol=0, atol=1e-8)
+    np.testing.assert_allclose(dc.V, plain.V, rtol=0, atol=1e-7)
+
+
+def test_dc_egm_infinite_horizon_agrees_with_vfi_on_a_fine_grid():
+    e = labour(n_a=401).solve("egm", tol=1e-8)
+    v = labour(n_a=401).solve(tol=1e-8)
+    assert 0.2 < e.aggregates["H"] < 0.95
+    assert e.aggregates["H"] == pytest.approx(v.aggregates["H"], abs=0.02)   # mass sits on nodes
+    # VFI itself moves A by 0.2 between 401 and 793 points; both approach about 8.0
+    assert e.aggregates["A"] == pytest.approx(v.aggregates["A"], abs=0.3)
+    assert np.median(np.abs(e.V - v.V)) < 0.02
+
+
+def test_dc_egm_life_cycle_is_closer_to_fine_vfi_than_coarse_vfi():
+    T, k = 30, 8
+    e, v = labour(T=T).solve("egm"), labour(T=T).solve()
+    fine = labour(n_a=99 * k + 1, T=T).solve()            # contains the coarse nodes
+    V_ref = fine.V[:, ::k, :]
+    assert np.median(np.abs(e.V - V_ref)) < 0.5 * np.median(np.abs(v.V - V_ref))
+    e_fine = labour(n_a=99 * k + 1, T=T).solve("egm")
+    np.testing.assert_allclose(e_fine.mean("h"), fine.mean("h"), atol=0.02)
+    np.testing.assert_allclose(e_fine.mean("a"), fine.mean("a"), atol=0.05)
+    assert e.raw.policy_d.shape == (T, 100, 5)
+
+
+def test_return_that_depends_on_the_discrete_choice_is_rejected():
+    m = labour()
+    m._locals = []
+    m.local("c = (1 + r + 0.01*h)*a + h*exp(z) + (1 - h)*b - a(+1)")
+    with pytest.raises(ModelSpecError, match="not to depend on the discrete choice"):
         m.solve("egm")

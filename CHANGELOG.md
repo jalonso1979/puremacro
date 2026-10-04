@@ -23,7 +23,31 @@ Stationary equilibria warm-start each price evaluation. On the Aiyagari example
 the equilibrium takes 0.8 s against 4.6 s for discrete VFI, and the EGM value
 function is closer to a 1,500-point VFI solution. `vfi.solve_egm` takes
 `u_prime`/`u_prime_inv` (any concave felicity) and a `c0` warm start; CRRA calls
-are unchanged.
+are unchanged, and its inversion step is public as `vfi.egm.egm_step`.
+
+Life-cycle models (`horizon(T)`) also solve with `method="egm"`: one EGM step per
+age, with age-varying returns, income and parameters, survival, and an optional
+terminal value (its slope taken by finite differences). Two-period log-utility
+models match their closed form to 1e-12. On the 40-age example the EGM mean
+assets by age are within 0.02 of a 1,191-point VFI solution, against 0.22 for
+VFI on the same 120-point grid. Value functions interpolate linearly between
+nodes, which understates them where they are most curved (near the borrowing
+limit with gamma = 2).
+
+A discrete choice (`discrete("h", ...)`, deterministic, no taste shocks) also
+compiles to EGM, in both life cycles and infinite horizons: the Euler inversion
+for each option is followed by an upper envelope over all segments between
+adjacent endogenous points, with the borrowing-limit and top-of-grid corners
+admitted only where their Kuhn-Tucker condition holds. The reward may depend on
+the option (`crra(c, gamma) - chi*h`) and so may income; the return on assets
+may not. A dominated option reproduces plain EGM to 1e-8. On a 30-age
+labour-supply model the EGM value function on 100 points is less than half as
+far from a 793-point VFI solution as VFI on 100 points, and the two methods agree
+on a fine grid (work share by age within 0.02). Aggregates over the discrete
+choice converge slowly in the grid for either method because the
+distribution's mass sits on grid nodes. `vfi.DCEGMProblem` is unchanged: its
+horizon repeats one stationary step and returns only the first period, so it
+cannot carry age-varying income or survival.
 
 ## 4.5.0 (2026-10-03)
 

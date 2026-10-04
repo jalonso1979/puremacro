@@ -3763,6 +3763,7 @@
     ],
     "puremacro.vfi.egm": [
       "EGMSolution",
+      "egm_step",
       "solve_egm"
     ],
     "puremacro.vfi.epstein_zin": [
@@ -8630,6 +8631,15 @@
       "n_iter",
       "policy_d",
       "sup_norm"
+    ],
+    "puremacro.dp._egm.EGMLifeCycleSolution": [
+      "R",
+      "V",
+      "aprime",
+      "c",
+      "horizon",
+      "income",
+      "policy_d"
     ]
   }
 }

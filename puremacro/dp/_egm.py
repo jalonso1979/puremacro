@@ -4,17 +4,32 @@ EGM applies when the model is the one-asset income-fluctuation problem in
 disguise. ``EGMPlan`` checks that from the specification, symbolically where it
 can and numerically on the grid where it must:
 
-* infinite horizon, one state ``a``, no discrete choice;
+* one state ``a`` (infinite or finite horizon), optionally one discrete choice;
 * the reward depends on the choices only through one local, consumption
-  ``c``, and otherwise only on parameters, so ``u(c)`` is well defined;
+  ``c``, and otherwise only on parameters and the discrete choice, so
+  ``u(c, d)`` is well defined;
 * the budget is ``c + a(+1) = R*a + y(z)``: ``c + a(+1)`` does not depend on
-  ``a(+1)`` and is linear in ``a`` with one slope ``R`` across shocks;
+  ``a(+1)`` and is linear in ``a`` with one slope ``R`` across shocks (in a
+  life cycle, ``R`` and ``y`` may vary with age);
 * the declared constraints carve out exactly ``c > 0`` (the borrowing limit is
   the bottom of the grid, as in VFI).
 
 Marginal utility is the symbolic derivative of the reward in ``c``. Its inverse
 is closed form for ``crra(c, gamma)`` and ``log(c)`` and found by bisection
 otherwise, so any increasing, strictly concave felicity works.
+
+Life cycles are solved by backward induction with one EGM step per age: the
+Euler equation u'(c_j) = beta s_j R_{j+1} E u'(c_{j+1}) with survival ``s_j``.
+With a ``terminal`` value its marginal value is taken by finite differences on
+the grid; without one, the last age consumes everything above the borrowing limit.
+
+With a discrete choice (deterministic, no taste shocks) each option's
+conditional value is not concave, so the Euler inversion is followed by an upper
+envelope (Iskhakov, Jorgensen, Rust and Schjerning 2017): every pair of adjacent
+endogenous points is a candidate segment, the corner choices a(+1) at the ends of
+the grid are candidates where their Kuhn-Tucker condition holds, and each target point takes the best candidate,
+valued as u(c) plus the interpolated continuation at the implied a(+1).
+Infinite horizons with a discrete choice iterate that step to a fixed point.
 """
 from __future__ import annotations
 
@@ -26,9 +41,9 @@ from scipy.optimize import brentq
 from scipy.sparse.linalg import spsolve
 
 from puremacro.dp._expr import ModelSpecError, compile_function, diff, emit, substitute, symbols
-from puremacro.dsge._ast import Call, Param
-from puremacro.vfi.distribution import lottery_distribution
-from puremacro.vfi.egm import EGMSolution, solve_egm
+from puremacro.dsge._ast import BinOp, Call, Param
+from puremacro.vfi.distribution import lottery_distribution, lottery_push
+from puremacro.vfi.egm import EGMSolution, egm_step, solve_egm
 from puremacro.vfi.equilibrium import EquilibriumResult
 
 
@@ -42,9 +57,21 @@ class EGMHouseholdSolution:
     n_iter: int
     sup_norm: float
     R: float                 # gross return the budget implies
-    income: np.ndarray       # y(z), (n_z,)
-    egm: EGMSolution = field(repr=False)
-    policy_d: None = None
+    income: np.ndarray       # y(z), (n_z,); (n_d, n_z) with a discrete choice
+    egm: EGMSolution | None = field(repr=False)
+    policy_d: np.ndarray | None = None     # (n_a, n_z) discrete-choice indices
+
+
+@dataclass
+class EGMLifeCycleSolution:
+    """Age-indexed EGM result: arrays are (horizon, n_a, n_z)."""
+    V: np.ndarray
+    c: np.ndarray
+    aprime: np.ndarray       # next assets (values, not indices)
+    horizon: int
+    R: np.ndarray            # (horizon,) gross return by age
+    income: np.ndarray       # (horizon, n_z) y_j(z); (horizon, n_d, n_z) with a discrete choice
+    policy_d: np.ndarray | None = None     # (horizon, n_a, n_z) discrete-choice indices
 
 
 class EGMPlan:
@@ -52,17 +79,14 @@ class EGMPlan:
 
     def __init__(self, comp):
         m = comp.model
-        if comp.finite:
-            raise ModelSpecError("method='egm' needs an infinite horizon; life-cycle EGM is not built yet")
         if len(comp.state_names) != 1:
             raise ModelSpecError(f"method='egm' needs exactly one state; got {comp.state_names}")
-        if m._discrete is not None:
-            raise ModelSpecError("method='egm' does not take a discrete choice (DC-EGM is not built yet)")
         self.comp = comp
+        self.dname, self.dvals = m._discrete if m._discrete is not None else (None, np.zeros(1))
         self.a = comp.state_grids[0]
         self.n_z = comp.P.shape[0]
         self.cname = self._consumption_local()
-        allowed = {(p, 0) for p in comp.param_names}
+        allowed = {(p, 0) for p in comp.param_names} | ({(self.dname, 0)} if self.dname else set())
 
         inl: dict = {}
         for name, node in comp.locals:
@@ -76,25 +100,36 @@ class EGMPlan:
                 f"and otherwise on parameters; it also uses {sorted(n for n, _ in bad)}")
 
         def resolve(name, lead):
-            return "c" if name == self.cname else f"p_{name}"
+            return "c" if name == self.cname else "dv" if name == self.dname else f"p_{name}"
 
-        pargs = [f"p_{p}" for p in comp.param_names]
-        self._u_prime = compile_function("_dp_u_prime", ["c"] + pargs, [],
-                                         emit(diff(u_node, self.cname), resolve))
+        args = ["c", "dv"] + [f"p_{p}" for p in comp.param_names]
+        self._u = compile_function("_dp_u", args, [], emit(u_node, resolve))
+        self._u_prime = compile_function("_dp_u_prime", args, [], emit(diff(u_node, self.cname), resolve))
         self._inv_kind, self._inv_fn = "numeric", None
-        if isinstance(u_node, Call) and u_node.args and u_node.args[0] == Param(self.cname):
-            fn = u_node.func.lower()
-            if fn == "crra":
+        core = self._c_part(u_node)
+        if isinstance(core, Call) and core.args and core.args[0] == Param(self.cname):
+            fn = core.func.lower()
+            if fn == "crra" and not ({(self.cname, 0), (self.dname, 0)} & symbols(core.args[1])):
                 self._inv_kind = "crra"
-                self._inv_fn = compile_function("_dp_gamma", pargs, [], emit(u_node.args[1], resolve))
+                self._inv_fn = compile_function("_dp_gamma", args, [], emit(core.args[1], resolve))
             elif fn in ("log", "ln"):
                 self._inv_kind = "log"
         self._c_fn = comp._household_function("_dp_c", Param(self.cname))
 
     # ------------------------------------------------------------ structure
+    def _c_part(self, node):
+        """The term of an additively separable reward that holds consumption, if any."""
+        has = lambda n: (self.cname, 0) in symbols(n)  # noqa: E731
+        if isinstance(node, BinOp) and node.op in ("+", "-"):
+            if not has(node.right):
+                return self._c_part(node.left)
+            if node.op == "+" and not has(node.left):
+                return self._c_part(node.right)
+        return node
+
     def _consumption_local(self) -> str:
         comp = self.comp
-        endo = comp._endogenous_syms()
+        endo = {(n, lead) for n in comp.state_names for lead in (0, 1)}
         direct = {n for n, lead in symbols(comp.reward) if lead == 0} & set(comp.local_names)
         if {s for s in symbols(comp.reward) if s in endo}:
             raise ModelSpecError("method='egm' needs consumption as a local, e.g. "
@@ -105,15 +140,20 @@ class EGMPlan:
                                  f"local (consumption); found {sorted(cands) or 'none'}")
         return cands[0]
 
-    def _u_funcs(self, params: dict, c_max: float):
+    def _u_funcs(self, params: dict, c_max: float, d: float = 0.0):
+        """(u, u', u'^-1) at scalar parameter values and discrete choice ``d``."""
         pv = list(params.values())
+
+        def u(c):
+            with np.errstate(all="ignore"):
+                return np.broadcast_to(self._u(c, d, *pv, xp=np), np.shape(c))
 
         def u_prime(c):
             with np.errstate(all="ignore"):
-                return np.broadcast_to(self._u_prime(c, *pv, xp=np), np.shape(c))
+                return np.broadcast_to(self._u_prime(c, d, *pv, xp=np), np.shape(c))
 
         if self._inv_kind == "crra":
-            g = float(self._inv_fn(*pv, xp=np))
+            g = float(self._inv_fn(0.0, d, *pv, xp=np))
 
             def u_prime_inv(x):
                 return x ** (-1.0 / g)
@@ -136,7 +176,7 @@ class EGMPlan:
         if not (np.all(np.isfinite(mu)) and np.all(mu > 0) and np.all(np.diff(mu) < 0)):
             raise ModelSpecError("method='egm' needs a reward that is increasing and strictly concave in "
                                  f"{self.cname!r} (marginal utility positive and decreasing)")
-        return u_prime, u_prime_inv
+        return u, u_prime, u_prime_inv
 
     def _zs(self, ndim: int):
         comp = self.comp
@@ -145,12 +185,28 @@ class EGMPlan:
         return [zc.reshape((1,) * (ndim - 1) + (self.n_z,))
                 for zc in np.meshgrid(*comp.z_grids, indexing="ij")]
 
-    def budget(self, params: dict) -> tuple[float, np.ndarray]:
+    def _call(self, fn, nxt, cur, ndim: int, params: dict, age, d=None):
+        args = ([self.dvals[0] if d is None else d] if self.dname else [])
+        args += [nxt, cur, *self._zs(ndim)] + ([int(age)] if self.comp.finite else [])
+        return fn(*args, *params.values(), xp=np)
+
+    @staticmethod
+    def at_age(params: dict, age: int) -> dict:
+        return {k: (v[age] if np.ndim(v) else v) for k, v in params.items()}
+
+    def budgets(self, params: dict, age=None) -> tuple[float, np.ndarray]:
+        """(R, Y) with Y[d] the income of each discrete option; R may not depend on the option."""
+        out = [self.budget(params, age, d) for d in self.dvals]
+        R = out[0][0]
+        if any(abs(r - R) > 1e-10 * (1.0 + abs(R)) for r, _ in out):
+            raise ModelSpecError("method='egm' needs the return on assets R not to depend on the discrete choice")
+        return R, np.stack([y for _, y in out])
+
+    def budget(self, params: dict, age=None, d=None) -> tuple[float, np.ndarray]:
         """Return (R, y) with c + a(+1) = R*a + y(z), or raise if the budget is not of that form."""
         a, n_a = self.a, self.a.size
         cur, nxt = a.reshape(n_a, 1, 1), a.reshape(1, n_a, 1)
-        c3 = np.broadcast_to(self._c_fn(nxt, cur, *self._zs(3), *params.values(), xp=np),
-                             (n_a, n_a, self.n_z))
+        c3 = np.broadcast_to(self._call(self._c_fn, nxt, cur, 3, params, age, d), (n_a, n_a, self.n_z))
         coh = c3 + nxt
         scale = 1.0 + np.nanmax(np.abs(coh))
         if not np.all(np.isfinite(coh)) or np.max(np.abs(coh - coh[:, :1, :])) > 1e-9 * scale:
@@ -165,7 +221,7 @@ class EGMPlan:
         if R <= 0:
             raise ModelSpecError(f"method='egm' needs a positive gross return R; got {R:.6g}")
         feasible = np.isfinite(np.broadcast_to(
-            self.comp.household(nxt, cur, *self._zs(3), *params.values(), xp=np), c3.shape))
+            self._call(self.comp.household, nxt, cur, 3, params, age, d), c3.shape))
         if not np.array_equal(feasible, c3 > 0):
             raise ModelSpecError(f"method='egm' supports exactly the constraint {self.cname} > 0 (plus the "
                                  "grid's borrowing limit); the declared constraints or reward domain differ")
@@ -173,8 +229,10 @@ class EGMPlan:
 
     # ------------------------------------------------------------ solving
     def solve_household(self, params: dict, *, tol: float, max_iter: int, c0=None) -> EGMHouseholdSolution:
+        if self.dname:
+            return self._solve_discrete_infinite(params, tol=tol, max_iter=max_iter)
         R, y = self.budget(params)
-        u_prime, u_prime_inv = self._u_funcs(params, float(np.max(R * self.a[-1] + y) - self.a[0]))
+        _, u_prime, u_prime_inv = self._u_funcs(params, float(np.max(R * self.a[-1] + y) - self.a[0]))
         egm = solve_egm(self.a, np.arange(self.n_z), y, self.comp.P, beta=self.comp.beta, r=R - 1.0,
                         u_prime=u_prime, u_prime_inv=u_prime_inv, c0=c0, tol=tol, max_iter=max_iter)
         V = self._policy_value(egm.aprime, params)
@@ -200,8 +258,173 @@ class EGMPlan:
         A = sp.identity(n_a * n_z, format="csr") - self.comp.beta * T
         return np.asarray(spsolve(A.tocsc(), np.ascontiguousarray(u).ravel())).reshape(n_a, n_z)
 
-    def distribution(self, sol: EGMHouseholdSolution) -> np.ndarray:
+    def distribution(self, sol) -> np.ndarray:
+        if isinstance(sol, EGMLifeCycleSolution):
+            return self._cohort_distribution(sol)
         return lottery_distribution(sol.aprime, self.a, self.comp.P)
+
+    def _terminal(self):
+        m, a = self.comp.model, self.a
+        if m._terminal is None:
+            return None, None
+        terminal = np.asarray(m._terminal, dtype=float)
+        if terminal.shape != (a.size, self.n_z):
+            raise ModelSpecError(f"terminal value must have shape ({a.size}, {self.n_z}); got {terminal.shape}")
+        dV = np.gradient(terminal, a, axis=0)
+        if not np.all(dV > 0):
+            raise ModelSpecError("method='egm' needs a terminal value strictly increasing in assets")
+        return terminal, dV
+
+    def _survival(self):
+        m = self.comp.model
+        J = int(m._horizon or 0)
+        surv = np.ones(J) if m._survival is None else np.asarray(m._survival, dtype=float)
+        if surv.shape != (J,) or np.any(surv <= 0) or np.any(surv > 1):
+            raise ModelSpecError(f"survival must be a length-{J} array in (0, 1]")
+        return surv
+
+    def solve_life_cycle(self, params: dict) -> EGMLifeCycleSolution:
+        if self.dname:
+            return self._solve_discrete_life_cycle(params)
+        m, comp = self.comp.model, self.comp
+        a, n_a, n_z, P = self.a, self.a.size, self.n_z, comp.P
+        J = int(m._horizon or 0)
+        surv = self._survival()
+        Rs, ys, ups, invs = np.empty(J), np.empty((J, n_z)), [], []
+        for j in range(J):
+            Rs[j], ys[j] = self.budget(params, age=j)
+            _, up, inv = self._u_funcs(self.at_age(params, j), float(np.max(Rs[j] * a[-1] + ys[j]) - a[0]))
+            ups.append(up)
+            invs.append(inv)
+        terminal, dV = self._terminal()
+        c = np.empty((J, n_a, n_z))
+        for j in range(J - 1, -1, -1):
+            coh = Rs[j] * a[:, None] + ys[j][None, :]
+            if j == J - 1 and terminal is None:
+                c[j] = coh - a[0]
+            else:
+                emv = dV if j == J - 1 else Rs[j + 1] * ups[j + 1](c[j + 1])
+                c[j] = egm_step(comp.beta * surv[j] * (emv @ P.T), a, ys[j], Rs[j], invs[j])
+        coh = Rs[:, None, None] * a[None, :, None] + ys[:, None, :]
+        aprime = np.clip(coh - c, a[0], a[-1])
+        c = coh - aprime
+        V = np.empty((J, n_a, n_z))
+        V_next = np.zeros((n_a, n_z)) if terminal is None else terminal
+        for j in range(J - 1, -1, -1):
+            u = np.broadcast_to(self._call(comp.household, aprime[j], a[:, None], 2, params, j), (n_a, n_z))
+            EV = V_next @ P.T
+            cont = np.stack([np.interp(aprime[j][:, z], a, EV[:, z]) for z in range(n_z)], axis=1)
+            V[j] = u + comp.beta * surv[j] * cont
+            V_next = V[j]
+        return EGMLifeCycleSolution(V=V, c=c, aprime=aprime, horizon=J, R=Rs, income=ys)
+
+    # ------------------------------------------------------------ discrete choice
+    def _dc_funcs(self, params: dict, R: float, Y: np.ndarray):
+        c_max = float(np.max(R * self.a[-1] + Y) - self.a[0])
+        return [self._u_funcs(params, c_max, float(d)) for d in self.dvals]
+
+    def _dc_step(self, funcs, R, Y, W, rhs):
+        """One DC-EGM step. ``W[a', z]`` is the discounted expected continuation and
+        ``rhs[a', z]`` the discounted expected marginal value (None: last age, no
+        continuation). Returns consumption, value and choice index, each (n_a, n_z)."""
+        a, n_z = self.a, self.n_z
+        n_d = len(funcs)
+        c_all = np.empty((n_d, a.size, n_z))
+        v_all = np.empty((n_d, a.size, n_z))
+        for k, (u, _, inv) in enumerate(funcs):
+            coh = R * a[:, None] + Y[k][None, :]
+            if rhs is None:
+                c_all[k] = coh - a[0]
+                with np.errstate(all="ignore"):
+                    v_all[k] = np.where(c_all[k] > 0, u(c_all[k]), -np.inf)
+                continue
+            with np.errstate(all="ignore"):
+                c_e = inv(rhs)
+            m_e = c_e + a[:, None]
+            for z in range(n_z):
+                c_all[k, :, z], v_all[k, :, z] = _upper_envelope(coh[:, z], m_e[:, z], c_e[:, z], a, W[:, z], u)
+        d_idx = np.argmax(v_all, axis=0)
+        c = np.take_along_axis(c_all, d_idx[None], axis=0)[0]
+        v = np.take_along_axis(v_all, d_idx[None], axis=0)[0]
+        return c, v, d_idx
+
+    def _marginal(self, funcs, c, d_idx):
+        mu = np.empty_like(c)
+        for k, (_, up, _) in enumerate(funcs):
+            mask = d_idx == k
+            mu[mask] = up(c[mask])
+        return mu
+
+    def _solve_discrete_life_cycle(self, params: dict) -> EGMLifeCycleSolution:
+        comp, P = self.comp, self.comp.P
+        a, n_a, n_z = self.a, self.a.size, self.n_z
+        J = int(comp.model._horizon or 0)
+        surv = self._survival()
+        terminal, dV = self._terminal()
+        Rs, Ys = np.empty(J), np.empty((J, self.dvals.size, n_z))
+        funcs = []
+        for j in range(J):
+            Rs[j], Ys[j] = self.budgets(params, age=j)
+            funcs.append(self._dc_funcs(self.at_age(params, j), Rs[j], Ys[j]))
+        c = np.empty((J, n_a, n_z))
+        V = np.empty((J, n_a, n_z))
+        d_idx = np.empty((J, n_a, n_z), dtype=np.int64)
+        for j in range(J - 1, -1, -1):
+            b = comp.beta * surv[j]
+            if j == J - 1 and terminal is None:
+                W = rhs = None
+            elif j == J - 1:
+                W, rhs = b * (terminal @ P.T), b * (dV @ P.T)
+            else:
+                W = b * (V[j + 1] @ P.T)
+                rhs = b * ((Rs[j + 1] * self._marginal(funcs[j + 1], c[j + 1], d_idx[j + 1])) @ P.T)
+            c[j], V[j], d_idx[j] = self._dc_step(funcs[j], Rs[j], Ys[j], W, rhs)
+        coh = Rs[:, None, None] * a[None, :, None] + np.take_along_axis(
+            np.broadcast_to(Ys[:, :, None, :], (J, self.dvals.size, n_a, n_z)), d_idx[:, None], axis=1)[:, 0]
+        aprime = np.clip(coh - c, a[0], a[-1])
+        return EGMLifeCycleSolution(V=V, c=coh - aprime, aprime=aprime, horizon=J, R=Rs, income=Ys,
+                                    policy_d=d_idx)
+
+    def _solve_discrete_infinite(self, params: dict, *, tol: float, max_iter: int) -> EGMHouseholdSolution:
+        P, b = self.comp.P, self.comp.beta
+        R, Y = self.budgets(params)
+        funcs = self._dc_funcs(params, R, Y)
+        c, V, d_idx = self._dc_step(funcs, R, Y, None, None)
+        sup = np.inf
+        for it in range(1, max_iter + 1):
+            W = b * (V @ P.T)
+            rhs = b * ((R * self._marginal(funcs, c, d_idx)) @ P.T)
+            c_new, V_new, d_idx = self._dc_step(funcs, R, Y, W, rhs)
+            sup = float(max(np.max(np.abs(c_new - c)), np.max(np.abs(V_new - V))))
+            c, V = c_new, V_new
+            if sup < tol:
+                break
+        else:
+            raise RuntimeError(f"DC-EGM did not converge in {max_iter} iterations (sup-norm {sup:.3e} > tol {tol:.1e})")
+        coh = R * self.a[:, None] + np.take_along_axis(
+            np.broadcast_to(Y[:, None, :], (self.dvals.size,) + c.shape), d_idx[None], axis=0)[0]
+        aprime = np.clip(coh - c, self.a[0], self.a[-1])
+        return EGMHouseholdSolution(V=V, c=coh - aprime, aprime=aprime, n_iter=it, sup_norm=sup, R=R,
+                                    income=Y, egm=None, policy_d=d_idx)
+
+    def _cohort_distribution(self, sol: EGMLifeCycleSolution) -> np.ndarray:
+        from puremacro.vfi.finite_horizon import _z_stationary
+
+        a, n_a, n_z, P = self.a, self.a.size, self.n_z, self.comp.P
+        nb = self.comp.model._newborns
+        if nb is None:
+            mu0 = np.zeros((n_a, n_z))
+            mu0[0] = _z_stationary(P)
+        else:
+            mu0 = np.asarray(nb, dtype=float)
+            if mu0.shape != (n_a, n_z):
+                raise ModelSpecError(f"newborns must have shape ({n_a}, {n_z}); got {mu0.shape}")
+            mu0 = mu0 / mu0.sum()
+        dist = np.empty((sol.horizon, n_a, n_z))
+        dist[0] = mu0
+        for j in range(sol.horizon - 1):
+            dist[j + 1] = lottery_push(dist[j], sol.aprime[j], a, P)
+        return dist
 
     def equilibrium(self, *, tol, max_iter, xtol, max_evals):
         comp = self.comp
@@ -226,3 +449,34 @@ class EGMPlan:
         eq = EquilibriumResult(price=p_star, residual=res, solution=sol, distribution=mu,
                                problem=None, n_evals=state["n"])
         return eq, params, aggs
+
+
+def _upper_envelope(m_x, m_e, c_e, a, W, u):
+    """Best of the corner choices and the interpolated Euler segments at cash on hand ``m_x``.
+
+    ``m_e``/``c_e`` are the endogenous cash on hand and consumption for next
+    assets ``a`` (not necessarily monotone in ``a``), ``W`` the discounted
+    expected continuation on ``a``. Each segment [m_e[i], m_e[i+1]] proposes
+    consumption by linear interpolation; next assets then lie on [a[i], a[i+1]]
+    at the same weight, so the candidate value is u(c) + the interpolated W.
+    Saving the grid minimum is a candidate where it satisfies the Kuhn-Tucker
+    condition u'(c) >= beta E V'(a[0]), i.e. ``m_x <= m_e[0]``, and saving the
+    maximum where ``m_x >= m_e[-1]``. Returns (c, v).
+    """
+    with np.errstate(all="ignore"):
+        cands_c = [m_x - a[0], m_x - a[-1]]
+        cands_v = [np.where(m_x <= m_e[0], u(m_x - a[0]) + W[0], -np.inf),
+                   np.where(m_x >= m_e[-1], u(m_x - a[-1]) + W[-1], -np.inf)]
+        m0, m1 = m_e[:-1, None], m_e[1:, None]
+        dm = m1 - m0
+        t = (m_x[None, :] - m0) / np.where(dm == 0, np.nan, dm)
+        inside = (t >= 0.0) & (t <= 1.0)
+        cs = c_e[:-1, None] + t * (c_e[1:, None] - c_e[:-1, None])
+        ws = W[:-1, None] + t * (W[1:, None] - W[:-1, None])
+        vs = np.where(inside & (cs > 0), u(cs) + ws, -np.inf)
+        C = np.vstack([np.vstack(cands_c), cs])
+        Vv = np.vstack([np.vstack(cands_v), vs])
+        Vv = np.where(np.isfinite(Vv) & (C > 0), Vv, -np.inf)
+    k = np.argmax(Vv, axis=0)
+    cols = np.arange(m_x.size)
+    return C[k, cols], Vv[k, cols]
