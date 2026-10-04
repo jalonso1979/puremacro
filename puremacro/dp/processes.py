@@ -1,8 +1,9 @@
 """Exogenous shock processes for puremacro.dp models.
 
-Each process discretizes to a Markov chain ``(grid, P)`` with the existing
-``puremacro.vfi.discretize`` routines, so a dp model and a hand-built
-``VFIProblem`` see exactly the same chain.
+Each discrete-time process discretizes to a Markov chain ``(grid, P)`` with the
+existing ``puremacro.vfi.discretize`` routines, so a dp model and a hand-built
+``VFIProblem`` see exactly the same chain. ``Jump`` is the continuous-time
+counterpart (a generator) for models with a ``drift``.
 """
 from __future__ import annotations
 
@@ -51,4 +52,23 @@ class Markov:
         return g, P
 
 
-__all__ = ["AR1", "Markov"]
+@dataclass(frozen=True)
+class Jump:
+    """A continuous-time Markov chain (Poisson jumps) for continuous-time models:
+    state values ``grid`` and generator ``rates`` (non-negative off-diagonal
+    intensities, zero row sums), e.g. ``Jump([0.1, 0.2], [[-1.2, 1.2], [1.2, -1.2]])``."""
+    grid: object
+    rates: object
+
+    def generator(self) -> tuple[np.ndarray, np.ndarray]:
+        g = np.asarray(self.grid, dtype=float).ravel()
+        A = np.asarray(self.rates, dtype=float)
+        if A.shape != (g.size, g.size):
+            raise ValueError(f"Jump rates must be ({g.size},{g.size}); got {A.shape}")
+        off = A - np.diag(np.diag(A))
+        if np.any(off < 0) or not np.allclose(A.sum(axis=1), 0.0, atol=1e-10):
+            raise ValueError("Jump rates must have non-negative off-diagonal entries and zero row sums")
+        return g, A
+
+
+__all__ = ["AR1", "Jump", "Markov"]

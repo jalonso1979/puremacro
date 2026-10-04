@@ -51,7 +51,7 @@ from puremacro.vfi.equilibrium import stationary_equilibrium
 from puremacro.vfi.finite_horizon import FiniteHorizonProblem, life_cycle_distribution
 from puremacro.vfi.problem import VFIProblem
 
-_METHODS = ("vfi", "egm")
+_METHODS = ("vfi", "egm", "hjb")
 
 
 class Model:
@@ -80,6 +80,9 @@ class Model:
         self._aggregates: dict[str, Any] = {}
         self._clear: str | None = None
         self._taste: float | str | None = None
+        self._controls: list[str] = []
+        self._drift: dict[str, str] = {}
+        self._rate = "rho"
 
     # ------------------------------------------------------------------ declarations
     def parameters(self, **values) -> Model:
@@ -103,8 +106,8 @@ class Model:
     def exogenous(self, name: str, process) -> Model:
         """An exogenous Markov shock (``dp.AR1`` or ``dp.Markov``). Several shocks
         are independent and enter as their product chain, first-declared slowest."""
-        if not hasattr(process, "discretize"):
-            raise ModelSpecError(f"shock {name!r}: process must be dp.AR1 or dp.Markov")
+        if not (hasattr(process, "discretize") or hasattr(process, "generator")):
+            raise ModelSpecError(f"shock {name!r}: process must be dp.AR1, dp.Markov or dp.Jump")
         self._shocks.append((str(name), process))
         return self
 
@@ -167,6 +170,22 @@ class Model:
         self._taste = scale
         return self
 
+    def control(self, *names: str) -> Model:
+        """Continuous-time controls (e.g. consumption ``"c"``), chosen at each instant."""
+        self._controls.extend(str(n) for n in names)
+        return self
+
+    def drift(self, state: str, expr: str) -> Model:
+        """Continuous time: the law of motion d(state)/dt, e.g. ``drift("a", "r*a + w*z - c")``.
+        A model with a drift is solved by ``method="hjb"``."""
+        self._drift[str(state)] = str(expr)
+        return self
+
+    def discount_rate(self, rho: str = "rho") -> Model:
+        """Continuous time: name of the discount-rate parameter (default ``rho``)."""
+        self._rate = str(rho)
+        return self
+
     def discount(self, beta: str = "beta") -> Model:
         """Name of the discount-factor parameter (default ``beta``)."""
         self._beta = str(beta)
@@ -204,12 +223,13 @@ class Model:
         """Validate the specification and compile it; raises ModelSpecError with the reason."""
         return _Compiled(self)
 
-    def solve(self, method: str = "vfi", *, backend: str = "numpy", tol: float = 1e-8,
+    def solve(self, method: str | None = None, *, backend: str = "numpy", tol: float = 1e-8,
               howard: int = 20, max_iter: int = 10_000, distribution: bool = True,
               xtol: float = 1e-6, max_evals: int = 100) -> DPSolution:
         """Compile and solve.
 
-        ``method="vfi"``: discrete VFI with ``howard`` policy-improvement steps
+        ``method`` defaults to ``"hjb"`` for a model with a ``drift`` and ``"vfi"``
+        otherwise. ``method="vfi"``: discrete VFI with ``howard`` policy-improvement steps
         for infinite horizons, backward induction for a finite horizon.
         ``method="egm"``: the endogenous grid method (continuous policies, no
         grid search) for one-asset models whose budget is
@@ -217,9 +237,21 @@ class Model:
         ModelSpecError otherwise. ``tol`` is the EGM consumption tolerance and
         ``howard``/``backend`` do not apply. With prices and a ``clear``
         condition the household solve is wrapped in a brentq root-find (``xtol``).
+        ``method="hjb"``: the implicit upwind scheme for continuous-time models
+        (one state with a ``drift`` linear in one ``control``); ``tol`` and
+        ``max_iter`` go to the HJB iteration.
         """
+        if method is None:
+            method = "hjb" if self._drift else "vfi"
         if method not in _METHODS:
             raise ModelSpecError(f"method must be one of {_METHODS}; got {method!r}")
+        if method == "hjb":
+            from puremacro.dp._hjb import HJBPlan
+
+            return HJBPlan(self).solve(tol=tol, max_iter=max_iter, distribution=distribution,
+                                       xtol=xtol, max_evals=max_evals)
+        if self._drift or self._controls:
+            raise ModelSpecError("a model with drift() or control() is continuous-time; use method='hjb'")
         return self.check().solve(method=method, backend=backend, tol=tol, howard=howard, max_iter=max_iter,
                                   distribution=distribution, xtol=xtol, max_evals=max_evals)
 
@@ -279,6 +311,10 @@ class _Compiled:
             raise ModelSpecError(f"{sorted(clash)} declared as both parameter and price")
 
         # exogenous chain
+        jumps = [n for n, p in m._shocks if not hasattr(p, "discretize")]
+        if jumps:
+            raise ModelSpecError(f"shocks {jumps} are dp.Jump (continuous time); discrete-time models "
+                                 "take dp.AR1 or dp.Markov")
         if m._shocks:
             chains = [p.discretize() for _, p in m._shocks]
             self.z_grids = [np.asarray(g, dtype=float) for g, _ in chains]

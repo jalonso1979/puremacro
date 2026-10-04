@@ -56,6 +56,20 @@ splits mass by choice probability, so `mean("h")` is the participation rate.
 The last period matches the closed-form logit to 1e-12 and a two-period model
 matches a 200,001-point brute-force maximisation to 1e-5.
 
+**Continuous-time `dp` models (`method="hjb"`).** Declare `control("c")`,
+`drift("a", "r*a + w*e - c")`, `discount_rate("rho")` and `dp.Jump` shocks
+(Poisson generators; several are combined as their product chain), and
+`solve()` compiles to `vfi.solve_hjb_achdou`. The compiler checks that the
+drift is linear in the control with slope -1 and derives u' and its inverse from
+the reward. Prices and `clear()` work as in discrete time, with aggregates
+integrated against the KFE density; `distribution` is the mass at each node.
+The household matches `solve_hjb_achdou` to 1e-12 and the continuous-time
+Aiyagari equilibrium matches `solve_aiyagari_continuous_hjb` (r* to 1e-9).
+`solve_hjb_achdou` takes `income` (any (Na, Ne) drift before consumption) and
+`utility`/`u_prime`/`u_prime_inv`; default calls are bit-identical.
+`Model.solve(method=None)` picks `"hjb"` for a model with a drift and `"vfi"`
+otherwise.
+
 ## 4.5.0 (2026-10-03)
 
 **Honest convergence and corrected numbers: the wrong-number and false-success known issues of 4.4.0, each checked against an independent reference.**

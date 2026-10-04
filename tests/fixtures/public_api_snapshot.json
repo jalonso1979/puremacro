@@ -3992,6 +3992,7 @@
     "puremacro.dp": [
       "AR1",
       "DPSolution",
+      "Jump",
       "Markov",
       "Model",
       "ModelSpecError",
@@ -4002,6 +4003,7 @@
     ],
     "puremacro.dp.processes": [
       "AR1",
+      "Jump",
       "Markov"
     ]
   },
@@ -8646,6 +8648,10 @@
       "horizon",
       "income",
       "policy_d"
+    ],
+    "puremacro.dp.processes.Jump": [
+      "grid",
+      "rates"
     ]
   }
 }

@@ -13,7 +13,9 @@ class DPSolution:
     """Solved dp model: value, policies, distribution, prices and aggregates.
 
     ``raw`` is the underlying ``VFISolution``, ``FiniteHorizonSolution`` or
-    ``EGMHouseholdSolution`` (``method="egm"``; continuous ``c``/``aprime``) and
+    ``EGMHouseholdSolution`` (``method="egm"``; continuous ``c``/``aprime``) or
+    ``HJBSolution`` (``method="hjb"``; ``distribution`` is then the mass at each
+    node, the KFE density times the quadrature weights, and ``P`` the generator) and
     ``equilibrium`` the ``EquilibriumResult`` when prices were solved for.
     Arrays are (n_states, n_shocks), with a leading age axis for finite horizons.
     """
@@ -53,6 +55,8 @@ class DPSolution:
         from puremacro.dp._expr import parse
 
         c = self._c
+        if hasattr(c, "policy_values"):
+            return c.policy_values(expr, self.raw, self.params)
         timed = c.state_names + c.shock_names + ([c.model._discrete[0]] if c.model._discrete else [])
         fn = c._household_function("_dp_policy", parse(expr, timed))
         if not c.finite:

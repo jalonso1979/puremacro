@@ -535,6 +535,10 @@ def solve_hjb_achdou(
     Delta: float = 1e4,
     compute_kfe: bool = True,
     v_prime_boundary: tuple[float | None, float | None] | None = None,
+    income: np.ndarray | None = None,
+    utility: Any = None,
+    u_prime: Any = None,
+    u_prime_inv: Any = None,
 ) -> HJBSolution:
     """Continuous-time HJB implicit upwind finite-difference solver (Achdou et al. 2022).
 
@@ -599,6 +603,14 @@ def solve_hjb_achdou(
         drift leaves exactly one absorbing node (typically a_min >= 0.5 with r < rho);
         otherwise ``compute_kfe=True`` raises ValueError and ``compute_kfe=False``
         returns the HJB solution alone, which is what the benchmark is for.
+    income : np.ndarray, optional
+        The drift of assets before consumption, s(a, e) + c, shape (Na, Ne).
+        Default ``r_rate * a + w_rate * e``. Any array works (taxes, transfers,
+        non-linear returns); the budget must be linear in consumption with slope -1.
+    utility, u_prime, u_prime_inv : callable, optional
+        Felicity u(c), marginal utility u'(c) and its inverse, vectorised. Pass all
+        three or none; the default is CRRA with ``gamma_r`` (without the constant
+        shift). ``puremacro.dp`` derives them from a symbolic reward.
 
     Returns
     -------
@@ -639,7 +651,29 @@ def solve_hjb_achdou(
 
     A_z = _default_generator(Ne) if A_z is None else _validate_generator(A_z, Ne)
 
-    if w_rate == 0.0 and a_grid[0] <= 0.0:
+    custom_u = utility is not None or u_prime is not None or u_prime_inv is not None
+    if custom_u and (utility is None or u_prime is None or u_prime_inv is None):
+        raise ValueError("pass utility, u_prime and u_prime_inv together, or none of them (CRRA)")
+    if not custom_u:
+        def utility(c):
+            if abs(gamma_r - 1.0) < 1e-7:
+                return np.log(c)
+            return (c ** (1.0 - gamma_r)) / (1.0 - gamma_r)
+
+        def u_prime(c):
+            return c ** (-gamma_r)
+
+        def u_prime_inv(x):
+            return x ** (-1.0 / gamma_r)
+    if income is None:
+        s0 = r_rate * a_grid[:, None] + w_rate * e_grid[None, :]
+    else:
+        s0 = np.asarray(income, dtype=float)
+        if s0.shape != (Na, Ne) or not np.all(np.isfinite(s0)):
+            raise ValueError(f"income must be a finite ({Na}, {Ne}) array; got shape {s0.shape}")
+    cake = w_rate == 0.0 and income is None and not custom_u
+
+    if cake and a_grid[0] <= 0.0:
         raise ValueError(
             "w_rate == 0.0 selects the analytic CRRA cake-eating mode, whose closed-form "
             "guess c(a) = mu * a and marginal utility (mu * a)**(-gamma) are singular at "
@@ -651,15 +685,17 @@ def solve_hjb_achdou(
     da_bwd = np.insert(da, 0, da[0])
 
     # Initial Value Function guess
-    is_unconstrained = (w_rate == 0.0) or (v_prime_boundary is not None)
+    is_unconstrained = cake or (v_prime_boundary is not None)
 
-    if w_rate == 0.0:
+    if cake:
         mu_rate = max((rho_val - (1.0 - gamma_r) * r_rate) / gamma_r, 1e-6)
         c_init = mu_rate * a_grid
         if abs(gamma_r - 1.0) < 1e-7:
             V = np.tile(np.log(c_init)[:, None] / rho_val, (1, Ne))
         else:
             V = np.tile(((c_init ** (1.0 - gamma_r)) / ((1.0 - gamma_r) * rho_val))[:, None], (1, Ne))
+    elif custom_u or income is not None:
+        V = utility(np.maximum(s0, 1e-6)) / rho_val
     else:
         V = np.zeros((Na, Ne))
         for k in range(Ne):
@@ -684,19 +720,19 @@ def solve_hjb_achdou(
         for k in range(Ne):
             if v_prime_boundary is not None and v_prime_boundary[1] is not None:
                 v_fwd_bound = float(v_prime_boundary[1])
-            elif w_rate == 0.0:
+            elif cake:
                 mu_rate = max((rho_val - (1.0 - gamma_r) * r_rate) / gamma_r, 1e-6)
                 v_fwd_bound = float((mu_rate * a_grid[-1]) ** (-gamma_r))
             else:
-                v_fwd_bound = max(r_rate * a_grid[-1] + w_rate * e_grid[k], 1e-6) ** (-gamma_r)
+                v_fwd_bound = float(u_prime(max(s0[-1, k], 1e-6)))
 
             if v_prime_boundary is not None and v_prime_boundary[0] is not None:
                 v_bwd_bound = float(v_prime_boundary[0])
-            elif w_rate == 0.0:
+            elif cake:
                 mu_rate = max((rho_val - (1.0 - gamma_r) * r_rate) / gamma_r, 1e-6)
                 v_bwd_bound = float((mu_rate * a_grid[0]) ** (-gamma_r))
             else:
-                v_bwd_bound = max(r_rate * a_grid[0] + w_rate * e_grid[k], 1e-6) ** (-gamma_r)
+                v_bwd_bound = float(u_prime(max(s0[0, k], 1e-6)))
 
             V_forward[:-1, k] = (V[1:, k] - V[:-1, k]) / da
             V_forward[-1, k] = v_fwd_bound
@@ -704,17 +740,17 @@ def solve_hjb_achdou(
             V_backward[1:, k] = (V[1:, k] - V[:-1, k]) / da
             V_backward[0, k] = v_bwd_bound
 
-        c_forward = np.maximum(np.maximum(V_forward, 1e-12) ** (-1.0 / gamma_r), 1e-8)
-        s_forward = r_rate * a_grid[:, None] + w_rate * e_grid[None, :] - c_forward
+        c_forward = np.maximum(u_prime_inv(np.maximum(V_forward, 1e-12)), 1e-8)
+        s_forward = s0 - c_forward
 
-        c_backward = np.maximum(np.maximum(V_backward, 1e-12) ** (-1.0 / gamma_r), 1e-8)
-        s_backward = r_rate * a_grid[:, None] + w_rate * e_grid[None, :] - c_backward
+        c_backward = np.maximum(u_prime_inv(np.maximum(V_backward, 1e-12)), 1e-8)
+        s_backward = s0 - c_backward
 
-        if w_rate == 0.0:
+        if cake:
             mu_rate = max((rho_val - (1.0 - gamma_r) * r_rate) / gamma_r, 1e-6)
             c_zero = np.maximum(mu_rate * a_grid[:, None], 1e-8)
         else:
-            c_zero = np.maximum(r_rate * a_grid[:, None] + w_rate * e_grid[None, :], 1e-8)
+            c_zero = np.maximum(s0, 1e-8)
 
         use_fwd = (s_forward > 0)
         if not is_unconstrained:
@@ -729,10 +765,7 @@ def solve_hjb_achdou(
         c_policy = c_forward * use_fwd + c_backward * use_bwd + c_zero * use_zero
         s_drift = s_forward * use_fwd + s_backward * use_bwd
 
-        if abs(gamma_r - 1.0) < 1e-7:
-            u_val = np.log(c_policy)
-        else:
-            u_val = (c_policy ** (1.0 - gamma_r)) / (1.0 - gamma_r)
+        u_val = utility(c_policy)
 
         # Assemble infinitesimal generator matrix A^n
         row_idx = []
@@ -800,7 +833,7 @@ def solve_hjb_achdou(
         try:
             g_dist, mass_residual = solve_kfe_achdou(A, a_grid, e_grid, return_residual=True)
         except ValueError as exc:
-            if w_rate != 0.0:
+            if not cake:
                 raise
             raise ValueError(
                 f"{exc} The w_rate == 0 cake-eating benchmark has no income risk, so its "
