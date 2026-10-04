@@ -26,6 +26,25 @@ The presets carry each survey's documented constants:
 * CPS basic monthly: weights only. No replicate weights or design
   variables are published, so ``se`` is ``NaN`` rather than a
   simple-random-sampling number that would understate the true error.
+* INEGI ENIGH: strata and PSU identifiers instead of replicates, so
+  ``method="taylor"`` (below).
+
+LINEARISATION
+-------------
+When a survey publishes strata and primary sampling units (PSUs) but no
+replicate weights, variance is estimated by Taylor linearisation with
+the with-replacement "ultimate cluster" approximation, the default of
+Stata's ``svy`` and R's ``survey``. Each estimator is replaced by its
+influence values z_i; with PSU totals t_hi = Σ_{k∈hi} w_k z_k::
+
+    V = Σ_h n_h/(n_h - 1) · Σ_i (t_hi - mean_i t_hi)²
+
+Totals use z = x; means use z = (x - θ)/Σw; quantiles use Woodruff's
+method (a confidence interval for the CDF at the quantile, mapped back
+through the quantile function, se = width / (2 · 1.96)). Subgroups are
+domains: units outside the group keep z = 0, so every PSU still counts.
+A stratum with a single PSU is centred on the grand mean of PSU totals
+(``survey``'s ``lonely.psu = "adjust"``) rather than dropped.
 
 MULTIPLE IMPUTATION
 -------------------
@@ -44,16 +63,18 @@ from typing import Callable, Sequence
 import numpy as np
 import pandas as pd
 
-METHODS = ("sdr", "jk1", "brr", "fay", "bootstrap", "other", "none")
+METHODS = ("sdr", "jk1", "brr", "fay", "bootstrap", "other", "taylor", "none")
+_Z = 1.959963984540054   # standard normal 97.5% quantile (Woodruff interval)
 
 
 @dataclass(frozen=True)
 class SurveyDesign:
     """Which columns are weights and how replicate variance is formed.
 
-    ``strata`` and ``psu`` are recorded when a survey publishes them so a
-    downstream user can hand them to a linearisation routine; the
-    estimators in this module use replicate weights only.
+    Replicate methods read ``replicate_weights``; ``method="taylor"``
+    reads ``psu`` (and ``strata`` when the design is stratified)
+    instead. For replicate designs, ``strata`` and ``psu`` are only
+    recorded.
     """
     weight: str
     replicate_weights: tuple[str, ...] = ()
@@ -68,7 +89,10 @@ class SurveyDesign:
     def __post_init__(self):
         if self.method not in METHODS:
             raise ValueError(f"method {self.method!r} not in {METHODS}")
-        if self.method != "none" and not self.replicate_weights:
+        if self.method == "taylor":
+            if not self.psu:
+                raise ValueError("method 'taylor' needs a psu column")
+        elif self.method != "none" and not self.replicate_weights:
             raise ValueError(f"method {self.method!r} needs replicate_weights")
 
     @property
@@ -103,6 +127,16 @@ class SurveyDesign:
             method="bootstrap", scale=1 / 998, mse=True, implicate="implicate",
             note="SCF bootstrap replicates x multiplicity factors; Rubin's "
                  "rules across 5 implicates")
+
+    @classmethod
+    def enigh(cls) -> "SurveyDesign":
+        """INEGI ENIGH: expansion factor ``factor``, design strata
+        ``est_dis`` and PSUs ``upm``; Taylor linearisation (INEGI's own
+        precision tables use the same design variables)."""
+        return cls(
+            weight="factor", method="taylor", strata="est_dis", psu="upm",
+            note="ENIGH stratified two-stage design; Taylor linearisation, "
+                 "ultimate-cluster variance")
 
     @classmethod
     def weights_only(cls, weight: str, note: str = "") -> "SurveyDesign":
@@ -179,18 +213,19 @@ class MicroFrame:
     # ----- estimators ------------------------------------------------------
     def total(self, col: str, by: str | Sequence[str] | None = None) -> pd.DataFrame:
         """Weighted population total of ``col``."""
-        return self._estimate(col, by, lambda x, W: _w_total(x, W))
+        return self._estimate(col, by, lambda x, W: _w_total(x, W), kind="total")
 
     def mean(self, col: str, by: str | Sequence[str] | None = None) -> pd.DataFrame:
         """Weighted mean of ``col``."""
-        return self._estimate(col, by, _w_mean)
+        return self._estimate(col, by, _w_mean, kind="mean")
 
     def quantile(self, col: str, q: float,
                  by: str | Sequence[str] | None = None) -> pd.DataFrame:
         """Weighted ``q``-quantile of ``col`` (inverse weighted CDF)."""
         if not 0 <= q <= 1:
             raise ValueError("q must lie in [0, 1]")
-        return self._estimate(col, by, lambda x, W: _w_quantile(x, W, q))
+        return self._estimate(col, by, lambda x, W: _w_quantile(x, W, q),
+                              kind=("quantile", q))
 
     def share(self, col: str, by: str | Sequence[str] | None = None) -> pd.DataFrame:
         """Weighted share of each category of ``col`` (within ``by``)."""
@@ -202,17 +237,19 @@ class MicroFrame:
         frames = []
         for cat in cats:
             ind = (self.data[col] == cat).astype(float).where(self.data[col].notna())
-            res = self._estimate(ind, by, _w_mean)
+            res = self._estimate(ind, by, _w_mean, kind="mean")
             res.insert(len(res.columns) - 4, col, cat)
             frames.append(res)
         return pd.concat(frames, ignore_index=True)
 
     # ----- engine ----------------------------------------------------------
-    def _estimate(self, col, by, stat: Callable) -> pd.DataFrame:
+    def _estimate(self, col, by, stat: Callable, kind="mean") -> pd.DataFrame:
         d = self.design
         x_all = (col if isinstance(col, pd.Series) else self.data[col])
         x_all = pd.to_numeric(x_all, errors="coerce").to_numpy(dtype=float)
         by_cols = [by] if isinstance(by, str) else list(by or [])
+        if d.method == "taylor":
+            return self._taylor(x_all, by_cols, kind)
         wcols = [d.weight, *(d.replicate_weights if d.has_variance else ())]
         W_all = self.data[wcols].to_numpy(dtype=float, na_value=0.0)
         imp_all = (self.data[d.implicate].to_numpy() if d.implicate
@@ -230,6 +267,26 @@ class MicroFrame:
             key = key if isinstance(key, tuple) else (key,)
             rows.append({**dict(zip(by_cols, key)), "estimate": est, "se": se,
                          "n": int(keep.sum()), "implicates": m})
+        return pd.DataFrame(rows, columns=[*by_cols, "estimate", "se", "n",
+                                           "implicates"])
+
+    def _taylor(self, x_all, by_cols, kind) -> pd.DataFrame:
+        d = self.design
+        w_all = self.data[d.weight].to_numpy(dtype=float, na_value=0.0)
+        strata = (self.data[d.strata].to_numpy() if d.strata
+                  else np.zeros(len(self.data)))
+        psu = self.data[d.psu].to_numpy()
+        groups = (self.data.groupby(by_cols, sort=True, dropna=False).indices
+                  if by_cols else {(): np.arange(len(self.data))})
+        rows = []
+        for key, idx in groups.items():
+            dom = np.zeros(len(self.data), dtype=bool)
+            dom[np.asarray(idx)] = True
+            dom &= ~np.isnan(x_all)
+            est, se = _linearised(kind, x_all, w_all, dom, strata, psu)
+            key = key if isinstance(key, tuple) else (key,)
+            rows.append({**dict(zip(by_cols, key)), "estimate": est, "se": se,
+                         "n": int(dom.sum()), "implicates": 1 if dom.any() else 0})
         return pd.DataFrame(rows, columns=[*by_cols, "estimate", "se", "n",
                                            "implicates"])
 
@@ -253,6 +310,53 @@ class MicroFrame:
         within = float(np.mean(vars_))
         between = float(np.var(ests, ddof=1)) if m > 1 else 0.0
         return est, float(np.sqrt(within + (1 + 1 / m) * between)), m
+
+
+def _ultimate_cluster_var(u: np.ndarray, strata, psu) -> float:
+    """Σ_h n_h/(n_h-1) Σ_i (t_hi - mean t_h)², t_hi = PSU totals of ``u``.
+
+    Single-PSU strata are centred on the grand mean of PSU totals.
+    """
+    t = pd.DataFrame({"h": strata, "i": psu, "u": u}).groupby(
+        ["h", "i"], sort=False)["u"].sum()
+    n_h = t.groupby(level=0).transform("size").to_numpy()
+    mean_h = t.groupby(level=0).transform("mean").to_numpy()
+    tv = t.to_numpy()
+    lonely = n_h == 1
+    dev = np.where(lonely, tv - tv.mean(), tv - mean_h)
+    factor = np.where(lonely, 1.0, n_h / np.maximum(n_h - 1, 1))
+    return float(np.sum(factor * dev ** 2))
+
+
+def _linearised(kind, x, w, dom, strata, psu) -> tuple[float, float]:
+    """Point estimate and linearised standard error over domain ``dom``."""
+    if not dom.any():
+        return np.nan, np.nan
+    xd, wd = x[dom], w[dom]
+    wsum = wd.sum()
+    z = np.zeros(len(x))
+    if kind == "total":
+        est = float(xd @ wd)
+        z[dom] = xd
+    elif kind == "mean":
+        if wsum <= 0:
+            return np.nan, np.nan
+        est = float(xd @ wd / wsum)
+        z[dom] = (xd - est) / wsum
+    else:                                   # ("quantile", q): Woodruff
+        q = kind[1]
+        est = float(_w_quantile(xd, wd[:, None], q)[0])
+        if wsum <= 0 or np.isnan(est):
+            return est, np.nan
+        below = (xd <= est).astype(float)
+        p_hat = below @ wd / wsum
+        z[dom] = (below - p_hat) / wsum
+        se_p = np.sqrt(_ultimate_cluster_var(w * z, strata, psu))
+        lo, hi = max(q - _Z * se_p, 0.0), min(q + _Z * se_p, 1.0)
+        x_lo = float(_w_quantile(xd, wd[:, None], lo)[0])
+        x_hi = float(_w_quantile(xd, wd[:, None], hi)[0])
+        return est, (x_hi - x_lo) / (2 * _Z)
+    return est, float(np.sqrt(_ultimate_cluster_var(w * z, strata, psu)))
 
 
 def replicate_variance(theta: float, replicates: np.ndarray, *, scale: float,

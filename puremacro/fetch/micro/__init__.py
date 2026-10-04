@@ -12,6 +12,8 @@ Providers
 - :func:`fetch_cps_basic` — Census CPS basic monthly (weights only)
 - :func:`fetch_scf`       — Fed Survey of Consumer Finances (5 implicates,
   999 replicate weights)
+- :func:`fetch_enigh`     — INEGI ENIGH, Mexico (strata + PSUs; Taylor
+  linearisation)
 
 See :func:`puremacro.fetch.registry.sources` with ``kind="micro"`` for
 access terms. Provider modules import the network layer; this package
@@ -27,6 +29,7 @@ _MODULE_OF = {
     "fetch_acs_pums": "census",
     "fetch_cps_basic": "census",
     "fetch_scf": "scf",
+    "fetch_enigh": "inegi",
 }
 
 

@@ -1192,6 +1192,7 @@
       "SurveyDesign",
       "fetch_acs_pums",
       "fetch_cps_basic",
+      "fetch_enigh",
       "fetch_scf",
       "replicate_variance",
       "rubin_combine"
@@ -1211,6 +1212,14 @@
       "fetch_cps_basic",
       "fetch_records",
       "variables"
+    ],
+    "puremacro.fetch.micro.inegi": [
+      "ID_COLUMNS",
+      "TABLES",
+      "available_years",
+      "enigh_url",
+      "fetch_enigh",
+      "read_table"
     ],
     "puremacro.fetch.micro.scf": [
       "assemble",

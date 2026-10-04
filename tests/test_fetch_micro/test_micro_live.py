@@ -4,6 +4,9 @@ The SCF check is a real oracle: the Board's 2022 Bulletin reports median
 family net worth of $192,900 and mean of $1,063,700 (2022 dollars).
 Reproducing both from the summary extract confirms the download, the
 implicate handling and the weights in one go.
+
+The ENIGH check uses INEGI's 2022 headline: average quarterly current
+income per household of 63,695 pesos (ENIGH 2022 press release).
 """
 from __future__ import annotations
 
@@ -36,3 +39,15 @@ def test_acs_pums_small_state_pull():
     assert len(acs.design.replicate_weights) == 80
     res = acs.mean("AGEP")
     assert 30 < res.loc[0, "estimate"] < 45 and np.isfinite(res.loc[0, "se"])
+
+
+def test_enigh_2022_reproduces_published_mean_income():
+    from puremacro.fetch.micro import fetch_enigh
+    try:
+        enigh = fetch_enigh(2022, ["ing_cor"])
+    except OSError as exc:
+        pytest.skip(f"ENIGH download failed: {exc}")
+    res = enigh.mean("ing_cor").iloc[0]
+    assert res["estimate"] == pytest.approx(63_695, rel=0.01)
+    assert 0 < res["se"] < 0.05 * res["estimate"]
+    assert enigh.data["est_dis"].nunique() > 100

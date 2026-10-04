@@ -11,7 +11,9 @@ whether results may be redistributed; `registry.load(id)` returns the
 fetcher. `puremacro.fetch.micro` adds `fetch_acs_pums` (Census ACS PUMS,
 80 replicate weights, chunked past the API's 50-variable cap),
 `fetch_cps_basic` (weights only) and `fetch_scf` (Fed SCF summary extract,
-five implicates, 999 replicate weights). Each returns a `MicroFrame` whose
+five implicates, 999 replicate weights) and `fetch_enigh` (INEGI ENIGH,
+Mexico, 2016+; strata and PSUs, so standard errors come from Taylor
+linearisation, `SurveyDesign(method="taylor")`). Each returns a `MicroFrame` whose
 `mean`/`total`/`quantile`/`share` give replicate standard errors, combined
 across implicates by Rubin's rules. `fetch._http.cached_get` gains
 `params=` and `secret_params=`; an API key passed as a secret parameter is

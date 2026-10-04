@@ -127,6 +127,8 @@ def test_design_validation():
     with pytest.raises(ValueError, match="needs replicate_weights"):
         SurveyDesign(weight="w", method="sdr")
     with pytest.raises(ValueError, match="not in"):
+        SurveyDesign(weight="w", method="linearised")
+    with pytest.raises(ValueError, match="needs a psu"):
         SurveyDesign(weight="w", method="taylor")
     with pytest.raises(ValueError, match="design columns absent"):
         MicroFrame(pd.DataFrame({"x": [1]}), SurveyDesign.acs_pums(), "person", "t", "x")
@@ -145,3 +147,100 @@ def test_variables_excludes_design_columns():
     df = _acs_like()
     mf = MicroFrame(df, SurveyDesign.acs_pums(), "person", "t", "x")
     assert mf.variables == ["WAGP", "SEX"]
+
+
+# ---------------------------------------------------------------------------
+# Taylor linearisation (strata + PSU designs)
+# ---------------------------------------------------------------------------
+def _clustered(seed=0, lonely=False):
+    rng = np.random.default_rng(seed)
+    rows = []
+    for h in range(6):
+        for i in range(1 if (lonely and h == 5) else 3):
+            for _ in range(4):
+                rows.append({"h": h, "psu": h * 10 + i, "w": rng.uniform(50, 150),
+                             "y": rng.lognormal(3, 0.6), "g": rng.integers(0, 2)})
+    return pd.DataFrame(rows)
+
+
+def _taylor_frame(df):
+    design = SurveyDesign(weight="w", method="taylor", strata="h", psu="psu")
+    return MicroFrame(df, design, "household", "t", "x")
+
+
+def _psu_formula(u, df):
+    """Σ_h n_h/(n_h-1) Σ_i (t_hi - mean t_h)², written out longhand."""
+    t = df.assign(u=u).groupby(["h", "psu"])["u"].sum()
+    v = 0.0
+    for _, th in t.groupby(level=0):
+        n = len(th)
+        v += n / (n - 1) * ((th - th.mean()) ** 2).sum()
+    return v
+
+
+def test_taylor_total_and_mean_match_the_textbook_formula():
+    df = _clustered()
+    mf = _taylor_frame(df)
+    tot = mf.total("y").iloc[0]
+    assert tot["estimate"] == pytest.approx((df.w * df.y).sum())
+    assert tot["se"] == pytest.approx(np.sqrt(_psu_formula(df.w * df.y, df)))
+    mean = mf.mean("y").iloc[0]
+    theta = (df.w * df.y).sum() / df.w.sum()
+    z = df.w * (df.y - theta) / df.w.sum()
+    assert mean["estimate"] == pytest.approx(theta)
+    assert mean["se"] == pytest.approx(np.sqrt(_psu_formula(z, df)))
+
+
+def test_taylor_domains_keep_every_psu():
+    df = _clustered(1)
+    by = _taylor_frame(df).mean("y", by="g")
+    for g, row in by.set_index("g").iterrows():
+        d = df.g == g
+        theta = (df.w * df.y)[d].sum() / df.w[d].sum()
+        z = np.where(d, df.w * (df.y - theta) / df.w[d].sum(), 0.0)
+        assert row["estimate"] == pytest.approx(theta)
+        assert row["se"] == pytest.approx(np.sqrt(_psu_formula(z, df)))
+        # Subsetting first (the wrong way) gives a different answer.
+        sub = _taylor_frame(df[d].reset_index(drop=True)).mean("y").iloc[0]
+        assert sub["estimate"] == pytest.approx(theta)
+
+
+def test_taylor_single_psu_stratum_is_centred_on_the_grand_mean():
+    df = _clustered(2, lonely=True)
+    u = df.w * df.y
+    t = df.assign(u=u).groupby(["h", "psu"])["u"].sum()
+    v = 0.0
+    for h, th in t.groupby(level=0):
+        if len(th) == 1:
+            v += float((th.iloc[0] - t.mean()) ** 2)
+        else:
+            v += len(th) / (len(th) - 1) * ((th - th.mean()) ** 2).sum()
+    se = _taylor_frame(df).total("y").iloc[0]["se"]
+    assert np.isfinite(se) and se == pytest.approx(np.sqrt(v))
+
+
+def test_taylor_quantile_uses_woodruff_and_is_positive():
+    df = _clustered(3)
+    mf = _taylor_frame(df)
+    med = mf.quantile("y", 0.5).iloc[0]
+    assert med["estimate"] == pytest.approx(
+        mf.quantile("y", 0.5).iloc[0]["estimate"])
+    assert 0 < med["se"] < df.y.std()
+    assert mf.quantile("y", 0.0).iloc[0]["estimate"] == df.y.min()
+
+
+def test_taylor_share_and_missing_values():
+    df = _clustered(4)
+    df.loc[[0, 5], "y"] = np.nan
+    mf = _taylor_frame(df)
+    res = mf.mean("y").iloc[0]
+    assert res["n"] == len(df) - 2 and np.isfinite(res["se"])
+    sh = mf.share("g")
+    assert sh["estimate"].sum() == pytest.approx(1.0)
+    assert (sh["se"] > 0).all()
+
+
+def test_enigh_preset():
+    d = SurveyDesign.enigh()
+    assert (d.weight, d.strata, d.psu, d.method) == ("factor", "est_dis", "upm", "taylor")
+    assert d.columns() == ["factor", "est_dis", "upm"]

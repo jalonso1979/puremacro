@@ -305,6 +305,13 @@ register(SourceInfo(
                 "implicates plus 999 replicate weights",
     terms_url="https://www.federalreserve.gov/econres/scfindex.htm",
     freq="3A"))
+register(SourceInfo(
+    id="inegi.enigh", kind="micro", provider="inegi",
+    loader=_M + "inegi:fetch_enigh",
+    description="ENIGH (Mexico) household and person tables, nueva serie "
+                "2016+; strata and PSUs for Taylor-linearised standard errors",
+    terms_url="https://www.inegi.org.mx/inegi/terminos.html",
+    freq="2A"))
 
 
 # ---------------------------------------------------------------------------
