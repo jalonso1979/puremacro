@@ -60,11 +60,13 @@ lists the scenarios present, each run's convergence flag, Newton iterations and
 final L1 residual, and the digest of the table they were solved on. Scenarios
 still absent from the file are listed there too.
 
-Only `base` is present. The six tariff scenarios are absent because no root of
-the legacy equation system was found for them on the clean table: at every
-positive US tariff tried, the row/column-equilibrated Jacobian turns
-near-singular in Costa Rica's block, while the same solver reproduces the
-legacy table's t10 reference to 2.1e-12. Evidence, logs and the solver scripts
+Only `base` is present. The six tariff scenarios are absent because the legacy
+model has no equilibrium for them connected to the base on the clean table.
+Each country's price level is pinned only by accounting wedges of the MATLAB
+code, and for Costa Rica these nearly cancel. The tariff path folds at a US
+tariff of about 0.89%. The same solver,
+`solve_trade_equilibrium(method="equilibrated_newton")`, reproduces the legacy
+table's t10 reference from a cold start. Evidence, logs and the analysis tools
 are in `reviews/2026-10-04-clean-table-tariff-scenarios/` and
 `tools/reference_validation/trade_clean_table/`.
 

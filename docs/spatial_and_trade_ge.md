@@ -406,6 +406,15 @@ it, reachable through `load_reference_solution(scenario)`,
 They are verbatim copies, so those comparisons remain an external check rather
 than puremacro grading its own output.
 
+On the clean table the MATLAB references cover the base scenario only. The
+legacy model's US tariff scenarios have no equilibrium connected to the base
+there: the path folds at a tariff of about 0.89% (see "Budgets, foreign saving
+and the numeraire" in [Trade accounting](trade_accounting.md) and
+`reviews/2026-10-04-clean-table-tariff-scenarios/REPORT.md`). To solve
+full-size tables use `solve_trade_equilibrium(calib, method="equilibrated_newton")`.
+It runs Newton on the row/column-equilibrated Jacobian, and on failure its
+`metadata` names the country whose price-level direction has become singular.
+
 The full notice, including each file's provenance and SHA-256, is in
 `puremacro/trade/_datafiles/SOURCES.md`, which is installed with the package.
 

@@ -22,19 +22,26 @@ To reproduce: place the three model files and `data_77c_11s_clean.mat` next to t
 
 ## Tariff scenarios (4 October 2026)
 
-Only the base scenario is bundled. No root was found for the tariff scenarios on the clean
-table; the diagnosis, the logs of every attempt and the control on the legacy table are in
-`reviews/2026-10-04-clean-table-tariff-scenarios/REPORT.md`. The scripts used are kept here
-for any later attempt:
+Only the base scenario is bundled. The legacy model's tariff path from the base folds at a US
+tariff of about 0.89% on the clean table, so the scenarios have no equilibrium connected to the
+base. The cause, the logs of every attempt and the control on the legacy table are in
+`reviews/2026-10-04-clean-table-tariff-scenarios/REPORT.md`. The equilibrated Newton is now in
+the library as `solve_trade_equilibrium(calib, method="equilibrated_newton")`. The scripts used
+are kept here:
 
-* `equilibrated_newton.py <scratch_dir> <rate> <tag>` — damped Newton with Ruiz row/column
-  equilibration and backtracking, on puremacro's transcription of the legacy residual. With
-  `PM_TABLE=legacy` it reproduces MATLAB's bundled t10 reference from a cold start to a
-  maximum relative difference of 2.1e-12; this is the solver to use first.
-* `equilibrated_lm.py <scratch_dir> <rate> <tag> [warm.mat]` — Levenberg–Marquardt on the
+* `equilibrated_newton.py <scratch_dir> <rate> <tag>`: the stand-alone prototype of the library
+  method (Ruiz row/column equilibration, backtracking) on puremacro's transcription of the
+  legacy residual. With `PM_TABLE=legacy` it reproduces MATLAB's bundled t10 reference from a
+  cold start to a maximum relative difference of 2.1e-12.
+* `equilibrated_lm.py <scratch_dir> <rate> <tag> [warm.mat]`: Levenberg–Marquardt on the
   same equilibrated system, optionally from a stalled iterate.
-* `polish_rate.m` — loads a puremacro root, checks it was computed for the same tariff
+* `wedge_identity.py [oecd2020|legacy] [rate]`: verifies the per-country budget identity
+  `λ_j' F = W1 + W2 + W3 + W4` of the legacy residual and prints how each accounting wedge
+  responds along the weakest directions of the equilibrated Jacobian.
+* `fold_trace.py [n_steps] [dq]`: follows the clean-table tariff path in Costa Rica's mean log
+  price, which passes the fold that natural continuation in the tariff cannot.
+* `polish_rate.m`: loads a puremacro root, checks it was computed for the same tariff
   schedule, and re-solves it with the unchanged MATLAB model functions, so that any future
   bundled reference is MATLAB's own solution and remains an external check.
 
-Both Python scripts write to `<scratch_dir>/matlab/`, which must exist.
+The first two Python scripts write to `<scratch_dir>/matlab/`, which must exist.

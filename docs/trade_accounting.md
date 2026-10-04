@@ -172,6 +172,26 @@ fixed as a share of world factor income,
 homogeneous of degree zero and the results do not depend on the country order
 (the same example gives -36.95% for either order). The default is unchanged.
 
+The legacy mode (`accounting="legacy"`, the MATLAB replica) keeps all foreign
+balances endogenous and does not remove this redundancy. For each country, the
+sum of its goods-market residuals weighted by prices, its zero-profit residuals
+weighted by outputs, its factor-market residuals weighted by factor prices and
+its fiscal equation, minus its foreign-balance equation, is identically equal
+to four accounting wedges of the MATLAB code: the `w/(1-α)^(1-α)` precedence,
+production tax collected on quantity rather than value, uncredited tariffs, and
+final-demand trade valued at the importer's composite price. Each country's
+price level and foreign balance are therefore determined only by how these
+wedges respond to them, and the equilibrated Jacobian has one weak direction per
+country. Where the responses nearly cancel, small shocks have no nearby
+equilibrium. On the clean OECD 2020 table (`load_icio_data(source="oecd2020")`)
+Costa Rica's direction loses its pin at a uniform US tariff of about 0.89%, and
+the tariff path folds there, so the legacy model's tariff scenarios have no
+solution on that table. With `replicate_matlab_precedence=False` they solve. The
+full analysis is in `reviews/2026-10-04-clean-table-tariff-scenarios/REPORT.md`.
+For full-size tables use `solve_trade_equilibrium(method="equilibrated_newton")`.
+On failure its `metadata["near_singular_country"]` names the country whose
+direction has become singular.
+
 GDP at factor cost equals factor income. GDP at market prices adds domestic
 taxes and duties; it must equal final purchaser expenditure plus net exports
 valued at producer/border prices. Household and government budgets and all

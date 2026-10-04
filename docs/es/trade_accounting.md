@@ -186,6 +186,28 @@ país como proporción del ingreso factorial mundial,
 homogéneo de grado cero y los resultados no dependen del orden de los países (el
 mismo ejemplo da -36.95% con cualquier orden). El valor por defecto no cambia.
 
+El modo heredado (`accounting="legacy"`, la réplica de MATLAB) mantiene endógenos
+todos los saldos externos y no elimina esa redundancia. Para cada país, la suma de
+sus residuos de mercado de bienes ponderados por precios, sus residuos de
+beneficio nulo ponderados por producción, sus residuos de mercado de factores
+ponderados por precios de factores y su ecuación fiscal, menos su ecuación de
+saldo externo, es idénticamente igual a cuatro cuñas contables del código MATLAB:
+la precedencia `w/(1-α)^(1-α)`, el impuesto a la producción cobrado sobre la
+cantidad y no sobre el valor, los aranceles no acreditados y el comercio de
+demanda final valorado al precio compuesto del importador. El nivel de precios y
+el saldo externo de cada país quedan por tanto determinados solo por la respuesta
+de esas cuñas, y el jacobiano equilibrado tiene una dirección débil por país.
+Donde las respuestas casi se cancelan, choques pequeños no tienen equilibrio
+cercano. En la tabla limpia OCDE 2020 (`load_icio_data(source="oecd2020")`) la
+dirección de Costa Rica pierde su anclaje con un arancel uniforme de EE. UU. de
+alrededor del 0.89%, y la senda del arancel tiene ahí un pliegue, de modo que los
+escenarios arancelarios del modelo heredado no tienen solución en esa tabla. Con
+`replicate_matlab_precedence=False` sí se resuelven. El análisis completo está en
+`reviews/2026-10-04-clean-table-tariff-scenarios/REPORT.md`. Para tablas de
+tamaño completo use `solve_trade_equilibrium(method="equilibrated_newton")`; si
+falla, `metadata["near_singular_country"]` indica el país cuya dirección se ha
+vuelto singular.
+
 El PIB a coste de factores es igual a la renta de los factores. El PIB a precios
 de mercado añade impuestos domésticos y aranceles; debe ser igual al gasto final
 de comprador más las exportaciones netas valoradas a precios de productor/en

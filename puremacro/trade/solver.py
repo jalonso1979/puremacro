@@ -646,6 +646,179 @@ def _damped_newton_solve(
     return x, False, max_iter, max_res, diff, f_val
 
 
+def _ruiz_equilibrate(
+    J: np.ndarray, sweeps: int = 10
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Two-sided Ruiz scaling ``A = diag(dr) @ J @ diag(dc)``.
+
+    Each sweep divides every row and every column by the square root of its
+    largest absolute entry, so after a few sweeps all rows and columns of ``A``
+    have infinity norm close to one. Rows or columns that are entirely zero keep
+    a unit scale. Returns ``(A, dr, dc)``.
+    """
+    A = np.array(J, dtype=float, copy=True)
+    n_rows, n_cols = A.shape
+    dr = np.ones(n_rows)
+    dc = np.ones(n_cols)
+    for _ in range(sweeps):
+        r = np.sqrt(np.abs(A).max(axis=1))
+        r[~(r > 0.0)] = 1.0
+        A /= r[:, None]
+        dr /= r
+        c = np.sqrt(np.abs(A).max(axis=0))
+        c[~(c > 0.0)] = 1.0
+        A /= c[None, :]
+        dc /= c
+    return A, dr, dc
+
+
+def _equilibrated_newton_solve(
+    f: Callable[[np.ndarray], np.ndarray],
+    x_init: np.ndarray,
+    tol: float = 2.5e-3,
+    max_iter: int = 50,
+    eps_fd: float = 1e-6,
+    *,
+    fd_scale: np.ndarray | None = None,
+    accept: Callable[[np.ndarray], bool] | None = None,
+    info: dict[str, Any] | None = None,
+    max_backtracks: int = 30,
+) -> tuple[np.ndarray, bool, int, float, float, np.ndarray]:
+    """Newton's method on the row/column-equilibrated system, with backtracking.
+
+    The equilibrium unknowns mix log prices with levels in value units, and the
+    equations mix both, so the raw Jacobian of the full 77x11 system spans
+    about seventeen orders of magnitude (condition number ~1e13 at the base of
+    the clean OECD 2020 table) although it is regular. Each iteration builds a
+    forward-difference Jacobian with relative steps ``h_j = eps_fd *
+    max(|x_j|, s_j)`` (``s_j = fd_scale[j]``, one by default), scales it with
+    :func:`_ruiz_equilibrate` (condition number ~1e4 at the same point), solves
+    the scaled Newton system and backtracks (Armijo, at most ``max_backtracks``
+    halvings) on the 2-norm of the row-scaled residual ``dr * f``, which weighs
+    every equation by its own sensitivity instead of letting the value-unit
+    equations dominate.
+
+    Stops as :func:`_damped_newton_solve` does: ``max|f| <= tol`` or ``sum|f|
+    <= tol``, and ``accept(x)`` when given. When no step decreases the scaled
+    residual the solve ends with termination ``"no_descent"``; then, and at
+    ``"max_iter"``, ``info`` also receives ``equilibrated_condition`` (largest
+    over smallest singular value of the last equilibrated Jacobian) and
+    ``weakest_direction`` (the unit right singular vector of its smallest
+    singular value, in the original unknowns), which locate a near-singular
+    Jacobian.
+    """
+    x = np.asarray(x_init, dtype=float).copy()
+    n = len(x)
+    scale = np.ones(n) if fd_scale is None else np.asarray(fd_scale, dtype=float)
+    f_val = f(x)
+    max_res = float(np.max(np.abs(f_val)))
+    diff = float(np.sum(np.abs(f_val)))
+    history = [max_res]
+    _record(info, "residual_history", history)
+
+    def done(xx: np.ndarray, mr: float, df: float) -> bool:
+        return (mr <= tol or df <= tol) and (accept is None or bool(accept(xx)))
+
+    def diagnose(A: np.ndarray, dc: np.ndarray) -> None:
+        if info is None:
+            return
+        try:
+            _, s, vt = np.linalg.svd(A)
+        except np.linalg.LinAlgError:
+            return
+        v = dc * vt[-1]
+        norm = float(np.linalg.norm(v))
+        info["equilibrated_condition"] = float(s[0] / s[-1]) if s[-1] > 0 else float("inf")
+        info["weakest_direction"] = v / norm if norm > 0 else v
+
+    if not np.isfinite(f_val).all():
+        _record(info, "termination", "non_finite_residual")
+        return x, False, 0, max_res, diff, f_val
+    if done(x, max_res, diff):
+        _record(info, "termination", "tolerance")
+        return x, True, 0, max_res, diff, f_val
+
+    A = None
+    dc = np.ones(n)
+    for it in range(max_iter):
+        J = _fd_jacobian_dense(f, x, f_val, eps_fd, scale)
+        if not np.isfinite(J).all():
+            _record(info, "termination", "non_finite_jacobian")
+            return x, False, it, max_res, diff, f_val
+        A, dr, dc = _ruiz_equilibrate(J)
+        g = dr * f_val
+        try:
+            dz = np.linalg.solve(A, -g)
+        except np.linalg.LinAlgError:
+            try:
+                dz = np.linalg.lstsq(A, -g, rcond=1e-12)[0]
+            except (np.linalg.LinAlgError, ValueError):
+                _record(info, "termination", "linear_solve_failed")
+                return x, False, it, max_res, diff, f_val
+        dx = dc * dz
+
+        g_norm = float(np.linalg.norm(g))
+        lam = 1.0
+        accepted = False
+        for _ in range(max_backtracks):
+            x_trial = x + lam * dx
+            f_trial = f(x_trial)
+            if (np.isfinite(x_trial).all() and np.isfinite(f_trial).all()
+                    and float(np.linalg.norm(dr * f_trial)) < (1.0 - 1e-4 * lam) * g_norm):
+                accepted = True
+                break
+            lam *= 0.5
+        if not accepted:
+            diagnose(A, dc)
+            _record(info, "termination", "no_descent")
+            return x, False, it, max_res, diff, f_val
+
+        x = x_trial
+        f_val = f_trial
+        max_res = float(np.max(np.abs(f_val)))
+        diff = float(np.sum(np.abs(f_val)))
+        history.append(max_res)
+        if done(x, max_res, diff):
+            _record(info, "termination", "tolerance")
+            return x, True, it + 1, max_res, diff, f_val
+
+    if A is not None:
+        diagnose(A, dc)
+    _record(info, "termination", "max_iter")
+    return x, False, max_iter, max_res, diff, f_val
+
+
+def _near_singular_metadata(
+    calib: TradeCalibrationResult, info: dict[str, Any]
+) -> dict[str, Any]:
+    """Summarise ``info["weakest_direction"]`` by country for result metadata.
+
+    The squared entries of the unit direction are summed by the country each
+    unknown belongs to (sector prices and outputs, ``r``, ``w``, ``T`` and
+    ``XN``); the country with the largest share is reported with that share.
+    Returns an empty dict when the solver recorded no diagnostic.
+    """
+    v = info.get("weakest_direction")
+    if v is None:
+        return {}
+    ns, nc = calib.n_sectors, calib.n_countries
+    v = np.asarray(v, dtype=float).ravel()
+    owner = np.concatenate([
+        np.tile(np.repeat(np.arange(nc), ns), 2),
+        np.tile(np.arange(nc), 3),
+        np.arange(nc - 1),
+    ])
+    out: dict[str, Any] = {"equilibrated_condition": float(info.get("equilibrated_condition", np.nan))}
+    if owner.size != v.size:
+        return out
+    weight = np.bincount(owner, weights=v ** 2, minlength=nc)
+    j = int(np.argmax(weight))
+    codes = list(getattr(calib, "country_codes", ()) or ())
+    out["near_singular_country"] = codes[j] if j < len(codes) else j
+    out["near_singular_country_weight"] = float(weight[j] / max(float(weight.sum()), 1e-300))
+    return out
+
+
 # ===========================================================================
 # 2. Architecture B: Sparse Jacobian Newton via splu and Graph Coloring
 # ===========================================================================
@@ -2625,9 +2798,17 @@ def solve_trade_equilibrium(
         National final demand tariff rates by importing country, shape (nc,).
     x0 : np.ndarray, optional
         Initial state vector. If None, constructed via :func:`build_initial_guess`.
-    method : {"newton", "sparse_lu", "krylov", "condensed", "broyden", "hybr", "lm", "keller_pac"}, default "newton"
+    method : {"newton", "equilibrated_newton", "sparse_lu", "krylov", "condensed", "broyden", "hybr", "lm", "keller_pac"}, default "newton"
         Nonlinear root-finding algorithm:
         - 'newton': Dense Damped Newton-Raphson with Armijo line search (baseline).
+        - 'equilibrated_newton': Dense Newton on the Ruiz row/column-equilibrated
+          system with relative finite-difference steps (``eps_fd`` keyword, default
+          1e-6) and backtracking on the scaled residual. The solver to use for the
+          full 77x11 tables: it reproduces the MATLAB t10 reference of the legacy
+          table from a cold start to 2e-12. When it stops without converging,
+          ``metadata`` reports ``equilibrated_condition`` and the country carrying
+          the weakest Jacobian direction (``near_singular_country`` and its share
+          ``near_singular_country_weight``).
         - 'sparse_lu': Sparse Jacobian Newton using direct sparse LU (splu) and graph coloring.
         - 'krylov': Inexact Newton-Krylov (JFNK via GMRES/BiCGSTAB) with two-sided equilibration.
         - 'condensed': Block-elimination / Schur complement condensation (307 macro variables).
@@ -2746,6 +2927,12 @@ def solve_trade_equilibrium(
         x_sol, conv, iters, max_res, diff, res = _damped_newton_solve(
             obj_fun, x_init, tol=tol, max_iter=max_iter,
             eps_fd=1e-5 if accounting == "consistent" else 1e-2,
+            fd_scale=fd_scale, accept=accept, info=solver_info,
+        )
+    elif method == "equilibrated_newton":
+        x_sol, conv, iters, max_res, diff, res = _equilibrated_newton_solve(
+            obj_fun, x_init, tol=tol, max_iter=max_iter,
+            eps_fd=float(kwargs.get("eps_fd", 1e-6)),
             fd_scale=fd_scale, accept=accept, info=solver_info,
         )
     elif method == "sparse_lu":
@@ -2945,7 +3132,7 @@ def solve_trade_equilibrium(
         )
     else:
         raise ValueError(
-            f"Unknown method '{method}'. Valid options are: 'newton', 'sparse_lu', 'krylov', 'condensed', 'quasi_condensed', 'broyden', 'hybr', 'lm', 'keller_pac'."
+            f"Unknown method '{method}'. Valid options are: 'newton', 'equilibrated_newton', 'sparse_lu', 'krylov', 'condensed', 'quasi_condensed', 'broyden', 'hybr', 'lm', 'keller_pac'."
         )
 
     t_solve_end = time.perf_counter()
@@ -2976,6 +3163,7 @@ def solve_trade_equilibrium(
             **({"solver_termination": solver_info["termination"],
                 "solver_residual_history": list(solver_info.get("residual_history", []))}
                if "termination" in solver_info else {}),
+            **_near_singular_metadata(calib, solver_info),
             **({"fd_step": "scaled" if fd_scale is not None else "absolute"}
                if accounting == "consistent" else {}),
             "method": method,

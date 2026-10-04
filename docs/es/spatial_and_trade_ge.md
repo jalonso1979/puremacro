@@ -409,6 +409,17 @@ paridad se incluyen junto a ella y se obtienen con
 comparaciones siguen siendo una verificación externa y no puremacro
 calificando su propia salida.
 
+En la tabla limpia, las referencias de MATLAB cubren solo el escenario base. Los
+escenarios arancelarios de EE. UU. del modelo heredado no tienen ahí un
+equilibrio conectado con la base: la senda tiene un pliegue en un arancel de
+alrededor del 0.89% (véase "Presupuestos, ahorro externo y numerario" en
+[Contabilidad del comercio](trade_accounting.md) y
+`reviews/2026-10-04-clean-table-tariff-scenarios/REPORT.md`). Para resolver
+tablas de tamaño completo use
+`solve_trade_equilibrium(calib, method="equilibrated_newton")`. Aplica Newton
+al jacobiano equilibrado por filas y columnas y, si falla, su `metadata` indica
+el país cuya dirección de nivel de precios se ha vuelto singular.
+
 El aviso completo, con la procedencia y el SHA-256 de cada archivo, está en
 `puremacro/trade/_datafiles/SOURCES.md`, que se instala con el paquete.
 
