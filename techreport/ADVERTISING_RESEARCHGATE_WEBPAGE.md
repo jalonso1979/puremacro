@@ -1,9 +1,9 @@
-> **Claims checked against the 4.5.0 report, 3 October 2026.** Describe feature availability separately from validation. No universal or bitwise portability claim is supported: the shippable modules are checked to import under Pyodide, and the JupyterLite playground runs the notebooks client-side, but realistic browser and GPU workloads remain unverified. The 110-case gallery mixes internal, analytical and selected external references, with case-specific tolerances and no trade cases. See [current structural validation status](../docs/STRUCTURAL_VALIDATION_STATUS.md).
+> **Claims checked against the 4.6.0 report, 4 October 2026.** Describe feature availability separately from validation. No universal or bitwise portability claim is supported: the shippable modules are checked to import under Pyodide, and the JupyterLite playground runs the notebooks client-side, and the whole gallery passes in Pyodide 0.28.3 and 314.0.5 under Node.js, but realistic browser and GPU workloads remain unverified. The 114-case gallery mixes internal, analytical and selected external references, with case-specific tolerances; its four trade cases run on the clean OECD 2020 table. See [current structural validation status](../docs/STRUCTURAL_VALIDATION_STATUS.md).
 
 # Promotional and Dissemination Package: puremacro Technical Report
 ## Tailored Materials for ResearchGate, Personal Webpage, and Academic Networks
 
-This package provides ready-to-use materials to announce and disseminate the comprehensive technical report on `puremacro` (version 4.5, 3 October 2026, 41 pages).
+This package provides ready-to-use materials to announce and disseminate the comprehensive technical report on `puremacro` (version 4.6, 4 October 2026, 43 pages).
 
 ---
 
@@ -22,7 +22,7 @@ When uploading the compiled PDF (`puremacro_technical_report.pdf`) to ResearchGa
 - **Date**:\
   October 2026
 - **Publication Type**:\
-  Technical Report / Working Paper (v4.5, 41 pages)
+  Technical Report / Working Paper (v4.6, 43 pages)
 - **Research Topics / Disciplines**:\
   Macroeconomics, Econometrics, Computational Economics, Time Series Analysis, International Trade, Economic Policy, Monetary Economics, Quantitative Methods.
 - **Skills & Methods**:\
@@ -30,14 +30,14 @@ When uploading the compiled PDF (`puremacro_technical_report.pdf`) to ResearchGa
 
 - **Abstract**:\
   Copy and paste into the abstract field (plain-text version of the paper's abstract):
-> puremacro is an open-source Python library that brings empirical macroeconometrics and quantitative macroeconomic models into one environment, built around three goals that macroeconomic software has rarely combined: methodological breadth, portability and numerical verifiability. One package covers structural VARs and local projections, volatility models, difference-in-differences and synthetic control, nowcasting and dynamic panels, DSGE perturbation to third order with a native Dynare parser and Bayesian estimation, heterogeneous-agent and sequence-space HANK models, continuous-time and projection methods, and quantitative spatial, input-output and trade general equilibrium. Estimators and solvers return typed result objects with summaries, plots and direct export to LaTeX, Typst and Markdown, so a paper's tables and figures come from the same objects as its estimates. Written entirely in Python on NumPy, SciPy, pandas and Matplotlib, with no compiled extension of its own, it installs with pip on Linux, macOS and Windows and runs client-side in the browser through Pyodide, which hosts a JupyterLite playground of 70 bilingual notebook pairs and a 22-lesson advanced macroeconomics course. Verification is built in: a 110-case validation gallery checks results against closed forms, internal identities and reference outputs frozen offline from statsmodels, arch, linearmodels and SciPy, and re-runs with one call on the user's machine, without those packages; 14 replication cases and research benchmarks against Dynare, official statistics, published tables and independent software complete the evidence. Versions 4.4 and 4.5 add an empirical-to-structural layer, puremacro.structural, which carries labelled empirical moments and their full covariance into bounded minimum-distance estimation of structural parameters, an original-data Romer–Romer (2010) baseline, an observed-data Smets–Wouters (2007) moment study with finite-sample diagnostics, INEGI ENIGH 2024 distributional tariff incidence, seven input-output trade engines with a dynamic MRIO, and a stacked-time Newton–Krylov solver. For researchers, the result is one reproducible toolchain from data to structural model; for instructors and students, a computational macroeconomics curriculum that opens in a browser tab.
+> puremacro is an open-source Python library that brings empirical macroeconometrics and quantitative macroeconomic models into one environment, built around three goals that macroeconomic software has rarely combined: methodological breadth, portability and numerical verifiability. One package covers structural VARs and local projections, volatility models, difference-in-differences and synthetic control, nowcasting and dynamic panels, DSGE perturbation to third order with a native Dynare parser and Bayesian estimation, heterogeneous-agent and sequence-space HANK models, continuous-time and projection methods, and quantitative spatial, input-output and trade general equilibrium. Estimators and solvers return typed result objects with summaries, plots and direct export to LaTeX, Typst and Markdown, so a paper's tables and figures come from the same objects as its estimates. Written entirely in Python on NumPy, SciPy, pandas and Matplotlib, with no compiled extension of its own, it installs with pip on Linux, macOS and Windows and runs client-side in the browser through Pyodide, where its whole validation gallery passes and which hosts a JupyterLite playground of 70 bilingual notebook pairs and a 22-lesson advanced macroeconomics course. Verification is built in: a 114-case validation gallery checks results against closed forms, internal identities and reference outputs frozen offline from statsmodels, arch, linearmodels, SciPy and a MATLAB trade model, and re-runs with one call on the user's machine, without those packages; 14 replication cases and research benchmarks against Dynare, official statistics, published tables and independent software complete the evidence. Versions 4.4 and 4.5 add an empirical-to-structural layer, puremacro.structural, which carries labelled empirical moments and their full covariance into bounded minimum-distance estimation of structural parameters, an original-data Romer–Romer (2010) baseline, an observed-data Smets–Wouters (2007) moment study with finite-sample diagnostics, INEGI ENIGH 2024 distributional tariff incidence, seven input-output trade engines with a dynamic MRIO, and a stacked-time Newton–Krylov solver. For researchers, the result is one reproducible toolchain from data to structural model; for instructors and students, a computational macroeconomics curriculum that opens in a browser tab.
 
 ### 1.2 ResearchGate Project Update / Feed Announcement Post
 Post this in your ResearchGate feed or update your project log:
 
-> 📢 **New Working Paper & Computational Release: puremacro v4.5**
+> 📢 **New Working Paper & Computational Release: puremacro v4.6**
 >
-> I am excited to share a 41-page technical report and working paper on **puremacro**, an open-source Python library built around the *Computational Macroeconomics Trilemma*: methodological breadth, portability and numerical verifiability, pursued together in a single package.
+> I am excited to share a 43-page technical report and working paper on **puremacro**, an open-source Python library built around the *Computational Macroeconomics Trilemma*: methodological breadth, portability and numerical verifiability, pursued together in a single package.
 >
 > 🔹 **The Problem**: Computational macroeconomics has historically been fragmented across MATLAB/Dynare, R, Stata, and specialized C++/Numba libraries, introducing licensing costs, compiler issues, and friction in research and graduate teaching.
 >
@@ -50,9 +50,9 @@ Post this in your ResearchGate feed or update your project log:
 >   3. *DSGE Engine*: Native Dynare `.mod` parser, perturbation to third order with Kim et al. pruning, perfect-foresight transitions with a stacked-time Newton–Krylov solver, and Bayesian NUTS estimation with exact analytical Kalman score gradients.
 >   4. *Heterogeneous Agents*: Sequence-space Jacobian (HANK) household blocks declared inside `.mod` files, Young (2010) non-stochastic density iteration, and continuous-time upwind HJB-KFE solvers.
 >   5. *Continuous Projections*: Chebyshev collocation, Smolyak sparse grids, and finite-element Galerkin with Fischer-Burmeister complementarity.
->   6. *Spatial, Trade and Climate*: Allen-Arkolakis topography, Caliendo-Parro exact hat algebra with flexible CES technology, preferences and markups, seven input-output engines including a perfect-foresight dynamic MRIO, INEGI ENIGH 2024 distributional tariff incidence, and a DICE-2016R simulator.
+>   6. *Spatial, Trade and Climate*: Allen-Arkolakis topography, Caliendo-Parro exact hat algebra with flexible CES technology, preferences and markups, seven input-output engines including a perfect-foresight dynamic MRIO, a clean OECD 2020 77x11 table with the legacy MATLAB model as its external reference (4.6), INEGI ENIGH 2024 distributional tariff incidence, and a DICE-2016R simulator.
 >   7. *Empirical-to-Structural Bridge*: `puremacro.structural` carries labelled empirical moments and their full covariance into bounded minimum-distance estimation of structural models, with an original-data Romer–Romer (2010) baseline and an observed-data Smets–Wouters (2007) moment study.
-> - **Verification Built In**: a 110-case validation gallery (59 internal-consistency, 31 analytical and 20 external-reference cases, with case-specific tolerances) that re-runs with one call on your own machine; 14 replication cases; and research benchmarks referenced to Dynare, official statistics, published tables and independent software. The test suite runs on nine CI targets (Linux, macOS, Windows; Python 3.11–3.13) and every release must pass it before reaching PyPI.
+> - **Verification Built In**: a 114-case validation gallery (62 internal-consistency, 31 analytical and 21 external-reference cases, with case-specific tolerances) that re-runs with one call on your own machine and passes inside Pyodide; 15 replication cases, including the Smets-Wouters log posterior checked against Dynare 8 at the authors' own mode; and research benchmarks referenced to Dynare, official statistics, published tables and independent software. The test suite runs on nine CI targets (Linux, macOS, Windows; Python 3.11–3.13) and every release must pass it before reaching PyPI.
 >
 > 📄 Working Paper PDF: Attached on ResearchGate\
 > 💻 GitHub: https://github.com/jalonso1979/puremacro\
@@ -78,15 +78,15 @@ Post this in your ResearchGate feed or update your project log:
   </div>
 
   <p style="color: #334155; font-size: 14.5px; line-height: 1.6; margin: 0 0 16px 0;">
-puremacro brings empirical macroeconometrics and quantitative macroeconomic models into one open-source Python package, written entirely on NumPy, SciPy, pandas and Matplotlib with no compiled extension of its own. It covers structural VARs and local projections, causal inference and nowcasting, DSGE perturbation with a native Dynare parser, heterogeneous-agent and continuous-time models, projection methods, spatial and input-output trade equilibrium, and an empirical-to-structural estimation bridge. Results arrive as typed objects that export to LaTeX, Typst and Markdown; a 110-case validation gallery, 14 replication cases and externally referenced research benchmarks ship inside the package; and the same code runs client-side in the browser through Pyodide.
+puremacro brings empirical macroeconometrics and quantitative macroeconomic models into one open-source Python package, written entirely on NumPy, SciPy, pandas and Matplotlib with no compiled extension of its own. It covers structural VARs and local projections, causal inference and nowcasting, DSGE perturbation with a native Dynare parser, heterogeneous-agent and continuous-time models, projection methods, spatial and input-output trade equilibrium, and an empirical-to-structural estimation bridge. Results arrive as typed objects that export to LaTeX, Typst and Markdown; a 114-case validation gallery that also passes inside Pyodide, 15 replication cases and externally referenced research benchmarks ship inside the package.
   </p>
 
   <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px;">
     <a href="techreport/puremacro_technical_report.pdf" target="_blank" style="background-color: #1e3d59; color: #ffffff; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13.5px; font-weight: 600; display: inline-flex; align-items: center;">
-      📄 Download Technical Monograph (PDF, 41 pp.)
+      📄 Download Technical Monograph (PDF, 43 pp.)
     </a>
     <a href="https://github.com/jalonso1979/puremacro" target="_blank" style="background-color: #ffffff; color: #1e3d59; border: 1.5px solid #1e3d59; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13.5px; font-weight: 600; display: inline-flex; align-items: center;">
-      💻 GitHub Repository (v4.5)
+      💻 GitHub Repository (v4.6)
     </a>
     <a href="https://jalonso1979.github.io/puremacro/" target="_blank" style="background-color: #17b978; color: #ffffff; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13.5px; font-weight: 600; display: inline-flex; align-items: center;">
       🌐 Interactive JupyterLite Browser Platform
@@ -100,7 +100,7 @@ puremacro brings empirical macroeconometrics and quantitative macroeconomic mode
 ```markdown
 ### 🚀 puremacro: A Unified Scientific-Python Engine for Macroeconomics
 
-I am pleased to present the comprehensive technical monograph and v4.5 release of **puremacro**:
+I am pleased to present the comprehensive technical monograph and v4.6 release of **puremacro**:
 
 > **puremacro: A Unified, Dependency-Minimal Scientific-Python Engine for Quantitative Macroeconomics and Macroeconometrics**\
 > *Jorge Alonso Ortiz (ITAM, October 2026)*\
@@ -115,7 +115,7 @@ I am pleased to present the comprehensive technical monograph and v4.5 release o
 - **Continuous Projections**: Chebyshev collocation, Smolyak sparse grids, and finite-element Galerkin with Fischer-Burmeister complementarity.
 - **Spatial, Trade & Climate**: Allen-Arkolakis topography, Caliendo-Parro exact hat algebra with flexible CES technology, preferences and markups, seven input-output engines with a perfect-foresight dynamic MRIO, INEGI ENIGH 2024 household tariff incidence, and DICE-2016R simulation.
 - **Empirical-to-Structural Bridge**: `puremacro.structural` carries labelled empirical moments with their full covariance into bounded minimum-distance estimation; original-data Romer–Romer (2010) and observed-data Smets–Wouters (2007) studies.
-- **Verification Built In**: a 110-case validation gallery (59 internal, 31 analytical and 20 external-reference cases, case-specific tolerances) re-runnable with one call, 14 replication cases, and research benchmarks against Dynare, official statistics, published tables and independent software; continuous integration on nine targets gates every PyPI release.
+- **Verification Built In**: a 114-case validation gallery (62 internal, 31 analytical and 21 external-reference cases, case-specific tolerances) re-runnable with one call and passing inside Pyodide, 15 replication cases, and research benchmarks against Dynare, official statistics, published tables and independent software; continuous integration on nine targets gates every PyPI release.
 ```
 
 ---
@@ -127,7 +127,7 @@ I am pleased to present the comprehensive technical monograph and v4.5 release o
 **Tweet 1 (Hook)**:\
 How can we end computational fragmentation in macroeconomics?\
 Applied researchers juggle MATLAB/Dynare, R, Stata, & C++/Numba libraries—costing licenses, breaking environments, & eating up class time.\
-I'm excited to share a 41-page working paper on **puremacro**: a unified, dependency-minimal Python engine! 🧵👇\
+I'm excited to share a 43-page working paper on **puremacro**: a unified, dependency-minimal Python engine! 🧵👇\
 [Link to Paper] #EconTwitter #ComputationalEcon
 
 **Tweet 2 (The Architecture)**:\
@@ -158,7 +158,7 @@ Real-data studies: the original-data Romer–Romer (2010) baseline, observed-dat
 
 **Tweet 7 (Validation & Pedagogy)**:\
 Can you trust the numbers?\
-A 110-case validation gallery (59 internal checks, 31 analytical cases, 20 external references, case-specific tolerances) re-runs with one call on your machine, plus 14 replication cases and research benchmarks against Dynare, official statistics, published tables and independent software.\
+A 114-case validation gallery (62 internal checks, 31 analytical cases, 21 external references, case-specific tolerances) re-runs with one call on your machine and passes inside Pyodide, plus 15 replication cases and research benchmarks against Dynare, official statistics, published tables and independent software.\
 Already powering *Macroeconomía Avanzada* at ITAM, with 70 bilingual notebook pairs and 22 course lessons in the browser!
 
 **Tweet 8 (Links)**:\
@@ -175,14 +175,14 @@ Try it out and let me know what you think! 🚀
 >
 > In quantitative macroeconomics and macroeconometrics, software fragmentation has long imposed heavy friction on researchers and instructors. Moving between reduced-form time series, Dynare DSGE perturbation, heterogeneous-agent models, and spatial trade general equilibrium often requires four different languages and proprietary licenses.
 >
-> To address this, I have authored a 41-page technical monograph detailing **puremacro**, an open-source Python library released on PyPI (version 4.5):
+> To address this, I have authored a 43-page technical monograph detailing **puremacro**, an open-source Python library released on PyPI (version 4.6):
 >
 > 🔍 **Key Innovations**:
 > 1. **Pure Scientific-Python Foundation**: Written entirely in Python on NumPy, SciPy, pandas and Matplotlib (plus requests for data access), with no compiled extension of its own. It installs with pip on Linux, macOS and Windows, and the same code runs client-side in the browser through Pyodide.
 > 2. **Complete Econometric Suite**: Recursive, Blanchard-Quah, sign, zero, narrative and proxy SVARs; local projections with HAC, lag-augmented and Driscoll-Kraay panel inference; staggered difference-in-differences, synthetic control and double machine learning; mixed-frequency nowcasting and dynamic panels.
 > 3. **Native DSGE & Bayesian NUTS**: Direct parsing of Dynare `.mod` syntax, pruned decision rules to third order, stacked-time Newton–Krylov perfect-foresight transitions, and Bayesian estimation via the No-U-Turn Sampler with exact analytical Kalman score gradients derived from generalized Sylvester equations.
 > 4. **Micro-Macro Synthesis**: Sequence-Space Jacobian (SSJ) heterogeneous-agent coupling, continuous-time HJB-KFE solvers, Chebyshev, Smolyak and finite-element Galerkin projections, and quantitative spatial, input-output and trade general equilibrium down to household-level tariff incidence.
-> 5. **Empirical-to-Structural Bridge and Built-In Verification**: `puremacro.structural` estimates structural parameters by bounded minimum distance from labelled empirical moments with their full covariance, with original-data Romer–Romer (2010) and observed-data Smets–Wouters (2007) studies. A 110-case validation gallery re-runs on your own machine, and 14 replication cases and research benchmarks against Dynare, official statistics, published tables and independent software complete the evidence.
+> 5. **Empirical-to-Structural Bridge and Built-In Verification**: `puremacro.structural` estimates structural parameters by bounded minimum distance from labelled empirical moments with their full covariance, with original-data Romer–Romer (2010) and observed-data Smets–Wouters (2007) studies. A 114-case validation gallery re-runs on your own machine and passes inside Pyodide, and 15 replication cases and research benchmarks against Dynare, official statistics, published tables and independent software complete the evidence.
 >
 > The library is the computational backbone of *Macroeconomía Avanzada* at ITAM: students install it with pip or open the 22 course lessons in the browser, with no MATLAB licence and no compiler.
 >
