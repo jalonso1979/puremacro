@@ -2,6 +2,92 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## Unreleased
+
+**Declarative dynamic programming front end (`puremacro.dp`).** Declare states,
+shocks, choices, a reward, constraints and an optional market-clearing condition
+as equations in Dynare expression syntax (parsed by the `.mod` parser), and
+`Model.solve()` compiles them to `VFIProblem`, `FiniteHorizonProblem` or
+`stationary_equilibrium`. No return-function closures, grid broadcasting or
+positional parameter lists. Aiyagari, Huggett, the life-cycle and two-asset
+examples written as `dp` models reproduce `vfi.examples` exactly (same prices,
+policies and value functions). `vfi.Model` is superseded and now warns.
+
+**Endogenous grid method for `dp` models.** `Model.solve(method="egm")` compiles
+a one-asset model whose budget is `c + a(+1) = R*a + y(z)` to `vfi.solve_egm`.
+The compiler checks that form (symbolically for the reward, numerically on the
+grid for the budget and constraints) and raises `ModelSpecError` otherwise.
+Marginal utility is the symbolic derivative of the reward, so felicities other
+than CRRA work (closed-form inverse for `crra` and `log`, bisection otherwise).
+Stationary equilibria warm-start each price evaluation. On the Aiyagari example
+the equilibrium takes 0.8 s against 4.6 s for discrete VFI, and the EGM value
+function is closer to a 1,500-point VFI solution. `vfi.solve_egm` takes
+`u_prime`/`u_prime_inv` (any concave felicity) and a `c0` warm start; CRRA calls
+are unchanged, and its inversion step is public as `vfi.egm.egm_step`.
+
+Life-cycle models (`horizon(T)`) also solve with `method="egm"`: one EGM step per
+age, with age-varying returns, income and parameters, survival, and an optional
+terminal value (its slope taken by finite differences). Two-period log-utility
+models match their closed form to 1e-12. On the 40-age example the EGM mean
+assets by age are within 0.02 of a 1,191-point VFI solution, against 0.22 for
+VFI on the same 120-point grid. Value functions interpolate linearly between
+nodes, which understates them where they are most curved (near the borrowing
+limit with gamma = 2).
+
+A discrete choice (`discrete("h", ...)`, deterministic, no taste shocks) also
+compiles to EGM, in both life cycles and infinite horizons: the Euler inversion
+for each option is followed by an upper envelope over all segments between
+adjacent endogenous points, with the borrowing-limit and top-of-grid corners
+admitted only where their Kuhn-Tucker condition holds. The reward may depend on
+the option (`crra(c, gamma) - chi*h`) and so may income; the return on assets
+may not. A dominated option reproduces plain EGM to 1e-8. On a 30-age
+labour-supply model the EGM value function on 100 points is less than half as
+far from a 793-point VFI solution as VFI on 100 points, and the two methods agree
+on a fine grid (work share by age within 0.02). Aggregates over the discrete
+choice converge slowly in the grid for either method because the
+distribution's mass sits on grid nodes. `vfi.DCEGMProblem` is unchanged: its
+horizon repeats one stationary step and returns only the first period, so it
+cannot carry age-varying income or survival.
+
+`Model.taste_shocks(scale)` adds type-I extreme value shocks to the discrete
+choice (solved by `method="egm"` only): values are log-sums, choices logit, the
+Euler right side averages marginal utility over options and the distribution
+splits mass by choice probability, so `mean("h")` is the participation rate.
+The last period matches the closed-form logit to 1e-12 and a two-period model
+matches a 200,001-point brute-force maximisation to 1e-5.
+
+**Continuous-time `dp` models (`method="hjb"`).** Declare `control("c")`,
+`drift("a", "r*a + w*e - c")`, `discount_rate("rho")` and `dp.Jump` shocks
+(Poisson generators; several are combined as their product chain), and
+`solve()` compiles to `vfi.solve_hjb_achdou`. The compiler checks that the
+drift is linear in the control with slope -1 and derives u' and its inverse from
+the reward. Prices and `clear()` work as in discrete time, with aggregates
+integrated against the KFE density; `distribution` is the mass at each node.
+The household matches `solve_hjb_achdou` to 1e-12 and the continuous-time
+Aiyagari equilibrium matches `solve_aiyagari_continuous_hjb` (r* to 1e-9).
+`solve_hjb_achdou` takes `income` (any (Na, Ne) drift before consumption) and
+`utility`/`u_prime`/`u_prime_inv`; default calls are bit-identical.
+`Model.solve(method=None)` picks `"hjb"` for a model with a drift and `"vfi"`
+otherwise.
+
+**Aggregate risk in `dp` models (Krusell-Smith).** `aggregate_shock("Z", ...)`
+and `aggregate_state("K", grid, mean="a")` add the Krusell and Smith (1998)
+forecast-rule fixed point, with prices and technology written as model
+equations (any firm, any household reward). With the same grids and starting
+distribution, the Cobb-Douglas model reproduces `vfi.krusell_smith` bit for bit
+(forecast coefficients and capital path). `solve("egm")` solves the household
+by EGM and simulates with continuous policies: on a 100-point asset grid it
+converges in 36 outer iterations (24 s) to `b1` = 0.965 and 0.969 with R^2 above
+0.9999. Discrete VFI policies sit on grid nodes, so on a 60-point grid
+simulated capital never moves and the regression is degenerate; at its
+defaults (200 points) `vfi.krusell_smith` had not converged after its 60 outer
+iterations (470 s, `b1` = 0.897 and 0.954). Loop options go in
+`solve(ks=dict(T=..., burn_in=..., seed=..., damping=..., tol=..., max_outer=..., mu0=...))`.
+
+`vfi.solve_egm` and dp's EGM accept a return on assets that varies with the
+exogenous state (`r` of shape (n_z,); Euler u'(c) = beta E[(1 + r') u'(c')]).
+Scalar-`r` calls are unchanged.
+
 ## 4.5.0 (2026-10-03)
 
 **Honest convergence and corrected numbers: the wrong-number and false-success known issues of 4.4.0, each checked against an independent reference.**

@@ -3763,6 +3763,7 @@
     ],
     "puremacro.vfi.egm": [
       "EGMSolution",
+      "egm_step",
       "solve_egm"
     ],
     "puremacro.vfi.epstein_zin": [
@@ -3987,6 +3988,23 @@
       "SW07EstimatorExperiment",
       "compare_sw07_estimator_phases",
       "run_sw07_estimator_experiment"
+    ],
+    "puremacro.dp": [
+      "AR1",
+      "DPSolution",
+      "Jump",
+      "Markov",
+      "Model",
+      "ModelSpecError",
+      "crra"
+    ],
+    "puremacro.dp.model": [
+      "Model"
+    ],
+    "puremacro.dp.processes": [
+      "AR1",
+      "Jump",
+      "Markov"
     ]
   },
   "result_classes": {
@@ -8593,6 +8611,47 @@
       "observed_fits",
       "paired_differences",
       "summary"
+    ],
+    "puremacro.dp.processes.AR1": [
+      "m",
+      "method",
+      "n",
+      "rho",
+      "sigma"
+    ],
+    "puremacro.dp.processes.Markov": [
+      "P",
+      "grid"
+    ],
+    "puremacro.dp._egm.EGMHouseholdSolution": [
+      "R",
+      "V",
+      "aprime",
+      "aprime_by_choice",
+      "c",
+      "c_by_choice",
+      "choice_prob",
+      "egm",
+      "income",
+      "n_iter",
+      "policy_d",
+      "sup_norm"
+    ],
+    "puremacro.dp._egm.EGMLifeCycleSolution": [
+      "R",
+      "V",
+      "aprime",
+      "aprime_by_choice",
+      "c",
+      "c_by_choice",
+      "choice_prob",
+      "horizon",
+      "income",
+      "policy_d"
+    ],
+    "puremacro.dp.processes.Jump": [
+      "grid",
+      "rates"
     ]
   }
 }

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import time
+import warnings
 from typing import Callable, Optional, Dict, Any, List
 import numpy as np
 
@@ -10,7 +11,7 @@ from .solve import solve_vfi_howard, simulate_vfi_panel
 
 
 class Model:
-    """Declarative Dynare-like VFI Model interface.
+    """Declarative Dynare-like VFI Model interface (deprecated: use ``puremacro.dp.Model``).
 
     Example
     -------
@@ -23,6 +24,13 @@ class Model:
     """
 
     def __init__(self, name: str = "VFI Model"):
+        warnings.warn(
+            "puremacro.vfi.Model is superseded by puremacro.dp.Model (symbolic "
+            "equations, multiple states and shocks, life cycle, general equilibrium) "
+            "and will be removed in a future release",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.name = name
         self.params: Dict[str, float] = {}
         self.states: List[Dict[str, Any]] = []
