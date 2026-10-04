@@ -520,10 +520,13 @@ def test_ms_dsge_user_tol_is_honoured_on_order_one_models(tol, method):
     res = solve_ms_dsge(A, B, C, D, P, method=method, tol=tol)
     absolute = solve_ms_dsge(A, B, C, D, P, method=method, tol=tol, rtol=0.0)
     assert res.converged and res.diff <= tol
+    assert absolute.converged and absolute.diff <= tol
     assert res.relative_residual == 0.0
-    assert res.iterations == absolute.iterations
+    # Same code path, but threaded BLAS is not bit-deterministic: at tol=1e-13 noise in
+    # the 1e-21 entries can cost one extra iteration (seen on macOS CI).
+    assert abs(res.iterations - absolute.iterations) <= 1
     for i in range(2):
-        np.testing.assert_array_equal(res.T[i], absolute.T[i])
+        np.testing.assert_allclose(res.T[i], absolute.T[i], rtol=0, atol=1e-10)
 
 
 @pytest.mark.parametrize("method", ["newton", "functional_iteration"])

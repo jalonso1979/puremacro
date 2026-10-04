@@ -197,7 +197,7 @@ class TestProvenance:
 
     def test_verify_zip_member_detects_size_and_crc_mismatch(self, tmp_path):
         member = tmp_path / "x.txt"
-        member.write_text("region\tsector\tindout\nAT\ta\t10.15\n")
+        member.write_text("region\tsector\tindout\nAT\ta\t10.15\n", encoding="utf-8")
         archive = tmp_path / "a.zip"
         with zipfile.ZipFile(archive, "w") as z:
             z.write(member, "IOT/x.txt")
@@ -205,10 +205,10 @@ class TestProvenance:
         assert rec.status == "verified" and rec.archive_member == "IOT/x.txt" and rec.crc32 is not None
         assert rec.sha256 == hashlib.sha256(member.read_bytes()).hexdigest()
         assert m.verify_zip_member(archive, "IOT/x.txt", member).sha256 == rec.sha256
-        member.write_text("region\tsector\tindout\nAT\ta\t10.16\n")
+        member.write_text("region\tsector\tindout\nAT\ta\t10.16\n", encoding="utf-8")
         with pytest.raises(m.MRIOIntegrityError, match="CRC-32"):
             m.verify_zip_member(archive, "IOT/x.txt", member)
-        member.write_text("short\n")
+        member.write_text("short\n", encoding="utf-8")
         with pytest.raises(m.MRIOIntegrityError, match="bytes"):
             m.verify_zip_member(archive, "IOT/x.txt", member)
         with pytest.raises(m.MRIOIntegrityError, match="no member"):
@@ -216,7 +216,7 @@ class TestProvenance:
 
     def test_check_oecd_source_registries(self, tmp_path):
         path = tmp_path / "2019_SML.csv"
-        path.write_text("V1,AAA_A\nAAA_A,1\n")
+        path.write_text("V1,AAA_A\nAAA_A,1\n", encoding="utf-8")
         md5 = hashlib.md5(path.read_bytes()).hexdigest()
         # The real registries are facts about other files: this digest is unknown to them.
         assert md5 not in m.OECD_KNOWN_CORRUPTED_MD5 and md5 not in m.OECD_ICIO_MD5.values()
@@ -565,7 +565,7 @@ class TestFigaroReader:
         assert rep.negative_output_cells == 1 and rep.negative_consumption_entries == 2
 
     def test_layout_errors_and_digest_checks(self, tmp_path):
-        text = FIGARO_FIXTURE.read_text()
+        text = FIGARO_FIXTURE.read_text(encoding="utf-8")
         sha = hashlib.sha256(FIGARO_FIXTURE.read_bytes()).hexdigest()
         with warnings.catch_warnings():
             warnings.simplefilter("error")
@@ -575,18 +575,18 @@ class TestFigaroReader:
             m.read_figaro_native(FIGARO_FIXTURE, expected_sha256="0" * 64)
         bad = tmp_path / "bad.csv"
         lines = text.splitlines()
-        bad.write_text("\n".join(lines[:5] + lines[6:7] + lines[5:6] + lines[7:]) + "\n")  # swap two trailing rows
+        bad.write_text("\n".join(lines[:5] + lines[6:7] + lines[5:6] + lines[7:]) + "\n", encoding="utf-8")  # swap two trailing rows
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
             with pytest.raises(m.MRIOIntegrityError, match="must end with the rows"):
                 m.read_figaro_native(bad)
-            bad.write_text(text.replace("AT_P3_S13,AT_P3_S14", "AT_P3_S14,AT_P3_S13"))
+            bad.write_text(text.replace("AT_P3_S13,AT_P3_S14", "AT_P3_S14,AT_P3_S13"), encoding="utf-8")
             with pytest.raises(m.MRIOIntegrityError, match="final-use columns"):
                 m.read_figaro_native(bad)
-            bad.write_text(text.replace("AT_A01,AT_C10T12,FIGW1_A01,FIGW1_C10T12,AT_P3", "AT_A01,FIGW1_A01,AT_C10T12,FIGW1_C10T12,AT_P3"))
+            bad.write_text(text.replace("AT_A01,AT_C10T12,FIGW1_A01,FIGW1_C10T12,AT_P3", "AT_A01,FIGW1_A01,AT_C10T12,FIGW1_C10T12,AT_P3"), encoding="utf-8")
             with pytest.raises(m.MRIOIntegrityError):
                 m.read_figaro_native(bad)
-            bad.write_text(text.replace("FIGW1_C10T12,0,0,0,0,0,0,0,0,0,0,-0.001", "FIGW1_C10T12,0,0,0,0,0,0,0,0,0,0,-0.5"))
+            bad.write_text(text.replace("FIGW1_C10T12,0,0,0,0,0,0,0,0,0,0,-0.001", "FIGW1_C10T12,0,0,0,0,0,0,0,0,0,0,-0.5"), encoding="utf-8")
             with pytest.raises(m.MRIOIntegrityError, match="Non-rounding negative output"):
                 m.read_figaro_native(bad)
             sp = m.read_figaro_native(FIGARO_FIXTURE, sparse_matrix=True)
@@ -703,11 +703,13 @@ class TestExiobaseReader:
         # One changed byte, or one added byte, in an extracted member is refused.
         core = tmp_path / "core"
         shutil.copytree(EXIO_FIXTURE, core)
-        text = (core / "x.txt").read_text()
-        (core / "x.txt").write_text(text.replace("10.15", "10.16"))
+        # Bytes, not text: text mode on Windows writes CRLF, which changes the
+        # size and trips the size check before the CRC check under test.
+        text = (core / "x.txt").read_bytes()
+        (core / "x.txt").write_bytes(text.replace(b"10.15", b"10.16"))
         with pytest.raises(m.MRIOIntegrityError, match="CRC-32"):
             m.read_exiobase_native(core, archive=archive, expected_sha256=sha)
-        (core / "x.txt").write_text(text.replace("10.15", "10.150"))
+        (core / "x.txt").write_bytes(text.replace(b"10.15", b"10.150"))
         with pytest.raises(m.MRIOIntegrityError, match="bytes"):
             m.read_exiobase_native(core, archive=archive, expected_sha256=sha)
         # The archive digest cannot authenticate a directory on its own; archive= needs a directory.
@@ -738,36 +740,36 @@ class TestExiobaseReader:
 
         def set_exports(core):
             p = core / "Y.txt"
-            lines = p.read_text().splitlines()
+            lines = p.read_text(encoding="utf-8").splitlines()
             parts = lines[3].split("\t")
             parts[2 + 6] = "0.5"  # AT exports column of the first cell
             lines[3] = "\t".join(parts)
-            p.write_text("\n".join(lines) + "\n")
+            p.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
         with pytest.raises(m.MRIOIntegrityError, match="unallocated exports"):
             m.read_exiobase_native(variant(set_exports))
 
         def set_fd_factor(core):
             p = core / "satellite" / "F_Y.txt"
-            lines = p.read_text().splitlines()
+            lines = p.read_text(encoding="utf-8").splitlines()
             parts = lines[4].split("\t")  # "Other net taxes on production" row
             parts[1] = "0.1"
             lines[4] = "\t".join(parts)
-            p.write_text("\n".join(lines) + "\n")
+            p.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
         with pytest.raises(m.MRIOIntegrityError, match="primary-factor payments"):
             m.read_exiobase_native(variant(set_fd_factor))
 
         def rename_industry(core):
             p = core / "industries.txt"
-            p.write_text(p.read_text().replace("Other land transport", "Other transport"))
+            p.write_text(p.read_text(encoding="utf-8").replace("Other land transport", "Other transport"), encoding="utf-8")
 
         with pytest.raises(m.MRIOIntegrityError, match="ordering"):
             m.read_exiobase_native(variant(rename_industry))
 
         def rename_factor(core):
             p = core / "satellite" / "F.txt"
-            p.write_text(p.read_text().replace("Other net taxes on production", "Other taxes"))
+            p.write_text(p.read_text(encoding="utf-8").replace("Other net taxes on production", "Other taxes"), encoding="utf-8")
 
         with pytest.raises(m.MRIOIntegrityError, match="factor labels"):
             m.read_exiobase_native(variant(rename_factor))
@@ -780,7 +782,7 @@ class TestExiobaseReader:
 
         def rename_category(core):
             p = core / "finaldemands.txt"
-            p.write_text(p.read_text().replace("Changes in valuables", "Valuables"))
+            p.write_text(p.read_text(encoding="utf-8").replace("Changes in valuables", "Valuables"), encoding="utf-8")
 
         with pytest.raises(m.MRIOIntegrityError, match="finaldemands"):
             m.read_exiobase_native(variant(rename_category))

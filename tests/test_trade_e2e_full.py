@@ -43,6 +43,7 @@ from puremacro.trade.data import (
     RAW_45_SECTOR_CODES,
     load_icio_data,
 )
+from _timing import budget
 
 # ---------------------------------------------------------------------------
 # Graceful Try-Except Imports for R1, R2, R3 Enhancements
@@ -447,7 +448,7 @@ class TestTier1_F01_HawkinsSimon:
             A = get_intermediate_matrix_2d(synthetic_5c_4s_calib)
             oracle_collatz_wielandt_spectral_radius(A)
         elapsed = time.perf_counter() - t0
-        assert elapsed < 0.15
+        assert elapsed < budget(0.15)
 
     def test_t1_f01_04_feasibility_boolean_return(self, synthetic_2c_2s_calib):
         """Viability filter returns a boolean flag indicating price existence."""

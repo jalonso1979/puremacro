@@ -127,7 +127,8 @@ def test_decile_ev_matches_independent_closed_form_and_targeting(study, preferen
         assert_allclose(result.groups.transfer, transfer, rtol=1e-12, atol=1e-10)
         expected_ev = (budget + result.groups.income_change.to_numpy() + transfer) / index - budget
         assert_allclose(result.groups.ev, expected_ev, rtol=1e-11, atol=1e-9)
-        assert_allclose(result.aggregate.total_ev, data.households @ expected_ev, rtol=1e-11)
+        # rtol 1e-11 was missed by 1.4e-12 on Windows CI (a -1.9e7 sum over ten deciles).
+        assert_allclose(result.aggregate.total_ev, data.households @ expected_ev, rtol=1e-10)
         assert_allclose(result.groups[["price_ev", "income_ev", "transfer_ev"]].sum(axis=1),
                         result.groups.ev, rtol=1e-11, atol=1e-10)
         assert result.metadata["is_regression_fixture"] is True
@@ -142,7 +143,7 @@ def test_zero_tariff_recovers_zero_incidence_and_zero_fiscal_pool(tmp_path):
 
 def test_exports_authenticate_scope_observations_and_physical_evidence(study):
     output, run = study
-    manifest = json.loads((output / "manifest.json").read_text())
+    manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["is_synthetic"] and manifest["is_regression_fixture"]
     assert manifest["observed_data"]["is_synthetic"] is False
     assert manifest["model_assumptions"]["empirically_calibrated_trade_economy"] is False

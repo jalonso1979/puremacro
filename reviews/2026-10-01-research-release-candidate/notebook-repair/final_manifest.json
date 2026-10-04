@@ -1,0 +1,82 @@
+{
+  "files": {
+    "notebooks/00_whats_new_in_puremacro_3_0_es.py": "af2b00d0b46f2868ab361388e1729a7b53d8e78c61b680da132b408f88c9fb2e",
+    "notebooks/00_whats_new_in_puremacro_3_0_es.ipynb": "8a808829efc876f5f68097a849fc97f0c90fc6edce3d3cda4d59bdf0af4d3974",
+    "notebooks/10_staggered_did.py": "e8dd54239af6ccf9d30a77ff355487d24afb2ed12cd499feedc99c4ad8cde6d4",
+    "notebooks/10_staggered_did.ipynb": "321f9f7604e5babd57ee554121c5e83530afef7c67f1b160b0fe4255de77c702",
+    "notebooks/10_staggered_did_es.py": "ca737fc30516c558ffcd301f796cc01edc95f2426a494873a396e97ae3f29ab7",
+    "notebooks/10_staggered_did_es.ipynb": "87c2823a9a19c91b92f3ff7d49eb30f960d3e8742c762f3c01fed7af5bfaec43",
+    "notebooks/45_dsge_discretion_dsge_var_and_news_shocks.py": "9d76c150d027b0be51251d69b8b933316a3f55e88452cf892c39c7fc294d58a6",
+    "notebooks/45_dsge_discretion_dsge_var_and_news_shocks.ipynb": "edc02051a3efd732b0aefcbcf0cd0722217fb163ff0af0a027ac46fd5c7e415d",
+    "notebooks/45_dsge_discretion_dsge_var_and_news_shocks_es.py": "a65cad3e3facb533a23019b47275af89292a07d8fa7c0032b69b381b4db2850f",
+    "notebooks/45_dsge_discretion_dsge_var_and_news_shocks_es.ipynb": "93492f2ce7633c351183d55436bf79c6c185099bea43ddfefeecf8c7c6288a85"
+  },
+  "notebooks": {
+    "00_whats_new_in_puremacro_3_0_es": {
+      "cells": 21,
+      "code_cells": 10,
+      "png_outputs": 6,
+      "source_rendered_match": true,
+      "fully_executed": true,
+      "error_outputs": 0
+    },
+    "10_staggered_did": {
+      "cells": 21,
+      "code_cells": 8,
+      "png_outputs": 3,
+      "source_rendered_match": true,
+      "fully_executed": true,
+      "error_outputs": 0
+    },
+    "10_staggered_did_es": {
+      "cells": 21,
+      "code_cells": 8,
+      "png_outputs": 3,
+      "source_rendered_match": true,
+      "fully_executed": true,
+      "error_outputs": 0
+    },
+    "45_dsge_discretion_dsge_var_and_news_shocks": {
+      "cells": 36,
+      "code_cells": 16,
+      "png_outputs": 4,
+      "source_rendered_match": true,
+      "fully_executed": true,
+      "error_outputs": 0
+    },
+    "45_dsge_discretion_dsge_var_and_news_shocks_es": {
+      "cells": 36,
+      "code_cells": 16,
+      "png_outputs": 4,
+      "source_rendered_match": true,
+      "fully_executed": true,
+      "error_outputs": 0
+    }
+  },
+  "changes": [
+    "NB00 ES Markdown comment marker restored",
+    "NB10 early EN/ES forward reference renamed without moving sections",
+    "NB45 corrected EN science mirrored into ES, including missing rank-demo cells, solved policy IRFs, MDD grid boundary, unit innovations and long-horizon exercise",
+    "Redundant cell-end plt.show calls removed in NB10/NB45; inline rendered figures rebuilt",
+    "NB45EN/EScommitment-loss prose corrected to fresh output1.1763e-04; machine-roundoff prose bounded below1e-12; code/outputsunmodified"
+  ],
+  "scope": "No test, whitelist or production source changes",
+  "nb45_model_strings_identical": true,
+  "validation": {
+    "build_command": "JUPYTER_DATA_DIR=/tmp/puremacro-notebook-repair-jupyter IPYTHONDIR=/tmp/puremacro-notebook-repair-ipython MPLBACKEND=Agg MPLCONFIGDIR=/tmp/puremacro-notebook-repair-mpl XDG_CACHE_HOME=/tmp/puremacro-notebook-repair-cache .venv/bin/python tools/build_notebooks.py 00_whats_new_in_puremacro_3_0_es 10_staggered_did 10_staggered_did_es 45_dsge_discretion_dsge_var_and_news_shocks 45_dsge_discretion_dsge_var_and_news_shocks_es",
+    "build_exit_code": 0,
+    "rendered_validator": "5notebooks;0errors",
+    "pytest_modules": [
+      "tests/test_m3_challenger_verification.py",
+      "tests/test_notebooks/test_e2e_doc_elevation.py",
+      "tests/test_v260_showcase_replication_e2e.py",
+      "tests/test_notebooks/test_notebooks_integrity.py",
+      "tests/test_notebooks/test_m1_challenger_schema_and_outputs.py",
+      "tests/test_notebooks/test_m4_challenger_schema_and_outputs.py"
+    ],
+    "pytest_passed": 640,
+    "pytest_failed": 1,
+    "pytest_known_failure": "tests/test_v260_showcase_replication_e2e.py::TestTier2BoundaryAndCornerCases::test_t2_f4_harmonic_mean_collinear_parameter_draws_raises",
+    "pytest_unexpected_failures": 0
+  }
+}

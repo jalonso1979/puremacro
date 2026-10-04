@@ -169,7 +169,7 @@ def main() -> int:
         print(f"no test file found for {args.module}; pass --tests explicitly")
         return 2
 
-    source = module.read_text()
+    source = module.read_text(encoding="utf-8")
     total = _count_sites(ast.parse(source), source.splitlines())
     rel = module.relative_to(_ROOT)
     print(f"mutation_check — {rel}")
@@ -191,7 +191,7 @@ def main() -> int:
                 cwd=work, capture_output=True, text=True, timeout=args.timeout)
             return p.returncode == 0
 
-        target.write_text(source)
+        target.write_text(source, encoding="utf-8")
         if not run():
             print("  BASELINE FAILS — fix the tests first; survivors are meaningless")
             return 2
@@ -210,14 +210,14 @@ def main() -> int:
             except SyntaxError:
                 inert += 1
                 continue
-            target.write_text(mutated_src)
+            target.write_text(mutated_src, encoding="utf-8")
             if run():
                 survivors.append(mutant)
                 print(f"  SURVIVED  {rel}:{mutant.lineno}  {mutant.kind}: "
                       f"{mutant.description}\n            {mutant.source[:96]}")
             else:
                 killed += 1
-        target.write_text(source)
+        target.write_text(source, encoding="utf-8")
 
     print(f"\n  {killed} killed, {len(survivors)} survived"
           + (f", {inert} unparseable" if inert else ""))

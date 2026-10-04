@@ -829,7 +829,7 @@ class TestTier4ScientificInvariants:
         ("65_gvc_cascades_and_welfare_decomposition", "decompose_hicksian_ev_3way"),
     ])
     def test_quarantined_claims_are_disclosed_without_execution(self, name, symbol):
-        content = (NB_DIR / f"{name}.py").read_text()
+        content = (NB_DIR / f"{name}.py").read_text(encoding="utf-8")
         code = "\n".join(extract_code_cells(content))
         calls = [n.func.id for n in ast.walk(ast.parse(code))
                  if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)]

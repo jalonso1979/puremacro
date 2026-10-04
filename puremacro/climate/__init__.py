@@ -1,8 +1,8 @@
 """Climate and environmental macroeconomics for puremacro.
 
 Contains:
-- Dynamic Integrated Climate-Economy (DICE) model (Nordhaus / Golosov et al. 2014).
-- Optimal Social Cost of Carbon (SCC) and carbon tax path projections.
+- Forward simulator of the DICE-2016R model (Nordhaus 2017); nothing is optimised.
+- Social cost of carbon (SCC) on a simulated path under a user-supplied carbon-tax path.
 - Multi-reservoir carbon cycle and climate temperature anomaly dynamics.
 """
 from puremacro.climate.dice import DICEResult, simulate_dice_model

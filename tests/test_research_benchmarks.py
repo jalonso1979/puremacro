@@ -48,11 +48,11 @@ def test_all_research_benchmarks_have_independent_evidence(report):
 
 def test_complete_json_and_markdown_dossier(report, tmp_path):
     paths = report.write(tmp_path)
-    document = json.loads(paths["json"].read_text())
+    document = json.loads(paths["json"].read_text(encoding="utf-8"))
     assert document["passed"] is False
     assert set(document["environment"]) >= {"puremacro", "python", "numpy", "scipy", "pandas"}
     assert document["generated_at"].endswith("+00:00")
-    markdown = paths["markdown"].read_text()
+    markdown = paths["markdown"].read_text(encoding="utf-8")
     for case in document["cases"]:
         assert case["id"] in markdown
         for metric in case["metrics"].values():
@@ -151,7 +151,7 @@ def test_gls_reference_uses_estimator_covariance_without_sample_multiplier(repor
 def test_cli_writes_selected_dossier_and_rejects_unknown_case(tmp_path):
     from tools.run_research_benchmarks import main
     assert main(["--case", "growth_analytical", "--output", str(tmp_path)]) == 0
-    assert len(json.loads((tmp_path / "benchmark_report.json").read_text())["cases"]) == 1
+    assert len(json.loads((tmp_path / "benchmark_report.json").read_text(encoding="utf-8"))["cases"]) == 1
     with pytest.raises(SystemExit) as error:
         main(["--case", "missing"])
     assert error.value.code == 2

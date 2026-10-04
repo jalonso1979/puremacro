@@ -186,7 +186,7 @@ def test_dag_locals_are_symbolic_and_evaluable():
 
 
 def test_sw07_locals_follow_constebeta_and_csigma():
-    dag = parse_mod_to_dag(SW07.read_text())
+    dag = parse_mod_to_dag(SW07.read_text(encoding="utf-8"))
     vals = dag.evaluate_locals()
     assert vals["cbeta"] == pytest.approx(1.0 / (1.0 + 0.742 / 100.0), rel=1e-14)
     cgamma = 1.0 + 0.3982 / 100.0
@@ -204,7 +204,7 @@ def test_sw07_locals_follow_constebeta_and_csigma():
 
 @pytest.fixture(scope="module")
 def sw07():
-    text = SW07.read_text()
+    text = SW07.read_text(encoding="utf-8")
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         base = load_mod(text, order=1)
@@ -277,7 +277,7 @@ def test_sw07_hoisted_equations_equal_the_plain_rendering():
     """compile_equations hoists parameter work; the arithmetic is unchanged."""
     import scipy
 
-    dag = parse_mod_to_dag(SW07.read_text())
+    dag = parse_mod_to_dag(SW07.read_text(encoding="utf-8"))
     fast = dag.compile_equations()
     exprs = [eq.to_python(shock_names=set(dag.shocks)) for eq in dag.equations]
     src = "def f(lead, curr, lag, shocks, params):\n    return [" + ", ".join(exprs) + "]\n"

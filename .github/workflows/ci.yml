@@ -5,6 +5,10 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  # release.yml calls this workflow on the tagged commit and publishes to PyPI
+  # only if every job here passes. Keep it free of event-specific conditions
+  # (inside a call, github.event_name is the caller's "push" of a tag).
+  workflow_call:
 
 jobs:
   test:
@@ -34,6 +38,11 @@ jobs:
           pip install -e ".[dev,notebooks]"
 
       - name: Run pytest test suite
+        env:
+          # Shared runners are several times slower than the machines the
+          # wall-clock budgets were written on; see tests/_timing.py.
+          # 5 was exceeded once on windows/3.11 (0.53 s against 0.5 s).
+          PUREMACRO_TIMING_SCALE: "10"
         run: |
           pytest --durations=10
 

@@ -530,7 +530,7 @@ def test_sw07_canonical_benchmark_parse_and_residuals():
     """Verify sw07_pfeifer.mod parses completely and residuals evaluate to machine zero."""
     mod_path = Path("puremacro/dsge/_references/sw07_pfeifer.mod")
     assert mod_path.exists()
-    text = mod_path.read_text()
+    text = mod_path.read_text(encoding="utf-8")
 
     dag = parse_mod_to_dag(text)
 

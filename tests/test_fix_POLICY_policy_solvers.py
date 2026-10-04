@@ -571,8 +571,11 @@ def test_nonlinear_dag_focs_parse_back_and_shocks_evaluate_at_zero():
         parser.parameters = list(dag.parameter_values)
         parsed = parser.parse_expression()
         values = {c: float(rng.uniform(0.5, 1.5)) for c in node.variables() | parsed.variables()}
+        # The display rounds constants to ten significant digits (_format_number),
+        # so the parsed text agrees to about 1e-9 at best; it missed rel=1e-9 by 5%
+        # on Windows CI. 1e-7 still catches any wrongly rendered term.
         assert parsed.eval(values, dag.parameter_values) == pytest.approx(
-            node.eval(values, dag.parameter_values), rel=1e-9)
+            node.eval(values, dag.parameter_values), rel=1e-7)
     # The shock enters the technology row of B_u with d y / d e = -0.1 * k^alph at e = 0.
     k_ss = ((1 / 0.96 - 1 + 0.1) / 0.33) ** (1 / (0.33 - 1))
     assert res.augmented_model._B_u[0, 0] == pytest.approx(-0.1 * k_ss**0.33, rel=1e-12)

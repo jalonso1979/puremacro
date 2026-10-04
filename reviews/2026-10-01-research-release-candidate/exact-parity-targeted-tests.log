@@ -1,0 +1,41 @@
+........................................................................ [ 15%]
+........................................................................ [ 30%]
+........................................................................ [ 46%]
+........................................................................ [ 61%]
+........................................................................ [ 77%]
+........................................................................ [ 92%]
+........F........................                                        [100%]
+=================================== FAILURES ===================================
+_ TestTier2BoundaryAndCornerCases.test_t2_f4_harmonic_mean_collinear_parameter_draws_raises _
+tests/test_v260_showcase_replication_e2e.py:528: in test_t2_f4_harmonic_mean_collinear_parameter_draws_raises
+    with pytest.raises(ValueError, match="the posterior covariance of the draws is singular"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE ValueError
+=============================== warnings summary ===============================
+tests/test_v260_showcase_replication_e2e.py::TestTier1FeatureCoverage::test_t1_f2_sw07_native_estimate_execution
+tests/test_v260_showcase_replication_e2e.py::TestTier3CrossFeatureInteractions::test_t3_dsge_load_mod_and_lbfgs_mode
+tests/test_v260_showcase_replication_e2e.py::TestTier4RealWorldScenarios::test_t4_s1_full_sw07_bayesian_estimation_workflow
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/estimate.py:1052: UserWarning: estimate_dsge: the mode search terminated at the starting point without moving ("mode search skipped (method='none')"); initial_params is being reported as the mode but has NOT been shown to be one. Supply a better initial_params, or treat `mode` and `mode_hessian_inv` as descriptive only.
+    warnings.warn(
+
+tests/test_v260_showcase_replication_e2e.py::TestTier3CrossFeatureInteractions::test_t3_dsge_load_mod_and_lbfgs_mode
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/estimate.py:1226: UserWarning: estimate_dsge: chain 1 accept_rate=0.000 outside [0.10, 0.50]; mixing may be poor.
+    warnings.warn(
+
+tests/test_v260_showcase_replication_e2e.py::TestTier3CrossFeatureInteractions::test_t3_dsge_smoother_to_shock_decomposition
+tests/test_v260_showcase_replication_e2e.py::TestTier4RealWorldScenarios::test_t4_s1_full_sw07_bayesian_estimation_workflow
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/build.py:946: UserWarning: compute_shock_decomposition: the smoothed model path does not reproduce the observed data for labobs (max|residual|=7.867e-01 vs series range 7.218e+00), dy (max|residual|=4.058e-01 vs series range 2.962e+00), dc (max|residual|=3.921e-01 vs series range 2.998e+00), dinve (max|residual|=3.522e-01 vs series range 9.414e+00), dw (max|residual|=3.204e-01 vs series range 2.391e+00) (+2 more). The shock contributions, the initial condition and the steady state therefore do not add up to 'actual' on their own; the gap is reported in the 'residual' column. This is expected when there are more observed series than structural shocks, and a sign of misspecification otherwise.
+    return compute_shock_decomposition(self, data, initial_state=initial_state, sigma=sigma)
+
+tests/test_v260_showcase_replication_e2e.py::TestTier4RealWorldScenarios::test_t4_s1_full_sw07_bayesian_estimation_workflow
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/dsge/estimate.py:1226: UserWarning: estimate_dsge: chain 0 accept_rate=0.750 outside [0.10, 0.50]; mixing may be poor.
+    warnings.warn(
+
+tests/test_v260_showcase_replication_e2e.py::TestTier4RealWorldScenarios::test_t4_s3_replication_scorecard_execution
+  /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/replication/cases_dsge_estimation.py:161: UserWarning: harmonic_mean_mdd: the estimate moves by 2.66 log points across truncation levels (from -908.34 to -905.69). It is supposed to be invariant to the truncation, so this one has not converged and should not be reported.
+    res = harmonic_mean_mdd(fix["draws"], fix["log_posterior_trace"])
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_v260_showcase_replication_e2e.py::TestTier2BoundaryAndCornerCases::test_t2_f4_harmonic_mean_collinear_parameter_draws_raises
+1 failed, 464 passed, 8 warnings in 8.14s

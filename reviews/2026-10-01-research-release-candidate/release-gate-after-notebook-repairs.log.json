@@ -1,0 +1,11 @@
+{
+  "command": [
+    "/tmp/puremacro-research-candidate-venv/bin/python",
+    "-u",
+    "tools/release_check.py"
+  ],
+  "cwd": "/Users/jalonso/Documents/RESEARCH/puremacro",
+  "returncode": 1,
+  "started_at_utc": "2026-10-01T22:36:13.987279+00:00",
+  "completed_at_utc": "2026-10-01T23:08:09.629631+00:00"
+}

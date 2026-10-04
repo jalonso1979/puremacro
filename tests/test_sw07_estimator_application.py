@@ -23,7 +23,7 @@ def test_full_artifacts_and_phase_reference(evidence):
     root, a, b = evidence
     for name, study in (("calibration", a), ("validation", b)):
         directory = root/name
-        manifest = json.loads((directory/"manifest.json").read_text(),
+        manifest = json.loads((directory/"manifest.json").read_text(encoding="utf-8"),
                               parse_constant=lambda x: pytest.fail(f"invalid JSON number {x}"))
         for file, digest in manifest["artifacts"].items():
             assert hashlib.sha256((directory/file).read_bytes()).hexdigest() == digest
@@ -38,7 +38,7 @@ def test_full_artifacts_and_phase_reference(evidence):
     # Two draws cannot estimate the predeclared upper-tail order statistic.
     assert actual.critical_upper_unbounded.all()
     assert (actual.calibrated_events_lower == 0).all()
-    manifest = json.loads((root/"validation"/"manifest.json").read_text())
+    manifest = json.loads((root/"validation"/"manifest.json").read_text(encoding="utf-8"))
     assert manifest["calibration_manifest_sha256"] == hashlib.sha256(
         (root/"calibration"/"manifest.json").read_bytes()).hexdigest()
 
@@ -48,7 +48,7 @@ def test_artifact_tampering_refused(evidence, tmp_path):
     root, _, _ = evidence
     copy = tmp_path/"copied"
     shutil.copytree(root/"calibration", copy)
-    with (copy/"draws.csv").open("a") as stream:
+    with (copy/"draws.csv").open("a", encoding="utf-8") as stream:
         stream.write("\ncorrupt\n")
     with pytest.raises(ValueError, match="hash mismatch"):
         load_experiment(copy)

@@ -108,7 +108,7 @@ def run_application(output: Path, *, n: int = 4000, seed: int = 20261001):
                         "local asymptotic uncertainty; no finite-sample coverage claim",
                         "held-out horizons use the same data and are descriptive, not an independent validation sample"],
     }
-    (output / "manifest.json").write_text(json.dumps(manifest, indent=2, allow_nan=False) + "\n")
+    (output / "manifest.json").write_text(json.dumps(manifest, indent=2, allow_nan=False) + "\n", encoding="utf-8")
     from puremacro.reports import df_to_markdown
     (output / "report.md").write_text(
         "# Empirical-to-structural parameter recovery\n\n"

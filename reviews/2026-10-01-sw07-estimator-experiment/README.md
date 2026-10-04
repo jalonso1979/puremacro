@@ -41,8 +41,10 @@ sample and full HAC matrix. All failures remain visible.
 Calibration uses 399 samples and validation uses 999 new samples, for 1,398
 independent samples and 5,592 variant fits. Seed 20261002 and
 separate phase indices define disjoint streams, distinct from the preceding
-experiment. Small software tests use other seeds and are excluded from these
-counts. This is a development protocol, not an externally registered plan.
+experiment. Unit and application tests use other seeds. The installed-wheel
+smoke check replays two samples per phase with the study seed; those workflow
+checks are also excluded from the scientific counts. This is a development
+protocol, not an externally registered plan.
 
 ## Completed calibration
 

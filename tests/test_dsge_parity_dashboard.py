@@ -492,7 +492,7 @@ def test_compare_model_to_dynare_file_runner(tmp_path: Path, synthetic_first_ord
     end;
     """
     mod_file = tmp_path / "toy.mod"
-    mod_file.write_text(mod_text)
+    mod_file.write_text(mod_text, encoding="utf-8")
 
     res = compare_model_to_dynare(mod_file, load_dynare_dr(data["oo"]), order=1)
     assert isinstance(res, ParityDashboardResult)
@@ -521,7 +521,7 @@ def test_run_parity_suite_no_longer_pairs_mat_companions(tmp_path: Path, synthet
     """
     # Create matching .mod file alongside the .mat
     mod_file = data["path"].with_suffix(".mod")
-    mod_file.write_text(mod_text)
+    mod_file.write_text(mod_text, encoding="utf-8")
 
     # Since 4.0.0 the suite cannot discover a .mat companion, so a model with
     # no supplied reference is reported UNAVAILABLE and does NOT count as passing.
@@ -591,7 +591,7 @@ def test_cli_parity_execution_clean_exit(tmp_path: Path, synthetic_first_order_m
     end;
     """
     mod_file = data["path"].with_suffix(".mod")
-    mod_file.write_text(mod_text)
+    mod_file.write_text(mod_text, encoding="utf-8")
 
     # 4.0.0: comparing against Dynare needs its oo_ output, which only the
     # caller can load, so the CLI refuses rather than reporting a hollow pass.
@@ -618,7 +618,7 @@ def test_cli_parity_format_export(tmp_path: Path, synthetic_first_order_mat):
     end;
     """
     mod_file = data["path"].with_suffix(".mod")
-    mod_file.write_text(mod_text)
+    mod_file.write_text(mod_text, encoding="utf-8")
 
     out_dir = tmp_path / "cli_parity_export"
     exit_code = run_cli(["parity", str(mod_file), "--format", "all", "--outdir", str(out_dir), "--quiet"])
@@ -637,7 +637,7 @@ def test_cli_parity_rejects_non_mod_targets(tmp_path: Path, synthetic_first_orde
     assert "verify_dynare_parity" in err_mat
 
     other = tmp_path / "model.txt"
-    other.write_text("not a model")
+    other.write_text("not a model", encoding="utf-8")
     assert run_cli(["parity", str(other), "--quiet"]) == 1
     assert "Unrecognized file type" in capsys.readouterr().err
 
@@ -758,7 +758,7 @@ def test_run_parity_suite_corrupted_model_isolation(tmp_path: Path):
     """
     # Create valid model pair
     valid_mod = tmp_path / "valid.mod"
-    valid_mod.write_text("var y; varexo e; model; y = 0.5*y(-1) + e; end;")
+    valid_mod.write_text("var y; varexo e; model; y = 0.5*y(-1) + e; end;", encoding="utf-8")
     valid_mat = tmp_path / "valid_results.mat"
     scipy.io.savemat(
         str(valid_mat),
@@ -780,7 +780,7 @@ def test_run_parity_suite_corrupted_model_isolation(tmp_path: Path):
 
     # Create corrupted model pair
     bad_mod = tmp_path / "corrupted.mod"
-    bad_mod.write_text("var z; model; z = 2*z(1); end;")
+    bad_mod.write_text("var z; model; z = 2*z(1); end;", encoding="utf-8")
     bad_mat = tmp_path / "corrupted_results.mat"
     bad_mat.write_bytes(b"corrupted_mat_bytes")
 

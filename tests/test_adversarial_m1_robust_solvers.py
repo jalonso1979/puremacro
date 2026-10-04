@@ -31,6 +31,7 @@ import numpy as np
 import scipy.linalg as la
 import pytest
 
+from _timing import budget
 from puremacro.trade import (
     TradeCalibrationResult,
     TradeEquilibriumResult,
@@ -110,7 +111,7 @@ class TestAdversarialHawkinsSimon:
         t_elapsed = time.perf_counter() - t_start
 
         # Time constraint: must evaluate in < 0.15s (measured ~0.010s)
-        assert t_elapsed < 0.15, f"Hawkins-Simon check took too long: {t_elapsed:.4f}s >= 0.15s"
+        assert t_elapsed < budget(0.15), f"Hawkins-Simon check took too long: {t_elapsed:.4f}s >= {budget(0.15)}s"
 
         err_msg = str(exc_info.value)
         # A reducible network can leave the lower bound below one even when
@@ -131,7 +132,7 @@ class TestAdversarialHawkinsSimon:
         # ViabilityResult is a plain 4-field named tuple; read fields by name.
         rho, cw_lower, cw_upper = res.rho, res.cw_lower, res.cw_upper
 
-        assert t_elapsed < 0.15, f"Execution exceeded 0.15s: {t_elapsed:.4f}s"
+        assert t_elapsed < budget(0.15), f"Execution exceeded {budget(0.15)}s: {t_elapsed:.4f}s"
         assert 0.0 < rho < 1.0, f"Subcritical tariff gave non-viable rho: {rho:.4f}"
         assert cw_lower <= rho <= cw_upper + 1e-10, (
             f"Collatz-Wielandt inclusion violated: lower={cw_lower:.6f}, rho={rho:.6f}, upper={cw_upper:.6f}"

@@ -12,7 +12,7 @@ from tools.reference_validation.validate_oecd import load_fixture, validate_aggr
 from puremacro.trade._oecd_icio import _parse_frame, condense_final_demand, read_native
 from puremacro.trade.data import package_mrio_to_calibration_result
 
-CASES = sorted(json.loads((DYNARE_FIXTURES / "manifest.json").read_text())["cases"])
+CASES = sorted(json.loads((DYNARE_FIXTURES / "manifest.json").read_text(encoding="utf-8"))["cases"])
 
 
 @pytest.mark.parametrize("case", CASES)

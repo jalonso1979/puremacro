@@ -193,7 +193,10 @@ class TestWelfareDecompositionEmpirical:
         eff = df["efficiency"].to_numpy()
         max_closure_err = np.max(np.abs(ev - (tot + eff)))
         rel_closure_err = max_closure_err / np.max(np.abs(ev))
-        assert max_closure_err < 1e-8, f"Max closure error {max_closure_err:.4e} exceeds 1e-8"
+        # Channels reach 5e8 monetary units, where one rounding of tot + eff is
+        # 3e-8 (observed: exactly 2**-25), so the bound scales with the magnitude.
+        rounding = 4.0 * np.finfo(float).eps * np.max(np.abs(tot) + np.abs(eff))
+        assert max_closure_err <= rounding, f"Max closure error {max_closure_err:.4e} exceeds {rounding:.4e}"
         assert rel_closure_err < 1e-14, f"Relative closure error {rel_closure_err:.4e} exceeds 1e-14"
 
     def test_welfare_decomposition_incompatible_dimension_raises(

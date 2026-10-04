@@ -12,6 +12,7 @@ import time
 import numpy as np
 import pytest
 
+from _timing import budget
 from puremacro.dsge._sylvester import solve_generalized_sylvester_kronecker
 
 
@@ -167,7 +168,7 @@ def test_schur_sylvester_sw07_benchmark_timing():
     assert g_xx.shape == (N, n_x**2)
     assert np.isfinite(g_xx).all()
     assert np.isrealobj(g_xx)
-    assert elapsed <= 0.030, f"Sylvester solver took {elapsed:.4f}s > 0.030s"
+    assert elapsed <= budget(0.030), f"Sylvester solver took {elapsed:.4f}s > {budget(0.030)}s"
 
     # Fast verification of sample columns residual
     C = np.kron(h_x, h_x)

@@ -11,6 +11,7 @@ in-memory execution, and fast runtime (< 25s overall).
 """
 from __future__ import annotations
 
+import sys
 import ast
 from dataclasses import asdict, is_dataclass, replace
 import math
@@ -1200,8 +1201,11 @@ class TestF12ResultsInspectionAndWelfare:
         assert res.w_sol is not None and isinstance(res.w_sol, np.ndarray)
         assert res.T_sol is not None and isinstance(res.T_sol, np.ndarray)
         assert res.XN_sol is not None and isinstance(res.XN_sol, np.ndarray)
-        assert res.cpi is not None and isinstance(res.cpi, np.ndarray)
-        assert res.terms_of_trade is not None and isinstance(res.terms_of_trade, np.ndarray)
+        # rho_va=0.7 is an active configuration: no legacy price index describes it.
+        with pytest.raises(NotImplementedError):
+            res.cpi
+        with pytest.raises(NotImplementedError):
+            res.terms_of_trade
         assert res.exports is not None and isinstance(res.exports, np.ndarray)
         assert res.imports is not None and isinstance(res.imports, np.ndarray)
         assert res.gdp is not None and isinstance(res.gdp, np.ndarray)
@@ -1994,9 +1998,15 @@ class TestF11BoundaryCases:
         assert mkt3.condense_varieties is True
         assert mkt3.variety_expansion is True
 
-        # Conflicting condensation flags in replace raise ValueError
-        with pytest.raises(ValueError, match=r"Conflicting values"):
-            replace(mkt3, variety_condensation=False, condense_varieties=True)
+        # Conflicting condensation flags in replace raise ValueError where Python reports
+        # which keys were passed (3.13+). On 3.11/3.12 replace() passes every field, so a
+        # keyword equal to the current value is invisible and the changed alias wins.
+        if sys.version_info >= (3, 13):
+            with pytest.raises(ValueError, match=r"Conflicting values"):
+                replace(mkt3, variety_condensation=False, condense_varieties=True)
+        else:
+            mkt4 = replace(mkt3, variety_condensation=False, condense_varieties=True)
+            assert mkt4.variety_condensation is mkt4.condense_varieties is mkt4.variety_expansion is False
 
 
 class TestF12BoundaryCases:
@@ -2714,18 +2724,36 @@ class TestFlexibleRoutedMetadata:
 
     @require_flexible
     @pytest.mark.parametrize("kw", [dict(sigma_y=0.5), dict(rho_va=0.7, sigma_inter=0.5)])
-    def test_solver_entry_point_delegates_to_the_flexible_model(
+    def test_solver_entry_point_refers_active_settings_to_the_flexible_solver(
         self, hetero_2c_2s_calib: TradeCalibrationResult, kw: dict
     ):
-        """solve_trade_equilibrium(method='quasi_condensed', sigma_y=... or config=...) solves this model."""
+        """solve_trade_equilibrium(method='quasi_condensed', sigma_y=... or config=...) refuses.
+
+        Its TradeEquilibriumResult carries legacy flow accounting, which does not
+        describe these models; up to 4.4.0 it returned that accounting together
+        with converged=True and the legacy residual (0.50 for sigma_y = 0.5).
+        """
         calib = hetero_2c_2s_calib
         tau = _tariff_25pct(calib)
         flex = solve_flexible_trade_equilibrium(calib, tau=tau, method="quasi_condensed", **kw)
-        if set(kw) == {"sigma_y"}:
-            via_solver = solve_trade_equilibrium(calib, tau=tau, method="quasi_condensed", **kw)
-        else:
-            via_solver = solve_trade_equilibrium(calib, tau=tau, method="quasi_condensed", config=flex.config)
+        assert flex.converged
+        with pytest.raises(ValueError, match="solve_flexible_trade_equilibrium"):
+            if set(kw) == {"sigma_y"}:
+                solve_trade_equilibrium(calib, tau=tau, method="quasi_condensed", **kw)
+            else:
+                solve_trade_equilibrium(calib, tau=tau, method="quasi_condensed", config=flex.config)
+
+    @require_flexible
+    def test_solver_entry_point_default_configuration_matches_flexible(
+        self, hetero_2c_2s_calib: TradeCalibrationResult
+    ):
+        calib = hetero_2c_2s_calib
+        tau = _tariff_25pct(calib)
+        flex = solve_flexible_trade_equilibrium(calib, tau=tau, method="quasi_condensed")
+        via_solver = solve_trade_equilibrium(calib, tau=tau, method="quasi_condensed")
         np.testing.assert_allclose(via_solver.x_sol, flex.x_sol, rtol=0.0, atol=1e-12)
+        assert via_solver.converged == flex.converged
+        assert via_solver.max_residual == flex.residual_norm
 
 
 class TestFlexibleFactorAllocationFrame:
@@ -2855,7 +2883,7 @@ class TestFlexibleLowSeverityFixes:
         ]
         for kwargs, expected in cases:
             assert _active_flexible_settings(FlexibleTradeModelConfig(**kwargs)) == expected, kwargs
-        src = Path(__file__).resolve().parents[1].joinpath("puremacro", "trade", "flexible.py").read_text()
+        src = Path(__file__).resolve().parents[1].joinpath("puremacro", "trade", "flexible.py").read_text(encoding="utf-8")
         assert "is_flexible = (" not in src  # no duplicated literal predicate
 
     @require_flexible

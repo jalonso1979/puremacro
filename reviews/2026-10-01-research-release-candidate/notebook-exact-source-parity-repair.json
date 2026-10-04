@@ -1,0 +1,404 @@
+{
+  "scope": "Exact Jupytext source parity after removing redundant display calls",
+  "notebooks": 30,
+  "changed_cells": 66,
+  "files": [
+    {
+      "source": "notebooks/07_local_projections.py",
+      "rendered": "notebooks/07_local_projections.ipynb",
+      "source_sha256": "51533aae6c7971e0aadade9de0185cfe6f176739be4cedbe7807958b85f71a0d",
+      "rendered_before_sha256": "cde0c90651e5ba2fc60f989f41cd83cb90751ec005e078e6301d4f61111e57f9",
+      "changed_cell_indices": [
+        12,
+        14,
+        16
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "80d9e91383cf43be1fddaaceb58f6b58aa8df9b92def5e35a5f8f398d044f0b8"
+    },
+    {
+      "source": "notebooks/07_local_projections_es.py",
+      "rendered": "notebooks/07_local_projections_es.ipynb",
+      "source_sha256": "ea66f0976b1cd284c2c899fef6a89ea6d266e1e4fec73abf9df81705c98b3dd3",
+      "rendered_before_sha256": "028b3b973c9100099713ec99530f64c03c84ef1b383bc19ffd992868778be748",
+      "changed_cell_indices": [
+        12,
+        14,
+        16
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "6c4423b07fa01f6dd39dc2062fe9246dd8db3cc362da9c16b094fd0e5f7a2c7a"
+    },
+    {
+      "source": "notebooks/14_tax_multiplier_three_ways.py",
+      "rendered": "notebooks/14_tax_multiplier_three_ways.ipynb",
+      "source_sha256": "f56cf85ac3e7590b7c8c949e1f1fa1208ca27cadc3737363da4e61bb76aac173",
+      "rendered_before_sha256": "f008e9ef25ea1a5db25547ab5d80939568f17638736da483c550e9bcc1cf8e59",
+      "changed_cell_indices": [
+        6,
+        19,
+        22
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "3815226e7999834625815050a76609fded931eafa44a12d5435c1bc7d007d744"
+    },
+    {
+      "source": "notebooks/14_tax_multiplier_three_ways_es.py",
+      "rendered": "notebooks/14_tax_multiplier_three_ways_es.ipynb",
+      "source_sha256": "7121ab1ef9c33dee05eff287247d397de51e5101c8a96162b0605caa4ac8aa8d",
+      "rendered_before_sha256": "9b25a04b2b6669d37fb86a09f63b325c4e5758ebd69fb8e0711b672898d99bfc",
+      "changed_cell_indices": [
+        6,
+        19,
+        22
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "ed4d3f9e73a3e01eb3ef798852377225383abb25df8207b9ae75aea7afd57f62"
+    },
+    {
+      "source": "notebooks/15_lp_did.py",
+      "rendered": "notebooks/15_lp_did.ipynb",
+      "source_sha256": "7a568a08145f8824302d2ba54e2101541c5f4fe66eb98ea4faab88ba9c6f0cd4",
+      "rendered_before_sha256": "ff50b1de53e72339646da7e5d1bbb6cf920fa79bd256528c676d506cab7fdcc1",
+      "changed_cell_indices": [
+        10,
+        12,
+        15
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "958d0ecf1478812eb998ab5e5c8bede64ae381b6b7608696aa0511006de6c663"
+    },
+    {
+      "source": "notebooks/15_lp_did_es.py",
+      "rendered": "notebooks/15_lp_did_es.ipynb",
+      "source_sha256": "1235aa258dd0a3de884823e911db26239e5ea878f354e7a1a72ef68740ecf9c4",
+      "rendered_before_sha256": "8c81b9f69a4abf08b2143aaa067ba543e81657177e221ef910376744a8da99e4",
+      "changed_cell_indices": [
+        10,
+        12,
+        15
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "1445ad397a3544ff20a221f977db7ad8657f41109d9e8dd7c3ca1e11bc754c68"
+    },
+    {
+      "source": "notebooks/16_regime_girf.py",
+      "rendered": "notebooks/16_regime_girf.ipynb",
+      "source_sha256": "3f00c26768f3d63311e45ce79565765d304510cef08a0f18be93986c11b28f3b",
+      "rendered_before_sha256": "0c848afc35dbec097323dfc0506b7ad742fece3a57b810ccdea2d8d4670eff49",
+      "changed_cell_indices": [
+        4,
+        9,
+        12,
+        15
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "f8798f8d59834eee6b62da02a015961f3066259d76c3dabf99047d087507a513"
+    },
+    {
+      "source": "notebooks/16_regime_girf_es.py",
+      "rendered": "notebooks/16_regime_girf_es.ipynb",
+      "source_sha256": "94facaa8ea022e893e8b484aebca9b1777f57402d16a682729746b926593e326",
+      "rendered_before_sha256": "708b510f072ba4e7cc466b4cad7e2a9a6bb00123f54b180a8314c2a3710336cd",
+      "changed_cell_indices": [
+        4,
+        9,
+        12,
+        15
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "125f52b71d2e823cc8d742c24a5629ede6e13b23a48b12f7cdd5b6f70a7efe2f"
+    },
+    {
+      "source": "notebooks/29_synthetic_did.py",
+      "rendered": "notebooks/29_synthetic_did.ipynb",
+      "source_sha256": "c1bd9e643073c5f765af78c1284becae3e73f53edc37c13aa3612123fb4c3bb7",
+      "rendered_before_sha256": "7f7ed4dc0553fe218bec464f699a64c068d5599f6f8523b1508123f09cc6c309",
+      "changed_cell_indices": [
+        7
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "a97e151732e6fe387327b379fe72633883cb547eb236210dd7900a33773b1bf9"
+    },
+    {
+      "source": "notebooks/29_synthetic_did_es.py",
+      "rendered": "notebooks/29_synthetic_did_es.ipynb",
+      "source_sha256": "2777ba1c4edc4ba9ba30206c57307a751e5eb21cffbc72ecd570892b1a97d48e",
+      "rendered_before_sha256": "7384eaad7fbc0f442fa3b76df610f1e59f1eeea201111dd3f488d1a1fdee49fb",
+      "changed_cell_indices": [
+        7
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "20eea2a38503064e17e05c2fcd23d673b65d97a207d39f699621e6efde35fae0"
+    },
+    {
+      "source": "notebooks/31_sequence_space_hank.py",
+      "rendered": "notebooks/31_sequence_space_hank.ipynb",
+      "source_sha256": "860d6e3f647a64946d6073a67ed7a9cdc16968a847a42f3acd8ed350fd6e49ef",
+      "rendered_before_sha256": "068d521ee8b886fbd1a38281fdfdd479ae634e17f3003abd2bb3851702ed3209",
+      "changed_cell_indices": [
+        5,
+        7,
+        9
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "0e7e017d04634fc5f9a8bfd5960ec04e0b4bdd818aff1227f9ff745dfeaf843e"
+    },
+    {
+      "source": "notebooks/31_sequence_space_hank_es.py",
+      "rendered": "notebooks/31_sequence_space_hank_es.ipynb",
+      "source_sha256": "c0770895f9b0e326dd16bf694a263f4b209fefe19d9003583803d53a1f044846",
+      "rendered_before_sha256": "a19b67ab29261e56c555a242e17adcf7c7fafb301dace86b6f31ca2eaa56bcc7",
+      "changed_cell_indices": [
+        5,
+        7,
+        9
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "548e1a0eeeba64d9966590e99d9ed5b285f5519c8a3437b2c214d7840d233319"
+    },
+    {
+      "source": "notebooks/38_real_time_vintages_and_revisions.py",
+      "rendered": "notebooks/38_real_time_vintages_and_revisions.ipynb",
+      "source_sha256": "a250fc0891f0ed862c58a94aaff7e83547bde47f9e1e3048a623c61c97386d48",
+      "rendered_before_sha256": "9ee0af8692e63bd7d5142117b53a108a3cf10da76edd1bdb6ec0c68a956b7031",
+      "changed_cell_indices": [
+        8,
+        10,
+        15
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "2a7235a1545cf5756e926d08555c23eab02276fd697439d074419bb63d1a88fd"
+    },
+    {
+      "source": "notebooks/38_real_time_vintages_and_revisions_es.py",
+      "rendered": "notebooks/38_real_time_vintages_and_revisions_es.ipynb",
+      "source_sha256": "cb74636bd86590eef32b890647d48446c96a1cfef73e755532616c59690e218f",
+      "rendered_before_sha256": "a02b92e8e3e2b6824de8e3a4d663d515249429a313cd72b88fc6ff6899440235",
+      "changed_cell_indices": [
+        8,
+        10,
+        15
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "41efcaf5fce0650948da0cb4c1faa48006041a68f9aef155c903d50af37532d6"
+    },
+    {
+      "source": "notebooks/50_applied_fiscal_multipliers_and_debt_sustainability.py",
+      "rendered": "notebooks/50_applied_fiscal_multipliers_and_debt_sustainability.ipynb",
+      "source_sha256": "70d3ace6724c92e140af355b6d97109ffdbb610c8979324133b75061ea2b5a13",
+      "rendered_before_sha256": "0f3574015838e8dbaf33361158343f53b56a46ef910188f072c85d9b2f336e01",
+      "changed_cell_indices": [
+        3
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "f923226cca9017694c9dfcd41a5cf5d8ff718c28e6b8b1fc19bcc74f295959e3"
+    },
+    {
+      "source": "notebooks/50_applied_fiscal_multipliers_and_debt_sustainability_es.py",
+      "rendered": "notebooks/50_applied_fiscal_multipliers_and_debt_sustainability_es.ipynb",
+      "source_sha256": "d8dc6d34d5dff4af1e31c7b9335ff01ba93a129d546ec2d211bc3fa62781ae20",
+      "rendered_before_sha256": "06cdc138cc53f0ddf76e8b4d28c8d8c0438d9df82078e00b396502be7c3cc86f",
+      "changed_cell_indices": [
+        3
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "cd1be702f9fb8ff84eecf07d1949fe6e28f495a1a96272e9376876060f63ab11"
+    },
+    {
+      "source": "notebooks/52_continuous_transition_mit_shocks.py",
+      "rendered": "notebooks/52_continuous_transition_mit_shocks.ipynb",
+      "source_sha256": "a0cc8797e34222095295770297a368b4ae88aeffd0a51b1afa82804e9d46232d",
+      "rendered_before_sha256": "bfa2a8c9985e49c40f1e2f22c1af49bcc70e624678c470c33ff93a3c74918849",
+      "changed_cell_indices": [
+        6
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "6ab0fb250624d6291c385f6158d66ab96c21d675c16b9ae196b01464fe7c334f"
+    },
+    {
+      "source": "notebooks/52_continuous_transition_mit_shocks_es.py",
+      "rendered": "notebooks/52_continuous_transition_mit_shocks_es.ipynb",
+      "source_sha256": "d6b4482a154655485b14caa1aa6fc09e5daadc7985d5633ae7c4c3dbf0ba1fc3",
+      "rendered_before_sha256": "28b840ac69cdf86f078142f0688f538a6dcc0d776e03fd890b8e61929d4829ea",
+      "changed_cell_indices": [
+        6
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "d8a162ad3941f6193c6ce4e9f4b5b03af6f907bdac45f6ed46ae17cdcd067526"
+    },
+    {
+      "source": "notebooks/59_latam_realtime_nowcast_and_news.py",
+      "rendered": "notebooks/59_latam_realtime_nowcast_and_news.ipynb",
+      "source_sha256": "fbdaa5e4f62863ce45c89963999f95720c55488f63456fc8bfab02cc6dcd0d0f",
+      "rendered_before_sha256": "365f3137a68c81d0ed4ed88afd53bdd8edce6dc77471a66719813a3a53e4949f",
+      "changed_cell_indices": [
+        7
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "dd60a65d37bc7b387a28f0504d0d32fb215be0e248d48df57ea966d2a5571487"
+    },
+    {
+      "source": "notebooks/59_latam_realtime_nowcast_and_news_es.py",
+      "rendered": "notebooks/59_latam_realtime_nowcast_and_news_es.ipynb",
+      "source_sha256": "cf19301403e8d25d17a39a68b14257c19b5bbf50640390f101c3bc41ca9bf7ec",
+      "rendered_before_sha256": "84d94bc3b5518ca5a7fc6c2639c44d60ccd304417d0e1967b097bef60cca2a44",
+      "changed_cell_indices": [
+        7
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "f7f87d66510d379024d589d3534022ed956ce6e5cde3e54feea3faed22264de2"
+    },
+    {
+      "source": "notebooks/62_flexible_trade_cge.py",
+      "rendered": "notebooks/62_flexible_trade_cge.ipynb",
+      "source_sha256": "62fe7b2cdfca6c4c18347ae58be811873c4c4043be4d776ae6cc94ee0059c687",
+      "rendered_before_sha256": "b9f7fb9e4ecc79d6aaa03491eaaa97609fd74b32e095e94dd5dc45699e43e2c5",
+      "changed_cell_indices": [
+        5,
+        7,
+        9,
+        13
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "27bc4107e4a364993fc03655e86534b4ed4239928024d23e820b71558725cb91"
+    },
+    {
+      "source": "notebooks/62_flexible_trade_cge_es.py",
+      "rendered": "notebooks/62_flexible_trade_cge_es.ipynb",
+      "source_sha256": "d2d8eb5132ecb7d9e7582c4b06df2ad0ba5f29cb399e3813baf84beec69bf283",
+      "rendered_before_sha256": "61687e8cd24fdfc2a98f38f3ac3813868fa1094c8f0aa787aba7c0e3e75103f2",
+      "changed_cell_indices": [
+        5,
+        7,
+        9,
+        13
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "c8a620a293cedd849e6f6a45af6b1342a6b71cac0f49fa2a2932efafee25feca"
+    },
+    {
+      "source": "notebooks/63_trade_wars_and_nash_tariffs.py",
+      "rendered": "notebooks/63_trade_wars_and_nash_tariffs.ipynb",
+      "source_sha256": "4575ac3e73042c7ef05353571d89d8a632e31204f29a15279e95a863dc6af475",
+      "rendered_before_sha256": "6f896a901a41638a1b541737a4968bd67a85f2b5acc7b524eb3aae74b09a4105",
+      "changed_cell_indices": [
+        13
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "e29f953c49592bc5fc9867eedc045f6e582c4ccf70e84ece9642f2fb3af5ea97"
+    },
+    {
+      "source": "notebooks/63_trade_wars_and_nash_tariffs_es.py",
+      "rendered": "notebooks/63_trade_wars_and_nash_tariffs_es.ipynb",
+      "source_sha256": "58f2fb4387820402d1df56010550ceea830cc6343e397b420a0bf344b2da6b86",
+      "rendered_before_sha256": "68a3de2cbdc3e21dd4b689f49a086136e8770f7e4d4b5356bcde5b214c37e40a",
+      "changed_cell_indices": [
+        13
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "f8344dad4322fbefbfc1019c637799a257b5532157e49e2f35ded28d54ec8e3d"
+    },
+    {
+      "source": "notebooks/64_singularities_and_keller_pac.py",
+      "rendered": "notebooks/64_singularities_and_keller_pac.ipynb",
+      "source_sha256": "f02a56f26be3003281c702a3657bafe42068aa47aa8c8b0d5572749797ec6a88",
+      "rendered_before_sha256": "1eb7705474c23876fb6118e7ed61fecf8742f9464b808d6aa950b1b8ecd92a22",
+      "changed_cell_indices": [
+        8,
+        19
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "0ebf5e965559c95f61bb42806137254974f724157fb4141c124fbd390ead09fb"
+    },
+    {
+      "source": "notebooks/64_singularities_and_keller_pac_es.py",
+      "rendered": "notebooks/64_singularities_and_keller_pac_es.ipynb",
+      "source_sha256": "6d4bdd3cb6be59cff5dd4e505a1a8b9e151e4773d0a06958650a40b283faa497",
+      "rendered_before_sha256": "90558dc9aab48495960ac883bd60e19e3dca3116127b7ecd9dc691f89a22f706",
+      "changed_cell_indices": [
+        8,
+        19
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "a754ca136bc78d200288381002a5189c3045645dcaa08fd3c5f5c92e064cba47"
+    },
+    {
+      "source": "notebooks/65_gvc_cascades_and_welfare_decomposition.py",
+      "rendered": "notebooks/65_gvc_cascades_and_welfare_decomposition.ipynb",
+      "source_sha256": "29437f3d73d08558527a34038f9a51fdf2811f3ef3c994844f264dd12344374b",
+      "rendered_before_sha256": "83c32d9fb7ea2c3acf7cd5959563ee0cf2c02584874bcc59e505c27511b4452f",
+      "changed_cell_indices": [
+        14
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "4fdb5180b5aedee0074701e232885206bcb14296574df739669a92b93ded4a37"
+    },
+    {
+      "source": "notebooks/65_gvc_cascades_and_welfare_decomposition_es.py",
+      "rendered": "notebooks/65_gvc_cascades_and_welfare_decomposition_es.ipynb",
+      "source_sha256": "0c88f7fa25b35c3084ab77440d8d0dcde5f71ce6031094b5ecb5f4e78f89c184",
+      "rendered_before_sha256": "9a07d184efa7135316c176b3f5881d7d601b2fd25aecedd9dccaa14c888a8854",
+      "changed_cell_indices": [
+        14
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "67ebc2d59e7ff56dc911da16cf256e97c3717bb780825c41d473aaff2b45f0d8"
+    },
+    {
+      "source": "notebooks/67_bewley_classics_replication.py",
+      "rendered": "notebooks/67_bewley_classics_replication.ipynb",
+      "source_sha256": "753a769539211b45c6415b2df3cd7d19c8df84799527130bece36b65bd68d95d",
+      "rendered_before_sha256": "b426b40cab9cc3b55d42f6393e6e28f2b9f1ffcbc581e63e3e2c4472e6b6c0d6",
+      "changed_cell_indices": [
+        12,
+        15
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "a4b5fc1dbfa277c5615e9b3f981babd5c9dc706306ce929c2986d13f96ce3279"
+    },
+    {
+      "source": "notebooks/67_bewley_classics_replication_es.py",
+      "rendered": "notebooks/67_bewley_classics_replication_es.ipynb",
+      "source_sha256": "474462c1daa7aa69f34c1d2f2c9dbd659c54bdd53ee94db642bbf5b52dc3828f",
+      "rendered_before_sha256": "4fccf673ba77ad7b71eea2c3238ceeb1856b807b76df867a2db4b580a92421af",
+      "changed_cell_indices": [
+        12,
+        15
+      ],
+      "only_trailing_newlines_changed": true,
+      "all_other_fields_unchanged": true,
+      "rendered_after_sha256": "95cfa41e1e2a5e7385d3bf8e776532faea5b84158e1c5e9a3bd4259811ee3738"
+    }
+  ],
+  "numerical_code_outputs_and_metadata_unchanged": true
+}

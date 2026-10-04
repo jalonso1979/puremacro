@@ -535,7 +535,10 @@ def fit_structural(
                         bounds=((lo - x0) / parameter_scale, (hi - x0) / parameter_scale),
                         method="trf", max_nfev=int(max_nfev), x_scale="jac",
                         ftol=tol, xtol=tol, gtol=tol)
-    theta = to_parameter(fit.x)
+    # The optimizer's bounds hold in z; mapping a bound back through
+    # theta0 + scale * z can round an ulp past it, which made the estimate
+    # unusable as the start of another bounded fit.
+    theta = np.clip(to_parameter(fit.x), lo, hi)
     model = raw_fun(theta)
     derivative = raw_jac(theta)
     weighted_jac = transform @ derivative

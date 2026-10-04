@@ -40,14 +40,24 @@ if not hasattr(TradeCalibrationResult, "pfd"):
 
 
 def _get_replace_caller() -> Any | None:
-    """Inspect call stack to retrieve the original instance if called via dataclasses.replace."""
+    """Inspect call stack to retrieve the original instance if called via dataclasses.replace.
+
+    Python 3.13+ routes ``replace(obj, **changes)`` through ``obj.__replace__`` ->
+    ``dataclasses._replace(self, ...)``; Python 3.11 and 3.12 call the class directly
+    from ``dataclasses.replace(obj, ...)``. Both shapes are recognised; before 3.13
+    only the 3.13 one was, so ``replace`` on these configs failed on 3.11/3.12.
+    """
     for i in range(1, 6):
         try:
             f = sys._getframe(i)
-            if f.f_code.co_name == "_replace" and "self" in f.f_locals:
-                return f.f_locals["self"]
         except (AttributeError, ValueError):
             break
+        if f.f_globals.get("__name__") != "dataclasses":
+            continue
+        if f.f_code.co_name == "_replace" and "self" in f.f_locals:
+            return f.f_locals["self"]
+        if f.f_code.co_name == "replace" and "obj" in f.f_locals:
+            return f.f_locals["obj"]
     return None
 
 
@@ -56,7 +66,9 @@ def _get_replace_explicit_keys() -> set[str] | None:
     for i in range(1, 6):
         try:
             f = sys._getframe(i)
-            if f.f_code.co_name == "_replace":
+            if f.f_code.co_name == "_replace" and f.f_globals.get("__name__") == "dataclasses":
+                # Only 3.13+ keeps the caller's explicit keys apart; 3.11/3.12 fill
+                # ``changes`` with every field, so callers fall back to value comparison.
                 f_parent = sys._getframe(i + 1)
                 if f_parent.f_code.co_name == "replace" and "changes" in f_parent.f_locals:
                     return set(f_parent.f_locals["changes"].keys())
@@ -2868,17 +2880,18 @@ class FlexibleTradeEquilibriumResult:
     Notes
     -----
     The ``cpi``, ``terms_of_trade``, ``exports``, ``imports``, ``gdp`` and
-    ``gdp_fc`` properties are computed by
-    :func:`puremacro.trade.postprocessing.compute_postprocessing_flows`, which
-    evaluates the legacy Cobb-Douglas/Leontief flow equations at ``x_sol``.
-    On the legacy route they describe the solved model. On the quasi-condensed
-    route with an active configuration they do not: the flows of the solved
-    flexible model are ``metadata["bilateral_trade"]``, ``["T_inter"]``,
-    ``["T_fd"]`` and ``["tariffs_interm"]``/``["tariffs_fd"]``, and they differ
-    from the properties (on the notebook-62 2x2 calibration with a 25% tariff
-    and ``sigma_trade=5``: exports ``[58.20, 59.86]`` from the property versus
-    row sums ``[62.15, 58.26]`` of ``bilateral_trade``). Use the metadata flows
-    for routed results; :meth:`welfare_decomposition` uses the properties.
+    ``gdp_fc`` properties describe the solved model. On the legacy route they
+    are the values of the legacy solve (its tariffs, fiscal closure and pricing
+    convention). On the quasi-condensed route ``exports``/``imports`` are the
+    row/column sums of ``metadata["bilateral_trade"]``, ``gdp_fc`` is
+    ``w L + r K`` and ``gdp`` adds ``T`` and any markup profits (household
+    income); ``cpi`` and ``terms_of_trade`` are the legacy indices for the
+    default configuration (which is the legacy model at the recorded pricing
+    convention) and raise ``NotImplementedError`` for an active configuration,
+    whose model has no such index. Up to 4.4.0 these properties evaluated the
+    legacy flow equations at ``x_sol`` without the tariffs of the solve (see
+    ``docs/ADVISORY.md``). :meth:`welfare_decomposition` keeps that historical
+    evaluation for its proxy.
     """
 
     x_sol: np.ndarray
@@ -2901,15 +2914,72 @@ class FlexibleTradeEquilibriumResult:
             ns, nc, nfd = 11, 77, 3
         return unpack_equilibrium_vector(self.x_sol, ns=ns, nc=nc, nfd=nfd)
 
+    def _legacy_proxy_flows(self) -> dict[str, Any]:
+        """Legacy flow equations at ``x_sol`` without tariffs (the historical welfare proxy)."""
+        if self.calib is None:
+            return {}
+        from puremacro.trade.postprocessing import compute_postprocessing_flows
+        return compute_postprocessing_flows(x_sol=self.x_sol, calib=self.calib)
+
     def _get_postproc(self) -> dict[str, Any]:
         if self._postproc_cache is not None:
             return self._postproc_cache
-        if self.calib is not None:
+        if self.calib is None:
+            return {}
+        meta = self.metadata if isinstance(self.metadata, dict) else {}
+        if meta.get("effective_method") != "quasi_condensed":
+            # A result built outside solve_flexible_trade_equilibrium: the
+            # historical evaluation (legacy flow equations, no tariffs).
+            self._postproc_cache = self._legacy_proxy_flows()
+            return self._postproc_cache
+        # Quasi-condensed route: the flows of the solved flexible model.
+        bilateral = meta.get("bilateral_trade")
+        uv = self._get_unpacked()
+        calib = self.calib
+        gdp_fc = uv.w.ravel() * calib.l_endow.ravel() + uv.r.ravel() * calib.k_endow.ravel()
+        gdp = gdp_fc + uv.T.ravel()
+        if meta.get("markup_profits") is not None:
+            # Markup profits are household income (household_income in metadata).
+            gdp = gdp + np.asarray(meta["markup_profits"], dtype=float).ravel()
+        flows: dict[str, Any] = {"gdp": gdp, "gdp_fc": gdp_fc, "_withheld": {}}
+        if bilateral is not None:
+            bilateral = np.asarray(bilateral, dtype=float)
+            flows["exports"] = bilateral.sum(axis=1)
+            flows["imports"] = bilateral.sum(axis=0)
+        else:
+            for name in ("exports", "imports"):
+                flows["_withheld"][name] = "metadata['bilateral_trade'] is missing from this result"
+        if meta.get("active_flexible_settings"):
+            reason = (
+                "the flexible model with settings {} has no price index of this kind; the legacy "
+                "Cobb-Douglas/Leontief index evaluated at x_sol would describe another model. Use "
+                "metadata['bilateral_trade'], ['T_inter'], ['T_fd'], ['final_demand_values'] and "
+                "['household_income'] instead".format(list(meta["active_flexible_settings"]))
+            )
+            flows["_withheld"]["cpi"] = reason
+            flows["_withheld"]["terms_of_trade"] = reason
+        else:
+            # Default configuration: the solved model is the legacy one at the
+            # recorded pricing convention, with the tariffs of the call.
             from puremacro.trade.postprocessing import compute_postprocessing_flows
-            flows = compute_postprocessing_flows(x_sol=self.x_sol, calib=self.calib)
-            self._postproc_cache = flows
-            return flows
-        return {}
+            tariffs = meta.get("tariff_inputs") or {}
+            legacy = compute_postprocessing_flows(
+                x_sol=self.x_sol, calib=calib,
+                tau=tariffs.get("tau"), tau_fd=tariffs.get("tau_fd"),
+                tauf=tariffs.get("tauf"), tauf_fd=tariffs.get("tauf_fd"),
+                replicate_matlab_precedence=bool(meta.get("replicate_matlab_precedence", False)),
+            )
+            flows["cpi"] = legacy["cpi"]
+            flows["terms_of_trade"] = legacy["terms_of_trade"]
+        self._postproc_cache = flows
+        return flows
+
+    def _flow(self, name: str) -> np.ndarray | None:
+        flows = self._get_postproc()
+        withheld = flows.get("_withheld", {})
+        if name in withheld:
+            raise NotImplementedError(f"{name} is not available for this result: {withheld[name]}.")
+        return flows.get(name)
 
     @property
     def p_sol(self) -> np.ndarray:
@@ -2944,32 +3014,32 @@ class FlexibleTradeEquilibriumResult:
     @property
     def cpi(self) -> np.ndarray | None:
         """Domestic consumer price index relative to baseline."""
-        return self._get_postproc().get("cpi")
+        return self._flow("cpi")
 
     @property
     def terms_of_trade(self) -> np.ndarray | None:
         """National terms of trade index (export price index / import price index)."""
-        return self._get_postproc().get("terms_of_trade")
+        return self._flow("terms_of_trade")
 
     @property
     def exports(self) -> np.ndarray | None:
         """National total gross exports across intermediate and final goods."""
-        return self._get_postproc().get("exports")
+        return self._flow("exports")
 
     @property
     def imports(self) -> np.ndarray | None:
         """National total gross imports across intermediate and final goods."""
-        return self._get_postproc().get("imports")
+        return self._flow("imports")
 
     @property
     def gdp(self) -> np.ndarray | None:
         """National GDP at market prices."""
-        return self._get_postproc().get("gdp")
+        return self._flow("gdp")
 
     @property
     def gdp_fc(self) -> np.ndarray | None:
         """National GDP at factor cost (labor income plus capital income)."""
-        return self._get_postproc().get("gdp_fc")
+        return self._flow("gdp_fc")
 
     def summary_markups(self, by_sector: bool = True) -> pd.DataFrame:
         """Summary statistics of calibrated and counterfactual markups.
@@ -3110,8 +3180,9 @@ class FlexibleTradeEquilibriumResult:
         tariffs; the index over sectors is log-linear (Cobb-Douglas), including
         the LES branch, whereas the solver's household block buys supernumerary
         expenditure in fixed real proportions; and the terms-of-trade split
-        uses the legacy-equation ``terms_of_trade``/``exports``/``imports``
-        properties (see the class Notes).
+        uses the terms of trade, exports and imports of the legacy flow
+        equations evaluated at ``x_sol`` without tariffs, on every route (not
+        the result's properties; see the class Notes).
 
         Parameters
         ----------
@@ -3235,14 +3306,26 @@ class FlexibleTradeEquilibriumResult:
             e_P0_u1 = sub_exp_0 + super_inc_1 * P_LES_ratio
             EV = e_P0_u1 - Y_C_0
 
-        tot_1 = np.asarray(self.terms_of_trade, dtype=float).ravel() if self.terms_of_trade is not None else np.ones(nc)
-        tot_0 = (
-            np.asarray(base_result.terms_of_trade, dtype=float).ravel()
-            if getattr(base_result, "terms_of_trade", None) is not None
-            else np.ones(nc)
+        # Historical proxy: legacy flow equations at x_sol without tariffs, for
+        # every route (see the docstring); not the result's properties.
+        proxy_1 = self._legacy_proxy_flows()
+        if isinstance(base_result, FlexibleTradeEquilibriumResult):
+            tot_0_raw = base_result._legacy_proxy_flows().get("terms_of_trade")
+        else:
+            tot_0_raw = getattr(base_result, "terms_of_trade", None)
+        tot_1 = (
+            np.asarray(proxy_1["terms_of_trade"], dtype=float).ravel()
+            if proxy_1.get("terms_of_trade") is not None else np.ones(nc)
         )
-        exp_1 = np.asarray(self.exports, dtype=float).ravel() if self.exports is not None else np.zeros(nc)
-        imp_1 = np.asarray(self.imports, dtype=float).ravel() if self.imports is not None else np.zeros(nc)
+        tot_0 = np.asarray(tot_0_raw, dtype=float).ravel() if tot_0_raw is not None else np.ones(nc)
+        exp_1 = (
+            np.asarray(proxy_1["exports"], dtype=float).ravel()
+            if proxy_1.get("exports") is not None else np.zeros(nc)
+        )
+        imp_1 = (
+            np.asarray(proxy_1["imports"], dtype=float).ravel()
+            if proxy_1.get("imports") is not None else np.zeros(nc)
+        )
         trade_vol = 0.5 * (exp_1 + imp_1)
         tot_effect = (tot_1 - tot_0) * trade_vol
 
@@ -3273,6 +3356,9 @@ class FlexibleTradeEquilibriumResult:
 
 
 FlexibleEquilibriumResult = FlexibleTradeEquilibriumResult
+
+# Flow properties of FlexibleTradeEquilibriumResult taken from the legacy solve on that route.
+_LEGACY_ROUTE_FLOWS = ("cpi", "terms_of_trade", "exports", "imports", "gdp", "gdp_fc")
 
 
 # Inner price loop controls. The per-evaluation loop honours the configured
@@ -4360,8 +4446,9 @@ def solve_flexible_trade_equilibrium(
         domestic diagonal), ``household_income``, ``inner_price_converged``,
         ``quantity_fixed_point_converged``, ``negative_final_demand_composites``
         and, with markups, ``markup_profits``. These metadata flows are the
-        flows of the solved flexible model; the ``exports``/``imports``/
-        ``terms_of_trade`` properties come from the legacy flow equations (see
+        flows of the solved flexible model, and the ``exports``/``imports``/
+        ``gdp`` properties are computed from them; ``cpi``/``terms_of_trade``
+        raise ``NotImplementedError`` for an active configuration (see
         :class:`FlexibleTradeEquilibriumResult`). The reported residual is
         evaluated at ``x_sol`` with a cold-start, fully converged inner price
         solve, so it is reproducible by calling again with ``x0=x_sol`` and
@@ -4509,6 +4596,8 @@ def solve_flexible_trade_equilibrium(
             "effective_method": "residual_evaluation",
             "replicate_matlab_precedence": prec_used,
         })
+        from puremacro.trade.postprocessing import compute_postprocessing_flows
+        flows0 = compute_postprocessing_flows(x_init, calib, **res_kwargs)
         return FlexibleTradeEquilibriumResult(
             x_sol=x_init,
             converged=False,
@@ -4519,6 +4608,7 @@ def solve_flexible_trade_equilibrium(
             markups=df_markups,
             calib=calib,
             config=config,
+            _postproc_cache={k: flows0[k] for k in _LEGACY_ROUTE_FLOWS},
         )
 
     # Dispatch to solve_trade_equilibrium with dynamic sparsity and flexible configs
@@ -4561,6 +4651,8 @@ def solve_flexible_trade_equilibrium(
         markups=df_markups,
         calib=calib,
         config=config,
+        # The flows of the legacy solve (its tariffs, closure and convention).
+        _postproc_cache={k: getattr(res_base, k) for k in _LEGACY_ROUTE_FLOWS},
     )
 
 

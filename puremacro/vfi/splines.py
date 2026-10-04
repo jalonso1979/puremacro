@@ -34,6 +34,7 @@ from scipy.optimize import brentq, minimize_scalar, root
 
 from puremacro import _backend as _bk
 from puremacro.reports import _df_to_latex, _df_to_markdown, _df_to_typst
+from puremacro.vfi.collocation import _crra_curvature, _crra_utility
 
 
 # ---------------------------------------------------------------------------
@@ -742,7 +743,7 @@ class SplineCollocationSolution:
         params = self.metadata.get("params", {})
         alpha = params.get("alpha", 0.36)
         delta = params.get("delta", 1.0)
-        sigma = params.get("sigma", 1.0)
+        sigma = _crra_curvature(params)
         z = float(params.get("z", params.get("A", 1.0)))
 
         kp = self.policy(s_arr)
@@ -761,7 +762,7 @@ class SplineCollocationSolution:
         beta = self.metadata.get("beta", 0.96)
         alpha = params.get("alpha", 0.36)
         delta = params.get("delta", 1.0)
-        sigma = params.get("sigma", 1.0)
+        sigma = _crra_curvature(params)
         z = float(params.get("z", params.get("A", 1.0)))
 
         kp = self.policy(s_arr)
@@ -1078,7 +1079,7 @@ def _evaluate_euler_residual_spline(
     # Canonical Neoclassical Growth Model
     alpha = problem.params.get("alpha", 0.36)
     delta = problem.params.get("delta", 1.0)
-    sigma = problem.params.get("sigma", 1.0)
+    sigma = _crra_curvature(problem.params)
     z = float(problem.params.get("z", problem.params.get("A", 1.0)))
 
     f_k = z * (s**alpha) + (1.0 - delta) * s
@@ -1222,6 +1223,9 @@ def _solve_spline_bellman(
     a, b = problem.domain
     alpha = problem.params.get("alpha", 0.36)
     delta = problem.params.get("delta", 1.0)
+    # CRRA curvature (``sigma``, alias ``gamma``); 4.4.0 and earlier used log
+    # utility here whatever the curvature (docs/ADVISORY.md).
+    sigma = _crra_curvature(problem.params)
     z = float(problem.params.get("z", problem.params.get("A", 1.0)))
 
     if problem.spline_type == "cubic":
@@ -1241,7 +1245,7 @@ def _solve_spline_bellman(
     v_curr = np.zeros(len(nodes))
     for i, ki in enumerate(nodes):
         c0 = max(z * (ki**alpha) - ki, 1e-4)
-        v_curr[i] = np.log(c0) / (1.0 - problem.beta)
+        v_curr[i] = _crra_utility(c0, sigma) / (1.0 - problem.beta)
 
     policy_vals = np.zeros(len(nodes))
     converged = False
@@ -1265,7 +1269,7 @@ def _solve_spline_bellman(
 
             def obj(kp):
                 c = max(f_ki - kp, 1e-12)
-                u = np.log(c)
+                u = _crra_utility(c, sigma)
                 val_next = float(np.atleast_1d(v_func(np.array([kp])))[0])
                 return -(u + problem.beta * val_next)
 

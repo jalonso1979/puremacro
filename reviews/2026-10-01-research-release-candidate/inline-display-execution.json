@@ -1,0 +1,16 @@
+{
+  "notebook": "reviews/2026-10-01-research-release-candidate/inline-display-execution.ipynb",
+  "sha256": "b6e5c0ebd50cf3f10316398cbee799cb48d0fe01b85ab943c3c16f881efb8038",
+  "fresh_execution": {
+    "executed_code_cells": 11,
+    "pngs": 3,
+    "errors": 0
+  },
+  "saved_artifact": {
+    "executed_code_cells": 11,
+    "pngs": 3,
+    "errors": 0
+  },
+  "visual_and_execution_validation_errors": [],
+  "cell_end_figures_preserved": true
+}

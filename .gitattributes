@@ -1,0 +1,8 @@
+# Check out every file byte-for-byte as stored, on every platform.
+#
+# Bundled datasets, replication inputs and Dynare references are authenticated
+# by SHA-256 (ENIGH, Romer-Romer 2010, SW07, dynare_live). Windows runners
+# default to core.autocrlf=true, which rewrote LF to CRLF on checkout and made
+# every one of those checks fail there. Some raw sources are stored with CRLF
+# on purpose, so no normalization is applied in either direction.
+* -text

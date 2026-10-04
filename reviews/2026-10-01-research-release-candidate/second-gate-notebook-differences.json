@@ -1,0 +1,50 @@
+{
+  "07_local_projections": {
+    "source_cells": 26,
+    "rendered_cells": 26,
+    "diffs": [
+      {
+        "cell": 12,
+        "type": "code",
+        "source": "cols = _nbstyle.palette(3)\nfig, ax = _nbstyle.figura()\nax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=\":\")\nax.fill_between(lin[\"h\"], lin[\"lo\"], lin[\"hi\"], color=_nbstyle.BANDA, label=\"90% HAC band\")\nax.plot(lin[\"h\"], lin[\"beta\"], color=cols[0], marker=\"o\", markersize=3,\n        label=r\"$\\beta_h$ (linear LP)\")\nax.set_xlabel(\"Horizon h (months)\")\nax.set_ylabel(\"Response of y to a unit shock\")\nax.set_title(\"Local-projection IRF (Jord\u00e0, HAC bands)\")\nax.legend(loc=\"lower right\")",
+        "rendered": "cols = _nbstyle.palette(3)\nfig, ax = _nbstyle.figura()\nax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=\":\")\nax.fill_between(lin[\"h\"], lin[\"lo\"], lin[\"hi\"], color=_nbstyle.BANDA, label=\"90% HAC band\")\nax.plot(lin[\"h\"], lin[\"beta\"], color=cols[0], marker=\"o\", markersize=3,\n        label=r\"$\\beta_h$ (linear LP)\")\nax.set_xlabel(\"Horizon h (months)\")\nax.set_ylabel(\"Response of y to a unit shock\")\nax.set_title(\"Local-projection IRF (Jord\u00e0, HAC bands)\")\nax.legend(loc=\"lower right\")\n"
+      },
+      {
+        "cell": 14,
+        "type": "code",
+        "source": "fig, ax = _nbstyle.figura()\nax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=\":\")\nax.fill_between(sd[\"h\"], sd[\"lo_H\"], sd[\"hi_H\"], color=cols[1], alpha=0.25)\nax.fill_between(sd[\"h\"], sd[\"lo_L\"], sd[\"hi_L\"], color=cols[2], alpha=0.25)\nax.plot(sd[\"h\"], sd[\"beta_H\"], color=cols[1], marker=\"o\", markersize=3,\n        label=\"Recession\")\nax.plot(sd[\"h\"], sd[\"beta_L\"], color=cols[2], marker=\"s\", markersize=3,\n        linestyle=\"--\", label=\"Expansion\")\nax.set_xlabel(\"Horizon h (months)\")\nax.set_ylabel(\"Response of y to a unit shock\")\nax.set_title(\"State-dependent IRFs: shocks bite harder in recessions\")\nax.legend(loc=\"lower right\")",
+        "rendered": "fig, ax = _nbstyle.figura()\nax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=\":\")\nax.fill_between(sd[\"h\"], sd[\"lo_H\"], sd[\"hi_H\"], color=cols[1], alpha=0.25)\nax.fill_between(sd[\"h\"], sd[\"lo_L\"], sd[\"hi_L\"], color=cols[2], alpha=0.25)\nax.plot(sd[\"h\"], sd[\"beta_H\"], color=cols[1], marker=\"o\", markersize=3,\n        label=\"Recession\")\nax.plot(sd[\"h\"], sd[\"beta_L\"], color=cols[2], marker=\"s\", markersize=3,\n        linestyle=\"--\", label=\"Expansion\")\nax.set_xlabel(\"Horizon h (months)\")\nax.set_ylabel(\"Response of y to a unit shock\")\nax.set_title(\"State-dependent IRFs: shocks bite harder in recessions\")\nax.legend(loc=\"lower right\")\n"
+      },
+      {
+        "cell": 16,
+        "type": "code",
+        "source": "fig, (axL, axR) = _nbstyle.figura(1, 2, ancho=9.5, alto=3.4)\nt_idx = np.arange(T)\nrec = df[\"recession\"].values\naxL.plot(t_idx, df[\"y\"].values, color=_nbstyle.TINTA, linewidth=0.8)\naxL.fill_between(t_idx, df[\"y\"].min(), df[\"y\"].max(), where=rec > 0,\n                 color=_nbstyle.BANDA, step=\"mid\", label=\"recession\")\naxL.set_xlabel(\"t\"); axL.set_ylabel(\"y\")\naxL.set_title(\"Outcome with recession shading\"); axL.legend(loc=\"upper right\")\naxR.bar([\"expansion\", \"recession\"], [(1 - rec).mean(), rec.mean()],\n        color=[cols[2], cols[1]])\naxR.set_ylabel(\"sample share\"); axR.set_title(\"State frequencies\")",
+        "rendered": "fig, (axL, axR) = _nbstyle.figura(1, 2, ancho=9.5, alto=3.4)\nt_idx = np.arange(T)\nrec = df[\"recession\"].values\naxL.plot(t_idx, df[\"y\"].values, color=_nbstyle.TINTA, linewidth=0.8)\naxL.fill_between(t_idx, df[\"y\"].min(), df[\"y\"].max(), where=rec > 0,\n                 color=_nbstyle.BANDA, step=\"mid\", label=\"recession\")\naxL.set_xlabel(\"t\"); axL.set_ylabel(\"y\")\naxL.set_title(\"Outcome with recession shading\"); axL.legend(loc=\"upper right\")\naxR.bar([\"expansion\", \"recession\"], [(1 - rec).mean(), rec.mean()],\n        color=[cols[2], cols[1]])\naxR.set_ylabel(\"sample share\"); axR.set_title(\"State frequencies\")\n"
+      }
+    ]
+  },
+  "07_local_projections_es": {
+    "source_cells": 26,
+    "rendered_cells": 26,
+    "diffs": [
+      {
+        "cell": 12,
+        "type": "code",
+        "source": "cols = _nbstyle.palette(3)\nfig, ax = _nbstyle.figura()\nax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=\":\")\nax.fill_between(lin[\"h\"], lin[\"lo\"], lin[\"hi\"], color=_nbstyle.BANDA, label=\"90% HAC band\")\nax.plot(lin[\"h\"], lin[\"beta\"], color=cols[0], marker=\"o\", markersize=3,\n        label=r\"$\\beta_h$ (linear LP)\")\nax.set_xlabel(\"Horizon h (months)\")\nax.set_ylabel(\"Response of y to a unit shock\")\nax.set_title(\"Local-projection IRF (Jord\u00e0, HAC bands)\")\nax.legend(loc=\"lower right\")",
+        "rendered": "cols = _nbstyle.palette(3)\nfig, ax = _nbstyle.figura()\nax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=\":\")\nax.fill_between(lin[\"h\"], lin[\"lo\"], lin[\"hi\"], color=_nbstyle.BANDA, label=\"90% HAC band\")\nax.plot(lin[\"h\"], lin[\"beta\"], color=cols[0], marker=\"o\", markersize=3,\n        label=r\"$\\beta_h$ (linear LP)\")\nax.set_xlabel(\"Horizon h (months)\")\nax.set_ylabel(\"Response of y to a unit shock\")\nax.set_title(\"Local-projection IRF (Jord\u00e0, HAC bands)\")\nax.legend(loc=\"lower right\")\n"
+      },
+      {
+        "cell": 14,
+        "type": "code",
+        "source": "fig, ax = _nbstyle.figura()\nax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=\":\")\nax.fill_between(sd[\"h\"], sd[\"lo_H\"], sd[\"hi_H\"], color=cols[1], alpha=0.25)\nax.fill_between(sd[\"h\"], sd[\"lo_L\"], sd[\"hi_L\"], color=cols[2], alpha=0.25)\nax.plot(sd[\"h\"], sd[\"beta_H\"], color=cols[1], marker=\"o\", markersize=3,\n        label=\"Recession\")\nax.plot(sd[\"h\"], sd[\"beta_L\"], color=cols[2], marker=\"s\", markersize=3,\n        linestyle=\"--\", label=\"Expansion\")\nax.set_xlabel(\"Horizon h (months)\")\nax.set_ylabel(\"Response of y to a unit shock\")\nax.set_title(\"State-dependent IRFs: shocks bite harder in recessions\")\nax.legend(loc=\"lower right\")",
+        "rendered": "fig, ax = _nbstyle.figura()\nax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=\":\")\nax.fill_between(sd[\"h\"], sd[\"lo_H\"], sd[\"hi_H\"], color=cols[1], alpha=0.25)\nax.fill_between(sd[\"h\"], sd[\"lo_L\"], sd[\"hi_L\"], color=cols[2], alpha=0.25)\nax.plot(sd[\"h\"], sd[\"beta_H\"], color=cols[1], marker=\"o\", markersize=3,\n        label=\"Recession\")\nax.plot(sd[\"h\"], sd[\"beta_L\"], color=cols[2], marker=\"s\", markersize=3,\n        linestyle=\"--\", label=\"Expansion\")\nax.set_xlabel(\"Horizon h (months)\")\nax.set_ylabel(\"Response of y to a unit shock\")\nax.set_title(\"State-dependent IRFs: shocks bite harder in recessions\")\nax.legend(loc=\"lower right\")\n"
+      },
+      {
+        "cell": 16,
+        "type": "code",
+        "source": "fig, (axL, axR) = _nbstyle.figura(1, 2, ancho=9.5, alto=3.4)\nt_idx = np.arange(T)\nrec = df[\"recession\"].values\naxL.plot(t_idx, df[\"y\"].values, color=_nbstyle.TINTA, linewidth=0.8)\naxL.fill_between(t_idx, df[\"y\"].min(), df[\"y\"].max(), where=rec > 0,\n                 color=_nbstyle.BANDA, step=\"mid\", label=\"recession\")\naxL.set_xlabel(\"t\"); axL.set_ylabel(\"y\")\naxL.set_title(\"Outcome with recession shading\"); axL.legend(loc=\"upper right\")\naxR.bar([\"expansion\", \"recession\"], [(1 - rec).mean(), rec.mean()],\n        color=[cols[2], cols[1]])\naxR.set_ylabel(\"sample share\"); axR.set_title(\"State frequencies\")",
+        "rendered": "fig, (axL, axR) = _nbstyle.figura(1, 2, ancho=9.5, alto=3.4)\nt_idx = np.arange(T)\nrec = df[\"recession\"].values\naxL.plot(t_idx, df[\"y\"].values, color=_nbstyle.TINTA, linewidth=0.8)\naxL.fill_between(t_idx, df[\"y\"].min(), df[\"y\"].max(), where=rec > 0,\n                 color=_nbstyle.BANDA, step=\"mid\", label=\"recession\")\naxL.set_xlabel(\"t\"); axL.set_ylabel(\"y\")\naxL.set_title(\"Outcome with recession shading\"); axL.legend(loc=\"upper right\")\naxR.bar([\"expansion\", \"recession\"], [(1 - rec).mean(), rec.mean()],\n        color=[cols[2], cols[1]])\naxR.set_ylabel(\"sample share\"); axR.set_title(\"State frequencies\")\n"
+      }
+    ]
+  }
+}

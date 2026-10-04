@@ -1,62 +1,7 @@
 {
-  "recorded_at_utc": "2026-10-01T22:20:24.995289+00:00",
+  "recorded_at_utc": "2026-10-01T22:36:33.614600+00:00",
   "showcase_sources": 142,
   "syntax_issues": [],
-  "style_issues": [
-    {
-      "path": "notebooks/10_staggered_did.py",
-      "line": 284,
-      "issue": "show",
-      "text": "plt.show()"
-    },
-    {
-      "path": "notebooks/10_staggered_did.py",
-      "line": 307,
-      "issue": "show",
-      "text": "plt.show()"
-    },
-    {
-      "path": "notebooks/10_staggered_did.py",
-      "line": 332,
-      "issue": "show",
-      "text": "plt.show()"
-    },
-    {
-      "path": "notebooks/10_staggered_did_es.py",
-      "line": 296,
-      "issue": "show",
-      "text": "plt.show()"
-    },
-    {
-      "path": "notebooks/10_staggered_did_es.py",
-      "line": 319,
-      "issue": "show",
-      "text": "plt.show()"
-    },
-    {
-      "path": "notebooks/10_staggered_did_es.py",
-      "line": 345,
-      "issue": "show",
-      "text": "plt.show()"
-    },
-    {
-      "path": "notebooks/45_dsge_discretion_dsge_var_and_news_shocks.py",
-      "line": 293,
-      "issue": "show",
-      "text": "plt.show()"
-    },
-    {
-      "path": "notebooks/45_dsge_discretion_dsge_var_and_news_shocks.py",
-      "line": 370,
-      "issue": "show",
-      "text": "plt.show()"
-    },
-    {
-      "path": "notebooks/45_dsge_discretion_dsge_var_and_news_shocks.py",
-      "line": 455,
-      "issue": "show",
-      "text": "plt.show()"
-    }
-  ],
+  "style_issues": [],
   "note": "Read-only inventory. Course-subdirectory files are outside this particular existing test's scope."
 }

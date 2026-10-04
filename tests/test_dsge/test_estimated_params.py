@@ -205,7 +205,7 @@ def test_sw07_pfeifer_block_round_trips():
     import puremacro.dsge as D
     from puremacro.dsge import parse_mod
 
-    text = (Path(D.__file__).parent / "_references" / "sw07_pfeifer.mod").read_text()
+    text = (Path(D.__file__).parent / "_references" / "sw07_pfeifer.mod").read_text(encoding="utf-8")
     parsed = parse_mod(text)
     ep = parsed["estimated_params"]
     assert ep is not None

@@ -18,7 +18,7 @@ from puremacro.examples.distributional_trade_enigh import run_application as run
 def structural_study(tmp_path_factory):
     output = tmp_path_factory.mktemp("nk_irf_study")
     result = run_structural(output)  # The public default: 4,000 observations.
-    manifest = json.loads((output / "manifest.json").read_text())
+    manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
     return output, result, manifest
 
 
@@ -80,7 +80,7 @@ def distributional_study(tmp_path_factory):
     options = dict(tariff_rate=.12, food_import_share=.30, pass_through=.8,
                    cash_wage_change=.01, transfer_budget_share=.004)
     results = run_distributional(output, **options)
-    manifest = json.loads((output / "manifest.json").read_text())
+    manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
     return output, results, manifest
 
 

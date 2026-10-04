@@ -25,7 +25,7 @@ from puremacro.dsge import PrunedDSGESolution, load_mod
 from puremacro.dsge.pruning import Order3PrunedSolution
 
 FIXTURES = Path(__file__).parent / "fixtures"
-RBC_TEXT = (FIXTURES / "dynare_live" / "rbc.mod").read_text()
+RBC_TEXT = (FIXTURES / "dynare_live" / "rbc.mod").read_text(encoding="utf-8")
 PARTS = ["risk", "state_curvature", "shock_curvature"]
 
 
@@ -83,7 +83,7 @@ def test_claim_to_square_mean_risky_and_decomposition(order, beta, rho, s):
 
 def test_claim_to_square_matches_dynare8_pruned_mean():
     """Dynare 8's oo_.mean for stoch_simul(order=2, pruning) on the same text."""
-    case = json.loads((FIXTURES / "dynare_order2_pruned_moments.json").read_text())["cases"]["claim_to_square"]
+    case = json.loads((FIXTURES / "dynare_order2_pruned_moments.json").read_text(encoding="utf-8"))["cases"]["claim_to_square"]
     sol = load_mod(case["model_text"], order=2)
     level = _as_series(sol.ergodic_mean()) + sol.steady_state
     dynare = pd.Series(case["mean"], index=case["variables"])
@@ -177,7 +177,7 @@ def test_rbc_decomposition_sums_to_ergodic_mean_and_matches_dynare(order):
 
     # ... and against Dynare 8's exact pruned oo_.mean.
     fixture = f"dynare_order{order}_pruned_moments.json"
-    case = json.loads((FIXTURES / fixture).read_text())["cases"]["rbc"]
+    case = json.loads((FIXTURES / fixture).read_text(encoding="utf-8"))["cases"]["rbc"]
     dynare_mean = pd.Series(case["mean"], index=case["variables"])
     level = mean + sol.steady_state
     np.testing.assert_allclose(level[dynare_mean.index], dynare_mean, rtol=1e-12, atol=1e-10)

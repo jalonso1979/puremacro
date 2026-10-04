@@ -43,13 +43,13 @@ pytestmark = pytest.mark.filterwarnings("ignore:forecast-error variance is zero"
 
 ROOT = Path(__file__).resolve().parents[1]
 LIVE = ROOT / "tests" / "fixtures" / "dynare_live"
-DYNARE = json.loads((ROOT / "tests" / "fixtures" / "dynare_order3_pruned_moments.json").read_text())
+DYNARE = json.loads((ROOT / "tests" / "fixtures" / "dynare_order3_pruned_moments.json").read_text(encoding="utf-8"))
 MODELS = sorted(DYNARE["cases"])
 
 
 def _model_text(name: str) -> str:
     case = DYNARE["cases"][name]
-    return case["model_text"] if "model_text" in case else (LIVE / f"{name}.mod").read_text()
+    return case["model_text"] if "model_text" in case else (LIVE / f"{name}.mod").read_text(encoding="utf-8")
 
 
 def _solve(name: str) -> Order3PrunedSolution:
@@ -335,7 +335,7 @@ def test_size_guard_and_stoch_simul_fallback(solutions, monkeypatch):
 
 
 def test_solve_accepts_pruning_keyword():
-    model = load_mod((LIVE / "rbc.mod").read_text(), order=1)
+    model = load_mod((LIVE / "rbc.mod").read_text(encoding="utf-8"), order=1)
     assert isinstance(model.solve(order=3, pruning=True), Order3PrunedSolution)
     assert model.solve(order=1, pruning=False) is model
     for order in (2, 3):

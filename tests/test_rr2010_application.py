@@ -21,7 +21,7 @@ def test_original_data_application_exports_complete_covariance_and_evidence(tmp_
     assert published.metrics["response_h10"]["passed"]
     assert published.metrics["trough_horizon"]["passed"]
     assert not published.metrics["t_h10"]["passed"]
-    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    manifest = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))
     assert not manifest["passed"] and manifest["evidence_kind"] == "published_empirical"
     assert manifest["comparison_status"]["rr2010_baseline_software"]
     assert manifest["nobs"] == 232 and manifest["df_resid"] == 218
@@ -38,9 +38,9 @@ def test_original_data_application_exports_complete_covariance_and_evidence(tmp_
     np.testing.assert_allclose(responses.response, result.irf)
     np.testing.assert_allclose(responses.standard_error, result.standard_errors)
     assert (tmp_path / "tax_response.png").stat().st_size > 1000
-    assert "**FAIL**" in (tmp_path / "report.md").read_text()
-    assert "unresolved" in (tmp_path / "report.md").read_text()
-    assert not json.loads((tmp_path / "benchmark_report.json").read_text())["passed"]
+    assert "**FAIL**" in (tmp_path / "report.md").read_text(encoding="utf-8")
+    assert "unresolved" in (tmp_path / "report.md").read_text(encoding="utf-8")
+    assert not json.loads((tmp_path / "benchmark_report.json").read_text(encoding="utf-8"))["passed"]
 
 
 def test_application_keeps_failed_comparison_visible(tmp_path, monkeypatch):
@@ -51,8 +51,8 @@ def test_application_keeps_failed_comparison_visible(tmp_path, monkeypatch):
     monkeypatch.setattr(application, "run_research_benchmarks", lambda cases: failed)
     _, report = application.run_application(tmp_path)
     assert not report.passed
-    assert json.loads((tmp_path / "manifest.json").read_text())["passed"] is False
-    assert "**FAIL**" in (tmp_path / "report.md").read_text()
+    assert json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"))["passed"] is False
+    assert "**FAIL**" in (tmp_path / "report.md").read_text(encoding="utf-8")
 
 
 def test_publication_rounding_is_not_used_for_software_parity():

@@ -157,7 +157,7 @@ def test_inference_opt_in_cannot_override_boundary():
 def test_application_artifacts_are_strict_json_and_replayable(tmp_path):
     from puremacro.examples.empirical_sw07_matching import run_application
     study = run_application(tmp_path, profile_points=5)
-    manifest = json.loads((tmp_path / "manifest.json").read_text(),
+    manifest = json.loads((tmp_path / "manifest.json").read_text(encoding="utf-8"),
                           parse_constant=lambda value: pytest.fail(f"non-JSON number {value}"))
     assert manifest["conditional_null_j_pvalue"] is None
     assert manifest["conditional_null_j_statistic"] is None
@@ -175,7 +175,7 @@ def test_application_artifacts_are_strict_json_and_replayable(tmp_path):
                                comparison.residual / comparison.target_se)
     assert (tmp_path / "calibration_sensitivity.csv").is_file()
     assert (tmp_path / "profiles.png").stat().st_size > 1000
-    report = (tmp_path / "report.md").read_text()
+    report = (tmp_path / "report.md").read_text(encoding="utf-8")
     assert "nonregular_fit" in report and "not a reproduction" in report
 
 

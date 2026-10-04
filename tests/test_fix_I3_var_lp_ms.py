@@ -347,9 +347,9 @@ def test_ms_var_example_is_not_called_hamilton_style():
 
     assert "Hamilton (1989)-style" not in ex.__doc__
     assert "al estilo Hamilton" not in ex.__doc__
-    src = Path(ex.__file__).read_text()
+    src = Path(ex.__file__).read_text(encoding="utf-8")
     assert "Hamilton-style MS-VAR" not in src
-    cat = (Path(ex.__file__).parent / "EXAMPLES_CATALOG.md").read_text()
+    cat = (Path(ex.__file__).parent / "EXAMPLES_CATALOG.md").read_text(encoding="utf-8")
     assert "Hamilton (1989)-style" not in cat
     assert "Lag-augmented LP (Plagborg-Møller-Wolf 2021)" not in cat
 
@@ -396,6 +396,6 @@ def test_spec_curve_tool_credits_mopm():
     from pathlib import Path
 
     src = (Path(__file__).resolve().parents[1]
-           / "tools/run_uncertainty_ident_spec_curve.py").read_text()
+           / "tools/run_uncertainty_ident_spec_curve.py").read_text(encoding="utf-8")
     assert "Plagborg-Moller-Wolf (2021) lag-augmented LP" not in src
     assert "Montiel Olea & Plagborg-Moller (2021) lag-augmented LP" in src

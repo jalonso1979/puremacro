@@ -2,267 +2,37 @@
 [jupytext] Setting kernel python3
 [jupytext] Updating notebook metadata with '{"kernelspec": {"name": "python3", "language": "python", "display_name": "Python 3 (ipykernel)"}}'
 [jupytext] Executing notebook with kernel python3
-Traceback (most recent call last):
-  File "<frozen runpy>", line 203, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupytext/__main__.py", line 13, in <module>
-    sys.exit(jupytext())
-             ~~~~~~~~^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupytext/cli.py", line 500, in jupytext
-    exit_code += jupytext_single_file(nb_file, args, log, notary=notary)
-                 ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupytext/cli.py", line 748, in jupytext_single_file
-    exec_proc.preprocess(notebook, resources=resources)
-    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/nbconvert/preprocessors/execute.py", line 97, in preprocess
-    with self.setup_kernel():
-         ~~~~~~~~~~~~~~~~~^^
-  File "/Users/jalonso/.local/share/uv/python/cpython-3.14.6-macos-aarch64-none/lib/python3.14/contextlib.py", line 141, in __enter__
-    return next(self.gen)
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/nbclient/client.py", line 600, in setup_kernel
-    self.start_new_kernel(**kwargs)
-    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_core/utils/__init__.py", line 165, in wrapped
-    return loop.run_until_complete(inner)
-           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
-  File "/Users/jalonso/.local/share/uv/python/cpython-3.14.6-macos-aarch64-none/lib/python3.14/asyncio/base_events.py", line 719, in run_until_complete
-    return future.result()
-           ~~~~~~~~~~~~~^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/nbclient/client.py", line 550, in async_start_new_kernel
-    await ensure_async(self.km.start_kernel(extra_arguments=self.extra_arguments, **kwargs))
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_core/utils/__init__.py", line 214, in ensure_async
-    result = await obj
-             ^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/manager.py", line 116, in wrapper
-    raise e
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/manager.py", line 107, in wrapper
-    out = await method(self, *args, **kwargs)
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/manager.py", line 528, in _async_start_kernel
-    kernel_cmd, kw = await self._async_pre_start_kernel(**kw)
-                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/manager.py", line 493, in _async_pre_start_kernel
-    kw = await self.provisioner.pre_launch(**kw)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/provisioning/local_provisioner.py", line 216, in pre_launch
-    km.shell_port = lpc.find_available_port(km.ip)
-                    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/connect.py", line 755, in find_available_port
-    tmp_sock.bind((ip, 0))
-    ~~~~~~~~~~~~~^^^^^^^^^
-PermissionError: [Errno 1] Operation not permitted
+[IPKernelApp] WARNING | Kernel is running over TCP without encryption. All communication (including code and outputs) is sent in plain text and is susceptible to eavesdropping. Use IPC transport or launch with kernel manager-provisioned CurveZMQ keys to enable transport encryption.
+[jupytext] Warning: Notebook is not trusted
+[jupytext] Writing 00_whats_new_in_puremacro_3_0_es.ipynb (destination file replaced [use --update to preserve cell outputs and ids])
 [jupytext] Reading 10_staggered_did.py in format py
 [jupytext] Setting kernel python3
 [jupytext] Updating notebook metadata with '{"kernelspec": {"name": "python3", "language": "python", "display_name": "Python 3 (ipykernel)"}}'
 [jupytext] Executing notebook with kernel python3
-Traceback (most recent call last):
-  File "<frozen runpy>", line 203, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupytext/__main__.py", line 13, in <module>
-    sys.exit(jupytext())
-             ~~~~~~~~^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupytext/cli.py", line 500, in jupytext
-    exit_code += jupytext_single_file(nb_file, args, log, notary=notary)
-                 ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupytext/cli.py", line 748, in jupytext_single_file
-    exec_proc.preprocess(notebook, resources=resources)
-    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/nbconvert/preprocessors/execute.py", line 97, in preprocess
-    with self.setup_kernel():
-         ~~~~~~~~~~~~~~~~~^^
-  File "/Users/jalonso/.local/share/uv/python/cpython-3.14.6-macos-aarch64-none/lib/python3.14/contextlib.py", line 141, in __enter__
-    return next(self.gen)
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/nbclient/client.py", line 600, in setup_kernel
-    self.start_new_kernel(**kwargs)
-    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_core/utils/__init__.py", line 165, in wrapped
-    return loop.run_until_complete(inner)
-           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
-  File "/Users/jalonso/.local/share/uv/python/cpython-3.14.6-macos-aarch64-none/lib/python3.14/asyncio/base_events.py", line 719, in run_until_complete
-    return future.result()
-           ~~~~~~~~~~~~~^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/nbclient/client.py", line 550, in async_start_new_kernel
-    await ensure_async(self.km.start_kernel(extra_arguments=self.extra_arguments, **kwargs))
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_core/utils/__init__.py", line 214, in ensure_async
-    result = await obj
-             ^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/manager.py", line 116, in wrapper
-    raise e
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/manager.py", line 107, in wrapper
-    out = await method(self, *args, **kwargs)
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/manager.py", line 528, in _async_start_kernel
-    kernel_cmd, kw = await self._async_pre_start_kernel(**kw)
-                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/manager.py", line 493, in _async_pre_start_kernel
-    kw = await self.provisioner.pre_launch(**kw)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/provisioning/local_provisioner.py", line 216, in pre_launch
-    km.shell_port = lpc.find_available_port(km.ip)
-                    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/connect.py", line 755, in find_available_port
-    tmp_sock.bind((ip, 0))
-    ~~~~~~~~~~~~~^^^^^^^^^
-PermissionError: [Errno 1] Operation not permitted
+[IPKernelApp] WARNING | Kernel is running over TCP without encryption. All communication (including code and outputs) is sent in plain text and is susceptible to eavesdropping. Use IPC transport or launch with kernel manager-provisioned CurveZMQ keys to enable transport encryption.
+[jupytext] Warning: Notebook is not trusted
+[jupytext] Writing 10_staggered_did.ipynb (destination file replaced [use --update to preserve cell outputs and ids])
 [jupytext] Reading 10_staggered_did_es.py in format py
 [jupytext] Setting kernel python3
 [jupytext] Updating notebook metadata with '{"kernelspec": {"name": "python3", "language": "python", "display_name": "Python 3 (ipykernel)"}}'
 [jupytext] Executing notebook with kernel python3
-Traceback (most recent call last):
-  File "<frozen runpy>", line 203, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupytext/__main__.py", line 13, in <module>
-    sys.exit(jupytext())
-             ~~~~~~~~^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupytext/cli.py", line 500, in jupytext
-    exit_code += jupytext_single_file(nb_file, args, log, notary=notary)
-                 ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupytext/cli.py", line 748, in jupytext_single_file
-    exec_proc.preprocess(notebook, resources=resources)
-    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/nbconvert/preprocessors/execute.py", line 97, in preprocess
-    with self.setup_kernel():
-         ~~~~~~~~~~~~~~~~~^^
-  File "/Users/jalonso/.local/share/uv/python/cpython-3.14.6-macos-aarch64-none/lib/python3.14/contextlib.py", line 141, in __enter__
-    return next(self.gen)
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/nbclient/client.py", line 600, in setup_kernel
-    self.start_new_kernel(**kwargs)
-    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_core/utils/__init__.py", line 165, in wrapped
-    return loop.run_until_complete(inner)
-           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
-  File "/Users/jalonso/.local/share/uv/python/cpython-3.14.6-macos-aarch64-none/lib/python3.14/asyncio/base_events.py", line 719, in run_until_complete
-    return future.result()
-           ~~~~~~~~~~~~~^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/nbclient/client.py", line 550, in async_start_new_kernel
-    await ensure_async(self.km.start_kernel(extra_arguments=self.extra_arguments, **kwargs))
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_core/utils/__init__.py", line 214, in ensure_async
-    result = await obj
-             ^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/manager.py", line 116, in wrapper
-    raise e
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/manager.py", line 107, in wrapper
-    out = await method(self, *args, **kwargs)
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/manager.py", line 528, in _async_start_kernel
-    kernel_cmd, kw = await self._async_pre_start_kernel(**kw)
-                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/manager.py", line 493, in _async_pre_start_kernel
-    kw = await self.provisioner.pre_launch(**kw)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/provisioning/local_provisioner.py", line 216, in pre_launch
-    km.shell_port = lpc.find_available_port(km.ip)
-                    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/connect.py", line 755, in find_available_port
-    tmp_sock.bind((ip, 0))
-    ~~~~~~~~~~~~~^^^^^^^^^
-PermissionError: [Errno 1] Operation not permitted
+[IPKernelApp] WARNING | Kernel is running over TCP without encryption. All communication (including code and outputs) is sent in plain text and is susceptible to eavesdropping. Use IPC transport or launch with kernel manager-provisioned CurveZMQ keys to enable transport encryption.
+[jupytext] Warning: Notebook is not trusted
+[jupytext] Writing 10_staggered_did_es.ipynb (destination file replaced [use --update to preserve cell outputs and ids])
 [jupytext] Reading 45_dsge_discretion_dsge_var_and_news_shocks.py in format py
 [jupytext] Setting kernel python3
 [jupytext] Updating notebook metadata with '{"kernelspec": {"name": "python3", "language": "python", "display_name": "Python 3 (ipykernel)"}}'
 [jupytext] Executing notebook with kernel python3
-Traceback (most recent call last):
-  File "<frozen runpy>", line 203, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupytext/__main__.py", line 13, in <module>
-    sys.exit(jupytext())
-             ~~~~~~~~^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupytext/cli.py", line 500, in jupytext
-    exit_code += jupytext_single_file(nb_file, args, log, notary=notary)
-                 ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupytext/cli.py", line 748, in jupytext_single_file
-    exec_proc.preprocess(notebook, resources=resources)
-    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/nbconvert/preprocessors/execute.py", line 97, in preprocess
-    with self.setup_kernel():
-         ~~~~~~~~~~~~~~~~~^^
-  File "/Users/jalonso/.local/share/uv/python/cpython-3.14.6-macos-aarch64-none/lib/python3.14/contextlib.py", line 141, in __enter__
-    return next(self.gen)
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/nbclient/client.py", line 600, in setup_kernel
-    self.start_new_kernel(**kwargs)
-    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_core/utils/__init__.py", line 165, in wrapped
-    return loop.run_until_complete(inner)
-           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
-  File "/Users/jalonso/.local/share/uv/python/cpython-3.14.6-macos-aarch64-none/lib/python3.14/asyncio/base_events.py", line 719, in run_until_complete
-    return future.result()
-           ~~~~~~~~~~~~~^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/nbclient/client.py", line 550, in async_start_new_kernel
-    await ensure_async(self.km.start_kernel(extra_arguments=self.extra_arguments, **kwargs))
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_core/utils/__init__.py", line 214, in ensure_async
-    result = await obj
-             ^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/manager.py", line 116, in wrapper
-    raise e
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/manager.py", line 107, in wrapper
-    out = await method(self, *args, **kwargs)
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/manager.py", line 528, in _async_start_kernel
-    kernel_cmd, kw = await self._async_pre_start_kernel(**kw)
-                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/manager.py", line 493, in _async_pre_start_kernel
-    kw = await self.provisioner.pre_launch(**kw)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/provisioning/local_provisioner.py", line 216, in pre_launch
-    km.shell_port = lpc.find_available_port(km.ip)
-                    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/connect.py", line 755, in find_available_port
-    tmp_sock.bind((ip, 0))
-    ~~~~~~~~~~~~~^^^^^^^^^
-PermissionError: [Errno 1] Operation not permitted
+[IPKernelApp] WARNING | Kernel is running over TCP without encryption. All communication (including code and outputs) is sent in plain text and is susceptible to eavesdropping. Use IPC transport or launch with kernel manager-provisioned CurveZMQ keys to enable transport encryption.
+[jupytext] Warning: Notebook is not trusted
+[jupytext] Writing 45_dsge_discretion_dsge_var_and_news_shocks.ipynb (destination file replaced [use --update to preserve cell outputs and ids])
 [jupytext] Reading 45_dsge_discretion_dsge_var_and_news_shocks_es.py in format py
 [jupytext] Setting kernel python3
 [jupytext] Updating notebook metadata with '{"kernelspec": {"name": "python3", "language": "python", "display_name": "Python 3 (ipykernel)"}}'
 [jupytext] Executing notebook with kernel python3
-Traceback (most recent call last):
-  File "<frozen runpy>", line 203, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupytext/__main__.py", line 13, in <module>
-    sys.exit(jupytext())
-             ~~~~~~~~^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupytext/cli.py", line 500, in jupytext
-    exit_code += jupytext_single_file(nb_file, args, log, notary=notary)
-                 ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupytext/cli.py", line 748, in jupytext_single_file
-    exec_proc.preprocess(notebook, resources=resources)
-    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/nbconvert/preprocessors/execute.py", line 97, in preprocess
-    with self.setup_kernel():
-         ~~~~~~~~~~~~~~~~~^^
-  File "/Users/jalonso/.local/share/uv/python/cpython-3.14.6-macos-aarch64-none/lib/python3.14/contextlib.py", line 141, in __enter__
-    return next(self.gen)
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/nbclient/client.py", line 600, in setup_kernel
-    self.start_new_kernel(**kwargs)
-    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_core/utils/__init__.py", line 165, in wrapped
-    return loop.run_until_complete(inner)
-           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
-  File "/Users/jalonso/.local/share/uv/python/cpython-3.14.6-macos-aarch64-none/lib/python3.14/asyncio/base_events.py", line 719, in run_until_complete
-    return future.result()
-           ~~~~~~~~~~~~~^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/nbclient/client.py", line 550, in async_start_new_kernel
-    await ensure_async(self.km.start_kernel(extra_arguments=self.extra_arguments, **kwargs))
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_core/utils/__init__.py", line 214, in ensure_async
-    result = await obj
-             ^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/manager.py", line 116, in wrapper
-    raise e
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/manager.py", line 107, in wrapper
-    out = await method(self, *args, **kwargs)
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/manager.py", line 528, in _async_start_kernel
-    kernel_cmd, kw = await self._async_pre_start_kernel(**kw)
-                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/manager.py", line 493, in _async_pre_start_kernel
-    kw = await self.provisioner.pre_launch(**kw)
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/provisioning/local_provisioner.py", line 216, in pre_launch
-    km.shell_port = lpc.find_available_port(km.ip)
-                    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
-  File "/Users/jalonso/Documents/RESEARCH/puremacro/.venv/lib/python3.14/site-packages/jupyter_client/connect.py", line 755, in find_available_port
-    tmp_sock.bind((ip, 0))
-    ~~~~~~~~~~~~~^^^^^^^^^
-PermissionError: [Errno 1] Operation not permitted
+[IPKernelApp] WARNING | Kernel is running over TCP without encryption. All communication (including code and outputs) is sent in plain text and is susceptible to eavesdropping. Use IPC transport or launch with kernel manager-provisioned CurveZMQ keys to enable transport encryption.
+[jupytext] Warning: Notebook is not trusted
+[jupytext] Writing 45_dsge_discretion_dsge_var_and_news_shocks_es.ipynb (destination file replaced [use --update to preserve cell outputs and ids])
 › /Users/jalonso/Documents/RESEARCH/puremacro/.venv/bin/python -m jupytext --to ipynb --execute --set-kernel python3 --run-path /Users/jalonso/Documents/RESEARCH/puremacro/notebooks 00_whats_new_in_puremacro_3_0_es.py
 › /Users/jalonso/Documents/RESEARCH/puremacro/.venv/bin/python -m jupytext --to ipynb --execute --set-kernel python3 --run-path /Users/jalonso/Documents/RESEARCH/puremacro/notebooks 10_staggered_did.py
 › /Users/jalonso/Documents/RESEARCH/puremacro/.venv/bin/python -m jupytext --to ipynb --execute --set-kernel python3 --run-path /Users/jalonso/Documents/RESEARCH/puremacro/notebooks 10_staggered_did_es.py

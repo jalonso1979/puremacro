@@ -1,0 +1,17 @@
+{
+  "test_files": [
+    "tests/test_res_pmw_hac_attribution.py",
+    "tests/test_m3_challenger_verification.py",
+    "tests/test_notebooks/test_e2e_doc_elevation.py",
+    "tests/test_v260_showcase_replication_e2e.py"
+  ],
+  "passed": 464,
+  "known_failures": [
+    "tests/test_v260_showcase_replication_e2e.py::TestTier2BoundaryAndCornerCases::test_t2_f4_harmonic_mean_collinear_parameter_draws_raises"
+  ],
+  "unexpected_failures": [],
+  "test_duration_seconds": 8.14,
+  "log_sha256": "55238af9dfa26eba7e267bba34e0fe015b1f132e15572317886820ff92274a13",
+  "pytest_exit_code": 1,
+  "explanation": "Only the unchanged harmonic-mean collinear-draw case fails; both exact notebook/source parity failures now pass."
+}

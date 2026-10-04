@@ -1,0 +1,44 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+__ test_committed_notebook_matches_its_source[notebooks/07_local_projections] __
+
+stem = 'notebooks/07_local_projections'
+
+    @pytest.mark.parametrize("stem", NOTEBOOK_STEMS)
+    def test_committed_notebook_matches_its_source(stem):
+        """The .ipynb was rebuilt from the corrected .py (cell sources identical)."""
+        jupytext = pytest.importorskip("jupytext")
+        src = jupytext.read(ROOT / f"{stem}.py")
+        nb = json.loads((ROOT / f"{stem}.ipynb").read_text(encoding="utf-8"))
+>       assert [(c.cell_type, c.source) for c in src.cells] == [
+            (c["cell_type"], "".join(c["source"])) for c in nb["cells"]]
+E       assert [('markdown',...bands.'), ...] == [('markdown',...bands.'), ...]
+E         
+E         At index 12 diff: ('code', 'cols = _nbstyle.palette(3)\nfig, ax = _nbstyle.figura()\nax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")\nax.fill_between(lin["h"], lin["lo"], lin["hi"], color=_nbstyle.BANDA, label="90% HAC band")\nax.plot(lin["h"], lin["beta"], color=cols[0], marker="o", markersize=3,\n        label=r"$\\beta_h$ (linear LP)")\nax.set_xlabel("Horizon h (months)")\nax.set_ylabel("Response of y to a unit shock")\nax.set_title("Local-projection IRF (Jordà, HAC bands)")\nax.legend(loc="lower right")') != ('code', 'cols = _nbstyle.palette(3)\n...
+E         
+E         ...Full output truncated (2 lines hidden), use '-vv' to show
+
+tests/test_res_pmw_hac_attribution.py:146: AssertionError
+_ test_committed_notebook_matches_its_source[notebooks/07_local_projections_es] _
+
+stem = 'notebooks/07_local_projections_es'
+
+    @pytest.mark.parametrize("stem", NOTEBOOK_STEMS)
+    def test_committed_notebook_matches_its_source(stem):
+        """The .ipynb was rebuilt from the corrected .py (cell sources identical)."""
+        jupytext = pytest.importorskip("jupytext")
+        src = jupytext.read(ROOT / f"{stem}.py")
+        nb = json.loads((ROOT / f"{stem}.ipynb").read_text(encoding="utf-8"))
+>       assert [(c.cell_type, c.source) for c in src.cells] == [
+            (c["cell_type"], "".join(c["source"])) for c in nb["cells"]]
+E       assert [('markdown',...l 90%.'), ...] == [('markdown',...l 90%.'), ...]
+E         
+E         At index 12 diff: ('code', 'cols = _nbstyle.palette(3)\nfig, ax = _nbstyle.figura()\nax.axhline(0.0, color=_nbstyle.SPINE, linewidth=0.8, linestyle=":")\nax.fill_between(lin["h"], lin["lo"], lin["hi"], color=_nbstyle.BANDA, label="90% HAC band")\nax.plot(lin["h"], lin["beta"], color=cols[0], marker="o", markersize=3,\n        label=r"$\\beta_h$ (linear LP)")\nax.set_xlabel("Horizon h (months)")\nax.set_ylabel("Response of y to a unit shock")\nax.set_title("Local-projection IRF (Jordà, HAC bands)")\nax.legend(loc="lower right")') != ('code', 'cols = _nbstyle.palette(3)\n...
+E         
+E         ...Full output truncated (2 lines hidden), use '-vv' to show
+
+tests/test_res_pmw_hac_attribution.py:146: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_res_pmw_hac_attribution.py::test_committed_notebook_matches_its_source[notebooks/07_local_projections]
+FAILED tests/test_res_pmw_hac_attribution.py::test_committed_notebook_matches_its_source[notebooks/07_local_projections_es]
+2 failed in 0.35s

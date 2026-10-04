@@ -27,6 +27,7 @@ from scipy.optimize import root
 
 from puremacro import _backend as _bk
 from puremacro.reports import _df_to_latex, _df_to_markdown, _df_to_typst
+from puremacro.vfi.collocation import _crra_curvature
 
 
 # ---------------------------------------------------------------------------
@@ -664,7 +665,7 @@ class SmolyakSolution:
         params = self.metadata.get("params", {})
         beta = float(self.metadata.get("beta", 0.96))
         delta = float(params.get("delta", 1.0))
-        sigma = float(params.get("sigma", 1.0))
+        sigma = _crra_curvature(params)
         z = float(params.get("z", params.get("A", 1.0)))
 
         if "alphas" in params:
@@ -963,7 +964,7 @@ def _solve_smolyak_euler(
     params = problem.params
     beta = problem.beta
     delta = float(params.get("delta", 1.0))
-    sigma = float(params.get("sigma", 1.0))
+    sigma = _crra_curvature(params)
     z = float(params.get("z", params.get("A", 1.0)))
 
     if "alphas" in params:
@@ -1094,7 +1095,10 @@ def _solve_smolyak_euler(
 
     if not converged:
         # Solve using Powell's hybrid method (hybr) with fallback to LM
-        res_root = root(residual_obj, th_opt.ravel(), method="hybr", tol=tol, options={"maxfev": max_iter * 3})
+        # hybr stops on a relative step size, not on the residual; at tol the
+        # residual lands within a factor of a few of tol and on OpenBLAS above it.
+        res_root = root(residual_obj, th_opt.ravel(), method="hybr", tol=tol * 1e-3,
+                        options={"maxfev": max_iter * 3})
         cand_th = res_root.x.reshape(N, d)
         cand_norm = float(np.max(np.abs(residual_obj(res_root.x))))
         n_iter = int(getattr(res_root, "nfev", 0))
@@ -1105,7 +1109,7 @@ def _solve_smolyak_euler(
             converged = bool(np.isfinite(residual_norm) and residual_norm <= tol)
 
         if not converged and not res_root.success:
-            res_lm = root(residual_obj, th.ravel(), method="lm", tol=tol)
+            res_lm = root(residual_obj, th_opt.ravel(), method="lm", tol=tol * 1e-3)
             n_iter += int(getattr(res_lm, "nfev", 0))
             cand_lm_norm = float(np.max(np.abs(residual_obj(res_lm.x))))
             if cand_lm_norm < residual_norm:
@@ -1176,8 +1180,18 @@ def _solve_smolyak_bellman(
     params = problem.params
     beta = problem.beta
     delta = float(params.get("delta", 1.0))
-    sigma = float(params.get("sigma", 1.0))
+    sigma = _crra_curvature(params)
     z = float(params.get("z", params.get("A", 1.0)))
+    if sigma != 1.0 or delta != 1.0 or problem.return_fn is not None:
+        # The iteration below evaluates the closed-form policy
+        # k'_m = alpha_m beta Y of log utility with full depreciation; it does
+        # not maximise. 4.4.0 and earlier returned that policy (converged=True)
+        # for any curvature or depreciation (docs/ADVISORY.md).
+        raise NotImplementedError(
+            "solve_smolyak(method='bellman') implements only the built-in model with log utility "
+            f"and full depreciation (got sigma={sigma!r}, delta={delta!r}"
+            f"{', a return_fn' if problem.return_fn is not None else ''}); use method='euler'."
+        )
 
     if "alphas" in params:
         alphas = np.asarray(params["alphas"], dtype=np.float64)

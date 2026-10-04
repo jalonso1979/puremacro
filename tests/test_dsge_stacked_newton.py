@@ -803,7 +803,9 @@ def test_rounding_level_pivot_is_rejected_and_falls_back(seed):
     A, B, C, T, eq, jvp, ystar, exo = _rank_deficient_linear_problem(seed)
     assert np.linalg.matrix_rank(B) == B.shape[0] - 1
     pivots = np.abs(np.diag(scipy.linalg.lu_factor(B)[0]))
-    assert 0.0 < pivots.min() < 1e-14           # rounding level, not an exact zero
+    # Rounding level on Accelerate/MKL; OpenBLAS returns an exact zero for seed 0.
+    # Either way block-Thomas must reject it, which is what the rest checks.
+    assert pivots.min() < 1e-14
     for H in (None, 4):
         with pytest.raises(ValueError, match="pivot D_1 is singular"):
             BlockTridiagonalPreconditioner(A, B, C, T, method="thomas", time_block=H)

@@ -1338,11 +1338,11 @@ def _io_reference(tmp_path: Path, spec: dict) -> dict:
         pytest.skip("IO research volume not mounted")
     spec_path = tmp_path / "spec.json"
     ref_path = tmp_path / "ref.json"
-    spec_path.write_text(json.dumps({k: (v.tolist() if isinstance(v, np.ndarray) else v) for k, v in spec.items()}))
+    spec_path.write_text(json.dumps({k: (v.tolist() if isinstance(v, np.ndarray) else v) for k, v in spec.items()}), encoding="utf-8")
     proc = subprocess.run([sys.executable, "-c", _IO_REFERENCE, str(VENDOR), str(spec_path), str(ref_path)],
                           capture_output=True, text=True, timeout=600)
     assert proc.returncode == 0 and "REFERENCE_OK" in proc.stdout, proc.stderr[-3000:]
-    return json.loads(ref_path.read_text())
+    return json.loads(ref_path.read_text(encoding="utf-8"))
 
 
 _HEADLINE_KEYS = {"pc_over_w_pct": "PC_over_w_pct", "ev_pct_base_gdp": "EV_pct_base_gdp",

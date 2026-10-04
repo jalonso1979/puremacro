@@ -26,5 +26,7 @@
   ],
   "wheel_contains_no_png_bytecode_shared_libraries_or_mat_files": true,
   "sdist_contains_all_package_python_modules_and_required_resources": true,
-  "sdist_authenticated_shipped_source_and_resource_files": 878
+  "sdist_authenticated_shipped_source_and_resource_files": 878,
+  "sdist_package_files_identical_to_wheel": true,
+  "sdist_contains_no_notebooks_docs_curso_or_png_files": true
 }

@@ -57,6 +57,7 @@ from puremacro.trade.regularize import (
     spectral_radius,
     validate_accounting_identities,
 )
+from _timing import budget
 
 
 # ===========================================================================
@@ -431,7 +432,7 @@ class TestCollatzWielandtSpectralRadius:
         rho, lower, upper = compute_spectral_radius(B, max_iter=50)
         elapsed = time.time() - t0
 
-        assert elapsed < 0.15, f"Spectral radius check took too long: {elapsed:.4f}s"
+        assert elapsed < budget(0.15), f"Spectral radius check took too long: {elapsed:.4f}s"
         assert rho < 0.999
         assert lower <= rho <= upper + 1e-6
 

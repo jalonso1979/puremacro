@@ -68,11 +68,11 @@ def save_fixture(raw, full_result, readme=None):
                 "retrieval_note": "Official ZIP downloaded in Safari; automatically extracted. CSV SHA256 identifies input bytes."}
     if readme:
         manifest["readme_sha256"] = sha256(readme)
-    (FIXTURES / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    (FIXTURES / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 
 
 def load_fixture():
-    manifest = json.loads((FIXTURES / "manifest.json").read_text())
+    manifest = json.loads((FIXTURES / "manifest.json").read_text(encoding="utf-8"))
     path = FIXTURES / "2019_3regions_3sectors.npz"
     if sha256(path) != manifest["fixture_sha256"]:
         raise ValueError("OECD fixture checksum mismatch")
@@ -180,7 +180,7 @@ def main():
     report["native_archive_reloaded_this_run"] = args.source is not None
     content = json.dumps(report, indent=2) + "\n"
     if args.output:
-        args.output.write_text(content)
+        args.output.write_text(content, encoding="utf-8")
     print(content)
     return 0 if report["passed"] else 1
 

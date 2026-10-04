@@ -1,6 +1,8 @@
 """Independent GLS/analytic oracles and failure contracts for structural fitting."""
 from dataclasses import FrozenInstanceError
 
+import warnings
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -386,3 +388,28 @@ def test_result_reporting_and_readonly_arrays():
         result.moment_fit(held_out=True)
     with pytest.raises(ValueError, match="ci"):
         result.summary(ci=1.)
+
+
+def test_boundary_estimate_never_leaves_the_bounds():
+    """theta = theta0 + scale * z can round an ulp past a bound the optimizer sits on.
+
+    The SW07 study then failed on Linux CI when it warm-started a second fit
+    from such an estimate ("theta0 lies outside bounds"). The estimate must
+    satisfy the bounds it was fitted under, exactly, and be reusable as a start.
+    """
+    targets = MomentTargets([2., 4.], np.eye(2), ("a", "b"))
+    outside = 0
+    for lower, upper, start, slope in [(lo, hi, s, k)
+                                       for lo, hi in ((.2, .98), (.01, 1.), (.1, .7), (1e-3, .3))
+                                       for s in np.linspace(.15, .95, 9)
+                                       for k in (.3, 7., 50.)]:
+        start = float(np.clip(start, lower, upper))
+        model = lambda t, k=slope: t[0] * k * np.array([1., 2.])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            fit = fit_structural(model, targets, [start], bounds=[(lower, upper)])
+        outside += int(not lower <= fit.theta[0] <= upper)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            fit_structural(model, targets, fit.theta, bounds=[(lower, upper)])
+    assert outside == 0

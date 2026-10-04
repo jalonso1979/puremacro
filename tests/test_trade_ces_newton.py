@@ -765,11 +765,18 @@ def test_line_search_failures_name_their_cause(rand20, hand_active):
     # income, so rounding in the implied rows exceeds tol * max(scale) at the default tol.
     calib = hand_active["calib"]
     nc, ns, nfd = calib.nc, calib.ns, calib.n_final_demand
+    # Whether that rounding crosses tol depends on the BLAS build (one case solved cleanly
+    # on Windows CI), so the invariant is: refuse by name, or meet the acceptance contract,
+    # whose independent flow certificate is bounded by certificate_tol (default 1e-8), not tol.
     for multiplier, tol in ((1e8, 2e-11), (1e8, 1e-9)):
         ta = np.ones((nc * ns, ns, nc)); tf = np.ones((nc * ns, nfd, nc))
         ta[ns:2 * ns, :, 0] = multiplier; tf[ns:2 * ns, :, 0] = multiplier
-        with pytest.raises(CESNewtonError, match="level audit"):
-            solve_ces_block_newton(calib, ta, tf, technology=NestedCESTechnology(0, 4, 4, 1), tol=tol, max_iter=40)
+        try:
+            res = solve_ces_block_newton(calib, ta, tf, technology=NestedCESTechnology(0, 4, 4, 1), tol=tol, max_iter=40)
+        except CESNewtonError as error:
+            assert "level audit" in str(error)
+        else:
+            assert max(res.certificate.values()) <= 1e-8
     ta = np.ones((nc * ns, ns, nc)); tf = np.ones((nc * ns, nfd, nc))
     ta[ns:2 * ns, :, 0] = 1e6; tf[ns:2 * ns, :, 0] = 1e6
     res = solve_ces_block_newton(calib, ta, tf, technology=NestedCESTechnology(0, 4, 4, 1), tol=1e-9, max_iter=40)
@@ -911,7 +918,7 @@ def test_scale_77x11_random_table():
 
 def test_golden_oecd3x3(oecd3):
     calib = oecd3["calib"]; rates, _ = oecd3["tariffs"]
-    golden = json.loads(GOLDEN.read_text())
+    golden = json.loads(GOLDEN.read_text(encoding="utf-8"))
     tech = NestedCESTechnology(**golden["technology"])
     res = solve_ces_block_newton(calib, rates, rates, technology=tech)
     i = list(calib.country_codes).index("USA")
@@ -950,7 +957,7 @@ def test_result_contract_and_renderers(hand):
 
 def test_module_imports_only_the_pyodide_core():
     import puremacro.trade.ces_newton as module
-    src = pathlib.Path(module.__file__).read_text()
+    src = pathlib.Path(module.__file__).read_text(encoding="utf-8")
     for name in ("torch", "numba", "statsmodels", "matplotlib"):
         assert f"import {name}" not in src
     heads = [ln.split()[1].split(".")[0] for ln in src.splitlines() if ln.startswith(("import ", "from "))]

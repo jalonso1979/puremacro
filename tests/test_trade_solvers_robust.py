@@ -26,6 +26,7 @@ import numpy as np
 import scipy.linalg as la
 import pytest
 
+from _timing import budget
 from puremacro.trade import (
     TradeCalibrationResult,
     TradeEquilibriumResult,
@@ -122,7 +123,7 @@ class TestHawkinsSimonViability:
         t_elapsed = time.perf_counter() - t_start
 
         # Runtime specification: must complete in < 0.15s (typically ~0.003s)
-        assert t_elapsed < 0.15, f"Hawkins-Simon check exceeded time limit: {t_elapsed:.4f}s >= 0.15s"
+        assert t_elapsed < budget(0.15), f"Hawkins-Simon check exceeded time limit: {t_elapsed:.4f}s >= {budget(0.15)}s"
 
         # Collatz-Wielandt bounding condition: cw_lower <= rho <= cw_upper
         assert cw_lower <= rho <= cw_upper + 1e-10, (

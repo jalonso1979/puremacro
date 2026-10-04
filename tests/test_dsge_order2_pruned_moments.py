@@ -33,13 +33,13 @@ pytestmark = pytest.mark.filterwarnings("ignore:forecast-error variance is zero"
 
 ROOT = Path(__file__).resolve().parents[1]
 LIVE = ROOT / "tests" / "fixtures" / "dynare_live"
-DYNARE = json.loads((ROOT / "tests" / "fixtures" / "dynare_order2_pruned_moments.json").read_text())
+DYNARE = json.loads((ROOT / "tests" / "fixtures" / "dynare_order2_pruned_moments.json").read_text(encoding="utf-8"))
 MODELS = sorted(DYNARE["cases"])
 
 
 def _model_text(name: str) -> str:
     case = DYNARE["cases"][name]
-    return case["model_text"] if "model_text" in case else (LIVE / f"{name}.mod").read_text()
+    return case["model_text"] if "model_text" in case else (LIVE / f"{name}.mod").read_text(encoding="utf-8")
 
 
 @pytest.fixture(scope="module")
@@ -127,7 +127,7 @@ def test_stoch_simul_and_linear_model_forward_pruning(solutions):
     direct = sol.theoretical_moments(lags=3, pruning=True)
     via_solution = sol.stoch_simul(irf=0, lags=3, pruning=True).theoretical_moments
     np.testing.assert_allclose(via_solution.covariance.to_numpy(), direct.covariance.to_numpy(), rtol=1e-14)
-    model = load_mod((LIVE / "rbc.mod").read_text(), order=1)
+    model = load_mod((LIVE / "rbc.mod").read_text(encoding="utf-8"), order=1)
     via_model = model.stoch_simul(order=2, irf=0, lags=3, pruning=True).theoretical_moments
     np.testing.assert_allclose(via_model.covariance.loc[direct.covariance.index, direct.covariance.columns]
                                .to_numpy(), direct.covariance.to_numpy(), rtol=1e-10)

@@ -142,7 +142,7 @@ def test_rewriting_reference_and_its_metadata_does_not_reauthenticate(monkeypatc
     metadata = json.loads(source.joinpath("rr2010_original_metadata.json").read_bytes())
     metadata["reference_sha256"] = hashlib.sha256(content).hexdigest()
     (tmp_path / name).write_bytes(content)
-    (tmp_path / "rr2010_original_metadata.json").write_text(json.dumps(metadata))
+    (tmp_path / "rr2010_original_metadata.json").write_text(json.dumps(metadata), encoding="utf-8")
     monkeypatch.setattr(module.resources, "files", lambda package: tmp_path)
     with pytest.raises(ValueError, match="checksum mismatch"):
         load_rr2010_reference()
@@ -161,7 +161,7 @@ def test_reference_exporter_has_no_puremacro_imports():
     import ast
     from pathlib import Path
     source = Path(__file__).resolve().parents[1] / "tools/reference_validation/export_rr2010.py"
-    tree = ast.parse(source.read_text())
+    tree = ast.parse(source.read_text(encoding="utf-8"))
     imported = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):

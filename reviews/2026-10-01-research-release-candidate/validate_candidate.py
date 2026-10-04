@@ -144,6 +144,11 @@ def main():
         assert (EVIDENCE / "amended-candidate-provenance.json").exists()
         run(base, [PYTHON, "-u", "tools/release_check.py"], "release-gate-after-notebook-repairs.log",
             cwd=ROOT, allowed=(0, 1))
+    elif mode == "release-gates-third":
+        assert (EVIDENCE / "third-candidate-provenance.json").exists()
+        assert not (EVIDENCE / "release-gate-after-exact-parity.log").exists()
+        run(base, [PYTHON, "-u", "tools/release_check.py"], "release-gate-after-exact-parity.log",
+            cwd=ROOT, allowed=(0, 1))
     elif mode == "preserve-original":
         for source, target in (("summary.json", "original-validation-summary.json"),
                                ("final-source-match.json", "original-final-source-match.json")):
@@ -159,6 +164,10 @@ def main():
             for suffix in (".py", ".ipynb")
         }
         display_manifest = json.loads((EVIDENCE / "notebook-inline-display-repair.json").read_text())
+        notebook_manifest_path = EVIDENCE / "notebook-repair/final_manifest.json"
+        notebook_manifest = json.loads(notebook_manifest_path.read_text())
+        for name, expected in notebook_manifest["files"].items():
+            assert name in allowed_notebooks and digest(ROOT / name) == expected, name
         for repair in display_manifest["files"]:
             assert repair["non_display_ast_unchanged"] and repair["existing_outputs_unchanged"]
             for kind in ("source", "rendered"):
@@ -180,6 +189,9 @@ def main():
                        and name in archive.namelist()}
         assert all(digest(ROOT / name) == original["source_sha256"][name] for name in shipped)
         amended = {**original, "amended_at_utc": datetime.now(timezone.utc).isoformat(),
+            "amended_git_head": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
+            "notebook_repair_manifest_sha256": digest(notebook_manifest_path),
+            "inline_display_manifest_sha256": digest(EVIDENCE / "notebook-inline-display-repair.json"),
             "gate_source_sha256": new_hashes, "notebook_repairs": notebook_changes,
             "all_changes_since_original_freeze": changed,
             "all_878_shipped_package_files_match_original": len(shipped) == 878,
@@ -191,6 +203,52 @@ def main():
         write_json(target, amended)
         shutil.copy2(target, EVIDENCE / "artifacts" / base.name / target.name)
         print(json.dumps({"notebook_repairs": list(notebook_changes), "unchanged_shipped_files": len(shipped)}, indent=2))
+    elif mode == "freeze-third":
+        previous = json.loads((EVIDENCE / "amended-candidate-provenance.json").read_text())
+        original = json.loads((EVIDENCE / "candidate-provenance.json").read_text())
+        manifest_path = EVIDENCE / "notebook-exact-source-parity-repair.json"
+        manifest = json.loads(manifest_path.read_text())
+        assert manifest["numerical_code_outputs_and_metadata_unchanged"]
+        allowed = set()
+        for repair in manifest["files"]:
+            assert repair["only_trailing_newlines_changed"] and repair["all_other_fields_unchanged"]
+            source, rendered = repair["source"], repair["rendered"]
+            assert rendered.startswith("notebooks/") and rendered.endswith(".ipynb")
+            assert digest(ROOT / source) == repair["source_sha256"] == previous["gate_source_sha256"][source]
+            assert previous["gate_source_sha256"][rendered] == repair["rendered_before_sha256"]
+            assert digest(ROOT / rendered) == repair["rendered_after_sha256"]
+            allowed.add(rendered)
+        hashes = {name: digest(ROOT / name) for name in previous["gate_source_sha256"]}
+        changes = {name: {"before": expected, "after": hashes[name]}
+                   for name, expected in previous["gate_source_sha256"].items() if hashes[name] != expected}
+        assert set(changes) == allowed and len(allowed) == 30
+        for record_name in ("original-evidence-sha256.json", "second-evidence-sha256.json"):
+            evidence = json.loads((EVIDENCE / record_name).read_text())
+            assert all(digest(EVIDENCE / name) == expected for name, expected in evidence.items())
+        wheel, = (base / "dist").glob("*.whl")
+        with zipfile.ZipFile(wheel) as archive:
+            shipped = {name for name in original["source_sha256"] if name.startswith("puremacro/")
+                       and name in archive.namelist()}
+        assert len(shipped) == 878
+        assert all(digest(ROOT / name) == original["source_sha256"][name] for name in shipped)
+        third = {**previous, "third_freeze_at_utc": datetime.now(timezone.utc).isoformat(),
+            "third_git_head": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
+            "gate_source_sha256": hashes, "changes_since_second_freeze": changes,
+            "exact_parity_repair_manifest_sha256": digest(manifest_path),
+            "all_878_shipped_package_files_match_original": True,
+            "package_artifacts_rebuilt": False,
+            "scope": "Third validation after exact terminal-newline parity repairs to 30 rendered notebooks; both failed full-suite records preserved.",
+        }
+        third["notebook_repairs"] = {name: {"before": original["gate_source_sha256"][name], "after": hashes[name]}
+                                    for name in previous["notebook_repairs"]}
+        third["all_changes_since_original_freeze"] = {
+            name: {"before": expected, "after": hashes[name]}
+            for name, expected in original["gate_source_sha256"].items() if hashes[name] != expected}
+        target = EVIDENCE / "third-candidate-provenance.json"
+        assert not target.exists(), "Third candidate has already been frozen"
+        write_json(target, third)
+        shutil.copy2(target, EVIDENCE / "artifacts" / base.name / target.name)
+        print(json.dumps({"exact_parity_repairs": len(changes), "unchanged_shipped_files": len(shipped)}, indent=2))
     elif mode == "retain-artifacts":
         retained = EVIDENCE / "artifacts" / base.name
         retained.mkdir(parents=True, exist_ok=True)
@@ -213,6 +271,10 @@ def main():
             assert not any(name.endswith((".png", ".pyc", ".pyo", ".so", ".mat")) for name in wheel_names)
         with tarfile.open(sdist, "r:gz") as archive:
             members = {member.name.partition("/")[2]: member for member in archive.getmembers() if member.isfile()}
+            assert {name for name in members if name.startswith("puremacro/")} == {
+                name for name in wheel_names if name.startswith("puremacro/")}
+            assert not any(name.startswith(("notebooks/", "docs/", "curso/")) or name.endswith(".png")
+                           for name in members)
             expected_names = {name for name in sources if name.startswith("puremacro/") and name in wheel_names}
             expected_names |= set(record["required_resources"])
             assert expected_names <= members.keys()
@@ -222,6 +284,8 @@ def main():
         record.pop("sdist_authenticated_python_and_required_resource_files", None)
         record["sdist_authenticated_shipped_source_and_resource_files"] = len(expected_names)
         record["sdist_contains_all_package_python_modules_and_required_resources"] = True
+        record["sdist_package_files_identical_to_wheel"] = True
+        record["sdist_contains_no_notebooks_docs_curso_or_png_files"] = True
         write_json(EVIDENCE / "artifacts.json", record)
     elif mode == "docs":
         snapshot = Path(tempfile.mkdtemp(prefix="docs-source-", dir=base))
@@ -244,9 +308,11 @@ def main():
         run(base, [PYTHON, "-u", str(base / "installed_smoke.py")], "installed-smoke.log", installed=True)
         shutil.copy2(base / "installed-smoke.json", EVIDENCE / "installed-smoke.json")
         shutil.copytree(base / "installed-evidence", EVIDENCE / "installed-evidence", dirs_exist_ok=True)
-    elif mode in ("match", "match-amended"):
-        amended = mode == "match-amended"
-        provenance_name = "amended-candidate-provenance.json" if amended else "candidate-provenance.json"
+    elif mode in ("match", "match-amended", "match-third"):
+        third = mode == "match-third"
+        amended = mode != "match"
+        provenance_name = "third-candidate-provenance.json" if third else (
+            "amended-candidate-provenance.json" if amended else "candidate-provenance.json")
         frozen = json.loads((EVIDENCE / provenance_name).read_text())
         changed = [name for name, expected in frozen["gate_source_sha256"].items()
                    if not (ROOT / name).is_file() or digest(ROOT / name) != expected]
@@ -267,7 +333,8 @@ def main():
                         if not (ROOT / name).is_file() or digest(ROOT / name) != expected]
         docs_added = sorted({str(path.relative_to(ROOT)) for path in (ROOT / "docs").rglob("*")
                             if path.is_file()} - docs.keys())
-        match_name = "final-source-match-amended.json" if amended else "final-source-match.json"
+        match_name = "final-source-match-third.json" if third else (
+            "final-source-match-amended.json" if amended else "final-source-match.json")
         write_json(EVIDENCE / match_name, {
             "all_frozen_gate_sources_match": not changed and not added,
             "changed_since_freeze": changed, "added_since_freeze": added,
@@ -285,18 +352,30 @@ def main():
         })
         print(json.dumps({"changed": changed, "added": added}, indent=2))
         assert not changed_code and not added_code and not docs_changed and not docs_added
-    elif mode in ("finalize", "finalize-amended"):
-        amended = mode == "finalize-amended"
-        gate_name = "release-gate-after-notebook-repairs.log" if amended else "release-gate.log"
+    elif mode in ("finalize", "finalize-amended", "finalize-third"):
+        third = mode == "finalize-third"
+        amended = mode != "finalize"
+        gate_name = "release-gate-after-exact-parity.log" if third else (
+            "release-gate-after-notebook-repairs.log" if amended else "release-gate.log")
         gate = json.loads((EVIDENCE / (gate_name + ".json")).read_text())
         log = (EVIDENCE / gate_name).read_text()
-        match_name = "final-source-match-amended.json" if amended else "final-source-match.json"
+        match_name = "final-source-match-third.json" if third else (
+            "final-source-match-amended.json" if amended else "final-source-match.json")
         match = json.loads((EVIDENCE / match_name).read_text())
         smoke = json.loads((EVIDENCE / "installed-smoke.json").read_text())
         docs = json.loads((EVIDENCE / "mkdocs-strict.log.json").read_text())
         twine = json.loads((EVIDENCE / "twine-check.log.json").read_text())
         artifacts = json.loads((EVIDENCE / "artifacts.json").read_text())
         frozen = json.loads((EVIDENCE / "candidate-provenance.json").read_text())
+        original_evidence = json.loads((EVIDENCE / "original-evidence-sha256.json").read_text()) if amended else {}
+        assert all(digest(EVIDENCE / name) == expected for name, expected in original_evidence.items())
+        provenance_names = ["candidate-provenance.json", "docs-provenance.json", match_name]
+        if amended:
+            provenance_names.extend(["amended-candidate-provenance.json", "original-evidence-sha256.json"])
+        if third:
+            second_evidence = json.loads((EVIDENCE / "second-evidence-sha256.json").read_text())
+            assert all(digest(EVIDENCE / name) == expected for name, expected in second_evidence.items())
+            provenance_names.extend(["third-candidate-provenance.json", "second-evidence-sha256.json"])
         for item in artifacts["artifacts"]:
             assert digest(ROOT / item["retained_path"]) == item["sha256"]
         full_gate_passed = gate["returncode"] == 0 and "all 5 gates PASS" in log
@@ -315,9 +394,14 @@ def main():
                            if baseline_compared else None)
         summary = {
             "candidate_kind": "unpublished current-worktree research candidate",
-            "validation_stage": "after scoped notebook repairs" if amended else "original frozen tree",
+            "validation_stage": "after exact rendered-source parity repair" if third else (
+                "after scoped notebook repairs" if amended else "original frozen tree"),
             "release_gate_log": gate_name,
             "original_validation_evidence": "original-validation-summary.json" if amended else None,
+            "original_gate_evidence_unchanged": True if amended else None,
+            "second_gate_evidence_unchanged": True if third else None,
+            "second_validation_evidence": "second-validation-summary.json" if third else None,
+            "provenance_sha256": {name: digest(EVIDENCE / name) for name in provenance_names},
             "package_version": "4.3.0", "candidate_directory": str(base),
             "software_validation_passed": bool(full_gate_passed and source_match and docs_match
                 and smoke["passed"] and docs["returncode"] == 0 and twine["returncode"] == 0),
@@ -340,8 +424,11 @@ def main():
                 == frozen["gate_source_sha256"]["tests/known_failures.json"],
             "api_legacy_entries_reconciled": 9,
             "artifacts": artifacts["artifacts"],
-            "committed": False, "tagged": False, "published": False, "deployed": False,
-            "limitations": ["Includes earlier uncommitted changes; not a feature-only release",
+            "release_commit_created_by_validation": False,
+            "tagged": False, "published": False, "deployed": False,
+            "original_frozen_git_head": frozen["git_head"],
+            "current_git_head": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
+            "limitations": ["Includes earlier worktree changes; not a feature-only release",
                 "Fixed-DGP/oracle SW07 controls do not establish composite-null inference",
                 "Synthetic trade technology/sourcing and assumed factor exposure are not an estimated Mexican economy",
                 "Tiny installed simulations validate packaging, not scientific performance"],

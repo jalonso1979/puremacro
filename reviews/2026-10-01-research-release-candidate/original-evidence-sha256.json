@@ -1,0 +1,8 @@
+{
+  "release-gate.log": "b5db41ef8bf0a58de68d49b32124278d06b75b22d233cf7225936c1694ca1cf9",
+  "release-gate.log.json": "f0f210b655f87129d847ad5198e09f8a93c26bc6835ce2a00899d6c7c5626896",
+  "unexpected-notebook-failures.log": "3c587e84cefdecf1a15b3bb93972529f8c670d5bc2f0fec7d0f830daea1bc8d7",
+  "original-validation-summary.json": "76e4159320a64c06e0d245458cd3765b9fae1a6ffffab5944f409b0e7250bb08",
+  "original-final-source-match.json": "89b27c2a20fc76a89d8308917dda9f49c2acc03c1c8dd1b6fd41e93d554aa766",
+  "original-finalization.log": "76e4159320a64c06e0d245458cd3765b9fae1a6ffffab5944f409b0e7250bb08"
+}

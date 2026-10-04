@@ -1,9 +1,69 @@
 # Unpublished research release candidate
 
-Status: artifacts, installed-wheel checks and strict documentation passed.
-The first complete release gate passed four of five gates and identified three
-unexpected notebook integrity failures. Notebook repairs and a second complete
-gate are pending; this candidate is not yet release-ready.
+Status: **software validation passed.** Artifacts, installed-wheel checks and
+strict documentation passed. The first complete release gate passed four of five
+gates and identified three unexpected notebook integrity failures. Those repairs
+are complete, independently reviewed and frozen. The second complete gate also
+passed four of five gates: two exact source/rendered notebook checks found
+trailing-newline differences introduced by the display-only repair. Those
+differences were corrected and independently verified. The
+[third complete gate](release-gate-after-exact-parity.log) passed **all five
+gates**: **18,441 passed, 11 failed (all known), 139 skipped, 202 deselected and
+276 xfailed** in 2,395.48 seconds, with no unexpected failures. The
+[third source comparison](final-source-match-third.json) confirms no drift from
+the [third freeze](third-candidate-provenance.json), and the
+[final summary](summary.json) records `software_validation_passed: true`. The
+candidate is not tagged, published or deployed.
+
+**Shipped as 4.4.0 (2026-10-02).** Version 4.3.0 was already on PyPI, so this
+candidate was released as 4.4.0, together with cross-platform fixes found on
+CI, the resolution of all eleven accepted test failures and a `vif` accuracy
+fix (see the 4.4.0 changelog and `docs/ADVISORY.md`). Those later commits were
+validated by a fresh full gate (18,453 passed, 0 failed) and a clean
+`git archive` build; the evidence in this folder describes the frozen
+candidate only.
+
+All three originally unexpected failures now pass. The broader notebook checks
+report **640 passed and one unchanged known failure**, with no unexpected
+failures. Five rebuilt notebooks match their sources and contain no execution
+errors. The remaining display-only repairs preserve the numerical code and
+saved outputs; a fresh representative execution retains all three figures.
+See the [notebook repair manifest](notebook-repair/final_manifest.json),
+[display-only evidence](notebook-inline-display-repair.json) and
+[fresh execution check](inline-display-execution.json).
+
+The [amended freeze](amended-candidate-provenance.json) confirms that all **878
+shipped package files** remain identical to the original candidate. The existing
+wheel and source distribution therefore remain the candidate artifacts. The
+original failed full-suite evidence is preserved; targeted checks are not
+reported as a second full-suite pass.
+
+The [second complete gate](release-gate-after-notebook-repairs.log) reported
+**18,439 passed, 13 failed, 139 skipped, 202 deselected and 276 xfailed** in
+1,908.73 seconds. Its 13 failures comprise the same eleven known failures and
+two unexpected NB07 EN/ES exact cell-source comparisons. Pyodide, API, version
+and Python 3.11 syntax gates passed again. The
+[preserved second summary](second-validation-summary.json) records all five
+outcomes; its [source comparison](second-final-source-match.json) confirms no
+post-freeze source or documentation drift. A
+[complete display-repair comparison](second-gate-all-display-parity.json)
+identifies 66 cells in 30 rendered notebooks with trailing-newline differences
+only. Calculations and saved outputs are unchanged.
+
+The [exact-parity repair](notebook-exact-source-parity-repair.json) corrects
+those 66 cells. An [independent audit](independent_exact_parity_audit.md) verifies
+all 566 cell sources without stripping whitespace and reconstructs all 30 prior
+notebook hashes, proving that outputs, metadata and calculations are unchanged.
+The [targeted follow-up](exact-parity-targeted-tests.json) reports **464 passed,
+one unchanged known failure and no unexpected failures**, including successful
+checks of both previously failing comparisons. The
+[third freeze](third-candidate-provenance.json) records the exact final inputs;
+the third full rerun has a separate log and does not replace either earlier
+failed run.
+
+The [independent evidence audit](independent_evidence_audit.md) verifies both
+archive hashes, all 883 wheel `RECORD` entries, 878 shipped file comparisons,
+381 strict-documentation hashes and the preserved original failure records.
 
 The candidate retains package version **4.3.0** and is identified separately by
 a unique artifact directory, Git base and complete source hashes. It includes
@@ -56,9 +116,9 @@ checks do not turn its assumptions into an empirical Mexican tariff estimate.
 
 The frozen candidate is `/tmp/puremacro-research-candidate-20261001T214014Z`.
 [candidate-provenance.json](candidate-provenance.json) authenticates **3,295**
-package, build, test, tool, documentation and notebook files. The final
-[source comparison](final-source-match.json) confirms unchanged Python, tests,
-tooling, configuration and packaged data. Six documentation pages received
+package, build, test, tool, documentation and notebook files. The original
+[source comparison](original-final-source-match.json) confirmed unchanged Python,
+tests, tooling, configuration and packaged data before notebook repairs. Six documentation pages received
 cross-links or completed-study results and passed a fresh strict build. Five
 test-regenerated PNGs under `puremacro/examples/output/` are recorded separately
 and are absent from the wheel. The full gate runs this frozen checkout,
