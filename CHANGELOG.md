@@ -40,6 +40,25 @@ Harvest fixes that changed what the corpus contains:
 - Harvested `doc_id`s now also hash the record's explicit title (or `id`), and
   records sharing a key but differing in text get distinct ids.
 
+**New `puremacro.text`: tokenizer, segmentation and a sparse document-term
+matrix.** `build_dtm(texts, languages=...)` returns a `DocumentTermMatrix`
+whose `X` is a `scipy.sparse.csr_matrix` with a row-aligned `docs` frame;
+`.filter(min_df, max_df, max_features, terms)`, `.tfidf()` (scikit-learn's
+definition), `.aggregate(by="country", freq="MS")` (term-count panels),
+`.transform(new_texts)`, `.to_tidy()`, and `.save(dir)` writing `X.mtx` +
+`vocab.txt` + `docs.csv` for R (`Matrix::readMM`, quanteda, stm). The default
+`RegexTokenizer` keeps numbers and percentages ("25", "5.25%"; or masks them
+with `numbers="mask"`) and picks stop words from each document's language
+(en, es, pt, de, fr, it). Any `callable(text, language) -> list[str]` (spaCy,
+NLTK) can replace it. `NarrativeCorpus.dtm(...)` and
+`NarrativeCorpus.segment("paragraph"|"sentence"|callable)` build on it.
+
+`narrative.topics.TfidfVectorizer` now builds its matrix sparse, so memory
+scales with non-zero cells rather than documents x terms. Its default
+tokenizer and its dense return value are unchanged (results match the
+previous version to 1e-14); pass `sparse_output=True` or `tokenizer=` to opt
+in. `NMF` accepts sparse input, and `DynamicTopicModel` uses it.
+
 **Controlled SW07 estimator and GE incidence applications.** A fast exact
 finite-sample expectation map supports paired comparisons of moment corrections
 and oracle/HAC weights, with separate calibration/validation draws, authenticated

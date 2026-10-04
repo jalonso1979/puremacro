@@ -488,6 +488,81 @@ class NarrativeCorpus:
         ).reset_index()
         return out
 
+    # ── text as data (puremacro.text) ─────────────────────────────────────
+    def segment(
+        self,
+        by: str | Callable[[str], Sequence[str]] = "paragraph",
+        *,
+        min_chars: int = 1,
+    ) -> "NarrativeCorpus":
+        """Split every document into paragraphs, sentences or custom units.
+
+        Returns a corpus of segments. Each segment keeps its parent's source,
+        country, date and other fields; ``doc_id`` is ``"<parent>:<position>"``
+        and ``metadata`` gains ``parent_id``, ``position`` (0-based) and
+        ``segment`` (the unit). ``by`` may be any ``callable(text) -> list[str]``.
+        """
+        from ..text.segment import get_splitter
+
+        split = get_splitter(by)
+        unit = by if isinstance(by, str) else getattr(by, "__name__", "custom")
+        out: list[NarrativeDocument] = []
+        for d in self.docs:
+            pos = 0
+            for seg in split(d.text):
+                seg = seg.strip()
+                if len(seg) < min_chars:
+                    continue
+                out.append(NarrativeDocument(
+                    doc_id=f"{d.doc_id}:{pos}", source=d.source, country=d.country,
+                    date=d.date, url=d.url, title=d.title, text=seg,
+                    language=d.language, policy_domain=d.policy_domain,
+                    doc_type=d.doc_type, magnitude=d.magnitude,
+                    metadata={**d.metadata, "parent_id": d.doc_id,
+                              "position": pos, "segment": unit},
+                ))
+                pos += 1
+        return NarrativeCorpus(docs=out, metadata={**self.metadata, "segmented_by": unit})
+
+    def dtm(
+        self,
+        *,
+        tokenizer: Any = None,
+        ngram_range: tuple[int, int] = (1, 1),
+        min_df: int | float = 1,
+        max_df: int | float = 1.0,
+        max_features: int | None = None,
+        weighting: str = "count",
+        metadata: str = "drop",
+    ) -> Any:
+        """Sparse document-term matrix of the corpus.
+
+        Returns a :class:`puremacro.text.DocumentTermMatrix` whose ``docs``
+        frame is :meth:`to_frame` without the text (``metadata`` is passed to
+        it, ``"promote"`` adds the ``meta_*`` columns). Stop words follow each
+        document's ``language``. ``weighting="tfidf"`` applies
+        :meth:`~puremacro.text.DocumentTermMatrix.tfidf` with its defaults;
+        call ``.tfidf(...)`` on a count matrix to choose the options.
+
+        >>> m = corpus.dtm(ngram_range=(1, 2), min_df=5)        # doctest: +SKIP
+        >>> panel = m.aggregate("country", freq="MS")           # doctest: +SKIP
+        """
+        from ..text.dtm import build_dtm
+
+        if weighting not in ("count", "binary", "tfidf"):
+            raise ValueError(f"weighting must be 'count', 'binary' or 'tfidf', got {weighting!r}")
+        docs = self.to_frame(metadata=metadata).drop(columns=["text"])
+        m = build_dtm(
+            [d.text for d in self.docs], languages=[d.language for d in self.docs],
+            docs=docs, tokenizer=tokenizer, ngram_range=ngram_range,
+            min_df=min_df, max_df=max_df, max_features=max_features,
+        )
+        if weighting == "binary":
+            return m.binary()
+        if weighting == "tfidf":
+            return m.tfidf()
+        return m
+
     def to_events(
         self,
         classifier: Callable[[NarrativeDocument], NarrativeEvent | None] | None = None,

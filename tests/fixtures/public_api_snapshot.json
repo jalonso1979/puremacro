@@ -2654,6 +2654,38 @@
       "coverage_heatmap",
       "load_recipe"
     ],
+    "puremacro.text": [
+      "DocumentTermMatrix",
+      "RegexTokenizer",
+      "STOPWORDS",
+      "Tokenizer",
+      "build_dtm",
+      "ngrams",
+      "segment",
+      "split_paragraphs",
+      "split_sentences",
+      "stopwords"
+    ],
+    "puremacro.text.dtm": [
+      "DocumentTermMatrix",
+      "build_dtm"
+    ],
+    "puremacro.text.segment": [
+      "segment",
+      "split_paragraphs",
+      "split_sentences"
+    ],
+    "puremacro.text.stopwords": [
+      "STOPWORDS",
+      "normalize_language",
+      "resolve_stop_words",
+      "stopwords"
+    ],
+    "puremacro.text.tokenize": [
+      "RegexTokenizer",
+      "Tokenizer",
+      "ngrams"
+    ],
     "puremacro.trade": [
       "AllenArkolakisModel",
       "AllenArkolakisResult",
@@ -6564,6 +6596,14 @@
       "sigma",
       "summary",
       "z"
+    ],
+    "puremacro.text.dtm.DocumentTermMatrix": [
+      "X",
+      "docs",
+      "ngram_range",
+      "tokenizer",
+      "vocab",
+      "weighting"
     ],
     "puremacro.trade._results.CapacityBottleneckResult": [
       "capacity_limits",

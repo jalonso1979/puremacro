@@ -13,54 +13,29 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Any, Sequence
+from typing import Any, Callable, Sequence
 
 import numpy as np
 import pandas as pd
+from scipy import sparse
 
-# Built-in lightweight stop words for zero-dependency execution
-_STOPWORDS_EN = {
-    "a", "about", "above", "after", "again", "against", "all", "am", "an", "and",
-    "any", "are", "aren't", "as", "at", "be", "because", "been", "before", "being",
-    "below", "between", "both", "but", "by", "can", "can't", "cannot", "could",
-    "couldn't", "did", "didn't", "do", "does", "doesn't", "doing", "don't", "down",
-    "during", "each", "few", "for", "from", "further", "had", "hadn't", "has",
-    "hasn't", "have", "haven't", "having", "he", "he'd", "he'll", "he's", "her",
-    "here", "here's", "hers", "herself", "him", "himself", "his", "how", "how's",
-    "i", "i'd", "i'll", "i'm", "i've", "if", "in", "into", "is", "isn't", "it",
-    "it's", "its", "itself", "let's", "me", "more", "most", "mustn't", "my",
-    "myself", "no", "nor", "not", "of", "off", "on", "once", "only", "or",
-    "other", "ought", "our", "ours", "ourselves", "out", "over", "own", "same",
-    "shan't", "she", "she'd", "she'll", "she's", "should", "shouldn't", "so",
-    "some", "such", "than", "that", "that's", "the", "their", "theirs", "them",
-    "themselves", "then", "there", "there's", "these", "they", "they'd", "they'll",
-    "they're", "they've", "this", "those", "through", "to", "too", "under", "until",
-    "up", "very", "was", "wasn't", "we", "we'd", "we'll", "we're", "we've", "were",
-    "weren't", "what", "what's", "when", "when's", "where", "where's", "which",
-    "while", "who", "who's", "whom", "why", "why's", "with", "won't", "would",
-    "wouldn't", "you", "you'd", "you'll", "you're", "you've", "your", "yours",
-    "yourself", "yourselves", "also", "may", "said", "one", "two", "well", "will"
-}
+from ..text.stopwords import EN as _STOPWORDS_EN, ES as _STOPWORDS_ES
 
-_STOPWORDS_ES = {
-    "de", "la", "que", "el", "en", "y", "a", "los", "del", "se", "las", "por", "un",
-    "para", "con", "no", "una", "su", "al", "lo", "como", "más", "pero", "sus", "le",
-    "ya", "o", "este", "sí", "porque", "esta", "entre", "cuando", "muy", "sin", "sobre",
-    "también", "me", "hasta", "hay", "donde", "quien", "desde", "todo", "nos", "durante",
-    "todos", "uno", "les", "ni", "contra", "otros", "ese", "eso", "ante", "ellos",
-    "e", "esto", "mí", "antes", "algunos", "qué", "unos", "yo", "otro", "otras",
-    "otra", "él", "tanto", "esa", "estos", "mucho", "quienes", "nada", "muchos", "cual",
-    "sea", "poco", "ella", "estar", "estas", "algunas", "algo", "nosotros", "mi", "mis",
-    "tú", "te", "ti", "tu", "tus", "ellas", "nosotras", "vosotros", "vosotras", "os",
-    "mío", "mía", "míos", "mías", "tuyo", "tuya", "tuyos", "tuyas", "suyo", "suya",
-    "suyos", "suyas", "nuestro", "nuestra", "nuestros", "nuestras", "vuestro", "vuestra",
-    "vuestros", "vuestras", "esos", "esas", "estoy", "estás", "está", "estamos",
-    "estáis", "están", "esté", "estés", "estemos", "estéis", "estén", "asimismo", "dicho"
-}
+# The tokenizer this vectorizer has always used: letters only (numbers are
+# dropped), at least two characters. Kept as the default so existing topic
+# models keep their vocabularies; pass ``tokenizer=puremacro.text.RegexTokenizer()``
+# for the number-preserving, multilingual one.
+_LEGACY_WORD_RE = re.compile(r"\b[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]{2,}\b")
 
 
 class TfidfVectorizer:
-    """Pure-Python TF-IDF Vectorizer with n-gram support and sublinear TF.
+    """TF-IDF vectorizer with n-gram support and sublinear TF.
+
+    The matrix is built sparse (:func:`puremacro.text.build_dtm`), so memory
+    grows with the number of non-zero cells. ``transform`` returns a dense
+    array by default for backward compatibility; pass ``sparse_output=True``
+    to get the ``scipy.sparse.csr_matrix`` (what :class:`DynamicTopicModel`
+    uses).
 
     Parameters
     ----------
@@ -69,11 +44,18 @@ class TfidfVectorizer:
     min_df : int, default 2
         Minimum document frequency for a term to be retained.
     stop_words : str or set of str, default 'english'
-        Stop words to remove ('english', 'spanish', or a custom set).
+        Stop words to remove ('english', 'spanish', or a custom set). Ignored
+        when ``tokenizer`` is given (the tokenizer owns its stop words).
     ngram_range : tuple of (int, int), default (1, 1)
         Lower and upper boundary of the range of n-values for n-grams.
     sublinear_tf : bool, default True
         Apply sublinear scaling: 1 + log(tf) if tf > 0.
+    tokenizer : callable, optional
+        ``tokenizer(text, language) -> list[str]``, e.g.
+        :class:`puremacro.text.RegexTokenizer`. Default: the legacy
+        letters-only regex.
+    sparse_output : bool, default False
+        Return ``scipy.sparse.csr_matrix`` from ``transform``.
     """
 
     def __init__(
@@ -83,17 +65,21 @@ class TfidfVectorizer:
         stop_words: str | Sequence[str] | set[str] | None = "english",
         ngram_range: tuple[int, int] = (1, 1),
         sublinear_tf: bool = True,
+        tokenizer: Callable[..., list[str]] | None = None,
+        sparse_output: bool = False,
     ):
         self.max_features = max_features
         self.min_df = min_df
         self.ngram_range = ngram_range
         self.sublinear_tf = sublinear_tf
-        
+        self.tokenizer = tokenizer
+        self.sparse_output = sparse_output
+
         if isinstance(stop_words, str):
             if stop_words.lower() == "english":
-                self.stop_words_ = _STOPWORDS_EN
+                self.stop_words_ = set(_STOPWORDS_EN)
             elif stop_words.lower() in ("spanish", "es"):
-                self.stop_words_ = _STOPWORDS_ES
+                self.stop_words_ = set(_STOPWORDS_ES)
             else:
                 self.stop_words_ = set()
         elif stop_words is not None:
@@ -105,75 +91,58 @@ class TfidfVectorizer:
         self.feature_names_: list[str] = []
         self.idf_: np.ndarray = np.array([])
 
+    def _base_tokens(self, text: str, language: str | None = None) -> list[str]:
+        if self.tokenizer is not None:
+            return list(self.tokenizer(text, language))
+        words = _LEGACY_WORD_RE.findall(text.lower())
+        return [w for w in words if w not in self.stop_words_]
+
     def _tokenize(self, text: str) -> list[str]:
-        words = re.findall(r"\b[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]{2,}\b", text.lower())
-        tokens = [w for w in words if w not in self.stop_words_]
-        
-        min_n, max_n = self.ngram_range
-        if min_n == 1 and max_n == 1:
-            return tokens
-            
-        ngrams = []
-        for n in range(min_n, max_n + 1):
-            if n == 1:
-                ngrams.extend(tokens)
-            else:
-                for i in range(len(tokens) - n + 1):
-                    ngrams.append(" ".join(tokens[i : i + n]))
-        return ngrams
+        from ..text.tokenize import ngrams
+        return ngrams(self._base_tokens(text), self.ngram_range)
+
+    def _counts(self, raw_documents: Sequence[str], vocabulary=None):
+        from ..text.dtm import build_dtm
+        return build_dtm(
+            list(raw_documents), tokenizer=self._base_tokens,
+            ngram_range=self.ngram_range, vocabulary=vocabulary,
+        )
 
     def fit(self, raw_documents: Sequence[str]) -> TfidfVectorizer:
         """Fit vocabulary and IDF weights on raw documents."""
         N = len(raw_documents)
-        df_counts: dict[str, int] = {}
-        
-        for doc in raw_documents:
-            tokens = set(self._tokenize(doc))
-            for t in tokens:
-                df_counts[t] = df_counts.get(t, 0) + 1
+        m = self._counts(raw_documents)
+        df = np.diff(m.X.tocsc().indptr)
+        valid = [(t, int(c)) for t, c in zip(m.vocab, df) if c >= self.min_df]
 
-        # Filter by min_df
-        valid_terms = {t: c for t, c in df_counts.items() if c >= self.min_df}
-        
         # Sort by document frequency descending, take top max_features
-        sorted_terms = sorted(valid_terms.items(), key=lambda x: (-x[1], x[0]))[: self.max_features]
-        
+        sorted_terms = sorted(valid, key=lambda x: (-x[1], x[0]))[: self.max_features]
+
         self.vocabulary_ = {t: idx for idx, (t, _) in enumerate(sorted_terms)}
         self.feature_names_ = [t for t, _ in sorted_terms]
-        
+
         # Smooth IDF: log((1 + N) / (1 + df)) + 1
-        df_array = np.array([valid_terms[t] for t in self.feature_names_], dtype=float)
+        df_array = np.array([c for _, c in sorted_terms], dtype=float)
         self.idf_ = np.log((1.0 + N) / (1.0 + df_array)) + 1.0
         return self
 
-    def transform(self, raw_documents: Sequence[str]) -> np.ndarray:
-        """Transform raw documents into normalized TF-IDF matrix."""
+    def transform(self, raw_documents: Sequence[str]) -> np.ndarray | sparse.csr_matrix:
+        """Transform raw documents into the L2-normalized TF-IDF matrix."""
         if not self.vocabulary_:
             raise RuntimeError("TfidfVectorizer is not fitted.")
-            
-        N = len(raw_documents)
-        V = len(self.feature_names_)
-        X = np.zeros((N, V), dtype=float)
-        
-        for i, doc in enumerate(raw_documents):
-            tokens = self._tokenize(doc)
-            for t in tokens:
-                if t in self.vocabulary_:
-                    X[i, self.vocabulary_[t]] += 1.0
 
+        X = self._counts(raw_documents, vocabulary=self.feature_names_).X.astype(float)
         if self.sublinear_tf:
-            mask = X > 0
-            X[mask] = 1.0 + np.log(X[mask])
-
-        # Multiply by IDF
-        X = X * self.idf_[None, :]
+            X.data = 1.0 + np.log(X.data)
+        X = sparse.csr_matrix(X @ sparse.diags(self.idf_))
 
         # L2 normalize rows
-        norms = np.linalg.norm(X, axis=1, keepdims=True)
+        norms = np.sqrt(np.asarray(X.multiply(X).sum(axis=1)).ravel())
         norms[norms == 0] = 1.0
-        return X / norms
+        X = sparse.csr_matrix(sparse.diags(1.0 / norms) @ X)
+        return X if self.sparse_output else X.toarray()
 
-    def fit_transform(self, raw_documents: Sequence[str]) -> np.ndarray:
+    def fit_transform(self, raw_documents: Sequence[str]) -> np.ndarray | sparse.csr_matrix:
         """Fit and transform raw documents."""
         return self.fit(raw_documents).transform(raw_documents)
 
@@ -220,8 +189,8 @@ class NMF:
 
     def fit_transform(self, X: np.ndarray) -> np.ndarray:
         """Fit NMF model and return document-topic matrix W."""
-        X = np.asarray(X, dtype=float)
-        if np.any(X < 0):
+        X = _as_float_matrix(X)
+        if _has_negative(X):
             raise ValueError("NMF requires non-negative inputs.")
             
         N, V = X.shape
@@ -248,7 +217,7 @@ class NMF:
             W *= (Wt_num / Wt_den)
             
             # Check loss convergence: ||X - W H||_F
-            loss = float(np.linalg.norm(X - W @ H))
+            loss = _frobenius_residual(X, W, H)
             if abs(prev_loss - loss) < self.tol:
                 break
             prev_loss = loss
@@ -264,7 +233,7 @@ class NMF:
 
     def transform(self, X: np.ndarray) -> np.ndarray:
         """Transform new documents into topic space given fitted H."""
-        X = np.asarray(X, dtype=float)
+        X = _as_float_matrix(X)
         N = X.shape[0]
         K = self.components_.shape[0]
         rng = np.random.default_rng(self.random_state)
@@ -278,6 +247,30 @@ class NMF:
             Wt_den = W @ H @ H.T + eps
             W *= (Wt_num / Wt_den)
         return W
+
+
+def _as_float_matrix(X):
+    """Dense float array, or a float CSR matrix when ``X`` is sparse."""
+    if sparse.issparse(X):
+        return sparse.csr_matrix(X, dtype=float)
+    return np.asarray(X, dtype=float)
+
+
+def _has_negative(X) -> bool:
+    if sparse.issparse(X):
+        return bool(X.nnz) and bool(X.data.min() < 0)
+    return bool(np.any(X < 0))
+
+
+def _frobenius_residual(X, W: np.ndarray, H: np.ndarray) -> float:
+    """``||X - W H||_F``; for sparse ``X`` without forming the dense residual."""
+    if not sparse.issparse(X):
+        return float(np.linalg.norm(X - W @ H))
+    # ||X||^2 - 2 tr(W' X H') + tr((W'W)(HH'))
+    xx = float(X.multiply(X).sum())
+    cross = float(np.sum(np.asarray(W.T @ X) * H))
+    wh = float(np.sum((W.T @ W) * (H @ H.T)))
+    return float(np.sqrt(max(xx - 2.0 * cross + wh, 0.0)))
 
 
 @dataclass
@@ -321,6 +314,7 @@ class DynamicTopicModel:
             min_df=2,
             stop_words=stop_words,
             ngram_range=ngram_range,
+            sparse_output=True,
         )
         self.nmf = NMF(
             n_components=n_topics,

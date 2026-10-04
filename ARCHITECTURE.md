@@ -165,6 +165,9 @@ puremacro/
 │                            (distinct from project-level tests/ directory)
 ├── narrative/             ← fiscal-narrative IV (events, dedup, panel,
 │                            replication); pypdf used lazily by sources/
+├── text/                 ← text as data: RegexTokenizer, paragraph/sentence
+│                            segmentation, sparse DocumentTermMatrix; narrative/
+│                            builds on it (corpus.dtm(), corpus.segment())
 ├── nowcast/               ← kalman_dfm, mf_var, forecast combos, CRPS
 ├── gar/                   ← Growth-at-Risk: QAR, skew-t, FCI
 ├── did/                   ← Staggered DiD: CS, Sun-Abraham, BJS, SDID
@@ -398,6 +401,7 @@ These are the load-bearing imports. If you change one of these arrows, double-ch
 | `inference/quandt_andrews`, `inference/spec_curve` | **Stable** | Structural-break testing + sensitivity-curve helpers. |
 | `narrative/{types,aggregate,dedup,validate}` | **Stable** | Offline-deterministic core. |
 | `narrative/scoring/{keyword,manual}` | **Stable** | Pure logic. |
+| `text/*` | **Experimental** | Tokenizer, segmentation and sparse document-term matrix (numpy/scipy/pandas only). New in Unreleased; API may still change. |
 | `narrative/replication/*` (live loaders) | **Best-effort** | Network-dependent. Each ships an offline-tested CSV-to-events helper; `load(...)` mirrors are smoke-tested when reachable, skipped otherwise. |
 | `narrative/scoring/llm`, `narrative/sources/*` | **Experimental** | LLM and HTTP backends. **Not** in the Pyodide promise. `narrative/sources/_extractors.py` uses `pypdf` lazily; install via `pip install puremacro[narrative]`. |
 | `var/regime/*`, `connectedness/diebold_yilmaz`, `forecast/*` | **Stable** | Smaller surface; smoke-tested. |
