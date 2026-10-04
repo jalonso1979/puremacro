@@ -40,9 +40,15 @@ jobs:
       # `-m` on the command line replaces the marker expression in addopts.
       # The notebook-execution test is deselected here and run by the job
       # below; the `network` marker stays opt-in (external services).
+      # PYTHONPATH: six slow test modules import the repository's `tools`
+      # package (reference-validation helpers). The default `pytest` run
+      # reaches them only after pytest has put the repository root on
+      # sys.path for the in-package tests; an explicit path list does not,
+      # so the first run of this job failed at collection.
       - name: Run the opt-in markers
         env:
           PUREMACRO_TIMING_SCALE: "10"
+          PYTHONPATH: "."
         run: |
           pytest -m "slow or reference or replication" tests puremacro/tests \
             --deselect tests/test_notebooks/test_notebooks_execute.py::test_all_notebooks_execute \
@@ -71,5 +77,6 @@ jobs:
       - name: Execute the notebooks
         env:
           PUREMACRO_TIMING_SCALE: "10"
+          PYTHONPATH: "."
         run: |
           pytest -m slow tests/test_notebooks/test_notebooks_execute.py --durations=10 -rs
