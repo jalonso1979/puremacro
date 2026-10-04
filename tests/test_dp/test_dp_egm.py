@@ -367,3 +367,26 @@ def test_taste_shocks_need_egm_and_a_discrete_choice():
     m.taste_shocks(0.1)
     with pytest.raises(ModelSpecError, match="needs a discrete choice"):
         m.solve("egm")
+
+
+def test_return_that_varies_with_the_shock():
+    def model(n_a):
+        m = dp.Model("risky return")
+        m.parameters(beta=0.95, gamma=2.0)
+        m.exogenous("z", dp.AR1(rho=0.8, sigma=0.15, n=5))
+        m.state("a", np.linspace(0.0, 30.0, n_a))
+        m.local("c = (1.02 + 0.1*z)*a + exp(z) - a(+1)")
+        m.reward("crra(c, gamma)")
+        m.subject_to("c > 0")
+        m.aggregate(A="a")
+        return m
+
+    e = model(150).solve("egm", tol=1e-10)
+    z = e.grids["z"]
+    np.testing.assert_allclose(e.raw.R, 1.02 + 0.1 * z, rtol=0, atol=1e-12)
+    ref = solve_egm(e.grids["a"], z, np.exp(z), e.P, beta=0.95, r=0.02 + 0.1 * z, gamma=2.0, tol=1e-10)
+    np.testing.assert_allclose(e.raw.c, ref.c, rtol=0, atol=1e-12)
+    # both methods approach A = 1.51 (EGM 1.5132, VFI 1.5100 at 2401 points)
+    e600 = model(600).solve("egm", tol=1e-10)
+    fine = model(1201).solve(tol=1e-9, howard=40)
+    assert e600.aggregates["A"] == pytest.approx(fine.aggregates["A"], rel=0.01)

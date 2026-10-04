@@ -83,6 +83,8 @@ class Model:
         self._controls: list[str] = []
         self._drift: dict[str, str] = {}
         self._rate = "rho"
+        self._agg_shocks: list[tuple[str, Any]] = []
+        self._agg_state: tuple[str, np.ndarray, str] | None = None
 
     # ------------------------------------------------------------------ declarations
     def parameters(self, **values) -> Model:
@@ -170,6 +172,26 @@ class Model:
         self._taste = scale
         return self
 
+    def aggregate_shock(self, name: str, process) -> Model:
+        """An aggregate Markov shock (``dp.AR1`` or ``dp.Markov``) common to all agents,
+        e.g. TFP in Krusell and Smith (1998). Independent of the idiosyncratic shocks."""
+        if not hasattr(process, "discretize"):
+            raise ModelSpecError(f"aggregate shock {name!r}: process must be dp.AR1 or dp.Markov")
+        self._agg_shocks.append((str(name), process))
+        return self
+
+    def aggregate_state(self, name: str, grid, *, mean: str) -> Model:
+        """An aggregate state that agents forecast (Krusell and Smith 1998), e.g.
+        ``aggregate_state("K", np.linspace(30, 50, 7), mean="a")``: K is the
+        population mean of the state ``a`` and agents perceive
+        ``log K(+1) = b0[Z] + b1[Z]*log K`` per aggregate-shock state; ``solve``
+        finds the coefficients as the fixed point of simulate-and-regress."""
+        g = np.asarray(grid, dtype=float).ravel()
+        if g.size < 2 or np.any(g <= 0) or np.any(np.diff(g) <= 0):
+            raise ModelSpecError(f"aggregate state {name!r}: grid must be positive and strictly increasing")
+        self._agg_state = (str(name), g, str(mean))
+        return self
+
     def control(self, *names: str) -> Model:
         """Continuous-time controls (e.g. consumption ``"c"``), chosen at each instant."""
         self._controls.extend(str(n) for n in names)
@@ -225,7 +247,7 @@ class Model:
 
     def solve(self, method: str | None = None, *, backend: str = "numpy", tol: float = 1e-8,
               howard: int = 20, max_iter: int = 10_000, distribution: bool = True,
-              xtol: float = 1e-6, max_evals: int = 100) -> DPSolution:
+              xtol: float = 1e-6, max_evals: int = 100, ks: dict | None = None) -> DPSolution:
         """Compile and solve.
 
         ``method`` defaults to ``"hjb"`` for a model with a ``drift`` and ``"vfi"``
@@ -240,6 +262,11 @@ class Model:
         ``method="hjb"``: the implicit upwind scheme for continuous-time models
         (one state with a ``drift`` linear in one ``control``); ``tol`` and
         ``max_iter`` go to the HJB iteration.
+
+        With an ``aggregate_state`` the household VFI sits inside the
+        Krusell-Smith loop; ``ks`` holds its options (``T``, ``burn_in``,
+        ``seed``, ``damping``, ``tol``, ``max_outer``, initial ``mu0``, ``b0``,
+        ``b1``), see ``puremacro.dp._ks.solve_ks``.
         """
         if method is None:
             method = "hjb" if self._drift else "vfi"
@@ -253,7 +280,7 @@ class Model:
         if self._drift or self._controls:
             raise ModelSpecError("a model with drift() or control() is continuous-time; use method='hjb'")
         return self.check().solve(method=method, backend=backend, tol=tol, howard=howard, max_iter=max_iter,
-                                  distribution=distribution, xtol=xtol, max_evals=max_evals)
+                                  distribution=distribution, xtol=xtol, max_evals=max_evals, ks=ks)
 
     def __repr__(self) -> str:
         return (f"Model({self.name!r}, states={[s for s, _ in self._states]}, "
@@ -297,7 +324,8 @@ class _Compiled:
                 "the discrete VFI engine chooses every state's next value; "
                 f"choose() named {m._chosen}, states are {self.state_names}"
             )
-        self.shock_names = [s for s, _ in m._shocks]
+        self.shock_names = ([s for s, _ in m._shocks] + [s for s, _ in m._agg_shocks]
+                            + ([m._agg_state[0]] if m._agg_state else []))
         self.finite = m._horizon is not None
         names = self.state_names + self.shock_names + ([m._discrete[0]] if m._discrete else [])
         if len(set(names)) != len(names):
@@ -325,6 +353,24 @@ class _Compiled:
         else:
             self.z_grids = []
             self.P = np.ones((1, 1))
+        self.P_idio = self.P
+        self.P_agg = np.ones((1, 1))
+        if m._agg_shocks and m._agg_state is None:
+            raise ModelSpecError("aggregate_shock() needs an aggregate_state() that agents forecast")
+        if m._agg_state is not None:
+            kname, kgrid, mean = m._agg_state
+            if self.finite or m._prices or m._discrete or len(self.state_names) != 1:
+                raise ModelSpecError("aggregate risk (Krusell-Smith) supports one state, an infinite "
+                                     "horizon, no discrete choice and no prices()")
+            if mean != self.state_names[0]:
+                raise ModelSpecError(f"aggregate state {kname!r}: mean must be the state "
+                                     f"{self.state_names[0]!r}; got {mean!r}")
+            for k, proc in m._agg_shocks:
+                g, Pk = proc.discretize()
+                self.z_grids.append(np.asarray(g, dtype=float))
+                self.P_agg = np.kron(self.P_agg, np.asarray(Pk, dtype=float))
+            self.z_grids.append(kgrid)
+            self.P = np.kron(np.kron(self.P_idio, self.P_agg), np.eye(kgrid.size))   # set per forecast rule
         if self.finite and len(self.z_grids) > 1:
             raise ModelSpecError("FiniteHorizonProblem takes one exogenous shock; combine them with dp.Markov")
         self.z_arg = (self.z_grids[0] if len(self.z_grids) == 1
@@ -554,8 +600,17 @@ class _Compiled:
                           d_grid=self.d_grid, options=options)
 
     def solve(self, *, method="vfi", backend, tol, howard, max_iter, distribution, xtol,
-              max_evals) -> DPSolution:
+              max_evals, ks=None) -> DPSolution:
         m = self.model
+        if m._agg_state is not None:
+            if method not in ("vfi", "egm"):
+                raise ModelSpecError("aggregate risk (Krusell-Smith) is solved with method='vfi' or 'egm'")
+            from puremacro.dp._ks import solve_ks
+
+            options = dict(tol=tol, n_howard=int(howard), howard=int(howard) > 0, max_iter=max_iter)
+            return solve_ks(self, method=method, backend=backend, options=options, **(ks or {}))
+        if ks:
+            raise ModelSpecError("ks= options need an aggregate_state()")
         if method == "egm":
             return self._solve_egm(tol, max_iter, distribution, xtol, max_evals)
         if m._taste is not None:

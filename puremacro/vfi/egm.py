@@ -33,7 +33,8 @@ def egm_step(rhs, a_grid, income, R, u_prime_inv):
     """One EGM inversion: consumption on ``a_grid`` today given the Euler right side.
 
     ``rhs[i, z]`` is beta * E[R' u'(c') | z] when next assets are ``a_grid[i]``;
-    the budget today is c + a' = R*a + income[z]. Points whose endogenous assets
+    the budget today is c + a' = R*a + income[z], with ``R`` a scalar or one
+    gross return per shock state, shape (n_z,). Points whose endogenous assets
     fall below the first one are borrowing-constrained (a' = a_grid[0]).
     Returns consumption, shape (n_a, n_z), floored at 1e-10.
     """
@@ -58,7 +59,9 @@ def solve_egm(a_grid, z_grid, income, P_z, *, beta, r, gamma=None,
               tol: float = 1e-9, max_iter: int = 10_000):
     """EGM solve of the income-fluctuation problem; see module docstring.
 
-    ``income`` is y(z), shape (n_z,). Utility is CRRA with ``gamma`` unless both
+    ``income`` is y(z), shape (n_z,). ``r`` is a scalar or one net return per
+    shock state, shape (n_z,) (e.g. r(Z, K) under aggregate risk); then the
+    Euler equation is u'(c) = beta E[(1 + r') u'(c')]. Utility is CRRA with ``gamma`` unless both
     ``u_prime`` (c -> u'(c)) and ``u_prime_inv`` (u' -> c) are given. ``c0`` is an
     optional (n_a, n_z) initial consumption guess (warm start). Returns an
     EGMSolution with continuous policies on ``a_grid``. (The top of ``a_grid``
@@ -71,7 +74,9 @@ def solve_egm(a_grid, z_grid, income, P_z, *, beta, r, gamma=None,
     n_a, n_z = a.size, np.asarray(z_grid).shape[0]
     if not (0.0 < beta < 1.0):
         raise ValueError(f"beta must be in (0,1); got {beta}")
-    if r <= -1.0:
+    if np.ndim(r) and np.shape(r) != (n_z,):
+        raise ValueError(f"r must be a scalar or have shape ({n_z},); got {np.shape(r)}")
+    if np.any(np.asarray(r) <= -1.0):
         raise ValueError(f"r must be > -1; got {r}")
     if (u_prime is None) != (u_prime_inv is None):
         raise ValueError("pass both u_prime and u_prime_inv, or neither (CRRA with gamma)")
@@ -91,7 +96,7 @@ def solve_egm(a_grid, z_grid, income, P_z, *, beta, r, gamma=None,
         raise ValueError("a_grid must be strictly increasing")
     if P.shape != (n_z, n_z) or not np.allclose(P.sum(axis=1), 1.0, atol=1e-8) or np.any(P < -1e-12):
         raise ValueError("P_z must be (n_z,n_z) and row-stochastic")
-    R = 1.0 + r
+    R = 1.0 + (np.asarray(r, dtype=float) if np.ndim(r) else r)
     a_min = a[0]
     coh = R * a[:, None] + inc[None, :]                  # cash-on-hand (n_a, n_z)
     if c0 is None:
@@ -102,8 +107,11 @@ def solve_egm(a_grid, z_grid, income, P_z, *, beta, r, gamma=None,
             raise ValueError(f"c0 must have shape ({n_a}, {n_z}); got {c.shape}")
     sup = np.inf
     for it in range(1, max_iter + 1):
-        Emu = u_prime(c) @ P.T                          # E_{z'|z}[u'(c')], indexed (a', z)
-        c_new = egm_step(beta * R * Emu, a, inc, R, u_prime_inv)
+        if np.ndim(R):
+            rhs = beta * ((R[None, :] * u_prime(c)) @ P.T)   # E_{z'|z}[R' u'(c')]
+        else:
+            rhs = beta * R * (u_prime(c) @ P.T)             # E_{z'|z}[u'(c')], indexed (a', z)
+        c_new = egm_step(rhs, a, inc, R, u_prime_inv)
         sup = float(np.max(np.abs(c_new - c)))
         c = c_new
         if sup < tol:

@@ -70,6 +70,24 @@ Aiyagari equilibrium matches `solve_aiyagari_continuous_hjb` (r* to 1e-9).
 `Model.solve(method=None)` picks `"hjb"` for a model with a drift and `"vfi"`
 otherwise.
 
+**Aggregate risk in `dp` models (Krusell-Smith).** `aggregate_shock("Z", ...)`
+and `aggregate_state("K", grid, mean="a")` add the Krusell and Smith (1998)
+forecast-rule fixed point, with prices and technology written as model
+equations (any firm, any household reward). With the same grids and starting
+distribution, the Cobb-Douglas model reproduces `vfi.krusell_smith` bit for bit
+(forecast coefficients and capital path). `solve("egm")` solves the household
+by EGM and simulates with continuous policies: on a 100-point asset grid it
+converges in 36 outer iterations (24 s) to `b1` = 0.965 and 0.969 with R^2 above
+0.9999. Discrete VFI policies sit on grid nodes, so on a 60-point grid
+simulated capital never moves and the regression is degenerate; at its
+defaults (200 points) `vfi.krusell_smith` had not converged after its 60 outer
+iterations (470 s, `b1` = 0.897 and 0.954). Loop options go in
+`solve(ks=dict(T=..., burn_in=..., seed=..., damping=..., tol=..., max_outer=..., mu0=...))`.
+
+`vfi.solve_egm` and dp's EGM accept a return on assets that varies with the
+exogenous state (`r` of shape (n_z,); Euler u'(c) = beta E[(1 + r') u'(c')]).
+Scalar-`r` calls are unchanged.
+
 ## 4.5.0 (2026-10-03)
 
 **Honest convergence and corrected numbers: the wrong-number and false-success known issues of 4.4.0, each checked against an independent reference.**

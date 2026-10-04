@@ -62,7 +62,7 @@ class EGMHouseholdSolution:
     aprime: np.ndarray       # (n_a, n_z) next assets (values, not indices)
     n_iter: int
     sup_norm: float
-    R: float                 # gross return the budget implies
+    R: float | np.ndarray    # gross return the budget implies; (n_z,) when it varies with the shocks
     income: np.ndarray       # y(z), (n_z,); (n_d, n_z) with a discrete choice
     egm: EGMSolution | None = field(repr=False)
     policy_d: np.ndarray | None = None     # (n_a, n_z) discrete-choice indices (most likely option)
@@ -143,7 +143,7 @@ class EGMPlan:
         """(R, Y) with Y[d] the income of each discrete option; R may not depend on the option."""
         out = [self.budget(params, age, d) for d in self.dvals]
         R = out[0][0]
-        if any(abs(r - R) > 1e-10 * (1.0 + abs(R)) for r, _ in out):
+        if any(np.max(np.abs(np.asarray(r) - R)) > 1e-10 * (1.0 + np.max(np.abs(R))) for r, _ in out):
             raise ModelSpecError("method='egm' needs the return on assets R not to depend on the discrete choice")
         return R, np.stack([y for _, y in out])
 
@@ -159,18 +159,25 @@ class EGMPlan:
                                  "(budget c + a(+1) = R*a + y(z))")
         coh2 = coh[:, 0, :]
         slopes = np.diff(coh2, axis=0) / np.diff(a)[:, None]
-        R = float(np.mean(slopes))
-        if np.max(np.abs(slopes - R)) > 1e-8 * (1.0 + abs(R)):
-            raise ModelSpecError(f"method='egm' needs {self.cname} + a(+1) linear in a with one slope "
-                                 "for every shock (budget c + a(+1) = R*a + y(z))")
-        if R <= 0:
-            raise ModelSpecError(f"method='egm' needs a positive gross return R; got {R:.6g}")
+        Rz = np.mean(slopes, axis=0)
+        if np.max(np.abs(slopes - Rz[None, :])) > 1e-8 * (1.0 + np.max(np.abs(Rz))):
+            raise ModelSpecError(f"method='egm' needs {self.cname} + a(+1) linear in a "
+                                 "(budget c + a(+1) = R*a + y(z))")
+        if np.any(Rz <= 0):
+            raise ModelSpecError(f"method='egm' needs a positive gross return R; got {Rz.min():.6g}")
+        R = float(np.mean(Rz)) if np.ptp(Rz) <= 1e-12 * (1.0 + np.max(np.abs(Rz))) else Rz
         feasible = np.isfinite(np.broadcast_to(
             self._call(self.comp.household, nxt, cur, 3, params, age, d), c3.shape))
         if not np.array_equal(feasible, c3 > 0):
             raise ModelSpecError(f"method='egm' supports exactly the constraint {self.cname} > 0 (plus the "
                                  "grid's borrowing limit); the declared constraints or reward domain differ")
         return R, coh2[0] - R * a[0]
+
+    def _scalar_R(self, R, age):
+        if np.ndim(R):
+            raise ModelSpecError(f"life-cycle EGM needs one return on assets per age; at age {age} it "
+                                 "varies with the shocks")
+        return R
 
     # ------------------------------------------------------------ solving
     def solve_household(self, params: dict, *, tol: float, max_iter: int, c0=None) -> EGMHouseholdSolution:
@@ -245,7 +252,8 @@ class EGMPlan:
         surv = self._survival()
         Rs, ys, ups, invs = np.empty(J), np.empty((J, n_z)), [], []
         for j in range(J):
-            Rs[j], ys[j] = self.budget(params, age=j)
+            R_j, ys[j] = self.budget(params, age=j)
+            Rs[j] = self._scalar_R(R_j, j)
             _, up, inv = self._u_funcs(self.at_age(params, j), float(np.max(Rs[j] * a[-1] + ys[j]) - a[0]))
             ups.append(up)
             invs.append(inv)
@@ -344,7 +352,8 @@ class EGMPlan:
         Rs, Ys = np.empty(J), np.empty((J, n_d, n_z))
         funcs = []
         for j in range(J):
-            Rs[j], Ys[j] = self.budgets(params, age=j)
+            R_j, Ys[j] = self.budgets(params, age=j)
+            Rs[j] = self._scalar_R(R_j, j)
             funcs.append(self._dc_funcs(self.at_age(params, j), Rs[j], Ys[j]))
         c_all = np.empty((J, n_d, n_a, n_z))
         ap_all = np.empty((J, n_d, n_a, n_z))
