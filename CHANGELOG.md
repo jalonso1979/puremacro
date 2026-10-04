@@ -28,6 +28,15 @@ Each defect has an entry in `docs/ADVISORY.md`.
 
 **Empirical-to-structural research workflows, seven new MRIO trade engines, and the verified fixes of the 30 September library review.**
 
+**Declarative dynamic programming front end (`puremacro.dp`).** Declare states,
+shocks, choices, a reward, constraints and an optional market-clearing condition
+as equations in Dynare expression syntax (parsed by the `.mod` parser), and
+`Model.solve()` compiles them to `VFIProblem`, `FiniteHorizonProblem` or
+`stationary_equilibrium`. No return-function closures, grid broadcasting or
+positional parameter lists. Aiyagari, Huggett, the life-cycle and two-asset
+examples written as `dp` models reproduce `vfi.examples` exactly (same prices,
+policies and value functions). `vfi.Model` is superseded and now warns.
+
 **Controlled SW07 estimator and GE incidence applications.** A fast exact
 finite-sample expectation map supports paired comparisons of moment corrections
 and oracle/HAC weights, with separate calibration/validation draws, authenticated
