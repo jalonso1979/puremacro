@@ -74,6 +74,7 @@ def test_no_matlab_sources_are_distributed():
         # Driver of the 2026-10-03 MATLAB run that produced the clean-table trade
         # references; the model code it calls is not in the repository.
         "tools/reference_validation/trade_clean_table/run_scenarios_clean.m",
+        "tools/reference_validation/trade_clean_table/solve_scenario_fsolve.m",
         "curso/notebooks/modelos/rbc_mexico_dual/Output/rbc_mexico_dual_results.mat",
     }
     offenders = [
