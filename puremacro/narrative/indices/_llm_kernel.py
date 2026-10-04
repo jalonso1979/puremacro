@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import hashlib
 import os
-import sqlite3
+from puremacro._optional_stdlib import sqlite3
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Iterable, Iterator

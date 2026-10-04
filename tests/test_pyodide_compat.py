@@ -327,3 +327,65 @@ def test_the_absent_dep_blocker_actually_blocks():
     assert blocked == set(_ABSENT_IN_BROWSER), (
         "the meta_path blocker did not stop every forbidden dep — the absent-deps "
         f"sweep is not testing what it claims. Blocked: {sorted(blocked)}")
+
+
+# ---------------------------------------------------------------------------
+# Standard-library modules that Pyodide 0.28 does not vendor
+# ---------------------------------------------------------------------------
+#
+# The 2026-10-03 headless gallery run (reviews/2026-10-03-pyodide-gallery) found
+# that importing ``puremacro.narrative`` failed on Pyodide 0.28.3 because the
+# import chain reached ``import sqlite3`` and ``import ssl`` at module level;
+# both are unvendored there (load-on-request) while Pyodide 314 and CPython
+# have them. Shippable modules therefore import them through
+# ``puremacro._optional_stdlib``, which degrades to a placeholder that fails at
+# first use instead of at import. The absent-dependency blocker above cannot
+# test this (``requests`` itself needs ``ssl``), so the guard is static.
+_PYODIDE_UNVENDORED_STDLIB = ("sqlite3", "ssl")
+_EAGER_STDLIB_IMPORT = re.compile(
+    r"^(?:import (sqlite3|ssl)\b|from (sqlite3|ssl)(?:\.|\s+import\b))", re.M
+)
+
+
+def test_no_module_level_imports_of_pyodide_unvendored_stdlib():
+    from pathlib import Path
+
+    root = Path(puremacro.__file__).resolve().parent
+    offenders = []
+    for path in root.rglob("*.py"):
+        rel = path.relative_to(root).as_posix()
+        if rel.startswith(("examples/", "tests/", "teaching/")) or rel == "_optional_stdlib.py":
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for m in _EAGER_STDLIB_IMPORT.finditer(text):
+            line_no = text.count("\n", 0, m.start()) + 1
+            offenders.append(f"{rel}:{line_no}: {m.group(0).strip()}")
+    assert not offenders, (
+        "module-level import of a stdlib module that Pyodide 0.28 does not vendor; "
+        "use `from puremacro._optional_stdlib import sqlite3, ssl` instead:\n  "
+        + "\n  ".join(offenders)
+    )
+
+
+def test_optional_stdlib_placeholder_fails_at_use_not_at_import():
+    """With ``sqlite3`` unavailable the library still imports; the first use raises ImportError."""
+    code = "\n".join([
+        "import importlib, sys",
+        "sys.modules['sqlite3'] = None  # simulate a build without it",
+        "sys.modules.pop('puremacro._optional_stdlib', None)",
+        "import puremacro._optional_stdlib as o",
+        "assert not o.sqlite3, repr(o.sqlite3)",
+        "import puremacro.narrative  # must not fail",
+        "try:",
+        "    o.sqlite3.connect(':memory:')",
+        "except ImportError as e:",
+        "    assert 'sqlite3' in str(e) and 'loadPackage' in str(e), str(e)",
+        "else:",
+        "    raise SystemExit('placeholder did not raise')",
+        "print('OK')",
+    ])
+    from pathlib import Path
+
+    repo_root = Path(__file__).resolve().parents[1]
+    proc = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, cwd=str(repo_root))
+    assert proc.returncode == 0 and proc.stdout.strip().endswith("OK"), proc.stderr[-2000:]

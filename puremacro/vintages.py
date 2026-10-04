@@ -154,7 +154,7 @@ def __getattr__(name: str):
 # untouched; this class adds the store-backed counterpart so research
 # notebooks don't refetch ALFRED on every kernel restart.
 
-import sqlite3 as _sqlite3
+from puremacro._optional_stdlib import sqlite3 as _sqlite3
 import warnings as _warnings
 from pathlib import Path as _Path
 

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
+from puremacro._optional_stdlib import sqlite3
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Iterable, Iterator, Sequence

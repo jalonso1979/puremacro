@@ -1,0 +1,102 @@
+== Pyodide (Node-hosted) ==
+    Pyodide 0.28.3 on Node v26.10.0, Python 3.13.2; wheel puremacro-4.5.0-py3-none-any.whl (sha256 34db88cec2e1...)
+    boot 0.97 s, micropip install 2.118 s, import + discovery 1.332 s
+    packages: matplotlib 3.8.4, numpy 2.2.5, pandas 2.3.1, puremacro 4.5.0, requests 2.32.4, scipy 1.14.1
+    cases 110, passed 109, failed 1; gallery 31.545 s, total runner wall time 36.023 s
+  by subsystem:
+    subsystem      cases  passed  seconds
+    -------------  -----  ------  -------
+    cointegration  4      4       1.097  
+    did            11     11      1.413  
+    dsge           6      6       0.602  
+    dynpanel       7      7       9.652  
+    forecast       6      6       2.460  
+    garch          7      7       0.683  
+    inference      9      9       0.041  
+    lp             6      6       0.106  
+    narrative      7      6       0.047  
+    spatial        12     12      0.120  
+    spectral       6      6       0.011  
+    state_space    6      6       0.034  
+    unit_root      3      3       0.006  
+    var            15     15      0.103  
+    vfi            5      5       15.171 
+  by mechanism:
+    mechanism   cases  passed  seconds
+    ----------  -----  ------  -------
+    analytical  31     30      7.133  
+    internal    59     59      24.220 
+    package     13     13      0.177  
+    published   2      2       0.000  
+    scipy       5      5       0.015  
+  10 slowest cases:
+    case                                          subsystem      seconds
+    --------------------------------------------  -------------  -------
+    vfi.egm_matches_vfi_policy                    vfi            10.426 
+    vfi.neoclassical_brock_mirman_policy          vfi            4.549  
+    dynpanel.ab_recovers_rho                      dynpanel       4.412  
+    forecast.crps_ensemble_vs_gaussian            forecast       2.393  
+    dynpanel.ab_within_sampling_band              dynpanel       2.089  
+    dynpanel.hansen_j_does_not_reject             dynpanel       1.220  
+    dynpanel.ar_test_ar1_present_ar2_absent       dynpanel       1.178  
+    cointegration.fmols_planted_beta              cointegration  1.088  
+    did.callaway_santanna_recovers_canonical_2x2  did            0.619  
+    dynpanel.bb_recovers_rho                      dynpanel       0.611  
+  failures:
+    narrative.count_keywords_known_counts (narrative, analytical/exact): max_margin n/a; ModuleNotFoundError: No module named 'sqlite3'
+
+== Desktop (this interpreter) ==
+    CPython 3.13.12 on macOS-27.2-arm64-arm-64bit-Mach-O; puremacro from /Users/jalonso/Documents/RESEARCH/puremacro/puremacro/__init__.py
+    import + discovery 0.635 s
+    packages: matplotlib 3.11.1, numpy 2.4.6, pandas 3.0.6, requests 2.34.2, scipy 1.18.1
+    cases 110, passed 110, failed 0; gallery 22.044 s, total runner wall time 22.751 s
+  by subsystem:
+    subsystem      cases  passed  seconds
+    -------------  -----  ------  -------
+    cointegration  4      4       0.949  
+    did            11     11      1.127  
+    dsge           6      6       0.464  
+    dynpanel       7      7       3.430  
+    forecast       6      6       3.702  
+    garch          7      7       0.389  
+    inference      9      9       0.021  
+    lp             6      6       0.072  
+    narrative      7      7       0.178  
+    spatial        12     12      0.082  
+    spectral       6      6       0.006  
+    state_space    6      6       0.022  
+    unit_root      3      3       0.006  
+    var            15     15      0.078  
+    vfi            5      5       11.516 
+  by mechanism:
+    mechanism   cases  passed  seconds
+    ----------  -----  ------  -------
+    analytical  31     31      5.380  
+    internal    59     59      16.529 
+    package     13     13      0.126  
+    published   2      2       0.000  
+    scipy       5      5       0.009  
+  10 slowest cases:
+    case                                          subsystem      seconds
+    --------------------------------------------  -------------  -------
+    vfi.egm_matches_vfi_policy                    vfi            7.969  
+    forecast.crps_ensemble_vs_gaussian            forecast       3.660  
+    vfi.neoclassical_brock_mirman_policy          vfi            3.389  
+    dynpanel.ab_recovers_rho                      dynpanel       1.008  
+    cointegration.fmols_planted_beta              cointegration  0.945  
+    dynpanel.ab_within_sampling_band              dynpanel       0.782  
+    dynpanel.hansen_j_does_not_reject             dynpanel       0.589  
+    did.callaway_santanna_recovers_canonical_2x2  did            0.549  
+    dynpanel.ar_test_ar1_present_ar2_absent       dynpanel       0.527  
+    dsge.klein_forward_policy_loading             dsge           0.453  
+  failures: none
+
+== Pyodide vs desktop: 6 discrepancies (margin tolerance 1e-09) ==
+    garch.params_vs_arch: max_margin -0.00045647299163260673 in Pyodide vs -0.0004564597704908906 on desktop
+    garch.cond_vol_vs_arch: max_margin -0.009107527962799884 in Pyodide vs -0.009107560900400642 on desktop
+    garch.simulate_then_recover: max_margin -0.0017221381340429935 in Pyodide vs -0.0017221249129012774 on desktop
+    inference.supt_monotonic_over_pointwise: max_margin -0.7219110473463879 in Pyodide vs -0.7223810626943068 on desktop
+    narrative.count_keywords_known_counts: passed False in Pyodide vs True on desktop
+    narrative.count_keywords_known_counts: max_margin None in Pyodide vs -1e-12 on desktop
+    gallery time 31.545 s in Pyodide vs 22.044 s on the desktop (1.43x)
+wrapper exit=1

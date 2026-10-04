@@ -21,7 +21,7 @@ emit a ``UserWarning`` and silently no-op.
 from __future__ import annotations
 
 import os
-import sqlite3
+from puremacro._optional_stdlib import sqlite3
 import time
 import warnings
 from typing import TYPE_CHECKING

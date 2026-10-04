@@ -49,3 +49,16 @@ JSON document to stdout:
 Exit 0 if the JSON envelope was emitted (regardless of
 `pytest_returncode`); non-zero only if Pyodide failed to boot or
 `runner.js` itself crashed before producing JSON.
+
+## Gallery runner (`gallery_runner.js`, 4.6.0)
+
+`node tools/pyodide/gallery_runner.js --wheel <puremacro-*.whl> [--out results.json] [--pyodide <npm package dir>] [--preload sqlite3,ssl]`
+boots Pyodide the same way `runner.js` does (dependencies resolved from the Pyodide
+distribution, nothing from PyPI), then runs every case of `puremacro.validation` one by
+one with `tools/pyodide/gallery_cases.py` and emits one JSON envelope: versions, install
+time, and per case `id`, `subsystem`, `mechanism`, `tol`, `passed`, `max_margin`, `error`,
+`seconds`. `tools/pyodide_gallery.py` builds the wheel, runs the runner, and compares
+with a desktop run of the same file (`--desktop-json`). `--pyodide` points it at another
+Pyodide package, for example the playground kernel's `pyodide@314.0.5` installed in a
+scratch directory; `--preload` is for diagnosis only (the playground preloads nothing).
+Results of the 2026-10-03 run are in `reviews/2026-10-03-pyodide-gallery/`.
