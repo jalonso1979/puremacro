@@ -20,13 +20,14 @@ snapshots the repository's package even when another puremacro is installed.*
 - **Docs / playground:** <https://jalonso1979.github.io/puremacro/>, deployed by
   `pages.yml` on every push to `main`.
 
-### The three workflows
+### The four workflows
 
 | file | trigger | what it does |
 |---|---|---|
 | `ci.yml` | push / PR to `main`; also called by `release.yml` (`workflow_call`) | pytest on 9 targets (ubuntu + macos + windows × Python 3.11–3.13; 3.10 is below `requires-python` and was dropped), then `release_check.py --no-tests` on ubuntu/3.11 and ubuntu/3.12, and a strict `mkdocs build` on ubuntu/3.12 |
-| `release.yml` | push of a `v*` tag | job `ci` runs the whole `ci.yml` on the tagged commit; only if it passes (`needs: ci`) does `build-and-publish` build → `twine check` → publish to PyPI (`environment: pypi`, `id-token: write`). A red suite blocks the upload, and the tag is left in place: fix forward with a new tag, or re-run the failed jobs if the failure was flaky |
+| `release.yml` | push of a `v*` tag | job `ci` runs the whole `ci.yml` and job `opt-in` runs `opt-in-tests.yml` on the tagged commit; only if both pass (`needs: [ci, opt-in]`) does `build-and-publish` build → `twine check` → publish to PyPI (`environment: pypi`, `id-token: write`). A red suite blocks the upload, and the tag is left in place: fix forward with a new tag, or re-run the failed jobs if the failure was flaky |
 | `pages.yml` | push to `main`, or manual | builds the JupyterLite playground + mkdocs site, deploys to Pages |
+| `opt-in-tests.yml` | Mondays 05:17 UTC; manual; called by `release.yml` (`workflow_call`) | the `slow`, `reference` and `replication` markers that the default `pytest` deselects, on ubuntu / Python 3.12 (job `opt-in`, about an hour on a shared runner; it gates the release). A second job executes every notebook (43 of the 74 local minutes) on the schedule and on demand only. Added 2026-10-03 after the measured run: 115 passed, 9 skipped. |
 
 **There is exactly one publishing workflow.** A second one (`publish.yml`) used to exist on
 the same `v*` trigger; only `release.yml` is registered with the PyPI trusted publisher, so
