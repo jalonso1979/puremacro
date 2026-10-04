@@ -8619,6 +8619,17 @@
     "puremacro.dp.processes.Markov": [
       "P",
       "grid"
+    ],
+    "puremacro.dp._egm.EGMHouseholdSolution": [
+      "R",
+      "V",
+      "aprime",
+      "c",
+      "egm",
+      "income",
+      "n_iter",
+      "policy_d",
+      "sup_norm"
     ]
   }
 }

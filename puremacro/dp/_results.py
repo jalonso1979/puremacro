@@ -12,18 +12,19 @@ from puremacro.reports import df_to_latex, df_to_markdown, df_to_typst
 class DPSolution:
     """Solved dp model: value, policies, distribution, prices and aggregates.
 
-    ``raw`` is the underlying ``VFISolution`` or ``FiniteHorizonSolution`` and
+    ``raw`` is the underlying ``VFISolution``, ``FiniteHorizonSolution`` or
+    ``EGMHouseholdSolution`` (``method="egm"``; continuous ``c``/``aprime``) and
     ``equilibrium`` the ``EquilibriumResult`` when prices were solved for.
     Arrays are (n_states, n_shocks), with a leading age axis for finite horizons.
     """
 
     def __init__(self, compiled, raw, *, params: dict, distribution=None,
                  aggregates: dict | None = None, prices: dict | None = None,
-                 equilibrium=None):
+                 equilibrium=None, method: str | None = None):
         self._c = compiled
         self.raw = raw
         self.model_name = compiled.model.name
-        self.method = "vfi-finite" if compiled.finite else "vfi"
+        self.method = method or ("vfi-finite" if compiled.finite else "vfi")
         self.params = dict(params)
         self.distribution = distribution
         self.aggregates = dict(aggregates or {})

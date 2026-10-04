@@ -2,6 +2,29 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## Unreleased
+
+**Declarative dynamic programming front end (`puremacro.dp`).** Declare states,
+shocks, choices, a reward, constraints and an optional market-clearing condition
+as equations in Dynare expression syntax (parsed by the `.mod` parser), and
+`Model.solve()` compiles them to `VFIProblem`, `FiniteHorizonProblem` or
+`stationary_equilibrium`. No return-function closures, grid broadcasting or
+positional parameter lists. Aiyagari, Huggett, the life-cycle and two-asset
+examples written as `dp` models reproduce `vfi.examples` exactly (same prices,
+policies and value functions). `vfi.Model` is superseded and now warns.
+
+**Endogenous grid method for `dp` models.** `Model.solve(method="egm")` compiles
+a one-asset model whose budget is `c + a(+1) = R*a + y(z)` to `vfi.solve_egm`.
+The compiler checks that form (symbolically for the reward, numerically on the
+grid for the budget and constraints) and raises `ModelSpecError` otherwise.
+Marginal utility is the symbolic derivative of the reward, so felicities other
+than CRRA work (closed-form inverse for `crra` and `log`, bisection otherwise).
+Stationary equilibria warm-start each price evaluation. On the Aiyagari example
+the equilibrium takes 0.8 s against 4.6 s for discrete VFI, and the EGM value
+function is closer to a 1,500-point VFI solution. `vfi.solve_egm` takes
+`u_prime`/`u_prime_inv` (any concave felicity) and a `c0` warm start; CRRA calls
+are unchanged.
+
 ## 4.5.0 (2026-10-03)
 
 **Honest convergence and corrected numbers: the wrong-number and false-success known issues of 4.4.0, each checked against an independent reference.**
@@ -27,15 +50,6 @@ Each defect has an entry in `docs/ADVISORY.md`.
 ## 4.4.0 (2026-10-02)
 
 **Empirical-to-structural research workflows, seven new MRIO trade engines, and the verified fixes of the 30 September library review.**
-
-**Declarative dynamic programming front end (`puremacro.dp`).** Declare states,
-shocks, choices, a reward, constraints and an optional market-clearing condition
-as equations in Dynare expression syntax (parsed by the `.mod` parser), and
-`Model.solve()` compiles them to `VFIProblem`, `FiniteHorizonProblem` or
-`stationary_equilibrium`. No return-function closures, grid broadcasting or
-positional parameter lists. Aiyagari, Huggett, the life-cycle and two-asset
-examples written as `dp` models reproduce `vfi.examples` exactly (same prices,
-policies and value functions). `vfi.Model` is superseded and now warns.
 
 **Controlled SW07 estimator and GE incidence applications.** A fast exact
 finite-sample expectation map supports paired comparisons of moment corrections

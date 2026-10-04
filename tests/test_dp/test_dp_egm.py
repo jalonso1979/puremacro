@@ -1,0 +1,150 @@
+"""dp models compiled to the endogenous grid method (``solve(method="egm")``).
+
+Parity is exact against hand-called ``vfi.solve_egm`` (same algorithm, grids and
+chain), for CRRA through the closed-form inverse and for other felicities
+through the symbolic derivative and the numeric inverse.
+"""
+from __future__ import annotations
+
+import numpy as np
+import pytest
+from scipy.optimize import brentq
+
+from puremacro import dp
+from puremacro.dp import ModelSpecError
+from puremacro.vfi.distribution import lottery_distribution
+from puremacro.vfi.egm import solve_egm
+
+ALPHA, DELTA, BETA = 0.36, 0.08, 0.96
+A_GRID = np.linspace(1e-4, 80.0, 150)
+
+
+def wage(r):
+    return (1 - ALPHA) * ((ALPHA / (r + DELTA)) ** (1 / (1 - ALPHA))) ** ALPHA
+
+
+def household(reward="crra(c, gamma)", gamma=1.0, r=0.03, **params):
+    m = dp.Model("household")
+    m.parameters(beta=BETA, gamma=gamma, alpha=ALPHA, delta=DELTA, r=r, **params)
+    m.exogenous("z", dp.AR1(rho=0.9, sigma=0.2, n=5))
+    m.state("a", A_GRID)
+    m.local("w = (1 - alpha)*((alpha/(r + delta))^(1/(1 - alpha)))^alpha")
+    m.local("c = w*exp(z) + (1 + r)*a - a(+1)")
+    m.reward(reward)
+    m.subject_to("c > 0")
+    return m
+
+
+def reference(sol, r=0.03, **kw):
+    z = sol.grids["z"]
+    return solve_egm(A_GRID, z, wage(r) * np.exp(z), sol.P, beta=BETA, r=r, tol=1e-10, **kw)
+
+
+def test_crra_household_matches_solve_egm():
+    sol = household().solve("egm", tol=1e-10)
+    ref = reference(sol, gamma=1.0)
+    assert sol.method == "egm"
+    np.testing.assert_allclose(sol.raw.c, ref.c, rtol=0, atol=1e-12)
+    np.testing.assert_allclose(sol.policy("a(+1)"), ref.aprime, rtol=0, atol=1e-12)
+    np.testing.assert_allclose(sol.policy("c"), ref.c, rtol=0, atol=1e-12)
+    assert sol.raw.R == pytest.approx(1.03, abs=1e-12)
+
+
+def test_explicit_power_utility_uses_numeric_inverse():
+    sol = household("(c^(1 - gamma) - 1)/(1 - gamma)", gamma=2.0).solve("egm", tol=1e-10)
+    ref = reference(sol, gamma=2.0)
+    np.testing.assert_allclose(sol.raw.c, ref.c, rtol=0, atol=1e-9)
+
+
+def test_cara_utility_matches_solve_egm_with_custom_marginal_utility():
+    theta = 0.7
+    sol = household("-exp(-theta*c)/theta", theta=theta).solve("egm", tol=1e-10)
+    ref = reference(sol, u_prime=lambda c: np.exp(-theta * c),
+                    u_prime_inv=lambda x: -np.log(x) / theta)
+    np.testing.assert_allclose(sol.raw.c, ref.c, rtol=0, atol=1e-9)
+
+
+def test_value_function_solves_the_policy_bellman_equation():
+    sol = household(gamma=2.0).solve("egm", tol=1e-10)
+    a, ap, P = A_GRID, sol.raw.aprime, sol.P
+    EV = np.stack([np.interp(ap[:, z], a, sol.V @ P[z]) for z in range(P.shape[0])], axis=1)
+    c = sol.raw.c
+    u = (c ** -1.0 - 1.0) / -1.0
+    np.testing.assert_allclose(sol.V, u + BETA * EV, rtol=0, atol=1e-9)
+
+
+def test_value_function_approaches_fine_grid_vfi():
+    m = household(gamma=2.0)
+    m._states = [("a", np.linspace(1e-4, 80.0, 600))]
+    e, v = m.solve("egm", tol=1e-10), m.solve(tol=1e-10, howard=40)
+    assert np.max(np.abs(e.V - v.V)) < 0.1     # 1.55 at 150 points, 0.016 at 1500
+
+
+def aiyagari():
+    m = dp.Model("aiyagari")
+    m.parameters(beta=BETA, gamma=1.0, alpha=ALPHA, delta=DELTA)
+    m.prices(r=(0.005, 1.0 / BETA - 1.0 - 0.002))
+    m.exogenous("z", dp.AR1(rho=0.9, sigma=0.2, n=5))
+    m.state("a", A_GRID)
+    m.local("w = (1 - alpha)*((alpha/(r + delta))^(1/(1 - alpha)))^alpha")
+    m.local("c = w*exp(z) + (1 + r)*a - a(+1)")
+    m.reward("crra(c, gamma)")
+    m.subject_to("c > 0")
+    m.aggregate(K="a", L="exp(z)")
+    m.clear("K - L*(alpha/(r + delta))^(1/(1 - alpha))")
+    return m
+
+
+def test_aiyagari_equilibrium_matches_hand_written_egm_loop():
+    sol = aiyagari().solve("egm", tol=1e-10, xtol=1e-10)
+    z, P = sol.grids["z"], sol.P
+    L = float(np.linalg.matrix_power(P.T, 2000)[:, 0] @ np.exp(z))
+
+    def resid(r):
+        e = solve_egm(A_GRID, z, wage(r) * np.exp(z), P, beta=BETA, r=r, gamma=1.0, tol=1e-10)
+        mu = lottery_distribution(e.aprime, A_GRID, P)
+        return float(np.sum(mu * A_GRID[:, None])) - L * (ALPHA / (r + DELTA)) ** (1 / (1 - ALPHA))
+
+    r_ref = brentq(resid, 0.005, 1.0 / BETA - 1.0 - 0.002, xtol=1e-10)
+    assert sol.prices["r"] == pytest.approx(r_ref, abs=1e-8)
+    assert sol.equilibrium.residual == pytest.approx(0.0, abs=1e-4)
+    assert sol.aggregates["L"] == pytest.approx(L, abs=1e-10)
+    vfi = aiyagari().solve(tol=1e-9, howard=40)
+    assert sol.prices["r"] == pytest.approx(vfi.prices["r"], abs=1e-3)
+
+
+def test_huggett_with_negative_borrowing_limit():
+    m = dp.Model("huggett")
+    m.parameters(beta=BETA, gamma=1.5)
+    m.prices(r=(-0.5, 1.0 / BETA - 1.0 - 0.002))
+    m.exogenous("z", dp.AR1(rho=0.9, sigma=0.2, n=7))
+    m.state("b", np.linspace(-2.0, 24.0, 200))
+    m.local("c = (1 + r)*b + exp(z) - b(+1)")
+    m.reward("crra(c, gamma)")
+    m.subject_to("c > 0")
+    m.aggregate(B="b")
+    m.clear("B")
+    e = m.solve("egm", tol=1e-10, xtol=1e-10)
+    v = m.solve(tol=1e-9, howard=40)
+    assert abs(e.aggregates["B"]) < 1e-6
+    assert e.prices["r"] == pytest.approx(v.prices["r"], abs=2e-3)
+
+
+@pytest.mark.parametrize("change, match", [
+    (lambda m: m.discrete("h", [0.0, 1.0]), "discrete"),
+    (lambda m: m.horizon(5), "infinite horizon"),
+    (lambda m: m.state("k", np.linspace(0.1, 1.0, 5)), "exactly one state"),
+    (lambda m: m.local("c = w*exp(z) + (1 + r)*a - a(+1) - 0.01*a(+1)^2"), "not to depend on a"),
+    (lambda m: m.local("c = w*exp(z) + (1 + r)*a + 0.01*a^2 - a(+1)"), "linear in a"),
+    (lambda m: m.subject_to("a(+1) >= 1"), "exactly the constraint"),
+    (lambda m: m.reward("crra(c, gamma) + 0.1*a"), "consumption as a local"),
+    (lambda m: m.reward("crra(c, gamma)*exp(z)"), "otherwise on parameters"),
+    (lambda m: m.reward("c"), "strictly concave"),
+])
+def test_models_outside_egm_are_rejected(change, match):
+    m = household()
+    if "local" in getattr(change, "__code__").co_names:
+        m._locals = m._locals[:1]
+    change(m)
+    with pytest.raises(ModelSpecError, match=match):
+        m.solve("egm")

@@ -51,7 +51,7 @@ from puremacro.vfi.equilibrium import stationary_equilibrium
 from puremacro.vfi.finite_horizon import FiniteHorizonProblem, life_cycle_distribution
 from puremacro.vfi.problem import VFIProblem
 
-_METHODS = ("vfi",)
+_METHODS = ("vfi", "egm")
 
 
 class Model:
@@ -197,14 +197,18 @@ class Model:
               xtol: float = 1e-6, max_evals: int = 100) -> DPSolution:
         """Compile and solve.
 
-        ``method="vfi"`` is the only phase-1 method: discrete VFI with ``howard``
-        policy-improvement steps for infinite horizons, backward induction for a
-        finite horizon. With prices and a ``clear`` condition the household solve
-        is wrapped in ``stationary_equilibrium`` (brentq, ``xtol``).
+        ``method="vfi"``: discrete VFI with ``howard`` policy-improvement steps
+        for infinite horizons, backward induction for a finite horizon.
+        ``method="egm"``: the endogenous grid method (continuous policies, no
+        grid search) for one-asset models whose budget is
+        ``c + a(+1) = R*a + y(z)``; the compiler checks that and raises
+        ModelSpecError otherwise. ``tol`` is the EGM consumption tolerance and
+        ``howard``/``backend`` do not apply. With prices and a ``clear``
+        condition the household solve is wrapped in a brentq root-find (``xtol``).
         """
         if method not in _METHODS:
             raise ModelSpecError(f"method must be one of {_METHODS}; got {method!r}")
-        return self.check().solve(backend=backend, tol=tol, howard=howard, max_iter=max_iter,
+        return self.check().solve(method=method, backend=backend, tol=tol, howard=howard, max_iter=max_iter,
                                   distribution=distribution, xtol=xtol, max_evals=max_evals)
 
     def __repr__(self) -> str:
@@ -441,15 +445,19 @@ class _Compiled:
     # ------------------------------------------------------------------ evaluation
     def evaluate(self, fn, sol, params: dict, age: int | None = None) -> np.ndarray:
         """Evaluate a household-signature function at the solved policy, shape (n_a, n_z)."""
-        pol = sol.policy_aprime if age is None else sol.policy_aprime[age]
         pold = None
         if sol.policy_d is not None:
             pold = sol.policy_d if age is None else sol.policy_d[age]
         shape = tuple(g.size for g in self.state_grids)
         n_a = int(np.prod(shape))
         cur = [c.reshape(n_a, 1) for c in np.meshgrid(*self.state_grids, indexing="ij")]
-        nxt_idx = np.unravel_index(np.asarray(pol), shape)
-        nxt = [g[i] for g, i in zip(self.state_grids, nxt_idx)]
+        if hasattr(sol, "aprime"):          # EGM: continuous next-state values
+            pol = np.asarray(sol.aprime)
+            nxt = [pol]
+        else:
+            pol = sol.policy_aprime if age is None else sol.policy_aprime[age]
+            nxt_idx = np.unravel_index(np.asarray(pol), shape)
+            nxt = [g[i] for g, i in zip(self.state_grids, nxt_idx)]
         zs: list[np.ndarray] = [np.zeros((1, 1))]
         if self.z_grids:
             n_z = int(np.prod([g.size for g in self.z_grids]))
@@ -481,8 +489,11 @@ class _Compiled:
                           return_fn=self.household, beta=self.beta, params=params,
                           d_grid=self.d_grid, options=options)
 
-    def solve(self, *, backend, tol, howard, max_iter, distribution, xtol, max_evals) -> DPSolution:
+    def solve(self, *, method="vfi", backend, tol, howard, max_iter, distribution, xtol,
+              max_evals) -> DPSolution:
         m = self.model
+        if method == "egm":
+            return self._solve_egm(tol, max_iter, distribution, xtol, max_evals)
         options = dict(tol=tol, n_howard=int(howard), howard=int(howard) > 0, max_iter=max_iter)
         if self.finite:
             if m._prices:
@@ -496,6 +507,21 @@ class _Compiled:
         mu = prob.stationary_distribution(sol) if distribution else None
         aggs = self.aggregate_values(sol, mu, params) if (mu is not None and self.aggregates) else {}
         return DPSolution(self, sol, params=params, distribution=mu, aggregates=aggs)
+
+    def _solve_egm(self, tol, max_iter, distribution, xtol, max_evals) -> DPSolution:
+        from puremacro.dp._egm import EGMPlan
+
+        plan = EGMPlan(self)
+        if self.model._prices:
+            eq, params, aggs = plan.equilibrium(tol=tol, max_iter=max_iter, xtol=xtol, max_evals=max_evals)
+            (pname, _), = self.model._prices.items()
+            return DPSolution(self, eq.solution, params=params, distribution=eq.distribution,
+                              aggregates=aggs, prices={pname: eq.price}, equilibrium=eq, method="egm")
+        params = self.param_values()
+        sol = plan.solve_household(params, tol=tol, max_iter=max_iter)
+        mu = plan.distribution(sol) if distribution else None
+        aggs = self.aggregate_values(sol, mu, params) if (mu is not None and self.aggregates) else {}
+        return DPSolution(self, sol, params=params, distribution=mu, aggregates=aggs, method="egm")
 
     def _solve_equilibrium(self, backend, options, xtol, max_evals) -> DPSolution:
         (pname, (lo, hi)), = self.model._prices.items()

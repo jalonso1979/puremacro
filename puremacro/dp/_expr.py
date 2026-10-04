@@ -123,6 +123,65 @@ def emit(node: Node, resolve: Callable[[str, int], str]) -> str:
     raise ModelSpecError(f"unsupported expression node {type(node).__name__}")
 
 
+def substitute(node: Node, mapping: Mapping[str, Node]) -> Node:
+    """Replace untimed names (parsed as ``Param``) by the nodes in ``mapping``."""
+    if isinstance(node, Param):
+        return mapping.get(node.name, node)
+    if isinstance(node, UnaryOp):
+        return UnaryOp(node.op, substitute(node.expr, mapping))
+    if isinstance(node, BinOp):
+        return BinOp(node.op, substitute(node.left, mapping), substitute(node.right, mapping))
+    if isinstance(node, Call):
+        return Call(node.func, tuple(substitute(a, mapping) for a in node.args))
+    return node
+
+
+def diff(node: Node, name: str) -> Node:
+    """Symbolic derivative of ``node`` with respect to the untimed name ``name``.
+
+    Covers the dp function set except the kinked ``abs``/``max``/``min``; the
+    second argument of ``crra`` must not depend on ``name``.
+    """
+    def dep(n: Node) -> bool:
+        return (name, 0) in symbols(n)
+
+    if not dep(node):
+        return Const(0.0)
+    if isinstance(node, Param):
+        return Const(1.0)
+    if isinstance(node, UnaryOp):
+        d = diff(node.expr, name)
+        return UnaryOp("-", d) if node.op == "-" else d
+    if isinstance(node, BinOp):
+        lft, rgt = node.left, node.right
+        if node.op in ("+", "-"):
+            return BinOp(node.op, diff(lft, name), diff(rgt, name))
+        if node.op == "*":
+            return BinOp("+", BinOp("*", diff(lft, name), rgt), BinOp("*", lft, diff(rgt, name)))
+        if node.op == "/":
+            num = BinOp("-", BinOp("*", diff(lft, name), rgt), BinOp("*", lft, diff(rgt, name)))
+            return BinOp("/", num, BinOp("^", rgt, Const(2.0)))
+        if node.op == "^":
+            if not dep(rgt):
+                return BinOp("*", BinOp("*", rgt, BinOp("^", lft, BinOp("-", rgt, Const(1.0)))),
+                             diff(lft, name))
+            inner = BinOp("+", BinOp("*", diff(rgt, name), Call("log", (lft,))),
+                          BinOp("/", BinOp("*", rgt, diff(lft, name)), lft))
+            return BinOp("*", node, inner)
+    if isinstance(node, Call):
+        fn = node.func.lower()
+        x = node.args[0]
+        if fn == "exp":
+            return BinOp("*", node, diff(x, name))
+        if fn in ("log", "ln"):
+            return BinOp("/", diff(x, name), x)
+        if fn == "sqrt":
+            return BinOp("/", diff(x, name), BinOp("*", Const(2.0), node))
+        if fn == "crra" and len(node.args) == 2 and not dep(node.args[1]):
+            return BinOp("*", BinOp("^", x, UnaryOp("-", node.args[1])), diff(x, name))
+    raise ModelSpecError(f"cannot differentiate {node!r} with respect to {name!r}")
+
+
 def compile_function(name: str, args: list[str], body: list[str], ret: str,
                      namespace: Mapping | None = None) -> Callable:
     """Build ``def name(*args, xp=np): body; return ret`` with numpy warnings silenced.
