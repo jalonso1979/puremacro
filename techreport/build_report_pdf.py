@@ -9,7 +9,7 @@ GitHub so they work in the PDF.
 
 Usage (from the repository root):
 
-    python techreport/build_report_pdf.py [--tag v4.5.0]
+    python techreport/build_report_pdf.py [--tag v4.6.0]
 
 Requires pandoc >= 3 and a TeX distribution with lualatex.
 """
@@ -61,7 +61,7 @@ PREAMBLE = r"""\documentclass[11pt,letterpaper]{article}
 \fancyhf{}
 \renewcommand{\headrulewidth}{0.4pt}
 \renewcommand{\footrulewidth}{0.4pt}
-\fancyhead[L]{\small\scshape puremacro: Technical Report v4.5}
+\fancyhead[L]{\small\scshape puremacro: Technical Report v4.6}
 \fancyhead[R]{\small\scshape Alonso Ortiz, Claude, Codex \& Antigravity}
 \fancyfoot[C]{\thepage}
 \setlength{\emergencystretch}{3em}
@@ -107,7 +107,7 @@ $^{2}$AI coding agent, Anthropic (Claude Opus 5, Opus 5.5, Fable 5 and Fable 5.1
 $^{3}$AI coding agent, OpenAI \quad $^{4}$AI coding agent, Google\\[2pt]
 $^{\star}$Corresponding author; the human author takes sole responsibility for the content.\par}
 \vspace{0.45cm}
-{\large Technical Report \& Working Paper v4.5 $\cdot$ 3 October 2026\par}
+{\large Technical Report \& Working Paper v4.6 $\cdot$ 4 October 2026\par}
 \vspace{0.25cm}
 {\small \url{REPO} $\cdot$ \url{https://jalonso1979.github.io/puremacro/}\par}
 \end{center}
@@ -161,7 +161,7 @@ def pandoc(markdown: str) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--tag", default="v4.5.0", help="release tag that relative links point to")
+    parser.add_argument("--tag", default="v4.6.0", help="release tag that relative links point to")
     args = parser.parse_args()
     for tool in ("pandoc", "lualatex"):
         if shutil.which(tool) is None:

@@ -8,7 +8,7 @@ name = "puremacro"
 # defined by the project release contract: `version = "X.Y.Z"` in pyproject.toml,
 # puremacro/__init__.py (`__version__`), the top `## X.Y.Z` heading in
 # CHANGELOG.md, and `version:` in CITATION.cff.
-version = "4.5.0"
+version = "4.6.0"
 description = "Pyodide-compatible empirical macro toolbox: SVAR + LP + GARCH + inference"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -152,8 +152,9 @@ include = ["puremacro*"]
 # tests/fixtures/dynare_live/ and tests/fixtures/dynare_order3_pruned_moments.json
 # (live Dynare 7.0 and Dynare 8 output), shipped so that notebook 68's Dynare
 # oracles also run from an installed wheel and in the Pyodide playground.
-"puremacro.dsge" = ["_sw07_data.csv", "_references/*.mod", "_references/DYNARE_FIXTURES.md",
+"puremacro.dsge" = ["_sw07_data.csv", "_sw07_usmodel_data.csv", "_references/*.mod", "_references/DYNARE_FIXTURES.md",
                     "_references/dynare_order3_pruned_moments.json",
+                    "_references/sw07_usmodel_mode.json",
                     "_references/dynare_live/*.mod", "_references/dynare_live/*.npz",
                     "_references/dynare_live/*.csv", "_references/dynare_live/manifest.json"]
 # The benchmark datasets `puremacro.datasets` loads. Without this line the

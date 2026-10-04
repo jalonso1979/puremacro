@@ -2,6 +2,36 @@
 
 This file records user-visible changes per release. Internal refactors that don't change behaviour are listed under "Internal" so a returning user can see what shifted under the hood without surprise.
 
+## 4.6.0 (2026-10-04)
+
+**Clean trade data, a gallery that passes in the browser runtime, and the Smets–Wouters training sample: the 77x11 OECD table is rebuilt from a clean release with its MATLAB base-solution reference, the 114-case validation gallery runs in Pyodide, the SW07 Table 2 computation is implemented and checked against Dynare 8, and the opt-in tests gate every release.**
+
+### Added
+
+- A clean OECD 77x11 trade table, `load_icio_data(source="oecd2020")` (`puremacro/trade/_datafiles/icio_77c_11s_oecd2020.npz`, `MANIFEST_OECD2020.json`, `OECD2020_ICIO_PROVENANCE`): the OECD ICIO 2023-edition 2020 file aggregated by `tools/build_icio_77c_11s.py`, a Python port of the legacy MATLAB `Agregar_11s.m` verified cell by cell against the legacy fixture and corrected for two indexing defects of that script (rest-of-world final demand written into intermediate columns, see `docs/ADVISORY.md` 2026-10-03). World value added 7.97e7 USD million (the legacy fixture's is 7.05e11); every country-sector has positive value added. The legacy fixture stays as `source="legacy"` for its MATLAB parity suites; calling `load_icio_data()` without `source=` still returns it, with a `FutureWarning` (the default becomes `"oecd2020"` in 5.0).
+- MATLAB reference solutions of the legacy trade model on the clean table, `load_reference_solution(scenario, source="oecd2020")` (`trade_reference_solutions_oecd2020.npz`, `REFERENCE_MANIFEST_OECD2020.json`; extracted verbatim by `tools/extract_trade_references.py` from runs of the unchanged model code, driver in `tools/reference_validation/trade_clean_table/`).
+- Four `Trade` cases in the validation gallery (114 cases, 16 subsystems): conservation of the native OECD world totals by the aggregation, column balance with positive value added, the base equilibrium as the calibration point, and parity of the base equilibrium vector with the MATLAB solution on the clean table. The gallery had no trade cases before.
+- `estimate_dsge(presample=..., lik_init="stationary" | "diffuse")`: Dynare's options of the same names (the filter runs through the first `presample` observations from the chosen initialisation; the likelihood is that of the rest). `data_n_obs` counts the observations that enter the likelihood.
+- `puremacro.dsge.sw07_marginal.sw07_laplace_mdd` / `sw07_log_posterior` and `SW07MarginalLikelihoodResult`: the posterior mode and Laplace marginal data density of the Smets-Wouters model with explicit sample start, presample length and filter initialisation, reproducing the Table 2 computation (1966Q1-2004Q4 given the 1956Q1-1965Q4 training sample) that `estimate_sw07` could not express.
+- `puremacro.dsge.load_sw07_data(dataset="fred" | "authors")` and the bundled `_sw07_usmodel_data.csv`: the authors' own 1947Q3-2004Q4 series from the AER replication files (via Pfeifer's DSGE_mod), converted verbatim by `tools/build_sw07_data.py authors`; `estimate_sw07(dataset="authors")` estimates on them.
+- `SW07_MOD_INITIAL_VALUES` (`puremacro.dsge.sw07_priors`): the `.mod` file's estimated_params starting values, checked against the file by a test.
+- Replication case `dsge_estimation.sw07_log_posterior_at_authors_mode_vs_dynare`: puremacro's SW07 log posterior at the authors' own posterior mode on the authors' data, with the options of their replication `.mod` (1965Q1 start, 4-quarter presample, diffuse initialisation), against the value Dynare 8 prints on the same files (−840.81 vs −841.46). Finding recorded in `docs/replication.md`: with the Table 2 training sample implemented, neither puremacro (−932.3) nor Dynare 8 (−923.1 at the authors' mode) reproduces the paper's −905.8 from the public replication files.
+- `.github/workflows/opt-in-tests.yml`: the `slow`, `reference` and `replication` markers that the default `pytest` deselects now run every Monday, on demand, and on every release tag, where the job gates the PyPI publish (`release.yml` `needs: [ci, opt-in]`). Notebook execution runs in its own weekly job. Measured locally on 2026-10-03: 115 passed, 9 skipped in 74 min, 43 of them the notebook test.
+
+### Changed
+
+- `estimate_sw07` starts its mode search from the `.mod` file's estimated_params initial values (`start="mod"`, the default) instead of the rounded Table 1a/1b Mode column (`start="table1"`), two entries of which lie outside the prior support; from the clipped start the default 100-iteration optimiser stopped short of the mode with a warning. `estimate_sw07` also takes `dataset`, `presample` and `lik_init`.
+
+### Fixed
+
+- Importing `puremacro.narrative` (and through it the library's HTTP and data caches) failed on Pyodide 0.28 with `ModuleNotFoundError: sqlite3` / `ssl`, because nine modules imported those standard-library modules at module level and Pyodide 0.28 unvendors them (Pyodide 314 and CPython have them). They now import through `puremacro._optional_stdlib`, which degrades to a placeholder that fails at first use with a message saying what to load; `tests/test_pyodide_compat.py` guards against new module-level imports of either. Found by the headless gallery run (one case of 110 failed on 0.28.3; all 110 passed on the playground's 314.0.5).
+
+### Documentation
+
+- `docs/ADVISORY.md`: 2026-10-03 entry on the rest-of-world final-demand defect of the legacy 77x11 aggregation. `docs/VALIDATION.md`: the `Trade` subsystem and the new totals. `SOURCES.md` of the trade data files: the two new files. `RELEASING.md`: the fourth workflow.
+
+- `tools/pyodide_gallery.py` (with `tools/pyodide/gallery_runner.js` and `gallery_cases.py`): builds the wheel, installs it into headless Pyodide under Node.js with dependencies resolved from the Pyodide distribution alone, runs the 110-case validation gallery there one case at a time with per-case timing, and compares pass flags and margins with a desktop run of the same loop. First measurement recorded in `reviews/2026-10-03-pyodide-gallery/`.
+
 ## 4.5.0 (2026-10-03)
 
 **Honest convergence and corrected numbers: the wrong-number and false-success known issues of 4.4.0, each checked against an independent reference.**

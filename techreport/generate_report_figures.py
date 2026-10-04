@@ -12,7 +12,7 @@ the renderer, cards are sized to their content, and after drawing each figure
 or an arrow. The palette is the grayscale style of
 :mod:`puremacro.plotting.bw_style`; nothing is distinguished by colour.
 
-The statements on the cards describe release 4.5.0 and are sourced from the
+The statements on the cards describe release 4.6.0 and are sourced from the
 technical report, CHANGELOG.md, docs/ADVISORY.md,
 docs/STRUCTURAL_VALIDATION_STATUS.md and the code. Figure 7 is computed from
 ``puremacro.validation.scorecard()`` each time the script runs.
@@ -386,7 +386,7 @@ def check_png(path: Path, height_in: float) -> None:
 # ---------------------------------------------------------------------------
 def generate_graphical_abstract():
     header = Card(
-        "puremacro 4.5.0: quantitative macroeconomics and macroeconometrics in Python",
+        "puremacro 4.6.0: quantitative macroeconomics and macroeconometrics in Python",
         ["One package on the scientific-Python stack for estimation, DSGE, heterogeneous "
          "agents, dynamic programming and trade, with no compiled extension of its own "
          "and case-specific numerical validation."],
@@ -401,8 +401,8 @@ def generate_graphical_abstract():
         ]),
         Card("Runtimes", [
             "CPython 3.11–3.13 on Linux, macOS and Windows (nine CI targets)",
-            "Pyodide and JupyterLite: shippable modules are import-checked",
-            "Realistic browser and GPU workloads: not yet verified",
+            "Pyodide: the whole validation gallery passes (0.28 and 314)",
+            "Heavy browser workloads and GPU: not yet verified",
             "Colab offload: notebook out, .pmz result back",
         ]),
         Card("Result objects", [
@@ -439,7 +439,7 @@ def generate_graphical_abstract():
             Card("Spatial, trade and climate", [
                 "Allen–Arkolakis spatial equilibrium",
                 "Caliendo–Parro hat algebra; IO-based CGE with consistent accounting",
-                "Seven input-output engines, including a dynamic MRIO (4.4)",
+                "Dynamic MRIO engines (4.4); clean OECD 2020 table (4.6)",
                 "Hicksian EV/CV; ENIGH 2024 household incidence",
                 "DICE-2016R forward simulator with a social cost of carbon",
             ]),
@@ -447,25 +447,25 @@ def generate_graphical_abstract():
     ], gap=0.10))
     band3 = Band("3   Verification and use", Row([
         Card("Validation gallery", [
-            "110 cases in 15 subsystems, all passing",
-            "20 external: 13 package, 5 SciPy, 2 published",
-            "31 analytical, 59 internal consistency",
+            "114 cases in 16 subsystems, all passing",
+            "21 external: 14 package, 5 SciPy, 2 published",
+            "31 analytical, 62 internal consistency",
             "Reference libraries are not imported at run time",
-            "Tolerances stated per case; no trade cases",
+            "Tolerances stated per case; four trade cases (4.6)",
         ]),
         Card("Benchmarks and replications", [
             "Research benchmarks: 7 of 8 pass",
             "Romer–Romer t statistic misses its printed rounding by "
             r"$3.9\times10^{-6}$, reported as a failure",
-            "14 replication cases, all passing",
+            "15 replication cases, all passing",
             "Five models checked in Dynare 7.0 at orders two and three",
         ]),
         Card("Open science and teaching", [
-            "806 modules, 281,431 lines, 19,090 tests",
+            "810 modules, 282,197 lines, 19,146 tests",
             "70 bilingual notebook pairs; 22 ITAM course lessons",
             "JupyterLite site with an in-browser Pyodide kernel",
             "Public correctness advisories with affected versions",
-            "MIT licence; PyPI release only after nine-target CI",
+            "MIT licence; PyPI only after nine-target CI and the opt-in tests",
         ]),
     ]))
     gap = 0.20

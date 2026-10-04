@@ -37,6 +37,10 @@
       "inv_xtx",
       "safe_cholesky"
     ],
+    "puremacro._optional_stdlib": [
+      "sqlite3",
+      "ssl"
+    ],
     "puremacro.bartik": [
       "ShiftShareIVResult",
       "build_base_year_shares",
@@ -181,6 +185,9 @@
       "load_us_county_centroids",
       "load_us_state_centroids"
     ],
+    "puremacro.datasets.enigh": [
+      "load_enigh2024_deciles"
+    ],
     "puremacro.datasets.loaders": [
       "list_datasets",
       "load_banxico_stance",
@@ -302,6 +309,7 @@
       "PriorPredictiveResult",
       "PrunedDSGESolution",
       "PrunedSimulationResult",
+      "SW07MarginalLikelihoodResult",
       "SW07PosteriorResult",
       "Scope",
       "ScoreDiagnosticsResult",
@@ -358,6 +366,7 @@
       "load_hank_mod",
       "load_irfs",
       "load_mod",
+      "load_sw07_data",
       "lq_commitment",
       "macro",
       "make_state_space_from_varobs",
@@ -405,6 +414,8 @@
       "solve_steady_state",
       "steady",
       "stratified_resample",
+      "sw07_laplace_mdd",
+      "sw07_log_posterior",
       "systematic_resample",
       "verify_dynare_parity",
       "widgets"
@@ -704,8 +715,17 @@
       "preconditioned_lgmres",
       "solve_stacked_newton_krylov"
     ],
+    "puremacro.dsge.sw07_data": [
+      "SW07_DATASETS",
+      "load_sw07_data"
+    ],
     "puremacro.dsge.sw07_estimate": [
       "estimate_sw07"
+    ],
+    "puremacro.dsge.sw07_marginal": [
+      "SW07MarginalLikelihoodResult",
+      "sw07_laplace_mdd",
+      "sw07_log_posterior"
     ],
     "puremacro.dsge.sw07_observation": [
       "OBSERVED_VARS",
@@ -713,6 +733,7 @@
     ],
     "puremacro.dsge.sw07_priors": [
       "PRIORS",
+      "SW07_MOD_INITIAL_VALUES",
       "log_prior",
       "param_bounds",
       "param_names",
@@ -2389,6 +2410,12 @@
       "run_all",
       "scorecard"
     ],
+    "puremacro.replication.romer_romer_2010": [
+      "RR2010Result",
+      "estimate_rr2010_baseline",
+      "load_rr2010_data",
+      "load_rr2010_reference"
+    ],
     "puremacro.reports": [
       "IRFResult",
       "LPResult",
@@ -2612,6 +2639,56 @@
       "kalman_filter",
       "kalman_smoother",
       "simulation_smoother"
+    ],
+    "puremacro.structural": [
+      "MomentTargets",
+      "SW07EstimatorExperiment",
+      "SW07FiniteSampleStudy",
+      "SW07MomentStudy",
+      "StructuralFitResult",
+      "compare_sw07_estimator_phases",
+      "covariance_moment_targets",
+      "fit_empirical_sw07",
+      "fit_structural",
+      "load_empirical_sw07_data",
+      "lp_moment_targets",
+      "run_sw07_estimator_experiment",
+      "run_sw07_finite_sample",
+      "simulate_sw07_sample",
+      "sw07_covariance_moments",
+      "sw07_finite_sample_expectations",
+      "sw07_finite_sample_moments"
+    ],
+    "puremacro.structural.bridge": [
+      "MomentTargets",
+      "StructuralFitResult",
+      "fit_structural"
+    ],
+    "puremacro.structural.empirical_sw07": [
+      "SW07MomentStudy",
+      "covariance_moment_targets",
+      "fit_empirical_sw07",
+      "load_empirical_sw07_data",
+      "sw07_covariance_moments"
+    ],
+    "puremacro.structural.lp": [
+      "lp_moment_targets"
+    ],
+    "puremacro.structural.sw07_estimator_experiment": [
+      "SW07EstimatorExperiment",
+      "compare_sw07_estimator_phases",
+      "run_sw07_estimator_experiment"
+    ],
+    "puremacro.structural.sw07_expectations": [
+      "sw07_finite_sample_expectations"
+    ],
+    "puremacro.structural.sw07_finite_sample": [
+      "SW07FiniteSampleStudy",
+      "run_sw07_finite_sample"
+    ],
+    "puremacro.structural.sw07_sampling": [
+      "simulate_sw07_sample",
+      "sw07_finite_sample_moments"
     ],
     "puremacro.synthetic_control": [
       "SyntheticControlResult",
@@ -3037,6 +3114,7 @@
       "FIGARO_COUNTRIES",
       "FIGARO_FD_CATEGORIES",
       "ICIOData",
+      "OECD2020_ICIO_PROVENANCE",
       "OECD_45_SECTORS",
       "OECD_77_COUNTRIES",
       "OECD_FD_CATEGORIES",
@@ -3073,6 +3151,13 @@
       "package_mrio_to_calibration_result",
       "verify_accounting_invariants",
       "verify_zero_leakage"
+    ],
+    "puremacro.trade.distributional": [
+      "DistributionalWelfareResult",
+      "HouseholdGroups",
+      "compute_distributional_welfare",
+      "distributional_welfare_from_results",
+      "prepare_household_groups"
     ],
     "puremacro.trade.dynamic": [
       "ConsumptionEquivalentResult",
@@ -3416,6 +3501,13 @@
       "run_all",
       "run_research_benchmarks",
       "scorecard"
+    ],
+    "puremacro.validation.research": [
+      "BenchmarkResult",
+      "ResearchBenchmark",
+      "ResearchBenchmarkReport",
+      "research_benchmarks",
+      "run_research_benchmarks"
     ],
     "puremacro.var": [
       "BVAR_SVForecast",
@@ -3914,79 +4006,6 @@
     "puremacro.wavelet.coherence": [
       "WaveletCoherenceResult",
       "wavelet_coherence"
-    ],
-    "puremacro.datasets.enigh": [
-      "load_enigh2024_deciles"
-    ],
-    "puremacro.structural": [
-      "MomentTargets",
-      "SW07EstimatorExperiment",
-      "SW07FiniteSampleStudy",
-      "SW07MomentStudy",
-      "StructuralFitResult",
-      "compare_sw07_estimator_phases",
-      "covariance_moment_targets",
-      "fit_empirical_sw07",
-      "fit_structural",
-      "load_empirical_sw07_data",
-      "lp_moment_targets",
-      "run_sw07_estimator_experiment",
-      "run_sw07_finite_sample",
-      "simulate_sw07_sample",
-      "sw07_covariance_moments",
-      "sw07_finite_sample_expectations",
-      "sw07_finite_sample_moments"
-    ],
-    "puremacro.structural.bridge": [
-      "MomentTargets",
-      "StructuralFitResult",
-      "fit_structural"
-    ],
-    "puremacro.structural.lp": [
-      "lp_moment_targets"
-    ],
-    "puremacro.trade.distributional": [
-      "DistributionalWelfareResult",
-      "HouseholdGroups",
-      "compute_distributional_welfare",
-      "distributional_welfare_from_results",
-      "prepare_household_groups"
-    ],
-    "puremacro.validation.research": [
-      "BenchmarkResult",
-      "ResearchBenchmark",
-      "ResearchBenchmarkReport",
-      "research_benchmarks",
-      "run_research_benchmarks"
-    ],
-    "puremacro.replication.romer_romer_2010": [
-      "RR2010Result",
-      "estimate_rr2010_baseline",
-      "load_rr2010_data",
-      "load_rr2010_reference"
-    ],
-    "puremacro.structural.empirical_sw07": [
-      "SW07MomentStudy",
-      "covariance_moment_targets",
-      "fit_empirical_sw07",
-      "load_empirical_sw07_data",
-      "sw07_covariance_moments"
-    ],
-    "puremacro.structural.sw07_finite_sample": [
-      "SW07FiniteSampleStudy",
-      "run_sw07_finite_sample"
-    ],
-    "puremacro.structural.sw07_sampling": [
-      "simulate_sw07_sample",
-      "sw07_finite_sample_moments"
-    ],
-    "puremacro.structural.sw07_expectations": [
-      "sw07_finite_sample_expectations"
-    ],
-    "puremacro.structural.sw07_estimator_experiment": [
-      "SW07EstimatorExperiment",
-      "compare_sw07_estimator_phases",
-      "run_sw07_estimator_experiment"
     ]
   },
   "result_classes": {
@@ -5236,6 +5255,25 @@
       "terminal_error",
       "variable_names"
     ],
+    "puremacro.dsge.sw07_marginal.SW07MarginalLikelihoodResult": [
+      "converged",
+      "dataset",
+      "diffuse_scale",
+      "first_obs",
+      "laplace_mdd",
+      "last_obs",
+      "lik_init",
+      "log_likelihood_mode",
+      "log_post_mode",
+      "log_prior_mode",
+      "message",
+      "mode",
+      "mode_hessian_inv",
+      "n_iterations",
+      "n_obs_likelihood",
+      "n_obs_presample",
+      "seconds"
+    ],
     "puremacro.dsge.widgets.InteractiveIRFResult": [
       "_cids",
       "_is_interactive_backend",
@@ -6212,6 +6250,17 @@
       "title_es",
       "tol"
     ],
+    "puremacro.replication.romer_romer_2010.RR2010Result": [
+      "coefficient_covariance",
+      "coefficients",
+      "df_resid",
+      "irf",
+      "irf_covariance",
+      "metadata",
+      "nobs",
+      "standard_errors",
+      "t_statistics"
+    ],
     "puremacro.reports.IRFResult": [
       "alpha",
       "lower",
@@ -6541,6 +6590,67 @@
       "Z",
       "c",
       "d"
+    ],
+    "puremacro.structural.bridge.MomentTargets": [
+      "covariance",
+      "labels",
+      "metadata",
+      "units",
+      "values"
+    ],
+    "puremacro.structural.bridge.StructuralFitResult": [
+      "boundary",
+      "condition_number",
+      "covariance",
+      "diagnostics",
+      "held_out_model",
+      "held_out_targets",
+      "identification_rank",
+      "inference_valid",
+      "j_df",
+      "j_pvalue",
+      "j_statistic",
+      "jacobian",
+      "message",
+      "model_moments",
+      "n_evals",
+      "objective",
+      "parameter_names",
+      "singular_values",
+      "standard_errors",
+      "success",
+      "targets",
+      "theta"
+    ],
+    "puremacro.structural.empirical_sw07.SW07MomentStudy": [
+      "bandwidth_sensitivity",
+      "calibration_sensitivity",
+      "calibration_sensitivity_moments",
+      "fit",
+      "metadata",
+      "multistart",
+      "profiles",
+      "sample_split",
+      "targets"
+    ],
+    "puremacro.structural.sw07_estimator_experiment.SW07EstimatorExperiment": [
+      "draw_covariances",
+      "draw_moments",
+      "draws",
+      "metadata",
+      "observed_fits",
+      "paired_differences",
+      "summary"
+    ],
+    "puremacro.structural.sw07_finite_sample.SW07FiniteSampleStudy": [
+      "covariance_audit",
+      "draw_covariances",
+      "draw_moments",
+      "draws",
+      "metadata",
+      "moment_audit",
+      "observed_fits",
+      "summary"
     ],
     "puremacro.synthetic_control.SyntheticControlResult": [
       "actual",
@@ -7042,6 +7152,21 @@
       "unit",
       "value_added",
       "year"
+    ],
+    "puremacro.trade.distributional.DistributionalWelfareResult": [
+      "aggregate",
+      "groups",
+      "metadata"
+    ],
+    "puremacro.trade.distributional.HouseholdGroups": [
+      "baseline_budget",
+      "expenditure",
+      "income_exposure",
+      "monetary_unit",
+      "period",
+      "population_unit",
+      "population_weights",
+      "provenance"
     ],
     "puremacro.trade.dynamic._results.ConsumptionEquivalentResult": [
       "beta",
@@ -7627,6 +7752,37 @@
       "title",
       "title_es",
       "tol"
+    ],
+    "puremacro.validation.research.BenchmarkResult": [
+      "error",
+      "evidence_kind",
+      "id",
+      "metrics",
+      "negative_control_rejected",
+      "passed",
+      "provenance",
+      "title"
+    ],
+    "puremacro.validation.research.ResearchBenchmark": [
+      "atol",
+      "compute",
+      "data",
+      "evidence_kind",
+      "id",
+      "limitations",
+      "reference",
+      "rtol",
+      "sampling",
+      "sources",
+      "title",
+      "transformations",
+      "units"
+    ],
+    "puremacro.validation.research.ResearchBenchmarkReport": [
+      "environment",
+      "generated_at",
+      "results",
+      "schema_version"
     ],
     "puremacro.var._results.VarEstimateResult": [
       "A_list",
@@ -8475,124 +8631,6 @@
     "puremacro.wavelet.coherence.WaveletCoherenceResult": [
       "coherence_per_scale",
       "period_bands"
-    ],
-    "puremacro.structural.bridge.MomentTargets": [
-      "covariance",
-      "labels",
-      "metadata",
-      "units",
-      "values"
-    ],
-    "puremacro.structural.bridge.StructuralFitResult": [
-      "boundary",
-      "condition_number",
-      "covariance",
-      "diagnostics",
-      "held_out_model",
-      "held_out_targets",
-      "identification_rank",
-      "inference_valid",
-      "j_df",
-      "j_pvalue",
-      "j_statistic",
-      "jacobian",
-      "message",
-      "model_moments",
-      "n_evals",
-      "objective",
-      "parameter_names",
-      "singular_values",
-      "standard_errors",
-      "success",
-      "targets",
-      "theta"
-    ],
-    "puremacro.trade.distributional.DistributionalWelfareResult": [
-      "aggregate",
-      "groups",
-      "metadata"
-    ],
-    "puremacro.trade.distributional.HouseholdGroups": [
-      "baseline_budget",
-      "expenditure",
-      "income_exposure",
-      "monetary_unit",
-      "period",
-      "population_unit",
-      "population_weights",
-      "provenance"
-    ],
-    "puremacro.validation.research.BenchmarkResult": [
-      "error",
-      "evidence_kind",
-      "id",
-      "metrics",
-      "negative_control_rejected",
-      "passed",
-      "provenance",
-      "title"
-    ],
-    "puremacro.validation.research.ResearchBenchmark": [
-      "atol",
-      "compute",
-      "data",
-      "evidence_kind",
-      "id",
-      "limitations",
-      "reference",
-      "rtol",
-      "sampling",
-      "sources",
-      "title",
-      "transformations",
-      "units"
-    ],
-    "puremacro.validation.research.ResearchBenchmarkReport": [
-      "environment",
-      "generated_at",
-      "results",
-      "schema_version"
-    ],
-    "puremacro.replication.romer_romer_2010.RR2010Result": [
-      "coefficient_covariance",
-      "coefficients",
-      "df_resid",
-      "irf",
-      "irf_covariance",
-      "metadata",
-      "nobs",
-      "standard_errors",
-      "t_statistics"
-    ],
-    "puremacro.structural.empirical_sw07.SW07MomentStudy": [
-      "bandwidth_sensitivity",
-      "calibration_sensitivity",
-      "calibration_sensitivity_moments",
-      "fit",
-      "metadata",
-      "multistart",
-      "profiles",
-      "sample_split",
-      "targets"
-    ],
-    "puremacro.structural.sw07_finite_sample.SW07FiniteSampleStudy": [
-      "covariance_audit",
-      "draw_covariances",
-      "draw_moments",
-      "draws",
-      "metadata",
-      "moment_audit",
-      "observed_fits",
-      "summary"
-    ],
-    "puremacro.structural.sw07_estimator_experiment.SW07EstimatorExperiment": [
-      "draw_covariances",
-      "draw_moments",
-      "draws",
-      "metadata",
-      "observed_fits",
-      "paired_differences",
-      "summary"
     ]
   }
 }
