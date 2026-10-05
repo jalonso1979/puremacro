@@ -7,13 +7,13 @@ wild bootstrap multiplies each residual by ±1 preserving conditional heterosked
 from __future__ import annotations
 
 import warnings
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import numpy as np
 from numpy.random import default_rng
 
 from ._parallel import _map_draws
-from .bootstrap import _ols_var, _irf_from_var
+from .bootstrap import _irf_from_var, _ols_var
 
 #: Warn above this fraction of bootstrap draws failing identification. Mirrors
 #: ``puremacro.var.identify.cholesky._BOOT_FAIL_WARN_THRESHOLD``, which is the
@@ -25,7 +25,7 @@ def wild_bootstrap(
     residuals: np.ndarray,
     refit_fn: Callable[[np.ndarray], np.ndarray],
     n_boot: int = 999,
-    rng: Optional[np.random.Generator] = None,
+    rng: np.random.Generator | None = None,
     n_jobs: int = 1,
 ) -> np.ndarray:
     """Rademacher wild bootstrap for scalar / LP regression inference.
@@ -100,7 +100,8 @@ def wild_bootstrap_var(
     Yb_all = np.empty((n_boot, T, n))
     Yb_all[:, :p, :] = Y[:p]
     for t in range(p, T):
-        lags = np.concatenate([Yb_all[:, t - 1 - l, :] for l in range(p)], axis=1)
+        # ⚡ Bolt: Slicing and reshape is much faster than np.concatenate on batch dimension
+        lags = Yb_all[:, t - p:t, :][:, ::-1, :].reshape(n_boot, p * n)
         Yb_all[:, t, :] = lags @ A_stack.T + c + E_all[:, t - p, :]
 
     # Mertens-Ravn (2013) wild bootstrap: the SAME Rademacher weight multiplies
