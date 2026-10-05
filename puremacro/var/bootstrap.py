@@ -39,8 +39,7 @@ def _kilian_bias_correct(Y, p, n_pilot=100, rng=None):
     Y_pilot = np.empty((n_pilot, T, n))
     Y_pilot[:, :p, :] = Y_arr[:p]
     for t in range(p, T):
-        # ⚡ Bolt: Slicing and reshape is much faster than np.concatenate on batch dimension
-        lags = Y_pilot[:, t - p:t, :][:, ::-1, :].reshape(n_pilot, p * n)
+        lags = np.concatenate([Y_pilot[:, t - 1 - l, :] for l in range(p)], axis=1)
         Y_pilot[:, t, :] = lags @ A_stack.T + intercept + U[:, t - p, :]
     for b in range(n_pilot):
         try:
@@ -148,8 +147,7 @@ def bootstrap_bands(Y, p, identify_fn, horizon, n_boot=500, alpha=0.10,
     Y_all = np.empty((n_boot, T, n))
     Y_all[:, :p, :] = Y_arr[:p]
     for t in range(p, T):
-        # ⚡ Bolt: Slicing and reshape is much faster than np.concatenate on batch dimension
-        lags = Y_all[:, t - p:t, :][:, ::-1, :].reshape(n_boot, p * n)
+        lags = np.concatenate([Y_all[:, t - 1 - l, :] for l in range(p)], axis=1)
         Y_all[:, t, :] = lags @ A_stack.T + intercept + U[:, t - p, :]
 
     def _eval_draw(b: int) -> np.ndarray:

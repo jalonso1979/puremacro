@@ -58,9 +58,8 @@ Carter, C. K., & Kohn, R. (1994). On Gibbs sampling for state space models.
 from __future__ import annotations
 
 import warnings
-from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Sequence
 
 import numpy as np
 import pandas as pd
@@ -684,28 +683,16 @@ class BVAR_SVResult:
         h_prev = self.h_draws[:, -1, :].copy()
         paths = np.empty((D, horizon, n))
         h_paths = np.empty((D, horizon, n))
-
-        # ⚡ Bolt: Pre-allocate regressors array to avoid np.concatenate in simulation loop
-        x_buf = np.empty((D, 1 + p * n))
-        x_buf[:, 0] = 1.0
-
         for j in range(horizon):
             h_t = self.mu_draws + self.phi_draws * (h_prev - self.mu_draws) \
                 + self.sigma_h_draws * rng.standard_normal((D, n))
             nu = np.exp(h_t / 2.0) * rng.standard_normal((D, n))
             u = np.linalg.solve(self.a_draws, nu[:, :, None])[:, :, 0]
-
-            # ⚡ Bolt: Slicing and reshape is much faster than np.concatenate on D dimension
-            x_buf[:, 1:] = lag_buf[:, ::-1, :].reshape(D, p * n)
-            y = np.einsum("dk,dkn->dn", x_buf, self.beta_draws) + u
-
+            x = np.concatenate([np.ones((D, 1))] + [lag_buf[:, -l, :] for l in range(1, p + 1)], axis=1)
+            y = np.einsum("dk,dkn->dn", x, self.beta_draws) + u
             paths[:, j] = y
             h_paths[:, j] = h_t
-
-            # ⚡ Bolt: in-place array shifting avoids np.concatenate memory reallocation
-            lag_buf[:, :-1, :] = lag_buf[:, 1:, :]
-            lag_buf[:, -1, :] = y
-
+            lag_buf = np.concatenate([lag_buf[:, 1:, :], y[:, None, :]], axis=1)
             h_prev = h_t
 
         return BVAR_SVForecast(
@@ -1497,8 +1484,8 @@ def bvar_sv(
 
 
 __all__ = [
-    "BVAR_SV_IRF",
-    "BVAR_SVForecast",
-    "BVAR_SVResult",
     "bvar_sv",
+    "BVAR_SVResult",
+    "BVAR_SVForecast",
+    "BVAR_SV_IRF",
 ]
