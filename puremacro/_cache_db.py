@@ -30,10 +30,10 @@ snapshot storage) degrade to a warning.
 from __future__ import annotations
 
 import os
-from puremacro._optional_stdlib import sqlite3
 from pathlib import Path
 from typing import Any
 
+from puremacro._optional_stdlib import sqlite3
 
 _DDL_HTTP_CACHE = """
 CREATE TABLE IF NOT EXISTS http_cache (
@@ -300,35 +300,26 @@ def store_realtime_vintages(
         missing = required - set(df.columns)
         raise ValueError(f"store_realtime_vintages missing columns: {sorted(missing)}")
 
-    records = []
-    for _, row in df.iterrows():
-        val = row["value"]
-        if pd.isna(val):
-            val_float = None
-        else:
-            try:
-                val_float = float(val)
-            except (ValueError, TypeError, Exception):
-                continue
-        try:
-            parsed_obs = pd.to_datetime(row[date_col])
-            parsed_vin = pd.to_datetime(row[vin_col])
-            if pd.isna(parsed_obs) or pd.isna(parsed_vin):
-                continue
-            obs_d = parsed_obs.strftime("%Y-%m-%d")
-            vin_d = parsed_vin.strftime("%Y-%m-%d")
-        except (ValueError, ArithmeticError, Exception):
-            continue
-        records.append((
-            str(row["provider"]),
-            str(row["country"]).upper(),
-            str(row["series_id"]),
-            obs_d,
-            vin_d,
-            val_float,
-        ))
-    if not records:
+    val_orig_isna = pd.isna(df["value"])
+    val_num = pd.to_numeric(df["value"], errors="coerce")
+    obs_dt = pd.to_datetime(df[date_col], errors="coerce")
+    vin_dt = pd.to_datetime(df[vin_col], errors="coerce")
+
+    mask = ~( (val_num.isna() & ~val_orig_isna) | obs_dt.isna() | vin_dt.isna() )
+    if not mask.any():
         return 0
+
+    df_valid = df[mask]
+    val_num_valid = val_num[mask]
+
+    records = list(zip(
+        df_valid["provider"].astype(str),
+        df_valid["country"].astype(str).str.upper(),
+        df_valid["series_id"].astype(str),
+        obs_dt[mask].dt.strftime("%Y-%m-%d"),
+        vin_dt[mask].dt.strftime("%Y-%m-%d"),
+        [float(v) if not pd.isna(v) else None for v in val_num_valid]
+    ))
     c.executemany(
         "INSERT OR REPLACE INTO realtime_vintages "
         "(provider, country, series_id, observation_date, vintage_date, value) "
@@ -425,13 +416,13 @@ def record_connector_event(
 
 
 __all__ = [
-    "default_db_path",
     "bootstrap_schema",
-    "get_conn",
     "close_conn",
+    "default_db_path",
+    "get_conn",
     "migrate_from_flat_files",
-    "store_realtime_vintages",
     "query_realtime_vintages",
     "record_connector_event",
+    "store_realtime_vintages",
 ]
 
