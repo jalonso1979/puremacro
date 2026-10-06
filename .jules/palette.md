@@ -1,0 +1,3 @@
+## 2024-05-14 - Accessibility attributes for inline HTML in Python notebooks
+**Learning:** When injecting inline HTML via `IPython.display.HTML` in Jupyter notebooks, external links using `target="_blank"` are often missing standard web accessibility/security attributes because they bypass React/frontend framework automatic linters. Decorative emojis (like 🚀) read out confusingly on screen readers if unhidden.
+**Action:** Always include `rel="noopener noreferrer"` and explicit `aria-label`s on any raw anchor tags with `target="_blank"` injected via Python, and wrap decorative symbols in `<span aria-hidden="true">`.
