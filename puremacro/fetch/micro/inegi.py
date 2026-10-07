@@ -17,10 +17,11 @@ publishes several linked tables; the useful ones for most work are
   spending, ``tot_integ`` household size, ...). The default.
 * ``poblacion`` — one row per person (``numren``), demographics,
   schooling, health access.
-* ``hogares``, ``viviendas``, ``ingresos``, ``gastoshogar``, ... — the
-  detailed tables, joined on ``folioviv`` + ``foliohog`` (+ ``numren``).
+* ``hogares``, ``viviendas``, ``ingresos``, ``gastoshogar``,
+  ``gastospersona``, ``trabajos`` — the detailed tables, joined on
+  ``folioviv`` + ``foliohog`` (+ ``numren``).
 
-Every table carries the design variables used here.
+These are the tables that carry the design variables used here.
 
 DESIGN
 ------
@@ -64,9 +65,11 @@ from ._design import MicroFrame, SurveyDesign
 
 FIRST_WAVE = 2016
 _ROOT = "https://www.inegi.org.mx/contenidos/programas/enigh/nc/"
+# Tables that carry factor / est_dis / upm (INEGI's database guide). The
+# detail tables agro, noagro, erogaciones and gastotarjetas do not, and
+# would need joining to a parent table first.
 TABLES = ("concentradohogar", "hogares", "poblacion", "viviendas",
-          "ingresos", "gastoshogar", "gastospersona", "trabajos",
-          "agro", "noagro", "erogaciones", "gastotarjetas")
+          "ingresos", "gastoshogar", "gastospersona", "trabajos")
 ID_COLUMNS = ("folioviv", "foliohog", "numren", "ubica_geo", "est_dis",
               "upm", "entidad")
 _UNIT = {"poblacion": "person", "trabajos": "job", "viviendas": "dwelling"}

@@ -21,8 +21,11 @@ The presets carry each survey's documented constants:
 
 * ACS PUMS: 80 successive-difference replicates, ``scale = 4/80``,
   centred on θ.
-* SCF: 999 bootstrap replicates, ``scale = 1/998``, centred on θ; five
-  implicates combined with Rubin's rules (below).
+* SCF: 999 bootstrap replicates, ``scale = 1/998``, centred on the
+  replicate mean (the variance of the 999 replicate estimates), computed
+  on the first implicate only; five implicates combined with Rubin's
+  rules (below). This follows the Board's *Standard Error
+  Documentation*.
 * CPS basic monthly: weights only. No replicate weights or design
   variables are published, so ``se`` is ``NaN`` rather than a
   simple-random-sampling number that would understate the true error.
@@ -50,8 +53,10 @@ MULTIPLE IMPUTATION
 -------------------
 When the design names an ``implicate`` column, each statistic is
 computed per implicate and combined: estimate = mean of the m
-estimates; variance = mean within-implicate variance
-+ (1 + 1/m) x between-implicate variance.
+estimates; variance = within-implicate variance + (1 + 1/m) x
+between-implicate variance. The within term is the mean over implicates,
+or, when ``variance_implicate`` is set, the replicate variance of that
+one implicate (the SCF convention).
 
 Everything here is NumPy / pandas and runs under Pyodide.
 """
@@ -84,6 +89,7 @@ class SurveyDesign:
     strata: str | None = None
     psu: str | None = None
     implicate: str | None = None
+    variance_implicate: int | None = None
     note: str = ""
 
     def __post_init__(self):
@@ -119,12 +125,14 @@ class SurveyDesign:
 
     @classmethod
     def scf(cls) -> "SurveyDesign":
-        """SCF: 999 bootstrap replicates (wt1b_k x mm_k), scale 1/998,
-        five implicates."""
+        """SCF: 999 bootstrap replicates (wt1b_k x mm_k); sampling variance
+        is the variance of the replicate estimates (scale 1/998, centred
+        on their mean) on implicate 1; five implicates for Rubin's rules."""
         return cls(
             weight="wgt",
             replicate_weights=tuple(f"wt1b{r}" for r in range(1, 1000)),
-            method="bootstrap", scale=1 / 998, mse=True, implicate="implicate",
+            method="bootstrap", scale=1 / 998, mse=False, implicate="implicate",
+            variance_implicate=1,
             note="SCF bootstrap replicates x multiplicity factors; Rubin's "
                  "rules across 5 implicates")
 
@@ -293,11 +301,14 @@ class MicroFrame:
     def _combine(self, x, W, imp, stat):
         d = self.design
         ests, vars_ = [], []
+        only = d.variance_implicate
         for i in np.unique(imp):
             sel = imp == i
-            theta = np.asarray(stat(x[sel], W[sel]), dtype=float)
+            with_reps = d.has_variance and (only is None or i == only)
+            theta = np.asarray(stat(x[sel], W[sel] if with_reps else W[sel][:, :1]),
+                               dtype=float)
             ests.append(theta[0])
-            if d.has_variance:
+            if with_reps:
                 reps = theta[1:]
                 centre = theta[0] if d.mse else np.nanmean(reps)
                 vars_.append(d.scale * np.nansum((reps - centre) ** 2))
@@ -306,6 +317,8 @@ class MicroFrame:
             return np.nan, np.nan, 0
         est = float(np.mean(ests))
         if not d.has_variance:
+            return est, np.nan, m
+        if not vars_:                       # variance implicate absent here
             return est, np.nan, m
         within = float(np.mean(vars_))
         between = float(np.var(ests, ddof=1)) if m > 1 else 0.0

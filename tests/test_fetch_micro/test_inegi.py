@@ -65,6 +65,9 @@ def test_url_and_wave_checks():
         inegi.enigh_url(2021)
     with pytest.raises(ValueError, match="unknown ENIGH table"):
         inegi.enigh_url(2022, "hogar")
+    for no_design in ("agro", "noagro", "erogaciones", "gastotarjetas"):
+        with pytest.raises(ValueError, match="unknown ENIGH table"):
+            inegi.enigh_url(2022, no_design)
 
 
 def test_fetch_builds_a_taylor_frame(served):

@@ -9,7 +9,6 @@ import pandas as pd
 import pytest
 
 from puremacro.fetch.micro import scf
-from puremacro.fetch.micro._design import replicate_variance, rubin_combine
 
 
 def _zip_dta(df: pd.DataFrame, name: str) -> bytes:
@@ -84,20 +83,23 @@ def test_fetch_builds_implicates_and_replicate_weights(served):
     assert mf.design.scale == pytest.approx(1 / 998)
 
 
-def test_mean_networth_equals_manual_rubin_combination(served):
+def test_mean_networth_follows_the_boards_standard_error_recipe(served):
+    """Sampling variance = variance of the 999 replicate estimates on
+    implicate 1 (scale 1/998, centred on their mean); imputation variance
+    = (1 + 1/5) x variance of the five implicate estimates."""
     mf = scf.fetch_scf(2022, ["networth"])
     reps = [f"wt1b{k}" for k in range(1, 1000)]
-    ests, vars_ = [], []
+    ests = []
     for i in range(1, 6):
         d = mf.data[mf.data["implicate"] == i]
-        th = np.average(d["networth"], weights=d["wgt"])
-        rt = (d[reps].to_numpy().T @ d["networth"].to_numpy()) / d[reps].to_numpy().sum(0)
-        ests.append(th)
-        vars_.append(replicate_variance(th, rt, scale=1 / 998))
-    est, var = rubin_combine(ests, vars_)
+        ests.append(np.average(d["networth"], weights=d["wgt"]))
+    d1 = mf.data[mf.data["implicate"] == 1]
+    rt = (d1[reps].to_numpy().T @ d1["networth"].to_numpy()) / d1[reps].to_numpy().sum(0)
+    sampling = np.var(rt, ddof=1)
+    imputation = (1 + 1 / 5) * np.var(ests, ddof=1)
     res = mf.mean("networth")
-    assert res.loc[0, "estimate"] == pytest.approx(est)
-    assert res.loc[0, "se"] == pytest.approx(np.sqrt(var))
+    assert res.loc[0, "estimate"] == pytest.approx(np.mean(ests))
+    assert res.loc[0, "se"] == pytest.approx(np.sqrt(sampling + imputation))
     assert res.loc[0, "implicates"] == 5
 
 

@@ -248,8 +248,12 @@ def fetch_cps_basic(
     error would understate the truth. Use the BLS generalised variance
     function parameters if you need an approximation.
     """
-    mon = month if isinstance(month, str) else _MONTHS[int(month) - 1]
-    mon = mon.lower()[:3]
+    if isinstance(month, str):
+        mon = month.lower()[:3]
+    elif 1 <= int(month) <= 12:
+        mon = _MONTHS[int(month) - 1]
+    else:
+        raise ValueError(f"month {month!r} not in 1..12")
     if mon not in _MONTHS:
         raise ValueError(f"month {month!r} not understood")
     url = f"{API_ROOT}/{year}/cps/basic/{mon}"

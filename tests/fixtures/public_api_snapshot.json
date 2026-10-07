@@ -5381,6 +5381,7 @@
       "replicate_weights",
       "scale",
       "strata",
+      "variance_implicate",
       "weight"
     ],
     "puremacro.fetch.registry.SourceInfo": [

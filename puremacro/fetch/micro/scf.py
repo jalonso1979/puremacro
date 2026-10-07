@@ -22,9 +22,11 @@ REPLICATE WEIGHTS
 -----------------
 The replicate file carries ``wt1b1..wt1b999`` and multiplicity factors
 ``mm1..mm999``; the usable replicate weight is their product (missing
-values are zero). Variance is ``(1/998) · Σ_r (θ_r − θ)²`` per implicate,
-the convention of the CRAN ``scf`` package's design objects. Replicates
-are keyed by household (``yy1``) and apply identically to every implicate.
+values are zero). Following the Board's *Standard Error Documentation*,
+the sampling variance is the variance of the 999 replicate estimates,
+``(1/998) · Σ_r (θ_r − mean θ_r)²``, computed on the first implicate
+only; all five implicates enter the imputation (between) term.
+Replicates are keyed by household (``yy1``).
 
 Dollar values are in the survey year's dollars.
 

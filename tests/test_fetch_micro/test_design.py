@@ -139,6 +139,7 @@ def test_presets_carry_documented_constants():
     assert acs.weight == "WGTP" and len(acs.replicate_weights) == 80
     assert acs.scale == pytest.approx(0.05) and acs.mse
     scf = SurveyDesign.scf()
+    assert not scf.mse and scf.variance_implicate == 1
     assert len(scf.replicate_weights) == 999 and scf.scale == pytest.approx(1 / 998)
     assert scf.implicate == "implicate"
 
@@ -244,3 +245,10 @@ def test_enigh_preset():
     d = SurveyDesign.enigh()
     assert (d.weight, d.strata, d.psu, d.method) == ("factor", "est_dis", "upm", "taylor")
     assert d.columns() == ["factor", "est_dis", "upm"]
+
+
+def test_cps_month_out_of_range_is_rejected():
+    from puremacro.fetch.micro import census
+    for bad in (0, -1, 13):
+        with pytest.raises(ValueError, match="not in 1..12"):
+            census.fetch_cps_basic(2024, bad, ["PEMLR"], api_key="k")
