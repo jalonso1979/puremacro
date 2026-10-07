@@ -367,3 +367,110 @@ def test_public_api_exports_ilostat_fetchers():
     assert "fetch_ilostat_lfs_panel" in f.__all__
     assert "fetch_ilostat_sectoral_panel" in f.__all__
     assert "fetch_sectoral_panel_union" in f.__all__
+
+
+# ---------------------------------------------------------------------------
+# 4.7 fixes: live aggregate codes, AGE_AGGREGATE bands, wa/lf flows, annual
+# ---------------------------------------------------------------------------
+
+def _live_shape_rows(freq: str, period: str) -> dict[str, pd.DataFrame]:
+    """One synthetic live-format frame per flow (AGE column, *_NB/_RT codes)."""
+    def frame(measure, rows):
+        return pd.DataFrame([
+            {"REF_AREA": c, "FREQ": freq, "MEASURE": measure, "SEX": "SEX_T",
+             "AGE": "AGE_YTHADULT_YGE15", "TIME_PERIOD": period, "OBS_VALUE": v,
+             "OBS_STATUS": ""} for c, v in rows])
+    return {
+        "DF_UNE_DEAP_SEX_AGE_RT": frame("UNE_DEAP_RT", [("MEX", 2.5), ("X01", 5.0)]),
+        "DF_EMP_DWAP_SEX_AGE_RT": frame("EMP_DWAP_RT", [("MEX", 58.8)]),
+        "DF_EAP_DWAP_SEX_AGE_RT": frame("EAP_DWAP_RT", [("MEX", 60.4)]),
+        "DF_EMP_TEMP_SEX_AGE_NB": frame("EMP_TEMP_NB", [("MEX", 60478.0), ("XA1", 1.0)]),
+        "DF_UNE_TUNE_SEX_AGE_NB": frame("UNE_TUNE_NB", [("MEX", 1577.4)]),
+        "DF_EAP_TEAP_SEX_AGE_NB": frame("EAP_TEAP_NB", [("MEX", 62055.4)]),
+        "DF_POP_XWAP_SEX_AGE_NB": frame("POP_XWAP_NB", [("MEX", 102800.9)]),
+    }
+
+
+def test_annual_lfs_panel_fills_working_age_labour_force_and_inactive(monkeypatch):
+    import puremacro.fetch.labor_ilostat as mod
+    flows = _live_shape_rows("A", "2025")
+    keys = []
+
+    def fake(dataflow, key, *, refresh=False):
+        keys.append(key)
+        return flows[dataflow]
+
+    monkeypatch.setattr(mod, "_fetch_flow", fake)
+    out = mod.fetch_ilostat_lfs_panel(frequency="A", adjustment="SA",
+                                      sexes=("_T",), ages=("Y_GE15",))
+    assert set(out["code"]) == {"MEX"}            # X01 and XA1 dropped
+    row = out.iloc[0]
+    assert row["date"] == pd.Timestamp("2025-01-01")
+    assert row["wa"] == pytest.approx(102800.9)
+    assert row["lf"] == pytest.approx(62055.4)
+    assert row["ina"] == pytest.approx(102800.9 - 62055.4)
+    assert row["urate"] == pytest.approx(0.025)
+    assert len(keys) == 7 and all(k.split(".")[1] == "A" for k in keys)
+
+
+def test_monthly_lfs_periods_parse_to_month_starts(monkeypatch):
+    import puremacro.fetch.labor_ilostat as mod
+    flows = _live_shape_rows("M", "2025-M09")
+    monkeypatch.setattr(mod, "_fetch_flow", lambda d, k, refresh=False: flows[d])
+    out = mod.fetch_ilostat_lfs_panel(frequency="M", adjustment="NSA",
+                                      sexes=("_T",), ages=("Y_GE15",))
+    assert list(out["date"]) == [pd.Timestamp("2025-09-01")]
+
+
+def test_prime_age_and_older_bands_use_the_age_aggregate_codes():
+    from puremacro.fetch.labor_ilostat import _AGE_CODE_MAP, _LFS_AGE_RENAME
+    assert _AGE_CODE_MAP["Y25T54"] == "AGE_AGGREGATE_Y25-54"
+    assert _AGE_CODE_MAP["Y55T64"] == "AGE_AGGREGATE_Y55-64"
+    assert _LFS_AGE_RENAME["AGE_AGGREGATE_Y25-54"] == "Y25T54"
+
+
+def test_a_failed_flow_leaves_the_rest_of_the_lfs_panel(monkeypatch):
+    import puremacro.fetch.ilostat as ilo
+    import urllib.error
+    import puremacro.fetch.labor_ilostat as mod
+    flows = _live_shape_rows("Q", "2025-Q3")
+
+    def get(url, **kw):
+        flow = url.split("ILO,")[1].split(",")[0]
+        if flow == "DF_POP_XWAP_SEX_AGE_NB":
+            raise urllib.error.HTTPError(url, 404, "NoRecordsFound", {}, None)
+        return flows[flow].to_csv(index=False).encode()
+
+    monkeypatch.setattr(ilo, "_get", get)
+    with pytest.warns(UserWarning, match="DF_POP_XWAP_SEX_AGE_NB"):
+        out = mod.fetch_ilostat_lfs_panel(frequency="Q", adjustment="NSA",
+                                          sexes=("_T",), ages=("Y_GE15",))
+    assert out.loc[0, "date"] == pd.Timestamp("2025-07-01")
+    assert out.loc[0, "lf"] == pytest.approx(62055.4)
+    assert np.isnan(out.loc[0, "wa"]) and np.isnan(out.loc[0, "ina"])
+
+
+def test_lfs_panel_rejects_an_unknown_frequency():
+    from puremacro.fetch.labor_ilostat import fetch_ilostat_lfs_panel
+    with pytest.raises(ValueError, match="'A', 'Q' or 'M'"):
+        fetch_ilostat_lfs_panel(frequency="W")
+
+
+def test_a_truncated_transfer_leaves_the_rest_of_the_lfs_panel(monkeypatch):
+    import http.client
+    import puremacro.fetch.ilostat as ilo
+    import puremacro.fetch.labor_ilostat as mod
+    flows = _live_shape_rows("Q", "2025-Q3")
+
+    def get(url, **kw):
+        flow = url.split("ILO,")[1].split(",")[0]
+        if flow == "DF_POP_XWAP_SEX_AGE_NB":
+            raise http.client.IncompleteRead(b"", 10)
+        return flows[flow].to_csv(index=False).encode()
+
+    monkeypatch.setattr(ilo, "_get", get)
+    with pytest.warns(UserWarning, match="DF_POP_XWAP_SEX_AGE_NB"):
+        out = mod.fetch_ilostat_lfs_panel(frequency="Q", adjustment="NSA",
+                                          sexes=("_T",), ages=("Y_GE15",))
+    assert out.loc[0, "lf"] == pytest.approx(62055.4)
+    assert np.isnan(out.loc[0, "wa"])

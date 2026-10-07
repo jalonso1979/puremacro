@@ -57,6 +57,7 @@ _USER_DOCS = [
     "dsge_phase_c.md",
     "dsge_phase_d.md",
     "data_ecosystem.md",
+    "cross_country_panels.md",
     "notebooks.md",
     "replication.md",
     "vfi_continuous_projection.md",

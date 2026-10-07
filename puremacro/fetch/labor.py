@@ -31,31 +31,29 @@ import pandas as pd
 from .sdmx import sdmx_get
 
 
-# Dot-key skeletons per dataflow. Each tuple lists the dimensions in
-# the order they appear in the SDMX key, after ``FREQ`` and before the
-# (typically empty) trailing slots. The values inserted by the builder
-# come from the ``_build_lfs_key`` arguments.
+# Dot-key skeletons per dataflow: the dimensions of ``DSD_LFS`` in the order
+# the SDMX key lists them. Every flow below shares that DSD, and its order is
 #
-# DSD_LFS@DF_IALFS_INDIC:
-#   FREQ.REF_AREA.MEASURE.UNIT_MEASURE.TRANSFORMATION.ADJUSTMENT.SEX.AGE.ACTIVITY
+#   REF_AREA.MEASURE.UNIT_MEASURE.TRANSFORMATION.ADJUSTMENT.SEX.AGE.ACTIVITY.FREQ
+#
+# with FREQ *last*. Until 4.7 the templates put FREQ first (the pre-2024
+# OECD.Stat layout), which the OECD answers with HTTP 404 "NoResultsFound"
+# for every key, so every live call of :func:`fetch_oecd_lfs_panel` failed.
+_LFS_DIMS: tuple[str, ...] = (
+    "area", "measure", "unit", "transform", "adjust",
+    "sex", "age", "activity", "freq",
+)
 _DATAFLOW_KEY_TEMPLATES: dict[str, tuple[str, ...]] = {
-    "DSD_LFS@DF_IALFS_INDIC": (
-        "freq", "area", "measure", "unit", "transform", "adjust",
-        "sex", "age", "activity",
-    ),
-    "DSD_LFS@DF_IALFS_EMP_Q": (
-        "freq", "area", "measure", "unit", "transform", "adjust",
-        "sex", "age", "activity",
-    ),
-    "DSD_LFS@DF_IALFS_UNE_Q": (
-        "freq", "area", "measure", "unit", "transform", "adjust",
-        "sex", "age", "activity",
-    ),
-    "DSD_LFS@DF_IALFS_EMP_BY_AR": (
-        "freq", "area", "measure", "unit", "transform", "adjust",
-        "sex", "age", "activity",
-    ),
+    "DSD_LFS@DF_IALFS_INDIC": _LFS_DIMS,
+    "DSD_LFS@DF_IALFS_EMP_Q": _LFS_DIMS,
+    "DSD_LFS@DF_IALFS_UNE_Q": _LFS_DIMS,
+    "DSD_LFS@DF_IALFS_EMP_BY_AR": _LFS_DIMS,
 }
+
+#: Measure codes of the pre-2024 layout that the current flows publish under
+#: another name. ``IPOP`` (inactive population) is ``OLF`` ("outside the labour
+#: force") today; a key naming ``IPOP`` matches nothing.
+_LEGACY_MEASURES: dict[str, str] = {"IPOP": "OLF"}
 
 
 def _build_lfs_key(
@@ -68,11 +66,16 @@ def _build_lfs_key(
     activities: tuple[str, ...] | None,
     frequency: str,
     adjustment: str,
+    unit: str | None = "PS",
 ) -> str:
     """Assemble the SDMX dot-key for an OECD LFS dataflow.
 
     Lists collapse to ``+``-joined strings; ``None`` becomes empty (which
-    SDMX interprets as "all values for that dimension").
+    SDMX interprets as "all values for that dimension"). ``unit`` pins
+    UNIT_MEASURE, ``"PS"`` (persons) by default: left open, the level
+    measures also come back as growth rates (``GR``), and the pivot in
+    :func:`_reshape_lfs_csv` would keep whichever row it met first. Legacy
+    measure codes are translated (``IPOP`` -> ``OLF``).
     """
     if dataflow not in _DATAFLOW_KEY_TEMPLATES:
         raise ValueError(
@@ -89,8 +92,9 @@ def _build_lfs_key(
     slots = {
         "freq":      frequency,
         "area":      _join(countries),
-        "measure":   _join(measures),
-        "unit":      "",
+        "measure":   _join(None if measures is None else
+                           [_LEGACY_MEASURES.get(m, m) for m in measures]),
+        "unit":      unit or "",
         "transform": "",
         "adjust":    adjustment,
         "sex":       _join(sexes),
@@ -106,7 +110,8 @@ _MEASURE_RENAME: dict[str, str] = {
     "LF":   "lf",
     "EMP":  "emp",
     "UNE":  "une",
-    "IPOP": "ina",
+    "OLF":  "ina",
+    "IPOP": "ina",      # pre-2024 code, still found in local LABOR.xlsx dumps
 }
 
 
@@ -357,7 +362,7 @@ def fetch_oecd_lfs_panel(
     countries: list[str] | None = None,
     sexes:     tuple[str, ...] = ("_T", "M", "F"),
     ages:      tuple[str, ...] = ("Y_GE15", "Y15T24", "Y25T54", "Y55T64"),
-    measures:  tuple[str, ...] = ("WAP", "LF", "EMP", "UNE", "IPOP"),
+    measures:  tuple[str, ...] = ("WAP", "LF", "EMP", "UNE", "OLF"),
     activities: tuple[str, ...] | None = None,
     frequency: str = "M",
     adjustment: str = "Y",
@@ -371,7 +376,8 @@ def fetch_oecd_lfs_panel(
     ----------
     dataflow : str
         OECD SDMX dataflow ID. Default ``"DSD_LFS@DF_IALFS_INDIC"`` returns
-        infra-annual labour-stats indicators (WAP, LF, EMP, UNE, IPOP).
+        infra-annual labour-stats indicators (WAP, LF, EMP, UNE, OLF; the
+        legacy code ``IPOP`` is accepted and sent as ``OLF``).
         Use ``"DSD_LFS@DF_IALFS_EMP_BY_AR"`` for sex × ISIC sector
         employment.
     countries : list[str] | None

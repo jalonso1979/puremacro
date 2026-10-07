@@ -59,9 +59,19 @@ def test_build_eurostat_une_key_with_country_filter():
 
 
 def test_build_eurostat_une_key_unknown_iso3_raises():
-    """A non-EU/EFTA ISO-3 code should raise."""
-    with pytest.raises(KeyError, match="USA"):
-        _build_eurostat_une_key(sexes=("_T",), countries=["USA"])
+    """An ISO-3 code Eurostat never reports should raise."""
+    with pytest.raises(KeyError, match="ARG"):
+        _build_eurostat_une_key(sexes=("_T",), countries=["ARG"])
+
+
+def test_geo_map_reaches_candidates_and_non_european_reporters():
+    """une_rt_m publishes US and JP; the accounts carry the Balkans and Kosovo."""
+    key = _build_eurostat_une_key(sexes=("_T",), countries=["USA", "JPN"])
+    assert key.split(".")[5] == "US+JP"
+    for geo, iso3 in (("XK", "XKX"), ("MK", "MKD"), ("UA", "UKR"),
+                      ("GE", "GEO"), ("KR", "KOR"), ("HK", "HKG")):
+        assert _EUROSTAT_GEO_TO_ISO3[geo] == iso3
+    assert len(set(_EUROSTAT_GEO_TO_ISO3.values())) == len(_EUROSTAT_GEO_TO_ISO3)
 
 
 from puremacro.fetch.labor_eurostat import _reshape_eurostat_une_rt_m

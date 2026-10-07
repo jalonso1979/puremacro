@@ -110,6 +110,20 @@ Germany *can* reach 1970 in volumes, because the Bundesbank has already
 done that linking officially over the 1991 annual average and publishes
 the result (`BBNZ1 Q.DE.Y.H.*.L`).
 
+## Splicing many sources at once
+
+`splice_sources` applies the same rules to a long frame with columns `code, date, variable, value, source`, one row per observation, from as many sources as you have. `to_long` builds that frame from any `(code, date)` wide panel. Add a `source` column and stack the panels:
+
+```python
+from puremacro.fetch.longpanel import splice_sources, to_long
+
+long = pd.concat([to_long(qna).assign(source="oecd"),
+                  to_long(old).assign(source="archive")])
+panel, provenance, seams = splice_sources(long, {"oecd": 0, "archive": 1})
+```
+
+For every (code, variable), the best-ranked source with at least `min_obs` observations is the primary. Its values are never changed and its gaps are never filled. Older sources only extend it backwards. Each one is rescaled by the mean ratio over the first `min_overlap` common dates, and a units change such as millions against billions shows up as `pow10`. Variables declared as `rate` or `ratio` in `kinds` are appended unscaled, but only when the gap at the seam is within `rate_tol`. `seams` keeps one row per attempt, including rejected ones. `provenance` says which source is the primary for each series and which sources extended it.
+
 ## Why only two countries
 
 Because only two archived sources were measured to reach further back

@@ -188,13 +188,18 @@ _FINANCIAL_CONDITIONS_SERIES: dict[str, tuple[str, str, str]] = {
     "term_spread_us": ("T10Y2Y", "USA", "10Y minus 2Y US Treasury Spread"),
 }
 
-# URL endpoints
+# URL endpoints. BIS keys: version "+" is the latest (WS_TC is at 2.0), an
+# empty slot is the wildcard ("ALL" is not: it 404s). Non-area slots are
+# pinned so that one series per economy comes back: WS_TC
+# FREQ.BORROWERS_CTY.TC_BORROWERS.TC_LENDERS.VALUATION.UNIT_TYPE.TC_ADJUST,
+# WS_CREDIT_GAP FREQ.BORROWERS_CTY.TC_BORROWERS.TC_LENDERS.CG_DTYPE,
+# WS_SPP FREQ.REF_AREA.VALUE.UNIT_MEASURE (628 = index 2010=100).
 _FRED_CSV_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv?id={series_id}"
-_BIS_CBPOL_URL = "https://stats.bis.org/api/v2/data/dataflow/BIS/WS_CBPOL/1.0/M.ALL?format=csv"
-_BIS_CBPOL_SINGLE_URL = "https://stats.bis.org/api/v2/data/dataflow/BIS/WS_CBPOL/1.0/M.{cc}?format=csv"
-_BIS_CREDIT_GAP_URL = "https://stats.bis.org/api/v2/data/dataflow/BIS/WS_CREDIT_GAP/1.0/Q.ALL.ALL.ALL?format=csv"
-_BIS_TC_URL = "https://stats.bis.org/api/v2/data/dataflow/BIS/WS_TC/1.0/Q.P.ALL.ALL.ALL.ALL?format=csv"
-_BIS_SPP_URL = "https://stats.bis.org/api/v2/data/dataflow/BIS/WS_SPP/1.0/Q.ALL.ALL.ALL?format=csv"
+_BIS_CBPOL_URL = "https://stats.bis.org/api/v2/data/dataflow/BIS/WS_CBPOL/+/M?format=csv"
+_BIS_CBPOL_SINGLE_URL = "https://stats.bis.org/api/v2/data/dataflow/BIS/WS_CBPOL/+/M.{cc}?format=csv"
+_BIS_CREDIT_GAP_URL = "https://stats.bis.org/api/v2/data/dataflow/BIS/WS_CREDIT_GAP/+/Q..P.A?format=csv"
+_BIS_TC_URL = "https://stats.bis.org/api/v2/data/dataflow/BIS/WS_TC/+/Q..P.A.M.770+USD.A?format=csv"
+_BIS_SPP_URL = "https://stats.bis.org/api/v2/data/dataflow/BIS/WS_SPP/+/Q...628?format=csv"
 
 
 # ---------------------------------------------------------------------------
@@ -593,7 +598,7 @@ def fetch_bis_macroprudential(
         df_cg = _read_bis_csv(_BIS_CREDIT_GAP_URL, refresh=refresh, timeout=timeout)
         if not df_cg.empty:
             ref_col = "BORROWERS_CTY" if "BORROWERS_CTY" in df_cg.columns else ("REF_AREA" if "REF_AREA" in df_cg.columns else None)
-            type_col = "CG_DATA_TYPE" if "CG_DATA_TYPE" in df_cg.columns else ("DATA_TYPE" if "DATA_TYPE" in df_cg.columns else None)
+            type_col = next((c for c in ("CG_DTYPE", "CG_DATA_TYPE", "DATA_TYPE") if c in df_cg.columns), None)
             time_col = "TIME_PERIOD" if "TIME_PERIOD" in df_cg.columns else ("TIME" if "TIME" in df_cg.columns else None)
             val_col = "OBS_VALUE" if "OBS_VALUE" in df_cg.columns else ("VALUE" if "VALUE" in df_cg.columns else None)
 
@@ -609,6 +614,10 @@ def fetch_bis_macroprudential(
                     df_cg = df_cg[df_cg["code"].isin(target_codes)]
 
                 type_map = {
+                    # live WS_CREDIT_GAP codes: A ratio, B HP trend, C gap
+                    "A": "credit_to_gdp_q",
+                    "B": "credit_trend_q",
+                    "C": "credit_gap_q",
                     "GAP": "credit_gap_q",
                     "RAT": "credit_to_gdp_q",
                     "RATIO": "credit_to_gdp_q",
@@ -630,7 +639,9 @@ def fetch_bis_macroprudential(
         df_tc = _read_bis_csv(_BIS_TC_URL, refresh=refresh, timeout=timeout)
         if not df_tc.empty:
             ref_col = "BORROWERS_CTY" if "BORROWERS_CTY" in df_tc.columns else ("REF_AREA" if "REF_AREA" in df_tc.columns else None)
-            unit_col = "UNIT_MEASURE" if "UNIT_MEASURE" in df_tc.columns else ("UNIT" if "UNIT" in df_tc.columns else None)
+            # live WS_TC carries 770/USD/XDC in UNIT_TYPE; its UNIT_MEASURE is
+            # 367 (percent) or the currency
+            unit_col = next((c for c in ("UNIT_TYPE", "UNIT_MEASURE", "UNIT") if c in df_tc.columns), None)
             time_col = "TIME_PERIOD" if "TIME_PERIOD" in df_tc.columns else ("TIME" if "TIME" in df_tc.columns else None)
             val_col = "OBS_VALUE" if "OBS_VALUE" in df_tc.columns else ("VALUE" if "VALUE" in df_tc.columns else None)
 

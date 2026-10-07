@@ -102,6 +102,13 @@ def no_requests(monkeypatch):
     """Make `import requests` fail, as on a tablet build without the scraper stack."""
     import builtins
 
+    # Import the package with the real stack first, and restore the package's
+    # `_http` attribute at teardown: a guarded re-import inside the test binds
+    # `puremacro.fetch._http` to a copy without `requests`, and modules that
+    # did `from . import _http` (financial.py) would keep using it in every
+    # later test of the session.
+    import puremacro.fetch as _pf
+    monkeypatch.setattr(_pf, "_http", _pf._http)
     real_import = builtins.__import__
 
     def _blocked(name, *a, **kw):
@@ -123,10 +130,24 @@ def test_sdmx_fetch_returns_empty_without_requests(no_requests):
     assert got.empty
 
 
-def test_qna_panel_returns_empty_without_requests(no_requests):
-    """The iPad path: the fetch fails, the notebook falls back to its snapshot."""
+def test_qna_panel_returns_empty_without_requests_when_offline(no_requests, monkeypatch, tmp_path):
+    """The iPad path offline: no `requests`, no network; the fetch fails, the notebook falls back to its snapshot.
+
+    Since 4.7 `qna_panel` downloads through urllib (`_oecd_sdmx.oecd_csv`), so missing `requests` alone no
+    longer makes it fail: here the transport itself is cut, as on a tablet without a connection.
+    """
+    import urllib.error
+
+    import puremacro._http as http
     from puremacro.fetch import qna_meta, qna_panel
 
+    def offline(*a, **k):
+        raise urllib.error.URLError("offline")
+
+    monkeypatch.setenv("PUREMACRO_HTTP_CACHE_DIR", str(tmp_path))      # an empty cache
+    monkeypatch.setattr(http, "safe_get_bytes_cached", offline)
+    monkeypatch.setattr("puremacro.fetch._oecd_sdmx.time.sleep", lambda s: None, raising=False)
+    monkeypatch.setattr("time.sleep", lambda s: None)
     panel = qna_panel(["USA", "ESP"], start="2020", output=True, income=True)
     assert panel.empty
     assert qna_meta(panel).empty          # metadata helper survives it too

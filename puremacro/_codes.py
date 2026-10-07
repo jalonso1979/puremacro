@@ -1,12 +1,29 @@
 """Country / aggregate code canonicalization.
 
 Used everywhere the panel might receive aggregate codes from upstream
-fetchers (OECD `EA20`, `EU27`, `OECD`; WUI / GPR `WLD`; etc.) so the
+fetchers (OECD `EA20`, `EU27`, `OECD`; WUI / GPR `WLD`; the World Bank's
+79 region, income and lending groups; etc.) so the
 panel only ever contains pure-country observations.
 """
 from __future__ import annotations
 
 import pandas as pd
+
+#: The 79 aggregate ids of the World Bank country list (``/v2/country``,
+#: ``region.id == "NA"``, WDI release of 13 July 2026): regions, income and
+#: lending groups, demographic-dividend groups, small states and the world.
+#: Three letters each, so a code-length rule cannot catch them; none is an
+#: ISO 3166 alpha-3 country code.
+WB_AGGREGATES: frozenset[str] = frozenset({
+    "AFE", "AFR", "AFW", "ARB", "BEA", "BEC", "BHI", "BLA", "BMN", "BSS",
+    "CAA", "CEA", "CEB", "CEU", "CLA", "CME", "CSA", "CSS", "DEA", "DEC",
+    "DLA", "DMN", "DNS", "DSA", "DSF", "DSS", "EAP", "EAR", "EAS", "ECA",
+    "ECS", "EMU", "EUU", "FCV", "FXS", "HIC", "HPC", "IBB", "IBD", "IBT",
+    "IDA", "IDB", "IDX", "INX", "LAC", "LCN", "LDC", "LIC", "LMC", "LMY",
+    "LTE", "MDE", "MEA", "MIC", "MNA", "NAC", "NAF", "NRS", "NXS", "OED",
+    "OSS", "PRE", "PSS", "PST", "RRS", "SAS", "SSA", "SSF", "SST", "SXZ",
+    "TEA", "TEC", "TLA", "TMN", "TSA", "TSS", "UMC", "WLD", "XZN",
+})
 
 IS_AGGREGATE: frozenset[str] = frozenset({
     "EA", "EA12", "EA17", "EA19", "EA20",
@@ -15,7 +32,7 @@ IS_AGGREGATE: frozenset[str] = frozenset({
     "G7", "G20", "BRICS",
     "WLD", "WORLD", "ADV", "EME",
     "LATAM", "ASIA", "AFRICA", "MENA",
-})
+}) | WB_AGGREGATES
 
 
 def is_country(code: object) -> bool:

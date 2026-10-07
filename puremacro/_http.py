@@ -25,12 +25,31 @@ USER_AGENT = "Mozilla/5.0 (puremacro/narrative)"
 DEFAULT_TIMEOUT = 30.0
 
 
-def _request(url: str, timeout: float, user_agent: str | None = None) -> bytes:
+def _gunzip_if_encoded(body: bytes, content_encoding: str | None) -> bytes:
+    """Undo a *transport* gzip (``Content-Encoding: gzip``) that urllib leaves in place.
+
+    Only the transport encoding is undone: a ``.gz`` file served as
+    ``application/gzip`` with no ``Content-Encoding`` header is returned as the
+    bytes the caller asked for. Servers that honour ``Accept-Encoding: gzip``
+    (World Bank, BIS, ECB) shrink a response 10-80x, which is the difference
+    between a 13 MB and a 170 KB pull on a tablet connection.
+    """
+    if body[:2] == b"\x1f\x8b" and (content_encoding or "").lower() in ("gzip", "x-gzip"):
+        import gzip
+        return gzip.decompress(body)
+    return body
+
+
+def _request(url: str, timeout: float, user_agent: str | None = None,
+             headers: dict | None = None) -> bytes:
     ua = user_agent or USER_AGENT
-    req = urllib.request.Request(url, headers={"User-Agent": ua})
+    hdrs = {"User-Agent": ua}
+    if headers:
+        hdrs.update(headers)
+    req = urllib.request.Request(url, headers=hdrs)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return resp.read()
+            return _gunzip_if_encoded(resp.read(), resp.headers.get("Content-Encoding"))
     except urllib.error.HTTPError:
         # HTTPError is a *subclass* of URLError, so without this branch a
         # 404 / 429 / 500 fell into the SSL fallback below and was
@@ -46,43 +65,61 @@ def _request(url: str, timeout: float, user_agent: str | None = None) -> bytes:
         # See RETRY_POLICY.md §3 for why we do not loop further.
         ctx = ssl.create_default_context()
         with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
-            return resp.read()
+            return _gunzip_if_encoded(resp.read(), resp.headers.get("Content-Encoding"))
+
+
+def _fetch(url: str, timeout: float, user_agent: str | None, headers: dict | None) -> bytes:
+    """Call ``_request`` without the ``headers=`` keyword when there are none.
+
+    ``_request`` is the seam tests and connectors monkeypatch, and the
+    0.4.1 contract is ``(url, timeout, user_agent=None)``; a call that only
+    adds ``headers=`` when it has some keeps every such patch working.
+    """
+    if headers:
+        return _request(url, timeout, user_agent=user_agent, headers=headers)
+    return _request(url, timeout, user_agent=user_agent)
 
 
 def safe_get_bytes(url: str, timeout: float = DEFAULT_TIMEOUT,
-                   *, user_agent: str | None = None) -> bytes:
+                   *, user_agent: str | None = None,
+                   headers: dict | None = None) -> bytes:
     """Fetch ``url`` and return raw bytes. SSL fallback applied once.
 
     ``user_agent`` overrides the default ``Mozilla/5.0 (puremacro/narrative)``
     UA — needed for endpoints behind a WAF that blocks scripted clients.
+    ``headers`` adds request headers (an ``Accept`` for SDMX-CSV, an
+    ``Accept-Encoding: gzip`` for providers that honour it; the transport
+    gzip is undone before the bytes are returned).
     """
-    return _request(url, timeout, user_agent=user_agent)
+    return _fetch(url, timeout, user_agent, headers)
 
 
 def safe_get_text(url: str, timeout: float = DEFAULT_TIMEOUT,
-                  *, user_agent: str | None = None) -> str:
+                  *, user_agent: str | None = None,
+                  headers: dict | None = None) -> str:
     """Fetch ``url`` and return UTF-8 text (decode errors ignored).
 
-    See ``safe_get_bytes`` for the ``user_agent=`` semantics and
-    ``RETRY_POLICY.md §7`` for the WAF-bypass pattern.
+    See ``safe_get_bytes`` for the ``user_agent=`` / ``headers=`` semantics
+    and ``RETRY_POLICY.md §7`` for the WAF-bypass pattern.
     """
-    return _request(url, timeout, user_agent=user_agent).decode(
+    return _fetch(url, timeout, user_agent, headers).decode(
         "utf-8", errors="ignore",
     )
 
 
 def safe_get_json(url: str, timeout: float = DEFAULT_TIMEOUT,
-                  *, user_agent: str | None = None) -> dict:
+                  *, user_agent: str | None = None,
+                  headers: dict | None = None) -> dict:
     """Fetch ``url`` and return decoded JSON.
 
     Empty / whitespace-only bodies return ``{}`` rather than raising,
     matching the existing API-connector behaviour (e.g. GDELT v2 rate
     limits sometimes return blank pages).
 
-    See ``safe_get_bytes`` for the ``user_agent=`` semantics and
-    ``RETRY_POLICY.md §7`` for the WAF-bypass pattern.
+    See ``safe_get_bytes`` for the ``user_agent=`` / ``headers=`` semantics
+    and ``RETRY_POLICY.md §7`` for the WAF-bypass pattern.
     """
-    text = safe_get_text(url, timeout, user_agent=user_agent)
+    text = safe_get_text(url, timeout, user_agent=user_agent, headers=headers)
     if not text.strip():
         return {}
     return json.loads(text)
@@ -153,29 +190,51 @@ def _host_of(url: str) -> str:
     return urllib.parse.urlparse(url).netloc.lower()
 
 
+def _cache_identity(url: str, headers: dict | None) -> str:
+    """The cache key: the URL plus any header that changes the *body*.
+
+    An ``Accept`` header turns an SDMX endpoint from XML into CSV, so the
+    same URL fetched with and without it must not share a cache entry.
+    ``Accept-Encoding`` only changes the transport and is left out.
+    """
+    if not headers:
+        return url
+    rest = sorted((k.lower(), str(v)) for k, v in headers.items()
+                  if k.lower() != "accept-encoding")
+    if not rest:
+        return url
+    return url + "\n" + "\n".join(f"{k}: {v}" for k, v in rest)
+
+
 def safe_get_bytes_cached(
     url: str,
     timeout: float = DEFAULT_TIMEOUT,
     *,
     user_agent: str | None = None,
+    headers: dict | None = None,
     ttl_seconds: int = 30 * 24 * 3600,
     rate_limit_seconds: float = 0.5,
+    refresh: bool = False,
 ) -> bytes:
     """Like ``safe_get_bytes`` but cached on disk.
 
     Cache root: ``$PUREMACRO_HTTP_CACHE_DIR`` or ``~/.cache/puremacro/http``.
-    Bypass entirely with ``PUREMACRO_HTTP_NO_CACHE=1``.
+    Bypass entirely with ``PUREMACRO_HTTP_NO_CACHE=1``. ``refresh=True``
+    skips the cached copy for this call and stores the fresh response, which
+    is how a fetcher offers a "latest release" switch on top of a cache that
+    has no expiry of its own.
     """
     bypass = os.environ.get("PUREMACRO_HTTP_NO_CACHE") == "1"
     cache_dir = default_cache_dir()
-    if not bypass:
-        hit = cache_read(cache_dir, url, ttl_seconds=ttl_seconds)
+    identity = _cache_identity(url, headers)
+    if not bypass and not refresh:
+        hit = cache_read(cache_dir, identity, ttl_seconds=ttl_seconds)
         if hit is not None:
             return hit
     _throttle(_host_of(url), rate_limit_seconds)
-    body = _request(url, timeout, user_agent=user_agent)
+    body = _fetch(url, timeout, user_agent, headers)
     if not bypass:
-        cache_write(cache_dir, url, body)
+        cache_write(cache_dir, identity, body)
     return body
 
 
@@ -184,8 +243,10 @@ def safe_get_text_cached(
     timeout: float = DEFAULT_TIMEOUT,
     *,
     user_agent: str | None = None,
+    headers: dict | None = None,
     ttl_seconds: int = 30 * 24 * 3600,
     rate_limit_seconds: float = 0.5,
+    refresh: bool = False,
 ) -> str:
     """Like ``safe_get_text`` but cached on disk. See
     ``safe_get_bytes_cached`` for env-var semantics.
@@ -193,8 +254,10 @@ def safe_get_text_cached(
     return safe_get_bytes_cached(
         url, timeout,
         user_agent=user_agent,
+        headers=headers,
         ttl_seconds=ttl_seconds,
         rate_limit_seconds=rate_limit_seconds,
+        refresh=refresh,
     ).decode("utf-8", errors="ignore")
 
 

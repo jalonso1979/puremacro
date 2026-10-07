@@ -61,6 +61,12 @@ def load_pwt10(
     PWT 10.0 stops in 2019 by construction (the 2023 release covers
     1950–2019).
 
+    PWT is licensed CC BY 4.0, so it may be redistributed with the
+    citation; it is simply not shipped with the repo. For the current
+    release (PWT 11.0, 1950–2023, 2021 prices) downloaded and cached in one
+    call, use :func:`puremacro.fetch.pwt.fetch_pwt`, e.g.
+    ``fetch_pwt("main")[["pl_i", "pl_c", "labsh"]]``.
+
     Raises
     ------
     FileNotFoundError
@@ -71,8 +77,9 @@ def load_pwt10(
     if not path.exists():
         raise FileNotFoundError(
             f"PWT 10.0 .dta not found at {path}. Download pwt100.dta from "
-            "https://www.rug.nl/ggdc/productivity/pwt/ and place it there; "
-            "it is not redistributable, so it is not shipped with the repo."
+            "https://www.rug.nl/ggdc/productivity/pwt/ and place it there "
+            "(CC BY 4.0; not shipped with the repo). For PWT 11.0 use "
+            "puremacro.fetch.pwt.fetch_pwt(), which downloads and caches it."
         )
     df = pd.read_stata(
         path, columns=["countrycode", "year", "pl_i", "pl_c", "labsh"]

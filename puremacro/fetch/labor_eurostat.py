@@ -41,6 +41,11 @@ from .sdmx import sdmx_get
 # Eurostat's geo codes (mostly ISO-2) → canonical ISO-3.
 # Aggregates (EU27_2020, EA20, EFTA, EU28, EA19, EU27, OECD, …) are
 # DELIBERATELY absent: rows whose geo is not in this dict are dropped.
+# Beyond the EU/EFTA core: the candidate and neighbourhood reporters of the
+# national accounts (AL BA ME MK RS XK MD UA GE; XK is Kosovo, ISO-3 XKX by
+# convention) and the non-European economies Eurostat publishes in its
+# monthly flows (US and JP in une_rt_m and irt_st_m; the partners of the
+# effective-exchange-rate flow ert_eff_ic_m).
 _EUROSTAT_GEO_TO_ISO3: dict[str, str] = {
     "AT": "AUT", "BE": "BEL", "BG": "BGR", "CH": "CHE", "CY": "CYP",
     "CZ": "CZE", "DE": "DEU", "DK": "DNK", "EE": "EST", "EL": "GRC",
@@ -49,6 +54,11 @@ _EUROSTAT_GEO_TO_ISO3: dict[str, str] = {
     "LU": "LUX", "LV": "LVA", "MT": "MLT", "NL": "NLD", "NO": "NOR",
     "PL": "POL", "PT": "PRT", "RO": "ROU", "SE": "SWE", "SI": "SVN",
     "SK": "SVK", "TR": "TUR", "UK": "GBR",
+    "AL": "ALB", "BA": "BIH", "ME": "MNE", "MK": "MKD", "RS": "SRB",
+    "XK": "XKX", "MD": "MDA", "UA": "UKR", "GE": "GEO",
+    "US": "USA", "JP": "JPN", "AU": "AUS", "BR": "BRA", "CA": "CAN",
+    "CN": "CHN", "HK": "HKG", "KR": "KOR", "MX": "MEX", "NZ": "NZL",
+    "RU": "RUS",
 }
 
 _EUROSTAT_SEX_MAP: dict[str, str] = {"T": "_T", "M": "M", "F": "F"}
@@ -301,7 +311,7 @@ def fetch_eurostat_lfs_quarterly_panel(
     countries : list[str] | None
         ISO-3 country filter. Default ``None`` = pass empty geo to SDMX
         and let Eurostat return all reporters; the reshape filters to
-        rows whose geo is in :data:`_EUROSTAT_GEO_TO_ISO3` (30 EU/EFTA
+        rows whose geo is in :data:`_EUROSTAT_GEO_TO_ISO3` (EU/EFTA, candidate
         countries). This avoids URL-length errors from passing 29
         explicit country codes. Explicit caller lists are translated
         ISO-3 → Eurostat codes; unknown ISO-3 codes raise KeyError.

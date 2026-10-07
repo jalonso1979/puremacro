@@ -1,5 +1,13 @@
 """IMF International Financial Statistics (IFS) monthly fetcher.
 
+.. deprecated:: 4.7
+    The endpoint below no longer exists: ``dataservices.imf.org`` stopped
+    resolving (NXDOMAIN) when the IMF moved its data to
+    ``api.imf.org/external/sdmx/2.1``, so :func:`fetch` returns an empty
+    frame for every request. Use :func:`puremacro.fetch.imf.imf_monthly_panel`
+    (CPI, industrial production, unemployment and more, ISO3 codes, cached)
+    instead. This module is kept only so that old imports keep working.
+
 Endpoint: ``http://dataservices.imf.org/REST/SDMX_JSON.svc/CompactData/IFS/<key>``.
 
 We pull three monthly indicators across ~140 countries since 1948:
@@ -21,6 +29,7 @@ mapping.
 """
 from __future__ import annotations
 
+import warnings
 from typing import Any, Iterable
 
 import numpy as np
@@ -159,7 +168,17 @@ def _parse_compact_data(payload: dict[str, Any], indicator: str, out_var: str) -
 
 
 def fetch(codes: Iterable[str] | None = None, *, start_period: str = "1990") -> pd.DataFrame:
-    """Pull all three IFS monthly indicators for *codes* (None -> all available)."""
+    """Pull all three IFS monthly indicators for *codes* (None -> all available).
+
+    Deprecated: the endpoint is gone and this returns an empty frame; use
+    :func:`puremacro.fetch.imf.imf_monthly_panel`.
+    """
+    warnings.warn(
+        "puremacro.fetch.imf_ifs.fetch is deprecated: dataservices.imf.org no longer "
+        "exists, so it returns nothing. Use puremacro.fetch.imf.imf_monthly_panel "
+        "(columns cpi, ip, urate, ...) instead.",
+        DeprecationWarning, stacklevel=2,
+    )
     frames: list[pd.DataFrame] = []
     for out_var, indicator in _INDICATORS.items():
         try:

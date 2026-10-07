@@ -778,7 +778,9 @@
       "ANA_LABOR",
       "ANA_LABOR_UNITS",
       "APPROACH_GDP",
+      "BIS_SERIES",
       "IDENTITY_TERMS",
+      "ILOSTAT_VARS",
       "INCOME_TERMS",
       "LONG_PANEL_KNOWN_GAPS",
       "LONG_PANEL_SOURCES",
@@ -795,16 +797,33 @@
       "QNA_LABOR_UNITS",
       "QNA_VA_ADDITIVE",
       "QNA_VA_MEMO",
+      "STES_CONCEPTS",
       "VINTAGE_SEMANTICS",
       "VintagePanel",
+      "WDI_INDICATORS",
       "alfred_vintages",
       "ana_by_activity",
+      "ana_countries",
       "ana_hours_wedge",
       "ana_meta",
+      "ana_panel",
+      "ana_panel_meta",
       "available_providers",
+      "bis_countries",
+      "bis_eer",
+      "bis_get",
+      "bis_meta",
+      "bis_panel",
       "chain_volume",
+      "commodity_prices_monthly",
       "compute_sovereign_spreads",
       "drop_unadjusted_editions",
+      "ecb_get",
+      "eurostat_codes",
+      "eurostat_get",
+      "eurostat_meta",
+      "eurostat_monthly_panel",
+      "eurostat_na_panel",
       "fetch_bis_macroprudential",
       "fetch_commodity_benchmarks",
       "fetch_emissions_panel",
@@ -814,43 +833,84 @@
       "fetch_financial_conditions",
       "fetch_fred",
       "fetch_fred_alfred",
+      "fetch_fred_many",
       "fetch_ilostat_lfs_panel",
       "fetch_ilostat_sectoral_panel",
       "fetch_jolts",
       "fetch_labor_panel_union",
+      "fetch_maddison",
       "fetch_oecd_ghg",
       "fetch_oecd_lfs_panel",
       "fetch_policy_rates",
+      "fetch_pwt",
       "fetch_qna_vintages",
       "fetch_sectoral_panel_union",
       "fetch_sovereign_yields",
       "fetch_wdi_emissions",
       "fetch_xrate_monthly",
       "get_qna_vintage_catalog",
+      "ilostat_meta",
+      "ilostat_panel",
+      "imf_dataflows",
+      "imf_get",
+      "imf_icsd",
+      "imf_labour_panel",
+      "imf_meta",
+      "imf_monthly_panel",
+      "imf_nea_panel",
+      "imf_pcps",
+      "imf_weo",
       "long_panel_residual",
+      "oecd_lfs_panel",
       "oecd_sdmx_instrument",
+      "oecd_vacancies",
+      "pwt_variables",
       "qna_contributions",
       "qna_countries",
+      "qna_extras_meta",
       "qna_identity",
       "qna_labor",
       "qna_long_panel",
       "qna_meta",
       "qna_panel",
+      "qna_population",
       "qna_rebase",
+      "qna_sector_gfcf",
+      "rates_panel",
       "sdmx_get",
       "seasonal_signature",
+      "stes_meta",
+      "stes_panel",
+      "stock_index_monthly",
       "vintage_catalog",
-      "vintage_panel"
+      "vintage_panel",
+      "wdi_countries",
+      "wdi_meta",
+      "wdi_panel"
     ],
     "puremacro.fetch._classic": [
       "fetch_fred",
       "fetch_fred_alfred"
     ],
     "puremacro.fetch._oecd_sdmx": [
-      "get_sdmx_csv"
+      "OECD_AGGREGATES",
+      "get_sdmx_csv",
+      "oecd_availability",
+      "oecd_csv",
+      "oecd_key"
     ],
     "puremacro.fetch._seasonal": [
       "x13_seasonal_adjust"
+    ],
+    "puremacro.fetch.bis": [
+      "BIS_AGGREGATES",
+      "BIS_SERIES",
+      "BIS_TO_ISO3",
+      "bis_countries",
+      "bis_eer",
+      "bis_get",
+      "bis_meta",
+      "bis_panel"
     ],
     "puremacro.fetch.bls_state_panel": [
       "iter_state_employment_q",
@@ -877,6 +937,25 @@
       "VARIABLES",
       "fetch_energy_transition"
     ],
+    "puremacro.fetch.eurostat": [
+      "EUROSTAT_AGGREGATES",
+      "EURO_ADOPTION",
+      "MONTHLY",
+      "NA_ASSETS",
+      "NA_CAPITAL",
+      "NA_DURABILITY",
+      "NA_INCOME",
+      "NA_INCOME_SECTOR",
+      "NA_LABOR",
+      "NA_MAIN",
+      "NA_OUTPUT",
+      "NA_SECTORS",
+      "eurostat_codes",
+      "eurostat_get",
+      "eurostat_meta",
+      "eurostat_monthly_panel",
+      "eurostat_na_panel"
+    ],
     "puremacro.fetch.financial": [
       "_BIS_TO_ISO3",
       "_EUROZONE_ISO3",
@@ -892,6 +971,36 @@
     ],
     "puremacro.fetch.hrs_mpu": [
       "fetch"
+    ],
+    "puremacro.fetch.ilostat": [
+      "DEFAULT_VARS",
+      "ILOSTAT_VARS",
+      "ILO_AGGREGATES",
+      "MODEL_VARS",
+      "ilostat_last_updates",
+      "ilostat_meta",
+      "ilostat_panel",
+      "is_ilo_aggregate"
+    ],
+    "puremacro.fetch.imf": [
+      "IMF_AGGREGATES",
+      "IMF_CODE_RENAMES",
+      "IMF_FLOWS",
+      "IMF_ICSD",
+      "IMF_LABOUR",
+      "IMF_MONTHLY",
+      "IMF_NEA_ITEMS",
+      "IMF_PCPS_NAMED",
+      "IMF_WEO",
+      "imf_dataflows",
+      "imf_get",
+      "imf_icsd",
+      "imf_labour_panel",
+      "imf_meta",
+      "imf_monthly_panel",
+      "imf_nea_panel",
+      "imf_pcps",
+      "imf_weo"
     ],
     "puremacro.fetch.imf_ifs": [
       "ISO2_TO_ISO3",
@@ -918,7 +1027,9 @@
       "overlap_ratio",
       "qna_long_panel",
       "ratio_splice",
-      "splice_frame"
+      "splice_frame",
+      "splice_sources",
+      "to_long"
     ],
     "puremacro.fetch.longpanel._splice": [
       "MIN_OVERLAP",
@@ -928,7 +1039,9 @@
       "expenditure_residual",
       "overlap_ratio",
       "ratio_splice",
-      "splice_frame"
+      "splice_frame",
+      "splice_sources",
+      "to_long"
     ],
     "puremacro.fetch.longpanel.esri_jp": [
       "JP_DEFAULT_CHAIN",
@@ -957,6 +1070,27 @@
       "long_panel_residual",
       "qna_long_panel"
     ],
+    "puremacro.fetch.oecd_ana_panel": [
+      "ANA_ASSETS",
+      "ANA_DURABILITY",
+      "ANA_FLOWS",
+      "ANA_INCOME",
+      "ANA_INCOME_SECTOR",
+      "ANA_LABOR",
+      "ANA_LABOR_ACTIVITIES",
+      "ANA_MAIN",
+      "ANA_OUTPUT",
+      "ANA_POP",
+      "ANA_SECTORS",
+      "ANA_STOCKS",
+      "ANA_STOCKS_GOV",
+      "ANA_VA_ADDITIVE",
+      "NAMAIN10_DIMS",
+      "NASEC10_DIMS",
+      "ana_countries",
+      "ana_panel",
+      "ana_panel_meta"
+    ],
     "puremacro.fetch.oecd_energy": [
       "fetch_energy_cpi"
     ],
@@ -968,6 +1102,18 @@
     ],
     "puremacro.fetch.oecd_qna_expenditure": [
       "fetch_qna_expenditure"
+    ],
+    "puremacro.fetch.oecd_qna_extras": [
+      "LFS_INDICATORS",
+      "OECD_PAUSE",
+      "OECD_VACANCIES",
+      "QNA_POPULATION",
+      "SECTOR_GFCF",
+      "oecd_lfs_panel",
+      "oecd_vacancies",
+      "qna_extras_meta",
+      "qna_population",
+      "qna_sector_gfcf"
     ],
     "puremacro.fetch.oecd_qna_local": [
       "fetch_extended"
@@ -996,6 +1142,25 @@
       "qna_identity",
       "qna_rebase"
     ],
+    "puremacro.fetch.oecd_stes_panel": [
+      "STES_CONCEPTS",
+      "StesConcept",
+      "stes_meta",
+      "stes_panel"
+    ],
+    "puremacro.fetch.pwt": [
+      "MADDISON_HISTORICAL",
+      "MADDISON_RELEASE",
+      "MADDISON_UNITS",
+      "PWT_HISTORICAL",
+      "PWT_NONSTANDARD_CODES",
+      "PWT_NON_ECONOMIES",
+      "PWT_RELEASES",
+      "PWT_UNITS",
+      "fetch_maddison",
+      "fetch_pwt",
+      "pwt_variables"
+    ],
     "puremacro.fetch.qna_vintages": [
       "COUNTRY_METADATA",
       "QNAVintagePanel",
@@ -1003,6 +1168,20 @@
       "VARIABLE_MAP",
       "fetch_qna_vintages",
       "get_qna_vintage_catalog"
+    ],
+    "puremacro.fetch.rates": [
+      "ECB_AGGREGATES",
+      "EURO_ENTRY",
+      "FRED_AGGREGATES",
+      "FRED_COUNTRIES",
+      "IRS_10Y_COUNTRIES",
+      "ISO2_TO_ISO3",
+      "RATE_VARIABLES",
+      "commodity_prices_monthly",
+      "ecb_get",
+      "fetch_fred_many",
+      "rates_panel",
+      "stock_index_monthly"
     ],
     "puremacro.fetch.realtime": [
       "CANONICAL_VARIABLES",
@@ -1200,6 +1379,14 @@
       "fetch_commodity_benchmarks",
       "fetch_indices",
       "fetch_prices"
+    ],
+    "puremacro.fetch.wdi": [
+      "WDI_CORE",
+      "WDI_INDICATORS",
+      "WDI_REAL",
+      "wdi_countries",
+      "wdi_meta",
+      "wdi_panel"
     ],
     "puremacro.fetch.wui_extras": [
       "fetch_extras_m",

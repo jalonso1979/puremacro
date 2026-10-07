@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import io
 import json
+import warnings
 from pathlib import Path
 from typing import Sequence
 import numpy as np
@@ -207,6 +208,43 @@ def _parse_ember_df(
     return out
 
 
+#: Rows per page. Kept at the pre-4.7 value so URLs, and the cached files
+#: keyed on them, do not change; completeness comes from the page loop.
+#: (The API's ceiling is 32 767; 32 768 answers with an HTML 400 page.)
+_WDI_PER_PAGE = 15000
+
+
+def _wdi_all_pages(url: str, *, refresh: bool, timeout: float) -> list | None:
+    """Every row of a paged WDI ``[meta, rows]`` response, or ``None`` on failure.
+
+    Page 1 is the bare ``url``; ``&page=k`` is appended from page 2 on. Before
+    4.7 only page 1 of a ``per_page=15000`` answer was read, which silently
+    dropped every economy past the first 15 000 rows. Raises whatever
+    ``cached_get`` raises; the caller turns that into an empty frame.
+    """
+    rows: list = []
+    page, pages, total = 1, 1, None
+    while page <= pages:
+        raw = cached_get(url if page == 1 else f"{url}&page={page}",
+                         refresh=refresh, timeout=timeout)
+        payload = json.loads(raw.decode("utf-8"))
+        if not (isinstance(payload, list) and len(payload) >= 2 and isinstance(payload[1], list)):
+            if page == 1:
+                return None
+            break
+        rows.extend(payload[1])
+        meta = payload[0] if isinstance(payload[0], dict) else {}
+        try:
+            pages = int(meta.get("pages") or 1)
+            total = int(meta["total"]) if meta.get("total") is not None else None
+        except (TypeError, ValueError):
+            pages = 1
+        page += 1
+    if total is not None and len(rows) < total:
+        warnings.warn(f"WDI returned {len(rows)} of {total} rows for {url}", stacklevel=3)
+    return rows
+
+
 def _fetch_wdi_primary_energy(
     codes: Sequence[str] | None = None,
     start_year: int = 1990,
@@ -223,26 +261,24 @@ def _fetch_wdi_primary_energy(
         # Fetch per capita energy use
         url_nrg = (
             f"https://api.worldbank.org/v2/country/{c_str}/indicator/"
-            f"EG.USE.PCAP.KG.OE?format=json&date={start_year}:2025&per_page=15000"
+            f"EG.USE.PCAP.KG.OE?format=json&date={start_year}:2025&per_page={_WDI_PER_PAGE}"
         )
-        data_nrg = cached_get(url_nrg, refresh=refresh, timeout=timeout)
-        parsed_nrg = json.loads(data_nrg.decode("utf-8"))
-        if not (isinstance(parsed_nrg, list) and len(parsed_nrg) >= 2 and isinstance(parsed_nrg[1], list)):
+        rows_nrg = _wdi_all_pages(url_nrg, refresh=refresh, timeout=timeout)
+        if rows_nrg is None:
             return _EMPTY.copy()
 
         # Fetch population
         url_pop = (
             f"https://api.worldbank.org/v2/country/{c_str}/indicator/"
-            f"SP.POP.TOTL?format=json&date={start_year}:2025&per_page=15000"
+            f"SP.POP.TOTL?format=json&date={start_year}:2025&per_page={_WDI_PER_PAGE}"
         )
-        data_pop = cached_get(url_pop, refresh=refresh, timeout=timeout)
-        parsed_pop = json.loads(data_pop.decode("utf-8"))
-        if not (isinstance(parsed_pop, list) and len(parsed_pop) >= 2 and isinstance(parsed_pop[1], list)):
+        rows_pop = _wdi_all_pages(url_pop, refresh=refresh, timeout=timeout)
+        if rows_pop is None:
             return _EMPTY.copy()
 
         # Build lookup for population: (code, year) -> pop
         pop_map: dict[tuple[str, int], float] = {}
-        for rec in parsed_pop[1]:
+        for rec in rows_pop:
             iso = rec.get("countryiso3code") or rec.get("country", {}).get("id")
             yr_str = rec.get("date")
             val = rec.get("value")
@@ -253,7 +289,7 @@ def _fetch_wdi_primary_energy(
                     pass
 
         rows = []
-        for rec in parsed_nrg[1]:
+        for rec in rows_nrg:
             iso = rec.get("countryiso3code") or rec.get("country", {}).get("id")
             yr_str = rec.get("date")
             nrg_val = rec.get("value")

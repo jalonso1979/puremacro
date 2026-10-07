@@ -9,19 +9,53 @@ Sheets:
 
 Returns long-form schema with code='WLD' (a single global series per variable):
 code, date, variable, value, sa_source, source
+
+The workbook is read with the standard library alone (``zipfile`` plus
+``xml.etree``, see :func:`_read_xlsx_sheet`), so neither ``openpyxl`` nor
+``requests`` is needed and the module runs on a tablet with only numpy and
+pandas. Downloads go through :func:`puremacro._http.safe_get_bytes_cached`
+(urllib, SQLite cache outside the repository): nothing is written into the
+package tree.
 """
 from __future__ import annotations
 
 import re
 import warnings
+import zipfile
 from io import BytesIO
 from pathlib import Path
 from typing import Sequence
+from xml.etree import ElementTree as ET
 
 import numpy as np
 import pandas as pd
 
-from ._http import cached_get
+from puremacro._http import safe_get_bytes_cached
+
+#: Seconds the landing page is trusted before it is re-read for a newer link.
+#: The World Bank re-issues the workbook under a new document id every month.
+_LANDING_TTL = 7 * 24 * 3600
+
+#: Seconds a downloaded workbook is trusted (``refresh=True`` bypasses it).
+_WORKBOOK_TTL = 30 * 24 * 3600
+
+
+def cached_get(url: str, *, refresh: bool = False, timeout: float = 60) -> bytes:
+    """Fetch ``url`` through the house urllib cache; raise on failure.
+
+    This module-level name is the seam the tests patch. It keeps the
+    ``(url, *, refresh, timeout)`` shape of the ``requests``-based helper it
+    replaces, so callers and fixtures did not change.
+    """
+    ttl = _LANDING_TTL if url == _LANDING else _WORKBOOK_TTL
+    return safe_get_bytes_cached(
+        url, timeout,
+        headers={"Accept-Encoding": "gzip"},
+        ttl_seconds=ttl,
+        rate_limit_seconds=1.0,
+        refresh=refresh,
+    )
+
 
 #: The page that always links to the current workbook.
 _LANDING = "https://www.worldbank.org/en/research/commodity-markets"
@@ -73,6 +107,161 @@ def _warn_if_stale(out: pd.DataFrame) -> None:
             UserWarning,
             stacklevel=3,
         )
+
+
+_XLSX_NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
+_REL_NS = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
+_PKG_REL_NS = "{http://schemas.openxmlformats.org/package/2006/relationships}"
+_CELL_REF = re.compile(r"^([A-Z]+)(\d+)$")
+
+
+def _col_index(letters: str) -> int:
+    """``"A"`` -> 0, ``"Z"`` -> 25, ``"AA"`` -> 26."""
+    n = 0
+    for ch in letters:
+        n = n * 26 + (ord(ch) - 64)
+    return n - 1
+
+
+def _text_of(node) -> str:
+    """All ``<t>`` text under ``node`` (rich-text runs are concatenated)."""
+    return "".join(t.text or "" for t in node.iter(_XLSX_NS + "t"))
+
+
+def _read_xlsx_sheet(content: bytes, sheet_name: str) -> list[list]:
+    """Return one worksheet of an ``.xlsx`` as a dense list of rows.
+
+    Row ``i`` of the result is spreadsheet row ``i + 1`` and column ``j`` is
+    column letter ``j`` (A = 0), so positions match ``pd.read_excel(...,
+    header=None)``. Numbers come back as ``float``, text as ``str`` (shared,
+    inline and formula strings alike), empty cells as ``None``. Only the
+    standard library is used.
+
+    Raises ``KeyError`` when the sheet does not exist and
+    ``zipfile.BadZipFile`` / ``ET.ParseError`` on a damaged file; the callers
+    turn those into the empty schema.
+    """
+    with zipfile.ZipFile(BytesIO(content)) as zf:
+        names = set(zf.namelist())
+        wb = ET.fromstring(zf.read("xl/workbook.xml"))
+        rid = None
+        for sh in wb.iter(_XLSX_NS + "sheet"):
+            if sh.get("name", "").strip() == sheet_name:
+                rid = sh.get(_REL_NS + "id")
+                break
+        if rid is None:
+            raise KeyError(f"no sheet named {sheet_name!r}")
+        rels = ET.fromstring(zf.read("xl/_rels/workbook.xml.rels"))
+        target = None
+        for rel in rels.iter(_PKG_REL_NS + "Relationship"):
+            if rel.get("Id") == rid:
+                target = rel.get("Target", "")
+                break
+        if not target:
+            raise KeyError(f"sheet {sheet_name!r} has no part")
+        path = target.lstrip("/") if target.startswith("/") else "xl/" + target
+        shared: list[str] = []
+        if "xl/sharedStrings.xml" in names:
+            sst = ET.fromstring(zf.read("xl/sharedStrings.xml"))
+            shared = [_text_of(si) for si in sst.iter(_XLSX_NS + "si")]
+        sheet = ET.fromstring(zf.read(path))
+
+    rows: dict[int, dict[int, object]] = {}
+    next_row = 0
+    for row in sheet.iter(_XLSX_NS + "row"):
+        r_attr = row.get("r")
+        r = int(r_attr) - 1 if r_attr else next_row
+        next_row = r + 1
+        cells: dict[int, object] = {}
+        next_col = 0
+        for c in row.iter(_XLSX_NS + "c"):
+            ref = c.get("r")
+            m = _CELL_REF.match(ref) if ref else None
+            j = _col_index(m.group(1)) if m else next_col
+            next_col = j + 1
+            kind = c.get("t", "n")
+            v = c.find(_XLSX_NS + "v")
+            if kind == "inlineStr":
+                is_ = c.find(_XLSX_NS + "is")
+                value: object = _text_of(is_) if is_ is not None else None
+            elif v is None or v.text is None:
+                value = None
+            elif kind == "s":
+                value = shared[int(v.text)]
+            elif kind in ("str", "e"):
+                value = v.text
+            elif kind == "b":
+                value = float(v.text)
+            else:
+                try:
+                    value = float(v.text)
+                except ValueError:
+                    value = v.text
+            if value is not None:
+                cells[j] = value
+        if cells:
+            rows[r] = cells
+    if not rows:
+        return []
+    width = max(max(cells) for cells in rows.values()) + 1
+    out: list[list] = []
+    for r in range(max(rows) + 1):
+        cells = rows.get(r, {})
+        out.append([cells.get(j) for j in range(width)])
+    return out
+
+
+_PERIOD_RE = re.compile(r"^\d{4}M\d{2}$")
+
+
+def _is_period(x: object) -> bool:
+    return isinstance(x, str) and bool(_PERIOD_RE.match(x.strip()))
+
+
+def _price_table(content: bytes) -> tuple[list[str], list[str], list[list]]:
+    """Header, units and data rows of the 'Monthly Prices' sheet.
+
+    The data rows are those whose first cell reads ``YYYYMmm``; the header is
+    two rows above the first of them and the units row sits in between,
+    which is the layout of every edition since 2010 (title block, header,
+    units, data).
+    """
+    grid = _read_xlsx_sheet(content, "Monthly Prices")
+    first = next((i for i, row in enumerate(grid) if row and _is_period(row[0])), None)
+    if first is None or first < 2:
+        return [], [], []
+    header = ["" if x is None else str(x) for x in grid[first - 2]]
+    units = ["" if x is None else str(x) for x in grid[first - 1]]
+    data = [row for row in grid[first:] if row and _is_period(row[0])]
+    return header, units, data
+
+
+def _match_price_column(header: str) -> str | None:
+    """Raw variable name for a 'Monthly Prices' header, or ``None``.
+
+    A needle must start a word: "tin" used to match inside "Platinum" and
+    platinum was silently dropped as a duplicate of tin.
+    """
+    col = header.strip().lower()
+    for needle, name in _COL_MAP.items():
+        if re.search(r"(?<![a-z])" + re.escape(needle), col):
+            return name
+    return None
+
+
+def _to_float(values: Sequence[object]) -> np.ndarray:
+    return pd.to_numeric(pd.Series(list(values), dtype=object), errors="coerce").to_numpy(dtype=float)
+
+
+def _price_units(content: bytes) -> dict[str, str]:
+    """Raw variable name -> unit label from the workbook's units row."""
+    header, units, _ = _price_table(content)
+    out: dict[str, str] = {}
+    for h, u in zip(header, units):
+        name = _match_price_column(h)
+        if name and name not in out:
+            out[name] = u.strip().strip("()")
+    return out
 
 
 # Column-name substring -> raw monthly price variable name. Match is case-insensitive.
@@ -197,9 +386,15 @@ def _get_workbook_content(
     url = _resolve_url(refresh=refresh)
     try:
         return cached_get(url, refresh=refresh, timeout=120)
-    except Exception as e:
-        print(f"[wb_pink_sheet] download failed: {e}")
+    except Exception as e:  # noqa: BLE001 - any provider failure -> empty schema
+        warnings.warn(f"wb_pink_sheet: download failed ({type(e).__name__}: {e})",
+                      UserWarning, stacklevel=3)
         return None
+
+
+def _clean_numeric(values: Sequence[object]) -> np.ndarray:
+    """Floats, with the workbook's '…', '..', 'n.a.' placeholders as NaN."""
+    return _to_float(values)
 
 
 def fetch_prices(
@@ -215,46 +410,29 @@ def fetch_prices(
         return _EMPTY.copy()
 
     try:
-        df = pd.read_excel(
-            BytesIO(content), sheet_name="Monthly Prices", skiprows=4, header=0
-        )
-    except Exception as e:
-        print(f"[wb_pink_sheet] excel parse failed: {e}")
+        header, _units, data = _price_table(content)
+    except Exception as e:  # noqa: BLE001 - damaged or unexpected workbook
+        warnings.warn(f"wb_pink_sheet: 'Monthly Prices' parse failed ({type(e).__name__}: {e})",
+                      UserWarning, stacklevel=2)
+        return _EMPTY.copy()
+    if not data:
         return _EMPTY.copy()
 
-    if df.empty:
-        return _EMPTY.copy()
-
-    # First col is date (YYYYMMM, e.g. 1960M01). Skip unit row at index 0.
-    date_col = df.columns[0]
-    df = df.iloc[1:].copy()
-
-    # Coerce date to string and keep only proper YYYYM## rows.
-    df[date_col] = df[date_col].astype(str).str.strip()
-    df = df[df[date_col].str.match(r"^\d{4}M\d{2}$")]
-    df["date"] = pd.to_datetime(df[date_col].str.replace("M", "-") + "-01")
+    dates = pd.to_datetime([str(row[0]).strip().replace("M", "-") + "-01" for row in data])
 
     rows = []
-    for col in df.columns:
-        if col == date_col or col == "date":
+    for j, col in enumerate(header):
+        if j == 0:
             continue
-        col_str = str(col).strip().lower()
-        var_name = None
-        for needle, name in _COL_MAP.items():
-            if needle in col_str:
-                var_name = name
-                break
+        var_name = _match_price_column(col)
         if var_name is None:
             continue
-        s = pd.to_numeric(
-            df[col].replace({"…": np.nan, "..": np.nan, "...": np.nan, "n.a.": np.nan}),
-            errors="coerce",
-        )
+        vals = _clean_numeric([row[j] if j < len(row) else None for row in data])
         sub = pd.DataFrame({
             "code": "WLD",
-            "date": df["date"].values,
+            "date": dates,
             "variable": var_name,
-            "value": s.values,
+            "value": vals,
             "sa_source": "none",
             "source": "WorldBank:PinkSheet:MonthlyPrices",
         }).dropna(subset=["value"])
@@ -288,35 +466,28 @@ def fetch_indices(
         return _EMPTY.copy()
 
     try:
-        df = pd.read_excel(BytesIO(content), sheet_name="Monthly Indices", header=None)
-    except Exception as e:
-        print(f"[wb_pink_sheet] monthly indices parse failed: {e}")
+        grid = _read_xlsx_sheet(content, "Monthly Indices")
+    except Exception as e:  # noqa: BLE001 - damaged or unexpected workbook
+        warnings.warn(f"wb_pink_sheet: 'Monthly Indices' parse failed ({type(e).__name__}: {e})",
+                      UserWarning, stacklevel=2)
         return _EMPTY.copy()
 
-    if df.empty or df.shape[1] < 2:
+    data = [row for row in grid if row and _is_period(row[0])]
+    if not data or len(data[0]) < 2:
         return _EMPTY.copy()
 
-    # Locate rows where first column matches YYYYM##
-    date_mask = df[0].astype(str).str.strip().str.match(r"^\d{4}M\d{2}$")
-    df_data = df[date_mask].copy()
-    if df_data.empty:
-        return _EMPTY.copy()
-
-    dates = pd.to_datetime(df_data[0].astype(str).str.strip().str.replace("M", "-") + "-01")
+    dates = pd.to_datetime([str(row[0]).strip().replace("M", "-") + "-01" for row in data])
 
     rows = []
     for col_idx, var_name in _INDEX_COL_MAP.items():
-        if col_idx >= df_data.shape[1]:
+        if col_idx >= len(data[0]):
             continue
-        vals = pd.to_numeric(
-            df_data[col_idx].replace({"…": np.nan, "..": np.nan, "...": np.nan, "n.a.": np.nan}),
-            errors="coerce",
-        )
+        vals = _clean_numeric([row[col_idx] for row in data])
         sub = pd.DataFrame({
             "code": "WLD",
-            "date": dates.values,
+            "date": dates,
             "variable": var_name,
-            "value": vals.values,
+            "value": vals,
             "sa_source": "none",
             "source": "WorldBank:PinkSheet:MonthlyIndices",
         }).dropna(subset=["value"])

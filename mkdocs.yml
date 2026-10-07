@@ -64,6 +64,7 @@ nav:
           - Latin America real-time connectors: real_time_latam.md
           - Long national accounts panel: long_panel.md
           - Global Macro Data Ecosystem: data_ecosystem.md
+          - Cross-country macro panels: cross_country_panels.md
       - Econometric Engines:
           - VAR & FAVAR: var.md
           - Narrative Sign Restrictions SVAR: narrative_sign_svar.md
@@ -149,6 +150,7 @@ nav:
           - Conectores en tiempo real de América Latina: es/real_time_latam.md
           - Panel largo de cuentas nacionales: es/long_panel.md
           - Ecosistema de datos macro globales: es/data_ecosystem.md
+          - Paneles macro entre países: es/cross_country_panels.md
       - Motores econométricos:
           - VAR y FAVAR: es/var.md
           - SVAR con restricciones narrativas de signo: es/narrative_sign_svar.md

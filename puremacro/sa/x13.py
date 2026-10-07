@@ -107,8 +107,74 @@ def _x11_native_one(values: np.ndarray, dates: pd.DatetimeIndex,
     return np.where(nan_mask.values, np.nan, sa)
 
 
+_MEMO_VERSION = "x13-memo-1"
+
+
+def _memo_key(values: np.ndarray, dates: pd.DatetimeIndex, period: int) -> str:
+    """A key for one adjustment: the inputs, the period and which engines exist.
+
+    Seasonal adjustment is deterministic given its input, so a panel builder
+    that re-adjusts the same 300 published series on every call (``qna_panel``
+    with ``sa="x13"``) can reuse yesterday's answers. The key changes when a
+    value, a date or the availability of the binary changes.
+    """
+    import hashlib
+    h = hashlib.sha256()
+    h.update(_MEMO_VERSION.encode())
+    h.update(np.ascontiguousarray(values, dtype=float).tobytes())
+    h.update(np.ascontiguousarray(pd.DatetimeIndex(dates).asi8).tobytes())
+    h.update(f"{period}|{_X13_DIR is not None}".encode())
+    return "x13memo://" + h.hexdigest()
+
+
+def _memo_get(key: str):
+    """(sa array, engine tag) from the on-disk cache, or None; never raises."""
+    import os
+    if os.environ.get("PUREMACRO_HTTP_NO_CACHE") == "1":
+        return None
+    try:
+        from .._http_cache import cache_read, default_cache_dir
+        body = cache_read(default_cache_dir(), key, ttl_seconds=10 * 365 * 24 * 3600)
+    except Exception:
+        return None
+    if not body:
+        return None
+    tag, _, raw = body.partition(b"|")
+    return np.frombuffer(raw, dtype=float).copy(), tag.decode()
+
+
+def _memo_put(key: str, sa: np.ndarray, tag: str) -> None:
+    import os
+    if os.environ.get("PUREMACRO_HTTP_NO_CACHE") == "1":
+        return
+    try:
+        from .._http_cache import cache_write, default_cache_dir
+        cache_write(default_cache_dir(), key,
+                    tag.encode() + b"|" + np.ascontiguousarray(sa, dtype=float).tobytes())
+    except Exception:
+        pass
+
+
 def _x13_one(values: np.ndarray, dates: pd.DatetimeIndex, period: int,
              *, engine: list | None = None) -> np.ndarray:
+    """Seasonally adjust one series, memoised on disk (see :func:`_memo_key`)."""
+    key = _memo_key(values, dates, period)
+    hit = _memo_get(key)
+    if hit is not None and len(hit[0]) == len(values):
+        if engine is not None:
+            engine.append(hit[1])
+        return hit[0]
+    tag: list = []
+    sa = _x13_one_uncached(values, dates, period, engine=tag)
+    if tag:
+        _memo_put(key, np.asarray(sa, dtype=float), tag[-1])
+        if engine is not None:
+            engine.append(tag[-1])
+    return sa
+
+
+def _x13_one_uncached(values: np.ndarray, dates: pd.DatetimeIndex, period: int,
+                      *, engine: list | None = None) -> np.ndarray:
     """Seasonally adjust one series, preferring the X-13 binary, then the
     native X-11 engine, then STL.
 

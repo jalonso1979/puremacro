@@ -11,6 +11,8 @@ Two HTTP contracts coexist, and the difference is observable:
 
 In addition to individual series fetchers, high-level **modular panel builders** (`puremacro.build_climate_panel` and `puremacro.build_financial_panel`) assemble multi-country, multi-frequency datasets with automated frequency rollups and missing-data tracking.
 
+For whole cross-sections in one call, see [Cross-country macro panels](cross_country_panels.md): ten urllib-only builders (WDI, OECD annual, quarterly and monthly, Eurostat, IMF, BIS, rates, ILOSTAT, PWT and Maddison) that return a wide `(code, date)` frame per provider, with metadata in `attrs` and no exception on a provider failure.
+
 ---
 
 ## 1. Greenhouse Gas & Emissions (`puremacro.fetch.emissions`)

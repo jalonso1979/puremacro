@@ -22,6 +22,8 @@ from ._splice import (
     overlap_ratio,
     ratio_splice,
     splice_frame,
+    splice_sources,
+    to_long,
 )
 from .panel import (
     KNOWN_GAPS,
@@ -36,4 +38,5 @@ __all__ = [
     "LONG_PANEL_COLUMNS", "LONG_PANEL_SOURCES", "KNOWN_GAPS",
     "ratio_splice", "splice_frame", "overlap_ratio", "expenditure_residual",
     "Seam", "SpliceResult", "RATIO_DRIFT_WARN", "MIN_OVERLAP",
+    "splice_sources", "to_long",
 ]

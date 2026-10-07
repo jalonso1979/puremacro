@@ -17,23 +17,37 @@ import pandas as pd
 # needs network, so importing this module must not require it (only calling the
 # fetcher does).
 
-# Map ISO-3 → primary stock index ticker on Yahoo.
+#: ISO-3 -> primary stock index ticker on Yahoo Finance.
+#: Checked against the v8 chart endpoint on 6 Oct 2026 (``interval=1mo``,
+#: ``range=max``). Six tickers were replaced because the old ones answer 404
+#: or carry a single observation: NOR ^OSEAX -> OSEBX.OL (2013-03), GRC
+#: ATHEX.AT -> GD.AT (1997-06), PRT ^PSI20 -> PSI20.LS (2013-04), TUR ^XU100 ->
+#: XU100.IS (1997-06), SWE ^OMXS30 -> ^OMX (2008-11) and ZAF ^JN0U.JO (a USD
+#: index from 2017) -> ^J203.JO (FTSE/JSE All Share, ZAR, 2012-02). Countries
+#: with no working free ticker are listed in :data:`DEAD_TICKERS` instead.
 ISO3_TO_INDEX = {
     "USA": "^GSPC",    "CAN": "^GSPTSE", "MEX": "^MXX",
     "GBR": "^FTSE",    "DEU": "^GDAXI",  "FRA": "^FCHI",
     "ITA": "FTSEMIB.MI","ESP": "^IBEX",  "NLD": "^AEX",
-    "CHE": "^SSMI",    "SWE": "^OMXS30", "NOR": "^OSEAX",
+    "CHE": "^SSMI",    "SWE": "^OMX",    "NOR": "OSEBX.OL",
     "FIN": "^OMXH25",  "DNK": "^OMXC25", "AUT": "^ATX",
-    "BEL": "^BFX",     "GRC": "ATHEX.AT","IRL": "^ISEQ",
-    "PRT": "^PSI20",   "POL": "^WIG20",  "CZE": "^PX",
-    "HUN": "^BUX",     "TUR": "^XU100",  "RUS": "IMOEX.ME",
+    "BEL": "^BFX",     "GRC": "GD.AT",   "IRL": "^ISEQ",
+    "PRT": "PSI20.LS", "TUR": "XU100.IS",
     "JPN": "^N225",    "KOR": "^KS11",   "HKG": "^HSI",
     "SGP": "^STI",     "AUS": "^AXJO",   "NZL": "^NZ50",
     "IND": "^BSESN",   "IDN": "^JKSE",   "MYS": "^KLSE",
-    "THA": "^SET.BK",  "PHL": "PSEI.PS", "CHN": "000001.SS",
-    "BRA": "^BVSP",    "CHL": "^IPSA",   "ARG": "^MERV",
-    "COL": "^COLCAP",  "PER": "^SPBLPGPT","ZAF": "^JN0U.JO",
-    "ISR": "^TA125.TA",
+    "CHN": "000001.SS",
+    "BRA": "^BVSP",    "ARG": "^MERV",
+    "ZAF": "^J203.JO", "ISR": "^TA125.TA",
+}
+
+#: Tickers that used to be in :data:`ISO3_TO_INDEX` and no longer return a
+#: usable monthly history on Yahoo (404, or a single bar), as of 6 Oct 2026.
+#: Kept so a caller asking for these countries is told why they are absent.
+DEAD_TICKERS = {
+    "POL": "^WIG20",   "CZE": "^PX",      "HUN": "^BUX",
+    "RUS": "IMOEX.ME", "THA": "^SET.BK",  "PHL": "PSEI.PS",
+    "CHL": "^IPSA",    "COL": "^COLCAP",  "PER": "^SPBLPGPT",
 }
 
 

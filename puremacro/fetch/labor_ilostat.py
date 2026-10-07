@@ -1,13 +1,23 @@
 """ILOSTAT sex × age and sex × ISIC sectoral panel fetchers.
 
-Pulls from ILOSTAT via the ``ilostat`` SDMX provider. Two public
-entry points:
+Pulls from ILOSTAT's SDMX web service through the transport of
+:mod:`puremacro.fetch.ilostat` (cached, 300-second timeout: an all-country
+working-age-population pull takes 50 s, past the 30 s of ``sdmx_get``).
+Two public entry points:
   - :func:`fetch_ilostat_lfs_panel`       — sex × age, canonical 12-col schema
   - :func:`fetch_ilostat_sectoral_panel`  — sex × ISIC, NEW 6-col schema
 
 ILOSTAT's quarterly data is published NSA. When ``adjustment="SA"``
 and the target frequency is quarterly, X13-ARIMA is applied per cell
-via :mod:`puremacro.fetch._seasonal`.
+via :mod:`puremacro.fetch._seasonal`. Annual (``frequency="A"``) and
+monthly panels are returned as published.
+
+Fixed in 4.7: the ILO's aggregates (``X01``-``X99``, ``XA1``) are dropped
+with the list of :mod:`puremacro.fetch.ilostat` (the old list named codes the
+ILO never uses); the 25-54 and 55-64 age bands use the ``AGE_AGGREGATE_*``
+codes the service publishes (``AGE_YTHADULT_Y25-54`` matched nothing); the
+working-age population and labour force flows are fetched, so ``wa``, ``lf``
+and ``ina = wa - lf`` are filled; monthly ``2025-M09`` periods parse.
 
 References
 ----------
@@ -21,10 +31,27 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from .sdmx import sdmx_get
+import warnings
+
+from .ilostat import _fetch_csv, is_ilo_aggregate
 
 
-# Aggregate codes ILOSTAT publishes that are NOT countries — drop at reshape.
+def _fetch_flow(dataflow: str, key: str, *, refresh: bool = False) -> pd.DataFrame:
+    """One ILOSTAT SDMX-CSV pull; the HTTP seam tests patch.
+
+    A provider failure returns an empty frame and warns instead of raising,
+    so one failed flow leaves the other columns of the panel filled.
+    """
+    url = f"https://sdmx.ilo.org/rest/data/ILO,{dataflow},1.0/{key}?format=csv"
+    frame, status = _fetch_csv(url, timeout=300.0, pause=3.0, refresh=refresh)
+    if frame is None:
+        warnings.warn(f"ILOSTAT {dataflow}: {status}", stacklevel=3)
+        return pd.DataFrame()
+    return frame
+
+
+# Legacy aggregate names kept for hand-made fixtures; the live service's
+# aggregates (X01-X99, XA1) are caught by ``is_ilo_aggregate``.
 _ILO_AGGREGATE_CODES: frozenset[str] = frozenset({
     "WORLD", "X80", "X81",
     "LAC_LIC", "LAC", "LMC", "LIC", "HIC", "UMC",
@@ -63,6 +90,10 @@ _LFS_AGE_RENAME: dict[str, str] = {
     "AGE_YTHADULT_Y25-54":   "Y25T54",
     "AGE_YTHADULT_YGE25":    "Y_GE25",
     "AGE_YTHADULT_Y55-64":   "Y55T64",
+    "AGE_YTHADULT_Y15-64":   "Y15T64",
+    # The prime-age and older bands live in the AGE_AGGREGATE block.
+    "AGE_AGGREGATE_Y25-54":  "Y25T54",
+    "AGE_AGGREGATE_Y55-64":  "Y55T64",
     # Legacy mapping (older ILO data and synthetic fixtures)
     "AGE_AGGREGATE_TOTAL":   "Y_GE15",
     "AGE_AGGREGATE_Y_GE15":  "Y_GE15",
@@ -107,13 +138,19 @@ def _build_ilostat_lfs_key(
 
 
 def _parse_ilostat_time_period(s: pd.Series) -> pd.Series:
-    """Parse ILOSTAT TIME_PERIOD strings ('2020-Q1', '2020-01', '2020')
-    to first-of-period datetimes."""
-    s = s.astype(str)
+    """Parse ILOSTAT TIME_PERIOD strings ('2020-Q1', '2020-M01', '2020-01',
+    '2020') to first-of-period datetimes."""
+    s = s.astype(str).str.replace(r"^(\d{4})-M(\d{2})$", r"\1-\2", regex=True)
     is_q = s.str.contains("Q")
+    is_a = s.str.fullmatch(r"\d{4}")
     out = pd.Series(pd.NaT, index=s.index, dtype="datetime64[ns]")
-    out.loc[~is_q] = pd.to_datetime(s[~is_q], errors="coerce")
-    out.loc[is_q] = pd.PeriodIndex(s[is_q], freq="Q").to_timestamp()
+    rest = ~is_q & ~is_a
+    if is_a.any():
+        out.loc[is_a] = pd.to_datetime(s[is_a] + "-01-01")
+    if rest.any():
+        out.loc[rest] = pd.to_datetime(s[rest], errors="coerce")
+    if is_q.any():
+        out.loc[is_q] = pd.PeriodIndex(s[is_q], freq="Q").to_timestamp()
     return out
 
 
@@ -153,7 +190,8 @@ def _reshape_ilostat_lfs_csv(
         age_col:       "AGE_RAW",
     })
     # Drop aggregate codes.
-    df = df[~df["code"].isin(_ILO_AGGREGATE_CODES)].copy()
+    df = df[~df["code"].isin(_ILO_AGGREGATE_CODES)
+            & ~df["code"].map(is_ilo_aggregate).astype(bool)].copy()
     # Translate AGE_RAW to canonical ages; rows with unknown codes drop.
     df["age"] = df["AGE_RAW"].map(_LFS_AGE_RENAME)
     df = df[df["age"].notna()].copy()
@@ -188,6 +226,8 @@ def _reshape_ilostat_lfs_csv(
     for col in ("wa", "lf", "emp", "une", "ina", "urate", "epop", "prate"):
         if col not in wide.columns:
             wide[col] = np.nan
+    # Inactive persons: working-age population minus labour force.
+    wide["ina"] = wide["ina"].fillna(wide["wa"] - wide["lf"])
 
     keep = ["code", "date", "sex", "age",
             "wa", "lf", "emp", "une", "ina",
@@ -275,6 +315,15 @@ _LFS_DATAFLOWS: dict[str, str] = {
     "M_une":    "DF_UNE_TUNE_SEX_AGE_NB",    # same dataflow, filter FREQ=M
 }
 
+# Count flows fetched at every frequency: (dataflow, MEASURE). The labour
+# force and working-age population fill ``lf`` and ``wa`` (and so ``ina``).
+_LFS_COUNT_FLOWS: tuple[tuple[str, str], ...] = (
+    ("DF_EMP_TEMP_SEX_AGE_NB", "EMP_TEMP_NB"),
+    ("DF_UNE_TUNE_SEX_AGE_NB", "UNE_TUNE_NB"),
+    ("DF_EAP_TEAP_SEX_AGE_NB", "EAP_TEAP_NB"),
+    ("DF_POP_XWAP_SEX_AGE_NB", "POP_XWAP_NB"),
+)
+
 # Additional rates dataflows for epop and LFP rate.
 # These are fetched alongside DF_UNE_DEAP_SEX_AGE_RT for quarterly rate panels.
 _LFS_RATE_DATAFLOWS: tuple[str, ...] = (
@@ -300,15 +349,18 @@ _SEX_CODE_MAP: dict[str, str] = {
 _AGE_CODE_MAP: dict[str, str] = {
     "Y_GE15":  "AGE_YTHADULT_YGE15",
     "Y15T24":  "AGE_YTHADULT_Y15-24",
-    "Y25T54":  "AGE_YTHADULT_Y25-54",
-    "Y55T64":  "AGE_YTHADULT_Y55-64",
+    "Y25T54":  "AGE_AGGREGATE_Y25-54",
+    "Y55T64":  "AGE_AGGREGATE_Y55-64",
     "Y_GE25":  "AGE_YTHADULT_YGE25",
+    "Y15T64":  "AGE_YTHADULT_Y15-64",
     # Pass-through for callers already using API codes.
     "AGE_YTHADULT_YGE15":  "AGE_YTHADULT_YGE15",
     "AGE_YTHADULT_Y15-24": "AGE_YTHADULT_Y15-24",
     "AGE_YTHADULT_Y25-54": "AGE_YTHADULT_Y25-54",
     "AGE_YTHADULT_YGE25":  "AGE_YTHADULT_YGE25",
     "AGE_YTHADULT_Y55-64": "AGE_YTHADULT_Y55-64",
+    "AGE_AGGREGATE_Y25-54": "AGE_AGGREGATE_Y25-54",
+    "AGE_AGGREGATE_Y55-64": "AGE_AGGREGATE_Y55-64",
 }
 
 # Default MEASURE codes per frequency / kind (live API codes).
@@ -343,11 +395,12 @@ def fetch_ilostat_lfs_panel(
         ``"Y_GE15"``-style codes which are translated to ILOSTAT API codes
         (``AGE_YTHADULT_YGE15``) internally.
     frequency : str
-        ``"Q"`` for quarterly or ``"M"`` for monthly.
+        ``"A"`` annual, ``"Q"`` quarterly or ``"M"`` monthly.
     adjustment : str
         ``"SA"`` (default; X13 applied client-side for quarterly data) or
         ``"NSA"`` (raw NSA returned as-is). For monthly data, X13 is NOT
-        applied even when ``adjustment="SA"`` (deferred to a follow-up).
+        applied even when ``adjustment="SA"`` (deferred to a follow-up),
+        nor for annual data.
     csv_path : str | Path | None
         Local SDMX-CSV file. When set and exists, network fetch is skipped.
     cache_path : str | Path | None
@@ -362,8 +415,8 @@ def fetch_ilostat_lfs_panel(
         Long panel with columns ``code, date, sex, age, wa, lf, emp,
         une, ina, urate, epop, prate``. Sorted by ``(code, date, sex, age)``.
     """
-    if frequency not in {"Q", "M"}:
-        raise ValueError(f"frequency must be 'Q' or 'M'; got {frequency!r}")
+    if frequency not in {"A", "Q", "M"}:
+        raise ValueError(f"frequency must be 'A', 'Q' or 'M'; got {frequency!r}")
     if adjustment not in {"SA", "NSA"}:
         raise ValueError(f"adjustment must be 'SA' or 'NSA'; got {adjustment!r}")
 
@@ -384,47 +437,22 @@ def fetch_ilostat_lfs_panel(
         api_sexes = tuple(_SEX_CODE_MAP.get(s, s) for s in sexes)
         api_ages  = tuple(_AGE_CODE_MAP.get(a, a) for a in ages)
 
-        if frequency == "Q":
-            # Fetch three rate dataflows + emp + une counts.
-            frames = []
-            # Rates
-            for df_id in _LFS_RATE_DATAFLOWS:
-                # Each rate dataflow has one MEASURE code — derive from ID.
-                measure_code = df_id.split("_", 1)[1].replace("_SEX_AGE_RT", "_RT") \
-                    if False else _df_id_to_measure(df_id)
-                key = _build_ilostat_lfs_key(
-                    countries=countries, sexes=api_sexes, ages=api_ages,
-                    measures=(measure_code,), frequency="Q",
-                )
-                frames.append(
-                    sdmx_get(provider="ilostat", dataflow=df_id, key=key)
-                )
-            # Counts
-            for sub_kind in ("Q_emp", "Q_une"):
-                df_id = _LFS_DATAFLOWS[sub_kind]
-                measures = _LFS_MEASURES_DEFAULT[sub_kind]
-                key = _build_ilostat_lfs_key(
-                    countries=countries, sexes=api_sexes, ages=api_ages,
-                    measures=measures, frequency="Q",
-                )
-                frames.append(
-                    sdmx_get(provider="ilostat", dataflow=df_id, key=key)
-                )
-            raw = pd.concat(frames, ignore_index=True)
-        else:
-            # Monthly: emp + une counts.
-            frames = []
-            for sub_kind in ("M_emp", "M_une"):
-                df_id = _LFS_DATAFLOWS[sub_kind]
-                measures = _LFS_MEASURES_DEFAULT[sub_kind]
-                key = _build_ilostat_lfs_key(
-                    countries=countries, sexes=api_sexes, ages=api_ages,
-                    measures=measures, frequency="M",
-                )
-                frames.append(
-                    sdmx_get(provider="ilostat", dataflow=df_id, key=key)
-                )
-            raw = pd.concat(frames, ignore_index=True)
+        # Three rate flows and four count flows, the same at every frequency.
+        frames = []
+        for df_id in _LFS_RATE_DATAFLOWS:
+            key = _build_ilostat_lfs_key(
+                countries=countries, sexes=api_sexes, ages=api_ages,
+                measures=(_df_id_to_measure(df_id),), frequency=frequency,
+            )
+            frames.append(_fetch_flow(df_id, key, refresh=refresh))
+        for df_id, measure in _LFS_COUNT_FLOWS:
+            key = _build_ilostat_lfs_key(
+                countries=countries, sexes=api_sexes, ages=api_ages,
+                measures=(measure,), frequency=frequency,
+            )
+            frames.append(_fetch_flow(df_id, key, refresh=refresh))
+        frames = [f for f in frames if not f.empty]
+        raw = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 
     out = _reshape_ilostat_lfs_csv(raw, frequency=frequency)
 
@@ -570,7 +598,8 @@ def _reshape_ilostat_sectoral_csv(raw: pd.DataFrame) -> pd.DataFrame:
         "SEX":         "sex",
         eco_col:       "ECO_RAW",
     })
-    df = df[~df["code"].isin(_ILO_AGGREGATE_CODES)].copy()
+    df = df[~df["code"].isin(_ILO_AGGREGATE_CODES)
+            & ~df["code"].map(is_ilo_aggregate).astype(bool)].copy()
 
     # Translate ECO_RAW → eco (strip prefix, normalize total).
     def _eco_from_raw(c1: str) -> str | None:
@@ -713,10 +742,9 @@ def fetch_ilostat_sectoral_panel(
                 countries=countries, sexes=sexes,
                 sectors=sectors, measures=measures,
             )
-            frames.append(
-                sdmx_get(provider="ilostat", dataflow=dataflow, key=key)
-            )
-        raw = pd.concat(frames, ignore_index=True)
+            frames.append(_fetch_flow(dataflow, key, refresh=refresh))
+        frames = [f for f in frames if not f.empty]
+        raw = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 
     out = _reshape_ilostat_sectoral_csv(raw)
 

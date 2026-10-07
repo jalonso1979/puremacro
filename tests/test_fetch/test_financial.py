@@ -349,3 +349,46 @@ def test_mappings_integrity():
     assert "DEU" in fin._EUROZONE_ISO3
     assert "FRA" in fin._EUROZONE_ISO3
     assert "USA" not in fin._EUROZONE_ISO3
+
+
+# ---------------------------------------------------------------------------
+# BIS URL grammar (the "ALL" keys 404ed at the BIS)
+# ---------------------------------------------------------------------------
+
+def test_bis_urls_use_latest_version_and_no_all_wildcard():
+    """BIS reads an empty key slot as the wildcard; "ALL" and pinned 1.0 for WS_TC 404."""
+    urls = [fin._BIS_CBPOL_URL, fin._BIS_CBPOL_SINGLE_URL, fin._BIS_CREDIT_GAP_URL,
+            fin._BIS_TC_URL, fin._BIS_SPP_URL]
+    for u in urls:
+        assert "/+/" in u and "ALL" not in u
+    assert fin._BIS_TC_URL.endswith("/WS_TC/+/Q..P.A.M.770+USD.A?format=csv")
+    assert fin._BIS_CREDIT_GAP_URL.endswith("/WS_CREDIT_GAP/+/Q..P.A?format=csv")
+    assert fin._BIS_SPP_URL.endswith("/WS_SPP/+/Q...628?format=csv")
+    assert fin._BIS_CBPOL_URL.endswith("/WS_CBPOL/+/M?format=csv")
+
+
+def test_credit_gap_reads_live_cg_dtype_codes(monkeypatch):
+    """The live WS_CREDIT_GAP flow labels ratio/trend/gap as CG_DTYPE A/B/C."""
+    body = (
+        "FREQ,BORROWERS_CTY,TC_BORROWERS,TC_LENDERS,CG_DTYPE,UNIT_MEASURE,TIME_PERIOD,OBS_VALUE\n"
+        "Q,MX,P,A,A,770,2026-Q1,38.6\n"
+        "Q,MX,P,A,B,770,2026-Q1,41.7\n"
+        "Q,MX,P,A,C,770,2026-Q1,-3.0766\n"
+    ).encode()
+    monkeypatch.setattr(fin, "cached_get", lambda url, *a, **k: body)
+    df = fin.fetch_bis_credit_gap(codes=["MEX"], start_date="2026-01-01")
+    got = dict(zip(df["variable"], df["value"]))
+    assert got == {"credit_to_gdp_q": 38.6, "credit_trend_q": 41.7, "credit_gap_q": -3.0766}
+
+
+def test_total_credit_reads_live_unit_type_column(monkeypatch):
+    """Live WS_TC rows carry 770/USD in UNIT_TYPE; UNIT_MEASURE is 367 or the currency."""
+    body = (
+        "FREQ,BORROWERS_CTY,TC_BORROWERS,TC_LENDERS,VALUATION,UNIT_TYPE,TC_ADJUST,UNIT_MULT,UNIT_MEASURE,TIME_PERIOD,OBS_VALUE\n"
+        "Q,MX,P,A,M,USD,A,9,USD,2026-Q1,762.756\n"
+        "Q,MX,P,A,M,770,A,0,367,2026-Q1,38.6\n"
+    ).encode()
+    monkeypatch.setattr(fin, "cached_get", lambda url, *a, **k: body)
+    df = fin.fetch_bis_total_credit(codes=["MEX"], start_date="2026-01-01")
+    got = dict(zip(df["variable"], df["value"]))
+    assert got == {"credit_private_pct_gdp_q": 38.6, "credit_private_usd_q": 762.756}

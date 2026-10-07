@@ -11,6 +11,8 @@ Conviven dos contratos HTTP distintos, y la diferencia es observable:
 
 Además de los recolectores de series individuales, los **constructores modulares de paneles** de alto nivel (`puremacro.build_climate_panel` y `puremacro.build_financial_panel`) ensamblan conjuntos de datos multipaís y multifrecuencia con agregación temporal automatizada y seguimiento de datos faltantes.
 
+Para obtener secciones cruzadas completas con una sola llamada, véase [Paneles macroeconómicos entre países](cross_country_panels.md): diez constructores que usan solo urllib (WDI, OCDE anual, trimestral y mensual, Eurostat, FMI, BPI, tasas, ILOSTAT, PWT y Maddison) y devuelven un marco ancho `(code, date)` por proveedor, con metadatos en `attrs` y sin lanzar excepciones ante una falla del proveedor.
+
 ---
 
 ## 1. Emisiones y Gases de Efecto Invernadero (`puremacro.fetch.emissions`)

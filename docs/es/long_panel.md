@@ -40,3 +40,17 @@ Por ello, `qna_long_panel` calcula e informa la deriva del ratio en la tabla de 
 # Inspeccionar variables con derivas superiores a la tolerancia
 seams[~seams.stable][["code", "column", "older", "overlap_n", "ratio_drift"]]
 ```
+
+## 3. Empalmar muchas fuentes a la vez
+
+`splice_sources` aplica las mismas reglas a un marco largo con columnas `code, date, variable, value, source`, con una fila por observación y tantas fuentes como haya. `to_long` construye ese marco a partir de cualquier panel ancho `(code, date)`. Se añade una columna `source` y se apilan los paneles:
+
+```python
+from puremacro.fetch.longpanel import splice_sources, to_long
+
+long = pd.concat([to_long(qna).assign(source="oecd"),
+                  to_long(old).assign(source="archive")])
+panel, provenance, seams = splice_sources(long, {"oecd": 0, "archive": 1})
+```
+
+En cada par (código, variable), la fuente primaria es la mejor clasificada que tenga al menos `min_obs` observaciones. Sus valores nunca se tocan y sus huecos nunca se rellenan. Las fuentes más antiguas solo la prolongan hacia atrás. Cada una se reescala con el ratio medio de las primeras `min_overlap` fechas comunes, y un cambio de unidades, por ejemplo millones frente a miles de millones, aparece en `pow10`. Las variables declaradas `rate` o `ratio` en `kinds` se añaden sin reescalar, pero solo si la brecha en la costura no supera `rate_tol`. `seams` guarda una fila por cada intento, también los rechazados. `provenance` dice qué fuente es la primaria de cada serie y cuáles la prolongaron.

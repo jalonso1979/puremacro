@@ -11,26 +11,28 @@ import pytest
 from puremacro.fetch.labor import _build_lfs_key  # noqa: PLC2701 — internal API tested
 
 
+# DSD_LFS key order: REF_AREA.MEASURE.UNIT_MEASURE.TRANSFORMATION.ADJUSTMENT.
+# SEX.AGE.ACTIVITY.FREQ -- FREQ is the last dimension, not the first.
 _KEY_RE = re.compile(
-    r"^(?P<freq>[MQA]?)\."
-    r"(?P<area>[A-Z+]*)\."
+    r"^(?P<area>[A-Z+]*)\."
     r"(?P<measure>[A-Z+_]*)\."
     r"(?P<unit>[A-Z+_]*)\."
     r"(?P<transform>[A-Z+_]*)\."
     r"(?P<adjust>[A-Z+_]*)\."
     r"(?P<sex>[A-Z+_]*)\."
     r"(?P<age>[A-Z0-9+_T]*)\."
-    r"(?P<activity>[A-Z+_0-9]*)$"
+    r"(?P<activity>[A-Z+_0-9]*)\."
+    r"(?P<freq>[MQA]?)$"
 )
 
 
-def test_default_key_skeleton_has_nine_dot_positions():
+def test_default_key_skeleton_has_nine_dot_positions_with_freq_last():
     key = _build_lfs_key(
         dataflow="DSD_LFS@DF_IALFS_INDIC",
         countries=None,
         sexes=("_T", "M", "F"),
         ages=("Y_GE15", "Y15T24"),
-        measures=("WAP", "LF", "EMP", "UNE", "IPOP"),
+        measures=("WAP", "LF", "EMP", "UNE", "OLF"),
         activities=None,
         frequency="M",
         adjustment="Y",
@@ -39,12 +41,23 @@ def test_default_key_skeleton_has_nine_dot_positions():
     m = _KEY_RE.match(key)
     assert m is not None, f"key {key!r} did not match expected schema"
     assert m["freq"] == "M"
+    assert key.endswith(".M")
     assert m["area"] == ""
-    assert m["measure"] == "WAP+LF+EMP+UNE+IPOP"
+    assert m["measure"] == "WAP+LF+EMP+UNE+OLF"
+    assert m["unit"] == "PS"
     assert m["adjust"] == "Y"
     assert m["sex"] == "_T+M+F"
     assert m["age"] == "Y_GE15+Y15T24"
     assert m["activity"] == ""
+
+
+def test_legacy_ipop_measure_is_sent_as_olf():
+    key = _build_lfs_key(
+        dataflow="DSD_LFS@DF_IALFS_INDIC", countries=["USA"],
+        sexes=("_T",), ages=("Y_GE15",), measures=("WAP", "IPOP"),
+        activities=None, frequency="Q", adjustment="Y",
+    )
+    assert key == "USA.WAP+OLF.PS..Y._T.Y_GE15..Q"
 
 
 def test_country_filter_joins_with_plus():

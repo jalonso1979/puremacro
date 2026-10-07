@@ -37,6 +37,16 @@ Public API
 - :func:`fetch_bis_macroprudential` — BIS credit-to-GDP gap, total credit, and property prices
 - :func:`fetch_financial_conditions` — financial conditions indicators and credit risk spreads
 - :func:`compute_sovereign_spreads` — sovereign risk and term spreads
+- :func:`wdi_panel` — World Bank WDI annual panel, 217 economies from 1960
+- :func:`ana_panel` — OECD annual national accounts, the annual twin of qna_panel
+- :func:`qna_sector_gfcf` — OECD quarterly GFCF by sector, population, LFS and vacancies
+- :func:`stes_panel` — OECD monthly panel: production, prices, rates, labour, confidence
+- :func:`eurostat_get` — Eurostat annual/quarterly accounts and monthly indicators
+- :func:`imf_get` — IMF data portal (api.imf.org): accounts, CPI, rates, EER, PCPS, WEO, ICSD
+- :func:`bis_get` — BIS: effective exchange rates, policy rates, credit, property prices
+- :func:`rates_panel` — monthly money-market rates, 10-year yields, stocks, commodities
+- :func:`ilostat_panel` — ILOSTAT labour panel (annual, quarterly, monthly; modelled estimates)
+- :func:`fetch_pwt` — Penn World Table 11.0 and Maddison Project Database 2023
 
 For API-key-requiring FRED via the JSON endpoint, see
 :func:`puremacro.instruments.external.load_fred`.
@@ -138,6 +148,74 @@ from .financial import (
     compute_sovereign_spreads,
 )
 
+# Cross-country panel builders (4.7): one call per provider, urllib only.
+from .wdi import (
+    wdi_panel,
+    wdi_countries,
+    wdi_meta,
+    WDI_INDICATORS,
+)
+from .oecd_ana_panel import (
+    ana_panel,
+    ana_countries,
+    ana_panel_meta,
+)
+from .oecd_qna_extras import (
+    qna_sector_gfcf,
+    qna_population,
+    oecd_lfs_panel,
+    oecd_vacancies,
+    qna_extras_meta,
+)
+from .oecd_stes_panel import (
+    stes_panel,
+    stes_meta,
+    STES_CONCEPTS,
+)
+from .eurostat import (
+    eurostat_get,
+    eurostat_codes,
+    eurostat_na_panel,
+    eurostat_monthly_panel,
+    eurostat_meta,
+)
+from .imf import (
+    imf_get,
+    imf_dataflows,
+    imf_nea_panel,
+    imf_monthly_panel,
+    imf_labour_panel,
+    imf_pcps,
+    imf_weo,
+    imf_icsd,
+    imf_meta,
+)
+from .bis import (
+    bis_get,
+    bis_countries,
+    bis_panel,
+    bis_eer,
+    bis_meta,
+    BIS_SERIES,
+)
+from .rates import (
+    rates_panel,
+    stock_index_monthly,
+    commodity_prices_monthly,
+    fetch_fred_many,
+    ecb_get,
+)
+from .ilostat import (
+    ilostat_panel,
+    ilostat_meta,
+    ILOSTAT_VARS,
+)
+from .pwt import (
+    fetch_pwt,
+    fetch_maddison,
+    pwt_variables,
+)
+
 __all__ = [
     "fetch_fred",
     "fetch_fred_alfred",
@@ -206,4 +284,50 @@ __all__ = [
     "fetch_bis_macroprudential",
     "fetch_financial_conditions",
     "compute_sovereign_spreads",
+    "wdi_panel",
+    "wdi_countries",
+    "wdi_meta",
+    "WDI_INDICATORS",
+    "ana_panel",
+    "ana_countries",
+    "ana_panel_meta",
+    "qna_sector_gfcf",
+    "qna_population",
+    "oecd_lfs_panel",
+    "oecd_vacancies",
+    "qna_extras_meta",
+    "stes_panel",
+    "stes_meta",
+    "STES_CONCEPTS",
+    "eurostat_get",
+    "eurostat_codes",
+    "eurostat_na_panel",
+    "eurostat_monthly_panel",
+    "eurostat_meta",
+    "imf_get",
+    "imf_dataflows",
+    "imf_nea_panel",
+    "imf_monthly_panel",
+    "imf_labour_panel",
+    "imf_pcps",
+    "imf_weo",
+    "imf_icsd",
+    "imf_meta",
+    "bis_get",
+    "bis_countries",
+    "bis_panel",
+    "bis_eer",
+    "bis_meta",
+    "BIS_SERIES",
+    "rates_panel",
+    "stock_index_monthly",
+    "commodity_prices_monthly",
+    "fetch_fred_many",
+    "ecb_get",
+    "ilostat_panel",
+    "ilostat_meta",
+    "ILOSTAT_VARS",
+    "fetch_pwt",
+    "fetch_maddison",
+    "pwt_variables",
 ]

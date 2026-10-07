@@ -258,7 +258,7 @@ _NO_DEFLATOR: frozenset[str] = frozenset(QNA_INCOME) | _LABOR_NAMES
 #: silently mixes ``OECD`` in with ``USA`` double-counts every aggregate it
 #: touches, so :func:`qna_countries` drops them unless asked for them.
 QNA_AGGREGATES: frozenset[str] = frozenset(
-    {"EA19", "EA20", "EU15", "EU27_2020", "EU28", "G7", "G20",
+    {"EA", "EA19", "EA20", "EU", "EU15", "EU27_2020", "EU28", "G7", "G20",
      "NAFTA", "OECD", "OECD26", "OECDE", "W"})
 
 #: Fallback for :func:`qna_countries` when the availability endpoint cannot be
@@ -344,15 +344,42 @@ def _fetch_ref_areas(flow: str, refresh: bool) -> list[str]:
 
 def get_sdmx_csv(agency_flow: str, key: str, start_period: str,
                  *, refresh: bool = False) -> pd.DataFrame:
-    """Thin indirection over :func:`puremacro.fetch._oecd_sdmx.get_sdmx_csv`.
+    """Thin indirection over :func:`puremacro.fetch._oecd_sdmx.oecd_csv`.
 
-    The import is deferred so that ``import puremacro.fetch`` stays free of
-    ``requests`` (it has to work under Pyodide, where the scraper stack is
-    absent), and so tests can monkeypatch this name.
+    The import is deferred so that ``import puremacro.fetch`` stays light,
+    and so tests can monkeypatch this name. Since 4.7 the request goes
+    through the urllib transport: no ``requests``, no write into the
+    repository's ``data/raw``, process-wide pacing of calls to
+    ``sdmx.oecd.org`` and up to three attempts on an HTTP 429. A failure is
+    still an empty frame (its ``attrs["status"]`` says why). The plain
+    ``csvfile`` format is requested: the parsing below reads only the code
+    columns, and the labelled CSV is three to four times the size, which is
+    what the OECD throttles on.
     """
-    from ._oecd_sdmx import get_sdmx_csv as _impl
+    from ._oecd_sdmx import oecd_csv
 
-    return _impl(agency_flow, key, start_period, refresh=refresh)
+    return oecd_csv(agency_flow, key, start_period=start_period, labels=False,
+                    refresh=refresh)
+
+
+def _note_failure(flow: str, key: str, raw: pd.DataFrame,
+                  failed: list[dict] | None) -> None:
+    """Warn about, and record, a chunk that came back empty for a bad reason.
+
+    ``HTTP 404`` is the OECD's "no data for that key" and is not a failure;
+    a throttled (``HTTP 429``) or timed-out chunk is, and would otherwise
+    vanish from the panel exactly like a country that publishes nothing.
+    """
+    if not raw.empty:
+        return
+    status = str(raw.attrs.get("status", "empty response"))
+    if status in ("ok", "HTTP 404", "empty response"):
+        return
+    entry = {"flow": flow.rstrip(","), "key": key, "status": status}
+    warnings.warn(f"OECD request failed ({status}): {entry['flow']} {key}; "
+                  "listed in attrs['missing']", UserWarning, stacklevel=3)
+    if failed is not None:
+        failed.append(entry)
 
 
 _META_COLS = ["code", "currency", "units", "price_base", "price_ref_year",
@@ -366,7 +393,16 @@ _UNITS = "millions of national currency, current prices, SA"
 
 
 def _quarter_to_date(s: pd.Series) -> pd.Series:
-    return pd.PeriodIndex(s.astype(str), freq="Q").to_timestamp(how="start")
+    """'1995-Q1' -> 1995-01-01. Vectorised for the usual label (PeriodIndex
+    parsing of a million strings took several seconds); any other form goes
+    through PeriodIndex as before."""
+    txt = pd.Series(s, copy=False).astype(str)
+    m = txt.str.fullmatch(r"\d{4}-Q[1-4]")
+    if bool(m.all()) and len(txt):
+        year = txt.str.slice(0, 4).astype(int).to_numpy()
+        month = 3 * txt.str.slice(-1).astype(int).to_numpy() - 2
+        return pd.DatetimeIndex(pd.to_datetime({"year": year, "month": month, "day": 1}))
+    return pd.PeriodIndex(txt, freq="Q").to_timestamp(how="start")
 
 
 def qna_meta(panel: pd.DataFrame) -> pd.DataFrame:
@@ -399,7 +435,8 @@ def _code_chunks(codes: Sequence[str] | None) -> list[str]:
     return ["+".join(codes[i:i + 10]) for i in range(0, len(codes), 10)]
 
 
-def _download(codes: Sequence[str] | None, start: str, refresh: bool) -> pd.DataFrame:
+def _download(codes: Sequence[str] | None, start: str, refresh: bool,
+              *, failed: list[dict] | None = None) -> pd.DataFrame:
     """Raw expenditure rows, one request per institutional sector per chunk."""
     parts: list[pd.DataFrame] = []
     for code_key in _code_chunks(codes):
@@ -409,6 +446,7 @@ def _download(codes: Sequence[str] | None, start: str, refresh: bool) -> pd.Data
             # PRICE_BASE.TRANSFORMATION.TABLE_IDENTIFIER
             key = f"Q..{code_key}.{sector}.........."
             raw = get_sdmx_csv(_AGENCY_FLOW, key, start, refresh=refresh)
+            _note_failure(_AGENCY_FLOW, key, raw, failed)
             if not raw.empty:
                 parts.append(raw)
     if not parts:
@@ -417,7 +455,8 @@ def _download(codes: Sequence[str] | None, start: str, refresh: bool) -> pd.Data
 
 
 def _download_flow(flow: str, codes: Sequence[str] | None, start: str,
-                   refresh: bool, *, tail: str = "..........") -> pd.DataFrame:
+                   refresh: bool, *, tail: str = "..........",
+                   failed: list[dict] | None = None) -> pd.DataFrame:
     """Raw rows from a sibling QNA dataflow (same 13-dim key), one per chunk.
 
     ``tail`` is everything after ``REF_AREA`` in the key. It is left wide open
@@ -427,8 +466,9 @@ def _download_flow(flow: str, codes: Sequence[str] | None, start: str,
     """
     parts: list[pd.DataFrame] = []
     for code_key in _code_chunks(codes):
-        raw = get_sdmx_csv(flow, f"Q..{code_key}{tail}", start,
-                           refresh=refresh)
+        key = f"Q..{code_key}{tail}"
+        raw = get_sdmx_csv(flow, key, start, refresh=refresh)
+        _note_failure(flow, key, raw, failed)
         if not raw.empty:
             parts.append(raw)
     if not parts:
@@ -640,7 +680,8 @@ def _labor_activity_lookup(activities: bool | Sequence[str]
 def _labor_tidy(codes: Sequence[str] | None, start: str, refresh: bool, *,
                 sa: str = "prefer", sa_min_gain: int | None = None,
                 hours_rescale: bool = True,
-                activities: bool | Sequence[str] = False
+                activities: bool | Sequence[str] = False,
+                failed: list[dict] | None = None,
                 ) -> tuple[pd.DataFrame, dict[str, float]]:
     """Download and tidy the labour block alone. Shared by both entry points."""
     lookup_l, acts = _labor_activity_lookup(activities)
@@ -648,7 +689,7 @@ def _labor_tidy(codes: Sequence[str] | None, start: str, refresh: bool, *,
     # asked for: this flow publishes every ISIC section, and asking for all of
     # them is twelve times the response for eleven series nobody wanted.
     raw_l = _download_flow(_LABOR_FLOW, codes, start, refresh,
-                           tail=f".....{'+'.join(acts)}.....")
+                           tail=f".....{'+'.join(acts)}.....", failed=failed)
     if raw_l.empty:
         return pd.DataFrame(), {}
     tidy_l = _tidy(raw_l, lookup_l, ("TRANSACTION", "UNIT_MEASURE", "ACTIVITY"),
@@ -1016,7 +1057,10 @@ def qna_panel(codes: Iterable[str] | None = None,
         all of the above: they are counts, not money, in thousands of persons
         and millions of hours, and ``meta``'s ``units`` string does not
         describe them. ``df.attrs["meta"]`` documents currency, adjustment and price base per
-        country; ``df.attrs["source"]`` the SDMX dataflow. Empty frame (never
+        country; ``df.attrs["source"]`` the SDMX dataflow;
+        ``df.attrs["missing"]`` one ``{flow, key, status}`` dict per request
+        that failed (throttled, timed out) rather than found no data, each
+        also raised as a ``UserWarning``. Empty frame (never
         an exception) if the download fails.
 
     Examples
@@ -1025,9 +1069,19 @@ def qna_panel(codes: Iterable[str] | None = None,
     >>> panel.loc["MEX", ["gdp", "cons_hh", "gdp_defl"]].tail(2)  # doctest: +SKIP
     """
     codes_list = None if codes is None else [c.upper() for c in codes if c]
-    raw = _download(codes_list, start, refresh)
+    # Chunks that failed (throttled, timed out) rather than came back with
+    # "no data"; they end up in attrs["missing"] so a frozen panel can be
+    # checked for holes that are not the source's.
+    failed: list[dict] = []
+
+    def _empty_failed() -> pd.DataFrame:
+        out = _empty(long)
+        out.attrs["missing"] = tuple(failed)
+        return out
+
+    raw = _download(codes_list, start, refresh, failed=failed)
     if raw.empty:
-        return _empty(long)
+        return _empty_failed()
 
     if sa not in ("prefer", "x13"):
         raise ValueError(f"sa must be 'prefer' or 'x13', got {sa!r}")
@@ -1045,7 +1099,7 @@ def qna_panel(codes: Iterable[str] | None = None,
     if codes_list is not None and not tidy.empty:
         tidy = tidy[tidy["code"].isin(codes_list)]
     if tidy.empty:
-        return _empty(long)
+        return _empty_failed()
     core_codes = set(tidy["code"].unique())
 
     # Sibling dataflows: same key shape, joined on (code, date). Each is kept
@@ -1058,7 +1112,7 @@ def qna_panel(codes: Iterable[str] | None = None,
             (income, _INCOME_FLOW, QNA_INCOME, ("TRANSACTION", "ACTIVITY"))):
         if not wanted:
             continue
-        raw_x = _download_flow(flow, codes_list, start, refresh)
+        raw_x = _download_flow(flow, codes_list, start, refresh, failed=failed)
         if raw_x.empty:
             continue
         lookup_x: dict[tuple, str]
@@ -1080,7 +1134,8 @@ def qna_panel(codes: Iterable[str] | None = None,
         tidy_l, hours_scales = _labor_tidy(codes_list, start, refresh, sa=sa,
                                            sa_min_gain=sa_min_gain,
                                            hours_rescale=hours_rescale,
-                                           activities=labor_activities)
+                                           activities=labor_activities,
+                                           failed=failed)
         if not tidy_l.empty:
             tidy = pd.concat([tidy, tidy_l[tidy_l["code"].isin(core_codes)]],
                              ignore_index=True)
@@ -1111,7 +1166,7 @@ def qna_panel(codes: Iterable[str] | None = None,
     nom_w = _wide(nominal, "")
     vol_w = _wide(volume, "_real")
     if nom_w.empty or vol_w.empty:
-        return _empty(long)
+        return _empty_failed()
 
     out = nom_w.join(vol_w, how="outer").sort_index()
 
@@ -1140,6 +1195,7 @@ def qna_panel(codes: Iterable[str] | None = None,
     out.attrs["meta"] = tuple(meta.to_dict("records"))
     out.attrs["source"] = _AGENCY_FLOW.rstrip(",")
     out.attrs["sa_engines"] = engines
+    out.attrs["missing"] = tuple(failed)
     return out
 
 

@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import warnings
 from typing import Sequence
 
 import numpy as np
@@ -99,6 +100,48 @@ def _get_oecd_csv(
         return pd.DataFrame()
 
 
+#: Rows per page. Kept at the pre-4.7 value so URLs, and the cached files
+#: keyed on them, do not change; completeness comes from the page loop.
+#: (The API's ceiling is 32 767; 32 768 answers with an HTML 400 page.)
+_WDI_PER_PAGE = 15000
+
+
+def _wdi_all_pages(url: str, *, refresh: bool, timeout: int) -> list:
+    """Every row of a paged WDI ``[meta, rows]`` response; ``[]`` on failure.
+
+    ``url`` carries its query string; ``&page=k`` is appended from page 2 on
+    (page 1 keeps the bare URL, so caches keyed on it stay valid). Before
+    4.7 this module read page 1 of a ``per_page=15000`` answer only, and an
+    all-economy pull from 1990 lost 37 economies, the United States among
+    them; a short read is now reported with a warning.
+    """
+    rows: list = []
+    page, pages, total = 1, 1, None
+    while page <= pages:
+        raw = _cached_get(url if page == 1 else f"{url}&page={page}",
+                          refresh=refresh, timeout=timeout)
+        if not raw:
+            return rows
+        try:
+            payload = json.loads(raw.decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return rows
+        # [metadata_dict, record_list]; an in-band error is a 1-element list.
+        if not isinstance(payload, list) or len(payload) < 2 or not isinstance(payload[1], list):
+            return rows
+        rows.extend(payload[1])
+        meta = payload[0] if isinstance(payload[0], dict) else {}
+        try:
+            pages = int(meta.get("pages") or 1)
+            total = int(meta["total"]) if meta.get("total") is not None else None
+        except (TypeError, ValueError):
+            pages = 1
+        page += 1
+    if total is not None and len(rows) < total:
+        warnings.warn(f"WDI returned {len(rows)} of {total} rows for {url}", stacklevel=3)
+    return rows
+
+
 def fetch_wdi_emissions(
     codes: Sequence[str] | None = None,
     *,
@@ -161,22 +204,13 @@ def fetch_wdi_emissions(
         query_ind = _LEGACY_TO_AR5.get(ind, ind)
         url = (
             f"https://api.worldbank.org/v2/country/{country_param}/indicator/{query_ind}"
-            f"?format=json&date={start_year}:{effective_end}&per_page=15000"
+            f"?format=json&date={start_year}:{effective_end}&per_page={_WDI_PER_PAGE}"
         )
-        raw_bytes = _cached_get(url, refresh=refresh, timeout=int(timeout))
-        if not raw_bytes:
+        items = _wdi_all_pages(url, refresh=refresh, timeout=int(timeout))
+        if not items:
             continue
 
-        try:
-            payload = json.loads(raw_bytes.decode("utf-8"))
-        except (json.JSONDecodeError, UnicodeDecodeError):
-            continue
-
-        # World Bank API returns [metadata_dict, record_list]
-        if not isinstance(payload, list) or len(payload) < 2 or not isinstance(payload[1], list):
-            continue
-
-        for item in payload[1]:
+        for item in items:
             if not isinstance(item, dict):
                 continue
 
