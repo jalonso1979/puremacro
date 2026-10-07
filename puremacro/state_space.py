@@ -22,12 +22,13 @@ References
 ----------
 Durbin, J. and Koopman, S. J. (2012). *Time Series Analysis by State
 Space Methods*, 2nd ed., Oxford University Press. The recursions
-follow chapters 4 (filter) and 4.5 (disturbance smoother).
+follow chapters 4 (filter) and 4.5 (disturbance smoother); the diffuse
+phase follows §5.2-5.3 (exact initial filtering and smoothing).
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import NamedTuple, Optional
 
 import numpy as np
 
@@ -135,6 +136,18 @@ def _propagate_A_inf(Tm: np.ndarray, A_inf: np.ndarray) -> np.ndarray:
     return U[:, keep] * sv[keep]
 
 
+class _UnivariateStep(NamedTuple):
+    """One observation of the diffuse-phase pass, as the exact initial
+    smoother reads it back. ``z`` and ``v`` are those of the observation
+    after the rotation onto the eigenvectors of H."""
+    z: np.ndarray
+    v: float
+    F_star: float
+    M_star: np.ndarray                  # P_* z
+    F_inf: float = 0.0                  # z' P_inf z
+    M_inf: Optional[np.ndarray] = None  # P_inf z; None for a non-diffuse step
+
+
 def _kalman_diffuse_update(
     a_t: np.ndarray,
     P_t: np.ndarray,
@@ -149,7 +162,10 @@ def _kalman_diffuse_update(
     RQR: np.ndarray,
     n: int,
     log2pi: float,
+    steps: Optional[list] = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, np.ndarray]:
+    """One period of the exact-diffuse filter. If ``steps`` is a list, a
+    :class:`_UnivariateStep` is appended to it for each observation."""
     n_obs = Z_t.shape[0]
     a_curr = a_t.copy()
     P_curr = P_t.copy()
@@ -172,12 +188,14 @@ def _kalman_diffuse_update(
         w_k = A_curr.T @ z_k                  # (q,)
         F_inf_k = float(w_k @ w_k)
         F_star_k = float(z_k @ P_curr @ z_k + h_diag[k])
+        M_star = P_curr @ z_k                 # (m,)
         bound = np.abs(A_curr).T @ np.abs(z_k)
         if F_inf_k > _DIFFUSE_TOL * float(bound @ bound):
             # Diffuse update (Koopman-Durbin eq. 5.18):
             # P_* <- P_* + F_* K0 K0' - K0 M_*' - M_* K0'.
             M_inf = A_curr @ w_k              # (m,)
-            M_star = P_curr @ z_k             # (m,)
+            if steps is not None:
+                steps.append(_UnivariateStep(z_k, v_k, F_star_k, M_star, F_inf_k, M_inf))
             K0 = M_inf / F_inf_k
             a_curr = a_curr + K0 * v_k
             P_curr = P_curr + F_star_k * np.outer(K0, K0) \
@@ -191,9 +209,11 @@ def _kalman_diffuse_update(
         else:
             if F_star_k <= 0:
                 F_star_k = 1e-10
-            K = P_curr @ z_k / F_star_k
+            if steps is not None:
+                steps.append(_UnivariateStep(z_k, v_k, F_star_k, M_star))
+            K = M_star / F_star_k
             a_curr = a_curr + K * v_k
-            P_curr = P_curr - np.outer(K, P_curr @ z_k)
+            P_curr = P_curr - np.outer(K, M_star)
             ll_t += -0.5 * (log2pi + np.log(F_star_k)
                              + v_k * v_k / F_star_k)
     a_filt_t = a_curr
@@ -294,8 +314,7 @@ def kalman_filter(
         K      : (T, m, n)  — Kalman gains
         loglik : float       — sum of period-by-period log-likelihoods
     """
-    out, _ = _kalman_filter(y, model, a0, P0, diffuse_scale, diffuse_states)
-    return out
+    return _kalman_filter(y, model, a0, P0, diffuse_scale, diffuse_states)
 
 
 def _kalman_filter(
@@ -305,9 +324,14 @@ def _kalman_filter(
     P0: Optional[np.ndarray],
     diffuse_scale: float,
     diffuse_states: Optional[list],
-) -> tuple[dict, np.ndarray]:
-    """:func:`kalman_filter`, plus a ``(T,)`` mask of the periods updated by
-    the exact-diffuse recursion (they store no ``F`` / ``K``)."""
+    diffuse_record: Optional[list] = None,
+) -> dict:
+    """:func:`kalman_filter`. If ``diffuse_record`` is a list, one entry
+    ``(A_inf_t, steps_t)`` is appended to it for each period of the diffuse
+    phase, which is a prefix of the sample: the factor of the diffuse part
+    ``A_inf_t A_inf_t'`` of the predicted covariance entering period t, and
+    the period's :class:`_UnivariateStep` records (none for a fully missing
+    period). Those periods store no ``F`` / ``K``."""
     y = np.asarray(y, dtype=float)
     if y.ndim == 1:
         y = y[:, None]
@@ -356,8 +380,6 @@ def _kalman_filter(
     F_arr = np.zeros((T_obs, n, n))
     K_arr = np.zeros((T_obs, m, n))
 
-    diffuse = np.zeros(T_obs, dtype=bool)
-
     a_pred[0] = a0
     P_pred[0] = P0
     loglik = 0.0
@@ -396,6 +418,8 @@ def _kalman_filter(
                 a_pred[t + 1] = Tm @ a_t + c
                 P_pred[t + 1] = Tm @ P_t @ Tm.T + RQR
                 if A_inf.shape[1]:
+                    if diffuse_record is not None:
+                        diffuse_record.append((A_inf, []))
                     # The diffuse part moves with the state too.
                     A_inf = _propagate_A_inf(Tm, A_inf)
                 continue
@@ -406,6 +430,10 @@ def _kalman_filter(
 
             # ---- Exact-diffuse path: process this period one obs at a time ----
             if A_inf.shape[1]:
+                steps: Optional[list] = None
+                if diffuse_record is not None:
+                    steps = []
+                    diffuse_record.append((A_inf, steps))
                 (
                     a_filt[t],
                     P_filt[t],
@@ -415,13 +443,12 @@ def _kalman_filter(
                     ll_t,
                     innov[t],
                 ) = _kalman_diffuse_update(
-                    a_t, P_t, A_inf, y_t, obs, Z_t, d_t, H_t, Tm, c, RQR, n, log2pi
+                    a_t, P_t, A_inf, y_t, obs, Z_t, d_t, H_t, Tm, c, RQR, n, log2pi,
+                    steps,
                 )
                 loglik += ll_t
-                # F and K bookkeeping (skip during diffuse since the matrices
-                # are not the standard ones; downstream smoother will read
-                # P_filt / a_filt instead).
-                diffuse[t] = True
+                # F and K stay zero here: the period has no multivariate F
+                # and K. The smoother reads the univariate steps instead.
                 continue
 
             # ---- Standard non-diffuse update ----
@@ -448,12 +475,84 @@ def _kalman_filter(
         "F": F_arr,
         "K": K_arr,
         "loglik": float(loglik),
-    }, diffuse
+    }
 
 
 # ---------------------------------------------------------------------------
 # Fixed-interval state smoother (state means + covariances)
 # ---------------------------------------------------------------------------
+def _exact_initial_smoother(
+    a_pred: np.ndarray,
+    P_pred: np.ndarray,
+    diffuse_record: list,
+    Tm: np.ndarray,
+    r: np.ndarray,
+    N: np.ndarray,
+    a_sm: np.ndarray,
+    P_sm: np.ndarray,
+) -> None:
+    """Fill ``a_sm[t]``, ``P_sm[t]`` for the periods of the diffuse phase with
+    the exact initial smoother (Durbin and Koopman 2012, §5.3), run backwards
+    over the filter's observation-by-observation steps. ``(r, N)`` are the
+    standard recursion's values at the first period after the phase; the
+    terms of order 1/kappa and 1/kappa^2 start at zero there.
+
+    Each step expands ``r = r0 + r1/kappa`` and
+    ``N = N0 + N1/kappa + N2/kappa^2`` for the prior covariance
+    ``kappa P_inf + P_*`` as kappa -> infinity. With ``K0 = M_inf / F_inf``,
+    ``K1 = (M_* - K0 F_*) / F_inf``, ``L0 = I - K0 z'`` and ``L1 = -K1 z'``:
+
+        r0 <- L0' r0
+        r1 <- z v / F_inf + L0' r1 + L1' r0
+        N0 <- L0' N0 L0
+        N1 <- z z' / F_inf + L0' N1 L0 + L1' N0 L0 + L0' N0 L1
+        N2 <- -z z' F_* / F_inf^2 + L0' N2 L0 + L0' N1 L1 + L1' N1 L0 + L1' N0 L1
+
+    (N2 leaves out the terms in the 1/kappa^2 part of the gain, which vanish
+    between the P_inf factors of V.) A non-diffuse step (F_inf = 0) applies its ordinary gain to r0 and N0 and
+    carries r1, N1, N2 through ``L = I - M_* z' / F_*``. Then
+    ``a_hat = a + P_* r0 + P_inf r1`` and
+    ``V = P_* - P_* N0 P_* - P_inf N1 P_* - P_* N1 P_inf - P_inf N2 P_inf``.
+    """
+    m = Tm.shape[0]
+    eye = np.eye(m)
+    r0, N0 = r, N
+    r1 = np.zeros(m)
+    N1 = np.zeros((m, m))
+    N2 = np.zeros((m, m))
+    for t in range(len(diffuse_record) - 1, -1, -1):
+        A_inf_t, steps = diffuse_record[t]
+        P_inf_t = A_inf_t @ A_inf_t.T
+        # Back through the transition from period t to period t+1.
+        r0, r1 = Tm.T @ r0, Tm.T @ r1
+        N0, N1, N2 = Tm.T @ N0 @ Tm, Tm.T @ N1 @ Tm, Tm.T @ N2 @ Tm
+        for st in reversed(steps):
+            zz = np.outer(st.z, st.z)
+            if st.M_inf is None:
+                L = eye - np.outer(st.M_star / st.F_star, st.z)
+                r0 = st.z * (st.v / st.F_star) + L.T @ r0
+                r1 = L.T @ r1
+                N0 = zz / st.F_star + L.T @ N0 @ L
+                N1 = L.T @ N1 @ L
+                N2 = L.T @ N2 @ L
+                continue
+            K0 = st.M_inf / st.F_inf
+            K1 = (st.M_star - K0 * st.F_star) / st.F_inf
+            L0 = eye - np.outer(K0, st.z)
+            L1 = -np.outer(K1, st.z)
+            N2 = (-st.F_star / st.F_inf ** 2) * zz + L0.T @ N2 @ L0 \
+                + L0.T @ N1 @ L1 + L1.T @ N1 @ L0 + L1.T @ N0 @ L1
+            N1 = zz / st.F_inf + L0.T @ N1 @ L0 + L1.T @ N0 @ L0 + L0.T @ N0 @ L1
+            N0 = L0.T @ N0 @ L0
+            r1 = st.z * (st.v / st.F_inf) + L0.T @ r1 + L1.T @ r0
+            r0 = L0.T @ r0
+        P_star = P_pred[t]
+        a_sm[t] = a_pred[t] + P_star @ r0 + P_inf_t @ r1
+        P_inf_N1_P_star = P_inf_t @ N1 @ P_star
+        P_sm[t] = (P_star - P_star @ N0 @ P_star - P_inf_N1_P_star
+                   - P_inf_N1_P_star.T - P_inf_t @ N2 @ P_inf_t)
+
+
 def kalman_smoother(
     y: np.ndarray,
     model: StateSpaceModel,
@@ -488,10 +587,17 @@ def kalman_smoother(
     differed by ~1e-6 between LAPACK builds and the interior by ~1e-8.
 
     Periods handled by the exact-diffuse initialisation (``diffuse_states``)
-    carry no standard ``F_t`` / ``K_t``; the smoother keeps the RTS step over
-    that initial stretch, from the Durbin-Koopman estimate at its end.
+    carry no standard ``F_t`` / ``K_t``, and their ``P_pred`` / ``P_filt``
+    hold only the finite part of the covariance. Over that initial stretch
+    the recursion continues as the exact initial smoother of Durbin and
+    Koopman (2012, §5.3), run over the filter's observation-by-observation
+    steps (see :func:`_exact_initial_smoother`). A diffuse direction that
+    the data never resolve has no proper smoothed distribution, and its
+    smoothed moments are not meaningful.
     """
-    out, diffuse = _kalman_filter(y, model, a0, P0, diffuse_scale, diffuse_states)
+    diffuse_record: list = []
+    out = _kalman_filter(y, model, a0, P0, diffuse_scale, diffuse_states,
+                         diffuse_record)
     a_pred = out["a_pred"]
     P_pred = out["P_pred"]
     a_filt = out["a_filt"]
@@ -507,7 +613,7 @@ def kalman_smoother(
 
     # The exact-diffuse periods are an initial stretch: once P_inf has
     # collapsed it stays zero.
-    n_diffuse = int(np.flatnonzero(diffuse)[-1]) + 1 if diffuse.any() else 0
+    n_diffuse = len(diffuse_record)
 
     r = np.zeros(m)
     N = np.zeros((m, m))
@@ -531,18 +637,11 @@ def kalman_smoother(
         a_sm[t] = a_pred[t] + P_pred[t] @ r
         P_sm[t] = P_pred[t] - P_pred[t] @ N @ P_pred[t]
 
-    if n_diffuse == T_obs:
-        a_sm[-1] = a_filt[-1]
-        P_sm[-1] = P_filt[-1]
-        n_diffuse -= 1
-    for t in range(n_diffuse - 1, -1, -1):
-        P_pred_next = P_pred[t + 1]
-        try:
-            J = P_filt[t] @ Tm.T @ np.linalg.pinv(P_pred_next)
-        except np.linalg.LinAlgError:
-            J = np.zeros((m, m))
-        a_sm[t] = a_filt[t] + J @ (a_sm[t + 1] - a_pred[t + 1])
-        P_sm[t] = P_filt[t] + J @ (P_sm[t + 1] - P_pred_next) @ J.T
+    # (r, N) are now the values at period n_diffuse, where the terms of the
+    # exact initial smoother in 1/kappa start at zero.
+    if n_diffuse:
+        _exact_initial_smoother(a_pred, P_pred, diffuse_record, Tm, r, N,
+                                a_sm, P_sm)
 
     out["a_smooth"] = a_sm
     out["P_smooth"] = P_sm
