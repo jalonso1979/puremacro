@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import numpy as np
-from numpy.random import default_rng
 
 
 def _ols_var(Y: np.ndarray, p: int):
@@ -45,8 +44,8 @@ def residual_bootstrap(
     intercept: np.ndarray,
     n_draws: int = 500,
     horizon: int = 20,
-    irf_fn: Optional[Callable] = None,
-    rng: Optional[np.random.Generator] = None,
+    irf_fn: Callable | None = None,
+    rng: np.random.Generator | None = None,
 ) -> dict:
     """Generic residual bootstrap for VAR-based identification.
 
@@ -91,7 +90,7 @@ def residual_bootstrap(
     Y_all = np.empty((n_draws, p + T_eff, n))
     Y_all[:, :p, :] = Y_init
     for t in range(T_eff):
-        lags = np.concatenate([Y_all[:, p + t - 1 - lag, :] for lag in range(p)], axis=1)
+        lags = Y_all[:, t : p + t, :][:, ::-1, :].reshape(n_draws, p * n)
         Y_all[:, p + t, :] = lags @ A_stack.T + intercept + E_all[:, t, :]
 
     draws = []
