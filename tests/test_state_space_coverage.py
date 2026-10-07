@@ -271,6 +271,379 @@ class TestKalmanFilterDiffuse:
 
 
 # ---------------------------------------------------------------------------
+# kalman_filter: exact-diffuse checked against the kappa -> inf limit,
+# the GLS posterior and invariance to the diffuse state's units
+# ---------------------------------------------------------------------------
+
+_KAPPA = 1e8
+
+
+def _gls_period0(model, y0, a0, P0, diffuse):
+    """Exact posterior of alpha_1 given y_1 alone, with zero prior precision
+    on the diffuse indices (GLS; independent of the Kalman code)."""
+    m = model.T.shape[0]
+    finite = [i for i in range(m) if i not in diffuse]
+    prior_prec = np.zeros((m, m))
+    prior_prec[np.ix_(finite, finite)] = np.linalg.inv(P0[np.ix_(finite, finite)])
+    Z, Hinv = model.Z, np.linalg.inv(model.H)
+    P_post = np.linalg.inv(Z.T @ Hinv @ Z + prior_prec)
+    a_post = P_post @ (Z.T @ Hinv @ (y0 - model.d) + prior_prec @ a0)
+    return a_post, P_post
+
+
+def _rescale_state(model, i, s):
+    """The same model with state i measured in units s times larger
+    (alpha_i' = s alpha_i)."""
+    S = np.eye(model.T.shape[0])
+    S[i, i] = s
+    S_inv = np.linalg.inv(S)
+    return StateSpaceModel(T=S @ model.T @ S_inv, Z=model.Z @ S_inv, R=S @ model.R,
+                           Q=model.Q, H=model.H, c=S @ model.c, d=model.d)
+
+
+class TestExactDiffuseNonUnitLoadings:
+    """The exact-diffuse filter is the kappa -> inf limit of the proper prior
+    P0 = kappa * P_inf + P_*. The P_* update used to scale K0 K0' by
+    F_* / F_inf instead of F_*, which is only right when F_inf = 1 (every
+    test above loads the diffuse state with Z = 1)."""
+
+    @staticmethod
+    def _local_level_z2() -> StateSpaceModel:
+        return StateSpaceModel(T=np.array([[1.0]]), Z=np.array([[2.0]]),
+                               Q=np.array([[0.5]]), H=np.array([[1.0]]))
+
+    @staticmethod
+    def _two_obs_model() -> StateSpaceModel:
+        # Both observables load the diffuse random-walk state 0, with
+        # weights 2 and -0.7; state 1 is a stationary AR(1) with a proper prior.
+        return StateSpaceModel(T=np.diag([1.0, 0.6]),
+                               Z=np.array([[2.0, 1.0], [-0.7, 0.5]]),
+                               Q=np.diag([0.3, 0.5]), H=np.diag([0.8, 1.3]))
+
+    def test_local_level_first_period_posterior(self):
+        """One observation y = 2 alpha + eps under a flat prior: Var = H / Z^2."""
+        y = _rng(0).normal(0, 1, 15)
+        out = kalman_filter(y, self._local_level_z2(), diffuse_states=[0])
+        assert out["P_filt"][0, 0, 0] == pytest.approx(1.0 / 2.0 ** 2, rel=1e-12)
+        assert out["a_filt"][0, 0] == pytest.approx(y[0] / 2.0, rel=1e-12)
+
+    def test_local_level_matches_large_P0(self):
+        model = self._local_level_z2()
+        y = _rng(0).normal(0, 1, 15)
+        exact = kalman_filter(y, model, diffuse_states=[0])
+        approx = kalman_filter(y, model, P0=np.array([[_KAPPA]]))
+        np.testing.assert_allclose(exact["a_filt"][1:], approx["a_filt"][1:], atol=1e-6)
+        np.testing.assert_allclose(exact["P_filt"][1:], approx["P_filt"][1:], atol=1e-6)
+
+    def test_local_level_loglik_is_kappa_limit(self):
+        """Diffuse loglik = lim_{kappa -> inf} [loglik(kappa) + (1/2) log kappa]."""
+        model = self._local_level_z2()
+        y = _rng(0).normal(0, 1, 15)
+        exact = kalman_filter(y, model, diffuse_states=[0])["loglik"]
+        approx = kalman_filter(y, model, P0=np.array([[_KAPPA]]))["loglik"]
+        assert exact == pytest.approx(approx + 0.5 * np.log(_KAPPA), abs=1e-6)
+
+    def test_two_observables_first_period_posterior(self):
+        """Observations are processed one at a time; the period-0 posterior
+        must still be the GLS posterior with zero prior precision on state 0."""
+        model = self._two_obs_model()
+        y = _rng(1).normal(0, 1, (12, 2))
+        a0 = np.array([0.0, 0.4])
+        P0 = np.diag([1.0, 0.9])
+        out = kalman_filter(y, model, a0=a0, P0=P0, diffuse_states=[0])
+        a_post, P_post = _gls_period0(model, y[0], a0, P0, [0])
+        np.testing.assert_allclose(out["P_filt"][0], P_post, rtol=1e-10)
+        np.testing.assert_allclose(out["a_filt"][0], a_post, rtol=1e-10)
+
+    def test_two_observables_match_large_P0(self):
+        model = self._two_obs_model()
+        y = _rng(1).normal(0, 1, (12, 2))
+        a0 = np.array([0.0, 0.4])
+        exact = kalman_smoother(y, model, a0=a0, P0=np.diag([1.0, 0.9]),
+                                diffuse_states=[0])
+        approx = kalman_smoother(y, model, a0=a0, P0=np.diag([_KAPPA, 0.9]))
+        for key in ("a_filt", "P_filt", "a_smooth", "P_smooth"):
+            np.testing.assert_allclose(exact[key], approx[key], atol=1e-6, err_msg=key)
+        assert exact["loglik"] == pytest.approx(
+            approx["loglik"] + 0.5 * np.log(_KAPPA), abs=1e-6)
+
+
+class TestExactDiffuseEdgeCases:
+    """Exact-diffuse filter: correlated measurement errors, fully missing
+    periods inside the diffuse phase, and loadings far from unit scale."""
+
+    def test_correlated_measurement_errors(self):
+        """The diffuse pass processes a period's observations one at a time,
+        which is only valid once their errors are uncorrelated."""
+        model = StateSpaceModel(T=np.diag([1.0, 0.6]),
+                                Z=np.array([[2.0, 1.0], [-0.7, 0.5]]),
+                                Q=np.diag([0.3, 0.5]),
+                                H=np.array([[0.8, 0.5], [0.5, 1.3]]))
+        y = _rng(2).normal(0, 1, (12, 2))
+        a0 = np.array([0.0, 0.4])
+        P0 = np.diag([1.0, 0.9])
+        exact = kalman_filter(y, model, a0=a0, P0=P0, diffuse_states=[0])
+        a_post, P_post = _gls_period0(model, y[0], a0, P0, [0])
+        np.testing.assert_allclose(exact["P_filt"][0], P_post, rtol=1e-10)
+        np.testing.assert_allclose(exact["a_filt"][0], a_post, rtol=1e-10)
+        approx = kalman_filter(y, model, a0=a0, P0=np.diag([_KAPPA, 0.9]))
+        np.testing.assert_allclose(exact["a_filt"], approx["a_filt"], atol=1e-6)
+        np.testing.assert_allclose(exact["P_filt"], approx["P_filt"], atol=1e-6)
+        assert exact["loglik"] == pytest.approx(
+            approx["loglik"] + 0.5 * np.log(_KAPPA), abs=1e-6)
+
+    def test_missing_period_moves_diffuse_direction(self):
+        """A fully missing period in the diffuse phase still propagates
+        P_inf <- T P_inf T'. Here T swaps the states, so at t = 1 the diffuse
+        part sits on the unobserved state 1, and y[1] is not a diffuse update."""
+        model = StateSpaceModel(T=np.array([[0.0, 1.0], [1.0, 0.0]]),
+                                Z=np.array([[1.0, 0.0]]),
+                                Q=np.diag([0.4, 0.3]), H=np.array([[0.6]]))
+        y = _rng(3).normal(0, 1, 10)
+        y[0] = np.nan
+        exact = kalman_filter(y, model, a0=np.zeros(2), P0=np.eye(2), diffuse_states=[0])
+        approx = kalman_filter(y, model, a0=np.zeros(2), P0=np.diag([_KAPPA, 1.0]))
+        # Both states are pinned down from t = 2 on.
+        np.testing.assert_allclose(exact["a_filt"][2:], approx["a_filt"][2:], atol=1e-6)
+        np.testing.assert_allclose(exact["P_filt"][2:], approx["P_filt"][2:], atol=1e-6)
+        assert exact["loglik"] == pytest.approx(
+            approx["loglik"] + 0.5 * np.log(_KAPPA), abs=1e-6)
+
+    def test_missing_period_stationary_diffuse_state_loglik(self):
+        """A stationary diffuse state shrinks P_inf by T^2 over a missing period,
+        which changes the diffuse term -0.5 log F_inf at the next observation."""
+        model = StateSpaceModel(T=np.array([[0.5]]), Z=np.array([[1.5]]),
+                                Q=np.array([[0.4]]), H=np.array([[0.6]]))
+        y = _rng(4).normal(0, 1, 10)
+        y[0] = np.nan
+        exact = kalman_filter(y, model, diffuse_states=[0])["loglik"]
+        approx = kalman_filter(y, model, P0=np.array([[_KAPPA]]))["loglik"]
+        assert exact == pytest.approx(approx + 0.5 * np.log(_KAPPA), abs=1e-6)
+
+    @pytest.mark.parametrize("scale", [1e-7, 1e3])
+    def test_invariant_to_units_of_diffuse_state(self, scale):
+        """Measuring the diffuse state in other units (alpha' = s alpha) maps
+        a -> S a, P -> S P S' and adds log|s| to the diffuse loglik. With
+        s = 1e-7, F_inf = 1e-14 is a genuine diffuse direction below the old
+        absolute 1e-12 cut-off; with s = 1e3, the rounding residual of the
+        collapsed P_inf exceeded it and triggered spurious diffuse updates."""
+        unit = StateSpaceModel(T=np.diag([1.0, 0.6]),
+                               Z=np.array([[1.7, 1.0], [1.1, 0.5]]),
+                               Q=np.diag([0.3, 0.5]), H=np.diag([0.8, 1.3]))
+        scaled = _rescale_state(unit, 0, 1.0 / scale)    # Z[:, 0] *= scale
+        y = _rng(3).normal(0, 1, (10, 2))
+        a0, P0 = np.zeros(2), np.eye(2)
+        ref = kalman_filter(y, unit, a0=a0, P0=P0, diffuse_states=[0])
+        out = kalman_filter(y, scaled, a0=a0, P0=P0, diffuse_states=[0])
+        S = np.diag([scale, 1.0])
+        np.testing.assert_allclose(out["a_filt"] @ S, ref["a_filt"], rtol=1e-9, atol=1e-12)
+        np.testing.assert_allclose(S @ out["P_filt"] @ S, ref["P_filt"], rtol=1e-9, atol=1e-12)
+        assert out["loglik"] == pytest.approx(ref["loglik"] - np.log(scale), abs=1e-9)
+
+    def test_nearly_collinear_loadings_resolve_both_diffuse_states(self):
+        """Rows [1, 0] and [1, 1e-5] are linearly independent, so both diffuse
+        states are pinned down in period 0: F_inf = 1e-10 at the second row
+        is a genuine diffuse step, not a rounding residual."""
+        unit = StateSpaceModel(T=np.eye(2), Z=np.array([[1.0, 0.0], [1.0, 1.0]]),
+                               Q=np.diag([0.3, 0.5]), H=np.diag([0.8, 1.3]))
+        scaled = _rescale_state(unit, 1, 1e5)            # Z[:, 1] *= 1e-5
+        y = _rng(5).normal(0, 1, (8, 2))
+        out = kalman_filter(y, scaled, diffuse_states=[0, 1])
+        Z_inv = np.linalg.inv(scaled.Z)
+        np.testing.assert_allclose(out["a_filt"][0], Z_inv @ y[0], rtol=1e-9)
+        np.testing.assert_allclose(out["P_filt"][0], Z_inv @ scaled.H @ Z_inv.T, rtol=1e-9)
+        ref = kalman_filter(y, unit, diffuse_states=[0, 1])
+        S = np.diag([1.0, 1e5])
+        np.testing.assert_allclose(out["a_filt"], ref["a_filt"] @ S, rtol=1e-9, atol=1e-12)
+        np.testing.assert_allclose(out["P_filt"], S @ ref["P_filt"] @ S, rtol=1e-9, atol=1e-12)
+        assert out["loglik"] == pytest.approx(ref["loglik"] + np.log(1e5), abs=1e-9)
+
+    def test_small_diffuse_component_survives_until_observed(self):
+        """With T = diag(1, 1e-5) and a missing period, P_inf = diag(1, 1e-10).
+        Observing only state 0 resolves that direction and must leave the
+        diffuse part of state 1 in place, however small, until state 1 is
+        observed; it then has the flat-prior posterior Var = H_11 / Z_11^2."""
+        model = StateSpaceModel(T=np.diag([1.0, 1e-5]), Z=np.diag([1.0, 2.0]),
+                                Q=np.diag([0.3, 0.5]), H=np.diag([0.8, 1.3]))
+        y = _rng(6).normal(0, 1, (8, 2))
+        y[0] = np.nan
+        y[1, 1] = np.nan
+        out = kalman_filter(y, model, diffuse_states=[0, 1])
+        assert out["P_filt"][2, 1, 1] == pytest.approx(1.3 / 2.0 ** 2, rel=1e-9)
+        assert out["a_filt"][2, 1] == pytest.approx(y[2, 1] / 2.0, rel=1e-9)
+        # The states are independent: the bivariate run is two univariate ones.
+        univ = [kalman_filter(y[:, i], StateSpaceModel(
+                    T=model.T[i:i + 1, i:i + 1], Z=model.Z[i:i + 1, i:i + 1],
+                    Q=model.Q[i:i + 1, i:i + 1], H=model.H[i:i + 1, i:i + 1]),
+                    diffuse_states=[0]) for i in range(2)]
+        for i in range(2):
+            np.testing.assert_allclose(out["a_filt"][:, i], univ[i]["a_filt"][:, 0],
+                                       rtol=1e-12, atol=1e-14)
+            np.testing.assert_allclose(out["P_filt"][:, i, i], univ[i]["P_filt"][:, 0, 0],
+                                       rtol=1e-12, atol=1e-14)
+        assert out["loglik"] == pytest.approx(univ[0]["loglik"] + univ[1]["loglik"], abs=1e-9)
+
+    @pytest.mark.parametrize("t22, n_missing", [(1e-16, 1), (1e-4, 4)])
+    def test_shrunk_diffuse_direction_is_not_dropped(self, t22, n_missing):
+        """T shrinks the second diffuse direction (to t22**n_missing, below
+        eps of the first) without annihilating it. P_inf = T^k T^k' then has
+        full rank, so the finite part no longer matters and the filter from
+        period k on must be the fully diffuse filter started there; the
+        likelihoods differ by -log|det T^k|."""
+        Tm = np.diag([1.0, t22])
+        model = StateSpaceModel(T=Tm, Z=np.array([[1.0, 0.3], [0.2, 1.0]]),
+                                Q=np.diag([0.4, 0.3]), H=np.diag([0.6, 0.5]),
+                                c=np.array([0.1, -0.2]))
+        y = _rng(7).normal(0, 1, (8 + n_missing, 2))
+        y[:n_missing] = np.nan
+        a0 = np.array([0.5, -0.3])
+        out = kalman_filter(y, model, a0=a0, P0=np.eye(2), diffuse_states=[0, 1])
+        a_k = a0
+        for _ in range(n_missing):
+            a_k = Tm @ a_k + model.c
+        ref = kalman_filter(y[n_missing:], model, a0=a_k, P0=np.eye(2),
+                            diffuse_states=[0, 1])
+        np.testing.assert_allclose(out["a_filt"][n_missing:], ref["a_filt"], rtol=1e-9, atol=1e-12)
+        np.testing.assert_allclose(out["P_filt"][n_missing:], ref["P_filt"], rtol=1e-9, atol=1e-12)
+        assert out["loglik"] == pytest.approx(
+            ref["loglik"] - n_missing * np.log(t22), abs=1e-8)
+
+    def test_annihilated_diffuse_direction_is_dropped(self):
+        """T = diag(1, 0) annihilates the diffuse part of the unobserved state
+        1, so the diffuse phase ends after t = 0 (the standard recursion
+        stores F from t = 1) and from then on the filter is the one with only
+        state 0 diffuse."""
+        model = StateSpaceModel(T=np.diag([1.0, 0.0]), Z=np.array([[1.0, 0.0]]),
+                                Q=np.diag([0.4, 0.3]), H=np.array([[0.6]]))
+        y = _rng(8).normal(0, 1, 10)
+        out = kalman_filter(y, model, a0=np.zeros(2), P0=np.eye(2), diffuse_states=[0, 1])
+        ref = kalman_filter(y, model, a0=np.zeros(2), P0=np.eye(2), diffuse_states=[0])
+        assert out["F"][1, 0, 0] > 0.0
+        for key in ("a_filt", "P_filt", "F"):
+            np.testing.assert_allclose(out[key][1:], ref[key][1:], rtol=1e-12, atol=1e-14,
+                                       err_msg=key)
+        assert out["loglik"] == pytest.approx(ref["loglik"], abs=1e-12)
+
+
+# ---------------------------------------------------------------------------
+# kalman_smoother: exact initial smoothing over the diffuse phase, checked
+# against the batch GLS posterior of alpha_{1..T}
+# ---------------------------------------------------------------------------
+
+def _gls_smoother(model, y, a0, P0, diffuse):
+    """Posterior mean and marginal covariances of alpha_{1..T} given y_{1..T},
+    with zero prior precision on the diffuse indices of alpha_1. Built in
+    information form from the prior, the transitions and the observations
+    (needs R Q R' and H invertible; independent of the Kalman code)."""
+    y = np.asarray(y, dtype=float)
+    if y.ndim == 1:
+        y = y[:, None]
+    n_t, m = y.shape[0], model.T.shape[0]
+    Tm, Z, c, d = model.T, model.Z, model.c, model.d
+    W = np.linalg.inv(model.R @ model.Q @ model.R.T)
+    Lam = np.zeros((n_t * m, n_t * m))
+    b = np.zeros(n_t * m)
+
+    def blk(t):
+        return slice(t * m, (t + 1) * m)
+
+    finite = [i for i in range(m) if i not in diffuse]
+    prior_prec = np.zeros((m, m))
+    prior_prec[np.ix_(finite, finite)] = np.linalg.inv(P0[np.ix_(finite, finite)])
+    Lam[blk(0), blk(0)] += prior_prec
+    b[blk(0)] += prior_prec @ a0
+    for t in range(n_t - 1):
+        # alpha_{t+1} - T alpha_t - c ~ N(0, R Q R')
+        Lam[blk(t), blk(t)] += Tm.T @ W @ Tm
+        Lam[blk(t), blk(t + 1)] -= Tm.T @ W
+        Lam[blk(t + 1), blk(t)] -= W @ Tm
+        Lam[blk(t + 1), blk(t + 1)] += W
+        b[blk(t)] -= Tm.T @ W @ c
+        b[blk(t + 1)] += W @ c
+    for t in range(n_t):
+        obs = ~np.isnan(y[t])
+        if not obs.any():
+            continue
+        Z_o = Z[obs]
+        H_inv = np.linalg.inv(model.H[np.ix_(obs, obs)])
+        Lam[blk(t), blk(t)] += Z_o.T @ H_inv @ Z_o
+        b[blk(t)] += Z_o.T @ H_inv @ (y[t, obs] - d[obs])
+    cov = np.linalg.inv(Lam)
+    a_post = (cov @ b).reshape(n_t, m)
+    P_post = np.stack([cov[blk(t), blk(t)] for t in range(n_t)])
+    return a_post, P_post
+
+
+class TestExactDiffuseSmoother:
+    """The filter stores only the finite part P_* in P_pred / P_filt while the
+    diffuse phase lasts, so an RTS gain built from them is wrong in every
+    period whose filtered P_inf is not yet zero. Those periods must follow the
+    exact initial smoother (Durbin and Koopman 2012, §5.3)."""
+
+    @staticmethod
+    def _assert_matches_gls(model, y, a0, P0, diffuse):
+        out = kalman_smoother(y, model, a0=a0, P0=P0, diffuse_states=diffuse)
+        a_post, P_post = _gls_smoother(model, y, a0, P0, diffuse)
+        np.testing.assert_allclose(out["a_smooth"], a_post, rtol=1e-9, atol=1e-10)
+        np.testing.assert_allclose(out["P_smooth"], P_post, rtol=1e-9, atol=1e-10)
+
+    @staticmethod
+    def _local_linear_trend() -> StateSpaceModel:
+        return StateSpaceModel(T=np.array([[1.0, 1.0], [0.0, 1.0]]),
+                               Z=np.array([[1.0, 0.0]]),
+                               Q=np.diag([0.2, 0.1]), H=np.array([[0.5]]))
+
+    def test_local_linear_trend_both_states_diffuse(self):
+        """Level and slope diffuse, one observable: the slope stays diffuse
+        after t = 0, where RTS was off by 0.18 in a_smooth."""
+        y = np.cumsum(_rng(5).normal(0, 1, 30))
+        self._assert_matches_gls(self._local_linear_trend(), y,
+                                 np.zeros(2), np.eye(2), [0, 1])
+
+    def test_diffuse_phase_reaches_last_period(self):
+        """With y[1] missing the diffuse phase lasts through the last period,
+        so the exact recursion starts from r = 0, N = 0."""
+        y = np.cumsum(_rng(5).normal(0, 1, 3))
+        y[1] = np.nan
+        self._assert_matches_gls(self._local_linear_trend(), y,
+                                 np.zeros(2), np.eye(2), [0, 1])
+
+    def test_stationary_diffuse_state_missing_first_period(self):
+        """AR(0.5) state loaded with Z = 1.5, diffuse, y[0] missing."""
+        model = StateSpaceModel(T=np.array([[0.5]]), Z=np.array([[1.5]]),
+                                Q=np.array([[0.4]]), H=np.array([[0.6]]))
+        y = _rng(4).normal(0, 1, 10)
+        y[0] = np.nan
+        self._assert_matches_gls(model, y, np.zeros(1), np.eye(1), [0])
+
+    def test_missing_period_moves_diffuse_direction(self):
+        """T swaps the states; with y[0] missing the diffuse part passes
+        through the unobserved state and is resolved only at t = 2."""
+        model = StateSpaceModel(T=np.array([[0.0, 1.0], [1.0, 0.0]]),
+                                Z=np.array([[1.0, 0.0]]),
+                                Q=np.diag([0.4, 0.3]), H=np.array([[0.6]]))
+        y = _rng(3).normal(0, 1, 10)
+        y[0] = np.nan
+        self._assert_matches_gls(model, y, np.zeros(2), np.eye(2), [0])
+
+    def test_correlated_measurement_errors(self):
+        """Non-diagonal H: the diffuse pass works on the eigen-rotated
+        observations, and the smoother must use the same rotation. Both
+        observables load the level but not the slope, so the slope is still
+        diffuse after t = 0; y[1, 1] is missing inside the diffuse phase."""
+        model = StateSpaceModel(T=np.array([[1.0, 1.0, 0.0], [0.0, 1.0, 0.0],
+                                            [0.0, 0.0, 0.6]]),
+                                Z=np.array([[1.0, 0.0, 1.0], [2.0, 0.0, -0.5]]),
+                                Q=np.diag([0.2, 0.1, 0.5]),
+                                H=np.array([[0.8, 0.5], [0.5, 1.3]]),
+                                c=np.array([0.1, 0.0, 0.2]), d=np.array([0.3, -0.4]))
+        y = _rng(6).normal(0, 1, (12, 2))
+        y[1, 1] = np.nan
+        self._assert_matches_gls(model, y, np.array([0.0, 0.0, 0.4]),
+                                 np.diag([1.0, 1.0, 0.9]), [0, 1])
+
+
+# ---------------------------------------------------------------------------
 # kalman_filter: Cholesky augmentation fallback (lines 231-236)
 # ---------------------------------------------------------------------------
 
