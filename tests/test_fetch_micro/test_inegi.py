@@ -106,6 +106,22 @@ def test_latin1_archive_and_person_table(monkeypatch):
     assert mf.total("factor").iloc[0]["estimate"] == pytest.approx(2 * 250**2 + 300**2)
 
 
+def test_flat_archive_as_inegi_publishes_it(monkeypatch):
+    """Layout seen live in 2026: one root-level CSV, UTF-8 with BOM, CRLF."""
+    csv = ("folioviv,foliohog,ubica_geo,est_dis,upm,factor,ing_cor,tot_integ\r\n"
+           "0100005002,1,01001,003,0000001,206,56123.75,3\r\n"
+           "0100005003,1,01001,003,0000002,206,108048.87,2\r\n")
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w") as zf:
+        zf.writestr("concentradohogar.csv", csv.encode("utf-8-sig"))
+        zf.writestr("nota_bases_datos_enigh2018_ns.txt", "nota")
+    monkeypatch.setattr(inegi._http, "cached_get", lambda url, **k: out.getvalue())
+    mf = inegi.fetch_enigh(2018)
+    assert mf.data.columns[0] == "folioviv"            # BOM stripped
+    assert mf.data.loc[0, "upm"] == "0000001" and mf.data.loc[0, "est_dis"] == "003"
+    assert mf.data["ing_cor"].tolist() == [56123.75, 108048.87]
+
+
 def test_csv_picker():
     names = ["x/diccionario_de_datos/d_concentradohogar.csv",
              "x/conjunto_de_datos/conjunto_de_datos_concentradohogar_enigh2022_ns.csv",

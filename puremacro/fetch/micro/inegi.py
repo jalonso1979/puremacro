@@ -43,10 +43,14 @@ Identifiers (``folioviv``, ``foliohog``, ``numren``, ``ubica_geo``,
 ``est_dis``, ``upm``, ``entidad``) are read as strings so that leading
 zeros survive; everything else that is fully numeric becomes numeric.
 
-Files (unverified from this module's test environment; checked by the
-opt-in live test)::
+Files (checked live for 2018, 2020 and 2022 in October 2026)::
 
     https://www.inegi.org.mx/contenidos/programas/enigh/nc/{YEAR}/microdatos/enigh{YEAR}_ns_{TABLE}_csv.zip
+
+Each zip holds ``{TABLE}.csv`` (UTF-8 with BOM, comma-separated, CRLF),
+sometimes next to a release note. The 2022 household table has 90,102
+rows, 560 strata and 10,211 PSUs, with no single-PSU stratum; its
+weighted mean ``ing_cor`` is 63,695 pesos, INEGI's published figure.
 """
 from __future__ import annotations
 
@@ -86,8 +90,9 @@ def enigh_url(year: int, table: str = "concentradohogar") -> str:
 def _pick_csv(names: list[str], table: str) -> str:
     """The data CSV inside an INEGI archive.
 
-    Archives also ship dictionaries and code catalogues as CSV, so prefer
-    a file under ``conjunto_de_datos/`` named after the table.
+    The microdata zips hold ``{table}.csv`` at the root; the larger
+    "conjunto de datos" bundles nest it under ``conjunto_de_datos/`` next
+    to dictionary and catalogue CSVs. Both layouts are accepted.
     """
     csvs = [n for n in names if n.lower().endswith(".csv")]
     data = [n for n in csvs
