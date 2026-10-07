@@ -1,0 +1,9 @@
+[    0.0s] crosswalk: 1009 counties in 14 split states, 11 districts
+[    2.8s] county panel: 1009 counties (0 dropped), 146 quarters, 147245 rows
+[    2.9s] border counties (same-state cross-district Census adjacency): 179 of 1009
+[    7.1s] chunked wild-cluster self-check passed
+[   56.9s] spec[border_all]: peak h=12 beta=-0.0135 (DK se 0.0140, WC p=0.265) n=121027, 1009 counties / 14 states / 11 districts
+[   66.1s] spec[border_all_leads]: peak h=-3 beta=-0.0090 (DK se 0.0135, WC p=0.410) n=134144, 1009 counties / 14 states / 11 districts
+[   72.5s] spec[border_only]: peak h=8 beta=-0.0137 (DK se 0.0182, WC p=0.160) n=22184, 179 counties / 14 states / 11 districts
+[   73.5s] spec[border_only_leads]: peak h=-3 beta=-0.0125 (DK se 0.0096, WC p=0.175) n=23795, 179 counties / 14 states / 11 districts
+[   73.9s] figure written

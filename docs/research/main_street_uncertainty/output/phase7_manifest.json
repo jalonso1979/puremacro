@@ -1,0 +1,30 @@
+{
+  "created_utc": "2026-07-24T02:20:11.143267+00:00",
+  "inputs": {
+    "state_district_panel_quarterly.csv": {
+      "sha256": "d5070014b4509c1ff8d6f22e6c2eb5e48072394c44b265118feb1d00b9a033dd"
+    },
+    "exposure_state.csv": {
+      "sha256": "d2fd4172512e1d3718209803fdc1b48258e2adabd41b74fe8a2d22a1c833b0d8"
+    },
+    "bbui_district_panel.csv": {
+      "sha256": "424b6f1dce04d3a693aed0f44189077369b38fa78b80a1877dd32b4f5931381d"
+    }
+  },
+  "uncertainty_terms": [
+    "downside",
+    "downside risk",
+    "downside risks",
+    "risk",
+    "risks",
+    "risky",
+    "uncertain",
+    "uncertainties",
+    "uncertainty",
+    "volatile",
+    "volatility"
+  ],
+  "estimator": "identical to Phase 3/4 (imported run_spec_multi)",
+  "wc_draws": 999,
+  "seed": 42
+}

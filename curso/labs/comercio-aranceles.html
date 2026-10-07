@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="es" data-lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-title-es="Guerra arancelaria y desvío de comercio · Laboratorios MAV" data-title-en="Tariff war and trade diversion · MAV Labs">Guerra arancelaria y desvío de comercio · Laboratorios MAV</title>
+<meta name="description" content="Laboratorio interactivo: equilibrio general cuantitativo de comercio (Caliendo & Parro 2015). Mueve aranceles bilaterales entre México, EE. UU. y China, observa el desvío de comercio y descompone el bienestar en términos de intercambio y enlaces insumo-producto.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23111'/%3E%3Cpath d='M5 21c4 0 5-10 9-10s5 10 9 10 3-5 4-5' fill='none' stroke='%23fff' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/mav.css?v=dbf54522">
+<style>
+  .ctl-sub { font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600;
+    margin: 20px 0 10px; padding-top: 14px; border-top: 1px solid var(--rule); }
+  @media (max-width: 800px) { .two { grid-template-columns: minmax(0, 1fr); } }
+  details.math p { overflow-x: auto; overflow-y: hidden; }
+  .links code { overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="../index.html">MAV <span class="es">· Laboratorios</span><span class="en">· Labs</span></a>
+    <nav class="topnav" aria-label="Principal">
+      <a href="../index.html" class="hide-sm"><span class="es">Laboratorios</span><span class="en">All labs</span></a>
+      <a href="../index.html" data-curso="https://jorgealonsoortiz.work/macro-avanzada/" class="hide-sm"><span class="es">El curso</span><span class="en">The course</span></a>
+      <a href="https://jorgealonsoortiz.work/puremacro/" class="hide-sm">puremacro</a>
+      <span class="lang-toggle" role="group" aria-label="Idioma / Language">
+        <button type="button" data-lang="es">ES</button><button type="button" data-lang="en">EN</button>
+      </span>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero wrap">
+    <p class="kicker"><span class="es">Unidad C1 · Economía internacional y política comercial</span><span class="en">Unit C1 · International economics and trade policy</span></p>
+    <h1><span class="es">Guerra arancelaria y desvío de comercio</span><span class="en">Tariff war and trade diversion</span></h1>
+    <p class="lead">
+      <span class="es">Cuando Estados Unidos impone aranceles a China, encarece sus bienes importados y desvía la demanda hacia fábricas mexicanas. Resuelve el equilibrio general ricardiano con enlaces insumo-producto (Caliendo & Parro 2015) en tiempo real y explora los términos de intercambio, el nearshoring y las represalias arancelarias.</span>
+      <span class="en">When the United States imposes tariffs on China, it raises the cost of Chinese goods and diverts import demand toward Mexican factories. Solve the Ricardian general equilibrium model with input-output linkages (Caliendo & Parro 2015) in real time and explore terms of trade, nearshoring, and tariff retaliation.</span>
+    </p>
+  </section>
+
+  <section class="wrap lab" aria-label="Laboratorio">
+    <aside class="controls" id="controls">
+      <h2><span class="es">Controles</span><span class="en">Controls</span></h2>
+    </aside>
+    <div class="charts">
+      <div id="tiles" aria-live="polite"></div>
+      <div id="chart-welfare"></div>
+      <div id="chart-diversion"></div>
+      <div id="chart-decomp"></div>
+    </div>
+  </section>
+
+  <section class="band section rule-top" style="margin-top:56px">
+    <div class="wrap two">
+      <div>
+        <h2><span class="es">Qué probar</span><span class="en">Things to try</span></h2>
+        <ol class="try">
+          <li><span class="es"><strong>Guerra EE. UU.–China:</strong> Activa el preset «Guerra EE. UU.–China» (arancel recíproco de 25%). Nota cómo el bienestar de China cae (−0.88%) y el de EE. UU. sube ligeramente por el efecto óptimo de aranceles (+0.24%), mientras México experimenta una ganancia neta (+0.14%) debido al desvío de compras estadounidenses hacia insumos mexicanos.</span><span class="en"><strong>US–China Trade War:</strong> Select the «US–China War» preset (25% reciprocal tariff). Notice that Chinese welfare falls (−0.88%), while US welfare slightly gains through terms-of-trade improvement (+0.24%), and Mexico gains (+0.14%) as US demand is diverted toward Mexican factories.</span></li>
+          <li><span class="es"><strong>Boom de Nearshoring:</strong> Sube el arancel de EE. UU. a China al 60% manteniendo 0% a México. La cuota de mercado mexicana en las importaciones de EE. UU. salta de 14% a más del 18%, y el bienestar mexicano experimenta su mayor expansión.</span><span class="en"><strong>Nearshoring Boom:</strong> Raise the US tariff on China to 60% while keeping Mexico at 0%. Mexico's import share in the US surges from 14% to over 18%, delivering the largest welfare dividend to Mexico.</span></li>
+          <li><span class="es"><strong>Guerra Comercial Total:</strong> Aplica el preset «Guerra total» (aranceles cruzados entre los tres países). Las pérdidas globales de bienestar se generalizan, los salarios reales caen en los tres países y los costos de los insumos intermedios paralizan las cadenas de valor.</span><span class="en"><strong>All-Out Trade War:</strong> Activate the «Full Trade War» preset (tariffs across all three nations). Global welfare falls universally, real wages decline, and intermediate input costs disrupt supply chains.</span></li>
+          <li><span class="es"><strong>Sensibilidad a la elasticidad de comercio θ:</strong> Con aranceles activos, varía θ de 2.0 a 10.0. Una elasticidad más alta intensifica el desvío de comercio hacia el socio libre de aranceles, reduciendo el margen de ganancia arancelaria del país importador.</span><span class="en"><strong>Sensitivity to Trade Elasticity θ:</strong> With tariffs active, sweep θ from 2.0 to 10.0. A higher trade elasticity accelerates trade diversion toward non-tariffed partners and compresses the importer's optimal tariff terms-of-trade wedge.</span></li>
+        </ol>
+      </div>
+      <div>
+        <h2><span class="es">La matemática</span><span class="en">The math</span></h2>
+        <details class="math" open>
+          <summary><span class="es">Álgebra de sombreros exacta (Caliendo & Parro 2015)</span><span class="en">Exact hat algebra (Caliendo & Parro 2015)</span></summary>
+          <p><span class="es">Con \(\hat x \equiv x'/x\), el cambio en el costo unitario de producción en el país \(n\) y sector \(j\) es:</span><span class="en">With \(\hat x \equiv x'/x\), the change in unit production cost in country \(n\) and sector \(j\) is:</span></p>
+          $$\ln \hat c_n^j = \gamma_n^j \ln \hat w_n + \sum_{k=1}^J \gamma_n^{j, k} \ln \hat P_n^k$$
+          <p><span class="es">y el índice de precios sectorial \(\hat P_n^j\) satisface la contracción no lineal:</span><span class="en">and the sectoral price index \(\hat P_n^j\) satisfies the non-linear contraction mapping:</span></p>
+          $$\hat P_n^j = \left( \sum_{i=1}^N \pi_{ni}^j \big( \hat c_i^j \hat\tau_{ni}^j \big)^{-\theta_j} \right)^{-1/\theta_j}$$
+          <p><span class="es">con cuotas de comercio contrafactuales \(\pi_{ni}'^j = \pi_{ni}^j \left( \frac{\hat c_i^j \hat\tau_{ni}^j}{\hat P_n^j} \right)^{-\theta_j}\).</span><span class="en">with counterfactual trade shares \(\pi_{ni}'^j = \pi_{ni}^j \left( \frac{\hat c_i^j \hat\tau_{ni}^j}{\hat P_n^j} \right)^{-\theta_j}\).</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">Sistema de gasto insumo-producto de Leontief</span><span class="en">Leontief input-output expenditure system</span></summary>
+          <p><span class="es">Dados los aranceles \(\tau'\), las cuotas \(\pi'\) y los salarios \(\hat w\), el gasto \(X_n'^j\) resuelve el sistema lineal:</span><span class="en">Given tariffs \(\tau'\), shares \(\pi'\), and wages \(\hat w\), expenditure \(X_n'^j\) solves the linear system:</span></p>
+          $$X_n'^j = \alpha_n^j \left( \hat w_n w_n L_n + R_n' \right) + \sum_{k=1}^J \gamma_n^{k, j} \sum_{m=1}^N \frac{\pi_{mn}'^k}{\tau_{mn}'^k} X_m'^k$$
+          <p><span class="es">donde \(R_n' = \sum_j \sum_i \frac{\tau_{ni}'^j - 1}{\tau_{ni}'^j} \pi_{ni}'^j X_n'^j\) es la recaudación arancelaria.</span><span class="en">where \(R_n' = \sum_j \sum_i \frac{\tau_{ni}'^j - 1}{\tau_{ni}'^j} \pi_{ni}'^j X_n'^j\) is tariff revenue.</span></p>
+        </details>
+        <details class="math">
+          <summary><span class="es">Descomposición del bienestar</span><span class="en">Welfare decomposition</span></summary>
+          <p><span class="es">La variación en el bienestar real (\(\Delta \ln W_n\)) se descompone exactamente en tres canales:</span><span class="en">The real welfare change (\(\Delta \ln W_n\)) decomposes exactly into three economic channels:</span></p>
+          $$\Delta \ln W_n = \underbrace{\sum_{j=1}^J \frac{\alpha_n^j}{\theta_j} \ln \left( \frac{\pi_{nn}^j}{\pi_{nn}'^j} \right)}_{\text{Términos de intercambio}} + \underbrace{\sum_{j=1}^J \frac{\alpha_n^j (1 - \gamma_n^j)}{\gamma_n^j \theta_j} \ln \left( \frac{\pi_{nn}^j}{\pi_{nn}'^j} \right)}_{\text{Multiplicador insumo-producto}} + \underbrace{\Delta \text{Recaudación arancelaria}}_{\text{Ingreso fiscal}}$$
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="section wrap">
+    <h2><span class="es">Llévalo más lejos</span><span class="en">Take it further</span></h2>
+    <div class="two">
+      <ul class="links">
+        <li><a href="https://jorgealonsoortiz.work/puremacro/"><span class="es">En Python: </span><span class="en">In Python: </span><code>puremacro.models.TradePolicySimulator</code>, <code>CaliendoParroModel</code> →</a></li>
+        <li><a href="https://github.com/jalonso1979/puremacro/tree/main/curso"><span class="es">Repositorio en GitHub: simulaciones contrafactuales de USMCA y política arancelaria →</span><span class="en">GitHub repository: USMCA counterfactual simulations and trade policy →</span></a></li>
+      </ul>
+      <p class="small" id="source">
+        <span class="es">El laboratorio resuelve el equilibrio general ricardiano de Caliendo & Parro (2015) en tiempo de ejecución (&lt;2 ms en JavaScript puro). Coincide con <code>puremacro.models.TradePolicySimulator</code> hasta 10<sup>−10</sup>.</span>
+        <span class="en">The lab solves the Ricardian general equilibrium model of Caliendo & Parro (2015) in runtime (&lt;2 ms in vanilla JavaScript). Its results match <code>puremacro.models.TradePolicySimulator</code> to within 10<sup>−10</sup>.</span>
+      </p>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span class="es">Macroeconomía Avanzada · ITAM · Jorge Alonso-Ortiz. Código MIT; textos y diapositivas <a href="https://creativecommons.org/licenses/by/4.0/deed.es">CC BY 4.0</a>. Fuente en</span><span class="en">Advanced Macroeconomics · ITAM · Jorge Alonso-Ortiz. Code MIT; text and slides <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Source at</span>
+    <a href="https://github.com/jalonso1979/puremacro/tree/main/curso">github.com/jalonso1979/puremacro</a>.
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<script defer src="../assets/mav.js?v=25ec1916"></script>
+<script defer src="../assets/num.js?v=7de34487"></script>
+<script defer src="comercio-aranceles.js"></script>
+</body>
+</html>

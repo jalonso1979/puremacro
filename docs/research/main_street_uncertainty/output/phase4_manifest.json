@@ -1,0 +1,38 @@
+{
+  "created_utc": "2026-07-23T17:10:11.322800+00:00",
+  "inputs": {
+    "state_district_panel_quarterly.csv": {
+      "sha256": "d5070014b4509c1ff8d6f22e6c2eb5e48072394c44b265118feb1d00b9a033dd"
+    },
+    "exposure_state.csv": {
+      "sha256": "d2fd4172512e1d3718209803fdc1b48258e2adabd41b74fe8a2d22a1c833b0d8"
+    },
+    "phase3_summary.json": {
+      "sha256": "f2c6bd95521c37906444c0e1cd99a11c4effaa9e3641476254144654f5344de3"
+    },
+    "irf_exposure.csv": {
+      "sha256": "9080a6a5f333a7869bb4483e7c868c0cb83c86054263258bc66539fce3d928a6"
+    },
+    "placebo_shuffle.csv": {
+      "sha256": "c41e89982bfd554993720e6517f400d9c032279cf93e7cb28a0867259e95b277"
+    },
+    "pretrends.csv": {
+      "sha256": "4d99e9b069e38aa9bbfd44bf0a05a3a04d38868f5fddb23bb5f6465a3c343efe"
+    }
+  },
+  "loo_definition": "mean of the 11 other districts' AR(2)-purged, per-district-standardized BBUI innovations (purge first, then average); strict 11-donor rule; z-scored ddof=0 over 1992Q1+ cells",
+  "loo_z_moments": {
+    "mean": 0.000709699063985619,
+    "sd": 0.43577178602549904
+  },
+  "estimator": "identical to Phase 3 (imported estimate_horizon); horse race adds the LOO interaction + its 4 lags as controls",
+  "replication_gate": {
+    "urate_max_absdiff": 9.974659986866641e-17,
+    "emp_max_absdiff": 1.249000902703301e-16,
+    "tol": 1e-09
+  },
+  "wc_draws": 999,
+  "placebo_perms": 200,
+  "seed": 42,
+  "paired_with_phase3_placebo": true
+}

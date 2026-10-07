@@ -1,0 +1,141 @@
+{
+  "mode": "full",
+  "menu_peak_range": [
+    -3.311528197504757,
+    1.4328152417041928
+  ],
+  "menu_all_negative_peak": false,
+  "menu_schemes_estimated": 12,
+  "curve_n_estimated": 207,
+  "curve_n_skipped": 81,
+  "curve_peak_range": [
+    -46.75623780391811,
+    3.394718910181616
+  ],
+  "curve_median_peak": -2.0693670982642356,
+  "curve_share_peak_negative": 0.9516908212560387,
+  "median_pvalue_h0_zero": 0.0,
+  "gk_overlay": {
+    "scale": "raw structural (one-SD shock), OLS reduced form fixed",
+    "narrative_events_used": [
+      "1987-10",
+      "2001-09",
+      "2008-09",
+      "2020-03"
+    ],
+    "gk_n_admissible": 1181,
+    "h12_band_gk": [
+      -1.357,
+      0.264
+    ],
+    "h12_band_sign": [
+      -1.264,
+      -0.063
+    ],
+    "h12_band_narrative": [
+      -1.233,
+      -0.168
+    ],
+    "h12_width_ratio_gk_vs_sign": 1.35,
+    "gk_upper_positive_share": 0.88,
+    "narrative_ess": 1087.0,
+    "narrative_vs_sign_h12_width_ratio": 0.887
+  },
+  "variance_decomposition": {
+    "r2_scheme_only": 0.2416,
+    "r2_data_dims_only": 0.3835,
+    "r2_joint": 0.6198
+  },
+  "family_medians": {
+    "recursive": -1.0522,
+    "sign": -3.8986,
+    "proxy": -8.6832,
+    "max-share": -1.2932,
+    "heteroskedasticity": -1.194,
+    "non-Gaussian": -1.0361,
+    "local-projection": -0.9042,
+    "narrative-sign": -3.4033
+  },
+  "runtime_seconds": 283.3,
+  "narrative_hd": {
+    "narrative_t2": {
+      "peak": -2.9039,
+      "h12": -2.6786,
+      "diagnostics": "{\"n_trad\": 1456, \"n_narr\": 463, \"ess\": 206.2, \"events\": \"1987-10+2001-09+2008-09+2020-03\", \"hd_events\": \"2008-09(II)+2020-03(II)\"}"
+    },
+    "narrative_t3": {
+      "peak": -2.5762,
+      "h12": -2.4513,
+      "diagnostics": "{\"n_trad\": 1426, \"n_narr\": 380, \"ess\": 181.2, \"events\": \"1987-10+2001-09+2008-09+2020-03\", \"hd_events\": \"2008-09(II)+2020-03(III)\"}"
+    }
+  },
+  "event_sweep": {
+    "all4_width_h12": 3.5686094067695024,
+    "all4_h12_band": [
+      -4.03775669727309,
+      -0.46914729050358756
+    ],
+    "single_event_width_range": [
+      3.9456810134065945,
+      4.587559338953657
+    ],
+    "tightest_single_event": "only_1987-10",
+    "most_binding_event_by_loo": "drop_1987-10",
+    "excl_zero_h12_configs": [
+      "all4",
+      "only_1987-10",
+      "only_2001-09",
+      "only_2008-09",
+      "only_2020-03",
+      "drop_1987-10",
+      "drop_2001-09",
+      "drop_2008-09",
+      "drop_2020-03"
+    ]
+  },
+  "ph_sweep": {
+    "p_grid": [
+      3,
+      6,
+      12
+    ],
+    "schemes": {
+      "chol_first": {
+        "range": [
+          -1.2253287880104302,
+          -1.0495452464190582
+        ],
+        "all_negative": true
+      },
+      "chol_last": {
+        "range": [
+          -1.1097209890018624,
+          -0.9604999842226555
+        ],
+        "all_negative": true
+      },
+      "sign": {
+        "range": [
+          -3.318045449749856,
+          -2.9934791614419956
+        ],
+        "all_negative": true
+      },
+      "proxy": {
+        "range": [
+          -3.118007005852631,
+          -2.397412429224949
+        ],
+        "all_negative": true
+      },
+      "maxshare": {
+        "range": [
+          -1.37067872974991,
+          -1.1919202659789527
+        ],
+        "all_negative": true
+      }
+    },
+    "n_failed": 0
+  }
+}

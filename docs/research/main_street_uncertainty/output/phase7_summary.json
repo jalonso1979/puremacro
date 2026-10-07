@@ -1,0 +1,46 @@
+{
+  "mode": "full",
+  "discriminant_innovations": {
+    "corr_full_sent": 0.983369844341304,
+    "corr_full_unc": 0.2512237883415444,
+    "corr_unc_sent": 0.11280089296975371,
+    "n_cells": 1632
+  },
+  "scoring_gate_max_absdiff": 9.8879238130678e-17,
+  "full_innovation_gate_max_absdiff": 7.105427357601002e-15,
+  "peaks": {
+    "urate_full": {
+      "h": 9,
+      "beta": 0.0415,
+      "se_dk": 0.0193,
+      "p_wc": 0.158
+    },
+    "urate_unc": {
+      "h": 7,
+      "beta": 0.024,
+      "se_dk": 0.0189,
+      "p_wc": 0.069
+    },
+    "urate_sent": {
+      "h": 9,
+      "beta": 0.0437,
+      "se_dk": 0.019,
+      "p_wc": 0.194
+    },
+    "urate_hr_unc": {
+      "h": 7,
+      "beta": 0.0221,
+      "se_dk": 0.0186,
+      "p_wc": 0.05
+    },
+    "urate_hr_sent": {
+      "h": 9,
+      "beta": 0.0432,
+      "se_dk": 0.0188,
+      "p_wc": 0.166
+    }
+  },
+  "wc_draws": 999,
+  "seed": 42,
+  "runtime_seconds": 929.2
+}

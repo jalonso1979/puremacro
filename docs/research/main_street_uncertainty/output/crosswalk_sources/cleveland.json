@@ -1,0 +1,11 @@
+{
+  "district": "Cleveland",
+  "source_urls": [
+    "https://fraser.stlouisfed.org/title/description-federal-reserve-districts-678/federal-reserve-district-boundaries-23468/fulltext",
+    "https://www.clevelandfed.org/regional-analysis"
+  ],
+  "notes": "Board of Governors 'Description of Federal Reserve Districts' (March 1998, FRASER), extracted twice independently with identical results. Counts PA 19 / KY 56 / WV 6 match the Cleveland Fed's current stated territory ('56 counties in eastern Kentucky, 19 counties in western Pennsylvania, and six counties in the northern panhandle of West Virginia'). Complements: PA remainder -> Philadelphia, KY remainder -> St. Louis (cross-checked), WV remainder -> Richmond.",
+  "PA": ["Allegheny", "Armstrong", "Beaver", "Butler", "Clarion", "Crawford", "Erie", "Fayette", "Forest", "Greene", "Indiana", "Jefferson", "Lawrence", "Mercer", "Somerset", "Venango", "Warren", "Washington", "Westmoreland"],
+  "KY": ["Bath", "Bell", "Boone", "Bourbon", "Boyd", "Bracken", "Breathitt", "Campbell", "Carter", "Clark", "Clay", "Elliott", "Estill", "Fayette", "Fleming", "Floyd", "Garrard", "Grant", "Greenup", "Harlan", "Harrison", "Jackson", "Jessamine", "Johnson", "Kenton", "Knott", "Knox", "Laurel", "Lawrence", "Lee", "Leslie", "Letcher", "Lewis", "Lincoln", "Madison", "Magoffin", "Martin", "Mason", "McCreary", "Menifee", "Montgomery", "Morgan", "Nicholas", "Owsley", "Pendleton", "Perry", "Pike", "Powell", "Pulaski", "Robertson", "Rockcastle", "Rowan", "Scott", "Whitley", "Wolfe", "Woodford"],
+  "WV": ["Brooke", "Hancock", "Marshall", "Ohio", "Tyler", "Wetzel"]
+}

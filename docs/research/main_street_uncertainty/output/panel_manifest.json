@@ -1,0 +1,19 @@
+{
+  "created_utc": "2026-07-23T17:08:35.997933+00:00",
+  "inputs": {
+    "bbui_district_panel.csv": {
+      "sha256": "424b6f1dce04d3a693aed0f44189077369b38fa78b80a1877dd32b4f5931381d",
+      "rows": 2899,
+      "span": "1970-04-01..2025-10-01"
+    },
+    "state_labor_quarterly.csv": {
+      "sha256": "68034700426644322a691872dbf0f3eddd31b831b1119490916ea175e016d931",
+      "rows": 10302,
+      "source": "FRED fredgraph CSV (no-key mirror of BLS LAUS {ST}UR / CES {ST}NA), quarterly means"
+    }
+  },
+  "crosswalk": "STATE_TO_DISTRICT primary mapping (population-majority for 14 split states)",
+  "shock": "AR(2) innovation of quarterly district BBUI, z-scored within district (derive_innovation_shock)",
+  "estimator": "panel_lp_dk: two-way FE + Driscoll-Kraay SE, n_lags=4, horizons 0-12",
+  "band": "sup-t (Montiel Olea & Plagborg-M\u00f8ller 2019 JAE, Alg. 2) on 300 district-cluster bootstrap draws"
+}
