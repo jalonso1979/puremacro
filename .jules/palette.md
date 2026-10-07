@@ -1,0 +1,3 @@
+## 2025-05-24 - Inline HTML Accessibility in Jupyter Notebooks
+**Learning:** When generating rich HTML widgets for Jupyter notebooks (via `IPython.display.HTML`), standard web accessibility rules apply. Decorative emojis need `aria-hidden="true"`, and external links (`target="_blank"`) require `rel="noopener noreferrer"` and explicit `aria-label`s indicating they open in a new window to support screen reader users effectively.
+**Action:** Always verify that inline HTML strings generated in Python include basic ARIA roles and security attributes, just as if they were written in a React/Vue frontend component.
