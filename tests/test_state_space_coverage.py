@@ -440,6 +440,49 @@ class TestExactDiffuseEdgeCases:
         np.testing.assert_allclose(S @ out["P_filt"] @ S, ref["P_filt"], rtol=1e-9, atol=1e-12)
         assert out["loglik"] == pytest.approx(ref["loglik"] - np.log(scale), abs=1e-9)
 
+    def test_nearly_collinear_loadings_resolve_both_diffuse_states(self):
+        """Rows [1, 0] and [1, 1e-5] are linearly independent, so both diffuse
+        states are pinned down in period 0: F_inf = 1e-10 at the second row
+        is a genuine diffuse step, not a rounding residual."""
+        unit = StateSpaceModel(T=np.eye(2), Z=np.array([[1.0, 0.0], [1.0, 1.0]]),
+                               Q=np.diag([0.3, 0.5]), H=np.diag([0.8, 1.3]))
+        scaled = _rescale_state(unit, 1, 1e5)            # Z[:, 1] *= 1e-5
+        y = _rng(5).normal(0, 1, (8, 2))
+        out = kalman_filter(y, scaled, diffuse_states=[0, 1])
+        Z_inv = np.linalg.inv(scaled.Z)
+        np.testing.assert_allclose(out["a_filt"][0], Z_inv @ y[0], rtol=1e-9)
+        np.testing.assert_allclose(out["P_filt"][0], Z_inv @ scaled.H @ Z_inv.T, rtol=1e-9)
+        ref = kalman_filter(y, unit, diffuse_states=[0, 1])
+        S = np.diag([1.0, 1e5])
+        np.testing.assert_allclose(out["a_filt"], ref["a_filt"] @ S, rtol=1e-9, atol=1e-12)
+        np.testing.assert_allclose(out["P_filt"], S @ ref["P_filt"] @ S, rtol=1e-9, atol=1e-12)
+        assert out["loglik"] == pytest.approx(ref["loglik"] + np.log(1e5), abs=1e-9)
+
+    def test_small_diffuse_component_survives_until_observed(self):
+        """With T = diag(1, 1e-5) and a missing period, P_inf = diag(1, 1e-10).
+        Observing only state 0 resolves that direction and must leave the
+        diffuse part of state 1 in place, however small, until state 1 is
+        observed; it then has the flat-prior posterior Var = H_11 / Z_11^2."""
+        model = StateSpaceModel(T=np.diag([1.0, 1e-5]), Z=np.diag([1.0, 2.0]),
+                                Q=np.diag([0.3, 0.5]), H=np.diag([0.8, 1.3]))
+        y = _rng(6).normal(0, 1, (8, 2))
+        y[0] = np.nan
+        y[1, 1] = np.nan
+        out = kalman_filter(y, model, diffuse_states=[0, 1])
+        assert out["P_filt"][2, 1, 1] == pytest.approx(1.3 / 2.0 ** 2, rel=1e-9)
+        assert out["a_filt"][2, 1] == pytest.approx(y[2, 1] / 2.0, rel=1e-9)
+        # The states are independent: the bivariate run is two univariate ones.
+        univ = [kalman_filter(y[:, i], StateSpaceModel(
+                    T=model.T[i:i + 1, i:i + 1], Z=model.Z[i:i + 1, i:i + 1],
+                    Q=model.Q[i:i + 1, i:i + 1], H=model.H[i:i + 1, i:i + 1]),
+                    diffuse_states=[0]) for i in range(2)]
+        for i in range(2):
+            np.testing.assert_allclose(out["a_filt"][:, i], univ[i]["a_filt"][:, 0],
+                                       rtol=1e-12, atol=1e-14)
+            np.testing.assert_allclose(out["P_filt"][:, i, i], univ[i]["P_filt"][:, 0, 0],
+                                       rtol=1e-12, atol=1e-14)
+        assert out["loglik"] == pytest.approx(univ[0]["loglik"] + univ[1]["loglik"], abs=1e-9)
+
 
 # ---------------------------------------------------------------------------
 # kalman_filter: Cholesky augmentation fallback (lines 231-236)
