@@ -110,6 +110,18 @@ class StateSpaceModel:
 
 
 
+# Relative cut-off for treating F_inf = z' P_inf z as a diffuse direction
+# (and for declaring P_inf fully resolved); see _kalman_diffuse_update.
+_DIFFUSE_TOL = float(np.sqrt(np.finfo(float).eps))
+
+
+def _propagate_P_inf(Tm: np.ndarray, P_inf: np.ndarray) -> np.ndarray:
+    P_inf_next = Tm @ P_inf @ Tm.T
+    # Clean tiny negative diagonals from numerical drift.
+    np.fill_diagonal(P_inf_next, np.maximum(np.diag(P_inf_next), 0.0))
+    return P_inf_next
+
+
 def _kalman_diffuse_update(
     a_t: np.ndarray,
     P_t: np.ndarray,
@@ -130,22 +142,38 @@ def _kalman_diffuse_update(
     P_curr = P_t.copy()
     P_inf_curr = P_inf.copy()
     ll_t = 0.0
+    # Observations are processed one at a time (Durbin-Koopman 2012, §6.4),
+    # which needs uncorrelated measurement errors: rotate the period onto
+    # the eigenvectors of H_t. The rotation is orthogonal, so the
+    # likelihood needs no Jacobian term.
+    y_dm = y_t[obs] - d_t
+    if np.count_nonzero(H_t - np.diag(np.diag(H_t))):
+        h_diag, U = np.linalg.eigh(H_t)
+        h_diag = np.maximum(h_diag, 0.0)
+        Z_u, y_u = U.T @ Z_t, U.T @ y_dm
+    else:
+        h_diag, Z_u, y_u = np.diag(H_t), Z_t, y_dm
+    # F_inf = z' P_inf z <= (|z| @ sqrt(diag P_inf))^2. The cut-off is
+    # relative to that bound, taken from P_inf as it enters the period:
+    # it follows the units of the loadings, and the rounding residual of a
+    # direction resolved earlier in the period stays below it.
+    sd_inf = np.sqrt(np.maximum(np.diag(P_inf), 0.0))
     for k in range(n_obs):
-        z_k = Z_t[k]                          # (m,)
-        d_k = d_t[k]
-        h_k = H_t[k, k]
-        v_k = float(y_t[obs][k] - z_k @ a_curr - d_k)
+        z_k = Z_u[k]                          # (m,)
+        v_k = float(y_u[k] - z_k @ a_curr)
         F_inf_k = float(z_k @ P_inf_curr @ z_k)
-        F_star_k = float(z_k @ P_curr @ z_k + h_k)
-        if F_inf_k > 1e-12:
-            # Diffuse update (Koopman-Durbin eq. 5.18)
+        F_star_k = float(z_k @ P_curr @ z_k + h_diag[k])
+        if F_inf_k > _DIFFUSE_TOL * float(np.abs(z_k) @ sd_inf) ** 2:
+            # Diffuse update (Koopman-Durbin eq. 5.18):
+            # P_* <- P_* + F_* K0 K0' - K0 M_*' - M_* K0'.
             M_inf = P_inf_curr @ z_k          # (m,)
+            M_star = P_curr @ z_k             # (m,)
             K0 = M_inf / F_inf_k
             a_curr = a_curr + K0 * v_k
             P_inf_curr = P_inf_curr - np.outer(K0, M_inf)
-            P_curr = P_curr + (F_star_k / F_inf_k) * np.outer(K0, K0) \
-                      - np.outer(K0, P_curr @ z_k) \
-                      - np.outer(P_curr @ z_k, K0)
+            P_curr = P_curr + F_star_k * np.outer(K0, K0) \
+                      - np.outer(K0, M_star) \
+                      - np.outer(M_star, K0)
             ll_t += -0.5 * (log2pi + np.log(F_inf_k))
         else:
             if F_star_k <= 0:
@@ -155,13 +183,16 @@ def _kalman_diffuse_update(
             P_curr = P_curr - np.outer(K, P_curr @ z_k)
             ll_t += -0.5 * (log2pi + np.log(F_star_k)
                              + v_k * v_k / F_star_k)
+    # Once every diffuse direction is resolved, what is left of P_inf is
+    # rounding noise; zero it so the standard recursion takes over rather
+    # than the noise passing the cut-off in a later period.
+    if np.max(np.diag(P_inf_curr)) <= _DIFFUSE_TOL * np.max(np.diag(P_inf)):
+        P_inf_curr = np.zeros_like(P_inf_curr)
     a_filt_t = a_curr
     P_filt_t = P_curr
     a_pred_next = Tm @ a_curr + c
     P_pred_next = Tm @ P_curr @ Tm.T + RQR
-    P_inf_next = Tm @ P_inf_curr @ Tm.T
-    # Clean tiny negative diagonals from numerical drift.
-    np.fill_diagonal(P_inf_next, np.maximum(np.diag(P_inf_next), 0.0))
+    P_inf_next = _propagate_P_inf(Tm, P_inf_curr)
 
     innov_t = np.full(n, np.nan)
     innov_t[obs] = y_t[obs] - Z_t @ a_t - d_t
@@ -272,8 +303,9 @@ def kalman_filter(
     if P0 is None:
         P0 = diffuse_scale * np.eye(m)
 
-    # Exact-diffuse initialisation (Koopman-Durbin 2003) for the
-    # univariate-observation case. ``diffuse_states`` lists the indices
+    # Exact-diffuse initialisation (Koopman-Durbin 2003), with the
+    # observations processed one at a time while it lasts (Durbin-Koopman
+    # 2012, §6.4). ``diffuse_states`` lists the indices
     # of α whose prior is diffuse (infinite variance). We carry an
     # extra "P_inf" matrix that captures the diffuse part exactly; once
     # all diffuse directions are pinned down by data, P_inf collapses
@@ -339,6 +371,9 @@ def kalman_filter(
                 P_filt[t] = P_t
                 a_pred[t + 1] = Tm @ a_t + c
                 P_pred[t + 1] = Tm @ P_t @ Tm.T + RQR
+                if use_exact_diffuse:
+                    # The diffuse part moves with the state too.
+                    P_inf = _propagate_P_inf(Tm, P_inf)
                 continue
 
             Z_t = Z[obs]
